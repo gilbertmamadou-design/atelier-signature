@@ -19,14 +19,17 @@ label{display:block;font-weight:600;font-size:14px;margin:12px 0 5px}input[type=
 #qr{background:#fff;border-radius:10px;padding:14px;display:flex;justify-content:center}#qr svg{width:100%;max-width:420px;height:auto}
 .big{font-size:19px;font-weight:700;text-align:center;margin:12px 0 4px}.ok{color:var(--ok)}
 .note{color:var(--sub);font-size:13px;margin-top:14px}
+.entfix{margin-top:12px;padding:10px 12px;border-radius:8px;background:var(--bg);display:flex;flex-direction:column;gap:2px}.entfix span{font-size:13px;color:var(--sub);font-weight:600}
 [hidden]{display:none!important}
 </style></head><body><main>
 <header><svg width="34" height="34" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#1F4E79"/><path d="M18 50V30a10 10 0 0 1 10-10h18" fill="none" stroke="#E9EEF2" stroke-width="10"/><rect x="12" y="46" width="13" height="5" rx="1" fill="#E8641B"/><rect x="45" y="14" width="5" height="13" rx="1" fill="#E8641B"/></svg><div><b>Émargement</b><span>Réunion sécurité</span></div></header>
 <section id="s1">
  <div class="card"><h1 id="titre">Réunion</h1><p class="sub" id="meta"></p></div>
  <div class="card">
-  <label for="nom">Nom et prénom</label><input type="text" id="nom" autocomplete="name" placeholder="Ex. Martin Paul">
-  <label for="ent">Entreprise</label><input type="text" id="ent" autocomplete="organization" placeholder="Ex. Entreprise X">
+  <label for="nom">Nom</label><input type="text" id="nom" autocomplete="family-name" autocapitalize="characters" placeholder="Ex. MARTIN">
+  <label for="pre">Prénom</label><input type="text" id="pre" autocomplete="given-name" autocapitalize="words" placeholder="Ex. Paul">
+  <div id="entfix" class="entfix" hidden><span>Entreprise</span><b id="entname"></b></div>
+  <div id="entfree"><label for="ent">Entreprise</label><input type="text" id="ent" autocomplete="organization" placeholder="Ex. Entreprise X"></div>
   <label>Signature (avec le doigt)</label><div class="pad"><canvas id="cv"></canvas><i>Signature</i></div>
   <div class="row"><button class="btn" id="clear" type="button">Effacer</button></div>
   <label class="chk"><input type="checkbox" id="att"><span>J'ai assisté à la réunion et pris connaissance des consignes présentées.</span></label>
@@ -2346,7 +2349,8 @@ var H={};location.hash.replace(/^#/,'').split('&').forEach(function(kv){var i=kv
 if(!H.r){document.getElementById('s1').hidden=true;document.getElementById('s0').hidden=false;return;}
 document.getElementById('titre').textContent=H.t||'Réunion sécurité';
 var dd=H.d?H.d.split('-').reverse().join('/'):'';document.getElementById('meta').textContent=[dd,H.l].filter(Boolean).join(' · ');
-try{var m=JSON.parse(localStorage.getItem('as-me')||'{}');if(m.n)document.getElementById('nom').value=m.n;if(m.e)document.getElementById('ent').value=m.e;}catch(e){}
+if(H.e){document.getElementById('entfix').hidden=false;document.getElementById('entname').textContent=H.e;document.getElementById('entfree').hidden=true;}
+try{var m=JSON.parse(localStorage.getItem('as-me')||'{}');if(m.n)document.getElementById('nom').value=m.n;if(m.p)document.getElementById('pre').value=m.p;if(m.e&&!H.e)document.getElementById('ent').value=m.e;}catch(e){}
 var cv=document.getElementById('cv'),g,strokes=[],cur=null,dpr=Math.min(2,window.devicePixelRatio||1);
 function size(){var r=cv.getBoundingClientRect();cv.width=r.width*dpr;cv.height=r.height*dpr;g=cv.getContext('2d');g.scale(dpr,dpr);g.lineCap='round';g.lineJoin='round';g.strokeStyle='#0B2545';g.lineWidth=2.6;redraw();}
 function redraw(){var r=cv.getBoundingClientRect();g.clearRect(0,0,r.width,r.height);strokes.forEach(function(s){g.beginPath();s.forEach(function(p,i){i?g.lineTo(p[0]*r.width,p[1]*r.height):g.moveTo(p[0]*r.width,p[1]*r.height)});if(s.length===1){g.arc(s[0][0]*r.width,s[0][1]*r.height,1.3,0,7)}g.stroke();});}
@@ -2360,13 +2364,15 @@ function rdp(pts,eps){if(pts.length<3)return pts;var a=pts[0],b=pts[pts.length-1
 function enc(eps){var by=[1];strokes.forEach(function(s){var q=rdp(s.map(function(p){return [p[0]*255,p[1]*95]}),eps).map(function(p){return [Math.round(p[0]),Math.round(p[1])]});for(var k=0;k<q.length;k+=250){var c=q.slice(k,k+251);by.push(c.length);c.forEach(function(p){by.push(p[0],p[1]);});}});return by;}
 function b64u(by){var s='';by.forEach(function(b){s+=String.fromCharCode(b)});return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
 document.getElementById('go').onclick=function(){
- var n=document.getElementById('nom').value.trim(),e=document.getElementById('ent').value.trim(),err=document.getElementById('err');
- if(n.length<2){err.textContent='Indique ton nom et prénom.';return;}
+ var nm=document.getElementById('nom').value.trim(),pr=document.getElementById('pre').value.trim(),e=H.e?H.e:document.getElementById('ent').value.trim(),err=document.getElementById('err');
+ if(nm.length<2){err.textContent='Indique ton nom.';return;}
+ if(pr.length<2){err.textContent='Indique ton prénom.';return;}
+ var n=nm.toUpperCase()+' '+pr.charAt(0).toUpperCase()+pr.slice(1);
  if(!strokes.length){err.textContent='Signe dans le cadre.';return;}
  if(!document.getElementById('att').checked){err.textContent='Coche la case de présence.';return;}
- err.textContent='';try{localStorage.setItem('as-me',JSON.stringify({n:n,e:e}));}catch(x){}
+ err.textContent='';try{localStorage.setItem('as-me',JSON.stringify({n:nm,p:pr,e:H.e?'':e}));}catch(x){}
  var eps=0.5,by=enc(eps);while(by.length>620&&eps<8){eps*=1.35;by=enc(eps);}
- var txt='AS1|'+H.r+'|'+encodeURIComponent(n)+'|'+encodeURIComponent(e)+'|'+b64u(by);
+ var txt='AS1|'+H.r+'|'+encodeURIComponent(n)+'|'+encodeURIComponent(H.e?'':e)+'|'+b64u(by);
  var qr=qrcode(0,'L');qr.addData(txt,'Byte');qr.make();
  document.getElementById('qr').innerHTML=qr.createSvgTag({cellSize:6,margin:4,scalable:true});
  document.getElementById('who').textContent=n+(e?' · '+e:'');
