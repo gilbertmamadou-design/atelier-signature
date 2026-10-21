@@ -1751,5 +1751,7 @@ android {
 GRADLE
 echo "Signature fixe configurée"
 # Numéro de version qui augmente à chaque fabrication (mise à jour acceptée par Android)
-sed -i "s/versionCode 1$/versionCode ${GITHUB_RUN_NUMBER:-1}/; s/versionName \"1.0\"/versionName \"1.${GITHUB_RUN_NUMBER:-0}\"/" android/app/build.gradle
+# Dépôt public : numérotation au-dessus de celle de l'ancien dépôt privé (sinon Android refuse la mise à jour)
+VC=$((1000 + ${GITHUB_RUN_NUMBER:-0}))
+sed -i "s/versionCode 1$/versionCode $VC/; s/versionName \"1.0\"/versionName \"2.${GITHUB_RUN_NUMBER:-0}\"/" android/app/build.gradle
 grep -n "versionCode\|versionName" android/app/build.gradle | head -2
