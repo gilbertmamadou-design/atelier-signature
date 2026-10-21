@@ -166,5 +166,13 @@
   "name": "Écran",
   "icons": "android-icons-ecran",
   "file": "Ecran.apk"
+ },
+ {
+  "app": "dicta",
+  "web": "www-dicta",
+  "appid": "fr.magformation13.dicta",
+  "name": "Dictaphone",
+  "icons": "android-icons-dicta",
+  "file": "Dictaphone.apk"
  }
 ]

@@ -1,0 +1,970 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Dictaphone</title>
+<meta name="theme-color" content="#0f1116">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#0f1116;--bg2:#181b23;--bg3:#222632;--bg4:#2c3140;--line:#ffffff14;
+  --tx:#f2f3f7;--tx2:#b4b8c7;--tx3:#7d8294;
+  --acc:#8fb4ff;--acc2:#b79bff;--ok:#6fd6a4;--bad:#ff7b7b;--warn:#ffb35c;--rec:#ff5a5f;
+  --r:18px;--safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none}
+body{-webkit-user-select:none;user-select:none}
+input,textarea{font:inherit;color:inherit;-webkit-user-select:text;user-select:text}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+svg{display:block}
+.ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+[hidden]{display:none!important}
+.num{font-variant-numeric:tabular-nums}
+
+header{padding:calc(14px + var(--safe-t)) 16px 8px;display:flex;align-items:center;gap:10px}
+.logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:22px}
+.logo svg{width:32px;height:32px}
+header .sp{flex:1}
+.pill{font-size:13px;color:var(--tx2);background:var(--bg2);border:1px solid var(--line);padding:8px 12px;border-radius:99px;display:flex;align-items:center;gap:7px;font-weight:600;min-height:40px}
+main{padding:4px 16px calc(96px + var(--safe-b))}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.card h3{margin:0 0 12px;font-size:12.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--tx3);font-weight:700;display:flex;align-items:center;gap:8px}
+.card h3 span{flex:1}
+.warn{background:#ffb35c1a;border-color:#ffb35c40;color:#ffd7a8;font-size:14px}
+
+/* Gros bouton d'enregistrement */
+.recCard{display:flex;flex-direction:column;align-items:center;padding:22px 16px 16px}
+.recbtn{width:176px;height:176px;border-radius:50%;background:radial-gradient(circle at 50% 40%,#2a2f3d,#1c1f29);border:2px solid #ffffff1a;display:flex;align-items:center;justify-content:center;position:relative;box-shadow:0 12px 34px #0007, inset 0 1px 0 #ffffff12}
+.recbtn:active{transform:scale(.97)}
+.recbtn .core{width:104px;height:104px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#ff8a8d,var(--rec) 60%,#d93a40);box-shadow:0 0 0 8px #ff5a5f22,0 6px 22px #ff5a5f55;display:flex;align-items:center;justify-content:center;color:#fff}
+.recbtn .core .ic{width:44px;height:44px;stroke-width:2.1}
+.recLbl{margin-top:14px;font-size:17px;font-weight:700}
+.recSub{font-size:13px;color:var(--tx3);margin-top:2px;text-align:center}
+.seg{display:flex;background:var(--bg3);border-radius:14px;padding:4px;gap:4px;width:100%}
+.seg button{flex:1;min-height:48px;padding:6px 4px;border-radius:11px;font-size:14px;font-weight:700;color:var(--tx2);text-align:center;line-height:1.15}
+.seg button small{display:block;font-size:11.5px;font-weight:600;color:var(--tx3);margin-top:1px}
+.seg button.on{background:var(--bg4);color:var(--tx);box-shadow:0 0 0 1px #ffffff2a inset}
+.seg button.on small{color:var(--acc)}
+.qwrap{width:100%;margin-top:18px}
+.hint{font-size:12.5px;color:var(--tx3);margin-top:7px;line-height:1.4}
+.next{width:100%;margin-top:12px;display:flex;align-items:center;gap:12px;background:var(--bg3);border:1px solid var(--line);border-radius:14px;padding:10px 12px;min-height:56px;text-align:left}
+.next .ico{width:36px;height:36px;border-radius:11px;background:#ffb35c1f;color:var(--warn);display:flex;align-items:center;justify-content:center;flex:none}
+.next .t{flex:1;min-width:0}
+.next .t div:first-child{font-size:12px;color:var(--tx3);font-weight:600}
+.next .t div+div{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.tool{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:14px;text-align:left;display:flex;flex-direction:column;gap:10px;min-height:108px}
+.tool:active{transform:scale(.98);background:var(--bg3)}
+.tool .ico{width:44px;height:44px;border-radius:13px;background:#8fb4ff1f;color:var(--acc);display:flex;align-items:center;justify-content:center}
+.tool b{font-size:16px;font-weight:700;display:block}
+.tool span{font-size:12.5px;color:var(--tx3);display:block;margin-top:1px;line-height:1.3}
+
+/* Liste */
+.search{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--line);border-radius:14px;padding:0 12px;min-height:50px}
+.search input{flex:1;min-width:0;background:none;border:0;outline:0;font-size:15.5px;padding:10px 0}
+.search .ic{color:var(--tx3)}
+.search button{width:40px;height:40px;display:flex;align-items:center;justify-content:center;color:var(--tx3);margin-right:-8px}
+.chips{display:flex;gap:7px;overflow-x:auto;padding:10px 0 2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;font-size:13.5px;font-weight:600;color:var(--tx2);background:var(--bg3);border:1px solid var(--line);border-radius:99px;padding:8px 13px;min-height:40px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.chip.on{background:var(--acc);color:#10131c;border-color:transparent}
+.chip .ic{width:16px;height:16px}
+.day{font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--tx3);margin:16px 2px 6px}
+.day:first-child{margin-top:8px}
+.it{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.day+.it{border-top:0}
+.it .pl{width:50px;height:50px;border-radius:50%;background:var(--bg3);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;flex:none;color:var(--acc)}
+.it .pl.on{background:var(--acc);color:#10131c;border-color:transparent}
+.it .t{flex:1;min-width:0;text-align:left}
+.it .t b{display:block;font-size:15.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.it .t .m{font-size:13px;color:var(--tx3);margin-top:2px;font-variant-numeric:tabular-nums}
+.tg{display:inline-flex;align-items:center;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:99px;background:#ffb35c1f;color:#ffd7a8;margin:5px 5px 0 0}
+.tg.t2{background:#8fb4ff1a;color:#c9dbff}
+.empty{color:var(--tx3);font-size:14px;text-align:center;padding:22px 10px;line-height:1.5}
+.foot{font-size:12.5px;color:var(--tx3);text-align:center;margin:14px 8px 0;line-height:1.5}
+
+/* Écrans */
+.scr{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;z-index:10}
+.tb{display:flex;align-items:center;gap:6px;padding:calc(8px + var(--safe-t)) 8px 6px;flex:none}
+.tb h2{flex:1;margin:0;font-size:19px;font-weight:700;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{width:52px;height:52px;border-radius:15px;display:flex;align-items:center;justify-content:center;flex:none}
+.ib:active{background:var(--bg3)}
+.bd{flex:1;overflow-y:auto;overflow-x:hidden;padding:4px 16px 16px}
+.ft{flex:none;padding:10px 16px calc(14px + var(--safe-b));border-top:1px solid var(--line);background:var(--bg)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:56px;padding:10px 12px;border-radius:16px;background:var(--bg3);border:1px solid var(--line);font-weight:700;font-size:15.5px;flex:1;min-width:0;text-align:center;line-height:1.15}
+.btn:active{transform:scale(.97)}
+.btn.main{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#10131c;border:0}
+.btn.red{background:var(--rec);color:#fff;border:0}
+.btn.ghost{background:none}
+.btn.col{flex-direction:column;gap:4px;font-size:13px;min-height:72px}
+.btn.col .ic{width:26px;height:26px}
+.btn.sm{min-height:46px;font-size:14px}
+.btn[disabled]{opacity:.4}
+.row{display:flex;gap:8px}
+.row+.row{margin-top:8px}
+
+/* Écran d'enregistrement */
+.recTop{text-align:center;padding:10px 0 4px}
+.state{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--tx2);background:var(--bg2);border:1px solid var(--line);border-radius:99px;padding:7px 14px}
+.state i{width:10px;height:10px;border-radius:50%;background:var(--rec);animation:blink 1.2s infinite}
+.state.p i{background:var(--warn);animation:none}
+@keyframes blink{50%{opacity:.25}}
+.clock{font-size:64px;font-weight:700;letter-spacing:-1px;font-variant-numeric:tabular-nums;line-height:1.05;margin-top:14px}
+.qinfo{font-size:13.5px;color:var(--tx3);margin-top:4px}
+.live{position:relative;height:120px;margin:18px 0 6px;background:var(--bg2);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.live canvas{width:100%;height:100%;display:block}
+.meter{height:10px;border-radius:99px;background:var(--bg3);overflow:hidden;margin:10px 2px 2px}
+.meter i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,var(--ok) 0,var(--ok) 65%,var(--warn) 82%,var(--bad) 100%);background-size:calc(100vw - 36px) 100%;transition:width .06s linear}
+.mlab{display:flex;justify-content:space-between;font-size:11.5px;color:var(--tx3);padding:4px 2px 0}
+.mks{margin-top:14px}
+.mk{display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;background:var(--bg2);border:1px solid var(--line);border-radius:14px;margin-bottom:8px;text-align:left;min-height:54px}
+.mk .n{width:30px;height:30px;border-radius:9px;background:#ffb35c22;color:var(--warn);font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex:none}
+.mk .tm{font-weight:700;font-variant-numeric:tabular-nums;flex:none;min-width:52px}
+.mk .no{flex:1;min-width:0;color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+.mk .no.e{color:var(--tx3);font-style:italic}
+.ctl{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.ctl .btn{min-height:84px;flex-direction:column;gap:6px;font-size:14px;border-radius:20px}
+.ctl .btn .ic{width:30px;height:30px}
+.discard{display:block;margin:12px auto 0;color:var(--tx3);font-size:14px;font-weight:600;padding:10px 16px;min-height:44px}
+
+/* Lecteur */
+.pmeta{font-size:13.5px;color:var(--tx3);margin:0 0 10px}
+.wave{position:relative;height:150px;background:var(--bg2);border:1px solid var(--line);border-radius:16px;overflow:hidden;touch-action:none}
+.wave canvas{width:100%;height:100%;display:block}
+.wave .ld{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:13.5px}
+.times{display:flex;justify-content:space-between;font-size:14px;color:var(--tx2);margin:8px 2px 0;font-variant-numeric:tabular-nums}
+.times b{color:var(--tx)}
+.pctl{display:flex;align-items:center;justify-content:center;gap:6px;margin:14px 0 6px}
+.pctl .sk{flex:none;width:54px;height:66px;border-radius:20px;background:var(--bg2);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--tx2);gap:2px}
+.pctl .sk .ic{width:24px;height:24px;color:var(--tx)}
+.pctl .pp{flex:none;width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#10131c;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px #8fb4ff33}
+.pctl .pp .ic{width:38px;height:38px;stroke-width:2.2}
+.pctl button:active{transform:scale(.95)}
+.lab{font-size:12.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--tx3);font-weight:700;margin:16px 2px 8px}
+.trimBar{background:#ffb35c14;border:1px solid #ffb35c40;border-radius:16px;padding:12px;margin-top:12px}
+.trimBar .tt{font-size:14px;color:#ffd7a8;margin-bottom:10px;font-variant-numeric:tabular-nums}
+
+/* Mini lecteur */
+.mini{position:fixed;left:12px;right:12px;bottom:calc(12px + var(--safe-b));background:#252a38;border:1px solid #ffffff1f;border-radius:18px;display:flex;align-items:center;gap:10px;padding:8px 8px 8px 14px;box-shadow:0 10px 30px #0009;z-index:5}
+.mini .t{flex:1;min-width:0}
+.mini .t b{display:block;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mini .t span{font-size:12.5px;color:var(--tx3);font-variant-numeric:tabular-nums}
+.mini .ib{width:50px;height:50px;border-radius:14px;background:var(--bg3)}
+.mini .bar{position:absolute;left:14px;right:14px;bottom:0;height:3px;border-radius:3px;overflow:hidden}
+.mini .bar i{display:block;height:100%;background:var(--acc);width:0}
+
+/* Dictée */
+.dmic{width:128px;height:128px;border-radius:50%;margin:30px auto 6px;display:flex;align-items:center;justify-content:center;background:var(--bg3);border:2px solid var(--line);position:relative;color:var(--acc)}
+.dmic .ic{width:48px;height:48px}
+.dmic.on{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#10131c;border-color:transparent}
+.dmic .ring{position:absolute;inset:-10px;border-radius:50%;border:3px solid #8fb4ff66;transform:scale(1);opacity:0;transition:transform .08s,opacity .2s}
+.dmic.on .ring{opacity:1}
+.dst{text-align:center;font-size:14.5px;color:var(--tx2);margin:16px 0 12px;min-height:20px;font-weight:600}
+.dbox{background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:12px;min-height:200px;display:flex;flex-direction:column}
+.dbox textarea{flex:1;min-height:150px;background:none;border:0;outline:0;resize:none;font-size:17px;line-height:1.5;color:var(--tx)}
+.dbox .pt{color:var(--tx3);font-size:16px;font-style:italic;min-height:22px}
+.set{display:flex;align-items:center;gap:12px;padding:12px 0 2px}
+.set .t{flex:1;min-width:0}
+.set .t div:first-child{font-weight:600}
+.set .t div+div{font-size:12.5px;color:var(--tx3);margin-top:2px}
+.sw{position:relative;width:50px;height:30px;flex:none}
+.sw input{opacity:0;position:absolute;inset:0;margin:0;z-index:1}
+.sw span{position:absolute;inset:0;border-radius:99px;background:var(--bg4);transition:.2s}
+.sw span:after{content:"";position:absolute;left:3px;top:3px;width:24px;height:24px;border-radius:50%;background:#cfd3df;transition:.2s}
+.sw input:checked+span{background:var(--acc)}
+.sw input:checked+span:after{transform:translateX(20px);background:#fff}
+
+/* Feuille du bas */
+.sheetBg{position:fixed;inset:0;background:#000a;z-index:20;display:flex;align-items:flex-end}
+.sheet{width:100%;max-height:88vh;overflow-y:auto;background:var(--bg2);border-radius:22px 22px 0 0;border-top:1px solid #ffffff1f;padding:10px 16px calc(16px + var(--safe-b))}
+.sheet .grip{width:42px;height:5px;border-radius:5px;background:var(--bg4);margin:0 auto 12px}
+.sheet h4{margin:0 0 12px;font-size:18px}
+.sheet p{color:var(--tx2);margin:0 0 14px;font-size:14.5px}
+.fld{display:block;margin-bottom:12px}
+.fld span{display:block;font-size:12.5px;color:var(--tx3);font-weight:700;margin-bottom:6px;letter-spacing:.3px}
+.fld input{width:100%;background:var(--bg3);border:1px solid var(--line);border-radius:13px;padding:13px 12px;font-size:16px;outline:0;min-height:52px}
+.fld input:focus{border-color:var(--acc)}
+.wrapc{display:flex;flex-wrap:wrap;gap:7px}
+
+#toast{position:fixed;left:16px;right:16px;top:calc(10px + var(--safe-t));background:#2b3042;border:1px solid #ffffff1f;color:var(--tx);padding:13px 14px;border-radius:14px;font-size:14.5px;box-shadow:0 10px 30px #0008;transform:translateY(-180%);transition:transform .25s;z-index:40}
+#toast{visibility:hidden}
+#toast.on{transform:none;visibility:visible}
+#toast.bad{border-color:#ff7b7b66}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8.5 5.5v13M15.5 5.5v13"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2.5"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5.5 21V4M5.5 4.5h11l-2.2 4 2.2 4h-11"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="i-rw" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.6-5.9L4 8.5"/><path d="M4 3.5v5h5"/></symbol>
+  <symbol id="i-ff" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9L20 8.5"/><path d="M20 3.5v5h-5"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="M8.3 13.2l7.4 4.1M15.7 6.7l-7.4 4.1"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></symbol>
+  <symbol id="i-cut" viewBox="0 0 24 24"><circle cx="6" cy="6.5" r="2.5"/><circle cx="6" cy="17.5" r="2.5"/><path d="M8 8.2L20 19M8 15.8L20 5"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-text" viewBox="0 0 24 24"><path d="M4 6h9M4 11h6M4 16h5"/><rect x="15" y="5" width="5" height="9" rx="2.5"/><path d="M13 12.5a4.5 4.5 0 0 0 9 0M17.5 17v3"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><path d="M16.5 13.5v6M13.5 16.5h6"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14.5 3v4.5H19M9 12h7M9 16h5"/></symbol>
+  <symbol id="i-helmet" viewBox="0 0 24 24"><path d="M3 18h18M5 18v-3a7 7 0 0 1 14 0v3"/><path d="M10 8.5V6h4v2.5"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 24 24"><path d="M6 5v14M18 5.5l-8.5 6.5 8.5 6.5z"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path d="M18 5v14M6 5.5l8.5 6.5L6 18.5z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/></symbol>
+</svg>
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8fb4ff"/><stop offset="1" stop-color="#b79bff"/></linearGradient></defs><rect x="2" y="2" width="28" height="28" rx="8" fill="url(#lg)"/><rect x="12.5" y="7" width="7" height="12" rx="3.5" fill="#10131c"/><path d="M9.5 15.5a6.5 6.5 0 0 0 13 0M16 22v3" stroke="#10131c" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>
+    Dictaphone
+  </div>
+  <div class="sp"></div>
+  <div class="pill" id="pill"><svg class="ic" style="width:17px;height:17px"><use href="#i-note"/></svg><span id="pillTxt">0 note</span></div>
+</header>
+
+<main>
+  <div class="card warn" id="noBridge" hidden>Cette page fonctionne dans l'application Android <b>Dictaphone</b> : c'est elle qui enregistre avec le micro et range tes notes.</div>
+  <div class="card warn" id="lowSpace" hidden></div>
+  <div class="card warn" id="noMic" hidden>
+    <div>Le micro n'est pas autorisé. Sans lui, impossible d'enregistrer.</div>
+    <div class="row" style="margin-top:10px"><button class="btn sm" id="bAllow">Autoriser</button><button class="btn sm" id="bSettings">Paramètres</button></div>
+  </div>
+
+  <section class="card recCard">
+    <button class="recbtn" id="bigRec" aria-label="Nouvel enregistrement"><span class="core"><svg class="ic"><use href="#i-mic"/></svg></span></button>
+    <div class="recLbl">Appuie pour enregistrer</div>
+    <div class="recSub">Continue écran éteint. Pause, marqueurs et arrêt aussi dans la notification.</div>
+    <div class="qwrap">
+      <div class="seg" id="qual">
+        <button data-v="voice">Voix<small>64 kb/s</small></button>
+        <button data-v="hq">Haute qualité<small>128 kb/s</small></button>
+        <button data-v="wav">Brut<small>WAV</small></button>
+      </div>
+      <div class="hint" id="qHint"></div>
+    </div>
+    <button class="next" id="bNext">
+      <div class="ico"><svg class="ic" style="width:20px;height:20px"><use href="#i-helmet"/></svg></div>
+      <div class="t"><div>Chantier des prochaines notes</div><div id="nextTxt">Aucun</div></div>
+      <svg class="ic" style="color:var(--tx3)"><use href="#i-edit"/></svg>
+    </button>
+  </section>
+
+  <div class="grid">
+    <button class="tool" id="bDict"><div class="ico"><svg class="ic"><use href="#i-text"/></svg></div><div><b>Dictée en direct</b><span>Ta voix devient du texte, à envoyer dans Carnet</span></div></button>
+    <button class="tool" id="bShortcut"><div class="ico"><svg class="ic"><use href="#i-home"/></svg></div><div><b>Raccourci</b><span>« Nouvel enregistrement » sur l'écran d'accueil</span></div></button>
+  </div>
+
+  <section class="card">
+    <h3><span>Mes notes</span></h3>
+    <div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="q" type="search" placeholder="Chercher une note, un chantier…" autocomplete="off"><button id="qx" hidden aria-label="Effacer"><svg class="ic"><use href="#i-x"/></svg></button></div>
+    <div class="chips" id="chips"></div>
+    <div id="list"></div>
+  </section>
+  <p class="foot" id="foot">Les notes sont rangées dans le dossier Recordings/Dictaphone du téléphone.</p>
+</main>
+
+<!-- Mini lecteur -->
+<div class="mini" id="mini" hidden>
+  <div class="t" id="miniOpen"><b id="miniName"></b><span id="miniTime"></span></div>
+  <button class="ib" id="miniPP" aria-label="Lecture"><svg class="ic"><use href="#i-play"/></svg></button>
+  <button class="ib" id="miniX" aria-label="Fermer"><svg class="ic"><use href="#i-x"/></svg></button>
+  <div class="bar"><i id="miniBar"></i></div>
+</div>
+
+<!-- Enregistrement -->
+<section class="scr" id="sRec" hidden>
+  <div class="tb"><button class="ib" data-back aria-label="Retour"><svg class="ic"><use href="#i-back"/></svg></button><h2 id="recName">Enregistrement</h2></div>
+  <div class="bd">
+    <div class="recTop">
+      <div class="state" id="recState"><i></i><span>Enregistrement</span></div>
+      <div class="clock" id="clock">0:00</div>
+      <div class="qinfo" id="recQ"></div>
+    </div>
+    <div class="live"><canvas id="cvLive"></canvas></div>
+    <div class="meter"><i id="meter"></i></div>
+    <div class="mlab"><span>Silence</span><span id="dbTxt"></span><span>Fort</span></div>
+    <div class="mks" id="recMarks"></div>
+  </div>
+  <div class="ft">
+    <div class="ctl">
+      <button class="btn" id="bPause"><svg class="ic"><use href="#i-pause"/></svg><span>Pause</span></button>
+      <button class="btn" id="bMark" style="color:var(--warn)"><svg class="ic"><use href="#i-flag"/></svg><span style="color:var(--tx)">Marqueur</span></button>
+      <button class="btn red" id="bStop"><svg class="ic"><use href="#i-stop"/></svg><span>Arrêter</span></button>
+    </div>
+    <button class="discard" id="bDiscard">Annuler cet enregistrement</button>
+  </div>
+</section>
+
+<!-- Lecteur -->
+<section class="scr" id="sPlay" hidden>
+  <div class="tb"><button class="ib" data-back aria-label="Retour"><svg class="ic"><use href="#i-back"/></svg></button><h2 id="pName"></h2><button class="ib" id="pEdit" aria-label="Renommer"><svg class="ic"><use href="#i-edit"/></svg></button></div>
+  <div class="bd">
+    <div class="pmeta" id="pMeta"></div>
+    <div class="wave" id="wave"><canvas id="cvWave"></canvas><div class="ld" id="waveLd">Calcul de la forme d'onde…</div></div>
+    <div class="times"><b id="pPos">0:00</b><span id="pDur">0:00</span></div>
+    <div class="pctl">
+      <button class="sk" id="pPrevM" aria-label="Marqueur précédent"><svg class="ic"><use href="#i-prev"/></svg>Marq.</button>
+      <button class="sk" id="pRw"><svg class="ic"><use href="#i-rw"/></svg>10 s</button>
+      <button class="pp" id="pPP" aria-label="Lecture"><svg class="ic"><use href="#i-play"/></svg></button>
+      <button class="sk" id="pFf"><svg class="ic"><use href="#i-ff"/></svg>10 s</button>
+      <button class="sk" id="pNextM" aria-label="Marqueur suivant"><svg class="ic"><use href="#i-next"/></svg>Marq.</button>
+    </div>
+    <div class="lab">Vitesse</div>
+    <div class="seg" id="speed"><button data-v="0.5">0,5×</button><button data-v="0.75">0,75×</button><button data-v="1">1×</button><button data-v="1.25">1,25×</button><button data-v="1.5">1,5×</button><button data-v="2">2×</button></div>
+    <div class="trimBar" id="trimBar" hidden>
+      <div class="tt" id="trimTxt"></div>
+      <div class="row"><button class="btn sm" id="tStart">Début ici</button><button class="btn sm" id="tEnd">Fin ici</button></div>
+      <div class="row"><button class="btn sm ghost" id="tCancel">Annuler</button><button class="btn sm main" id="tGo">Créer l'extrait</button></div>
+      <div class="hint">Une nouvelle note « … (extrait) » est créée. L'original n'est pas modifié.</div>
+    </div>
+    <div class="lab" id="pMarksLab">Marqueurs</div>
+    <div id="pMarks"></div>
+  </div>
+  <div class="ft">
+    <div class="row">
+      <button class="btn col" id="pShare"><svg class="ic"><use href="#i-share"/></svg>Partager</button>
+      <button class="btn col" id="pInfo"><svg class="ic"><use href="#i-helmet"/></svg>Chantier</button>
+      <button class="btn col" id="pCut"><svg class="ic"><use href="#i-cut"/></svg>Découper</button>
+      <button class="btn col" id="pDel" style="color:var(--bad)"><svg class="ic"><use href="#i-trash"/></svg><span style="color:var(--tx)">Supprimer</span></button>
+    </div>
+  </div>
+</section>
+
+<!-- Dictée en direct -->
+<section class="scr" id="sDict" hidden>
+  <div class="tb"><button class="ib" data-back aria-label="Retour"><svg class="ic"><use href="#i-back"/></svg></button><h2>Dictée en direct</h2><button class="ib" id="dClear" aria-label="Effacer"><svg class="ic"><use href="#i-trash"/></svg></button></div>
+  <div class="bd">
+    <button class="dmic" id="dMic" aria-label="Dicter"><span class="ring" id="dRing"></span><svg class="ic"><use href="#i-mic"/></svg></button>
+    <div class="dst" id="dSt">Appuie sur le micro et parle</div>
+    <div class="dbox"><textarea id="dTxt" placeholder="Le texte apparaît ici au fil de la parole. Tu peux le corriger au clavier."></textarea><div class="pt" id="dPart"></div></div>
+    <div class="set">
+      <div class="t"><div>Hors connexion d'abord</div><div>Utilise la reconnaissance du téléphone si le français est installé</div></div>
+      <label class="sw"><input type="checkbox" id="dOff"><span></span></label>
+    </div>
+    <div class="hint">Dis « virgule », « point », « à la ligne » : la ponctuation est ajoutée. La dictée ne marche pas pendant un enregistrement (le micro est déjà pris).</div>
+  </div>
+  <div class="ft">
+    <div class="row">
+      <button class="btn" id="dShare"><svg class="ic"><use href="#i-share"/></svg>Partager</button>
+      <button class="btn main" id="dCarnet"><svg class="ic"><use href="#i-note"/></svg><span id="dCarnetTxt">Vers Carnet</span></button>
+    </div>
+  </div>
+</section>
+
+<div class="sheetBg" id="sheetBg" hidden><div class="sheet" id="sheet"></div></div>
+<div id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+var D = window.MAGDicta, P = window.MAGPrint;
+var $ = function(i){ return document.getElementById(i); };
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]; }); }
+function ico(id){ return '<svg class="ic"><use href="#i-' + id + '"/></svg>'; }
+function toast(t, bad){ var e = $('toast'); e.textContent = t; e.className = 'on' + (bad ? ' bad' : ''); clearTimeout(toast.t); toast.t = setTimeout(function(){ e.className = ''; }, 3400); }
+function J(s, d){ try{ var v = JSON.parse(s); return v == null ? d : v; }catch(e){ return d; } }
+function buzz(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms || 40); }catch(e){} }
+function pad(n){ return (n < 10 ? '0' : '') + n; }
+function clock(ms){ ms = Math.max(0, Math.floor((ms || 0) / 1000)); var h = Math.floor(ms / 3600), m = Math.floor(ms / 60) % 60, s = ms % 60; return h ? h + ':' + pad(m) + ':' + pad(s) : m + ':' + pad(s); }
+function human(ms){ var s = Math.round((ms || 0) / 1000); if(s < 60) return s + ' s'; var m = Math.floor(s / 60); if(m < 60) return m + ' min' + (s % 60 ? ' ' + pad(s % 60) : ''); return m >= 600 ? Math.round(m / 60) + ' h' : Math.floor(m / 60) + ' h ' + pad(m % 60); }
+function hm(t){ var d = new Date(t); return d.getHours() + 'h' + pad(d.getMinutes()); }
+function mo(b){ return b >= 1e9 ? (b / 1e9).toFixed(1).replace('.', ',') + ' Go' : Math.round(b / 1e6) + ' Mo'; }
+
+/* ---------- Réglages ---------- */
+var S = { q: 'voice', chantier: '', tags: [], offline: true, speed: 1 };
+try{ var sv = J(localStorage.getItem('dicta.s'), null); if(sv) for(var k in sv) S[k] = sv[k]; }catch(e){}
+function save(){ try{ localStorage.setItem('dicta.s', JSON.stringify(S)); }catch(e){} }
+var QN = { voice: 'Voix · AAC 64 kb/s', hq: 'Haute qualité · AAC 128 kb/s', wav: 'Brut · WAV 44,1 kHz' };
+var QMB = { voice: 29, hq: 58, wav: 318 };   // Mo par heure
+var QH = { voice: "Idéal pour la parole : environ 29 Mo par heure. Fichier M4A lu partout.", hq: "Pour la musique ou une réunion : environ 58 Mo par heure.", wav: "Sans compression : environ 318 Mo par heure. Pour un traitement du son ensuite." };
+var PRESETS = ['À traiter', 'Client', 'Commande', 'Mesures', 'Formation', 'Sécurité', 'Idée'];
+var MPRESETS = ['À reprendre', 'Mesure', 'Commande', 'Photo à faire', 'Important', 'Question client'];
+
+var INFO = D ? J(D.info(), {}) : {};
+if(!D) $('noBridge').hidden = false;
+if(INFO.folder) $('foot').textContent = 'Les notes sont rangées dans le dossier ' + INFO.folder + ' du téléphone. Elles restent si tu désinstalles l\'appli.';
+
+function renderQ(){
+  document.querySelectorAll('#qual button').forEach(function(b){ b.classList.toggle('on', b.dataset.v === S.q); });
+  var h = QH[S.q];
+  if(INFO.free > 0) h += ' Place libre : ' + mo(INFO.free) + ' (≈ ' + human(INFO.free / 1e6 / QMB[S.q] * 3600000) + ').';
+  $('qHint').textContent = h;
+  $('nextTxt').textContent = S.chantier ? S.chantier + (S.tags.length ? ' · ' + S.tags.join(', ') : '') : (S.tags.length ? S.tags.join(', ') : 'Aucun');
+  var low = INFO.free > 0 && INFO.free < 300e6;
+  $('lowSpace').hidden = !low;
+  if(low) $('lowSpace').textContent = 'Stockage presque plein : il reste ' + mo(INFO.free) + '. L\'enregistrement s\'arrête tout seul et garde la note avant que le téléphone soit plein.';
+}
+$('qual').onclick = function(e){ var b = e.target.closest('button'); if(!b) return; S.q = b.dataset.v; save(); renderQ(); };
+
+/* ---------- Pile de retour ---------- */
+var stack = [], skipPop = 0;
+function pushLayer(close){ stack.push(close); try{ history.pushState({ n: stack.length }, ''); }catch(e){} }
+window.addEventListener('popstate', function(){ if(skipPop){ skipPop--; return; } var c = stack.pop(); if(c) c(); });
+function back(){ if(stack.length) history.back(); }
+document.querySelectorAll('[data-back]').forEach(function(b){ b.onclick = back; });
+function showScr(id){ var e = $(id); if(!e.hidden) return; e.hidden = false; pushLayer(function(){ e.hidden = true; onClose(id); }); }
+// Ferme l'écran id et tout ce qui est ouvert par-dessus (feuille du bas), en une seule étape d'historique
+function closeScr(id){
+  if($(id).hidden) return;
+  var n = 0;
+  while(stack.length && !$(id).hidden){ try{ stack.pop()(); }catch(e){} n++; }
+  if(n){ skipPop++; try{ history.go(-n); }catch(e){ skipPop--; } }
+}
+function onClose(id){
+  if(id === 'sPlay'){ CUR = null; TRIM = null; renderMini(); }
+  if(id === 'sDict'){ if(SP.on) speechStop(); keep(false); }
+  if(id === 'sRec'){ keep(false); }
+}
+function keep(on){ try{ if(D) D.keepScreen(on); }catch(e){} }
+
+/* ---------- Feuille du bas ---------- */
+var sheetOpen = false;
+function sheet(html, bind){
+  $('sheet').innerHTML = '<div class="grip"></div>' + html;
+  $('sheetBg').hidden = false; sheetOpen = true;
+  pushLayer(function(){ $('sheetBg').hidden = true; sheetOpen = false; });
+  if(bind) bind($('sheet'));
+}
+function closeSheet(){ if(sheetOpen) back(); }
+$('sheetBg').addEventListener('click', function(e){ if(e.target === $('sheetBg')) closeSheet(); });
+
+/* ---------- Liste ---------- */
+var LIST = [], FQ = '', FC = '';
+function refresh(){
+  if(!D) return;
+  LIST = J(D.list(), []);
+  INFO = J(D.info(), INFO);
+  renderList(); renderQ(); publish();
+}
+function allChantiers(){ var m = {}; LIST.forEach(function(r){ if(r.chantier) m[r.chantier] = 1; }); if(S.chantier) m[S.chantier] = 1; return Object.keys(m).sort(); }
+function allTags(){ var m = {}; PRESETS.forEach(function(t){ m[t] = 1; }); LIST.forEach(function(r){ (r.tags || []).forEach(function(t){ m[t] = 1; }); }); return Object.keys(m); }
+function dayLabel(t){
+  var d = new Date(t), n = new Date(); n.setHours(0, 0, 0, 0);
+  var x = new Date(d); x.setHours(0, 0, 0, 0);
+  var diff = Math.round((n - x) / 864e5);
+  if(diff === 0) return "Aujourd'hui"; if(diff === 1) return 'Hier';
+  var s = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  if(d.getFullYear() !== n.getFullYear()) s += ' ' + d.getFullYear();
+  return s;
+}
+function matches(r){
+  if(FC){ var c = FC.slice(2); if(FC[0] === 'c' ? r.chantier !== c : (r.tags || []).indexOf(c) < 0) return false; }
+  if(!FQ) return true;
+  var hay = [r.name, r.chantier, (r.tags || []).join(' '), (r.markers || []).map(function(m){ return m.note; }).join(' '), dayLabel(r.date)].join(' ').toLowerCase();
+  return FQ.toLowerCase().split(/\s+/).every(function(w){ return !w || hay.indexOf(w) >= 0; });
+}
+function renderList(){
+  var n = LIST.length;
+  $('pillTxt').textContent = n + ' note' + (n > 1 ? 's' : '');
+  var ch = allChantiers(), tg = {}; LIST.forEach(function(r){ (r.tags || []).forEach(function(t){ tg[t] = 1; }); });
+  var chips = '<button class="chip' + (FC ? '' : ' on') + '" data-c="">Toutes</button>';
+  ch.forEach(function(c){ if(LIST.some(function(r){ return r.chantier === c; })) chips += '<button class="chip' + (FC === 'c:' + c ? ' on' : '') + '" data-c="c:' + esc(c) + '">' + ico('helmet') + esc(c) + '</button>'; });
+  Object.keys(tg).forEach(function(t){ chips += '<button class="chip' + (FC === 't:' + t ? ' on' : '') + '" data-c="t:' + esc(t) + '">' + esc(t) + '</button>'; });
+  $('chips').innerHTML = chips; $('chips').hidden = n === 0;
+  var rows = LIST.filter(matches), h = '', last = '';
+  rows.forEach(function(r){
+    var dl = dayLabel(r.date);
+    if(dl !== last){ h += '<div class="day">' + esc(dl) + '</div>'; last = dl; }
+    var mk = (r.markers || []).length, on = PS.active && String(PS.id) === String(r.id) && PS.playing;
+    var tags = (r.chantier ? '<span class="tg">' + esc(r.chantier) + '</span>' : '') + (r.tags || []).map(function(t){ return '<span class="tg t2">' + esc(t) + '</span>'; }).join('');
+    h += '<div class="it" data-id="' + r.id + '"><button class="pl' + (on ? ' on' : '') + '" data-play="' + r.id + '" aria-label="Lire">' + ico(on ? 'pause' : 'play') + '</button>' +
+      '<button class="t" data-open="' + r.id + '"><b>' + esc(r.name) + '</b><div class="m">' + hm(r.date) + ' · ' + human(r.dur) + (mk ? ' · ' + mk + ' marqueur' + (mk > 1 ? 's' : '') : '') + (r.q === 'wav' ? ' · WAV' : '') + '</div>' + (tags ? '<div>' + tags + '</div>' : '') + '</button></div>';
+  });
+  if(!n) h = '<div class="empty">Aucune note pour l\'instant.<br>Appuie sur le gros bouton rouge pour commencer.</div>';
+  else if(!rows.length) h = '<div class="empty">Aucune note ne correspond.</div>';
+  $('list').innerHTML = h;
+}
+$('chips').onclick = function(e){ var b = e.target.closest('[data-c]'); if(!b) return; FC = b.dataset.c; renderList(); };
+$('q').oninput = function(){ FQ = this.value.trim(); $('qx').hidden = !FQ; renderList(); };
+$('qx').onclick = function(){ $('q').value = ''; FQ = ''; $('qx').hidden = true; renderList(); };
+$('list').onclick = function(e){
+  var p = e.target.closest('[data-play]'), o = e.target.closest('[data-open]');
+  if(p){ var r = byId(p.dataset.play); if(!r) return; if(PS.active && String(PS.id) === String(r.id)) D.playCmd('toggle', ''); else startPlay(r, 0); return; }
+  if(o){ var r2 = byId(o.dataset.open); if(r2) openPlayer(r2); }
+};
+function byId(id){ for(var i = 0; i < LIST.length; i++) if(String(LIST[i].id) === String(id)) return LIST[i]; return null; }
+
+/* ---------- Tuile Socle et sauvegarde ---------- */
+function publish(){
+  if(!P) return;
+  var l = LIST[0];
+  try{ if(P.widgetPut) P.widgetPut(JSON.stringify({ recording: !!REC.rec, since: REC.rec ? (REC.since || Date.now() - (REC.t || 0)) : 0, last: l ? { name: l.name, dur: l.dur, date: l.date } : null, count: LIST.length })); }catch(e){}
+  try{ if(P.backupPut) P.backupPut(JSON.stringify({ app: 'Dictaphone', enregistrements: LIST.map(function(r){ return { nom: r.name, date: r.date, duree: r.dur, marqueurs: r.markers || [], etiquettes: (r.tags || []).slice(), chantier: r.chantier || '' }; }), reglages: { qualite: S.q, chantier: S.chantier } })); }catch(e){}
+}
+
+/* ---------- Enregistrement ---------- */
+var REC = { rec: false }, pending = null, LV = [], lastLevelT = 0;
+function startRec(){
+  if(!D){ toast("Ouvre la page dans l'appli Dictaphone"); return; }
+  if(REC.rec){ showRec(); return; }
+  if(SP.on) speechStop();
+  try{ D.setNext(JSON.stringify({ chantier: S.chantier || '', tags: S.tags || [] })); }catch(e){}
+  var r = D.recStart(S.q);
+  if(r === 'perm'){ pending = 'rec'; INFO._asked = true; return; }
+  if(r === 'busy'){ toast('Arrête d\'abord la dictée', true); return; }
+  if(r === 'nosvc'){ toast("Le service d'enregistrement manque dans cette appli", true); return; }
+  if(r !== 'ok' && r.charAt(0) !== '{'){ toast('Enregistrement impossible : ' + r, true); return; }
+  buzz(60);
+  LV = []; REC = { rec: true, paused: false, t: 0, markers: [], q: S.q, name: '', since: Date.now() };
+  showRec(); renderRec();
+}
+function showRec(){ showScr('sRec'); keep(true); sizeCanvas($('cvLive')); drawLive(); }
+function renderRec(){
+  $('recName').textContent = REC.name || 'Enregistrement';
+  var st = $('recState'); st.classList.toggle('p', !!REC.paused);
+  st.querySelector('span').textContent = REC.paused ? 'En pause' : 'Enregistrement';
+  $('clock').textContent = clock(REC.t);
+  $('recQ').textContent = (QN[REC.q] || '') + (S.chantier ? ' · ' + S.chantier : '');
+  var pb = $('bPause');
+  pb.disabled = INFO.pause === false;
+  pb.innerHTML = REC.paused ? ico('mic') + '<span>Reprendre</span>' : ico('pause') + '<span>Pause</span>';
+  var mk = REC.markers || [];
+  $('recMarks').innerHTML = mk.length ? mk.map(function(m, i){ return '<button class="mk" data-mi="' + i + '"><span class="n">' + (i + 1) + '</span><span class="tm">' + clock(m.t) + '</span><span class="no' + (m.note ? '' : ' e') + '">' + esc(m.note || 'Ajouter une note') + '</span>' + ico('edit') + '</button>'; }).reverse().join('')
+    : '<div class="hint" style="text-align:center">Appuie sur « Marqueur » pour retrouver un passage important à l\'écoute.</div>';
+}
+$('bigRec').onclick = startRec;
+$('bPause').onclick = function(){ if(!REC.rec) return; buzz(30); if(REC.paused) D.recResume(); else D.recPause(); };
+$('bMark').onclick = function(){ if(!REC.rec) return; var i = D.recMark(''); if(i >= 0){ buzz(80); toast('Marqueur ' + (i + 1) + ' posé à ' + clock(REC.t)); } };
+$('bStop').onclick = function(){ if(!REC.rec) return; buzz(60); $('bStop').disabled = true; D.recStop(); setTimeout(function(){ $('bStop').disabled = false; }, 1500); };
+$('bDiscard').onclick = function(){
+  sheet('<h4>Annuler l\'enregistrement ?</h4><p>Le son enregistré depuis ' + clock(REC.t) + ' sera effacé.</p><div class="row"><button class="btn" data-k="no">Continuer</button><button class="btn red" data-k="yes">Effacer</button></div>', function(s){
+    s.querySelector('[data-k=no]').onclick = closeSheet;
+    s.querySelector('[data-k=yes]').onclick = function(){ closeSheet(); D.recDiscard(); };
+  });
+};
+$('recMarks').onclick = function(e){ var b = e.target.closest('[data-mi]'); if(b) markNote(+b.dataset.mi, true); };
+function markNote(i, live, item){
+  var mk = live ? REC.markers : item.markers, m = mk[i]; if(!m) return;
+  sheet('<h4>Marqueur ' + (i + 1) + ' · ' + clock(m.t) + '</h4><div class="wrapc" style="margin-bottom:12px">' + MPRESETS.map(function(t){ return '<button class="chip" data-p="' + esc(t) + '">' + esc(t) + '</button>'; }).join('') + '</div>' +
+    '<label class="fld"><span>NOTE</span><input id="mkIn" maxlength="120" value="' + esc(m.note || '') + '" placeholder="Ex. : cote de la trémie"></label><div class="row"><button class="btn" data-k="no">Fermer</button><button class="btn main" data-k="ok">' + ico('check') + 'Enregistrer</button></div>', function(s){
+    function done(v){
+      m.note = v;
+      if(live) D.recNote(i, v); else { D.setMeta(String(item.id), JSON.stringify({ markers: item.markers })); renderPlayMarks(); drawWave(); }
+      closeSheet(); if(live) renderRec();
+    }
+    s.querySelectorAll('[data-p]').forEach(function(b){ b.onclick = function(){ var v = $('mkIn').value.trim(); done(v ? v + ' · ' + b.dataset.p : b.dataset.p); }; });
+    s.querySelector('[data-k=no]').onclick = closeSheet;
+    s.querySelector('[data-k=ok]').onclick = function(){ done($('mkIn').value.trim()); };
+  });
+}
+
+/* Forme d'onde en direct */
+function sizeCanvas(c){ var r = c.getBoundingClientRect(), d = window.devicePixelRatio || 1; if(!r.width) return; c.width = Math.round(r.width * d); c.height = Math.round(r.height * d); }
+function drawLive(){
+  var c = $('cvLive'), x = c.getContext('2d'), W = c.width, H = c.height, d = window.devicePixelRatio || 1;
+  if(!W) return;
+  x.clearRect(0, 0, W, H);
+  var bw = 4 * d, gap = 2 * d, n = Math.floor(W / (bw + gap)), mid = H / 2;
+  x.strokeStyle = '#ffffff10'; x.lineWidth = 1; x.beginPath(); x.moveTo(0, mid); x.lineTo(W, mid); x.stroke();
+  var start = Math.max(0, LV.length - n);
+  for(var i = start; i < LV.length; i++){
+    var v = LV[i], px = W - (LV.length - i) * (bw + gap), h = Math.max(2 * d, v.l * (H - 16 * d));
+    x.fillStyle = v.p ? '#ffb35c55' : v.l > .88 ? '#ff7b7b' : '#ff8a8d';
+    x.globalAlpha = .35 + .65 * ((i - start) / Math.max(1, LV.length - start));
+    x.beginPath(); if(x.roundRect) x.roundRect(px, mid - h / 2, bw, h, 2 * d); else x.rect(px, mid - h / 2, bw, h); x.fill();
+    if(v.m){ x.globalAlpha = 1; x.fillStyle = '#ffb35c'; x.fillRect(px + bw / 2 - d, 4 * d, 2 * d, H - 8 * d); x.beginPath(); x.moveTo(px + bw / 2 - d, 4 * d); x.lineTo(px + bw / 2 + 7 * d, 8 * d); x.lineTo(px + bw / 2 - d, 12 * d); x.fill(); }
+  }
+  x.globalAlpha = 1;
+}
+function onLevel(o){
+  REC.t = o.t; REC.paused = !!o.p;
+  var prevMarks = (REC._mc || 0), nm = (REC.markers || []).length;
+  LV.push({ l: o.l || 0, p: !!o.p, m: nm > prevMarks }); REC._mc = nm;
+  if(LV.length > 600) LV.splice(0, LV.length - 600);
+  if($('sRec').hidden) return;
+  $('clock').textContent = clock(o.t);
+  $('meter').style.width = Math.round((o.l || 0) * 100) + '%';
+  $('dbTxt').textContent = o.p ? 'en pause' : (o.db > -89 ? o.db + ' dB' : '');
+  drawLive();
+}
+
+/* ---------- Lecteur ---------- */
+var CUR = null, PS = {}, PEAKS = null, TRIM = null, pendPos = 0;
+function startPlay(r, pos){
+  if(!D) return;
+  if(REC.rec){ toast("Arrête d'abord l'enregistrement", true); return; }
+  var res = D.play(String(r.id), r.name, Math.round(pos || 0), S.speed);
+  if(res === 'rec'){ toast("Arrête d'abord l'enregistrement", true); return; }
+  PS = { id: r.id, name: r.name, playing: true, pos: pos || 0, dur: r.dur, active: true, speed: S.speed };
+  renderPlay(); renderList(); renderMini();
+}
+function openPlayer(r){
+  CUR = r; PEAKS = null; TRIM = null; pendPos = 0;
+  $('pName').textContent = r.name;
+  var d = new Date(r.date);
+  $('pMeta').textContent = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) + ' à ' + hm(r.date) + ' · ' + human(r.dur) + (r.chantier ? ' · ' + r.chantier : '') + ((r.tags || []).length ? ' · ' + r.tags.join(', ') : '');
+  $('waveLd').hidden = false; $('waveLd').textContent = "Calcul de la forme d'onde…";
+  $('trimBar').hidden = true;
+  showScr('sPlay');
+  sizeCanvas($('cvWave'));
+  renderSpeed(); renderPlayMarks(); renderPlay(); drawWave(); renderMini();
+  if(D) D.wave(String(r.id), Math.max(120, Math.round($('cvWave').getBoundingClientRect().width / 3)));
+}
+function same(){ return CUR && PS.active && String(PS.id) === String(CUR.id); }
+function curPos(){ return same() ? PS.pos || 0 : pendPos; }
+function curDur(){ return (same() && PS.dur) || (CUR && CUR.dur) || 1; }
+function renderPlay(){
+  if(!CUR) return;
+  var playing = same() && PS.playing;
+  $('pPP').innerHTML = ico(playing ? 'pause' : 'play');
+  $('pPos').textContent = clock(curPos()); $('pDur').textContent = clock(curDur());
+  drawWave();
+}
+function renderSpeed(){ document.querySelectorAll('#speed button').forEach(function(b){ b.classList.toggle('on', +b.dataset.v === +S.speed); }); }
+function renderPlayMarks(){
+  var mk = (CUR && CUR.markers) || [];
+  $('pMarksLab').hidden = false;
+  $('pMarks').innerHTML = mk.length ? mk.map(function(m, i){ return '<div class="mk" style="padding:0;gap:0"><button class="row" data-jump="' + i + '" style="flex:1;align-items:center;gap:12px;padding:10px 0 10px 12px;min-height:54px;text-align:left;min-width:0"><span class="n">' + (i + 1) + '</span><span class="tm">' + clock(m.t) + '</span><span class="no' + (m.note ? '' : ' e') + '">' + esc(m.note || 'Sans note') + '</span></button><button class="ib" data-mnote="' + i + '" aria-label="Note">' + ico('edit') + '</button></div>'; }).join('')
+    : '<div class="hint">Aucun marqueur dans cette note.</div>';
+}
+function seekTo(ms, play){
+  ms = Math.max(0, Math.min(curDur() - 100, ms));
+  if(same()){ D.playCmd('seek', String(Math.round(ms))); PS.pos = ms; if(play && !PS.playing) D.playCmd('toggle', ''); }
+  else if(play) startPlay(CUR, ms);
+  else pendPos = ms;
+  renderPlay();
+}
+$('pMarks').onclick = function(e){
+  var j = e.target.closest('[data-jump]'), n = e.target.closest('[data-mnote]');
+  if(j){ buzz(20); seekTo(CUR.markers[+j.dataset.jump].t, true); }
+  else if(n) markNote(+n.dataset.mnote, false, CUR);
+};
+$('pPP').onclick = function(){ if(!CUR) return; buzz(20); if(same()) D.playCmd('toggle', ''); else startPlay(CUR, pendPos); };
+$('pRw').onclick = function(){ if(same()) D.playCmd('skip', '-10000'); else { pendPos = Math.max(0, pendPos - 10000); renderPlay(); } };
+$('pFf').onclick = function(){ if(same()) D.playCmd('skip', '10000'); else { pendPos = Math.min(curDur(), pendPos + 10000); renderPlay(); } };
+function jumpMark(dir){
+  var mk = (CUR && CUR.markers) || [], p = curPos(), t = null;
+  if(!mk.length){ toast('Aucun marqueur'); return; }
+  if(dir > 0){ for(var i = 0; i < mk.length; i++) if(mk[i].t > p + 500){ t = mk[i].t; break; } }
+  else { for(var k = mk.length - 1; k >= 0; k--) if(mk[k].t < p - 1500){ t = mk[k].t; break; } if(t == null) t = 0; }
+  if(t == null){ toast('Dernier marqueur atteint'); return; }
+  seekTo(t, true);
+}
+$('pPrevM').onclick = function(){ jumpMark(-1); };
+$('pNextM').onclick = function(){ jumpMark(1); };
+$('speed').onclick = function(e){ var b = e.target.closest('button'); if(!b) return; S.speed = +b.dataset.v; save(); renderSpeed(); if(PS.active) D.playCmd('speed', String(S.speed)); };
+
+function drawWave(){
+  var c = $('cvWave'), W = c.width, H = c.height; if(!W || !CUR) return;
+  var x = c.getContext('2d'), d = window.devicePixelRatio || 1, dur = curDur(), pos = curPos();
+  x.clearRect(0, 0, W, H);
+  var top = 18 * d, mid = top + (H - top) / 2, amp = (H - top) / 2 - 6 * d;
+  var pk = PEAKS || [], n = pk.length;
+  if(n){
+    var mx = 0.02; for(var i = 0; i < n; i++) if(pk[i] > mx) mx = pk[i];
+    var bw = W / n, done = pos / dur * W;
+    for(var j = 0; j < n; j++){
+      var v = Math.sqrt(pk[j] / mx), h = Math.max(2 * d, v * amp * 2), px = j * bw;
+      var inTrim = !TRIM || (j / n * dur >= TRIM.s && j / n * dur <= TRIM.e);
+      x.fillStyle = !inTrim ? '#ffffff14' : px + bw / 2 < done ? '#8fb4ff' : '#5b6275';
+      x.fillRect(px + bw * .18, mid - h / 2, Math.max(1, bw * .64), h);
+    }
+  } else {
+    x.fillStyle = '#ffffff10'; x.fillRect(0, mid - 1, W, 2);
+  }
+  // Marqueurs
+  ((CUR && CUR.markers) || []).forEach(function(m, i){
+    var px = m.t / dur * W;
+    x.fillStyle = '#ffb35c'; x.fillRect(px - d, top - 2 * d, 2 * d, H - top);
+    x.beginPath(); x.arc(px, top - 8 * d, 8 * d, 0, 7); x.fill();
+    x.fillStyle = '#10131c'; x.font = 'bold ' + (10 * d) + 'px system-ui,sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText(String(i + 1), px, top - 7.5 * d);
+  });
+  // Découpe
+  if(TRIM){
+    [TRIM.s, TRIM.e].forEach(function(t){ var px = Math.max(10 * d, Math.min(W - 10 * d, t / dur * W)); x.fillStyle = '#ffb35c'; x.fillRect(px - 1.5 * d, top, 3 * d, H - top); x.beginPath(); if(x.roundRect) x.roundRect(px - 9 * d, H - 30 * d, 18 * d, 26 * d, 5 * d); else x.rect(px - 9 * d, H - 30 * d, 18 * d, 26 * d); x.fill(); });
+  }
+  // Tête de lecture
+  var hp = pos / dur * W;
+  x.fillStyle = '#fff'; x.fillRect(hp - d, top, 2 * d, H - top);
+}
+(function(){
+  var w = $('wave'), drag = null;
+  function at(e){ var r = w.getBoundingClientRect(); return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * curDur(); }
+  w.addEventListener('pointerdown', function(e){
+    if(!CUR) return;
+    var t = at(e);
+    if(TRIM){ drag = Math.abs(t - TRIM.s) < Math.abs(t - TRIM.e) ? 's' : 'e'; TRIM[drag] = t; fixTrim(); }
+    else { drag = 'p'; pendPos = t; if(same()) PS.pos = t; renderPlay(); }
+    try{ w.setPointerCapture(e.pointerId); }catch(er){}
+  });
+  w.addEventListener('pointermove', function(e){ if(!drag) return; var t = at(e); if(drag === 'p'){ pendPos = t; if(same()) PS.pos = t; renderPlay(); } else { TRIM[drag] = t; fixTrim(); } });
+  function up(e){ if(drag === 'p' && same()) D.playCmd('seek', String(Math.round(at(e)))); drag = null; }
+  w.addEventListener('pointerup', up); w.addEventListener('pointercancel', function(){ drag = null; });
+})();
+
+/* Découpe */
+function fixTrim(){
+  var d = curDur();
+  TRIM.s = Math.max(0, Math.min(TRIM.s, d)); TRIM.e = Math.max(0, Math.min(TRIM.e, d));
+  if(TRIM.e < TRIM.s){ var k = TRIM.s; TRIM.s = TRIM.e; TRIM.e = k; }
+  $('trimTxt').textContent = 'Garder de ' + clock(TRIM.s) + ' à ' + clock(TRIM.e) + ' · ' + human(TRIM.e - TRIM.s);
+  drawWave();
+}
+$('pCut').onclick = function(){
+  if(!CUR) return;
+  if(TRIM){ TRIM = null; $('trimBar').hidden = true; drawWave(); return; }
+  var d = curDur();
+  TRIM = { s: Math.min(curPos(), d * .1), e: d };
+  $('trimBar').hidden = false; fixTrim();
+  toast('Fais glisser les poignées orange, ou utilise « Début ici » et « Fin ici »');
+};
+$('tStart').onclick = function(){ TRIM.s = curPos(); fixTrim(); };
+$('tEnd').onclick = function(){ TRIM.e = curPos(); fixTrim(); };
+$('tCancel').onclick = function(){ TRIM = null; $('trimBar').hidden = true; drawWave(); };
+$('tGo').onclick = function(){
+  if(!TRIM || TRIM.e - TRIM.s < 1000){ toast('Portion trop courte', true); return; }
+  if(same() && PS.playing) D.playCmd('toggle', '');
+  $('tGo').disabled = true; $('tGo').lastChild.textContent = 'Découpe…';
+  D.trim(String(CUR.id), TRIM.s, TRIM.e);
+};
+
+/* Partage, infos, suppression */
+function shareText(r){
+  var t = r.name + ' · ' + human(r.dur) + (r.chantier ? ' · Chantier : ' + r.chantier : '');
+  (r.markers || []).forEach(function(m, i){ t += '\n' + (i + 1) + '. ' + clock(m.t) + (m.note ? ' ' + m.note : ''); });
+  return t;
+}
+$('pShare').onclick = function(){ if(CUR && !D.share(JSON.stringify([CUR.id]), shareText(CUR))) toast('Partage impossible', true); };
+$('pEdit').onclick = function(){ if(CUR) editSheet(CUR); };
+$('pInfo').onclick = function(){ if(CUR) editSheet(CUR); };
+$('pDel').onclick = function(){
+  if(!CUR) return; var r = CUR;
+  sheet('<h4>Supprimer cette note ?</h4><p>« ' + esc(r.name) + ' » (' + human(r.dur) + ') sera effacée du téléphone.</p><div class="row"><button class="btn" data-k="no">Garder</button><button class="btn red" data-k="yes">' + ico('trash') + 'Supprimer</button></div>', function(s){
+    s.querySelector('[data-k=no]').onclick = closeSheet;
+    s.querySelector('[data-k=yes]').onclick = function(){
+      if(same()) D.playCmd('pstop', '');
+      var res = D.remove(String(r.id)); closeSheet();
+      if(res === 'ok'){ toast('Note supprimée'); setTimeout(function(){ closeScr('sPlay'); refresh(); }, 250); }
+      else if(res !== 'wait') toast('Suppression impossible', true);
+    };
+  });
+};
+function chipsHtml(list, sel, attr){ return list.map(function(t){ return '<button class="chip' + (sel.indexOf(t) >= 0 ? ' on' : '') + '" ' + attr + '="' + esc(t) + '">' + esc(t) + '</button>'; }).join(''); }
+function editSheet(r){
+  var tags = (r.tags || []).slice();
+  sheet('<h4>Nom et chantier</h4>' +
+    '<label class="fld"><span>NOM</span><input id="eName" maxlength="80" value="' + esc(r.name) + '"></label>' +
+    '<label class="fld"><span>CHANTIER</span><input id="eCh" maxlength="60" value="' + esc(r.chantier || '') + '" placeholder="Ex. : Villa Martin, Aubagne"></label>' +
+    '<div class="wrapc" id="eChs" style="margin:-4px 0 14px">' + allChantiers().map(function(c){ return '<button class="chip" data-ch="' + esc(c) + '">' + ico('helmet') + esc(c) + '</button>'; }).join('') + '</div>' +
+    '<div class="fld"><span>ÉTIQUETTES</span><div class="wrapc" id="eTags">' + chipsHtml(allTags(), tags, 'data-tg') + '</div></div>' +
+    '<label class="fld"><span>NOUVELLE ÉTIQUETTE</span><input id="eNew" maxlength="30" placeholder="Puis touche « Enregistrer »"></label>' +
+    '<div class="row"><button class="btn" data-k="no">Annuler</button><button class="btn main" data-k="ok">' + ico('check') + 'Enregistrer</button></div>', function(s){
+    $('eChs').onclick = function(e){ var b = e.target.closest('[data-ch]'); if(b) $('eCh').value = b.dataset.ch; };
+    $('eTags').onclick = function(e){ var b = e.target.closest('[data-tg]'); if(!b) return; var t = b.dataset.tg, i = tags.indexOf(t); if(i >= 0) tags.splice(i, 1); else tags.push(t); b.classList.toggle('on', i < 0); };
+    s.querySelector('[data-k=no]').onclick = closeSheet;
+    s.querySelector('[data-k=ok]').onclick = function(){
+      var nn = $('eName').value.trim(), nt = $('eNew').value.trim();
+      if(nt && tags.indexOf(nt) < 0) tags.push(nt);
+      r.chantier = $('eCh').value.trim(); r.tags = tags;
+      D.setMeta(String(r.id), JSON.stringify({ chantier: r.chantier, tags: tags }));
+      if(nn && nn !== r.name){
+        var res = D.rename(String(r.id), nn);
+        if(res === 'ok'){ r.name = nn; $('pName').textContent = nn; }
+        else if(res === 'exists') toast('Ce nom existe déjà', true);
+        else if(res !== 'wait') toast('Renommage impossible', true);
+      }
+      closeSheet(); refresh(); if(CUR && String(CUR.id) === String(r.id)){ var f = byId(r.id); if(f){ CUR = f; openMetaRefresh(); } }
+    };
+  });
+}
+function openMetaRefresh(){ var r = CUR; $('pName').textContent = r.name; $('pMeta').textContent = new Date(r.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) + ' à ' + hm(r.date) + ' · ' + human(r.dur) + (r.chantier ? ' · ' + r.chantier : '') + ((r.tags || []).length ? ' · ' + r.tags.join(', ') : ''); }
+
+/* Chantier des prochaines notes */
+$('bNext').onclick = function(){
+  var tags = (S.tags || []).slice();
+  sheet('<h4>Chantier des prochaines notes</h4><p>Ajouté automatiquement à chaque nouvel enregistrement.</p>' +
+    '<label class="fld"><span>CHANTIER</span><input id="nCh" maxlength="60" value="' + esc(S.chantier) + '" placeholder="Ex. : Villa Martin, Aubagne"></label>' +
+    '<div class="wrapc" id="nChs" style="margin:-4px 0 14px">' + allChantiers().map(function(c){ return '<button class="chip" data-ch="' + esc(c) + '">' + ico('helmet') + esc(c) + '</button>'; }).join('') + '</div>' +
+    '<div class="fld"><span>ÉTIQUETTES</span><div class="wrapc" id="nTags">' + chipsHtml(allTags(), tags, 'data-tg') + '</div></div>' +
+    '<div class="row"><button class="btn" data-k="clr">Aucun</button><button class="btn main" data-k="ok">' + ico('check') + 'Valider</button></div>', function(s){
+    $('nChs').onclick = function(e){ var b = e.target.closest('[data-ch]'); if(b) $('nCh').value = b.dataset.ch; };
+    $('nTags').onclick = function(e){ var b = e.target.closest('[data-tg]'); if(!b) return; var t = b.dataset.tg, i = tags.indexOf(t); if(i >= 0) tags.splice(i, 1); else tags.push(t); b.classList.toggle('on', i < 0); };
+    s.querySelector('[data-k=clr]').onclick = function(){ S.chantier = ''; S.tags = []; save(); renderQ(); closeSheet(); };
+    s.querySelector('[data-k=ok]').onclick = function(){ S.chantier = $('nCh').value.trim(); S.tags = tags; save(); renderQ(); closeSheet(); };
+  });
+};
+
+/* Mini lecteur */
+function renderMini(){
+  var show = PS.active && $('sPlay').hidden;
+  $('mini').hidden = !show;
+  if(!show) return;
+  $('miniName').textContent = PS.name || '';
+  $('miniTime').textContent = clock(PS.pos) + ' / ' + clock(PS.dur) + (PS.speed && PS.speed !== 1 ? ' · ' + String(PS.speed).replace('.', ',') + '×' : '');
+  $('miniPP').innerHTML = ico(PS.playing ? 'pause' : 'play');
+  $('miniBar').style.width = (PS.dur ? PS.pos / PS.dur * 100 : 0) + '%';
+}
+$('miniPP').onclick = function(){ D.playCmd('toggle', ''); };
+$('miniX').onclick = function(){ D.playCmd('pstop', ''); PS.active = false; renderMini(); renderList(); };
+$('miniOpen').onclick = function(){ var r = byId(PS.id); if(r) openPlayer(r); };
+
+/* ---------- Dictée en direct ---------- */
+var SP = { on: false, text: '' };
+try{ $('dTxt').value = localStorage.getItem('dicta.txt') || ''; }catch(e){}
+$('dOff').checked = S.offline !== false;
+$('dOff').onchange = function(){ S.offline = this.checked; save(); };
+$('dCarnetTxt').textContent = INFO.carnet === false ? 'Envoyer' : 'Vers Carnet';
+function saveTxt(){ try{ localStorage.setItem('dicta.txt', $('dTxt').value); }catch(e){} }
+$('dTxt').oninput = saveTxt;
+function punct(s){
+  return s.replace(/\s*\b(virgule)\b/gi, ',').replace(/\s*\b(point d'interrogation)\b/gi, ' ?').replace(/\s*\b(point d'exclamation)\b/gi, ' !')
+    .replace(/\s*\b(deux points)\b/gi, ' :').replace(/\s*\b(point à la ligne)\b/gi, '.\n').replace(/\s*\b(à la ligne|nouvelle ligne)\b/gi, '\n').replace(/\s*\b(point)\b(?!\s*d)/gi, '.');
+}
+function addFinal(t){
+  t = punct(t.trim()); if(!t) return;
+  var ta = $('dTxt'), v = ta.value, endSent = !v.trim() || /[.!?\n]\s*$/.test(v);
+  if(endSent) t = t.charAt(0).toUpperCase() + t.slice(1);
+  ta.value = v + (v && !/[\s\n]$/.test(v) && !/^[,.?!:]/.test(t) ? ' ' : '') + t;
+  ta.scrollTop = ta.scrollHeight; saveTxt();
+}
+function speechUI(st, msg){
+  $('dMic').classList.toggle('on', SP.on);
+  $('dSt').textContent = msg || (SP.on ? (st === 'listen' ? 'Je t\'écoute…' : 'Démarrage…') : 'Appuie sur le micro et parle');
+  if(!SP.on){ $('dRing').style.transform = 'scale(1)'; $('dPart').textContent = ''; }
+}
+function speechStart(){
+  if(!D){ toast("Ouvre la page dans l'appli Dictaphone"); return; }
+  if(REC.rec){ toast("Le micro est pris par l'enregistrement en cours", true); return; }
+  var r = D.speechStart(S.offline !== false);
+  if(r === 'perm'){ pending = 'speech'; return; }
+  if(r === 'busy'){ toast("Le micro est pris par l'enregistrement en cours", true); return; }
+  if(r === 'none'){ speechUI('', 'Aucun service de reconnaissance vocale sur ce téléphone'); return; }
+  SP.on = true; buzz(30); speechUI('start'); keep(true);
+}
+function speechStop(){ SP.on = false; if(D) D.speechStop(); speechUI(); keep(false); }
+$('dMic').onclick = function(){ if(SP.on) speechStop(); else speechStart(); };
+$('bDict').onclick = function(){ showScr('sDict'); speechUI(); };
+$('dClear').onclick = function(){
+  if(!$('dTxt').value.trim()) return;
+  sheet('<h4>Effacer le texte ?</h4><div class="row"><button class="btn" data-k="no">Garder</button><button class="btn red" data-k="yes">Effacer</button></div>', function(s){
+    s.querySelector('[data-k=no]').onclick = closeSheet;
+    s.querySelector('[data-k=yes]').onclick = function(){ $('dTxt').value = ''; saveTxt(); closeSheet(); };
+  });
+};
+function dTitle(){ var d = new Date(); return 'Dictée du ' + d.toLocaleDateString('fr-FR') + ' ' + hm(d) + (S.chantier ? ' · ' + S.chantier : ''); }
+$('dCarnet').onclick = function(){
+  var t = $('dTxt').value.trim(); if(!t){ toast('Rien à envoyer pour l\'instant'); return; }
+  if(SP.on) speechStop();
+  var r = D ? D.sendText(t, dTitle(), INFO.carnet !== false) : 'err';
+  if(r === 'share' && INFO.carnet) toast("Carnet n'a pas répondu : choisis une appli");
+  else if(r === 'err') toast('Envoi impossible', true);
+};
+$('dShare').onclick = function(){ var t = $('dTxt').value.trim(); if(!t){ toast('Rien à partager pour l\'instant'); return; } if(D) D.sendText(t, dTitle(), false); };
+
+/* Raccourci */
+$('bShortcut').onclick = function(){
+  if(!D){ toast("Ouvre la page dans l'appli Dictaphone"); return; }
+  if(D.pinShortcut()) toast('Confirme l\'ajout sur l\'écran d\'accueil');
+  else toast('Appui long sur l\'icône Dictaphone : le raccourci « Nouvel enregistrement » y est déjà');
+};
+
+/* ---------- Événements natifs ---------- */
+window.dictaEvent = function(type, o){
+  if(typeof o === 'string') o = J(o, {});
+  o = o || {};
+  switch(type){
+    case 'level': if(REC.rec) onLevel(o); break;
+    case 'state': {
+      var was = REC.rec;
+      REC = Object.assign(REC, o); REC.rec = !!o.rec;
+      if(REC.rec){ if($('sRec').hidden) showRec(); renderRec(); }
+      if(was !== REC.rec) publish();
+      break;
+    }
+    case 'end': {
+      REC = { rec: false }; LV = [];
+      if(!$('sRec').hidden) closeScr('sRec');
+      if(o.discarded) toast(o.reason === 'discard' ? 'Enregistrement effacé' : 'Enregistrement trop court ou interrompu', o.reason !== 'discard');
+      else if(o.reason === 'space') toast('Stockage presque plein : enregistrement arrêté. « ' + o.name + ' » est gardée.', true);
+      else if(o.reason === 'error') toast('Enregistrement interrompu. « ' + o.name + ' » est gardée.', true);
+      else toast('Note enregistrée : ' + o.name + ' (' + human(o.dur) + ')');
+      setTimeout(refresh, 300);
+      break;
+    }
+    case 'error': toast(o.msg || 'Erreur', true); break;
+    case 'perm':
+      INFO.mic = !!o.mic; $('noMic').hidden = !!o.mic;
+      if(o.mic){ var p = pending; pending = null; if(p === 'rec') startRec(); else if(p === 'speech') speechStart(); }
+      else { pending = null; toast('Le micro est nécessaire pour enregistrer', true); }
+      break;
+    case 'play': {
+      var ended = o.ended;
+      PS = o; PS.active = o.active !== false && o.id != null && o.id !== -1;
+      if(ended){ PS.pos = 0; }
+      if(CUR && same()) pendPos = PS.pos;
+      renderPlay(); renderMini();
+      if(type === 'play' && (ended || renderList._p !== PS.playing)){ renderList._p = PS.playing; renderList(); }
+      break;
+    }
+    case 'wave':
+      if(CUR && String(o.id) === String(CUR.id)){
+        if(o.error){ $('waveLd').textContent = "Forme d'onde indisponible"; }
+        else { PEAKS = o.peaks || []; $('waveLd').hidden = true; if(o.dur && !CUR.dur) CUR.dur = o.dur; renderPlay(); }
+      }
+      break;
+    case 'trim':
+      $('tGo').disabled = false; $('tGo').lastChild.textContent = "Créer l'extrait";
+      if(o.ok){ toast('Extrait créé : ' + o.name); TRIM = null; $('trimBar').hidden = true; refresh(); var nr = byId(o.id); if(nr){ closeScr('sPlay'); setTimeout(function(){ openPlayer(nr); }, 250); } }
+      else toast('Découpe impossible : ' + (o.msg || ''), true);
+      break;
+    case 'renamed': if(o.ok) toast('Note renommée'); else toast('Renommage refusé', true); refresh(); if(CUR){ var f = byId(CUR.id); if(f){ CUR = f; openMetaRefresh(); } } break;
+    case 'removed': if(o.ok){ toast('Note supprimée'); if(!$('sPlay').hidden) closeScr('sPlay'); } refresh(); break;
+    case 'speech':
+      if(o.partial != null){ $('dPart').textContent = o.partial; }
+      if(o['final'] != null){ $('dPart').textContent = ''; addFinal(o['final']); }
+      if(o.state === 'listen') speechUI('listen', o.onDevice ? 'Je t\'écoute… (sur le téléphone, hors ligne)' : null);
+      if(o.state === 'error'){ SP.on = false; speechUI('', o.msg); keep(false); }
+      if(o.state === 'stop'){ SP.on = false; speechUI(); }
+      break;
+    case 'slevel': $('dRing').style.transform = 'scale(' + (1 + (o.l || 0) * .22).toFixed(3) + ')'; break;
+    case 'resume': {
+      if(o.rec) window.dictaEvent('state', o.rec);
+      if(o.rec && !o.rec.rec && !$('sRec').hidden){ closeScr('sRec'); }
+      if(o.play && o.play.id != null) window.dictaEvent('play', o.play);
+      INFO = D ? J(D.info(), INFO) : INFO; $('noMic').hidden = INFO.mic !== false || !INFO._asked;
+      refresh();
+      break;
+    }
+  }
+};
+
+/* ---------- Tuile Socle / raccourci : {rec:1} ---------- */
+window.onSocle = function(a){
+  var o = typeof a === 'string' ? J(a, {}) : (a || {});
+  if(o.rec){
+    if(REC.rec){ showRec(); return; }
+    if(D && !D.hasMic()){ pending = 'rec'; D.askPerms(); return; }
+    startRec();
+  }
+  if(o.dictee) { showScr('sDict'); speechUI(); }
+};
+
+$('bAllow').onclick = function(){ if(D){ INFO._asked = true; D.askPerms(); } };
+$('bSettings').onclick = function(){ if(D) D.openSettings(); };
+window.addEventListener('resize', function(){ if(!$('sRec').hidden){ sizeCanvas($('cvLive')); drawLive(); } if(!$('sPlay').hidden){ sizeCanvas($('cvWave')); drawWave(); } });
+
+/* ---------- Démarrage ---------- */
+renderQ();
+if(D){
+  try{ D.setupShortcut(); }catch(e){}
+  refresh();
+  var st = J(D.recState(), {});
+  if(st.rec){ REC = st; showRec(); renderRec(); }
+  var ps = J(D.playState(), {});
+  if(ps.active){ PS = ps; renderMini(); renderList(); }
+} else renderList();
+setTimeout(function(){ try{ if(P && P.takeSocle){ var x = P.takeSocle(); if(x) window.onSocle(x); } }catch(e){} }, 400);
+document.addEventListener('visibilitychange', function(){ if(!document.hidden && D){ INFO = J(D.info(), INFO); renderQ(); } });
+})();
+</script>
+</body>
+</html>

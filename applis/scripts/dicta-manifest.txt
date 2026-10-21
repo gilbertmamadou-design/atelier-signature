@@ -1,0 +1,41 @@
+# Dictaphone : lignes à ajouter à android/app/src/main/AndroidManifest.xml (uniquement pour l'appli Dictaphone)
+# Copier aussi scripts/DictaBridge.java et scripts/DictaService.java à côté de MainActivity.java
+# (avec __PKG__ remplacé par le paquet), comme les autres *Bridge.java.
+# Pages : www-dicta. Paquet suggéré : fr.magformation13.dicta (entrée apps.json à ajouter).
+
+# --- 1) Avant </manifest> ---
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <uses-feature android:name="android.hardware.microphone" android:required="true" />
+    <queries>
+        <package android:name="fr.magformation13.carnet" />
+        <intent><action android:name="android.speech.RecognitionService" /></intent>
+        <intent><action android:name="android.intent.action.SEND" /><data android:mimeType="text/plain" /></intent>
+        <intent><action android:name="android.intent.action.SEND" /><data android:mimeType="audio/*" /></intent>
+    </queries>
+
+# --- 2) Avant </application> ---
+        <service android:name=".DictaService"
+            android:foregroundServiceType="microphone|mediaPlayback"
+            android:exported="false" />
+
+# Remarques
+# - Le raccourci « Nouvel enregistrement » est dynamique (ShortcutManager, créé par DictaBridge.setupShortcut()
+#   au démarrage de la page) : rien à déclarer. Il ouvre MainActivity avec l'extra socle {"rec":1},
+#   que la page reçoit par window.onSocle (comme une tuile Socle).
+# - Le service n'est démarré que lorsque l'appli est au premier plan (bouton, raccourci, tuile) :
+#   Android 14+ interdit de lancer un service « microphone » depuis l'arrière-plan.
+#   Pause / Marqueur / Arrêter dans la notification agissent sur le service déjà lancé.
+# - Les notes sont enregistrées dans Recordings/Dictaphone (Android 12+) ou Music/Dictaphone (Android 10-11),
+#   via MediaStore. Android 9 et moins : fichier direct dans Music/Dictaphone (WRITE_EXTERNAL_STORAGE).
+# - READ_MEDIA_AUDIO sert seulement à retrouver les notes après une réinstallation (elles ne
+#   « appartiennent » alors plus à l'appli) ; renommer/supprimer passe alors par la confirmation d'Android.
+# - Dictée hors ligne : installer le français dans Paramètres > Système > Langue > Reconnaissance vocale
+#   hors connexion (ou Google > Voice). Sans ce pack, Android utilise le réseau.
