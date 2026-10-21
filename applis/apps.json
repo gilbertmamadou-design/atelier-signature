@@ -174,5 +174,13 @@
   "name": "Dictaphone",
   "icons": "android-icons-dicta",
   "file": "Dictaphone.apk"
+ },
+ {
+  "app": "urgence",
+  "web": "www-urgence",
+  "appid": "fr.magformation13.urgence",
+  "name": "Urgence",
+  "icons": "android-icons-urgence",
+  "file": "Urgence.apk"
  }
 ]
