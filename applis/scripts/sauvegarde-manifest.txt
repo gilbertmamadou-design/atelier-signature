@@ -1,0 +1,61 @@
+# Sauvegarde (fr.magformation13.sauvegarde) : lignes à ajouter à android/app/src/main/AndroidManifest.xml
+# (dans print-patch.sh : bloc  if [ "$APP" = "sauvegarde" ] ; ajouter aussi SauvegardeJob à la boucle
+#  « for J in AlarmService AlarmReceiver WallpaperJob … » pour copier scripts/SauvegardeJob.java avec __PKG__ remplacé).
+# SauvegardeBridge.java est déjà copié automatiquement (boucle scripts/*Bridge.java) et chargé sous window.MAGSauvegarde.
+
+# ---------- 1. Dans <application> … </application> ----------
+<service android:name=".SauvegardeJob" android:permission="android.permission.BIND_JOB_SERVICE" android:exported="false" />
+
+# ---------- 2. Avant </manifest> : autorisations ----------
+<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+<uses-permission android:name="android.permission.READ_CONTACTS" />
+<uses-permission android:name="android.permission.READ_CALENDAR" />
+<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+<uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+<uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+<uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+# Déjà déclarées pour toutes les applis MAG (à garder) : POST_NOTIFICATIONS, ACCESS_MEDIA_LOCATION, fr.magformation13.permission.WIDGET
+
+# Facultatif : sauvegarde des dossiers Download et Documents en entier (Android 11+, réglage « Accès à tous les fichiers »).
+# Sans elle, l'utilisateur ajoute ces dossiers dans « Dossiers en plus » (choix SAF, aucune autorisation large).
+<uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+
+# Facultatif, NON recommandé : SMS. Lecture seule possible sans être l'appli SMS par défaut, mais READ_SMS est une
+# autorisation « restreinte » : Android 13+ la bloque pour les APK installés hors Play Store (il faut passer par
+# Paramètres > Applis > Sauvegarde > menu ⋮ > « Autoriser les paramètres restreints »), et Google Play la refuse.
+# Tant que cette ligne n'est pas ajoutée, l'appli grise l'option SMS et l'explique.
+# <uses-permission android:name="android.permission.READ_SMS" />
+
+# ---------- 3. Avant </manifest> : visibilité des autres applis MAG (Android 11+) ----------
+# Sans ces lignes, getContentResolver().query("content://<paquet>.widget/backup") échoue : l'autre appli est invisible.
+<queries>
+    <intent><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent>
+    <intent><action android:name="android.intent.action.VIEW" /><data android:mimeType="text/x-vcard" /></intent>
+    <intent><action android:name="android.intent.action.VIEW" /><data android:mimeType="text/calendar" /></intent>
+    <intent><action android:name="android.intent.action.VIEW" /><data android:mimeType="application/json" /></intent>
+    <intent><action android:name="android.intent.action.SEND" /><data android:mimeType="*/*" /></intent>
+    <package android:name="fr.magformation13.carnet" />
+    <package android:name="fr.magformation13.scan" />
+    <package android:name="fr.magformation13.mesure" />
+    <package android:name="fr.magformation13.photo" />
+    <package android:name="fr.magformation13.ondes" />
+    <package android:name="fr.magformation13.toile" />
+    <package android:name="fr.magformation13.socle" />
+    <package android:name="fr.magformation13.suite" />
+    <package android:name="fr.magformation13.qhse" />
+    <package android:name="fr.magformation13.chasse" />
+    <package android:name="fr.magformation13.sentiers" />
+    <package android:name="fr.magformation13.vigie" />
+    <package android:name="fr.magformation13.petitspas" />
+    <package android:name="fr.magformation13.reveil" />
+    <package android:name="fr.magformation13.musique" />
+    <package android:name="fr.magformation13.fichiers" />
+    <package android:name="fr.magformation13.ciel" />
+    <package android:name="fr.magformation13.pdf" />
+    <package android:name="fr.magformation13.echafaudage" />
+</queries>
+
+# ---------- 4. Pour que Socle voie Sauvegarde (tuile) ----------
+# Dans le manifeste de Socle (fr.magformation13.socle), son <queries> LAUNCHER existant suffit.

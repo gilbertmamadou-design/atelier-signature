@@ -1,0 +1,1113 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Aube</title>
+<meta name="theme-color" content="#0c0e1f">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#0c0e1f;--bg2:#151834;--bg3:#20244a;--bg4:#2a2f5c;--line:#ffffff17;
+  --tx:#f6f2ea;--tx2:#bcb8d2;--tx3:#807d9e;
+  --acc:#ffb35c;--acc2:#ff7e5f;--rose:#f59fb0;--ok:#6fd6a4;--bad:#ff6b6b;
+  --r:18px;--safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);
+  --sky:linear-gradient(160deg,#1b1f4b,#0c0e1f);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none}
+body{display:flex;flex-direction:column;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+input,select{font:inherit;color:inherit}
+svg{display:block}
+.ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.num{font-variant-numeric:tabular-nums}
+[hidden]{display:none!important}
+
+/* En-tête et navigation */
+header{padding:calc(12px + var(--safe-t)) 18px 6px;display:flex;align-items:center;gap:10px}
+.logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:20px;letter-spacing:.2px}
+.logo svg{width:30px;height:30px}
+header .sp{flex:1}
+.hdate{color:var(--tx2);font-size:13px;text-align:right;line-height:1.25}
+main{flex:1;overflow-y:auto;overflow-x:hidden;padding:6px 16px calc(96px + var(--safe-b));scroll-behavior:smooth}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:space-around;padding:8px 6px calc(8px + var(--safe-b));background:linear-gradient(transparent,var(--bg) 30%);z-index:20}
+nav button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11.5px;font-weight:600;color:var(--tx3);padding:6px 12px;border-radius:14px;min-width:68px;transition:color .2s,background .2s}
+nav button .ic{width:24px;height:24px}
+nav button.on{color:var(--acc);background:#ffb35c14}
+section.tab{animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* Éléments communs */
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.card h3{margin:0 0 10px;font-size:13px;letter-spacing:.6px;text-transform:uppercase;color:var(--tx3);font-weight:700}
+.row{display:flex;align-items:center;gap:10px}
+.grow{flex:1;min-width:0}
+.muted{color:var(--tx2)}.dim{color:var(--tx3)}.small{font-size:13px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 18px;border-radius:14px;background:var(--bg3);font-weight:650;border:1px solid var(--line);transition:transform .1s,background .2s}
+.btn:active{transform:scale(.97)}
+.btn.pri{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#2a1405;border:0}
+.btn.ghost{background:transparent}
+.btn.bad{color:var(--bad)}
+.btn.full{width:100%}
+.btn.sm{padding:8px 12px;font-size:13.5px;border-radius:11px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:8px 13px;border-radius:999px;background:var(--bg3);border:1px solid var(--line);font-size:13.5px;font-weight:600;color:var(--tx2)}
+.chip.on{background:var(--acc);color:#2a1405;border-color:transparent}
+.sw{width:50px;height:30px;border-radius:99px;background:var(--bg4);position:relative;flex:none;transition:background .2s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#e9e6f2;transition:transform .2s}
+.sw.on{background:var(--acc)}.sw.on::after{transform:translateX(20px);background:#fff}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:6px;background:linear-gradient(90deg,var(--acc) var(--p,50%),var(--bg4) var(--p,50%))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:#fff;margin-top:-9px;box-shadow:0 2px 8px #0008}
+input[type=range]::-moz-range-track{height:6px;border-radius:6px;background:var(--bg4)}
+input[type=range]::-moz-range-progress{height:6px;border-radius:6px;background:var(--acc)}
+input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:#fff;border:0}
+.field{width:100%;padding:13px 14px;border-radius:13px;background:var(--bg3);border:1px solid var(--line);outline:none}
+.field:focus{border-color:var(--acc)}
+.lbl{font-size:13px;font-weight:700;color:var(--tx2);margin:16px 0 8px;display:flex;align-items:center;gap:8px}
+.toast{position:fixed;left:50%;bottom:calc(96px + var(--safe-b));transform:translateX(-50%);background:#f6f2ea;color:#14162c;padding:11px 18px;border-radius:14px;font-weight:600;z-index:99;box-shadow:0 8px 30px #0008;max-width:88vw;text-align:center;animation:fade .2s}
+
+/* Horloge */
+.hero{border-radius:26px;padding:26px 20px 18px;background:var(--sky);position:relative;overflow:hidden;margin-bottom:12px;border:1px solid var(--line);transition:background 2s}
+.hero .stars{position:absolute;inset:0;opacity:var(--stars,0);transition:opacity 2s;pointer-events:none}
+.bigtime{font-size:clamp(72px,24vw,116px);font-weight:250;letter-spacing:-3px;line-height:1;text-align:center;position:relative;text-shadow:0 4px 30px #0005}
+.bigtime .col{animation:blink 2s steps(1) infinite}
+@keyframes blink{50%{opacity:.25}}
+.bigtime small{font-size:.28em;letter-spacing:0;font-weight:400;opacity:.65;margin-left:4px}
+.bigdate{text-align:center;font-size:17px;color:#ffffffd9;margin-top:6px;position:relative;text-transform:capitalize}
+.arc{position:relative;margin-top:16px}
+.arc svg{width:100%;height:auto;overflow:visible}
+.arc .lab{display:flex;justify-content:space-between;font-size:12.5px;color:#ffffffc0;margin-top:-4px}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.mini{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:14px;text-align:left;display:flex;flex-direction:column;gap:6px;min-height:112px}
+.mini .k{font-size:12px;letter-spacing:.5px;text-transform:uppercase;color:var(--tx3);font-weight:700}
+.mini .v{font-size:26px;font-weight:600;display:flex;align-items:center;gap:8px}
+.mini .s{font-size:13px;color:var(--tx2)}
+.mini svg.w{width:40px;height:40px}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.act{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;align-items:center;gap:12px;font-weight:650;text-align:left}
+.act i{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;flex:none}
+.act span small{display:block;font-weight:500;color:var(--tx3);font-size:12px}
+
+/* Réveils */
+.next{border-radius:var(--r);padding:16px;background:linear-gradient(135deg,#3a2b5e,#5b3554 60%,#7a4840);margin-bottom:12px;display:flex;align-items:center;gap:14px}
+.next .ic{width:30px;height:30px;color:var(--acc)}
+.next b{font-size:17px}
+.alarm{display:flex;align-items:center;gap:12px;padding:16px;background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);margin-bottom:10px;text-align:left;width:100%;transition:opacity .2s}
+.alarm.off{opacity:.55}
+.alarm .t{font-size:40px;font-weight:300;letter-spacing:-1px;line-height:1}
+.alarm .meta{font-size:13px;color:var(--tx2);margin-top:5px;display:flex;flex-wrap:wrap;gap:4px 10px}
+.alarm .meta span{display:inline-flex;align-items:center;gap:4px}
+.alarm .meta .ic{width:14px;height:14px}
+.alarm .lab{font-weight:650;font-size:14.5px;margin-bottom:3px}
+.fab{position:fixed;right:18px;bottom:calc(84px + var(--safe-b));width:60px;height:60px;border-radius:20px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#2a1405;display:grid;place-items:center;box-shadow:0 10px 30px #ff7e5f55;z-index:19}
+.fab .ic{width:28px;height:28px;stroke-width:2.4}
+.perm{border:1px solid #ffb35c55;background:#ffb35c10}
+.perm .it{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.perm .it:first-of-type{border-top:0}
+.empty{text-align:center;padding:30px 20px;color:var(--tx2)}
+.empty svg{width:120px;height:120px;margin:0 auto 10px}
+
+/* Feuilles (éditeur, choix de musique) */
+.sheet{position:fixed;inset:0;z-index:40;background:var(--bg);display:flex;flex-direction:column;animation:up .25s ease}
+@keyframes up{from{transform:translateY(30px);opacity:0}to{transform:none;opacity:1}}
+.sheet>header{border-bottom:1px solid var(--line);padding-bottom:12px}
+.sheet>header h2{margin:0;font-size:18px;flex:1}
+.sheet .body{flex:1;overflow-y:auto;padding:12px 16px 30px}
+.sheet .foot{padding:12px 16px calc(12px + var(--safe-b));border-top:1px solid var(--line);display:flex;gap:10px}
+.iconbtn{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:var(--bg3);flex:none}
+.wheels{display:flex;justify-content:center;align-items:center;gap:6px;position:relative;margin:4px 0 6px}
+.wheel{height:186px;width:96px;overflow-y:scroll;scroll-snap-type:y mandatory;scrollbar-width:none;mask-image:linear-gradient(transparent,#000 30%,#000 70%,transparent);-webkit-mask-image:linear-gradient(transparent,#000 30%,#000 70%,transparent)}
+.wheel::-webkit-scrollbar{display:none}
+.wheel div{height:62px;display:grid;place-items:center;font-size:50px;font-weight:300;scroll-snap-align:center;color:var(--tx3);transition:color .15s}
+.wheel div.sel{color:var(--tx)}
+.wheel .pad{scroll-snap-align:none}
+.wheels .colon{font-size:46px;font-weight:300;color:var(--tx2);padding-bottom:6px}
+.wheels::before{content:"";position:absolute;left:50%;transform:translateX(-50%);width:230px;height:62px;border-radius:16px;background:var(--bg3);z-index:-1}
+.inwhen{text-align:center;color:var(--acc);font-weight:600;font-size:14px}
+.days{display:flex;justify-content:space-between;gap:6px}
+.days button{flex:1;aspect-ratio:1;max-width:46px;border-radius:50%;background:var(--bg3);font-weight:700;color:var(--tx2);border:1px solid var(--line)}
+.days button.on{background:var(--acc);color:#2a1405;border-color:transparent}
+.seg{display:flex;background:var(--bg3);border-radius:14px;padding:4px;gap:4px}
+.seg button{flex:1;padding:10px 6px;border-radius:11px;font-weight:650;font-size:14px;color:var(--tx2)}
+.seg button.on{background:var(--bg);color:var(--tx);box-shadow:0 2px 8px #0006}
+.track{display:flex;align-items:center;gap:12px;padding:10px;border-radius:14px;background:var(--bg3);border:1px solid var(--line);text-align:left;width:100%}
+.cover{width:50px;height:50px;border-radius:10px;background:linear-gradient(135deg,#3b3f7a,#7a4870);flex:none;display:grid;place-items:center;overflow:hidden;color:#fff9}
+.cover img{width:100%;height:100%;object-fit:cover}
+.trk{display:flex;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid var(--line);width:100%;text-align:left}
+.trk .cover{width:44px;height:44px;border-radius:9px}
+.trk.sel{background:#ffb35c14;border-radius:12px}
+.ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.line{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.line:first-child{border-top:0}
+
+/* Météo */
+.search{position:relative;margin-bottom:12px}
+.search .field{padding-left:44px;padding-right:52px}
+.search>.ic{position:absolute;left:14px;top:14px;color:var(--tx3)}
+.search .loc{position:absolute;right:6px;top:6px;width:40px;height:38px;border-radius:11px;display:grid;place-items:center;color:var(--acc)}
+.results{position:absolute;left:0;right:0;top:54px;background:var(--bg3);border:1px solid var(--line);border-radius:14px;z-index:5;overflow:hidden;box-shadow:0 16px 40px #000a}
+.results button{display:block;width:100%;text-align:left;padding:12px 14px;border-top:1px solid var(--line)}
+.results button:first-child{border-top:0}
+.wxhero{border-radius:26px;padding:20px;background:var(--sky);border:1px solid var(--line);margin-bottom:12px;position:relative;overflow:hidden}
+.wxhero .place{font-weight:700;font-size:17px;display:flex;align-items:center;gap:6px}
+.wxhero .temp{font-size:84px;font-weight:250;letter-spacing:-3px;line-height:1}
+.wxhero .big{width:118px;height:118px;flex:none}
+.wxhero .desc{font-size:17px;font-weight:600}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.cell{background:var(--bg3);border-radius:14px;padding:11px;display:flex;flex-direction:column;gap:3px}
+.cell .k{font-size:11.5px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.cell .v{font-size:17px;font-weight:650}
+.hours{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;margin:0 -4px}
+.hours::-webkit-scrollbar{display:none}
+.hr{flex:none;width:58px;padding:10px 0;border-radius:14px;display:flex;flex-direction:column;align-items:center;gap:5px;background:var(--bg3);font-size:13px}
+.hr.now{background:linear-gradient(180deg,#ffb35c33,#ffb35c10);outline:1px solid #ffb35c66}
+.hr svg{width:32px;height:32px}
+.hr b{font-size:16px}
+.hr .rain{color:#8ec5ff;font-size:11.5px;min-height:14px}
+.day{display:grid;grid-template-columns:62px 34px 40px 36px 1fr 36px;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--line);font-size:14.5px}
+.day:first-of-type{border-top:0}
+.day svg{width:32px;height:32px}
+.day .rain{color:#8ec5ff;font-size:12px}
+.bar{height:6px;border-radius:6px;background:var(--bg4);position:relative}
+.bar i{position:absolute;top:0;bottom:0;border-radius:6px;background:linear-gradient(90deg,#7fc4ff,#ffd36b,#ff8a5c)}
+.tip{display:flex;gap:10px;align-items:flex-start;padding:7px 0}
+.tip .e{font-size:20px;line-height:1.2}
+
+/* Icônes météo animées */
+.wsun{animation:spin 30s linear infinite;transform-origin:32px 32px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.wcloud{animation:drift 6s ease-in-out infinite}
+@keyframes drift{50%{transform:translateX(2.5px)}}
+.wdrop{animation:drop 1.2s linear infinite}
+@keyframes drop{0%{transform:translateY(-3px);opacity:0}30%{opacity:1}100%{transform:translateY(7px);opacity:0}}
+.wflake{animation:flake 2.6s linear infinite}
+@keyframes flake{0%{transform:translateY(-3px);opacity:0}30%{opacity:1}100%{transform:translateY(8px);opacity:0}}
+.wbolt{animation:bolt 3s steps(1) infinite}
+@keyframes bolt{0%,72%,80%,100%{opacity:1}75%,85%{opacity:.15}}
+
+/* Soir */
+.glow{height:210px;border-radius:26px;display:grid;place-items:center;margin-bottom:12px;position:relative;overflow:hidden;background:#07080f;border:1px solid var(--line)}
+.glow .orb{width:150px;height:150px;border-radius:50%;filter:blur(18px);transition:background .4s,opacity .3s}
+.glow .orb.flick{animation:flick 3.2s infinite}
+@keyframes flick{0%,100%{opacity:1;transform:scale(1)}20%{opacity:.86;transform:scale(.97)}35%{opacity:.95}52%{opacity:.8;transform:scale(1.02)}70%{opacity:.97}}
+.glow .lab{position:absolute;bottom:14px;left:0;right:0;text-align:center;font-weight:650;color:#fff;text-shadow:0 1px 8px #000}
+.swatches{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.swatch{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:var(--tx2)}
+.swatch i{width:48px;height:48px;border-radius:50%;border:3px solid transparent;box-shadow:inset 0 0 0 2px #0006}
+.swatch.on i{border-color:#fff}
+.swatch.on{color:var(--tx)}
+
+/* Plein écran : chevet, lumière, lever de soleil, sonnerie */
+.ovl{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;user-select:none;-webkit-user-select:none}
+#chevet{background:#000;color:var(--cv,#ff8a3d)}
+#chevet .t{font-size:clamp(90px,30vw,220px);font-weight:200;letter-spacing:-4px;line-height:1;transition:transform 1.5s}
+#chevet .s{font-size:18px;opacity:.7;margin-top:10px;display:flex;gap:18px;align-items:center}
+#chevet .s svg{width:26px;height:26px}
+.ctl{position:absolute;left:16px;right:16px;bottom:calc(24px + var(--safe-b));background:#14162cf0;border:1px solid var(--line);border-radius:22px;padding:14px 16px;color:var(--tx);animation:up .2s}
+#light{background:#000;transition:background 1s}
+#light .orb{position:absolute;inset:-20%;transition:opacity 1.5s}
+#light .orb.flick{animation:flick 3.2s infinite}
+#light .breath{position:relative;width:200px;height:200px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:20px;font-weight:600;text-shadow:0 1px 10px #0009}
+#light .breath::before{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid #ffffff66;transform:scale(var(--b,.6));transition:transform var(--bd,4s) ease-in-out;background:#ffffff14}
+#light .clk{position:absolute;top:calc(18px + var(--safe-t));font-size:15px;color:#ffffff99}
+#dawn{background:#000;transition:background 4s linear}
+#dawn .sun{position:absolute;left:50%;width:70vmin;height:70vmin;border-radius:50%;transform:translateX(-50%);filter:blur(30px);transition:all 4s linear}
+#dawn .t{position:relative;font-size:72px;font-weight:200;color:#fff;text-shadow:0 2px 20px #0006}
+#ring{background:linear-gradient(180deg,#1d2257 0%,#7a3f6b 45%,#f08a5d 78%,#ffd28a 100%);background-size:100% 300%;animation:sunrise 40s ease-out forwards;padding:calc(30px + var(--safe-t)) 22px calc(30px + var(--safe-b));justify-content:space-between}
+@keyframes sunrise{from{background-position:0 0}to{background-position:0 100%}}
+#ring .t{font-size:clamp(80px,26vw,130px);font-weight:250;letter-spacing:-3px;line-height:1;text-shadow:0 4px 30px #0004}
+#ring .l{font-size:21px;font-weight:650;margin-top:8px;text-align:center}
+#ring .m{color:#ffffffd0;margin-top:8px;text-align:center;font-size:15px}
+#ring .wx{display:flex;align-items:center;gap:10px;background:#ffffff1f;border-radius:16px;padding:10px 16px;margin-top:20px;font-weight:600;backdrop-filter:blur(6px)}
+#ring .wx svg{width:44px;height:44px}
+.slide{position:relative;width:100%;max-width:420px;height:72px;border-radius:40px;background:#ffffff26;backdrop-filter:blur(8px);display:grid;place-items:center;font-weight:650;color:#fff;overflow:hidden;touch-action:none}
+.slide .knob{position:absolute;left:6px;top:6px;width:60px;height:60px;border-radius:50%;background:#fff;color:#7a3f6b;display:grid;place-items:center;box-shadow:0 4px 18px #0004}
+.slide .knob .ic{width:28px;height:28px;stroke-width:2.4}
+.slide span{animation:shine 2.4s infinite}
+@keyframes shine{50%{opacity:.5}}
+.snz{width:100%;max-width:420px;padding:18px;border-radius:22px;background:#ffffffe6;color:#5b2f4f;font-weight:750;font-size:18px;margin-bottom:14px}
+.hello{background:#ffffff26;border-radius:20px;padding:18px;text-align:center;max-width:420px;backdrop-filter:blur(6px)}
+.webnote{font-size:12.5px;color:var(--tx3);text-align:center;margin:14px 6px 0}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><svg viewBox="0 0 64 64"><defs><linearGradient id="lg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b2f72"/><stop offset=".55" stop-color="#c2577a"/><stop offset="1" stop-color="#ffb35c"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(#lg)"/><circle cx="32" cy="42" r="13" fill="#ffe2a8"/><rect x="0" y="42" width="64" height="22" fill="#2a1d4d" opacity=".85"/><path d="M32 18v6M17 24l4 4M47 24l-4 4M10 37h5M49 37h5" stroke="#ffe2a8" stroke-width="3" stroke-linecap="round"/></svg>Aube</div>
+  <div class="sp"></div>
+  <div class="hdate" id="hdate"></div>
+</header>
+<main id="main"></main>
+<nav id="nav">
+  <button data-t="clock"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Horloge</button>
+  <button data-t="alarms"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="13" r="7"/><path d="M12 10v3l2 1.5M5 4 2.5 6.5M19 4l2.5 2.5M7 19.5 5.5 21M17 19.5l1.5 1.5"/></svg>Réveils</button>
+  <button data-t="wx"><svg class="ic" viewBox="0 0 24 24"><path d="M7 18h10a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.2 9.1 4.5 4.5 0 0 0 7 18z"/></svg>Météo</button>
+  <button data-t="soir"><svg class="ic" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>Soir</button>
+</nav>
+
+<script>
+"use strict";
+/* ============ Outils ============ */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const pad = n => String(n).padStart(2, "0");
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const JOURS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
+const JC = ["", "L", "M", "M", "J", "V", "S", "D"];
+const JL = ["", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."];
+const MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+const hm = d => pad(d.getHours()) + ":" + pad(d.getMinutes());
+const ymd = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+let MP = window.MAGPrint, NATIVE = !!(MP && MP.alarmSave);
+const call = (f, ...a) => { try { return MP && MP[f] ? MP[f](...a) : undefined; } catch (e) { return undefined; } };
+function toast(t, ms = 2600) { const o = $(".toast"); if (o) o.remove(); const d = document.createElement("div"); d.className = "toast"; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), ms); }
+const I = {
+  play: '<svg class="ic" viewBox="0 0 24 24"><path d="M7 5v14l11-7z" fill="currentColor" stroke="none"/></svg>',
+  stop: '<svg class="ic" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor" stroke="none"/></svg>',
+  plus: '<svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  back: '<svg class="ic" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>',
+  x: '<svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  note: '<svg class="ic" viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>',
+  bell: '<svg class="ic" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>',
+  sun: '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+  rise: '<svg class="ic" viewBox="0 0 24 24"><path d="M17 18a5 5 0 0 0-10 0M12 2v7M4.2 10.2l1.4 1.4M1 18h2M21 18h2M18.4 11.6l1.4-1.4M23 22H1M8 6l4-4 4 4"/></svg>',
+  set: '<svg class="ic" viewBox="0 0 24 24"><path d="M17 18a5 5 0 0 0-10 0M12 9V2M4.2 10.2l1.4 1.4M1 18h2M21 18h2M18.4 11.6l1.4-1.4M23 22H1M16 5l-4 4-4-4"/></svg>',
+  pin: '<svg class="ic" viewBox="0 0 24 24"><path d="M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>',
+  loc: '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/></svg>',
+  search: '<svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>',
+  moon: '<svg class="ic" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>',
+  bed: '<svg class="ic" viewBox="0 0 24 24"><path d="M2 18V6M2 12h20v6M22 18v-4a3 3 0 0 0-3-3h-8v4"/><circle cx="7" cy="11" r="2"/></svg>',
+  refresh: '<svg class="ic" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.5-4.5L4 8M4 4v4h4M4 13a8 8 0 0 0 14.5 4.5L20 16M20 20v-4h-4"/></svg>',
+  vib: '<svg class="ic" viewBox="0 0 24 24"><rect x="8" y="3" width="8" height="18" rx="2"/><path d="M4 8v8M20 8v8M1.5 10v4M22.5 10v4"/></svg>',
+  voice: '<svg class="ic" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>',
+  trash: '<svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13h12l1-13M9 7V4h6v3"/></svg>',
+  wind: '<svg class="ic" viewBox="0 0 24 24"><path d="M3 8h11a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h8"/></svg>',
+  drop: '<svg class="ic" viewBox="0 0 24 24"><path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/></svg>',
+  chev: '<svg class="ic" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>',
+  arrow: '<svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+};
+
+/* ============ Stockage ============ */
+const LS = {
+  get(k, d) { try { const v = localStorage.getItem("aube-" + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem("aube-" + k, JSON.stringify(v)); } catch (e) { } },
+};
+const IDB = (() => {
+  let db = null;
+  const open = () => db ? Promise.resolve(db) : new Promise((ok, ko) => { try { const r = indexedDB.open("aube", 1); r.onupgradeneeded = () => r.result.createObjectStore("kv"); r.onsuccess = () => { db = r.result; ok(db); }; r.onerror = () => ko(r.error); } catch (e) { ko(e); } });
+  const tx = async (m, f) => { const d = await open(); return new Promise((ok, ko) => { const t = d.transaction("kv", m); const q = f(t.objectStore("kv")); t.oncomplete = () => ok(q && q.result); t.onerror = () => ko(t.error); }); };
+  return { get: k => tx("readonly", s => s.get(k)).catch(() => null), set: (k, v) => tx("readwrite", s => s.put(v, k)).catch(() => null), del: k => tx("readwrite", s => s.delete(k)).catch(() => null) };
+})();
+
+let ALARMS = LS.get("alarms", []);
+const SET = Object.assign({ cv: "#ff8a3d", cvBright: 0.08, voiceName: "", tab: "clock" }, LS.get("set", {}));
+const SOIR = Object.assign({ color: "bougie", lum: 0.55, min: 30, breath: false, music: null, vol: 45 }, LS.get("soir", {}));
+const WX = Object.assign({ place: null, places: [], data: null, at: 0 }, LS.get("wx", {}));
+const saveSet = () => LS.set("set", SET), saveSoir = () => LS.set("soir", SOIR), saveWx = () => LS.set("wx", WX);
+function saveAlarms() {
+  ALARMS.sort((a, b) => a.h * 60 + a.m - (b.h * 60 + b.m));
+  LS.set("alarms", ALARMS);
+  if (NATIVE) call("alarmSave", JSON.stringify(ALARMS));
+}
+function loadNativeAlarms() {
+  if (!NATIVE) return;
+  try {
+    const n = JSON.parse(call("alarmList") || "[]");
+    if (n.length || !ALARMS.length) { ALARMS = n; LS.set("alarms", ALARMS); }
+    else saveAlarms(); // première ouverture : on transmet les réveils existants
+  } catch (e) { }
+}
+
+/* ============ Calcul des réveils ============ */
+function nextRing(a, now = Date.now()) {
+  if (!a || !a.on) return 0;
+  const days = (a.days || []).filter(x => x >= 1 && x <= 7);
+  const d = new Date(now); d.setHours(a.h, a.m, 0, 0);
+  for (let i = 0; i < 9; i++) {
+    if (d.getTime() > now + 500) {
+      const iso = d.getDay() === 0 ? 7 : d.getDay();
+      if ((!days.length || days.includes(iso)) && a.skip !== ymd(d)) return d.getTime();
+    }
+    d.setDate(d.getDate() + 1); d.setHours(a.h, a.m, 0, 0);
+  }
+  return 0;
+}
+function nextAlarm() {
+  let best = null, at = 0;
+  for (const a of ALARMS) { const t = nextRing(a); if (t && (!at || t < at)) { at = t; best = a; } }
+  return best ? { a: best, at } : null;
+}
+function inText(ms) {
+  const m = Math.max(1, Math.round(ms / 60000)), h = Math.floor(m / 60), r = m % 60;
+  if (h >= 24) { const j = Math.floor(h / 24); return j + " j " + (h % 24) + " h"; }
+  return h ? h + " h" + (r ? " " + pad(r) : "") : r + " min";
+}
+function dayWord(at) {
+  const d = new Date(at), t = new Date(); t.setHours(0, 0, 0, 0);
+  const diff = Math.round((new Date(d).setHours(0, 0, 0, 0) - t) / 864e5);
+  return diff === 0 ? "aujourd'hui" : diff === 1 ? "demain" : JOURS[d.getDay()];
+}
+function daysText(a) {
+  const d = [...(a.days || [])].sort();
+  if (a.tmp) return "Sieste";
+  if (!d.length) { const t = nextRing({ ...a, on: true }); return "Une fois · " + (t ? dayWord(t) : ""); }
+  const k = d.join("");
+  if (k === "1234567") return "Tous les jours";
+  if (k === "12345") return "Du lundi au vendredi";
+  if (k === "67") return "Le week-end";
+  return d.map(x => JL[x]).join(" ");
+}
+const newId = () => { let id; do { id = 1 + Math.floor(Math.random() * 899); } while (ALARMS.some(a => a.id === id)); return id; };
+const defAlarm = () => ({ id: newId(), h: 7, m: 0, days: [1, 2, 3, 4, 5], on: true, label: "", src: "tone", track: null, vol: 80, fade: 60, snooze: 9, vib: true, dawn: 0, voice: true, skip: "" });
+
+/* ============ Météo (Open-Meteo, sans clé) ============ */
+const WMO = c => c === 0 ? ["Ciel dégagé", "sun"] : c === 1 ? ["Plutôt ensoleillé", "sun-c"] : c === 2 ? ["Éclaircies", "part"] : c === 3 ? ["Couvert", "cloud"]
+  : c <= 48 ? ["Brouillard", "fog"] : c <= 57 ? ["Bruine", "drizzle"] : c <= 67 ? ["Pluie", "rain"] : c <= 77 ? ["Neige", "snow"]
+  : c <= 82 ? ["Averses", "rain"] : c <= 86 ? ["Averses de neige", "snow"] : ["Orages", "storm"];
+function wxIcon(code, day = true) {
+  const k = WMO(code)[1];
+  const sun = (x = 32, y = 32, r = 11, a = 1) => `<g class="wsun" style="transform-origin:${x}px ${y}px"><circle cx="${x}" cy="${y}" r="${r}" fill="#ffc94d" opacity="${a}"/>${[0, 45, 90, 135, 180, 225, 270, 315].map(t => { const c = Math.cos(t * Math.PI / 180), s = Math.sin(t * Math.PI / 180); return `<line x1="${x + c * (r + 4)}" y1="${y + s * (r + 4)}" x2="${x + c * (r + 9)}" y2="${y + s * (r + 9)}" stroke="#ffc94d" stroke-width="3" stroke-linecap="round" opacity="${a}"/>`; }).join("")}</g>`;
+  const moon = (x = 34, y = 28) => `<path d="M${x + 8} ${y + 7}A12 12 0 1 1 ${x - 3} ${y - 12} 9.5 9.5 0 0 0 ${x + 8} ${y + 7}z" fill="#e8e3ff"/>`;
+  const cloud = (x = 0, y = 0, f = "#eef1f8", o = 1) => `<g class="wcloud" transform="translate(${x} ${y})" opacity="${o}"><path d="M18 50h28a10 10 0 0 0 1.5-19.9A14 14 0 0 0 20.3 27 11.5 11.5 0 0 0 18 50z" fill="${f}"/></g>`;
+  const drops = n => [...Array(n)].map((_, i) => `<line class="wdrop" style="animation-delay:${i * .35}s" x1="${22 + i * 9}" y1="52" x2="${19 + i * 9}" y2="59" stroke="#7fc4ff" stroke-width="3" stroke-linecap="round"/>`).join("");
+  let s = "";
+  if (k === "sun") s = day ? sun() : moon(32, 32);
+  else if (k === "sun-c") s = (day ? sun(26, 24, 9) : moon(28, 24)) + cloud(8, 10, "#eef1f8", .95);
+  else if (k === "part") s = (day ? sun(24, 22, 9) : moon(26, 22)) + cloud(6, 6);
+  else if (k === "cloud") s = cloud(-6, -4, "#aab3c8") + cloud(4, 4);
+  else if (k === "fog") s = cloud(0, -6, "#c9cfdc") + `<g stroke="#c9cfdc" stroke-width="3" stroke-linecap="round"><line class="wcloud" x1="12" y1="52" x2="50" y2="52"/><line x1="18" y1="58" x2="46" y2="58"/></g>`;
+  else if (k === "drizzle") s = cloud(0, -8, "#c3cbdc") + drops(2);
+  else if (k === "rain") s = cloud(0, -8, "#aab3c8") + drops(4);
+  else if (k === "snow") s = cloud(0, -8, "#dfe6f3") + [0, 1, 2].map(i => `<circle class="wflake" style="animation-delay:${i * .8}s" cx="${22 + i * 10}" cy="53" r="2.6" fill="#fff"/>`).join("");
+  else if (k === "storm") s = cloud(0, -8, "#8e97ad") + `<path class="wbolt" d="M33 44l-7 11h6l-3 9 10-13h-6l4-7z" fill="#ffd34d"/>`;
+  return `<svg class="w" viewBox="0 0 64 64">${s}</svg>`;
+}
+async function getJSON(url) {
+  try { const r = await fetch(url); if (r.ok) return await r.json(); } catch (e) { }
+  if (MP && MP.httpFetch) { // secours : requête faite par le téléphone
+    const key = "aube" + Math.random().toString(36).slice(2); call("httpFetch", key, url);
+    for (let i = 0; i < 60; i++) { await sleep(250); const t = call("httpTake", key); if (t) { if (t === "__err__") break; try { return JSON.parse(t); } catch (e) { break; } } }
+  }
+  throw new Error("réseau");
+}
+async function loadWx(force) {
+  if (!WX.place) return null;
+  if (!force && WX.data && Date.now() - WX.at < 30 * 60000 && WX.data.lat === WX.place.lat) return WX.data;
+  const p = WX.place;
+  const u = `https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}&timezone=auto&forecast_days=7`
+    + "&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m,is_day,precipitation"
+    + "&hourly=temperature_2m,weather_code,precipitation_probability,is_day"
+    + "&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max,uv_index_max,wind_speed_10m_max";
+  const j = await getJSON(u);
+  j.lat = p.lat; WX.data = j; WX.at = Date.now(); saveWx();
+  return j;
+}
+async function searchPlace(q) {
+  const j = await getJSON("https://geocoding-api.open-meteo.com/v1/search?count=6&language=fr&format=json&name=" + encodeURIComponent(q));
+  return (j.results || []).map(r => ({ name: r.name, sub: [r.admin2 || r.admin1, r.country].filter(Boolean).join(", "), lat: +r.latitude.toFixed(3), lon: +r.longitude.toFixed(3) }));
+}
+function setPlace(p) {
+  WX.place = p; WX.data = null;
+  WX.places = [p, ...WX.places.filter(x => !(Math.abs(x.lat - p.lat) < .01 && Math.abs(x.lon - p.lon) < .01))].slice(0, 6);
+  saveWx();
+}
+function locate() {
+  if (!navigator.geolocation) { toast("Position indisponible : cherchez votre ville"); return; }
+  if (NATIVE) call("askLocation");
+  toast("Recherche de votre position…");
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const lat = +pos.coords.latitude.toFixed(3), lon = +pos.coords.longitude.toFixed(3);
+    let name = "Ma position";
+    try { const j = await getJSON(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=fr`); name = j.city || j.locality || name; } catch (e) { }
+    setPlace({ name, sub: "Position actuelle", lat, lon }); await refreshWx(true);
+  }, () => toast("Position refusée : cherchez votre ville"), { timeout: 15000, maximumAge: 600000 });
+}
+const todayWx = () => { const d = WX.data; if (!d || !d.daily) return null; const i = Math.max(0, d.daily.time.indexOf(ymd(new Date()))); return { i, code: d.daily.weather_code[i], max: Math.round(d.daily.temperature_2m_max[i]), min: Math.round(d.daily.temperature_2m_min[i]), rain: d.daily.precipitation_probability_max[i], rise: d.daily.sunrise[i], set: d.daily.sunset[i], uv: d.daily.uv_index_max[i], wind: d.daily.wind_speed_10m_max[i] }; };
+function advice() {
+  const d = WX.data, t = todayWx(); if (!d || !t) return [];
+  const out = [], c = d.current;
+  const h = d.hourly, now = new Date(), from = h.time.findIndex(x => new Date(x) >= now);
+  const next12 = from < 0 ? [] : h.precipitation_probability.slice(from, from + 12);
+  const rmax = Math.max(0, ...next12);
+  if (rmax >= 60) { const k = next12.findIndex(x => x >= 60); out.push(["☔", `Prenez un parapluie : ${rmax} % de risque de pluie, surtout vers ${new Date(h.time[from + k]).getHours()} h.`]); }
+  else if (rmax >= 35) out.push(["🌂", `Un parapluie pliant peut servir (${rmax} % de risque d'averse).`]);
+  if (t.max <= 5) out.push(["🧣", `Froid : manteau chaud, bonnet et gants (max ${t.max}°).`]);
+  else if (t.max <= 12) out.push(["🧥", `Frais : prévoyez un manteau (entre ${t.min}° et ${t.max}°).`]);
+  else if (t.max <= 19) out.push(["🧶", `Doux : une veste ou un pull suffira (${t.min}° → ${t.max}°).`]);
+  else if (t.max >= 30) out.push(["🥵", `Forte chaleur (${t.max}°) : buvez souvent et restez à l'ombre aux heures chaudes.`]);
+  else out.push(["👕", `Agréable : tenue légère (${t.min}° → ${t.max}°).`]);
+  if (t.min <= 0) out.push(["❄️", "Risque de gel le matin : attention au verglas et au pare-brise."]);
+  if (t.uv >= 6) out.push(["🕶️", `UV élevés (${Math.round(t.uv)}) : lunettes et crème solaire.`]);
+  if ((c.wind_gusts_10m || 0) >= 60) out.push(["💨", `Rafales fortes (${Math.round(c.wind_gusts_10m)} km/h) : prudence en extérieur.`]);
+  return out;
+}
+
+/* ============ Ciel selon l'heure ============ */
+function sunTimes() {
+  const t = todayWx();
+  if (t) return { rise: new Date(t.rise), set: new Date(t.set) };
+  const r = new Date(); r.setHours(7, 30, 0, 0); const s = new Date(); s.setHours(19, 0, 0, 0); return { rise: r, set: s, guess: true };
+}
+function skyNow() {
+  const { rise, set } = sunTimes(), n = Date.now(), H = 3600e3;
+  const r = rise.getTime(), s = set.getTime();
+  if (n < r - H || n > s + H) return ["linear-gradient(165deg,#1a1d4a 0%,#0e1030 60%,#0b0d24 100%)", 1];
+  if (n < r + H) return ["linear-gradient(170deg,#2c2d6b 0%,#8a4a7c 50%,#f2946a 85%,#ffc982 100%)", .3];
+  if (n > s - H) return ["linear-gradient(170deg,#262a66 0%,#7b3f74 45%,#e9775d 80%,#ffb36b 100%)", .3];
+  return ["linear-gradient(165deg,#2f5fa8 0%,#4f86c9 55%,#8fbbe6 100%)", 0];
+}
+function applySky() { const [g, st] = skyNow(); document.documentElement.style.setProperty("--sky", g); document.documentElement.style.setProperty("--stars", st); }
+const STARS = (() => { let s = ""; for (let i = 0; i < 40; i++) s += `<circle cx="${(Math.sin(i * 12.9898) * 43758.5453 % 1 + 1) % 1 * 100}%" cy="${(Math.sin(i * 78.233) * 12345.678 % 1 + 1) % 1 * 70}%" r="${i % 5 ? .7 : 1.3}" fill="#fff" opacity="${.3 + (i % 4) * .17}"/>`; return `<svg class="stars" width="100%" height="100%">${s}</svg>`; })();
+
+/* ============ Navigation ============ */
+let TAB = SET.tab || "clock";
+function go(t) { TAB = t; SET.tab = t; saveSet(); $$("#nav button").forEach(b => b.classList.toggle("on", b.dataset.t === t)); render(); $("#main").scrollTop = 0; }
+$$("#nav button").forEach(b => b.onclick = () => go(b.dataset.t));
+function render() {
+  const m = $("#main");
+  m.innerHTML = `<section class="tab">${TAB === "clock" ? vClock() : TAB === "alarms" ? vAlarms() : TAB === "wx" ? vWx() : vSoir()}</section>`;
+  (TAB === "clock" ? bClock : TAB === "alarms" ? bAlarms : TAB === "wx" ? bWx : bSoir)(m);
+  const f = $(".fab"); if (f) f.remove();
+  if (TAB === "alarms") { const b = document.createElement("button"); b.className = "fab"; b.innerHTML = I.plus; b.setAttribute("aria-label", "Nouveau réveil"); b.onclick = () => editAlarm(null); document.body.appendChild(b); }
+}
+
+/* ============ Horloge ============ */
+function vClock() {
+  const t = todayWx(), c = WX.data && WX.data.current, n = nextAlarm();
+  return `<div class="hero">${STARS}
+    <div class="bigtime num" id="bt"></div>
+    <div class="bigdate" id="bd"></div>
+    <div class="arc" id="arc"></div>
+  </div>
+  <div class="duo">
+    <button class="mini" id="mWx"><span class="k">Météo${WX.place ? " · " + esc(WX.place.name) : ""}</span>
+      ${c ? `<span class="v">${wxIcon(c.weather_code, c.is_day)}${Math.round(c.temperature_2m)}°</span><span class="s">${WMO(c.weather_code)[0]}${t ? ` · ${t.min}°/${t.max}°` : ""}</span>` : `<span class="v" style="font-size:17px">Choisir ma ville</span><span class="s">Prévisions sur 7 jours</span>`}
+    </button>
+    <button class="mini" id="mAl"><span class="k">Prochain réveil</span>
+      ${n ? `<span class="v num">${pad(n.a.h)}:${pad(n.a.m)}</span><span class="s" id="nIn">${dayWord(n.at)} · dans ${inText(n.at - Date.now())}</span>` : `<span class="v" style="font-size:17px">Aucun</span><span class="s">Touchez pour en créer un</span>`}
+    </button>
+  </div>
+  <div class="acts">
+    <button class="act" id="aCh"><i style="background:#ff8a3d22;color:#ff8a3d">${I.bed}</i><span>Mode chevet<small>Heure douce la nuit</small></span></button>
+    <button class="act" id="aLi"><i style="background:#f59fb022;color:#f59fb0">${I.moon}</i><span>Lumière du soir<small>S'éteint doucement</small></span></button>
+  </div>
+  ${NATIVE ? "" : `<p class="webnote">Version en ligne : les réveils sonnent si cette page reste ouverte. L'application Android sonne même téléphone verrouillé.</p>`}`;
+}
+function bClock() {
+  $("#mWx").onclick = () => go("wx"); $("#mAl").onclick = () => go("alarms");
+  $("#aCh").onclick = openChevet; $("#aLi").onclick = () => startLight();
+  paintClock(); paintArc();
+}
+function paintClock() {
+  const d = new Date(), bt = $("#bt");
+  $("#hdate").innerHTML = `${JOURS[d.getDay()]}<br><b class="num">${hm(d)}</b>`;
+  if (!bt) return;
+  bt.innerHTML = `${pad(d.getHours())}<span class="col">:</span>${pad(d.getMinutes())}<small>${pad(d.getSeconds())}</small>`;
+  $("#bd").textContent = `${JOURS[d.getDay()]} ${d.getDate()} ${MOIS[d.getMonth()]}`;
+  const n = nextAlarm(), ni = $("#nIn"); if (ni && n) ni.textContent = `${dayWord(n.at)} · dans ${inText(n.at - Date.now())}`;
+}
+function paintArc() {
+  const el = $("#arc"); if (!el) return;
+  const { rise, set, guess } = sunTimes(), n = Date.now();
+  const day = n >= rise && n <= set, f = day ? (n - rise) / (set - rise) : 0;
+  const W = 300, H = 74, x = 20 + f * (W - 40), y = H - Math.sin(f * Math.PI) * (H - 14);
+  const len = (set - rise) / 60000, lh = Math.floor(len / 60), lm = Math.round(len % 60);
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H + 6}"><path d="M20 ${H} Q ${W / 2} ${-H + 28} ${W - 20} ${H}" fill="none" stroke="#ffffff55" stroke-width="1.6" stroke-dasharray="3 5"/>
+    <line x1="6" y1="${H}" x2="${W - 6}" y2="${H}" stroke="#ffffff40"/>
+    ${day ? `<circle cx="${x}" cy="${y}" r="16" fill="#ffd36b" opacity=".25"/><circle cx="${x}" cy="${y}" r="9" fill="#ffd36b"/>` : `<path transform="translate(${W / 2 - 10} ${H - 34})" d="M16 13A9 9 0 1 1 7 1a7 7 0 0 0 9 12z" fill="#e8e3ff"/>`}
+  </svg><div class="lab"><span class="row" style="gap:5px">${I.rise.replace('class="ic"', 'class="ic" style="width:16px;height:16px"')}${hm(rise)}</span><span>${guess ? "heures approximatives" : `${lh} h ${pad(lm)} de jour`}</span><span class="row" style="gap:5px">${hm(set)}${I.set.replace('class="ic"', 'class="ic" style="width:16px;height:16px"')}</span></div>`;
+}
+
+/* ---- Mode chevet ---- */
+let chevetMove = 0;
+function openChevet() {
+  const d = document.createElement("div"); d.className = "ovl"; d.id = "chevet";
+  d.style.setProperty("--cv", SET.cv);
+  d.innerHTML = `<div class="t num" id="cvT"></div><div class="s" id="cvS"></div>`;
+  document.body.appendChild(d);
+  call("keepScreen", true); call("setBright", SET.cvBright);
+  wakeLock(true);
+  const paint = () => {
+    const now = new Date(), n = nextAlarm(), c = WX.data && WX.data.current;
+    $("#cvT").textContent = hm(now);
+    $("#cvS").innerHTML = (n ? `<span class="row" style="gap:6px">${I.bell}${pad(n.a.h)}:${pad(n.a.m)}</span>` : "") + (c ? `<span class="row" style="gap:6px">${Math.round(c.temperature_2m)}°</span>` : "");
+    if (now.getSeconds() === 0 || !chevetMove) { chevetMove = 1; const t = $("#cvT"); t.style.transform = `translate(${Math.round(Math.random() * 30 - 15)}px,${Math.round(Math.random() * 40 - 20)}px)`; }
+  };
+  paint(); const iv = setInterval(paint, 1000);
+  d.onclick = e => {
+    if (e.target.closest(".ctl")) return;
+    const c = $(".ctl", d); if (c) { c.remove(); return; }
+    const p = document.createElement("div"); p.className = "ctl";
+    const cols = [["#ff8a3d", "Ambre"], ["#ff4d3a", "Rouge"], ["#f59fb0", "Rose"], ["#9fb4ff", "Bleu"], ["#e8e6f0", "Blanc"]];
+    p.innerHTML = `<div class="lbl" style="margin-top:0">Luminosité</div><input type="range" id="cvB" min="0.004" max="0.6" step="0.004" value="${SET.cvBright}">
+      <div class="lbl">Couleur des chiffres</div><div class="chips">${cols.map(([c, n]) => `<button class="chip ${SET.cv === c ? "on" : ""}" data-c="${c}" style="${SET.cv === c ? "" : "color:" + c}">${n}</button>`).join("")}</div>
+      <button class="btn full" id="cvX" style="margin-top:14px">Quitter le mode chevet</button>`;
+    d.appendChild(p);
+    const r = $("#cvB", p); rangeFill(r);
+    r.oninput = () => { SET.cvBright = +r.value; rangeFill(r); call("setBright", SET.cvBright); d.style.opacity = NATIVE ? 1 : .35 + SET.cvBright; saveSet(); };
+    $$("[data-c]", p).forEach(b => b.onclick = () => { SET.cv = b.dataset.c; d.style.setProperty("--cv", SET.cv); saveSet(); p.remove(); d.click(); });
+    $("#cvX", p).onclick = () => { clearInterval(iv); d.remove(); call("keepScreen", false); call("setBright", -1); wakeLock(false); };
+  };
+}
+let WL = null;
+async function wakeLock(on) { try { if (on && navigator.wakeLock && !NATIVE) WL = await navigator.wakeLock.request("screen"); else if (!on && WL) { WL.release(); WL = null; } } catch (e) { } }
+function rangeFill(r) { const p = (r.value - r.min) / (r.max - r.min) * 100; r.style.setProperty("--p", p + "%"); }
+
+/* ============ Réveils ============ */
+let PERMS = null;
+function vAlarms() {
+  if (NATIVE) { try { PERMS = JSON.parse(call("alarmPerms") || "{}"); } catch (e) { PERMS = null; } }
+  const miss = PERMS ? [["notif", "Notifications", "pour afficher le réveil qui sonne"], ["exact", "Alarmes à l'heure exacte", "sinon le réveil peut avoir du retard"], ["full", "Affichage plein écran", "pour allumer l'écran quand ça sonne"], ["battery", "Pas d'économie de batterie", "conseillé : évite que le téléphone bloque le réveil"]].filter(([k]) => PERMS[k] === false) : [];
+  const n = nextAlarm(), snz = NATIVE ? +call("alarmSnoozeAt") || 0 : (WEB.snoozeAt || 0);
+  return `${miss.length ? `<div class="card perm"><h3>Pour un réveil fiable</h3>${miss.map(([k, t, s]) => `<div class="it"><div class="grow"><b>${t}</b><div class="small muted">${s}</div></div><button class="btn sm pri" data-fix="${k}">Autoriser</button></div>`).join("")}</div>` : ""}
+  ${snz > Date.now() ? `<div class="next" style="background:linear-gradient(135deg,#27406a,#3d3a72)"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h6l-6 8h6M14 4h4l-4 5h4"/></svg><div class="grow"><b>Répétition à ${hm(new Date(snz))}</b><div class="small muted">Encore quelques minutes de repos</div></div><button class="btn sm" id="unsnz">Annuler</button></div>` : ""}
+  ${n ? `<div class="next">${I.bell}<div class="grow"><div class="small" style="opacity:.8">Prochain réveil</div><b>${dayWord(n.at)[0].toUpperCase() + dayWord(n.at).slice(1)} à ${pad(n.a.h)}:${pad(n.a.m)}</b><div class="small" style="opacity:.85" id="nIn2">dans ${inText(n.at - Date.now())}</div></div></div>` : ""}
+  <div class="card"><h3>Sieste ou minuteur</h3><div class="chips">${[10, 20, 30, 45, 60, 90].map(m => `<button class="chip" data-nap="${m}">${m} min</button>`).join("")}</div></div>
+  ${ALARMS.length ? ALARMS.map(a => {
+    const tr = a.src === "music" && a.track ? a.track.t : a.src === "file" && a.file ? a.file : "";
+    return `<div class="alarm ${a.on ? "" : "off"}" data-id="${a.id}">
+      <div class="grow" data-edit="${a.id}" style="cursor:pointer">
+        ${a.label ? `<div class="lab">${esc(a.label)}</div>` : ""}
+        <div class="t num">${pad(a.h)}:${pad(a.m)}</div>
+        <div class="meta"><span>${esc(daysText(a))}</span>${tr ? `<span>${I.note}<span class="ell" style="max-width:150px">${esc(tr)}</span></span>` : ""}${a.dawn ? `<span>${I.rise}${a.dawn} min</span>` : ""}${a.skip ? `<span style="color:var(--acc)">Prochain passé</span>` : ""}</div>
+      </div>
+      <button class="sw ${a.on ? "on" : ""}" data-tog="${a.id}" aria-label="Activer"></button>
+    </div>`; }).join("") : `<div class="empty"><svg viewBox="0 0 120 120"><circle cx="60" cy="66" r="34" fill="none" stroke="#ffb35c" stroke-width="5"/><path d="M60 46v20l12 8" stroke="#ffb35c" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M26 28 16 38M94 28l10 10" stroke="#f59fb0" stroke-width="5" stroke-linecap="round"/></svg><b>Aucun réveil</b><p class="small">Touchez + pour créer votre premier réveil, sur votre musique préférée.</p></div>`}`;
+}
+function bAlarms(m) {
+  $$("[data-fix]", m).forEach(b => b.onclick = () => { call("alarmFix", b.dataset.fix); setTimeout(() => { if (TAB === "alarms") render(); }, 1500); });
+  $$("[data-edit]", m).forEach(b => b.onclick = () => editAlarm(ALARMS.find(a => a.id === +b.dataset.edit)));
+  $$("[data-tog]", m).forEach(b => b.onclick = () => {
+    const a = ALARMS.find(x => x.id === +b.dataset.tog); a.on = !a.on; if (a.on) a.skip = "";
+    saveAlarms(); render(); if (a.on) toast("Réveil dans " + inText(nextRing(a) - Date.now()));
+  });
+  $$("[data-nap]", m).forEach(b => b.onclick = () => {
+    const mins = +b.dataset.nap, at = new Date(Date.now() + mins * 60000);
+    ALARMS = ALARMS.filter(a => !a.tmp);
+    ALARMS.push({ ...defAlarm(), h: at.getHours(), m: at.getMinutes(), days: [], label: "Sieste " + mins + " min", tmp: true, fade: 30, dawn: 0, voice: false });
+    saveAlarms(); render(); toast("Sieste : réveil à " + hm(at));
+  });
+  const u = $("#unsnz"); if (u) u.onclick = () => { if (NATIVE) call("alarmCancelSnooze"); else WEB.snoozeAt = 0; setTimeout(render, 300); toast("Répétition annulée"); };
+}
+
+/* ---- Éditeur de réveil ---- */
+function wheel(el, max, val, onChange) {
+  el.innerHTML = `<div class="pad"></div>` + [...Array(max)].map((_, i) => `<div data-v="${i}">${pad(i)}</div>`).join("") + `<div class="pad"></div>`;
+  const H = 62; let t;
+  const sel = () => { const v = Math.max(0, Math.min(max - 1, Math.round(el.scrollTop / H))); $$("[data-v]", el).forEach(d => d.classList.toggle("sel", +d.dataset.v === v)); return v; };
+  requestAnimationFrame(() => { el.scrollTop = val * H; sel(); });
+  el.addEventListener("scroll", () => { const v = sel(); clearTimeout(t); t = setTimeout(() => onChange(v), 80); onChange(v); }, { passive: true });
+  el.addEventListener("click", e => { const d = e.target.closest("[data-v]"); if (d) el.scrollTo({ top: +d.dataset.v * H, behavior: "smooth" }); });
+}
+function editAlarm(src) {
+  const isNew = !src; const a = JSON.parse(JSON.stringify(src || defAlarm())); delete a.tmp;
+  const s = document.createElement("div"); s.className = "sheet";
+  const opt = (k, vals, fmt) => `<div class="chips" data-k="${k}">${vals.map(v => `<button class="chip ${a[k] === v ? "on" : ""}" data-v="${v}">${fmt(v)}</button>`).join("")}</div>`;
+  s.innerHTML = `<header><button class="iconbtn" data-x>${I.back}</button><h2>${isNew ? "Nouveau réveil" : "Modifier le réveil"}</h2>${isNew ? "" : `<button class="iconbtn" data-del style="color:var(--bad)">${I.trash}</button>`}</header>
+  <div class="body">
+    <div class="wheels"><div class="wheel num" id="wh"></div><div class="colon">:</div><div class="wheel num" id="wm"></div></div>
+    <div class="inwhen" id="inw"></div>
+    <div class="lbl">Jours</div>
+    <div class="days">${[1, 2, 3, 4, 5, 6, 7].map(d => `<button data-d="${d}" class="${a.days.includes(d) ? "on" : ""}">${JC[d]}</button>`).join("")}</div>
+    <div class="chips" style="margin-top:10px"><button class="chip" data-pre="12345">Semaine</button><button class="chip" data-pre="67">Week-end</button><button class="chip" data-pre="1234567">Tous les jours</button><button class="chip" data-pre="">Une fois</button></div>
+    <div class="lbl">Nom du réveil</div>
+    <input class="field" id="lab" maxlength="40" placeholder="Ex. : Travail, Sport, École…" value="${esc(a.label)}">
+    <div class="lbl">${I.note} Sonnerie</div>
+    <div class="seg" id="srcSeg">${NATIVE ? `<button data-s="tone">Sonnerie du téléphone</button><button data-s="music">Ma musique</button>` : `<button data-s="tone">Carillon doux</button><button data-s="file">Un fichier audio</button>`}</div>
+    <div id="srcBox" style="margin-top:10px"></div>
+    <div class="lbl">Volume</div>
+    <div class="row"><input type="range" id="vol" min="10" max="100" step="5" value="${a.vol}"><button class="iconbtn" id="prev" aria-label="Écouter">${I.play}</button></div>
+    <div class="lbl">Montée progressive du son</div>
+    ${opt("fade", [0, 30, 60, 180, 300], v => v === 0 ? "Non" : v < 60 ? v + " s" : v / 60 + " min")}
+    <div class="lbl">${I.rise} Lever de soleil avant le réveil</div>
+    ${opt("dawn", [0, 10, 20, 30], v => v ? v + " min" : "Non")}
+    <div class="small dim" style="margin-top:6px">L'écran s'allume et passe doucement du rouge à l'orange puis au blanc, comme une aube.</div>
+    <div class="lbl">Répétition (snooze)</div>
+    ${opt("snooze", [5, 9, 10, 15], v => v + " min")}
+    <div class="card" style="margin-top:16px;padding:4px 16px">
+      <div class="line">${I.vib}<div class="grow">Vibreur</div><button class="sw ${a.vib ? "on" : ""}" data-sw="vib"></button></div>
+      <div class="line">${I.voice}<div class="grow">Bonjour vocal<div class="small dim">Annonce l'heure et la météo à l'arrêt</div></div><button class="sw ${a.voice ? "on" : ""}" data-sw="voice"></button></div>
+    </div>
+    <div class="row" style="flex-wrap:wrap;margin-top:6px">
+      <button class="btn sm" id="test">${I.bell} Essayer maintenant</button>
+      ${!isNew && a.days.length ? `<button class="btn sm" id="skip">${a.skip ? "Ne plus passer le prochain" : "Passer le prochain réveil"}</button>` : ""}
+    </div>
+  </div>
+  <div class="foot"><button class="btn ghost" data-x style="flex:1">Annuler</button><button class="btn pri" id="ok" style="flex:2">Enregistrer</button></div>`;
+  document.body.appendChild(s);
+  const inw = () => { const t = nextRing({ ...a, on: true, skip: a.skip }); $("#inw", s).textContent = t ? `Sonnera ${dayWord(t)} à ${pad(a.h)}:${pad(a.m)} · dans ${inText(t - Date.now())}` : ""; };
+  wheel($("#wh", s), 24, a.h, v => { a.h = v; inw(); });
+  wheel($("#wm", s), 60, a.m, v => { a.m = v; inw(); });
+  inw();
+  $$("[data-d]", s).forEach(b => b.onclick = () => { const d = +b.dataset.d; a.days = a.days.includes(d) ? a.days.filter(x => x !== d) : [...a.days, d].sort(); b.classList.toggle("on"); inw(); });
+  $$("[data-pre]", s).forEach(b => b.onclick = () => { a.days = b.dataset.pre.split("").filter(Boolean).map(Number); $$("[data-d]", s).forEach(x => x.classList.toggle("on", a.days.includes(+x.dataset.d))); inw(); });
+  $$("[data-k]", s).forEach(g => $$("button", g).forEach(b => b.onclick = () => { a[g.dataset.k] = +b.dataset.v; $$("button", g).forEach(x => x.classList.toggle("on", x === b)); }));
+  $$("[data-sw]", s).forEach(b => b.onclick = () => { a[b.dataset.sw] = !a[b.dataset.sw]; b.classList.toggle("on"); });
+  const vol = $("#vol", s); rangeFill(vol); vol.oninput = () => { a.vol = +vol.value; rangeFill(vol); };
+  if (!NATIVE && a.src === "music") a.src = "tone";
+  if (NATIVE && a.src === "file") a.src = "tone";
+  const paintSrc = () => {
+    $$("#srcSeg button", s).forEach(b => b.classList.toggle("on", b.dataset.s === a.src));
+    const box = $("#srcBox", s);
+    if (a.src === "music") {
+      box.innerHTML = `<button class="track" id="pick"><span class="cover" id="pcv">${I.note}</span><span class="grow"><b class="ell" style="display:block">${a.track ? esc(a.track.t) : "Choisir un morceau"}</b><span class="small muted ell" style="display:block">${a.track ? esc(a.track.a || "") : "Dans la musique de votre téléphone"}</span></span>${I.chev}</button>`;
+      $("#pick", s).onclick = () => pickTrack(a.track && a.track.id, t => { a.track = t; paintSrc(); });
+      if (a.track) coverOf(a.track).then(u => { const c = $("#pcv", s); if (u && c) c.innerHTML = `<img src="${u}" alt="">`; });
+    } else if (a.src === "file") {
+      box.innerHTML = `<label class="track" style="cursor:pointer"><span class="cover">${I.note}</span><span class="grow"><b class="ell" style="display:block">${a.file ? esc(a.file) : "Choisir un fichier audio"}</b><span class="small muted">MP3, M4A, OGG… gardé sur cet appareil</span></span><input type="file" accept="audio/*" hidden id="fa"></label>`;
+      $("#fa", s).onchange = async e => { const f = e.target.files[0]; if (!f) return; await IDB.set("snd" + a.id, f); a.file = f.name; paintSrc(); };
+    } else box.innerHTML = `<div class="small dim">${NATIVE ? "La sonnerie de réveil choisie dans les réglages de votre téléphone." : "Une mélodie douce créée par l'application."}</div>`;
+  };
+  $$("#srcSeg button", s).forEach(b => b.onclick = () => { a.src = b.dataset.s; paintSrc(); if (a.src === "music" && !a.track) $("#pick", s).click(); });
+  paintSrc();
+  let prevOn = false;
+  $("#prev", s).onclick = async () => {
+    prevOn = !prevOn; $("#prev", s).innerHTML = prevOn ? I.stop : I.play;
+    if (!prevOn) { stopPreview(); return; }
+    await preview(a); setTimeout(() => { if (prevOn) { prevOn = false; const p = $("#prev", s); if (p) p.innerHTML = I.play; } }, 20000);
+  };
+  const close = () => { stopPreview(); s.remove(); };
+  $$("[data-x]", s).forEach(b => b.onclick = close);
+  const del = $("[data-del]", s); if (del) del.onclick = () => { if (!confirm("Supprimer ce réveil ?")) return; ALARMS = ALARMS.filter(x => x.id !== a.id); IDB.del("snd" + a.id); saveAlarms(); close(); render(); toast("Réveil supprimé"); };
+  $("#test", s).onclick = () => { a.label = $("#lab", s).value.trim(); close(); setTimeout(() => testRing(a), 300); };
+  const sk = $("#skip", s); if (sk) sk.onclick = () => {
+    if (a.skip) a.skip = ""; else { const t = nextRing({ ...a, on: true, skip: "" }); a.skip = t ? ymd(new Date(t)) : ""; }
+    sk.textContent = a.skip ? "Ne plus passer le prochain" : "Passer le prochain réveil"; inw();
+    if (a.skip) toast("Le réveil du " + JOURS[new Date(a.skip + "T12:00").getDay()] + " ne sonnera pas");
+  };
+  $("#ok", s).onclick = () => {
+    if (a.src === "music" && !a.track) a.src = "tone";
+    a.label = $("#lab", s).value.trim(); a.on = true;
+    const i = ALARMS.findIndex(x => x.id === a.id); if (i >= 0) ALARMS[i] = a; else ALARMS.push(a);
+    saveAlarms(); close(); render();
+    toast("Réveil réglé : dans " + inText(nextRing(a) - Date.now()));
+    if (NATIVE && PERMS && PERMS.notif === false) call("alarmFix", "notif");
+  };
+}
+
+/* ---- Musique du téléphone ---- */
+let LIB = null;
+const COVERS = new Map();
+async function coverOf(t) {
+  if (!NATIVE || !t) return "";
+  const k = t.alb + ":" + t.id; if (COVERS.has(k)) return COVERS.get(k);
+  await sleep(0); const u = call("musicArt2", String(t.alb), String(t.id), 160) || ""; COVERS.set(k, u); return u;
+}
+function loadLib() {
+  if (!NATIVE) return [];
+  if (LIB) return LIB;
+  try { LIB = JSON.parse(call("musicScan") || "[]"); } catch (e) { LIB = []; }
+  return LIB;
+}
+function pickTrack(selId, done, multi) {
+  const s = document.createElement("div"); s.className = "sheet"; s.style.zIndex = 45;
+  s.innerHTML = `<header><button class="iconbtn" data-x>${I.back}</button><h2>${multi ? "Musique d'endormissement" : "Choisir la musique"}</h2></header>
+    <div class="body" id="pb"></div>`;
+  document.body.appendChild(s);
+  const body = $("#pb", s);
+  const close = () => { stopPreview(); s.remove(); };
+  $("[data-x]", s).onclick = close;
+  if (!call("musicHasPerm")) {
+    body.innerHTML = `<div class="empty">${I.note.replace('class="ic"', 'class="ic" style="width:60px;height:60px;margin:10px auto;color:var(--acc)"')}<p>Aube a besoin d'accéder à la musique de votre téléphone pour vous réveiller avec.</p><button class="btn pri" id="ask">Autoriser l'accès à ma musique</button></div>`;
+    $("#ask", s).onclick = async () => { call("musicAsk"); for (let i = 0; i < 40; i++) { await sleep(500); if (call("musicHasPerm")) { LIB = null; close(); pickTrack(selId, done, multi); return; } } };
+    return;
+  }
+  const lib = loadLib();
+  if (!lib.length) { body.innerHTML = `<div class="empty"><b>Aucune musique trouvée</b><p class="small">Ajoutez des fichiers MP3 dans le dossier Musique de votre téléphone.</p></div>`; return; }
+  let mode = "t", q = "", playing = null;
+  const albums = () => { const m = new Map(); for (const t of lib) { const k = t.alb; if (!m.has(k)) m.set(k, { alb: k, al: t.al, a: t.a, ids: [], rep: t }); m.get(k).ids.push(t.id); } return [...m.values()].sort((x, y) => (x.al || "").localeCompare(y.al || "", "fr")); };
+  const paint = () => {
+    const nq = q.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+    const hit = s2 => !nq || (s2 || "").normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().includes(nq);
+    body.innerHTML = `<div class="search"><span>${I.search}</span><input class="field" id="q" placeholder="Titre, artiste, album…" value="${esc(q)}" style="padding-left:44px"></div>
+      ${multi ? `<div class="seg" style="margin-bottom:10px"><button data-m="t" class="${mode === "t" ? "on" : ""}">Morceaux</button><button data-m="a" class="${mode === "a" ? "on" : ""}">Albums</button></div>` : ""}
+      <div id="pl"></div>`;
+    $(".search span", body).style.cssText = "position:absolute;left:14px;top:13px;color:var(--tx3)";
+    const pl = $("#pl", body);
+    const items = mode === "a" ? albums().filter(A => hit(A.al) || hit(A.a)) : lib.filter(t => hit(t.t) || hit(t.a) || hit(t.al));
+    const show = items.slice(0, 300);
+    pl.innerHTML = show.map(x => mode === "a"
+      ? `<button class="trk" data-alb="${x.alb}"><span class="cover" data-cv="${x.rep.alb}:${x.rep.id}">${I.note}</span><span class="grow"><b class="ell" style="display:block">${esc(x.al || "Album")}</b><span class="small muted ell" style="display:block">${esc(x.a || "")} · ${x.ids.length} titres</span></span></button>`
+      : `<div class="trk ${x.id === selId ? "sel" : ""}"><button class="row grow" data-tid="${x.id}" style="text-align:left;min-width:0"><span class="cover" data-cv="${x.alb}:${x.id}">${I.note}</span><span class="grow" style="min-width:0"><b class="ell" style="display:block">${esc(x.t)}</b><span class="small muted ell" style="display:block">${esc(x.a || "")}</span></span></button><button class="iconbtn" data-pv="${x.id}" style="background:transparent">${playing === x.id ? I.stop : I.play}</button></div>`).join("")
+      + (items.length > 300 ? `<p class="small dim" style="text-align:center">Affinez la recherche pour voir plus de résultats.</p>` : "");
+    const qi = $("#q", body); qi.oninput = () => { q = qi.value; const c = qi.selectionStart; paint(); const n = $("#q", body); n.focus(); n.setSelectionRange(c, c); };
+    $$("[data-m]", body).forEach(b => b.onclick = () => { mode = b.dataset.m; paint(); });
+    $$("[data-tid]", pl).forEach(b => b.onclick = () => { const t = lib.find(x => x.id === +b.dataset.tid); close(); done(multi ? { ids: [t.id], label: t.t, sub: t.a } : { id: t.id, t: t.t, a: t.a, alb: t.alb }); });
+    $$("[data-alb]", pl).forEach(b => b.onclick = () => { const A = albums().find(x => String(x.alb) === b.dataset.alb); close(); done({ ids: A.ids, label: A.al, sub: (A.a || "") + " · " + A.ids.length + " titres" }); });
+    $$("[data-pv]", pl).forEach(b => b.onclick = () => { const id = +b.dataset.pv; if (playing === id) { stopPreview(); playing = null; } else { playing = id; preview({ src: "music", track: { id }, vol: 70 }); } paint(); });
+    // pochettes visibles, une à une
+    (async () => { for (const c of $$("[data-cv]", pl).slice(0, 60)) { const [alb, id] = c.dataset.cv.split(":"); const u = await coverOf({ alb, id }); if (u && c.isConnected) c.innerHTML = `<img src="${u}" alt="">`; } })();
+  };
+  paint();
+}
+
+/* ---- Son : écoute d'essai et sonnerie (version web) ---- */
+let AC = null, WEBSND = null;
+function ac() { if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { } } if (AC && AC.state === "suspended") AC.resume(); return AC; }
+document.addEventListener("pointerdown", () => { if (!NATIVE) ac(); }, { once: true });
+function chime(gainNode, loop = true) {
+  const c = ac(); if (!c) return () => { };
+  const notes = [523.25, 659.25, 783.99, 1046.5, 783.99, 659.25];
+  let stop = false, t0 = c.currentTime + .05, timer;
+  const sched = () => {
+    if (stop) return;
+    notes.forEach((f, i) => {
+      const o = c.createOscillator(), g = c.createGain(), t = t0 + i * .42;
+      o.type = "sine"; o.frequency.value = f;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.35, t + .02); g.gain.exponentialRampToValueAtTime(.001, t + 1.6);
+      o.connect(g); g.connect(gainNode); o.start(t); o.stop(t + 1.7);
+    });
+    t0 += 3.4; if (loop) timer = setTimeout(sched, 3000);
+  };
+  sched();
+  return () => { stop = true; clearTimeout(timer); };
+}
+async function webSound(a, fadeS, vol) {
+  stopWebSound();
+  const c = ac(); if (!c) return;
+  const g = c.createGain(); g.connect(c.destination);
+  const v = (vol ?? a.vol ?? 80) / 100;
+  g.gain.setValueAtTime(fadeS ? .02 : v, c.currentTime); if (fadeS) g.gain.linearRampToValueAtTime(v, c.currentTime + fadeS);
+  let stopper;
+  const blob = a.src === "file" ? await IDB.get("snd" + a.id) : null;
+  if (blob) { const el = new Audio(URL.createObjectURL(blob)); el.loop = true; const n = c.createMediaElementSource(el); n.connect(g); el.play().catch(() => { }); stopper = () => { el.pause(); URL.revokeObjectURL(el.src); }; }
+  else stopper = chime(g);
+  WEBSND = { stop: () => { try { stopper(); g.disconnect(); } catch (e) { } } };
+}
+function stopWebSound() { if (WEBSND) { WEBSND.stop(); WEBSND = null; } }
+async function preview(a) {
+  if (NATIVE) call("alarmCmd", "preview", JSON.stringify({ id: a.src === "music" && a.track ? a.track.id : 0, vol: a.vol || 70 }));
+  else { await webSound(a, 0, a.vol); setTimeout(stopWebSound, 20000); }
+}
+function stopPreview() { if (NATIVE) call("alarmCmd", "previewStop", null); else stopWebSound(); }
+
+/* ============ Sonnerie, lever de soleil ============ */
+const WEB = { ringing: null, snoozeAt: 0, snoozeA: null, fired: {}, dawn: null };
+let RING_UI = null, RING_GUARD = 0;
+function testRing(a) {
+  if (NATIVE) call("alarmCmd", "test", JSON.stringify(a));
+  else webRing(a);
+}
+function webRing(a) {
+  WEB.ringing = { a, since: Date.now() };
+  webSound(a, a.fade || 0);
+  if (a.vib && navigator.vibrate) navigator.vibrate([600, 900, 600, 900, 600]);
+  showRing({ label: a.label, track: a.src === "file" ? a.file || "" : "", id: a.id, a });
+}
+function showRing(st) {
+  if (RING_UI) return;
+  closeOverlay("dawn");
+  const a = st.a || ALARMS.find(x => x.id === st.id) || {};
+  const d = document.createElement("div"); d.className = "ovl"; d.id = "ring";
+  const t = todayWx(), c = WX.data && WX.data.current;
+  d.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;margin-top:6vh">
+      <div class="t num" id="rgT"></div>
+      <div class="l">${esc(st.label || a.label || "Bonjour !")}</div>
+      ${st.track ? `<div class="m row" style="gap:6px;justify-content:center">${I.note}${esc(st.track)}</div>` : ""}
+      ${c && t ? `<div class="wx">${wxIcon(c.weather_code, true)}<span>${Math.round(c.temperature_2m)}° · ${WMO(t.code)[0].toLowerCase()} · ${t.min}°/${t.max}°</span></div>` : ""}
+    </div>
+    <div style="width:100%;display:flex;flex-direction:column;align-items:center">
+      <button class="snz" id="rgS">Répéter · ${a.snooze || 9} min</button>
+      <div class="slide" id="rgX"><span>Glissez pour arrêter</span><div class="knob">${I.arrow}</div></div>
+    </div>`;
+  document.body.appendChild(d);
+  RING_UI = { el: d, a, iv: setInterval(() => { const e = $("#rgT"); if (e) e.textContent = hm(new Date()); }, 1000) };
+  $("#rgT").textContent = hm(new Date());
+  call("keepScreen", true); call("setBright", -1);
+  $("#rgS").onclick = () => doSnooze();
+  // Glisser pour arrêter (évite de couper le réveil en dormant à moitié)
+  const sl = $("#rgX"), kn = $(".knob", sl); let x0 = null, dx = 0;
+  const max = () => sl.clientWidth - kn.clientWidth - 12;
+  sl.addEventListener("pointerdown", e => { x0 = e.clientX; sl.setPointerCapture(e.pointerId); kn.style.transition = "none"; });
+  sl.addEventListener("pointermove", e => { if (x0 == null) return; dx = Math.max(0, Math.min(max(), e.clientX - x0)); kn.style.transform = `translateX(${dx}px)`; });
+  const end = () => { if (x0 == null) return; x0 = null; kn.style.transition = "transform .25s"; if (dx >= max() * .85) { kn.style.transform = `translateX(${max()}px)`; doStop(); } else kn.style.transform = ""; dx = 0; };
+  sl.addEventListener("pointerup", end); sl.addEventListener("pointercancel", end);
+}
+function hideRing() {
+  if (!RING_UI) return;
+  clearInterval(RING_UI.iv); RING_UI.el.remove(); RING_UI = null;
+  call("keepScreen", false); call("lockShow", false);
+  if (TAB === "alarms" || TAB === "clock") render();
+}
+function doSnooze() {
+  const a = RING_UI && RING_UI.a || {};
+  RING_GUARD = Date.now() + 3000;
+  if (NATIVE) call("alarmCmd", "snooze", null);
+  else { stopWebSound(); WEB.snoozeAt = Date.now() + (a.snooze || 9) * 60000; WEB.snoozeA = a; WEB.ringing = null; }
+  hideRing(); toast("Répétition dans " + (a.snooze || 9) + " minutes");
+}
+function doStop() {
+  const a = RING_UI && RING_UI.a || {};
+  RING_GUARD = Date.now() + 3000;
+  if (NATIVE) call("alarmCmd", "stop", null);
+  else { stopWebSound(); WEB.ringing = null; if (navigator.vibrate) navigator.vibrate(0); }
+  if (a.tmp) { ALARMS = ALARMS.filter(x => x.id !== a.id); saveAlarms(); }
+  hideRing();
+  hello(a);
+}
+async function hello(a) {
+  // Écran « Bonjour » avec la météo du jour, et annonce vocale
+  try { await loadWx(); } catch (e) { }
+  const t = todayWx(), c = WX.data && WX.data.current, now = new Date();
+  const h = now.getHours(), greet = h < 12 ? "Bonjour" : h < 18 ? "Bon après-midi" : "Bonsoir";
+  const tips = advice().slice(0, 2);
+  const d = document.createElement("div"); d.className = "ovl"; d.id = "hello"; d.style.background = "linear-gradient(180deg,#f3a26b,#ffd59a)"; d.style.color = "#3a1d2c"; d.style.padding = "24px";
+  d.innerHTML = `<div style="font-size:30px;font-weight:750">${greet} ☀️</div>
+    <div style="font-size:16px;margin:6px 0 18px">${JOURS[now.getDay()]} ${now.getDate()} ${MOIS[now.getMonth()]} · ${hm(now)}</div>
+    ${c && t ? `<div class="hello" style="color:#3a1d2c;background:#ffffff66"><div class="row" style="justify-content:center">${wxIcon(c.weather_code, true).replace('class="w"', 'style="width:64px;height:64px"')}<span style="font-size:44px;font-weight:300">${Math.round(c.temperature_2m)}°</span></div>
+      <div style="font-weight:650">${WMO(t.code)[0]} · ${t.min}° → ${t.max}°${WX.place ? " · " + esc(WX.place.name) : ""}</div>
+      ${tips.map(([e, s]) => `<div class="tip" style="text-align:left"><span class="e">${e}</span><span>${esc(s)}</span></div>`).join("")}</div>` : `<div class="hello" style="color:#3a1d2c;background:#ffffff66">Choisissez votre ville dans Météo pour avoir les prévisions au réveil.</div>`}
+    <button class="btn" style="margin-top:22px;background:#3a1d2c;color:#fff;border:0;padding:14px 30px">Bonne journée</button>`;
+  document.body.appendChild(d);
+  $("button", d).onclick = () => { d.remove(); try { speechSynthesis.cancel(); } catch (e) { } };
+  setTimeout(() => { if (d.isConnected) d.remove(); }, 120000);
+  if (a.voice !== false) {
+    let txt = `${greet} ! Il est ${h} heure${h > 1 ? "s" : ""} ${now.getMinutes() || ""}.`;
+    if (c && t) txt += ` Aujourd'hui${WX.place ? " à " + WX.place.name : ""} : ${WMO(t.code)[0].toLowerCase()}, ${Math.round(c.temperature_2m)} degrés en ce moment, ${t.max} au maximum.` + (t.rain >= 50 ? " Pensez au parapluie." : "");
+    speak(txt);
+  }
+}
+function speak(txt) {
+  if (NATIVE && MP.speak) { call("speak", txt); return; }
+  try { const u = new SpeechSynthesisUtterance(txt); u.lang = "fr-FR"; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) { }
+}
+function closeOverlay(id) { const o = document.getElementById(id); if (o) { if (o._iv) clearInterval(o._iv); o.remove(); } }
+function showDawn(startAt, ringAt) {
+  if (document.getElementById("dawn") || RING_UI) return;
+  const d = document.createElement("div"); d.className = "ovl"; d.id = "dawn";
+  d.innerHTML = `<div class="sun" id="dsun"></div><div class="t num" id="dT"></div><div class="small" style="position:absolute;bottom:calc(30px + var(--safe-b));color:#ffffffa0">Touchez pour éteindre la lumière</div>`;
+  document.body.appendChild(d);
+  call("keepScreen", true);
+  const stops = [[0, [0, 0, 0]], [.25, [70, 8, 18]], [.5, [190, 60, 30]], [.75, [255, 150, 70]], [1, [255, 236, 200]]];
+  const mix = f => { for (let i = 1; i < stops.length; i++) if (f <= stops[i][0]) { const [a0, c0] = stops[i - 1], [a1, c1] = stops[i]; const k = (f - a0) / (a1 - a0); return c0.map((v, j) => Math.round(v + (c1[j] - v) * k)); } return stops[4][1]; };
+  const step = () => {
+    const f = Math.max(0, Math.min(1, (Date.now() - startAt) / Math.max(1, ringAt - startAt)));
+    const c = mix(f), c2 = mix(Math.min(1, f + .25));
+    d.style.background = `rgb(${c})`;
+    const sun = $("#dsun", d); sun.style.background = `rgb(${c2})`; sun.style.bottom = (-40 + f * 50) + "vmin";
+    $("#dT", d).textContent = hm(new Date()); $("#dT", d).style.opacity = .25 + f * .6;
+    call("setBright", .01 + f * f * .99);
+  };
+  step(); d._iv = setInterval(step, 4000);
+  d.onclick = () => { closeOverlay("dawn"); call("dawnClear"); call("setBright", -1); call("keepScreen", false); WEB.dawn = null; };
+}
+
+/* ============ Météo : écran ============ */
+function vWx() {
+  const d = WX.data, p = WX.place;
+  const search = `<div class="search">${I.search}<input class="field" id="wq" placeholder="Chercher une ville…" autocomplete="off"><button class="loc" id="wl" aria-label="Ma position">${I.loc}</button><div class="results" id="wr" hidden></div></div>
+    ${WX.places.length > 1 ? `<div class="chips" style="margin:-2px 0 12px">${WX.places.map((x, i) => `<button class="chip ${p && x.lat === p.lat && x.lon === p.lon ? "on" : ""}" data-pl="${i}">${esc(x.name)}</button>`).join("")}</div>` : ""}`;
+  if (!p) return search + `<div class="empty"><svg viewBox="0 0 64 64" style="width:120px;height:120px">${wxIcon(2).replace(/^<svg[^>]*>|<\/svg>$/g, "")}</svg><b>Où êtes-vous ?</b><p class="small">Cherchez votre ville ou touchez ${I.loc.replace('class="ic"', 'class="ic" style="display:inline;width:16px;height:16px;vertical-align:-3px"')} pour utiliser votre position.</p></div>`;
+  if (!d) return search + `<div class="card" id="wxload" style="text-align:center">Chargement de la météo de ${esc(p.name)}…</div>`;
+  const c = d.current, t = todayWx(), h = d.hourly, now = new Date();
+  let from = h.time.findIndex(x => new Date(x).getTime() > now.getTime() - 3600e3); if (from < 0) from = 0;
+  const hours = h.time.slice(from, from + 25).map((x, i) => ({ t: new Date(x), temp: h.temperature_2m[from + i], code: h.weather_code[from + i], rain: h.precipitation_probability[from + i], day: h.is_day[from + i] }));
+  const dl = d.daily, lo = Math.min(...dl.temperature_2m_min), hi = Math.max(...dl.temperature_2m_max);
+  const tips = advice();
+  const age = Math.round((Date.now() - WX.at) / 60000);
+  return search + `<div class="wxhero">${STARS}
+    <div class="place" style="position:relative">${I.pin}${esc(p.name)}<span class="small" style="font-weight:500;opacity:.75;margin-left:4px">${esc(p.sub || "")}</span></div>
+    <div class="row" style="position:relative;margin-top:6px"><div class="grow"><div class="temp num">${Math.round(c.temperature_2m)}°</div><div class="desc">${WMO(c.weather_code)[0]}</div><div class="small" style="opacity:.85">Ressenti ${Math.round(c.apparent_temperature)}° · ${t.min}° / ${t.max}°</div></div>${wxIcon(c.weather_code, c.is_day).replace('class="w"', 'class="big"')}</div>
+  </div>
+  ${tips.length ? `<div class="card"><h3>Conseils du jour</h3>${tips.map(([e, s]) => `<div class="tip"><span class="e">${e}</span><span>${esc(s)}</span></div>`).join("")}</div>` : ""}
+  <div class="card"><h3>Prochaines heures</h3><div class="hours">${hours.map((x, i) => `<div class="hr ${i === 0 ? "now" : ""}"><span class="dim">${i === 0 ? "Maint." : x.t.getHours() + " h"}</span>${wxIcon(x.code, x.day)}<b class="num">${Math.round(x.temp)}°</b><span class="rain">${x.rain >= 20 ? x.rain + " %" : ""}</span></div>`).join("")}</div></div>
+  <div class="card"><h3>7 jours</h3>${dl.time.map((x, i) => { const dd = new Date(x + "T12:00"), mn = dl.temperature_2m_min[i], mx = dl.temperature_2m_max[i];
+    return `<div class="day"><b>${i === 0 ? "Auj." : JL[dd.getDay() === 0 ? 7 : dd.getDay()].replace(".", "")}</b>${wxIcon(dl.weather_code[i], true)}<span class="rain">${dl.precipitation_probability_max[i] >= 20 ? dl.precipitation_probability_max[i] + "%" : ""}</span><span class="dim num" style="text-align:right">${Math.round(mn)}°</span><div class="bar"><i style="left:${(mn - lo) / (hi - lo || 1) * 100}%;right:${100 - (mx - lo) / (hi - lo || 1) * 100}%"></i></div><b class="num">${Math.round(mx)}°</b></div>`; }).join("")}</div>
+  <div class="card"><h3>Détails</h3><div class="grid3">
+    <div class="cell"><span class="k">Vent</span><span class="v">${Math.round(c.wind_speed_10m)} km/h</span><span class="small dim">rafales ${Math.round(c.wind_gusts_10m)}</span></div>
+    <div class="cell"><span class="k">Humidité</span><span class="v">${c.relative_humidity_2m} %</span></div>
+    <div class="cell"><span class="k">Pluie</span><span class="v">${t.rain} %</span><span class="small dim">aujourd'hui</span></div>
+    <div class="cell"><span class="k">UV</span><span class="v">${Math.round(t.uv)}</span><span class="small dim">${t.uv >= 8 ? "très fort" : t.uv >= 6 ? "fort" : t.uv >= 3 ? "modéré" : "faible"}</span></div>
+    <div class="cell"><span class="k">Lever</span><span class="v">${hm(new Date(t.rise))}</span></div>
+    <div class="cell"><span class="k">Coucher</span><span class="v">${hm(new Date(t.set))}</span></div>
+  </div></div>
+  <div class="row small dim" style="justify-content:center;gap:8px;margin:4px 0 10px"><span>Mis à jour il y a ${age < 1 ? "moins d'une minute" : age + " min"} · Open-Meteo</span><button class="btn sm ghost" id="wf">${I.refresh}</button></div>`;
+}
+function bWx(m) {
+  const q = $("#wq", m), r = $("#wr", m); let tm;
+  q.oninput = () => {
+    clearTimeout(tm); const v = q.value.trim(); if (v.length < 2) { r.hidden = true; return; }
+    tm = setTimeout(async () => {
+      try { const res = await searchPlace(v); r.innerHTML = res.length ? res.map((x, i) => `<button data-i="${i}"><b>${esc(x.name)}</b> <span class="small muted">${esc(x.sub)}</span></button>`).join("") : `<button disabled class="muted">Aucune ville trouvée</button>`; r.hidden = false;
+        $$("[data-i]", r).forEach(b => b.onclick = async () => { setPlace(res[+b.dataset.i]); r.hidden = true; render(); await refreshWx(true); }); }
+      catch (e) { r.innerHTML = `<button disabled class="muted">Pas de connexion Internet</button>`; r.hidden = false; }
+    }, 350);
+  };
+  $("#wl", m).onclick = locate;
+  $$("[data-pl]", m).forEach(b => b.onclick = async () => { WX.place = WX.places[+b.dataset.pl]; WX.data = null; saveWx(); render(); await refreshWx(true); });
+  const f = $("#wf", m); if (f) f.onclick = () => refreshWx(true);
+  if (WX.place && (!WX.data || Date.now() - WX.at > 30 * 60000)) refreshWx(!WX.data);
+}
+let wxBusy = false;
+async function refreshWx(force) {
+  if (wxBusy) return; wxBusy = true;
+  try { await loadWx(force); applySky(); if (TAB === "wx" || TAB === "clock") render(); }
+  catch (e) { const l = $("#wxload"); if (l) l.innerHTML = `Météo indisponible : vérifiez la connexion Internet.<br><button class="btn sm" style="margin-top:10px" onclick="refreshWx(true)">Réessayer</button>`; else if (TAB === "wx") toast("Météo indisponible pour le moment"); }
+  wxBusy = false;
+}
+
+/* ============ Soir : lumière douce ============ */
+const LIGHTS = {
+  bougie: { n: "Bougie", c: "radial-gradient(circle at 50% 62%,#ffb15e 0%,#ff7a2e 28%,#7a2a0a 62%,#000 90%)", sw: "radial-gradient(circle,#ffc078,#ff7a2e 60%,#7a2a0a)", flick: true },
+  ambre: { n: "Ambre", c: "radial-gradient(circle at 50% 55%,#ffc477 0%,#ff9a3c 35%,#5e2a05 70%,#000 95%)", sw: "radial-gradient(circle,#ffd08a,#ff9a3c)" },
+  coucher: { n: "Coucher", c: "linear-gradient(180deg,#2a1745 0%,#8a2f5e 35%,#e8613f 70%,#ffb15e 100%)", sw: "linear-gradient(180deg,#8a2f5e,#e8613f,#ffb15e)" },
+  rouge: { n: "Rouge", c: "radial-gradient(circle at 50% 55%,#ff5a3c 0%,#b3200e 40%,#300400 75%,#000 95%)", sw: "radial-gradient(circle,#ff7a5c,#b3200e)" },
+  lune: { n: "Lune", c: "radial-gradient(circle at 50% 40%,#8ea2ff 0%,#3a4590 35%,#0d1030 70%,#000 95%)", sw: "radial-gradient(circle,#b7c4ff,#3a4590)" },
+};
+function vSoir() {
+  const L = LIGHTS[SOIR.color] || LIGHTS.bougie;
+  const mus = SOIR.music;
+  return `<div class="glow"><div class="orb ${L.flick ? "flick" : ""}" id="orb" style="background:${L.sw};opacity:${.25 + SOIR.lum * .75}"></div><div class="lab">${L.n} · ${Math.round(SOIR.lum * 100)} %</div></div>
+  <div class="card"><h3>Couleur de la lumière</h3><div class="swatches">${Object.entries(LIGHTS).map(([k, v]) => `<button class="swatch ${SOIR.color === k ? "on" : ""}" data-l="${k}"><i style="background:${v.sw}"></i>${v.n}</button>`).join("")}</div>
+    <div class="small dim" style="margin-top:10px">Les lumières chaudes (bougie, ambre, rouge) gênent moins l'endormissement que la lumière blanche ou bleue.</div>
+    <div class="lbl">Intensité</div><input type="range" id="lum" min="0.05" max="1" step="0.05" value="${SOIR.lum}">
+    <div class="lbl">S'éteint doucement en</div>
+    <div class="chips" id="dur">${[15, 30, 45, 60, 90, 0].map(v => `<button class="chip ${SOIR.min === v ? "on" : ""}" data-v="${v}">${v ? v + " min" : "Veilleuse toute la nuit"}</button>`).join("")}</div>
+  </div>
+  <div class="card" style="padding:4px 16px">
+    <div class="line"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="8" opacity=".5"/></svg><div class="grow">Respiration guidée<div class="small dim">La lumière gonfle et dégonfle (4 – 7 – 8) pendant 5 minutes</div></div><button class="sw ${SOIR.breath ? "on" : ""}" id="br"></button></div>
+    <div class="line">${I.note}<div class="grow">Musique pour s'endormir<div class="small dim ell">${mus ? esc(mus.label) + (mus.sub ? " · " + esc(mus.sub) : "") : NATIVE ? "Le son baisse en même temps que la lumière" : "Choisissez un fichier audio"}</div></div>${mus ? `<button class="iconbtn" id="mx" style="background:transparent">${I.x}</button>` : ""}<button class="btn sm" id="mp">${mus ? "Changer" : "Choisir"}</button></div>
+    ${mus ? `<div class="line" style="padding-top:4px"><span class="small dim" style="width:60px">Volume</span><input type="range" id="mv" min="5" max="100" step="5" value="${SOIR.vol}"></div>` : ""}
+  </div>
+  <button class="btn pri full" id="go" style="padding:17px;font-size:17px">${I.moon} Allumer la lumière du soir</button>
+  <button class="btn full ghost" id="cv2" style="margin-top:10px">${I.bed} Mode chevet (heure discrète toute la nuit)</button>`;
+}
+function bSoir(m) {
+  const orb = $("#orb", m), lab = $(".glow .lab", m);
+  $$("[data-l]", m).forEach(b => b.onclick = () => { SOIR.color = b.dataset.l; saveSoir(); render(); });
+  const lum = $("#lum", m); rangeFill(lum);
+  lum.oninput = () => { SOIR.lum = +lum.value; rangeFill(lum); orb.style.opacity = .25 + SOIR.lum * .75; lab.textContent = LIGHTS[SOIR.color].n + " · " + Math.round(SOIR.lum * 100) + " %"; saveSoir(); };
+  $$("#dur button", m).forEach(b => b.onclick = () => { SOIR.min = +b.dataset.v; saveSoir(); $$("#dur button", m).forEach(x => x.classList.toggle("on", x === b)); });
+  $("#br", m).onclick = e => { SOIR.breath = !SOIR.breath; e.currentTarget.classList.toggle("on"); saveSoir(); };
+  $("#mp", m).onclick = () => {
+    if (NATIVE) pickTrack(null, r => { SOIR.music = r; saveSoir(); render(); }, true);
+    else { const i = document.createElement("input"); i.type = "file"; i.accept = "audio/*"; i.onchange = async () => { const f = i.files[0]; if (!f) return; await IDB.set("soirsnd", f); SOIR.music = { file: true, label: f.name }; saveSoir(); render(); }; i.click(); }
+  };
+  const mx = $("#mx", m); if (mx) mx.onclick = () => { SOIR.music = null; saveSoir(); render(); };
+  const mv = $("#mv", m); if (mv) { rangeFill(mv); mv.oninput = () => { SOIR.vol = +mv.value; rangeFill(mv); saveSoir(); }; }
+  $("#go", m).onclick = () => startLight();
+  $("#cv2", m).onclick = openChevet;
+}
+let LIGHT = null;
+async function startLight() {
+  if (LIGHT) return;
+  const L = LIGHTS[SOIR.color] || LIGHTS.bougie;
+  const total = SOIR.min ? SOIR.min * 60000 : 0;
+  LIGHT = { start: Date.now(), end: total ? Date.now() + total : 0, lum: SOIR.lum, audio: null };
+  const d = document.createElement("div"); d.className = "ovl"; d.id = "light";
+  d.innerHTML = `<div class="orb ${L.flick ? "flick" : ""}" style="background:${L.c}"></div><div class="clk num" id="lc"></div>${SOIR.breath ? `<div class="breath" id="bre"><span>Inspirez</span></div>` : ""}`;
+  document.body.appendChild(d);
+  call("keepScreen", true); wakeLock(true);
+  // Musique d'endormissement : baisse avec la lumière
+  const dur = SOIR.min || 60;
+  if (SOIR.music) {
+    if (NATIVE && SOIR.music.ids) call("alarmCmd", "sleep", JSON.stringify({ ids: SOIR.music.ids, min: dur, vol: SOIR.vol }));
+    else if (!NATIVE) { const f = await IDB.get("soirsnd"); if (f) { const el = new Audio(URL.createObjectURL(f)); el.loop = true; el.volume = SOIR.vol / 100; el.play().catch(() => { }); LIGHT.audio = el; LIGHT.audioEnd = Date.now() + dur * 60000; } }
+  }
+  // Respiration 4-7-8
+  if (SOIR.breath) {
+    const b = $("#bre", d), sp = $("span", b); let k = 0;
+    const phases = [["Inspirez", 4, 1], ["Retenez", 7, 1], ["Expirez", 8, .6]];
+    const run = () => { if (!LIGHT || !b.isConnected) return; if (Date.now() - LIGHT.start > 5 * 60000) { b.style.transition = "opacity 3s"; b.style.opacity = 0; setTimeout(() => b.remove(), 3000); return; }
+      const [w, s, sc] = phases[k % 3]; sp.textContent = w; b.style.setProperty("--bd", s + "s"); b.style.setProperty("--b", sc); k++; LIGHT.bt = setTimeout(run, s * 1000); };
+    b.style.setProperty("--b", .6); setTimeout(run, 300);
+  }
+  const orb = $(".orb", d);
+  const step = () => {
+    if (!LIGHT) return;
+    const now = Date.now();
+    let f = 1;
+    if (LIGHT.end) { const r = (now - LIGHT.start) / (LIGHT.end - LIGHT.start); f = r < .4 ? 1 : Math.max(0, 1 - (r - .4) / .6); }
+    const lum = LIGHT.lum * f;
+    orb.style.opacity = Math.max(0, lum);
+    call("setBright", LIGHT.end && f === 0 ? 0.004 : .004 + lum * lum * .5);
+    const lc = $("#lc", d); lc.textContent = hm(new Date()) + (LIGHT.end ? " · extinction " + hm(new Date(LIGHT.end)) : "");
+    lc.style.opacity = Math.max(.15, f * .7);
+    if (LIGHT.audio) { const r = (now - LIGHT.start) / (LIGHT.audioEnd - LIGHT.start); LIGHT.audio.volume = Math.max(0, Math.min(1, SOIR.vol / 100 * (r < .5 ? 1 : 1 - (r - .5) * 2))); if (r >= 1) { LIGHT.audio.pause(); LIGHT.audio = null; } }
+    if (LIGHT.end && now >= LIGHT.end) { goodnight(d); return; }
+  };
+  step(); LIGHT.iv = setInterval(step, 2000);
+  d.onclick = e => {
+    if (e.target.closest(".ctl")) return;
+    const c = $(".ctl", d); if (c) { c.remove(); return; }
+    const p = document.createElement("div"); p.className = "ctl";
+    p.innerHTML = `<div class="row"><div class="grow"><b>${L.n}</b><div class="small muted">${LIGHT.end ? "S'éteint à " + hm(new Date(LIGHT.end)) : "Veilleuse toute la nuit"}</div></div>${LIGHT.end ? `<button class="btn sm" id="p15">+15 min</button>` : ""}</div>
+      <div class="lbl">Intensité</div><input type="range" id="ll" min="0.05" max="1" step="0.05" value="${LIGHT.lum}">
+      <button class="btn full" id="lx" style="margin-top:12px">Éteindre maintenant</button>`;
+    d.appendChild(p);
+    const ll = $("#ll", p); rangeFill(ll); ll.oninput = () => { LIGHT.lum = +ll.value; rangeFill(ll); step(); };
+    const p15 = $("#p15", p); if (p15) p15.onclick = () => { LIGHT.end += 15 * 60000; if (LIGHT.audioEnd) LIGHT.audioEnd += 15 * 60000; p.remove(); step(); toast("Lumière prolongée de 15 minutes"); };
+    $("#lx", p).onclick = () => stopLight();
+  };
+}
+function goodnight(d) {
+  clearInterval(LIGHT.iv);
+  d.innerHTML = `<div style="color:#ffffff30;font-size:15px">Bonne nuit · touchez pour fermer</div>`;
+  d.style.background = "#000";
+  call("keepScreen", false); wakeLock(false); call("setBright", 0.004);
+  d.onclick = () => stopLight();
+}
+function stopLight() {
+  if (!LIGHT) return;
+  clearInterval(LIGHT.iv); clearTimeout(LIGHT.bt);
+  if (LIGHT.audio) LIGHT.audio.pause();
+  if (NATIVE && SOIR.music) call("alarmCmd", "sleepStop", null);
+  LIGHT = null; closeOverlay("light");
+  call("keepScreen", false); call("setBright", -1); wakeLock(false);
+}
+
+/* ============ Boucle principale ============ */
+let lastMin = -1;
+function tick() {
+  const now = Date.now(), d = new Date(now);
+  if (TAB === "clock") paintClock(); else $("#hdate").innerHTML = `${JOURS[d.getDay()]}<br><b class="num">${hm(d)}</b>`;
+  if (d.getMinutes() !== lastMin) {
+    lastMin = d.getMinutes(); applySky();
+    if (TAB === "clock") paintArc();
+    const n2 = $("#nIn2"), n = nextAlarm(); if (n2 && n) n2.textContent = "dans " + inText(n.at - now);
+    if (WX.place && now - WX.at > 60 * 60000) loadWx(true).catch(() => { });
+  }
+  if (NATIVE) pollNative(); else webSchedule(now);
+}
+function pollNative() {
+  let st; try { st = JSON.parse(call("alarmState") || "{}"); } catch (e) { return; }
+  if (st.ringing && !RING_UI && Date.now() > RING_GUARD) showRing(st);
+  else if (!st.ringing && RING_UI) { hideRing(); loadNativeAlarms(); }
+  if (st.dawn >= 0 && st.dawnRing > Date.now() && !document.getElementById("dawn") && !RING_UI) showDawn(st.dawnAt, st.dawnRing);
+}
+function webSchedule(now) {
+  if (WEB.ringing) { if (now - WEB.ringing.since > 10 * 60000) { stopWebSound(); WEB.ringing = null; hideRing(); } return; }
+  if (WEB.snoozeAt && now >= WEB.snoozeAt) { const a = WEB.snoozeA; WEB.snoozeAt = 0; webRing(a); return; }
+  for (const a of ALARMS) {
+    if (!a.on) continue;
+    const key = a.id + ":" + a.h + ":" + a.m + ":" + ymd(new Date(now));
+    const t = new Date(now); t.setHours(a.h, a.m, 0, 0);
+    const iso = t.getDay() === 0 ? 7 : t.getDay();
+    const okDay = !a.days.length || a.days.includes(iso);
+    if (okDay && a.skip !== ymd(t) && a.dawn && !WEB.dawn && now >= t - a.dawn * 60000 && now < t.getTime()) { WEB.dawn = key; showDawn(t - a.dawn * 60000, t.getTime()); }
+    if (okDay && a.skip !== ymd(t) && now >= t.getTime() && now - t.getTime() < 60000 && !WEB.fired[key]) {
+      WEB.fired[key] = 1; WEB.dawn = null;
+      if (!a.days.length) a.on = false;
+      saveAlarms(); webRing(a); return;
+    }
+    if (a.skip && a.skip < ymd(new Date(now))) { a.skip = ""; saveAlarms(); }
+  }
+}
+
+/* ============ Démarrage ============ */
+(async function start() {
+  if (!NATIVE) { await sleep(250); MP = window.MAGPrint; NATIVE = !!(MP && MP.alarmSave); }
+  loadNativeAlarms();
+  // Siestes terminées : retirées
+  const before = ALARMS.length; ALARMS = ALARMS.filter(a => !(a.tmp && !a.on)); if (ALARMS.length !== before) saveAlarms();
+  applySky();
+  go(TAB);
+  setInterval(tick, 1000); tick();
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) { loadNativeAlarms(); if (!RING_UI && (TAB === "alarms" || TAB === "clock")) render(); tick(); } });
+  if (WX.place) refreshWx(false);
+})();
+</script>
+</body>
+</html>

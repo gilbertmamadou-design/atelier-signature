@@ -1,0 +1,147 @@
+name: Fabriquer les APK Android (dossier applis)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      applis:
+        description: "Applis à fabriquer (ex. scan,photo) ou « toutes »"
+        required: false
+        default: "toutes"
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    working-directory: applis
+
+jobs:
+  # Choisit les applis à fabriquer : seulement celles qui ont changé (économise les minutes GitHub)
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      apps: ${{ steps.p.outputs.apps }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - id: p
+        env:
+          HAS_KEY: ${{ secrets.KEYSTORE_B64 != '' }}
+          BEFORE: ${{ github.event.before }}
+          WANT: ${{ github.event.inputs.applis }}
+        run: |
+          python3 - <<'PY2'
+          import json, os, subprocess
+          apps = json.load(open('apps.json', encoding='utf-8'))
+          want = (os.environ.get('WANT') or '').strip()
+          before = os.environ.get('BEFORE') or ''
+          sel = None
+          if want and want != 'toutes':
+              names = {x.strip() for x in want.split(',') if x.strip()}
+              sel = [a for a in apps if a['app'] in names]
+          elif not want and before and set(before) != {'0'}:
+              try:
+                  files = subprocess.check_output(['git', 'diff', '--name-only', before, os.environ['GITHUB_SHA']], text=True).split()
+                  files = [f[len('applis/'):] if f.startswith('applis/') else ('.github/' + f.split('/', 1)[1] if f.startswith('.github/') else '') for f in files]
+                  files = [f for f in files if f]
+              except Exception:
+                  files = None
+              if files is not None:
+                  common = [f for f in files if f.startswith(('scripts/', '.github/', 'keystore/')) or f in ('package.json', 'apps.json', 'capacitor.config.json')]
+                  if common:
+                      sel = apps
+                  else:
+                      sel = [a for a in apps if any(f.startswith(a['web'] + '/') or f.startswith(a['icons'] + '/') for f in files)]
+          if sel is None:
+              sel = apps
+          if os.environ.get('HAS_KEY') != 'true':
+              print('::error::Secret KEYSTORE_B64 absent : Settings > Secrets and variables > Actions > New repository secret. Aucune appli fabriquée.')
+              sel = []
+          print('Applis à fabriquer :', ', '.join(a['app'] for a in sel) or 'aucune')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as o:
+              o.write('apps=' + json.dumps(sel, ensure_ascii=False) + '\n')
+          PY2
+
+  apk:
+    needs: plan
+    if: ${{ needs.plan.outputs.apps != '[]' }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.apps) }}
+    steps:
+      - name: Récupérer les fichiers
+        uses: actions/checkout@v5
+
+      - name: Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Installer Capacitor
+        run: npm install
+
+      - name: Préparer l'application ${{ matrix.name }}
+        run: |
+          cp node_modules/jspdf/dist/jspdf.umd.min.js node_modules/xlsx/dist/xlsx.full.min.js node_modules/leaflet/dist/leaflet.js node_modules/leaflet/dist/leaflet.css node_modules/pdf-lib/dist/pdf-lib.min.js node_modules/pdfjs-dist/build/pdf.min.js node_modules/pdfjs-dist/build/pdf.worker.min.js node_modules/jszip/dist/jszip.min.js "${{ matrix.web }}/"
+          printf '{"appId":"%s","appName":"%s","webDir":"%s"}' "${{ matrix.appid }}" "${{ matrix.name }}" "${{ matrix.web }}" > capacitor.config.json
+          cat capacitor.config.json
+
+      - name: Clé de signature (secret KEYSTORE_B64)
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then echo "::error::Ajoute le secret KEYSTORE_B64 : Settings > Secrets and variables > Actions > New repository secret"; exit 1; fi
+          mkdir -p keystore
+          echo "$KEYSTORE_B64" | tr -d ' \r\n' | base64 -d > keystore/debug.keystore
+          keytool -list -keystore keystore/debug.keystore -storepass android >/dev/null && echo "Clé de signature prête"
+
+      - name: Créer le projet Android
+        env:
+          ICONS: ${{ matrix.icons }}
+          APP: ${{ matrix.app }}
+        run: |
+          npx cap add android
+          bash scripts/icons.sh
+          bash scripts/print-patch.sh
+          npx cap sync android
+
+      - name: Compiler l'APK
+        working-directory: applis/android
+        run: |
+          chmod +x gradlew
+          set +e
+          ./gradlew assembleDebug --no-daemon 2>&1 | tee build.log
+          st=${PIPESTATUS[0]}
+          if [ $st -ne 0 ]; then
+            # Les erreurs apparaissent aussi en « annotations » de l'exécution (lisibles sans ouvrir le journal)
+            grep -E "error:|ERROR|What went wrong|Exception|e: |FAILED|> " build.log | grep -v "^> Task" | head -25 | while IFS= read -r l; do echo "::error::${l:0:400}"; done
+          fi
+          exit $st
+
+      - name: Renommer l'APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk "${{ matrix.file }}"
+
+      - name: APK téléchargeable (onglet Actions)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app }}-apk
+          path: applis/${{ matrix.file }}
+
+      - name: Publier dans « Releases »
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ matrix.app }}-${{ github.run_number }}
+          name: ${{ matrix.name }} – version ${{ github.run_number }}
+          body: APK Android « ${{ matrix.name }} » (version ${{ github.run_number }}).
+          files: applis/${{ matrix.file }}

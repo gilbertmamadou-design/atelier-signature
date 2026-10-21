@@ -1,0 +1,851 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Sauvegarde</title>
+<meta name="theme-color" content="#0f1116">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#0f1116;--bg2:#181b23;--bg3:#222632;--bg4:#2c3140;--line:#ffffff14;
+  --tx:#f2f3f7;--tx2:#b4b8c7;--tx3:#7d8294;
+  --acc:#7fd1b9;--acc2:#8fb4ff;--ok:#6fd6a4;--bad:#ff7b7b;--warn:#ffb35c;
+  --r:18px;--safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+svg{display:block}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+[hidden]{display:none!important}
+header{padding:calc(14px + var(--safe-t)) 18px 6px;display:flex;align-items:center;gap:10px}
+.logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:21px}
+.logo svg{width:30px;height:30px}
+header .sp{flex:1}
+.pill{font-size:12px;color:var(--tx2);background:var(--bg2);border:1px solid var(--line);padding:5px 10px;border-radius:99px;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--tx3);flex:none}
+.dot.on{background:var(--ok)}
+.dot.warn{background:var(--warn)}
+.dot.bad{background:var(--bad)}
+nav{position:sticky;top:0;z-index:5;background:var(--bg);padding:6px 16px 8px}
+.tabs{display:flex;background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:3px;gap:3px}
+.tabs button{flex:1;padding:8px 2px;border-radius:11px;font-size:13px;font-weight:600;color:var(--tx2);display:flex;flex-direction:column;align-items:center;gap:3px}
+.tabs button .ic{width:18px;height:18px}
+.tabs button.on{background:var(--bg4);color:var(--tx);box-shadow:0 0 0 1px #ffffff1c inset}
+main{padding:4px 16px calc(28px + var(--safe-b))}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.card h3{margin:0 0 12px;font-size:12.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--tx3);font-weight:700;display:flex;align-items:center;gap:8px}
+.card h3 .sp{flex:1}
+.warn{background:#ffb35c14;border-color:#ffb35c40;color:#ffd7a8;font-size:14px}
+.note{font-size:13px;color:var(--tx3);line-height:1.5}
+.note b{color:var(--tx2);font-weight:600}
+
+/* Statut */
+.hero{display:flex;gap:14px;align-items:center}
+.badge{width:54px;height:54px;border-radius:16px;display:flex;align-items:center;justify-content:center;flex:none;background:#6fd6a41f;color:var(--ok)}
+.badge .ic{width:28px;height:28px}
+.badge.warn{background:#ffb35c1f;color:var(--warn)}
+.badge.bad{background:#ff7b7b1f;color:var(--bad)}
+.badge.off{background:var(--bg3);color:var(--tx3)}
+.hero .t{flex:1;min-width:0}
+.hero .t b{display:block;font-size:17px;font-weight:700}
+.hero .t span{display:block;font-size:13px;color:var(--tx2);margin-top:2px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.stat{background:var(--bg3);border-radius:12px;padding:9px 10px;min-width:0}
+.stat b{display:block;font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat span{font-size:11.5px;color:var(--tx3)}
+
+/* Boutons */
+.row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 14px;border-radius:13px;background:var(--bg3);border:1px solid var(--line);font-weight:600;font-size:14px;flex:1;min-width:0;white-space:nowrap}
+.btn:active{transform:scale(.98)}
+.btn.main{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#0d1418;border:0}
+.btn.big{padding:16px 14px;font-size:16px;border-radius:16px}
+.btn.sm{padding:7px 11px;font-size:13px;flex:none;border-radius:11px}
+.btn.danger{color:#ffb1b1;border-color:#ff7b7b40}
+.btn[disabled]{opacity:.45}
+
+/* Destination */
+.dest{display:flex;align-items:center;gap:12px}
+.dest .ico{width:44px;height:44px;border-radius:13px;background:#7fd1b91f;color:var(--acc);display:flex;align-items:center;justify-content:center;flex:none}
+.dest .ico.off{background:var(--bg3);color:var(--tx3)}
+.dest .t{flex:1;min-width:0}
+.dest .t div:first-child{font-weight:700;font-size:16px}
+.dest .t div+div{font-size:12.5px;color:var(--tx3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.space{margin-top:12px}
+.bar{height:8px;border-radius:9px;background:var(--bg4);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width .4s}
+.bar.lo i{background:var(--warn)}
+.space .lg{display:flex;justify-content:space-between;font-size:12.5px;color:var(--tx2);margin-top:6px;font-variant-numeric:tabular-nums}
+.alert{display:flex;gap:10px;align-items:flex-start;margin-top:12px;padding:10px 12px;border-radius:12px;background:#ff7b7b14;border:1px solid #ff7b7b33;color:#ffc2c2;font-size:13px}
+.alert.w{background:#ffb35c14;border-color:#ffb35c33;color:#ffd7a8}
+.alert .ic{width:18px;height:18px;margin-top:1px}
+
+/* Réglages */
+.set{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+.set.first,.card h3+.set{border-top:0;padding-top:2px}
+.set .t{flex:1;min-width:0}
+.set .t div:first-child{font-weight:600}
+.set .t div+div{font-size:12.5px;color:var(--tx3);margin-top:2px}
+.set .lic{width:38px;height:38px;border-radius:11px;background:var(--bg3);display:flex;align-items:center;justify-content:center;flex:none;color:var(--tx2)}
+.set .lic.on{background:#7fd1b91f;color:var(--acc)}
+.sw{position:relative;width:46px;height:28px;flex:none}
+.sw input{opacity:0;position:absolute;inset:0;margin:0;z-index:1}
+.sw span{position:absolute;inset:0;border-radius:99px;background:var(--bg4);transition:.2s}
+.sw span:after{content:"";position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#cfd3df;transition:.2s}
+.sw input:checked+span{background:var(--acc)}
+.sw input:checked+span:after{transform:translateX(18px);background:#fff}
+.seg{display:flex;background:var(--bg3);border-radius:12px;padding:3px;gap:3px;margin-top:8px}
+.seg button{flex:1;padding:8px 4px;border-radius:9px;font-size:13px;font-weight:600;color:var(--tx2);text-align:center;line-height:1.2}
+.seg button.on{background:var(--bg4);color:var(--tx);box-shadow:0 0 0 1px #ffffff1c inset}
+.block{padding:11px 0;border-top:1px solid var(--line)}
+.block .lab{display:flex;justify-content:space-between;font-weight:600}
+.block .lab span{color:var(--acc);font-variant-numeric:tabular-nums}
+.block .hint{font-size:12.5px;color:var(--tx3);margin-top:4px}
+input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
+.dim{opacity:.45;pointer-events:none}
+.tag{font-size:11px;font-weight:700;padding:2px 7px;border-radius:99px;background:var(--bg4);color:var(--tx2);white-space:nowrap}
+.tag.ok{background:#6fd6a41f;color:var(--ok)}
+.tag.w{background:#ffb35c1f;color:var(--warn)}
+.tag.bad{background:#ff7b7b1f;color:var(--bad)}
+.perm{display:inline-flex;align-items:center;gap:5px;margin-top:6px;font-size:12px;font-weight:600;color:var(--warn);padding:4px 9px;border-radius:9px;background:#ffb35c14;border:1px solid #ffb35c33}
+.perm .ic{width:14px;height:14px}
+
+/* Applis */
+.apps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:10px}
+.app{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:var(--bg3);font-size:13px;min-width:0}
+.app .dot{width:8px;height:8px;flex:none}
+.app span:not(.dot){flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.app small{color:var(--tx3);font-size:11px;white-space:nowrap}
+.app.off{opacity:.45}
+
+/* Dossiers */
+.fl{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:14px}
+.fl .ic{color:var(--tx2)}
+.fl span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xb{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--tx3);background:var(--bg3);flex:none}
+
+/* Historique */
+.hi{display:flex;gap:12px;padding:12px 0;border-top:1px solid var(--line);align-items:flex-start}
+.hi:first-of-type{border-top:0;padding-top:2px}
+.hi .badge{width:38px;height:38px;border-radius:11px}
+.hi .badge .ic{width:20px;height:20px}
+.hi .t{flex:1;min-width:0}
+.hi .t b{display:block;font-weight:600}
+.hi .t span{display:block;font-size:12.5px;color:var(--tx2);margin-top:2px}
+.hi .t em{display:block;font-style:normal;font-size:12px;color:#ffb1b1;margin-top:4px}
+.hi .r{font-size:12px;color:var(--tx3);text-align:right;white-space:nowrap}
+.hi details{margin-top:6px}
+.hi summary{font-size:12.5px;color:var(--acc2);cursor:pointer}
+.hi ul{margin:6px 0 0;padding-left:18px;font-size:12px;color:var(--tx2)}
+.empty{color:var(--tx3);font-size:13.5px;text-align:center;padding:22px 10px}
+.empty .ic{width:34px;height:34px;margin:0 auto 10px;color:var(--tx3)}
+
+/* Restauration */
+.rs{display:flex;gap:12px;align-items:flex-start}
+.rs .lic{width:40px;height:40px;border-radius:12px;background:#8fb4ff1f;color:var(--acc2);display:flex;align-items:center;justify-content:center;flex:none}
+.rs .t{flex:1;min-width:0}
+.rs .t>b{display:block;font-weight:700;font-size:15.5px}
+.rs .t p{margin:3px 0 0;font-size:13px;color:var(--tx2);line-height:1.45}
+.files{margin-top:10px}
+.fi{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:12px;background:var(--bg3);margin-top:6px;font-size:13.5px}
+.fi span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fi small{color:var(--tx3);font-size:11.5px;white-space:nowrap}
+.fi .btn.sm{padding:6px 10px}
+.months{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:10px;max-height:260px;overflow:auto}
+.mo{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:12px;background:var(--bg3);font-size:13px;cursor:pointer;min-width:0}
+.mo input{accent-color:var(--acc);width:18px;height:18px;margin:0;flex:none}
+.mo span{flex:1;min-width:0}
+.mo small{display:block;color:var(--tx3);font-size:11px;white-space:nowrap}
+.mo span{font-weight:600}
+.steps{margin:12px 0 0;padding:0;list-style:none;counter-reset:s}
+.steps li{position:relative;padding:0 0 10px 30px;font-size:13px;color:var(--tx2);line-height:1.45}
+.steps li:before{counter-increment:s;content:counter(s);position:absolute;left:0;top:0;width:21px;height:21px;border-radius:50%;background:var(--bg4);color:var(--tx);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.steps b{color:var(--tx)}
+select{font:inherit;color:var(--tx);background:var(--bg3);border:1px solid var(--line);border-radius:11px;padding:7px 10px;max-width:100%}
+
+/* Progression */
+#run{position:fixed;inset:0;z-index:20;background:#0b0d12f2;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);display:flex;flex-direction:column;padding:calc(18px + var(--safe-t)) 16px calc(16px + var(--safe-b));overflow:auto}
+.rh{display:flex;align-items:center;gap:10px}
+.rh b{font-size:19px;flex:1}
+.ring{position:relative;width:150px;height:150px;margin:12px auto 6px}
+.ring svg{width:150px;height:150px;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:12}
+.ring .bg{stroke:var(--bg3)}
+.ring .fg{stroke:url(#rg);stroke-linecap:round;transition:stroke-dashoffset .5s}
+.ring .c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring .c b{font-size:34px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.ring .c span{font-size:12.5px;color:var(--tx3);margin-top:4px}
+.ring.ind .fg{stroke-dasharray:110 600!important;animation:rot 1.2s linear infinite;transform-origin:88px 88px}
+@keyframes rot{to{transform:rotate(360deg)}}
+.phase{text-align:center;font-weight:600;font-size:15.5px}
+.cur{text-align:center;font-size:12.5px;color:var(--tx3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-height:17px}
+.rgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px}
+.rgrid .stat{padding:8px 10px}
+.rgrid .stat b{font-size:17px}
+.slist{margin-top:10px;background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:4px 14px}
+.sl{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+.sl:first-child{border-top:0}
+.sl .st{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;background:var(--bg3);color:var(--tx3)}
+.sl .st .ic{width:14px;height:14px;stroke-width:2.4}
+.sl.ok .st{background:#6fd6a42a;color:var(--ok)}
+.sl.err .st{background:#ff7b7b2a;color:var(--bad)}
+.sl.run .st{background:none;border:2px solid var(--acc);border-right-color:transparent;animation:rot .8s linear infinite}
+.sl span{flex:1;min-width:0}
+.sl small{color:var(--tx3);font-size:12px;text-align:right;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sl.run span{color:var(--tx);font-weight:600}
+.rfoot{margin-top:auto;padding-top:12px}
+
+/* Feuille (JSON, aide) */
+#sheet{position:fixed;inset:0;z-index:25;background:#000a;display:flex;align-items:flex-end}
+#sheet .in{background:var(--bg2);border-radius:22px 22px 0 0;width:100%;max-height:88vh;display:flex;flex-direction:column;padding:16px 16px calc(16px + var(--safe-b));border-top:1px solid var(--line)}
+#sheet .hd{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+#sheet .hd b{flex:1;font-size:16.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#sheet pre{margin:0;background:var(--bg);border-radius:12px;padding:12px;font:12px/1.45 ui-monospace,Menlo,Consolas,monospace;color:var(--tx2);overflow:auto;white-space:pre-wrap;word-break:break-word;flex:1;min-height:120px}
+#sheet .body{overflow:auto}
+
+#toast{position:fixed;left:16px;right:16px;bottom:calc(18px + var(--safe-b));background:#2b3042;border:1px solid #ffffff1f;color:var(--tx);padding:12px 14px;border-radius:14px;font-size:14px;box-shadow:0 10px 30px #0008;transform:translateY(calc(100% + 40px));opacity:0;visibility:hidden;transition:transform .25s,opacity .25s,visibility .25s;z-index:40}
+#toast.on{transform:none;opacity:1;visibility:visible}
+#toast.bad{border-color:#ff7b7b66}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7fd1b9"/><stop offset="1" stop-color="#8fb4ff"/></linearGradient>
+</defs></svg>
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7fd1b9"/><stop offset="1" stop-color="#8fb4ff"/></linearGradient></defs><rect x="2" y="2" width="28" height="28" rx="8" fill="url(#lg)"/><path d="M10 9h9l3 3v11a1 1 0 0 1-1 1H10a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1z" fill="none" stroke="#0d1418" stroke-width="2" stroke-linejoin="round"/><path d="M12 9v4h6V9M12 24v-6h8v6" fill="none" stroke="#0d1418" stroke-width="2" stroke-linejoin="round"/></svg>
+    Sauvegarde
+  </div>
+  <div class="sp"></div>
+  <div class="pill"><span class="dot" id="autoDot"></span><span id="autoTxt">Manuel</span></div>
+</header>
+<nav>
+  <div class="tabs" id="tabs">
+    <button data-t="home" class="on"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>Accueil</button>
+    <button data-t="data"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12l3 3 5-6"/></svg>Données</button>
+    <button data-t="hist"><svg class="ic" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>Historique</button>
+    <button data-t="rest"><svg class="ic" viewBox="0 0 24 24"><path d="M12 15V3M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Restaurer</button>
+  </div>
+</nav>
+
+<main>
+  <div class="card warn" id="noBridge" hidden>Cette page fonctionne dans l'application Android <b>Sauvegarde</b> : c'est elle qui lit les données du téléphone et les copie sur ta carte SD ou ta clé USB.</div>
+
+  <!-- ================= Accueil ================= -->
+  <section id="v-home">
+    <div class="card">
+      <div class="hero">
+        <div class="badge off" id="hBadge"></div>
+        <div class="t"><b id="hTitle">Aucune sauvegarde</b><span id="hSub">Choisis où sauvegarder pour commencer</span></div>
+      </div>
+      <div class="stats" id="hStats" hidden>
+        <div class="stat"><b id="sFiles">0</b><span>fichiers copiés</span></div>
+        <div class="stat"><b id="sSize">0</b><span>copiés</span></div>
+        <div class="stat"><b id="sDur">0</b><span>durée</span></div>
+      </div>
+    </div>
+
+    <button class="btn main big" id="bNow" style="width:100%;margin-bottom:12px"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>Sauvegarder maintenant</button>
+
+    <div class="card">
+      <h3>Destination</h3>
+      <div class="dest">
+        <div class="ico off" id="dIco"></div>
+        <div class="t"><div id="dName">Aucune destination</div><div id="dPath">Carte SD, clé USB ou dossier du téléphone</div></div>
+        <button class="btn sm" id="bDest">Choisir</button>
+      </div>
+      <div class="space" id="dSpace" hidden>
+        <div class="bar" id="dBar"><i></i></div>
+        <div class="lg"><span id="dFree"></span><span id="dTotal"></span></div>
+      </div>
+      <div id="dAlert"></div>
+      <div class="row" id="dActs" hidden><button class="btn sm" id="bOpenDest"><svg class="ic" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Ouvrir le dossier</button></div>
+      <p class="note" id="dHelp" style="margin:12px 0 0">Dans la fenêtre qui s'ouvre, touche le menu en haut à gauche, choisis <b>la carte SD</b> ou <b>la clé USB</b>, puis <b>Utiliser ce dossier</b>. Un dossier « Sauvegarde MAG » y sera créé.</p>
+    </div>
+
+    <div class="card">
+      <h3>Sauvegarde automatique</h3>
+      <div class="set">
+        <div class="t"><div>Sauvegarder tout seul</div><div>Même appli fermée, et après un redémarrage</div></div>
+        <label class="sw"><input type="checkbox" data-k="auto"><span></span></label>
+      </div>
+      <div id="autoOpts">
+        <div class="block">
+          <div class="lab">Fréquence</div>
+          <div class="seg" data-k="freq"><button data-v="day">Chaque jour</button><button data-v="week">Chaque semaine</button></div>
+        </div>
+        <div class="block">
+          <div class="lab">Heure de préférence <span id="hourV"></span></div>
+          <input type="range" min="0" max="23" step="1" data-k="hour">
+          <div class="hint">La nuit, quand le téléphone charge : la sauvegarde ne te gêne pas. Android peut la décaler un peu.</div>
+        </div>
+        <div class="set">
+          <div class="t"><div>Seulement en charge</div><div>Recommandé pour les photos et vidéos</div></div>
+          <label class="sw"><input type="checkbox" data-k="charging"><span></span></label>
+        </div>
+        <div class="set">
+          <div class="t"><div>Seulement en Wi-Fi</div><div>Utile si la destination est un dossier en ligne</div></div>
+          <label class="sw"><input type="checkbox" data-k="wifi"><span></span></label>
+        </div>
+        <div class="set">
+          <div class="t"><div>Pas si la batterie est faible</div><div>Attend que la batterie remonte</div></div>
+          <label class="sw"><input type="checkbox" data-k="battery"><span></span></label>
+        </div>
+      </div>
+    </div>
+    <p class="note" style="text-align:center;margin:4px 8px 0">Rien n'est jamais effacé sur ton téléphone : la sauvegarde ne fait que copier.</p>
+  </section>
+
+  <!-- ================= Données ================= -->
+  <section id="v-data" hidden>
+    <div class="card">
+      <h3>Photos et fichiers</h3>
+      <div class="set">
+        <div class="lic" data-ic="photo"></div>
+        <div class="t"><div>Photos</div><div>Appareil photo et captures, rangées par année et par mois</div><div class="pm" data-p="media"></div></div>
+        <label class="sw"><input type="checkbox" data-k="photos"><span></span></label>
+      </div>
+      <div class="set">
+        <div class="lic" data-ic="video"></div>
+        <div class="t"><div>Vidéos</div><div>Prennent beaucoup de place : prévois une grande carte</div><div class="pm" data-p="media"></div></div>
+        <label class="sw"><input type="checkbox" data-k="videos"><span></span></label>
+      </div>
+      <div class="set">
+        <div class="lic" data-ic="images"></div>
+        <div class="t"><div>Toutes les images</div><div>Aussi WhatsApp, Téléchargements… pas seulement DCIM et Pictures</div></div>
+        <label class="sw"><input type="checkbox" data-k="photosAll"><span></span></label>
+      </div>
+      <div class="set">
+        <div class="lic" data-ic="music"></div>
+        <div class="t"><div>Musique</div><div>Fichiers audio du dossier Music</div><div class="pm" data-p="audio"></div></div>
+        <label class="sw"><input type="checkbox" data-k="music"><span></span></label>
+      </div>
+      <div class="set">
+        <div class="lic" data-ic="doc"></div>
+        <div class="t"><div>Documents</div><div>Dossiers Download et Documents</div><div class="pm" data-p="files"></div></div>
+        <label class="sw"><input type="checkbox" data-k="docs"><span></span></label>
+      </div>
+      <p class="note" style="margin:8px 0 0">Copie <b>incrémentale</b> : seuls les fichiers nouveaux ou modifiés sont copiés à chaque fois.</p>
+    </div>
+
+    <div class="card">
+      <h3>Carnet et agendas</h3>
+      <div class="set">
+        <div class="lic" data-ic="user"></div>
+        <div class="t"><div>Contacts</div><div>Un fichier contacts.vcf, lisible par toutes les applis</div><div class="pm" data-p="contacts"></div></div>
+        <label class="sw"><input type="checkbox" data-k="contacts"><span></span></label>
+      </div>
+      <div class="set">
+        <div class="lic" data-ic="cal"></div>
+        <div class="t"><div>Agendas</div><div>Un fichier .ics par agenda, avec répétitions et rappels</div><div class="pm" data-p="calendar"></div></div>
+        <label class="sw"><input type="checkbox" data-k="calendars"><span></span></label>
+      </div>
+      <div class="set" id="smsRow">
+        <div class="lic" data-ic="sms"></div>
+        <div class="t"><div>SMS</div><div id="smsTxt">Lecture seule, fichier sms.xml</div><div class="pm" data-p="sms"></div></div>
+        <label class="sw"><input type="checkbox" data-k="sms"><span></span></label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Applis MAG <span class="sp"></span><label class="sw"><input type="checkbox" data-k="apps"><span></span></label></h3>
+      <p class="note" style="margin:0">Notes, relevés, mesures, parcours… chaque appli MAG confie une copie de ses données. Une appli grisée n'est pas installée, un point orange signifie qu'elle n'a encore rien confié (ouvre-la une fois).</p>
+      <div class="apps" id="appList"><div class="note">Recherche des applis…</div></div>
+    </div>
+
+    <div class="card">
+      <h3>Dossiers en plus</h3>
+      <p class="note" style="margin:0 0 6px">Un dossier de chantier, de formation, des plans… ajoute-le ici : il sera copié avec le reste.</p>
+      <div id="folderList"></div>
+      <div class="row"><button class="btn" id="bAddFolder"><svg class="ic" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 10v6M9 13h6"/></svg>Ajouter un dossier</button></div>
+    </div>
+
+    <div class="card" id="permCard" hidden>
+      <h3>Autorisations</h3>
+      <p class="note" style="margin:0" id="permTxt"></p>
+      <div class="row"><button class="btn main" id="bPerms">Autoriser</button><button class="btn" id="bAppSet">Réglages de l'appli</button></div>
+    </div>
+  </section>
+
+  <!-- ================= Historique ================= -->
+  <section id="v-hist" hidden>
+    <div class="card">
+      <h3>Dernières sauvegardes <span class="sp"></span><span class="tag" id="hCount"></span></h3>
+      <div id="histList"></div>
+    </div>
+    <div class="row" style="margin-top:0"><button class="btn danger" id="bClearHist">Effacer l'historique</button></div>
+    <p class="note" style="text-align:center;margin:10px 8px 0">Effacer l'historique ne supprime aucune sauvegarde, seulement cette liste.</p>
+  </section>
+
+  <!-- ================= Restaurer ================= -->
+  <section id="v-rest" hidden>
+    <div class="card warn" id="rNoDest" hidden>Branche la carte ou la clé qui contient la sauvegarde, puis choisis-la dans l'onglet Accueil (« Choisir »).</div>
+    <div class="card">
+      <div class="rs">
+        <div class="lic" data-ic="clock"></div>
+        <div class="t"><b>Quelle sauvegarde ?</b><p>Contacts, agendas et données d'applis sont gardés jour par jour.</p></div>
+      </div>
+      <div class="row"><select id="rSnap" style="flex:1"><option value="">La plus récente</option></select></div>
+    </div>
+
+    <div class="card">
+      <div class="rs">
+        <div class="lic" data-ic="user"></div>
+        <div class="t"><b>Contacts</b><p>Ouvre le fichier avec l'appli Contacts : elle propose d'importer. Les contacts déjà présents peuvent apparaître en double, l'appli Contacts sait les fusionner.</p></div>
+      </div>
+      <div class="files" id="rContacts"></div>
+    </div>
+
+    <div class="card">
+      <div class="rs">
+        <div class="lic" data-ic="cal"></div>
+        <div class="t"><b>Agendas</b><p>Ouvre un fichier .ics avec l'appli Agenda et choisis l'agenda où ajouter les rendez-vous.</p></div>
+      </div>
+      <div class="files" id="rCals"></div>
+    </div>
+
+    <div class="card">
+      <div class="rs">
+        <div class="lic" data-ic="photo"></div>
+        <div class="t"><b>Photos et vidéos</b><p>Coche les mois à remettre sur le téléphone : ils sont copiés dans <b>DCIM/Restaurés</b>. Ce qui y est déjà n'est pas recopié.</p></div>
+      </div>
+      <div class="months" id="rMonths"></div>
+      <div class="row"><button class="btn" id="bAllMonths" style="flex:none">Tout cocher</button><button class="btn main" id="bRestore" disabled>Restaurer</button></div>
+    </div>
+
+    <div class="card">
+      <div class="rs">
+        <div class="lic" data-ic="apps"></div>
+        <div class="t"><b>Données des applis MAG</b><p>Chaque appli a son fichier lisible. Pour les remettre dans l'appli :</p></div>
+      </div>
+      <ol class="steps">
+        <li>Touche <b>Voir</b> pour vérifier le contenu, ou <b>Envoyer</b> pour le garder par e-mail.</li>
+        <li>Ouvre l'appli concernée, menu <b>Réglages</b>, puis <b>Importer</b> ou <b>Restaurer</b>.</li>
+        <li>Choisis le fichier dans <b>Sauvegarde MAG / applis</b> sur ta carte ou ta clé.</li>
+      </ol>
+      <div class="files" id="rApps"></div>
+    </div>
+
+    <div class="card" id="rSmsCard" hidden>
+      <div class="rs">
+        <div class="lic" data-ic="sms"></div>
+        <div class="t"><b>SMS</b><p>Android ne laisse remettre des SMS qu'à l'appli de messagerie par défaut. Le fichier sms.xml est au format de l'appli libre <b>SMS Backup &amp; Restore</b> : installe-la et choisis « Restaurer ».</p></div>
+      </div>
+      <div class="files" id="rSms"></div>
+    </div>
+  </section>
+</main>
+
+<!-- Progression -->
+<div id="run" hidden>
+  <div class="rh"><b id="rTitle">Sauvegarde en cours</b><span class="pill" id="rElapsed">0 s</span></div>
+  <div class="ring" id="ring">
+    <svg viewBox="0 0 176 176"><circle class="bg" cx="88" cy="88" r="76"/><circle class="fg" id="ringFg" cx="88" cy="88" r="76" stroke-dasharray="477.5" stroke-dashoffset="477.5"/></svg>
+    <div class="c"><b id="rPct">0 %</b><span id="rPctSub">préparation</span></div>
+  </div>
+  <div class="phase" id="rPhase">Préparation…</div>
+  <div class="cur" id="rFile"></div>
+  <div class="rgrid">
+    <div class="stat"><b id="rFiles">0</b><span>fichiers copiés</span></div>
+    <div class="stat"><b id="rSize">0 o</b><span id="rSizeOf">copiés</span></div>
+    <div class="stat"><b id="rSpeed">–</b><span>vitesse</span></div>
+    <div class="stat"><b id="rLeft">–</b><span>temps restant</span></div>
+  </div>
+  <div class="slist" id="rSteps"></div>
+  <div class="rfoot">
+    <div class="row"><button class="btn" id="bHide">En arrière-plan</button><button class="btn danger" id="bCancel">Annuler</button></div>
+    <p class="note" style="text-align:center;margin:8px 0 0;font-size:12px">Tu peux quitter l'appli : la sauvegarde continue et une notification te prévient à la fin.</p>
+  </div>
+</div>
+
+<div id="sheet" hidden><div class="in"><div class="hd"><b id="shTitle"></b><button class="xb" id="shClose"></button></div><div class="body" id="shBody"></div></div></div>
+<div id="toast"></div>
+
+<script>
+(function(){
+  var B = window.MAGSauvegarde, P = window.MAGPrint, $ = function(i){ return document.getElementById(i); };
+  var ICONS = {
+    ok:'<path d="M5 12l5 5L20 7"/>', x:'<path d="M6 6l12 12M18 6L6 18"/>', warn:'<path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17.5v.5"/>',
+    shield:'<path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/>', off:'<path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/>',
+    sd:'<path d="M8 3h8l3 3v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6z"/><path d="M9 7v3M12 7v3M15 7v3"/>',
+    usb:'<path d="M9 2h6v5H9z"/><path d="M7 7h10v9a5 5 0 0 1-10 0z"/><path d="M12 12v3"/>',
+    phone:'<rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/>',
+    cloud:'<path d="M7 18a4 4 0 0 1-.6-8A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9z"/>',
+    folder:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+    photo:'<rect x="3" y="5" width="18" height="15" rx="3"/><circle cx="12" cy="12.5" r="3.5"/><path d="M8 5l1.5-2h5L16 5"/>',
+    video:'<rect x="3" y="6" width="13" height="12" rx="3"/><path d="M16 10l5-3v10l-5-3"/>',
+    images:'<rect x="3" y="4" width="18" height="16" rx="3"/><path d="m3 16 5-5 4 4 3-3 6 6"/><circle cx="15.5" cy="8.5" r="1.5"/>',
+    music:'<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
+    doc:'<path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',
+    user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+    cal:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+    sms:'<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/>',
+    apps:'<rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/>',
+    clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+    eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+    send:'<path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/>', open:'<path d="M14 3h7v7M10 14 21 3M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/>',
+    ban:'<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>'
+  };
+  function ic(n, cls){ return '<svg class="ic'+(cls?' '+cls:'')+'" viewBox="0 0 24 24">'+(ICONS[n]||'')+'</svg>'; }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function J(s, d){ try{ var v = JSON.parse(s); return v==null ? d : v; }catch(e){ return d; } }
+  function toast(t, bad){ var e=$('toast'); e.textContent=t; e.className='on'+(bad?' bad':''); clearTimeout(toast.t); toast.t=setTimeout(function(){ e.className=''; }, 3400); }
+  function size(b){ if(b==null||b<0) return '–'; if(b<1024) return b+' o'; var u=['Ko','Mo','Go','To'], i=-1; do{ b/=1024; i++; }while(b>=1024&&i<3); return (b>=100?Math.round(b):b.toFixed(1).replace('.',','))+' '+u[i]; }
+  function dur(ms){ var s=Math.round((ms||0)/1000); if(s<60) return s+' s'; var m=Math.floor(s/60); if(m<60) return m+' min'+(s%60&&m<10?' '+(s%60)+' s':''); return Math.floor(m/60)+' h '+(m%60?(m%60)+' min':''); }
+  function num(n){ return (n||0).toLocaleString('fr-FR'); }
+  function when(t){
+    if(!t) return ''; var d=new Date(t), now=new Date(), y=new Date(now); y.setDate(now.getDate()-1);
+    var hm=d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    if(d.toDateString()===now.toDateString()) return "aujourd'hui à "+hm;
+    if(d.toDateString()===y.toDateString()) return 'hier à '+hm;
+    var tm=new Date(now); tm.setDate(now.getDate()+1);
+    if(d.toDateString()===tm.toDateString()) return 'demain à '+hm;
+    return 'le '+d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})+' à '+hm;
+  }
+  function plural(n, a, b){ return num(n)+' '+(n>1?(b||a+'s'):a); }
+  document.querySelectorAll('[data-ic]').forEach(function(e){ e.innerHTML = ic(e.dataset.ic); });
+  $('shClose').innerHTML = ic('x');
+
+  var S = {}, ST = {}, PERM = {}, VIEW = 'home', polling = null, hidden = false, lastRun = false;
+  var DEF = {photos:true,videos:true,photosAll:false,music:false,docs:false,contacts:true,calendars:true,apps:true,sms:false,auto:true,freq:'day',hour:2,charging:true,wifi:false,battery:true};
+
+  if(!B){ $('noBridge').hidden=false; S=DEF; }
+  else S = J(B.settings(), DEF);
+
+  // ---------- Onglets ----------
+  function show(v){
+    VIEW=v;
+    document.querySelectorAll('#tabs button').forEach(function(b){ b.classList.toggle('on', b.dataset.t===v); });
+    ['home','data','hist','rest'].forEach(function(k){ $('v-'+k).hidden = k!==v; });
+    if(v==='data'){ renderPerms(); if(B) B.scanApps(); renderFolders(); }
+    if(v==='hist') renderHist();
+    if(v==='rest') loadRestore();
+    window.scrollTo(0,0);
+  }
+  $('tabs').addEventListener('click', function(e){ var b=e.target.closest('button'); if(b) show(b.dataset.t); });
+
+  // ---------- Réglages ----------
+  function render(){
+    document.querySelectorAll('input[data-k]').forEach(function(i){ var k=i.dataset.k; if(i.type==='checkbox') i.checked=!!S[k]; else i.value=S[k]; });
+    document.querySelectorAll('.seg[data-k]').forEach(function(g){ g.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on', String(S[g.dataset.k])===b.dataset.v); }); });
+    $('hourV').textContent = (S.hour<10?'0':'')+S.hour+' h';
+    $('autoOpts').classList.toggle('dim', !S.auto);
+    document.querySelectorAll('#v-data .set').forEach(function(r){ var i=r.querySelector('input[data-k]'), l=r.querySelector('.lic'); if(i&&l) l.classList.toggle('on', i.checked); });
+    $('appList').classList.toggle('dim', !S.apps);
+  }
+  var saveT;
+  function save(){ render(); clearTimeout(saveT); saveT=setTimeout(function(){ if(B){ B.saveSettings(JSON.stringify(S)); refresh(); } }, 250); }
+  var NEED = {photos:'media',videos:'media',photosAll:'media',music:'audio',contacts:'contacts',calendars:'calendar',sms:'sms'};
+  document.querySelectorAll('input[data-k]').forEach(function(i){
+    var k=i.dataset.k;
+    i.addEventListener(i.type==='range'?'input':'change', function(){
+      S[k] = i.type==='checkbox' ? i.checked : +i.value;
+      if(k==='sms' && i.checked && !PERM.smsPossible){ S.sms=false; i.checked=false; toast("La lecture des SMS n'est pas activée dans cette version de l'appli", true); }
+      save();
+      if(i.type==='checkbox' && i.checked && NEED[k] && B && !PERM[NEED[k]]) B.askPerms(NEED[k]+(k==='photos'||k==='videos'?',notif':''));
+      if(k==='docs' && i.checked && PERM.allFilesPossible && !PERM.allFiles) sheetFiles();
+      if(k==='auto' && i.checked && B) B.askPerms('notif');
+    });
+  });
+  document.querySelectorAll('.seg[data-k]').forEach(function(g){
+    g.addEventListener('click', function(e){ var b=e.target.closest('button'); if(!b) return; S[g.dataset.k]=b.dataset.v; save(); });
+  });
+
+  // ---------- Autorisations ----------
+  function renderPerms(){
+    if(!B) return;
+    PERM = J(B.perms(), {});
+    var miss = [];
+    document.querySelectorAll('.pm').forEach(function(e){
+      var k=e.dataset.p, row=e.closest('.set'), on=row.querySelector('input').checked, ok;
+      if(k==='files') ok = PERM.allFiles || !PERM.allFilesPossible;
+      else ok = !!PERM[k];
+      var partial = k==='media' && PERM.mediaPartial;
+      e.innerHTML = on && !ok ? '<span class="perm">'+ic('lock')+(partial?'Accès limité à quelques photos':k==='files'?'Accès aux fichiers à autoriser':'Autorisation à donner')+'</span>' : '';
+      if(on && !ok && k!=='files' && miss.indexOf(k)<0) miss.push(k);
+    });
+    if(!PERM.smsPossible){ $('smsTxt').textContent = "Non inclus : lire les SMS demande un accès sensible, désactivé dans cette version"; $('smsRow').classList.add('dim'); }
+    var names = {media:'photos et vidéos',audio:'musique',contacts:'contacts',calendar:'agendas',sms:'SMS'};
+    $('permCard').hidden = !miss.length;
+    $('permTxt').textContent = miss.length ? "Pour sauvegarder les "+miss.map(function(k){return names[k];}).join(', ')+", Sauvegarde doit pouvoir les lire. Elle ne les envoie nulle part ailleurs que sur ta destination." : '';
+    $('bPerms').onclick = function(){ B.askPerms(miss.join(',')+',notif'); };
+  }
+  $('bAppSet').onclick = function(){ if(B) B.openSettings('app'); };
+  function sheetFiles(){
+    sheet('Accès aux documents', '<p class="note">Android ne laisse lire les dossiers <b>Download</b> et <b>Documents</b> qu\'aux applis qui ont « l\'accès à tous les fichiers ». Sans lui, seuls les documents de Sauvegarde et les fichiers multimédias sont trouvés.</p><p class="note">Autre solution, sans accès complet : dans <b>Dossiers en plus</b>, ajoute Download ou Documents.</p><div class="row"><button class="btn main" id="shFiles">Autoriser l\'accès</button><button class="btn" id="shFold">Ajouter un dossier</button></div>');
+    $('shFiles').onclick = function(){ closeSheet(); B.openSettings('files'); };
+    $('shFold').onclick = function(){ closeSheet(); B.addFolder(); };
+  }
+
+  // ---------- Applis MAG ----------
+  function renderApps(list){
+    if(!list.length){ $('appList').innerHTML='<div class="note">Aucune appli MAG trouvée</div>'; return; }
+    list.sort(function(a,b){ return (b.installed-a.installed) || a.label.localeCompare(b.label); });
+    $('appList').innerHTML = list.map(function(a){
+      var st = !a.installed ? '' : a.err ? 'bad' : a.has ? 'on' : 'warn';
+      var sub = !a.installed ? 'absente' : a.err ? 'illisible' : a.has ? size(a.size) : 'rien encore';
+      return '<div class="app'+(a.installed?'':' off')+'"><span class="dot '+st+'"></span><span>'+esc(a.label)+'</span><small>'+sub+'</small></div>';
+    }).join('');
+  }
+
+  // ---------- Dossiers en plus ----------
+  function renderFolders(){
+    var l = B ? J(B.folders(), []) : [];
+    $('folderList').innerHTML = l.map(function(f, i){
+      return '<div class="fl">'+ic('folder')+'<span>'+esc(f.name)+(f.ok?'':' <span class="tag bad">absent</span>')+'</span><button class="xb" data-i="'+i+'" aria-label="Retirer">'+ic('x')+'</button></div>';
+    }).join('');
+    $('folderList').querySelectorAll('.xb').forEach(function(b){ b.onclick = function(){ B.removeFolder(l[+b.dataset.i].uri); renderFolders(); toast('Dossier retiré de la sauvegarde (rien n\'est effacé)'); }; });
+  }
+  $('bAddFolder').onclick = function(){ if(B) B.addFolder(); };
+
+  // ---------- Accueil ----------
+  var KIND = {sd:['sd','Carte SD'], usb:['usb','Clé USB'], phone:['phone','Mémoire du téléphone'], cloud:['cloud',''], other:['folder','']};
+  function refresh(){
+    if(!B) return;
+    ST = J(B.state(), {});
+    S = ST.settings || S;
+    render();
+    var d = ST.dest, last = ST.last;
+    // Statut
+    var badge=$('hBadge'), cls='off', icon='off', title='Aucune sauvegarde', sub='';
+    if(!d){ sub='Choisis où sauvegarder pour commencer'; }
+    else if(!last){ title='Prête'; sub='Lance ta première sauvegarde'; icon='shield'; cls='warn'; }
+    else {
+      var age = Date.now()-(ST.lastOk||0), late = !ST.lastOk || age > (S.freq==='week'?9:2)*86400000;
+      if(last.fatal){ cls='bad'; icon='x'; title='Dernière sauvegarde ratée'; sub=last.fatal; }
+      else if(last.cancelled){ cls='warn'; icon='warn'; title='Sauvegarde annulée'; sub=when(last.end); }
+      else if(last.errors){ cls='warn'; icon='warn'; title='Sauvegardé, avec '+plural(last.errors,'erreur'); sub=when(last.end); }
+      else { cls=late?'warn':''; icon=late?'warn':'shield'; title=late?'Sauvegarde ancienne':'Tout est sauvegardé'; sub='Dernière '+when(last.end); }
+      if(ST.next) sub += ' · prochaine '+when(ST.next);
+    }
+    badge.className='badge '+cls; badge.innerHTML=ic(icon);
+    $('hTitle').textContent=title; $('hSub').textContent=sub;
+    $('hStats').hidden = !last;
+    if(last){ $('sFiles').textContent=num(last.files); $('sSize').textContent=size(last.size); $('sDur').textContent=dur(last.dur); }
+    // Pastille
+    $('autoDot').className = 'dot'+(S.auto&&ST.planned?' on':'');
+    $('autoTxt').textContent = S.auto&&ST.planned ? 'Auto · '+(S.freq==='week'?'chaque semaine':'chaque jour') : 'Manuel';
+    // Destination
+    var k = d ? (KIND[d.kind]||KIND.other) : null;
+    $('dIco').className='ico'+(d&&d.present!==false?'':' off'); $('dIco').innerHTML=ic(k?k[0]:'folder');
+    $('dName').textContent = d ? (d.label||k[1]||'Dossier choisi') : 'Aucune destination';
+    $('dPath').textContent = d ? ((d.path?d.path+' / ':'')+'Sauvegarde MAG') : 'Carte SD, clé USB ou dossier du téléphone';
+    $('bDest').textContent = d ? 'Changer' : 'Choisir';
+    $('dHelp').hidden = !!d; $('dActs').hidden = !d;
+    var sp = d && d.free>=0;
+    $('dSpace').hidden = !sp;
+    if(sp){
+      var tot = d.total>0 ? d.total : 0, used = tot ? Math.max(0, Math.min(100, 100*(tot-d.free)/tot)) : 0;
+      $('dBar').querySelector('i').style.width = used+'%';
+      $('dBar').classList.toggle('lo', d.free < 2*1073741824);
+      $('dFree').textContent = size(d.free)+' libres';
+      $('dTotal').textContent = tot ? 'sur '+size(tot) : '';
+    }
+    var al='';
+    if(d && d.present===false) al = '<div class="alert">'+ic('warn')+'<div>'+(d.kind==='usb'?'Clé USB débranchée : rebranche-la pour sauvegarder.':d.kind==='sd'?'Carte SD absente ou illisible.':'Destination inaccessible : choisis-la de nouveau.')+'</div></div>';
+    else if(d && d.perm===false) al = '<div class="alert">'+ic('warn')+'<div>Accès à ce dossier perdu : choisis-le de nouveau.</div></div>';
+    else if(sp && d.free < 1073741824) al = '<div class="alert w">'+ic('warn')+'<div>Moins de 1 Go libre : les photos et vidéos risquent de ne pas tenir.</div></div>';
+    else if(d && d.kind==='phone') al = '<div class="alert w">'+ic('warn')+'<div>La sauvegarde est sur le téléphone lui-même : en cas de perte ou de casse, elle disparaît avec lui. Préfère une carte SD ou une clé USB.</div></div>';
+    $('dAlert').innerHTML = al;
+    $('bNow').disabled = !d;
+    widget();
+    if(ST.running && !polling) startPoll();
+  }
+  function widget(){
+    if(!P || !P.widgetPut) return;
+    var l = ST.last, d = ST.dest;
+    try{ P.widgetPut(JSON.stringify({ last: l ? {date:l.end, ok:!!l.ok, files:l.files||0, size:l.size||0} : null, next: ST.next||0, dest: d ? (d.label||'') : '', running: !!ST.running })); }catch(e){}
+  }
+  $('bDest').onclick = function(){ if(B) B.pickDest(); };
+  $('bOpenDest').onclick = function(){ if(B) B.openDest(); };
+  function startNow(){
+    if(!B) return;
+    if(!ST.dest){ toast("Choisis d'abord où sauvegarder", true); show('home'); return; }
+    var r = B.start();
+    if(r){ toast(r, true); return; }
+    hidden=false; startPoll();
+  }
+  $('bNow').onclick = startNow;
+
+  // ---------- Progression ----------
+  function startPoll(){ clearInterval(polling); polling=setInterval(poll, 500); poll(); }
+  function poll(){
+    var s = B ? B.progress() : '';
+    var p = J(s, null);
+    if(!p || !p.run){
+      if(lastRun){ lastRun=false; $('run').hidden=true; document.body.style.overflow=''; clearInterval(polling); polling=null; refresh(); var l=ST.last; if(l) toast(l.cancelled?'Sauvegarde annulée':l.fatal?l.fatal:l.mode==='restore'?'Restauration terminée : '+plural(l.files,'fichier'):'Sauvegarde terminée : '+plural(l.files,'fichier')+', '+size(l.size), !!l.fatal); if(VIEW==='hist') renderHist(); }
+      else if(!B || !B.running()){ clearInterval(polling); polling=null; }
+      return;
+    }
+    lastRun = true;
+    if(!hidden){ $('run').hidden=false; document.body.style.overflow='hidden'; }
+    var rest = p.mode==='restore';
+    $('rTitle').textContent = p.paused ? 'En pause' : rest ? 'Restauration en cours' : 'Sauvegarde en cours';
+    var el = Date.now()-(p.start||Date.now());
+    $('rElapsed').textContent = dur(el);
+    var pct = p.totalBytes>0 ? Math.min(100, 100*p.bytes/p.totalBytes) : -1;
+    var ring = $('ring');
+    ring.classList.toggle('ind', pct<0);
+    $('ringFg').style.strokeDashoffset = pct<0 ? 0 : 477.5*(1-pct/100);
+    $('rPct').textContent = pct<0 ? '…' : Math.floor(pct)+' %';
+    $('rPctSub').textContent = pct<0 ? 'préparation' : num((p.files||0))+' / '+num(p.total||0)+' fichiers';
+    $('rPhase').textContent = p.phase || '';
+    $('rFile').textContent = p.file || '';
+    $('rFiles').textContent = num(p.files);
+    $('rSize').textContent = size(p.bytes);
+    $('rSizeOf').textContent = p.totalBytes>0 ? 'copiés sur '+size(p.totalBytes) : 'copiés';
+    $('rSpeed').textContent = p.speed>0 ? size(p.speed)+'/s' : '–';
+    $('rLeft').textContent = p.speed>0 && p.totalBytes>p.bytes ? '≈ '+dur(1000*(p.totalBytes-p.bytes)/p.speed) : '–';
+    $('rSteps').innerHTML = (p.steps||[]).map(function(s){
+      var mark = s.state==='ok' ? ic('ok') : s.state==='err' ? ic('x') : '';
+      return '<div class="sl '+s.state+'"><div class="st">'+mark+'</div><span>'+esc(s.label)+'</span><small>'+esc(s.info||(s.state==='wait'?'en attente':s.state==='run'?'en cours':''))+'</small></div>';
+    }).join('') + (p.errors ? '<div class="sl err"><div class="st">'+ic('warn')+'</div><span>'+plural(p.errors,'erreur')+'</span><small>détail dans l\'historique</small></div>' : '');
+    $('bCancel').disabled = !!p.cancel;
+    $('bCancel').textContent = p.cancel ? 'Annulation…' : 'Annuler';
+  }
+  $('bHide').onclick = function(){ hidden=true; $('run').hidden=true; document.body.style.overflow=''; toast('La sauvegarde continue, une notification te préviendra'); };
+  $('bCancel').onclick = function(){ if(B){ B.cancel(); $('bCancel').disabled=true; $('bCancel').textContent='Annulation…'; } };
+
+  // ---------- Historique ----------
+  function renderHist(){
+    var h = B ? J(B.history(), []) : [];
+    $('hCount').textContent = h.length ? plural(h.length,'entrée') : '';
+    $('bClearHist').hidden = !h.length;
+    if(!h.length){ $('histList').innerHTML = '<div class="empty">'+ic('clock')+'Aucune sauvegarde pour l\'instant</div>'; return; }
+    $('histList').innerHTML = h.map(function(e){
+      var cls = e.fatal ? 'bad' : (e.errors||e.cancelled) ? 'warn' : '', icon = e.fatal ? 'x' : e.cancelled ? 'ban' : e.errors ? 'warn' : 'ok';
+      var t = e.mode==='restore' ? 'Restauration de photos' : e.mode==='auto' ? 'Sauvegarde automatique' : 'Sauvegarde manuelle';
+      var d = new Date(e.start||e.end);
+      var parts = e.parts||{}, det=[];
+      if(parts.contacts!=null) det.push(plural(parts.contacts,'contact'));
+      if(parts.calendars!=null) det.push(plural(parts.calendars,'agenda')+(parts.events!=null?' ('+plural(parts.events,'événement')+')':''));
+      if(parts.apps!=null) det.push(plural(parts.apps,'appli'));
+      if(parts.sms!=null) det.push(plural(parts.sms,'SMS','SMS'));
+      var line = e.fatal ? '' : plural(e.files,'fichier')+' · '+size(e.size)+(e.already?' · '+num(e.already)+' déjà à jour':'');
+      var errs = (e.errs||[]).filter(function(x){ return x!==e.fatal; });
+      return '<div class="hi"><div class="badge '+cls+'">'+ic(icon)+'</div><div class="t"><b>'+t+'</b>'+
+        '<span>'+esc(line)+(e.cancelled?(line?' · ':'')+'annulée':'')+'</span>'+
+        (det.length?'<span>'+esc(det.join(' · '))+'</span>':'')+
+        (e.fatal?'<em>'+esc(e.fatal)+'</em>':'')+
+        (errs.length?'<details><summary>'+plural(e.errors||errs.length,'erreur')+'</summary><ul>'+errs.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></details>':'')+
+        '</div><div class="r">'+d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+'<br>'+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+'<br>'+dur(e.dur)+(e.dest?'<br>'+esc(e.dest):'')+'</div></div>';
+    }).join('');
+  }
+  $('bClearHist').onclick = function(){
+    sheet("Effacer l'historique ?", '<p class="note">La liste est vidée. Les fichiers sauvegardés sur ta carte ou ta clé ne sont pas touchés.</p><div class="row"><button class="btn" id="shNo">Garder</button><button class="btn danger" id="shYes">Effacer la liste</button></div>');
+    $('shNo').onclick = closeSheet;
+    $('shYes').onclick = function(){ B.clearHistory(); closeSheet(); renderHist(); refresh(); };
+  };
+
+  // ---------- Restauration ----------
+  var R = null;
+  function loadRestore(){
+    $('rNoDest').hidden = !!(ST.dest && ST.dest.present!==false);
+    if(!B || !ST.dest){ fillRestore({}); return; }
+    ['rContacts','rCals','rApps','rMonths'].forEach(function(id){ $(id).innerHTML='<div class="note" style="margin-top:8px">Lecture de la sauvegarde…</div>'; });
+    B.restoreList($('rSnap').value);
+  }
+  function fileRows(l, kind){
+    if(!l || !l.length) return '<div class="note" style="margin-top:8px">Rien dans cette sauvegarde</div>';
+    return l.map(function(f, i){
+      var name = f.name;
+      if(kind==='apps'){ var pk=name.replace(/\.json$/,''); name = (APPN[pk]||pk.split('.').pop()); }
+      var acts = kind==='apps' ? '<button class="btn sm" data-a="view" data-i="'+i+'">'+ic('eye')+'Voir</button><button class="btn sm" data-a="send" data-i="'+i+'" aria-label="Envoyer">'+ic('send')+'</button>'
+        : kind==='sms' ? '<button class="btn sm" data-a="send" data-i="'+i+'">'+ic('send')+'Envoyer</button>'
+        : '<button class="btn sm" data-a="open" data-i="'+i+'">'+ic('open')+'Ouvrir</button>';
+      return '<div class="fi">'+ic(kind==='contacts'?'user':kind==='cals'?'cal':kind==='sms'?'sms':'doc')+'<span>'+esc(name)+'</span><small>'+size(f.size)+'</small>'+acts+'</div>';
+    }).join('');
+  }
+  var APPN = {};
+  function bindFiles(id, l, mime){
+    $(id).onclick = function(e){
+      var b=e.target.closest('button[data-a]'); if(!b) return;
+      var f=l[+b.dataset.i];
+      if(b.dataset.a==='open') B.openFile(f.uri, mime);
+      else if(b.dataset.a==='send') B.shareFile(f.uri, mime);
+      else { sheet(b.closest('.fi').querySelector('span').textContent, '<pre id="shPre">Lecture…</pre>'); B.readFile(f.uri); }
+    };
+  }
+  function fillRestore(r){
+    R = r;
+    var sel = $('rSnap'), cur = sel.value;
+    if(r.snaps){ sel.innerHTML = '<option value="">La plus récente</option>'+r.snaps.map(function(s){ var d=new Date(s+'T12:00:00'); return '<option value="'+esc(s)+'">'+d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+'</option>'; }).join(''); sel.value=cur; }
+    if(r.err){ ['rContacts','rCals','rApps'].forEach(function(id){ $(id).innerHTML='<div class="note" style="margin-top:8px">'+esc(r.err)+'</div>'; }); $('rMonths').innerHTML=''; return; }
+    $('rContacts').innerHTML = fileRows(r.contacts,'contacts'); bindFiles('rContacts', r.contacts||[], 'text/x-vcard');
+    $('rCals').innerHTML = fileRows(r.calendars,'cals'); bindFiles('rCals', r.calendars||[], 'text/calendar');
+    $('rApps').innerHTML = fileRows(r.apps,'apps'); bindFiles('rApps', r.apps||[], 'application/json');
+    $('rSmsCard').hidden = !(r.sms&&r.sms.length);
+    $('rSms').innerHTML = fileRows(r.sms,'sms'); bindFiles('rSms', r.sms||[], 'text/xml');
+    var m = r.months||[];
+    $('rMonths').innerHTML = m.length ? m.map(function(x){
+      var d=new Date(x.m+'-15T12:00:00'), lab=d.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+      return '<label class="mo"><input type="checkbox" value="'+esc(x.m)+'"><span>'+lab.charAt(0).toUpperCase()+lab.slice(1)+'<small>'+plural(x.n,'fichier')+' · '+size(x.size)+'</small></span></label>';
+    }).join('') : '<div class="note" style="grid-column:span 2">Aucune photo dans la sauvegarde</div>';
+    updRestoreBtn();
+  }
+  function picked(){ return [].slice.call($('rMonths').querySelectorAll('input:checked')).map(function(i){ return i.value; }); }
+  function updRestoreBtn(){
+    var p = picked(), n=0, s=0;
+    (R&&R.months||[]).forEach(function(x){ if(p.indexOf(x.m)>=0){ n+=x.n; s+=x.size; } });
+    $('bRestore').disabled = !p.length;
+    $('bRestore').textContent = p.length ? 'Restaurer '+size(s) : 'Restaurer';
+    $('bAllMonths').textContent = p.length && p.length===(R&&R.months||[]).length ? 'Tout décocher' : 'Tout cocher';
+  }
+  $('rMonths').addEventListener('change', updRestoreBtn);
+  $('bAllMonths').onclick = function(){ var all=$('rMonths').querySelectorAll('input'), on=picked().length!==all.length; all.forEach(function(i){ i.checked=on; }); updRestoreBtn(); };
+  $('rSnap').onchange = loadRestore;
+  $('bRestore').onclick = function(){
+    var p = picked(); if(!p.length||!B) return;
+    if(!PERM.media) B.askPerms('media');
+    var r = B.restorePhotos(p.join(','));
+    if(r){ toast(r, true); return; }
+    hidden=false; startPoll();
+  };
+
+  // ---------- Feuille ----------
+  function sheet(t, html){ $('shTitle').textContent=t; $('shBody').innerHTML=html; $('sheet').hidden=false; }
+  function closeSheet(){ $('sheet').hidden=true; }
+  $('shClose').onclick = closeSheet;
+  $('sheet').addEventListener('click', function(e){ if(e.target.id==='sheet') closeSheet(); });
+
+  // ---------- Événements du pont ----------
+  window.sauvegardeEvent = function(type, json){
+    var d = J(json, {});
+    if(type==='dest'){
+      if(!d.ok){ if(d.err && d.err!=='cancel') toast(d.err, true); return; }
+      refresh(); toast('Destination : '+(d.dest&&d.dest.label||'dossier choisi'));
+      if(B) B.askPerms('media,contacts,calendar,notif');
+    }
+    else if(type==='folder'){ if(d.ok){ renderFolders(); toast('Dossier ajouté'); } else if(d.err && d.err!=='cancel') toast(d.err, true); }
+    else if(type==='perms'){ renderPerms(); refresh(); }
+    else if(type==='apps'){ if(Array.isArray(d)){ d.forEach(function(a){ APPN[a.pkg]=a.label; }); renderApps(d); } }
+    else if(type==='restore'){ fillRestore(d); }
+    else if(type==='file'){
+      var pre=$('shPre'); if(!pre) return;
+      if(!d.ok){ pre.textContent=d.err||'Lecture impossible'; return; }
+      var t=d.text; try{ t=JSON.stringify(JSON.parse(t), null, 2); }catch(e){}
+      pre.textContent = (t.length>200000 ? t.slice(0,200000)+'\n…' : t) + (d.cut?'\n… (fichier tronqué à l\'affichage)':'');
+    }
+    else if(type==='resume'){ refresh(); if(VIEW==='data') renderPerms(); }
+  };
+
+  // ---------- Tuile Socle ----------
+  window.onSocle = function(a){
+    var o = J(a, {});
+    if(o.now) setTimeout(startNow, 300);
+    else if(o.tab) show(o.tab);
+  };
+
+  render();
+  if(B){ PERM = J(B.perms(), {}); refresh(); }
+  setTimeout(function(){ try{ if(P && P.takeSocle){ var a=P.takeSocle(); if(a) window.onSocle(a); } }catch(e){} }, 400);
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) refresh(); });
+  setInterval(function(){ if(!document.hidden && !polling) refresh(); }, 30000);
+})();
+</script>
+</body>
+</html>

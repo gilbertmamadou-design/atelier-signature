@@ -1,0 +1,38 @@
+<!-- Photo : lignes à insérer dans android/app/src/main/AndroidManifest.xml -->
+
+<!-- 1) Dans <manifest>, avant <application> -->
+<uses-feature android:name="android.hardware.camera.any" android:required="false" />
+<uses-permission android:name="android.permission.CAMERA" />
+<uses-permission android:name="android.permission.RECORD_AUDIO" />
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
+<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+<uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+<queries>
+    <intent><action android:name="android.media.action.STILL_IMAGE_CAMERA" /></intent>
+</queries>
+
+<!-- 2) Dans <application>, à côté de MainActivity -->
+<activity
+    android:name=".PhotoCamera"
+    android:exported="true"
+    android:label="Appareil photo"
+    android:screenOrientation="portrait"
+    android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize"
+    android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
+    android:windowSoftInputMode="adjustPan">
+    <intent-filter>
+        <action android:name="android.media.action.STILL_IMAGE_CAMERA" />
+        <category android:name="android.intent.category.DEFAULT" />
+    </intent-filter>
+    <intent-filter>
+        <action android:name="android.media.action.IMAGE_CAPTURE" />
+        <category android:name="android.intent.category.DEFAULT" />
+    </intent-filter>
+</activity>
+
+<!-- Rien à ajouter sur MainActivity : le raccourci « Prendre une photo » est créé en code
+     (PhotoBridge.setupShortcut / pinShortcut) et ouvre MainActivity avec l'extra socle {"camera":1}. -->

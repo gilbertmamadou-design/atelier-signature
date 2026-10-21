@@ -1,0 +1,922 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style></head><body><title>Carnet de chasse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;700&family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+/* Mise en page : appli de terrain, une colonne, barre d'onglets en bas ; vert forêt, orange chasse pour l'action */
+:root{
+  --bg:#EDF1EC; --surface:#FFFFFF; --ink:#18231D; --muted:#56635B; --line:#D3DBD4;
+  --forest:#2C5A38; --forest-bg:#E1EBE2; --accent:#D9480F; --accent-ink:#FFFFFF;
+  --ok:#2E7D46; --ok-bg:#E3F1E6; --warn:#A86400; --warn-bg:#FFF2DB; --nc:#C0362C; --nc-bg:#FBE5E2;
+  --s1:#2a78d6; --s2:#eb6834; --bar:#2C5A38;
+  --display:"Zilla Slab",Georgia,"Times New Roman",serif; --body:"Source Sans 3","Segoe UI",Roboto,system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111813;--surface:#1A231D;--ink:#E7EEE9;--muted:#A2B0A7;--line:#2C3931;--forest:#7DBB8B;--forest-bg:#203126;--accent:#FF7A33;--accent-ink:#1A0E05;--ok:#6CC488;--ok-bg:#1C3324;--warn:#E7A43A;--warn-bg:#3A2A10;--nc:#F07B70;--nc-bg:#3D1C19;--s1:#3987e5;--s2:#d95926;--bar:#7DBB8B;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#111813;--surface:#1A231D;--ink:#E7EEE9;--muted:#A2B0A7;--line:#2C3931;--forest:#7DBB8B;--forest-bg:#203126;--accent:#FF7A33;--accent-ink:#1A0E05;--ok:#6CC488;--ok-bg:#1C3324;--warn:#E7A43A;--warn-bg:#3A2A10;--nc:#F07B70;--nc-bg:#3D1C19;--s1:#3987e5;--s2:#d95926;--bar:#7DBB8B;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--body)}
+body{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--forest)}
+h1,h2,h3{font-family:var(--display);margin:0;line-height:1.15;text-wrap:balance}
+h1{font-size:28px}h2{font-size:20px}h3{font-size:16px;font-family:var(--body);font-weight:700}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--forest);color:#fff;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;align-items:center;gap:10px}
+.top .brand{font-family:var(--display);font-size:20px;font-weight:700;letter-spacing:.3px}.top .sub{font-size:12px;opacity:.85;text-transform:uppercase;letter-spacing:1px}
+.top .grow{flex:1;min-width:0}.ib{width:38px;height:38px;border-radius:50%;border:2px solid rgba(255,255,255,.55);background:transparent;color:#fff;font-weight:800;font-size:17px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.top .back{border:0;font-size:22px}
+.blaze{height:5px;background:repeating-linear-gradient(135deg,var(--accent) 0 12px,#1c2a20 12px 24px)}
+main{max-width:860px;margin:0 auto;padding-block:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.stack{display:flex;flex-direction:column;gap:14px}.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.grow{flex:1;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
+.eyebrow{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted)}
+.muted{color:var(--muted)}.small{font-size:13px}
+.btn{min-height:44px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 15px var(--body);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}.btn.green{background:var(--forest);border-color:var(--forest);color:var(--surface)}
+.btn.danger{color:var(--nc);border-color:var(--nc)}.btn.small{min-height:36px;padding:0 12px;font-size:14px}.btn.block{width:100%}.btn:disabled{opacity:.5}
+.btn:focus-visible,.ib:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+label.f{display:flex;flex-direction:column;gap:4px;font-weight:600;font-size:14px}
+input,select,textarea{font:16px var(--body);min-height:44px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
+textarea{min-height:80px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media (max-width:420px){.grid2{grid-template-columns:1fr}}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}@media (max-width:620px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px}.kpi b{display:block;font:700 30px var(--display);font-variant-numeric:tabular-nums}.kpi span{font-size:13px;color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;padding:2px 9px;border-radius:99px;background:var(--forest-bg);color:var(--forest);white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok)}.chip.warn{background:var(--warn-bg);color:var(--warn)}.chip.nc{background:var(--nc-bg);color:var(--nc)}
+.fchip{min-height:36px;padding:0 12px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 14px var(--body);cursor:pointer}.fchip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.item{display:flex;gap:12px;align-items:center;width:100%;text-align:left;cursor:pointer;color:var(--ink);font:inherit}
+.thumb{width:64px;height:64px;flex:none;border-radius:12px;background:var(--forest-bg);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:30px}.thumb img{width:100%;height:100%;object-fit:cover}
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:25;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+.nav-in{max-width:860px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
+.nav button{background:none;border:0;color:var(--muted);font:600 12px var(--body);padding:8px 0 10px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+.nav button.on{color:var(--forest)}.nav svg{width:24px;height:24px}
+.nav .add span.plus{width:50px;height:50px;margin-top:-22px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;box-shadow:0 4px 12px rgba(0,0,0,.25);border:3px solid var(--surface)}
+.toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;z-index:60;max-width:min(92vw,520px);font-weight:600;font-size:14px}
+.overlay{position:fixed;inset:0;z-index:70;background:rgba(8,14,10,.55);display:flex;align-items:flex-end;justify-content:center;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+.sheet{background:var(--surface);border-radius:16px;padding:16px;width:100%;max-width:560px;max-height:86vh;overflow:auto}
+.sp{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.sp button{min-height:64px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:600 13px var(--body);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px}
+.sp button.on{border:2px solid var(--accent);background:var(--surface)}
+.sppic{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;overflow:hidden;flex:none;border:2px solid var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.15)}.sppic img{width:100%;height:100%;object-fit:cover}
+.sp button{min-height:96px}
+.stepper{display:flex;align-items:center;gap:10px}.stepper button{width:48px;height:48px;border-radius:12px;font-size:24px}.stepper b{font:700 34px var(--display);min-width:48px;text-align:center;font-variant-numeric:tabular-nums}
+.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}.ph{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--forest-bg);max-width:100%}.ph img{width:100%;height:100%;object-fit:cover}
+.ph .gps{position:absolute;left:4px;bottom:4px;font-size:11px;font-weight:700;background:rgba(0,0,0,.6);color:#fff;border-radius:6px;padding:1px 5px}.ph .del{position:absolute;top:4px;right:4px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;cursor:pointer}
+input[type=file].hid{position:absolute;width:1px;height:1px;opacity:0}
+.notice{background:var(--warn-bg);border:1px solid var(--warn);border-radius:12px;padding:10px 12px;font-size:14px}
+.empty{text-align:center;padding:26px 14px;color:var(--muted)}
+.tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}th{font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);cursor:pointer}td.n,th.n{text-align:right}
+.chart{width:100%;display:block}.chart text{fill:var(--muted);font:12px var(--body)}.chart .lab{fill:var(--ink);font-weight:600}.chart .grid{stroke:var(--line);stroke-width:1}
+.tip{position:fixed;z-index:80;pointer-events:none;background:var(--ink);color:var(--bg);padding:6px 9px;border-radius:8px;font-size:13px;font-weight:600;white-space:nowrap}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px}.legend i{display:inline-block;width:12px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.prog{height:10px;border-radius:99px;background:var(--forest-bg);overflow:hidden}.prog i{display:block;height:100%;border-radius:99px;background:var(--forest)}.prog i.full{background:var(--nc)}
+.wx-now{display:flex;align-items:center;gap:16px}.wx-t{font:700 54px var(--display);line-height:1;font-variant-numeric:tabular-nums}
+.wx-hours{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}.wx-h{flex:none;min-width:64px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border:1px solid var(--line);border-radius:10px;font-size:13px;text-align:center}
+.wx-d{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--line);font-size:14px}
+.sunbar{position:relative;height:30px;border-radius:8px;background:linear-gradient(90deg,#26354a 0%,#26354a var(--l0),#e7b25a var(--l1),#9fd0f0 var(--r1),#e7b25a var(--r0),#26354a var(--r0),#26354a 100%);overflow:hidden}
+.sunbar .now{position:absolute;top:0;bottom:0;width:3px;background:var(--accent)}
+.compass{display:flex;flex-direction:column;align-items:center;font-size:12px;font-weight:700}.needle{transition:transform 1.2s cubic-bezier(.2,.8,.2,1)}
+.mapwrap{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line)}#map{height:min(62vh,520px);background:var(--forest-bg)}
+.mk{width:44px;height:44px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:4px solid;background:#fff;overflow:hidden;box-shadow:0 3px 8px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center}.mk img,.mk span{transform:rotate(45deg)}.mk img{width:100%;height:100%;object-fit:cover;transform:rotate(45deg) scale(1.4)}.mk span{font-size:20px}
+.mapnote{position:absolute;left:10px;right:10px;top:10px;z-index:600;background:rgba(255,255,255,.95);color:#18231d;border-radius:10px;padding:8px 10px;font-size:13px}
+.mpop{display:flex;flex-direction:column;gap:3px;font:13px var(--body)}.mpop img{width:100%;max-height:130px;object-fit:cover;border-radius:6px}
+details.help summary{cursor:pointer;font-weight:700;list-style:none;display:flex;gap:10px;align-items:center}details.help summary::-webkit-details-marker{display:none}details.help summary::after{content:"›";margin-left:auto;font-size:22px;transition:transform .2s}details.help[open] summary::after{transform:rotate(90deg)}details.help ol{margin:10px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.wi-spin{animation:wispin 12s linear infinite}@keyframes wispin{to{transform:rotate(360deg)}}
+.wi-drift{animation:widrift 6s ease-in-out infinite alternate}.wi-drift2{animation:widrift 8s ease-in-out infinite alternate-reverse}@keyframes widrift{from{transform:translateX(-3px)}to{transform:translateX(4px)}}
+.wi-bob{animation:wibob 5s ease-in-out infinite alternate}@keyframes wibob{to{transform:translateY(-3px)}}
+.wi-rain{animation:wirain 1s linear infinite}@keyframes wirain{0%{transform:translateY(-6px);opacity:0}30%{opacity:1}100%{transform:translateY(10px);opacity:0}}
+.wi-snow{animation:wisnow 2.6s linear infinite}@keyframes wisnow{0%{transform:translate(0,-8px);opacity:0}30%{opacity:1}100%{transform:translate(3px,12px);opacity:0}}
+.wi-flash{animation:wiflash 2.4s steps(1) infinite}@keyframes wiflash{0%,100%{opacity:0}8%,14%{opacity:1}10%{opacity:.2}}
+.wi-fog{animation:wifog 3s ease-in-out infinite alternate}@keyframes wifog{from{transform:translateX(-4px);opacity:.5}to{transform:translateX(4px);opacity:1}}
+@keyframes rise{from{opacity:.001;transform:translateY(8px)}to{opacity:1;transform:none}}main.anim>.stack>*{animation:rise .35s cubic-bezier(.2,.8,.2,1) both}main.anim>.stack>*:nth-child(2){animation-delay:.04s}main.anim>.stack>*:nth-child(3){animation-delay:.08s}main.anim>.stack>*:nth-child(4){animation-delay:.12s}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<header class="top"><button class="ib back" id="back" hidden aria-label="Retour">←</button><div class="grow"><div class="brand">Carnet de chasse</div><div class="sub" id="sub">Tableau de bord</div></div><button class="ib" id="helpBtn" aria-label="Aide">?</button><button class="ib" id="moreBtn" aria-label="Plus d'outils">☰</button></header>
+<div class="blaze"></div>
+<main id="app"></main>
+<nav class="nav" aria-label="Navigation"><div class="nav-in">
+  <button data-nav="dash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Tableau</button>
+  <button data-nav="prises"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Prises</button>
+  <button data-nav="add" class="add" aria-label="Nouvelle prise"><span class="plus">＋</span>Prise</button>
+  <button data-nav="carte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg>Carte</button>
+  <button data-nav="meteo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h11a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h7"/></svg>Météo</button>
+</div></nav>
+<div class="toast" id="toast" hidden></div>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+/* ================= DONNÉES DE RÉFÉRENCE ================= */
+const CATS={grand:"Grand gibier",petit:"Petit gibier sédentaire",migr:"Migrateurs",eau:"Gibier d'eau",esod:"ESOD (nuisibles)"};
+const SPECIES=[["sanglier","Sanglier","🐗","grand"],["chevreuil","Chevreuil","🦌","grand"],["cerf","Cerf élaphe","🦌","grand"],["daim","Daim","🦌","grand"],["chamois","Chamois / isard","🐐","grand"],["mouflon","Mouflon","🐏","grand"],
+ ["lievre","Lièvre","🐇","petit"],["lapin","Lapin de garenne","🐇","petit"],["faisan","Faisan","🐓","petit"],["perdrixg","Perdrix grise","🐦","petit"],["perdrixr","Perdrix rouge","🐦","petit"],
+ ["becasse","Bécasse","🐦","migr"],["pigeon","Pigeon ramier","🕊️","migr"],["grive","Grive","🐦","migr"],["caille","Caille des blés","🐦","migr"],
+ ["colvert","Canard colvert","🦆","eau"],["sarcelle","Sarcelle d'hiver","🦆","eau"],["bécassine","Bécassine des marais","🐦","eau"],["foulque","Foulque macroule","🐦","eau"],["oie","Oie cendrée","🪿","eau"],
+ ["renard","Renard","🦊","esod"],["ragondin","Ragondin","🐀","esod"],["corneille","Corneille noire","🐦‍⬛","esod"],["pie","Pie bavarde","🐦","esod"],["autre","Autre espèce","🎯","petit"]];
+const MODES=["Battue","Approche","Affût","Devant soi","Chien d'arrêt","Gibier d'eau (hutte, passée)","Vénerie / déterrage","Piégeage","Autre"];
+const SEX=["Indéterminé","Mâle","Femelle"], AGE=["Indéterminé","Jeune","Adulte"];
+const sp=k=>{ const s=SPECIES.find(x=>x[0]===k); return s?{k:s[0],lab:s[1],ico:s[2],cat:s[3]}:{k,lab:k||"Espèce",ico:"🎯",cat:"petit"}; };
+const labOf=p=>p.especeLib||sp(p.espece).lab;
+/* ================= ÉTAT ET STOCKAGE ================= */
+const S={prises:[],sorties:[],plans:[],obs:[],chiens:[],battues:[],armes:[],postes:[],settings:{nom:"",permis:"",territoire:"",mode:"Battue",dept:""},view:"dash",cur:null,photoCache:{},db:null,uid:null,assets:null,sample:null,downloads:null};
+const LS="chasse-carnet-v1";
+function lsSave(){ try{ localStorage.setItem(LS,JSON.stringify({prises:S.prises,sorties:S.sorties,plans:S.plans,obs:S.obs,chiens:S.chiens,battues:S.battues,armes:S.armes,postes:S.postes,settings:S.settings})); }catch(e){ toast("Mémoire du téléphone pleine : faites une sauvegarde et retirez des photos"); } }
+function lsLoad(){ try{ const d=JSON.parse(localStorage.getItem(LS)||"null"); if(d){ ["prises","sorties","plans","obs","chiens","battues","armes","postes"].forEach(k=>{ if(Array.isArray(d[k])) S[k]=d[k]; }); Object.assign(S.settings,d.settings||{}); } }catch(e){} }
+const ARR={prise:"prises",sortie:"sorties",plan:"plans",obs:"obs",chien:"chiens",battue:"battues",arme:"armes",poste:"postes"};
+const ALLK=["prises","sorties","plans","obs","chiens","battues","armes","postes"];
+function save(o){ o.updated=Date.now(); if(o.kind==="settings"){ lsSave(); persist(o); return; } const a=S[ARR[o.kind]], i=a.findIndex(x=>x.id===o.id); if(i<0) a.unshift(o); else a[i]=o; lsSave(); clearTimeout(save._t); save._t=setTimeout(()=>persist(o),600); }
+async function remove(o){ const a=S[ARR[o.kind]], i=a.findIndex(x=>x.id===o.id); if(i>=0) a.splice(i,1); lsSave(); if(S.db&&S.uid){ try{ await S.db.collection("data/users/"+S.uid).doc(o.id).delete(); }catch(e){} } }
+async function persist(o){ if(!S.db||!S.uid) return; try{ const c=JSON.parse(JSON.stringify(o)); (c.photos||[]).forEach(p=>{ if(p.asset) delete p.data; }); await S.db.collection("data/users/"+S.uid).doc(o.kind==="settings"?"settings":o.id).set(c); }catch(e){} }
+/* photos : IndexedDB sur l'appareil (pas de limite de taille gênante) */
+const IDB={db:null,open(){ return this.db?Promise.resolve(this.db):new Promise((ok)=>{ try{ const r=indexedDB.open("chasse-photos",1); r.onupgradeneeded=()=>r.result.createObjectStore("p"); r.onsuccess=()=>{ this.db=r.result; ok(this.db); }; r.onerror=()=>ok(null); }catch(e){ ok(null); } }); },
+ async put(id,v){ const d=await this.open(); if(!d) return false; return new Promise(ok=>{ try{ const t=d.transaction("p","readwrite"); t.objectStore("p").put(v,id); t.oncomplete=()=>ok(true); t.onerror=()=>ok(false); }catch(e){ ok(false); } }); },
+ async get(id){ const d=await this.open(); if(!d) return null; return new Promise(ok=>{ try{ const r=d.transaction("p").objectStore("p").get(id); r.onsuccess=()=>ok(r.result||null); r.onerror=()=>ok(null); }catch(e){ ok(null); } }); }};
+async function photoSrc(p){ if(!p) return ""; if(S.photoCache[p.id]) return S.photoCache[p.id]; if(p.data) return p.data; if(p.asset) return "/_blob/"+p.asset; const v=await IDB.get(p.id); if(v) S.photoCache[p.id]=v; return v||""; }
+/* ================= OUTILS ================= */
+const $=s=>document.querySelector(s), app=$("#app");
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad=n=>String(n).padStart(2,"0");
+const nowLocal=()=>{ const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const fmtD=d=>{ try{ return new Date(d.length<=10?d+"T12:00":d).toLocaleDateString("fr-FR",{day:"2-digit",month:"short",year:"numeric"}); }catch(e){ return d; } };
+const fmtDT=d=>{ try{ return new Date(d).toLocaleString("fr-FR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}); }catch(e){ return d; } };
+const nf=(n,d=0)=>(+n||0).toLocaleString("fr-FR",{maximumFractionDigits:d,minimumFractionDigits:0});
+/* saison de chasse : du 1er juin au 31 mai */
+const seasonOf=d=>{ const x=new Date(String(d).length<=10?d+"T12:00":d), y=x.getFullYear(); return x.getMonth()>=5?`${y}-${y+1}`:`${y-1}-${y}`; };
+const curSeason=()=>seasonOf(nowLocal());
+const prevSeason=s=>{ const y=+s.slice(0,4)-1; return `${y}-${y+1}`; };
+function toast(t){ const el=$("#toast"); el.textContent=t; el.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>el.hidden=true,3600); }
+const MP=(()=>{ if(window.MAGPrint) return window.MAGPrint; try{ return window.parent!==window&&window.parent.MAGPrint?window.parent.MAGPrint:null; }catch(e){ return null; } })();
+const CLX=(()=>{ if(window.claude) return window.claude; try{ return window.parent!==window&&window.parent.claude?window.parent.claude:null; }catch(e){ return null; } })();
+function parseTiff(v,t){
+  const le=v.getUint16(t)===0x4949, u16=p=>v.getUint16(p,le), u32=p=>v.getUint32(p,le);
+  const ifd=p=>{const n=u16(p),tags={};for(let i=0;i<n;i++){const e=p+2+i*12;tags[u16(e)]={count:u32(e+4),vo:e+8}}return tags};
+  const rat=(off,c)=>{const a=[];for(let i=0;i<c;i++){const d=u32(off+i*8+4);a.push(d?u32(off+i*8)/d:0)}return a};
+  const ascii=tag=>{const off=tag.count>4?t+u32(tag.vo):tag.vo;let s="";for(let i=0;i<tag.count;i++){const c=v.getUint8(off+i);if(!c)break;s+=String.fromCharCode(c)}return s};
+  const out={}, i0=ifd(t+u32(t+4));
+  try{ if(i0[0x8825]){ const g=ifd(t+u32(i0[0x8825].vo)); if(g[2]&&g[4]){ const la=rat(t+u32(g[2].vo),3), ln=rat(t+u32(g[4].vo),3); let lat=la[0]+la[1]/60+la[2]/3600, lng=ln[0]+ln[1]/60+ln[2]/3600;
+    if(g[1]&&ascii(g[1])==="S") lat=-lat; if(g[3]&&ascii(g[3])==="W") lng=-lng; if(isFinite(lat)&&isFinite(lng)&&!(lat===0&&lng===0)){out.lat=+lat.toFixed(6);out.lng=+lng.toFixed(6)} } } }catch(e){}
+  try{ if(i0[0x8769]){const ex=ifd(t+u32(i0[0x8769].vo)); if(ex[0x9003]) out.taken=ascii(ex[0x9003]);} }catch(e){}
+  return out; }
+function parseExif(buf){ try{ const v=new DataView(buf); if(v.getUint16(0)!==0xFFD8) return {}; let o=2;
+  while(o<v.byteLength-4){ const m=v.getUint16(o); if((m&0xFF00)!==0xFF00) break; const len=v.getUint16(o+2); if(m===0xFFE1&&v.getUint32(o+4)===0x45786966) return parseTiff(v,o+10); o+=2+len; } }catch(e){} return {}; }
+function compress(file,max=1280,q=.72){ return new Promise((res,rej)=>{ const url=URL.createObjectURL(file), img=new Image();
+  img.onload=()=>{ let w=img.naturalWidth,h=img.naturalHeight; const r=Math.min(1,max/Math.max(w,h)); w=Math.round(w*r); h=Math.round(h*r);
+    const c=document.createElement("canvas"); c.width=w; c.height=h; c.getContext("2d").drawImage(img,0,0,w,h); URL.revokeObjectURL(url);
+    c.toBlob(b=>{ const fr=new FileReader(); fr.onload=()=>res({blob:b,dataUrl:fr.result,w,h}); fr.readAsDataURL(b); },"image/jpeg",q); };
+  img.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error("Image illisible")); }; img.src=url; }); }
+/* position du téléphone au moment de la photo */
+function devicePos(maxAge=120000){ return new Promise(ok=>{ if(maxAge&&S.lastPos&&Date.now()-S.lastPos.t<maxAge) return ok(S.lastPos); if(!navigator.geolocation) return ok(null);
+  try{ navigator.geolocation.getCurrentPosition(p=>{ S.lastPos={lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy,t:Date.now()}; ok(S.lastPos); },()=>ok(null),{enableHighAccuracy:true,timeout:9000,maximumAge:maxAge}); }catch(e){ ok(null); } }); }
+document.addEventListener("pointerdown",e=>{ const l=e.target.closest("label"); const inp=l&&l.querySelector("input[type=file]"); if(inp) devicePos(); },true);
+async function ingestPhotos(files){ const out=[]; let nogps=0;
+  for(const f of files){ try{ const exif=parseExif(await f.arrayBuffer()), c=await compress(f,1280,.75), small=await compress(f,720,.7);
+    const p={id:uid(),w:c.w,h:c.h,lat:exif.lat??null,lng:exif.lng??null,taken:exif.taken||null,added:new Date().toISOString()};
+    if(p.lat==null&&Date.now()-(f.lastModified||0)<5*60e3){ const d=await devicePos(); if(d){ p.lat=+d.lat.toFixed(6); p.lng=+d.lng.toFixed(6); } }
+    if(p.lat==null) nogps++;
+    S.photoCache[p.id]=c.dataUrl;
+    if(S.assets){ try{ p.asset=(await S.assets.upload(c.blob)).id; }catch(e){} }
+    if(!p.asset){ if(!(await IDB.put(p.id,small.dataUrl))) p.data=small.dataUrl; }
+    p._blob=c.blob; out.push(p);
+  }catch(e){ toast("Photo illisible"); } }
+  if(out.length) toast(nogps?"Photo ajoutée, sans position GPS":"Photo ajoutée et géolocalisée");
+  return out; }
+/* fichiers : menu Android, enregistrement claude.ai, ou téléchargement */
+const blobToB64=b=>new Promise((ok,ko)=>{ const r=new FileReader(); r.onload=()=>ok(String(r.result).split(",")[1]||""); r.onerror=ko; r.readAsDataURL(b); });
+async function giveFile(blob,name,mime,open){
+  if(MP&&MP.fileMenu){ try{ const b=await blobToB64(blob); if(open&&MP.openFile) MP.openFile(b,name,mime); else MP.fileMenu(b,name,mime,"",name,""); return; }catch(e){} }
+  if(S.downloads){ try{ await S.downloads.save({filename:name,data:blob}); toast("Fichier enregistré"); }catch(e){ toast(e?.code==="declined"?"Enregistrement annulé":"Enregistrement impossible ici"); } return; }
+  try{ const f=new File([blob],name,{type:mime}); if(navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f],title:name}); return; } }catch(e){ if(e?.name==="AbortError") return; }
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove(); }
+function loadScript(src){ return new Promise((ok,ko)=>{ const s=document.createElement("script"); s.src=src; s.onload=ok; s.onerror=ko; document.head.appendChild(s); }); }
+async function need(globalName,local,cdn){ if(window[globalName]) return true; for(const u of [local,cdn]){ try{ await loadScript(u); if(window[globalName]) return true; }catch(e){} } return false; }
+
+/* ================= NAVIGATION ================= */
+const TITLES={dash:"Tableau de bord",prises:"Mes prises",prise:"Prise",carte:"Carte des prises",meteo:"Météo de chasse",plus:"Plus d'outils",plans:"Plan de chasse et quotas",sorties:"Sorties",sortie:"Sortie",secu:"Sécurité",export:"Exporter et sauvegarder",reglages:"Ma fiche chasseur",aide:"Aide",battues:"Battues",battue:"Battue",obs:"Animaux vus",obs1:"Animal vu",chiens:"Mes chiens",chien:"Chien",armes:"Mon armurerie",arme:"Arme",postes:"Postes et miradors",poste:"Poste"};
+const BACK={prise:"prises",plans:"plus",sorties:"plus",sortie:"sorties",secu:"plus",export:"plus",reglages:"plus",aide:"plus",plus:"dash",battues:"plus",battue:"battues",obs:"plus",obs1:"obs",chiens:"plus",chien:"chiens",armes:"plus",arme:"armes",postes:"plus",poste:"postes"};
+function go(v){ S.view=v; render(); scrollTo(0,0); app.classList.remove("anim"); void app.offsetWidth; app.classList.add("anim"); }
+function render(){ const tab={dash:"dash",prises:"prises",prise:"prises",carte:"carte",meteo:"meteo"}[S.view];
+  document.querySelectorAll("[data-nav]").forEach(b=>b.classList.toggle("on",b.dataset.nav===tab));
+  $("#back").hidden=!BACK[S.view]; $("#sub").textContent=TITLES[S.view]||"";
+  ({dash:renderDash,prises:renderPrises,prise:renderPrise,carte:renderCarte,meteo:renderMeteo,plus:renderPlus,plans:renderPlans,sorties:renderSorties,sortie:renderSortie,secu:renderSecu,export:renderExport,reglages:renderReglages,aide:renderAide,battues:renderBattues,battue:renderBattue,obs:renderObsList,obs1:renderObs,chiens:renderChiens,chien:renderChien,armes:renderArmes,arme:renderArme,postes:renderPostes,poste:renderPoste}[S.view]||renderDash)(); }
+document.querySelectorAll("[data-nav]").forEach(b=>b.onclick=()=>{ if(b.dataset.nav==="add"){ addMenu(); return; } go(b.dataset.nav); });
+function addMenu(){ const ov=document.createElement("div"); ov.className="overlay"; ov.innerHTML=`<div class="sheet stack"><h2>Ajouter</h2>
+  <button class="card item" data-a="p"><div class="thumb">🎯</div><div class="grow"><h3>Une prise</h3><span class="muted small">Animal prélevé : photo, espèce, nombre</span></div></button>
+  <button class="card item" data-a="o"><div class="thumb">👁</div><div class="grow"><h3>Un animal vu</h3><span class="muted small">Observation sans tir, placée sur la carte</span></div></button>
+  <button class="card item" data-a="b"><div class="thumb">📅</div><div class="grow"><h3>Une battue</h3><span class="muted small">Date, rendez-vous, postes, rappel</span></div></button>
+  <button class="btn" data-a="x">Annuler</button></div>`; document.body.appendChild(ov);
+  ov.onclick=e=>{ const b=e.target.closest("[data-a]"); if(e.target===ov||b){ ov.remove(); const a=b?.dataset.a; if(a==="p") newPrise(); else if(a==="o") newObs(); else if(a==="b"){ S.cur=newBattue(); go("battue"); } } }; }
+$("#back").onclick=()=>go(BACK[S.view]||"dash"); $("#moreBtn").onclick=()=>go("plus"); $("#helpBtn").onclick=()=>go("aide");
+
+/* ================= TABLEAU DE BORD ================= */
+function seasons(){ const s=new Set([curSeason(),...S.prises.map(p=>seasonOf(p.date)),...S.sorties.map(x=>seasonOf(x.date))]); return [...s].sort().reverse(); }
+const inSeason=(arr,s)=>arr.filter(x=>seasonOf(x.date)===s);
+const MONTHS=["juin","juil.","août","sept.","oct.","nov.","déc.","janv.","févr.","mars","avr.","mai"];
+const monthIdx=d=>(new Date(String(d).length<=10?d+"T12:00":d).getMonth()+7)%12;
+function tipOn(root){ const tip=$("#tip"); root.querySelectorAll("[data-tip]").forEach(el=>{ const show=e=>{ tip.textContent=el.dataset.tip; tip.hidden=false; const x=(e.touches?e.touches[0]:e).clientX, y=(e.touches?e.touches[0]:e).clientY; const w=tip.offsetWidth; tip.style.left=Math.max(8,Math.min(innerWidth-w-8,x-w/2))+"px"; tip.style.top=(y-44)+"px"; };
+  el.addEventListener("pointermove",show); el.addEventListener("pointerenter",show); el.addEventListener("pointerleave",()=>tip.hidden=true); el.addEventListener("pointerdown",show); }); }
+function barsH(rows){ /* rows [{lab,ico,v}] trié ; une seule série : une seule couleur */
+  if(!rows.length) return `<div class="empty small">Aucune prise sur la période.</div>`;
+  const W=380, rh=30, H=rows.length*rh+8, max=Math.max(...rows.map(r=>r.v)), L=136, R=28, sx=v=>(W-L-R)*v/max;
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Prises par espèce">${rows.map((r,i)=>{ const y=4+i*rh, w=Math.max(3,sx(r.v));
+    return `<g data-tip="${esc(r.lab)} : ${r.v} pièce${r.v>1?"s":""}"><rect x="0" y="${y}" width="${W}" height="${rh}" fill="transparent"/>${r.img?`<clipPath id="cp${i}"><circle cx="13" cy="${y+15}" r="12"/></clipPath><image href="${r.img}" x="1" y="${y+3}" width="24" height="24" clip-path="url(#cp${i})" preserveAspectRatio="xMidYMid slice"/>`:`<text x="1" y="${y+20}" style="font-size:17px">${r.ico}</text>`}<text class="lab" x="30" y="${y+19}">${esc(r.lab.length>13?r.lab.slice(0,12)+"…":r.lab)}</text><rect x="${L}" y="${y+6}" width="${w}" height="${rh-12}" rx="4" fill="var(--bar)"/><text x="${L+w+6}" y="${y+19}" class="lab">${r.v}</text></g>`; }).join("")}</svg>`; }
+function cumLine(cur,prev,sCur,sPrev){ const W=380,H=210,L=28,R=10,T=14,B=28, max=Math.max(1,...cur,...prev), sx=i=>L+(W-L-R)*i/11, sy=v=>T+(H-T-B)*(1-v/max);
+  const ticks=[0,Math.round(max/2),max].filter((v,i,a)=>a.indexOf(v)===i);
+  const path=a=>a.map((v,i)=>`${i?"L":"M"}${sx(i).toFixed(1)} ${sy(v).toFixed(1)}`).join(" ");
+  const curM=monthIdx(nowLocal()), curA=cur.slice(0,curM+1);
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Prises cumulées, saison ${sCur} et ${sPrev}">
+    ${ticks.map(t=>`<line class="grid" x1="${L}" x2="${W-R}" y1="${sy(t)}" y2="${sy(t)}"/><text x="${L-6}" y="${sy(t)+4}" text-anchor="end">${t}</text>`).join("")}
+    ${MONTHS.map((m,i)=>i%2===0?`<text x="${sx(i)}" y="${H-10}" text-anchor="middle">${m}</text>`:"").join("")}
+    <path d="${path(prev)}" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round" stroke-dasharray="5 4"/>
+    <path d="${path(curA)}" fill="none" stroke="var(--s1)" stroke-width="2.5" stroke-linejoin="round"/>
+    <circle cx="${sx(curA.length-1)}" cy="${sy(curA[curA.length-1])}" r="5" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"/>
+    <text class="lab" x="${Math.min(sx(curA.length-1)+8,W-24)}" y="${sy(curA[curA.length-1])-8}">${curA[curA.length-1]}</text>
+    ${MONTHS.map((m,i)=>`<rect x="${sx(i)-(W-L-R)/22}" y="${T}" width="${(W-L-R)/11}" height="${H-T-B}" fill="transparent" data-tip="${m} : ${i<=curM?cur[i]+" cette saison · ":""}${prev[i]} saison précédente"/>`).join("")}
+  </svg><div class="legend"><span><i style="background:var(--s1)"></i>Saison ${sCur}</span><span><i style="background:var(--s2)"></i>Saison ${sPrev} (pointillés)</span></div>`; }
+function colsMonth(vals){ const W=380,H=170,L=24,R=4,T=12,B=26, max=Math.max(1,...vals), bw=(W-L-R)/12, sy=v=>T+(H-T-B)*(1-v/max);
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Prises par mois">
+    <line class="grid" x1="${L}" x2="${W-R}" y1="${sy(max)}" y2="${sy(max)}"/><text x="${L-6}" y="${sy(max)+4}" text-anchor="end">${max}</text><line class="grid" x1="${L}" x2="${W-R}" y1="${sy(0)}" y2="${sy(0)}"/><text x="${L-6}" y="${sy(0)+4}" text-anchor="end">0</text>
+    ${vals.map((v,i)=>{ const x=L+i*bw+3, h=sy(0)-sy(v); return `<g data-tip="${MONTHS[i]} : ${v} pièce${v>1?"s":""}"><rect x="${x-3}" y="${T}" width="${bw}" height="${H-T-B}" fill="transparent"/>${v?`<path d="M${x} ${sy(0)}V${sy(v)+4}a4 4 0 0 1 4 -4h${bw-14}a4 4 0 0 1 4 4V${sy(0)}z" fill="var(--bar)"/>`:""}${i%2===0?`<text x="${x+(bw-6)/2}" y="${H-8}" text-anchor="middle">${MONTHS[i].slice(0,4).replace(".","")}</text>`:""}</g>`; }).join("")}
+  </svg>`; }
+function renderDash(){ const ss=seasons(); S.season=S.season&&ss.includes(S.season)?S.season:ss[0];
+  const s=S.season, P=inSeason(S.prises,s), So=inSeason(S.sorties,s), n=P.reduce((t,p)=>t+(+p.nombre||1),0), big=P.filter(p=>sp(p.espece).cat==="grand").reduce((t,p)=>t+(+p.nombre||1),0);
+  const kg=P.reduce((t,p)=>t+(+String(p.poids||"").replace(",",".")||0)*(+p.nombre||1),0), tirs=So.reduce((t,x)=>t+(+x.tirs||0),0), touche=So.reduce((t,x)=>t+(+x.prisesN||0),0);
+  const by={}; P.forEach(p=>{ const k=p.espece==="autre"&&p.especeLib?"autre:"+p.especeLib:p.espece; by[k]=(by[k]||0)+(+p.nombre||1); });
+  const rows=Object.entries(by).map(([k,v])=>{ const o=k.startsWith("autre:")?{lab:k.slice(6),ico:"🎯"}:sp(k), ph=k.startsWith("autre:")?null:speciesPhoto(k); return {lab:o.lab,ico:o.ico,v,img:ph?(S.photoCache[ph.id]||ph.data||""):""}; }).sort((a,b)=>b.v-a.v).slice(0,10);
+  const months=Array(12).fill(0); P.forEach(p=>months[monthIdx(p.date)]+=(+p.nombre||1));
+  const ps=prevSeason(s), PP=inSeason(S.prises,ps), mp=Array(12).fill(0); PP.forEach(p=>mp[monthIdx(p.date)]+=(+p.nombre||1));
+  const cum=a=>a.reduce((acc,v,i)=>(acc.push((acc[i-1]||0)+v),acc),[]);
+  const plans=S.plans.filter(x=>x.saison===s);
+  const last=[...S.prises].sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,4);
+  const example=!S.prises.length;
+  app.innerHTML=`<div class="stack">
+    <div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="eyebrow">Saison</div><h1>${s.replace("-"," – ")}</h1></div>
+      <select id="seasonSel" aria-label="Saison" style="width:auto">${ss.map(x=>`<option ${x===s?"selected":""}>${x}</option>`).join("")}</select></div>
+    ${example?`<div class="card stack" style="border-left:6px solid var(--accent)"><h2>Bienvenue dans votre carnet</h2><span>Touchez le bouton orange <b>＋ Prise</b> en bas : une photo, l'espèce, le nombre. La position GPS et la météo du moment sont enregistrées toutes seules.</span><div class="row"><button class="btn primary" id="firstAdd">＋ Ma première prise</button><button class="btn" data-go="aide">Comment ça marche</button></div></div>`:""}
+    <div class="kpis">
+      <div class="kpi"><b>${nf(n)}</b><span>pièces prélevées</span></div>
+      <div class="kpi"><b>${nf(big)}</b><span>grand gibier</span></div>
+      <div class="kpi"><b>${So.length}</b><span>sortie${So.length>1?"s":""}</span></div>
+      <div class="kpi"><b>${tirs?Math.round(100*Math.min(touche,tirs)/tirs)+" %":kg?nf(kg)+" kg":"—"}</b><span>${tirs?"réussite au tir":"poids total"}</span></div></div>
+    ${dashExtra(s)}
+    ${plans.length?`<div class="card stack"><div class="row" style="justify-content:space-between"><h2>Plan de chasse et quotas</h2><button class="btn small" data-go="plans">Gérer</button></div>${plans.map(pl=>{ const done=P.filter(p=>p.espece===pl.espece).reduce((t,p)=>t+(+p.nombre||1),0), tot=+pl.attribues||0, pc=tot?Math.min(100,100*done/tot):0;
+      return `<div class="stack" style="gap:4px"><div class="row" style="justify-content:space-between"><b>${sp(pl.espece).ico} ${esc(sp(pl.espece).lab)}${pl.type==="quota"?" (quota)":""}</b><span class="${done>=tot&&tot?"chip nc":"chip"}">${done} / ${tot||"?"}</span></div><div class="prog" data-tip="${done} réalisé(s) sur ${tot}"><i class="${done>=tot&&tot?"full":""}" style="width:${pc}%"></i></div></div>`; }).join("")}</div>`:""}
+    <div class="card stack"><h2>Prises par espèce</h2>${barsH(rows)}</div>
+    <div class="card stack"><h2>Cumul de la saison</h2><span class="muted small">Pièces cumulées mois par mois, comparées à la saison précédente.</span>${cumLine(cum(months),cum(mp),s,ps)}</div>
+    <div class="card stack"><h2>Prises par mois</h2>${colsMonth(months)}</div>
+    <div class="card stack"><div class="row" style="justify-content:space-between"><h2>Dernières prises</h2><button class="btn small" data-go="prises">Tout voir</button></div>${last.length?last.map(itemHtml).join(""):`<div class="empty">Aucune prise enregistrée.</div>`}</div>
+    <div class="card stack"><div class="row" style="justify-content:space-between"><h2>Tableau de la saison</h2><span class="muted small">${P.length} ligne(s)</span></div>${tableHtml(P)}</div>
+  </div>`;
+  $("#seasonSel").onchange=e=>{ S.season=e.target.value; renderDash(); };
+  if($("#firstAdd")) $("#firstAdd").onclick=newPrise;
+  bindCommon(); tipOn(app); loadThumbs(); }
+function dashExtra(s){ const today=nowLocal().slice(0,10), nb=S.battues.filter(b=>b.date>=today&&!b.annulee).sort((a,b)=>(a.date+a.heure).localeCompare(b.date+b.heure))[0], vus=inSeason(S.obs,s).reduce((t,o)=>t+(+o.nombre||1),0), ven=inSeason(S.prises,s).reduce((t,p)=>t+(+String(p.venaison||"").replace(",",".")||0),0), ca=chienAlerts();
+  return `${nb?`<button class="card item" data-btgo="${nb.id}" style="border-left:6px solid var(--accent)"><div class="thumb">📅</div><div class="grow"><span class="eyebrow">Prochaine battue</span><h3>${new Date(nb.date+"T12:00").toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})} · ${esc(nb.heure)}</h3><span class="muted small">${esc(nb.lieu||"")}${nb.rdv?" · RDV "+esc(nb.rdv):""}</span></div></button>`:""}
+  ${armeAlerts().map(x=>`<button class="card item" data-argo="${x.a.id}" style="border-left:6px solid var(--warn)"><div class="thumb">🎯</div><div class="grow"><h3>${esc(armeLab(x.a))}</h3><span class="muted small">${esc(x.txt)}</span></div></button>`).join("")}
+  ${ca.map(x=>`<button class="card item" data-chgo="${x.c.id}" style="border-left:6px solid var(--${x.late?"nc":"warn"})"><div class="thumb">💉</div><div class="grow"><h3>${esc(x.c.nom)} : ${esc(x.v.l.split(" (")[0])}</h3><span class="muted small">${x.late?"En retard depuis le":"À faire avant le"} ${fmtD(x.v.next)}</span></div></button>`).join("")}
+  ${(()=>{ const by={}; inSeason(S.prises,s).forEach(p=>{ if(p.posteId) by[p.posteId]=(by[p.posteId]||0)+(+p.nombre||1); }); const top=Object.entries(by).map(([id,n])=>[S.postes.find(x=>x.id===id),n]).filter(x=>x[0]).sort((a,b)=>b[1]-a[1]).slice(0,5); return top.length?`<div class="card stack"><h2>🗼 Meilleurs postes</h2>${top.map(([x,n],i)=>`<div class="row" style="justify-content:space-between"><span>${i+1}. ${esc(posteLab(x))}</span><b>${n} pièce(s)</b></div>`).join("")}</div>`:""; })()}
+  <div class="kpis" style="grid-template-columns:repeat(2,1fr)"><div class="kpi"><b>${nf(vus)}</b><span>animaux vus (sans tir)</span></div><div class="kpi"><b>${ven?nf(ven)+" kg":"—"}</b><span>venaison</span></div></div>`; }
+function tableHtml(P){ if(!P.length) return `<div class="empty small">Le tableau se remplit avec vos prises.</div>`;
+  const k=S.sortK||"date", dir=S.sortD||-1, val=p=>k==="esp"?labOf(p):k==="n"?(+p.nombre||1):k==="kg"?(+String(p.poids||"").replace(",",".")||0):k==="mode"?p.mode||"":p.date;
+  const rows=[...P].sort((a,b)=>{ const x=val(a),y=val(b); return (x>y?1:x<y?-1:0)*dir; });
+  const th=(key,l,cls="")=>`<th class="${cls}" data-sort="${key}" aria-sort="${k===key?(dir>0?"ascending":"descending"):"none"}">${l}${k===key?(dir>0?" ▲":" ▼"):""}</th>`;
+  return `<div class="tw"><table><thead><tr>${th("date","Date")}${th("esp","Espèce")}${th("n","Nb","n")}${th("kg","Poids","n")}${th("mode","Mode")}<th>Lieu</th><th>Bracelet</th></tr></thead><tbody>${rows.map(p=>`<tr data-open="${p.id}" style="cursor:pointer"><td>${fmtD(p.date)}</td><td>${sp(p.espece).ico} ${esc(labOf(p))}</td><td class="n">${+p.nombre||1}</td><td class="n">${p.poids?esc(p.poids)+" kg":"—"}</td><td>${esc(p.mode||"")}</td><td>${esc(p.lieu||"")}</td><td>${esc(p.bracelet||"")}</td></tr>`).join("")}</tbody></table></div>`; }
+function itemHtml(p){ const o=sp(p.espece), ph=p.photos?.[0];
+  return `<button class="card item" data-open="${p.id}"><div class="thumb" style="background:${CAT_BG[o.cat]}">${ph?`<img data-ph="${ph.id}" alt="">`:o.ico}</div><div class="grow stack" style="gap:2px"><div class="row" style="gap:6px"><span class="chip">${esc(CATS[o.cat]||"")}</span>${p.lat!=null||ph?.lat!=null?`<span class="chip ok">📍 GPS</span>`:""}${p.bracelet?`<span class="chip warn">Bracelet ${esc(p.bracelet)}</span>`:""}</div><h3>${+p.nombre>1?p.nombre+" × ":""}${esc(labOf(p))}</h3><span class="muted small">${fmtDT(p.date)}${p.lieu?" · "+esc(p.lieu):""}${p.mode?" · "+esc(p.mode):""}</span></div></button>`; }
+async function loadThumbs(){ for(const img of app.querySelectorAll("img[data-ph]")){ const id=img.dataset.ph, p=S.prises.flatMap(x=>x.photos||[]).find(x=>x.id===id); const src=await photoSrc(p); if(src) img.src=src; } }
+function bindCommon(){ app.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>{ S.cur=S.prises.find(x=>x.id===b.dataset.open); if(S.cur) go("prise"); });
+  app.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(b.dataset.go));
+  app.querySelectorAll("[data-btgo]").forEach(b=>b.onclick=()=>{ S.cur=S.battues.find(x=>x.id===b.dataset.btgo); go("battue"); });
+  app.querySelectorAll("[data-argo]").forEach(b=>b.onclick=()=>{ S.cur=S.armes.find(x=>x.id===b.dataset.argo); go("arme"); });
+  app.querySelectorAll("[data-chgo]").forEach(b=>b.onclick=()=>{ S.cur=S.chiens.find(x=>x.id===b.dataset.chgo); go("chien"); });
+  app.querySelectorAll("[data-sort]").forEach(t=>t.onclick=()=>{ const k=t.dataset.sort; S.sortD=S.sortK===k?-(S.sortD||-1):-1; S.sortK=k; render(); }); }
+
+/* ================= PRISES ================= */
+function newPrise(){ const p={id:uid(),kind:"prise",date:nowLocal(),espece:"",especeLib:"",nombre:1,sexe:"Indéterminé",age:"Indéterminé",poids:"",mode:S.settings.mode||"Battue",arme:"",distance:"",bracelet:"",lieu:S.settings.territoire||"",notes:"",photos:[],lat:null,lng:null,meteo:wxSnap(),fresh:true};
+  S.cur=p; go("prise"); devicePos(15000).then(d=>{ if(d&&S.cur===p&&!p.posteId){ const np=nearestPoste(d.lat,d.lng); if(np){ p.posteId=np.id; const sel=$("#posteSel"); if(sel) sel.value=np.id; toast(`Poste détecté : ${posteLab(np)}`); } } if(d&&S.cur===p&&p.lat==null){ p.lat=+d.lat.toFixed(6); p.lng=+d.lng.toFixed(6); const el=$("#posTxt"); if(el) el.textContent=`📍 ${p.lat.toFixed(5)}, ${p.lng.toFixed(5)} (position du téléphone)`; } }); }
+function renderPrises(){ const q=(S.q||"").toLowerCase(), cat=S.cat||"", s=S.pSeason||"";
+  const data=[...S.prises].filter(p=>(!cat||sp(p.espece).cat===cat)&&(!s||seasonOf(p.date)===s)&&(!q||[labOf(p),p.lieu,p.mode,p.notes,p.bracelet].join(" ").toLowerCase().includes(q))).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  app.innerHTML=`<div class="stack"><div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="eyebrow">Carnet</div><h1>Mes prises</h1></div><button class="btn primary" id="addB">＋ Prise</button></div>
+    <div class="row" style="flex-wrap:nowrap"><input type="search" id="q" value="${esc(S.q||"")}" placeholder="Rechercher (espèce, lieu, bracelet…)"><select id="pSeason" style="width:auto"><option value="">Toutes saisons</option>${seasons().map(x=>`<option ${x===s?"selected":""}>${x}</option>`).join("")}</select></div>
+    <div class="row"><button class="fchip ${!cat?"on":""}" data-cat="">Toutes</button>${Object.entries(CATS).map(([k,l])=>`<button class="fchip ${cat===k?"on":""}" data-cat="${k}">${esc(l)}</button>`).join("")}</div>
+    ${data.length?data.map(itemHtml).join(""):`<div class="empty"><b>${S.prises.length?"Aucune prise pour ce filtre.":"Aucune prise pour l'instant."}</b><br>Touchez <b>＋ Prise</b> pour enregistrer votre premier prélèvement.</div>`}</div>`;
+  $("#addB").onclick=newPrise;
+  $("#q").addEventListener("input",e=>{ S.q=e.target.value; clearTimeout(S._q); S._q=setTimeout(()=>{ const pos=e.target.selectionStart; renderPrises(); const i=$("#q"); i.focus(); try{ i.setSelectionRange(pos,pos); }catch(_){} },250); });
+  $("#pSeason").onchange=e=>{ S.pSeason=e.target.value; renderPrises(); };
+  app.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{ S.cat=b.dataset.cat; renderPrises(); });
+  bindCommon(); loadThumbs(); }
+function renderPrise(){ const p=S.cur; if(!p){ go("prises"); return; } const o=sp(p.espece), saved=S.prises.some(x=>x.id===p.id);
+  const pos=p.lat!=null?p:(p.photos||[]).find(x=>x.lat!=null);
+  app.innerHTML=`<div class="stack"><div><div class="row" style="flex-wrap:nowrap;gap:12px">${p.espece?spPic(p.espece,64):""}<div><div class="eyebrow">${saved?"Prise":"Nouvelle prise"}</div><h1>${p.espece?esc(labOf(p)):"Quelle espèce ?"}</h1></div></div>
+    <div class="card stack"><h2>📷 Photo</h2><div class="photos" id="phs"></div>
+      <div class="row"><label class="btn primary"><input class="hid" type="file" accept="image/*" capture="environment" id="cam">📷 Photographier</label><label class="btn"><input class="hid" type="file" accept="image/*" multiple id="gal">Galerie</label>${S.sample?`<button class="btn" id="aiSp" ${p.photos.length?"":"disabled"}>✨ Reconnaître l'espèce</button>`:""}</div>
+      <span class="muted small" id="posTxt">${pos?`📍 ${(+pos.lat).toFixed(5)}, ${(+pos.lng).toFixed(5)}`:"Position : en attente du GPS du téléphone"}</span></div>
+    <div class="card stack"><h2>Espèce</h2>${Object.entries(CATS).map(([ck,cl])=>`<div class="stack" style="gap:6px"><span class="eyebrow">${esc(cl)}</span><div class="sp">${SPECIES.filter(s=>s[3]===ck&&s[0]!=="autre").map(s=>`<button class="${p.espece===s[0]?"on":""}" data-sp="${s[0]}">${spPic(s[0],52)}${esc(s[1])}</button>`).join("")}</div></div>`).join("")}
+      <div class="sp"><button class="${p.espece==="autre"?"on":""}" data-sp="autre">${spPic("autre",52)}Autre espèce</button></div>
+      ${p.espece==="autre"?`<label class="f">Nom de l'espèce<input type="text" id="spLib" value="${esc(p.especeLib)}"></label>`:""}</div>
+    <div class="card stack"><h2>Prélèvement</h2>
+      <div class="stepper"><button class="btn" id="minus" aria-label="Moins">−</button><b id="nb">${+p.nombre||1}</b><button class="btn" id="plus" aria-label="Plus">＋</button><span class="muted">pièce(s)</span></div>
+      <div class="grid2"><label class="f">Date et heure<input type="datetime-local" data-f="date" value="${esc(p.date)}"></label><label class="f">Mode de chasse<select data-f="mode">${MODES.map(m=>`<option ${p.mode===m?"selected":""}>${m}</option>`).join("")}</select></label></div>
+      <div class="grid2"><label class="f">Sexe<select data-f="sexe">${SEX.map(m=>`<option ${p.sexe===m?"selected":""}>${m}</option>`).join("")}</select></label><label class="f">Âge<select data-f="age">${AGE.map(m=>`<option ${p.age===m?"selected":""}>${m}</option>`).join("")}</select></label></div>
+      <div class="grid2"><label class="f">Poids (kg)<input type="text" inputmode="decimal" data-f="poids" value="${esc(p.poids)}" placeholder="ex. 62"></label><label class="f">N° de bracelet<input type="text" data-f="bracelet" value="${esc(p.bracelet)}" placeholder="plan de chasse"></label></div>
+      <div class="grid2">${S.armes.length?`<label class="f">Arme<select id="armeSel"><option value="">—</option>${S.armes.map(a=>`<option value="${a.id}" ${p.armeId===a.id?"selected":""}>${esc(armeLab(a))}</option>`).join("")}</select></label>`:`<label class="f">Arme / calibre<input type="text" data-f="arme" value="${esc(p.arme)}" placeholder="ex. 7×64, cal. 12"></label>`}<label class="f">Distance de tir (m)<input type="text" inputmode="numeric" data-f="distance" value="${esc(p.distance)}"></label></div>
+      ${S.postes.length?`<label class="f">Poste ou mirador<select id="posteSel"><option value="">—</option>${S.postes.map(x=>`<option value="${x.id}" ${p.posteId===x.id?"selected":""}>${esc(posteLab(x))}</option>`).join("")}</select></label>`:""}
+      <label class="f">Lieu / territoire<input type="text" data-f="lieu" value="${esc(p.lieu)}" placeholder="ex. Bois de la Sainte-Baume"></label></div>
+    <div class="card stack"><h2>🥩 Venaison</h2><div class="grid2"><label class="f">Poids de viande (kg)<input type="text" inputmode="decimal" data-f="venaison" value="${esc(p.venaison||"")}" placeholder="vidé, dépouillé"></label><label class="f">Destination<select data-f="destination">${["","Consommation familiale","Partage entre chasseurs","Don","Repas de chasse","Cession à un commerce ou un centre de traitement"].map(m=>`<option ${p.destination===m?"selected":""}>${m}</option>`).join("")}</select></label></div>
+      <div class="grid2"><label class="f">Bénéficiaire<input type="text" data-f="beneficiaire" value="${esc(p.beneficiaire||"")}"></label><label class="f">N° fiche d'examen initial<input type="text" data-f="examen" value="${esc(p.examen||"")}" placeholder="si cédé ou repas de chasse"></label></div>
+      <span class="muted small">Le grand gibier cédé, vendu ou servi en repas de chasse doit passer l'examen initial par une personne formée (fiche d'accompagnement) ; renseignez-vous auprès de votre fédération.</span>
+      <label class="f">Notes<textarea data-f="notes" placeholder="Conditions, chien, poste…">${esc(p.notes)}</textarea></label></div>
+    ${p.meteo?`<div class="card row" style="gap:12px"><span style="font-size:28px">🌡</span><div class="grow small"><b>Météo au moment de la prise</b><br>${esc(meteoLine(p.meteo))}</div></div>`:""}
+    <div class="row"><button class="btn green grow" id="saveB">✔ Enregistrer la prise</button></div>
+    ${saved?`<button class="btn danger" id="delB">Supprimer cette prise</button><div id="delC" hidden class="card stack"><b>Supprimer définitivement cette prise ?</b><div class="row"><button class="btn danger" id="delY">Oui, supprimer</button><button class="btn" id="delN">Annuler</button></div></div>`:""}</div>`;
+  const touch=()=>{ if(S.prises.some(x=>x.id===p.id)) save(p); };
+  app.querySelectorAll("[data-f]").forEach(el=>el.addEventListener(el.tagName==="SELECT"||el.type==="datetime-local"?"change":"input",()=>{ p[el.dataset.f]=el.value; touch(); }));
+  app.querySelectorAll("[data-sp]").forEach(b=>b.onclick=()=>{ p.espece=b.dataset.sp; if(p.espece!=="autre") p.especeLib=""; if(sp(p.espece).cat==="grand"&&!p.mode) p.mode="Battue"; touch(); const y=scrollY; renderPrise(); scrollTo(0,y); });
+  if($("#spLib")) $("#spLib").oninput=e=>{ p.especeLib=e.target.value; touch(); };
+  if($("#posteSel")) $("#posteSel").onchange=e=>{ p.posteId=e.target.value; const x=S.postes.find(z=>z.id===p.posteId); if(x&&!p.lieu) p.lieu=x.territoire||""; if(x&&p.lat==null){ p.lat=x.lat; p.lng=x.lng; } touch(); };
+  if($("#armeSel")) $("#armeSel").onchange=e=>{ p.armeId=e.target.value; const a=S.armes.find(x=>x.id===p.armeId); p.arme=a?armeLab(a):""; if(!p.armeId) p.arme=""; touch(); };
+  $("#minus").onclick=()=>{ p.nombre=Math.max(1,(+p.nombre||1)-1); $("#nb").textContent=p.nombre; touch(); };
+  $("#plus").onclick=()=>{ p.nombre=(+p.nombre||1)+1; $("#nb").textContent=p.nombre; touch(); };
+  const addPh=async files=>{ const ph=await ingestPhotos(files); p.photos.push(...ph); const g=ph.find(x=>x.lat!=null); if(g&&p.lat==null){ p.lat=g.lat; p.lng=g.lng; } touch(); const y=scrollY; renderPrise(); scrollTo(0,y);
+    if(S.sample&&!p.espece&&ph[0]?._blob) recognize(p,ph[0]._blob); };
+  $("#cam").onchange=e=>{ const f=[...e.target.files]; e.target.value=""; if(f.length) addPh(f); };
+  $("#gal").onchange=e=>{ const f=[...e.target.files]; e.target.value=""; if(f.length) addPh(f); };
+  if($("#aiSp")) $("#aiSp").onclick=async()=>{ const ph=p.photos[p.photos.length-1]; const src=await photoSrc(ph); if(!src) return; const b=await (await fetch(src)).blob(); recognize(p,b); };
+  photoGrid(p); loadThumbs();
+  $("#saveB").onclick=()=>{ if(!p.espece){ toast("Choisissez l'espèce"); return; } if(p.espece==="autre"&&!p.especeLib.trim()){ toast("Indiquez le nom de l'espèce"); return; } delete p.fresh; save(p); toast(`${labOf(p)} enregistré${+p.nombre>1?"s":""}`); checkPlan(p); go("prises"); };
+  if($("#delB")){ $("#delB").onclick=()=>$("#delC").hidden=false; $("#delN").onclick=()=>$("#delC").hidden=true; $("#delY").onclick=async()=>{ await remove(p); toast("Prise supprimée"); go("prises"); }; } }
+async function photoGrid(p){ const box=$("#phs"); if(!box) return; box.innerHTML=""; for(const ph of p.photos){ const el=document.createElement("div"); el.className="ph"; el.innerHTML=`<img alt="Photo de la prise">${ph.lat!=null?`<span class="gps">📍 GPS</span>`:`<span class="gps">Sans GPS</span>`}<button class="del" aria-label="Retirer la photo">×</button>`; el.querySelector("img").src=await photoSrc(ph); el.querySelector(".del").onclick=()=>{ p.photos=p.photos.filter(x=>x!==ph); if(S.prises.some(x=>x.id===p.id)) save(p); photoGrid(p); }; box.appendChild(el); } }
+async function recognize(p,blob){ let caps=null; try{ caps=await S.sample.limits(); }catch(e){} if(!caps?.images){ toast("Reconnaissance par photo indisponible ici"); return; }
+  toast("Reconnaissance de l'espèce…");
+  try{ const r=await S.sample.json(`Cette photo montre un animal prélevé à la chasse en France (ou son tableau de chasse). Retourne uniquement un objet JSON : {"espece": une clé parmi ${JSON.stringify(SPECIES.map(s=>s[0]+" = "+s[1]))}, "autre":"nom de l'espèce si la clé est autre","nombre": nombre d'animaux visibles de cette espèce,"sexe":"Mâle, Femelle ou Indéterminé","confiance":"haute, moyenne ou faible"}. N'invente rien : en cas de doute, confiance faible.`,{images:[blob],modelTier:"default"});
+    const k=SPECIES.some(s=>s[0]===r.espece)?r.espece:"autre"; p.espece=k; if(k==="autre") p.especeLib=String(r.autre||""); if(+r.nombre>0) p.nombre=Math.min(50,Math.round(+r.nombre)); if(SEX.includes(r.sexe)) p.sexe=r.sexe;
+    if(S.prises.some(x=>x.id===p.id)) save(p); if(S.cur===p&&S.view==="prise"){ const y=scrollY; renderPrise(); scrollTo(0,y); } toast(`Reconnu : ${labOf(p)}${r.confiance==="faible"?" (à vérifier)":""}`);
+  }catch(e){ toast(e?.code==="not_granted"?"Reconnaissance non autorisée":"Reconnaissance impossible : choisissez l'espèce"); } }
+function checkPlan(p){ const pl=S.plans.find(x=>x.saison===seasonOf(p.date)&&x.espece===p.espece); if(!pl) return; const done=S.prises.filter(x=>x.espece===p.espece&&seasonOf(x.date)===pl.saison).reduce((t,x)=>t+(+x.nombre||1),0);
+  if(+pl.attribues&&done>=+pl.attribues) setTimeout(()=>toast(`⚠ ${sp(p.espece).lab} : ${pl.type==="quota"?"quota":"plan de chasse"} atteint (${done}/${pl.attribues})`),1200); }
+
+/* image de chaque espèce : la dernière photo prise de cette espèce, sinon son illustration */
+const CAT_BG={grand:"#E9DCCB",petit:"#DCE6F2",migr:"#F4E7C4",eau:"#D3EDE3",esod:"#E3DEF3"};
+function speciesPhoto(k){ const p=[...S.prises].filter(x=>x.espece===k&&x.photos?.length).sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0]; return p?p.photos[0]:null; }
+function spPic(k,size=56){ const o=sp(k), ph=speciesPhoto(k); return `<span class="sppic" style="width:${size}px;height:${size}px;background:${CAT_BG[o.cat]}">${ph?`<img data-ph="${ph.id}" alt="${esc(o.lab)}">`:`<span style="font-size:${Math.round(size*.55)}px">${o.ico}</span>`}</span>`; }
+/* ================= CARTE ================= */
+const CAT_COL={grand:"#C0362C",petit:"#2a78d6",migr:"#eda100",eau:"#1baf7a",esod:"#6250d6"};
+let LEAF=null;
+function loadLeaflet(){ if(window.L) return Promise.resolve(window.L); if(LEAF) return LEAF;
+  LEAF=new Promise((ok,ko)=>{ const css=document.createElement("link"); css.rel="stylesheet"; document.head.appendChild(css);
+    const cdn=()=>{ css.href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"; const sc=document.createElement("script"); sc.src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"; sc.onload=()=>ok(window.L); sc.onerror=()=>{ LEAF=null; ko(new Error("leaflet")); }; document.head.appendChild(sc); };
+    const loc=document.createElement("script"); loc.src="leaflet.js"; loc.onload=()=>{ if(window.L){ css.href="leaflet.css"; ok(window.L); } else cdn(); }; loc.onerror=cdn; document.head.appendChild(loc);
+    setTimeout(()=>{ if(!window.L){ LEAF=null; ko(new Error("timeout")); } },12000); });
+  return LEAF; }
+const gmaps=(lat,lng)=>`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+async function renderCarte(){ const s=S.mSeason||"", cat=S.mCat||"";
+  const showVus=S.mVus!==false, vus=showVus?S.obs.filter(o=>o.lat!=null&&(!s||seasonOf(o.date)===s)&&(!cat||sp(o.espece).cat===cat)):[];
+  const pts=S.prises.filter(p=>(!s||seasonOf(p.date)===s)&&(!cat||sp(p.espece).cat===cat)).map(p=>{ const g=p.lat!=null?p:(p.photos||[]).find(x=>x.lat!=null); return g?{p,lat:+g.lat,lng:+g.lng}:null; }).filter(Boolean);
+  app.innerHTML=`<div class="stack"><div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="eyebrow">Lieux de prélèvement</div><h1>Carte des prises</h1></div><select id="mSeason" style="width:auto"><option value="">Toutes saisons</option>${seasons().map(x=>`<option ${x===s?"selected":""}>${x}</option>`).join("")}</select></div>
+    <div class="row"><button class="fchip ${!cat?"on":""}" data-mc="">Tout <b>${pts.length}</b></button>${Object.entries(CATS).map(([k,l])=>`<button class="fchip ${cat===k?"on":""}" data-mc="${k}"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${CAT_COL[k]};margin-right:4px"></span>${esc(l)}</button>`).join("")}<button class="fchip ${S.mPo!==false?"on":""}" id="mPo">🗼 Postes ${S.postes.filter(p=>p.lat!=null).length}</button><button class="fchip ${showVus?"on":""}" id="mVus">👁 Animaux vus ${S.obs.filter(o=>o.lat!=null).length}</button></div>
+    <div class="mapwrap"><div id="map"></div></div>
+    <div class="row small muted">Couleur du contour = famille de gibier ; la photo ou l'icône de l'espèce figure dans l'épingle.</div>
+    <div class="stack" id="mList">${pts.map((x,i)=>`<div class="card item" data-mi="${i}"><div class="thumb">${x.p.photos?.[0]?`<img data-ph="${x.p.photos[0].id}" alt="">`:sp(x.p.espece).ico}</div><div class="grow stack" style="gap:3px"><h3>${+x.p.nombre>1?x.p.nombre+" × ":""}${esc(labOf(x.p))}</h3><span class="muted small">${fmtDT(x.p.date)}${x.p.lieu?" · "+esc(x.p.lieu):""}</span><div class="row"><button class="btn small" data-mo="${x.p.id}">Ouvrir</button><a class="btn small" href="${gmaps(x.lat,x.lng)}" target="_blank" rel="noopener">🗺 Google Maps</a></div></div></div>`).join("")||`<div class="empty"><b>Aucune prise géolocalisée.</b><br>Autorisez la localisation : la position est enregistrée à chaque photo et à chaque nouvelle prise.</div>`}</div></div>`;
+  $("#mSeason").onchange=e=>{ S.mSeason=e.target.value; renderCarte(); }; $("#mVus").onclick=()=>{ S.mVus=!showVus; renderCarte(); }; $("#mPo").onclick=()=>{ S.mPo=S.mPo===false; renderCarte(); };
+  app.querySelectorAll("[data-mc]").forEach(b=>b.onclick=()=>{ S.mCat=b.dataset.mc; renderCarte(); });
+  app.querySelectorAll("[data-mo]").forEach(b=>b.onclick=()=>{ S.cur=S.prises.find(x=>x.id===b.dataset.mo); go("prise"); });
+  loadThumbs();
+  const pos=S.mPo!==false?S.postes.filter(p=>p.lat!=null):[];
+  if(!pts.length&&!vus.length&&!pos.length){ $("#map").innerHTML=`<div class="empty">Les prises géolocalisées apparaîtront ici.</div>`; return; }
+  const srcs=await Promise.all(pts.map(x=>photoSrc(x.p.photos?.[0])));
+  let L; try{ L=await loadLeaflet(); }catch(e){ mapFallback([...pts,...vus.map(o=>({p:o,lat:o.lat,lng:o.lng}))]); return; } if(!$("#map")) return;
+  const plan=L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}), sat=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Imagerie © Esri"}),
+    topo=L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",{maxZoom:17,attribution:"© OpenTopoMap"});
+  const map=L.map("map",{layers:[sat]}); L.control.layers({"Satellite":sat,"Plan":plan,"Relief":topo},null,{position:"topright"}).addTo(map);
+  let ok=0,bad=0; sat.on("tileload",()=>ok++); sat.on("tileerror",()=>{ bad++; if(bad>=4&&!ok&&!$("#map .mapnote")) $("#map").insertAdjacentHTML("beforeend",`<div class="mapnote">Fond de carte indisponible ici (pas de réseau, ou version en ligne) : les prises restent placées et s'ouvrent dans Google Maps.</div>`); });
+  const ms=pts.map((x,i)=>{ const col=CAT_COL[sp(x.p.espece).cat]; const ic=L.divIcon({className:"",html:`<div class="mk" style="border-color:${col}">${srcs[i]?`<img src="${srcs[i]}" alt="">`:`<span>${sp(x.p.espece).ico}</span>`}</div>`,iconSize:[44,44],iconAnchor:[22,44],popupAnchor:[0,-40]});
+    return L.marker([x.lat,x.lng],{icon:ic}).addTo(map).bindPopup(`<div class="mpop">${srcs[i]?`<img src="${srcs[i]}" alt="">`:""}<b>${+x.p.nombre>1?x.p.nombre+" × ":""}${esc(labOf(x.p))}</b><span>${fmtDT(x.p.date)}</span><span>${esc(x.p.lieu||"")}</span><div><button class="btn small primary" data-po="${x.p.id}">Ouvrir</button> <a class="btn small" href="${gmaps(x.lat,x.lng)}" target="_blank" rel="noopener">Itinéraire</a></div></div>`,{maxWidth:240}); });
+  vus.forEach(o=>L.circleMarker([o.lat,o.lng],{radius:9,color:CAT_COL[sp(o.espece).cat],weight:3,fillColor:"#ffffff",fillOpacity:.9}).addTo(map).bindPopup(`<div class="mpop"><b>👁 ${+o.nombre>1?o.nombre+" × ":""}${esc(labOf(o))}</b><span>${fmtDT(o.date)}</span><span>${esc(o.notes||"")}</span></div>`));
+  pos.forEach(p=>{ if(p.dir!==""&&p.dir!=null) L.polygon(sectorPts(p,150),{color:"#D9480F",weight:1,fillColor:"#D9480F",fillOpacity:.18}).addTo(map); L.marker([p.lat,p.lng],{icon:posteIcon(L,p)}).addTo(map).bindPopup(`<div class="mpop"><b>${esc(posteLab(p))}</b><span>${esc(p.territoire||"")}${posteStats(p).n?" · 🎯 "+posteStats(p).n+" prise(s)":""}</span><div><button class="btn small primary" data-pop="${p.id}">Ouvrir</button> <a class="btn small" href="${gmaps(p.lat,p.lng)}" target="_blank" rel="noopener">Y aller</a></div></div>`); });
+  map.fitBounds(L.latLngBounds([...pts,...vus,...pos].map(x=>[x.lat,x.lng])).pad(.2),{maxZoom:16});
+  map.on("popupopen",e=>{ const el=e.popup.getElement(), b=el?.querySelector("[data-po]"), c=el?.querySelector("[data-pop]"); if(b) b.onclick=()=>{ S.cur=S.prises.find(x=>x.id===b.dataset.po); go("prise"); }; if(c) c.onclick=()=>{ S.cur=S.postes.find(x=>x.id===c.dataset.pop); go("poste"); }; });
+  app.querySelectorAll("[data-mi]").forEach(r=>r.addEventListener("click",e=>{ if(e.target.closest("a,button")) return; const i=+r.dataset.mi; map.setView([pts[i].lat,pts[i].lng],17); ms[i].openPopup(); $("#map").scrollIntoView({behavior:"smooth",block:"center"}); }));
+  setTimeout(()=>map.invalidateSize(),200); }
+function mapFallback(pts){ const m=$("#map"); const la=pts.map(x=>x.lat), lo=pts.map(x=>x.lng), a0=Math.min(...la), a1=Math.max(...la), o0=Math.min(...lo), o1=Math.max(...lo), dx=Math.max(o1-o0,.0005), dy=Math.max(a1-a0,.0005);
+  m.innerHTML=`<svg viewBox="0 0 400 300" style="width:100%;height:100%">${pts.map(x=>`<a href="${gmaps(x.lat,x.lng)}" target="_blank" rel="noopener"><circle cx="${(30+340*(x.lng-o0)/dx).toFixed(1)}" cy="${(270-240*(x.lat-a0)/dy).toFixed(1)}" r="10" fill="${CAT_COL[sp(x.p.espece).cat]}" stroke="#fff" stroke-width="3"><title>${esc(labOf(x.p))}</title></circle></a>`).join("")}</svg><div class="mapnote">Carte détaillée indisponible ici : positions relatives des prises. Touchez un point pour l'ouvrir dans Google Maps.</div>`; }
+
+/* ================= MÉTÉO DE CHASSE ================= */
+const BFT=[[1,"Calme"],[6,"Très légère brise"],[12,"Légère brise"],[20,"Petite brise"],[29,"Jolie brise"],[39,"Bonne brise"],[50,"Vent frais"],[62,"Grand frais"],[75,"Coup de vent"],[89,"Fort coup de vent"],[103,"Tempête"],[118,"Violente tempête"],[1e9,"Ouragan"]];
+const bft=v=>{ for(let i=0;i<BFT.length;i++) if(v<BFT[i][0]) return [i,BFT[i][1]]; return [12,"Ouragan"]; };
+const WMO=c=>c===0?["clear","Ciel dégagé"]:c<=2?["partly",c===1?"Peu nuageux":"Partiellement nuageux"]:c===3?["cloud","Couvert"]:c<=48?["fog","Brouillard"]:c<=57?["drizzle","Bruine"]:c<=67?["rain",c>=65?"Forte pluie":"Pluie"]:c<=77?["snow","Neige"]:c<=82?["rain","Averses"]:c<=86?["snow","Averses de neige"]:["storm","Orage"];
+const DIRS=["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSO","SO","OSO","O","ONO","NO","NNO"], dirName=d=>DIRS[Math.round(((d%360)+360)%360/22.5)%16];
+function wIcon(code,day=1,sz=64){ const [k]=WMO(+code||0);
+  const sun=(x,y,r)=>`<g class="wi-spin" style="transform-origin:${x}px ${y}px">${[...Array(8)].map((_,i)=>{const a=i*Math.PI/4;return `<line x1="${x+Math.cos(a)*(r+4)}" y1="${y+Math.sin(a)*(r+4)}" x2="${x+Math.cos(a)*(r+9)}" y2="${y+Math.sin(a)*(r+9)}" stroke="#F5A524" stroke-width="3" stroke-linecap="round"/>`}).join("")}</g><circle cx="${x}" cy="${y}" r="${r}" fill="#FFC53D" stroke="#F5A524" stroke-width="2"/>`;
+  const moon=(x,y,r)=>`<g class="wi-bob"><path d="M${x+r*.35} ${y-r}a${r} ${r} 0 1 0 ${r*.65} ${r*1.55}a${r*.8} ${r*.8} 0 1 1 -${r*.65} -${r*1.55}z" fill="#E6E9F2" stroke="#9AA4B8" stroke-width="2"/></g>`;
+  const cloud=(x,y,s,col="#fff",cls="wi-drift")=>`<g class="${cls}"><path transform="translate(${x} ${y}) scale(${s})" d="M10 30h34a10 10 0 0 0 0-20a14 14 0 0 0-27-3a10 10 0 0 0-7 23z" fill="${col}" stroke="#8C99A6" stroke-width="${2/s}"/></g>`;
+  const drops=(n,col)=>[...Array(n)].map((_,i)=>`<line class="wi-rain" style="animation-delay:${(i*.27).toFixed(2)}s" x1="${20+i*9}" y1="44" x2="${17+i*9}" y2="51" stroke="${col}" stroke-width="2.6" stroke-linecap="round"/>`).join("");
+  const flakes=n=>[...Array(n)].map((_,i)=>`<text class="wi-snow" style="animation-delay:${(i*.45).toFixed(2)}s" x="${18+i*10}" y="50" font-size="10" fill="#7FB8E6">❄</text>`).join("");
+  let g=""; if(k==="clear") g=day?sun(32,32,12):moon(32,32,13); else if(k==="partly") g=(day?sun(24,22,9):moon(24,22,10))+cloud(12,18,.95); else if(k==="cloud") g=cloud(2,8,.8,"#DDE3E9","wi-drift2")+cloud(12,16,.95);
+  else if(k==="fog") g=cloud(10,6,.9,"#E4E8EC")+[0,1,2].map(i=>`<line class="wi-fog" style="animation-delay:${i*.6}s" x1="10" y1="${44+i*6}" x2="54" y2="${44+i*6}" stroke="#9AA6B2" stroke-width="3" stroke-linecap="round"/>`).join("");
+  else if(k==="drizzle") g=cloud(10,4,.95,"#E8ECF0")+drops(4,"#5AA9E6"); else if(k==="rain") g=cloud(10,4,.95,"#CBD3DB")+drops(5,"#2C7FC4"); else if(k==="snow") g=cloud(10,4,.95,"#EEF2F6")+flakes(4);
+  else g=cloud(10,2,.95,"#9AA6B2")+`<path class="wi-flash" d="M33 36l-7 12h6l-4 11 11-15h-6l4-8z" fill="#FFC53D" stroke="#E08E0B" stroke-width="1.2"/>`+drops(3,"#2C7FC4");
+  return `<svg viewBox="0 0 64 64" width="${sz}" height="${sz}" aria-hidden="true" style="overflow:visible">${g}</svg>`; }
+const WS={raf:0}; const wsNoise=t=>0.55*Math.sin(t*0.9)+0.3*Math.sin(t*2.3+1.7)+0.15*Math.sin(t*5.1+0.4);
+function wsFrame(ts){ const g=document.getElementById("wsSock"); if(!g){ WS.raf=0; return; } WS.raf=requestAnimationFrame(wsFrame);
+  const red=matchMedia("(prefers-reduced-motion: reduce)").matches,t=red?0:ts/1000,v=+g.getAttribute("data-v")||0,gu=Math.max(v,+g.getAttribute("data-g")||v),amp=v>0?Math.min(.6,Math.max(.08,(gu-v)/Math.max(v,1)*.6)):.05,ve=Math.max(0,v*(1+amp*wsNoise(t*(0.6+v/40)))),N=44,L=150,r0=13,ox=43,oy=24,pts=[];let x=0,y=0,k;
+  const fill=s=>Math.max(0,Math.min(1,(ve/28-s)*5+0.08)), sag=4*(1-Math.min(ve,45)/45),wf=0.8+ve/9,wa=ve<1?1.5:ve<28?3+ve/5:Math.max(2,8.6-(ve-28)/9);
+  for(k=0;k<=N;k++){ const s=k/N,f=fill(s),limp=1-f; const a=(86*limp+sag*f)+wa*(0.25+s)*Math.sin(2*Math.PI*(wf*t-s*1.4))*(0.35+0.65*Math.max(f,0.3))+(limp*6*Math.sin(t*1.3+s*3)); const rr=r0*(1-0.5*s)*(0.28+0.72*f)*(1+0.05*f*Math.sin(2*Math.PI*(wf*1.6*t-s*3)));
+    if(k){ const ar=pts[k-1].a*Math.PI/180; x+=Math.cos(ar)*L/N; y+=Math.sin(ar)*L/N; } pts.push({x,y,a,r:rr,f}); }
+  const P=(p,side)=>{ const ar=p.a*Math.PI/180,nx=-Math.sin(ar),ny=Math.cos(ar); return [(ox+p.x+nx*p.r*side).toFixed(1),(oy+p.y+ny*p.r*side).toFixed(1)]; };
+  const band=(k0,k1)=>{ const u=[],d=[]; for(let k=k0;k<=k1;k++){ u.push(P(pts[k],-1).join(",")); d.unshift(P(pts[k],1).join(",")); } return "M"+u.join(" L")+" L"+d.join(" L")+"Z"; };
+  let h=""; const cols=["#E8441A","#FFFFFF"]; for(let b=0;b<5;b++) h+=`<path d="${band(Math.round(b*N/5),Math.round((b+1)*N/5))}" fill="${cols[b%2]}"/>`;
+  h+=`<path d="${band(0,N)}" fill="none" stroke="#16212B" stroke-width="1.1" stroke-linejoin="round"/>`;
+  const p0=pts[0],pe=pts[N],e=(p,rx)=>`<ellipse cx="${(ox+p.x).toFixed(1)}" cy="${(oy+p.y).toFixed(1)}" rx="${rx.toFixed(1)}" ry="${p.r.toFixed(1)}" transform="rotate(${p.a.toFixed(1)} ${(ox+p.x).toFixed(1)} ${(oy+p.y).toFixed(1)})"`;
+  h+=e(pe,Math.max(1,pe.r*0.35))+` fill="#7a2a12" stroke="#16212B" stroke-width="1"/>`+e(p0,r0*0.38)+` fill="#3b1a10" stroke="#16212B" stroke-width="2.4"/><circle cx="40.5" cy="${oy-r0-2}" r="3.2" fill="#16212B"/>`;
+  g.innerHTML=h; }
+function windsockSvg(v,gust){ v=Math.max(0,+v||0); const n=Math.min(9,Math.round(v/8)); let st="";
+  for(let i=0;i<n;i++){ const y=40+((i*37)%130),l=18+v/3,du=Math.max(0.35,3.2-v/35).toFixed(2); st+=`<line x1="-60" y1="${y}" x2="${-60+l}" y2="${y}" stroke="#4BB3EF" stroke-width="2" stroke-linecap="round" opacity=".75"><animate attributeName="x1" from="-60" to="330" dur="${du}s" begin="${(i*0.27).toFixed(2)}s" repeatCount="indefinite"/><animate attributeName="x2" from="${-60+l}" to="${330+l}" dur="${du}s" begin="${(i*0.27).toFixed(2)}s" repeatCount="indefinite"/></line>`; }
+  return `<svg viewBox="0 0 310 185" role="img" aria-label="Manche à air : vent ${v} km/h" style="width:100%;max-width:440px;display:block;margin:auto"><defs><clipPath id="wkc"><rect width="310" height="180" rx="8"/></clipPath><linearGradient id="wsSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#CFE8F7"/><stop offset="1" stop-color="#EEF6FB"/></linearGradient></defs><rect width="310" height="180" rx="8" fill="url(#wsSky)"/><g clip-path="url(#wkc)">${st}<path d="M0 170 Q60 150 120 168 T240 162 T310 166 V180 H0z" fill="#5f8a5a"/></g><rect x="38" y="9" width="5" height="171" fill="#8C99A6"/><g id="wsSock" data-v="${v}" data-g="${gust||v}"></g></svg>`; }
+/* soleil, lune */
+function moonPhase(d=new Date()){ const lp=2551443, ref=new Date(Date.UTC(2000,0,6,18,14)), ph=((d-ref)/1000%lp+lp)%lp/lp; const n=["Nouvelle lune","Premier croissant","Premier quartier","Lune gibbeuse croissante","Pleine lune","Lune gibbeuse décroissante","Dernier quartier","Dernier croissant"][Math.round(ph*8)%8]; return {ph,n,ico:["🌑","🌒","🌓","🌔","🌕","🌖","🌗","🌘"][Math.round(ph*8)%8],illum:Math.round((1-Math.cos(2*Math.PI*ph))/2*100)}; }
+const MLS="chasse-meteo";
+async function fetchJSON(url){ const ac=new AbortController(), t=setTimeout(()=>ac.abort(),9000); try{ const r=await fetch(url,{signal:ac.signal}); if(!r.ok) throw new Error(r.status); return await r.json(); } finally{ clearTimeout(t); } }
+async function loadMeteo(loc){ const u=`https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lng}&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,is_day,wind_speed_10m,wind_direction_10m,wind_gusts_10m,surface_pressure&hourly=temperature_2m,weather_code,precipitation_probability,wind_speed_10m,wind_direction_10m,wind_gusts_10m,is_day,surface_pressure&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_gusts_10m_max,sunrise,sunset&timezone=auto&forecast_days=5&past_hours=6&wind_speed_unit=kmh`;
+  const j=await fetchJSON(u), d={loc,at:Date.now(),j}; try{ localStorage.setItem(MLS,JSON.stringify(d)); }catch(e){} return d; }
+function meteoCache(){ try{ return JSON.parse(localStorage.getItem(MLS)||"null"); }catch(e){ return null; } }
+function wxSnap(){ const c=S.meteo||meteoCache(); if(!c?.j?.current||Date.now()-c.at>6*3600e3) return null; const C=c.j.current; return {t:Math.round(C.temperature_2m),code:C.weather_code,v:Math.round(C.wind_speed_10m),g:Math.round(C.wind_gusts_10m),dir:dirName(C.wind_direction_10m),p:Math.round(C.surface_pressure),lune:moonPhase().n}; }
+const meteoLine=m=>`${m.t} °C, ${WMO(m.code)[1].toLowerCase()}, vent de ${m.dir} ${m.v} km/h (rafales ${m.g}), ${m.p} hPa, ${m.lune.toLowerCase()}`;
+const hm=s=>s?String(s).slice(11,16):"";
+function addMin(s,m){ const d=new Date(s); d.setMinutes(d.getMinutes()+m); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+function renderMeteo(){ const loc=S.settings.loc, c=S.meteo&&loc&&S.meteo.loc&&S.meteo.loc.lat===loc.lat&&S.meteo.loc.lng===loc.lng?S.meteo:null, mo=moonPhase();
+  let cur=null,hours=[],days=[],pres=null;
+  if(c){ const J=c.j,C=J.current; cur={t:C.temperature_2m,feel:C.apparent_temperature,hum:C.relative_humidity_2m,code:C.weather_code,day:C.is_day,v:C.wind_speed_10m,g:C.wind_gusts_10m,dir:C.wind_direction_10m,p:C.surface_pressure};
+    const D=J.daily; days=D.time.map((t,i)=>({t,code:D.weather_code[i],tmax:D.temperature_2m_max[i],tmin:D.temperature_2m_min[i],rain:D.precipitation_probability_max?.[i],gust:D.wind_gusts_10m_max?.[i],rise:D.sunrise?.[i],set:D.sunset?.[i]}));
+    const H=J.hourly, now=(C.time||"").slice(0,13); let i0=H.time.findIndex(t=>t.slice(0,13)>=now); if(i0<0) i0=0;
+    hours=H.time.slice(i0,i0+12).map((t,i)=>({t,temp:H.temperature_2m[i0+i],code:H.weather_code[i0+i],day:H.is_day[i0+i],rain:H.precipitation_probability[i0+i],v:H.wind_speed_10m[i0+i],dir:H.wind_direction_10m[i0+i]}));
+    const p6=H.surface_pressure[Math.max(0,i0-6)]; if(p6!=null) pres=C.surface_pressure-p6; }
+  const d0=days[0], man=S.windMan!=null, wv=man?S.windMan:cur?Math.round(cur.v):0, wg=man?S.windMan:cur?Math.round(cur.g):0;
+  let sunHtml="";
+  if(d0?.rise){ const toMin=s=>{ const d=new Date(s); return d.getHours()*60+d.getMinutes(); }, r=toMin(d0.rise), st=toMin(d0.set), pc=m=>Math.max(0,Math.min(100,m/1440*100)).toFixed(1)+"%", n=new Date(), nm=n.getHours()*60+n.getMinutes(), open=nm>=r-60&&nm<=st+60;
+    sunHtml=`<div class="card stack"><h2>☀️ Soleil et heures de chasse</h2>
+      <div class="sunbar" style="--l0:${pc(r-60)};--l1:${pc(r)};--r1:${pc(st)};--r0:${pc(st+60)}"><span class="now" style="left:${pc(nm)}" title="Maintenant"></span></div>
+      <div class="grid2"><div><span class="muted small">Lever · coucher</span><br><b>${hm(d0.rise)} · ${hm(d0.set)}</b></div><div><span class="muted small">Chasse de jour (indicatif)</span><br><b>${addMin(d0.rise,-60)} → ${addMin(d0.set,60)}</b></div></div>
+      <span class="chip ${open?"ok":"nc"}" style="align-self:flex-start">${open?"✔ Dans les heures de chasse":"✖ Hors heures de chasse"}</span>
+      ${MP&&MP.scheduleNotif?`<label class="row" style="gap:8px;font-weight:600"><input type="checkbox" id="endN" ${S.settings.notifEnd!==false?"checked":""} style="width:22px;height:22px;min-height:0;accent-color:var(--ok)"> 🔔 Me prévenir 15 min avant la fin (${addMin(d0.set,45)})</label>`:""}
+      <span class="muted small">Le « jour » de chasse court d'une heure avant le lever à une heure après le coucher du soleil au chef-lieu du département (heures calculées ici pour votre lieu). Des règles différentes existent (gibier d'eau, battues, arrêtés préfectoraux) : vérifiez l'arrêté de votre département.</span></div>`; }
+  app.innerHTML=`<div class="stack"><div><div class="eyebrow">Conditions</div><h1>Météo de chasse</h1></div>
+    <div class="card stack"><div class="row" style="justify-content:space-between"><b>📍 ${esc(loc?.name||"Aucun lieu choisi")}</b>${c?`<span class="muted small">mis à jour ${new Date(c.at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}</span>`:""}</div>
+      <div class="row"><button class="btn small primary" id="mGeo">📍 Ma position</button>${loc?`<button class="btn small" id="mRef">↻ Actualiser</button>`:""}</div>
+      <div class="row" style="flex-wrap:nowrap"><input type="text" id="mQ" placeholder="Commune (ex. Saint-Zacharie)"><button class="btn small" id="mGo">Chercher</button></div><div id="mRes" class="stack" style="gap:4px"></div></div>
+    ${S.meteoErr?`<div class="notice">${esc(S.meteoErr)}</div>`:""}
+    ${cur?`<div class="card wx-now"><div>${wIcon(cur.code,cur.day,96)}</div><div class="stack" style="gap:2px"><div class="wx-t">${Math.round(cur.t)}°</div><b>${esc(WMO(cur.code)[1])}</b><span class="muted small">ressenti ${Math.round(cur.feel)}° · humidité ${cur.hum} % · ${Math.round(d0.tmin)}° / ${Math.round(d0.tmax)}°</span></div></div>`:""}
+    <div class="card stack"><h2>🌬 Vent ${man?"mesuré":""}</h2>
+      <div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="wx-t" style="font-size:40px">${wv}<small style="font-size:16px"> km/h</small></div><span class="muted small">${man?"saisie manuelle":`rafales ${wg} km/h`} · force ${bft(wv)[0]} Beaufort, ${esc(bft(wv)[1])}</span></div>
+      ${cur&&!man?`<div class="compass"><svg viewBox="0 0 80 80" width="80" height="80"><circle cx="40" cy="40" r="36" fill="var(--surface)" stroke="var(--line)" stroke-width="2"/>${["N","E","S","O"].map((t,i)=>`<text x="${40+Math.sin(i*Math.PI/2)*27}" y="${44-Math.cos(i*Math.PI/2)*27}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--muted)">${t}</text>`).join("")}<g class="needle" style="transform:rotate(${(cur.dir+180)%360}deg);transform-origin:40px 40px"><path d="M40 12l7 20h-14z" fill="var(--accent)"/><rect x="38" y="30" width="4" height="30" rx="2" fill="var(--ink)"/></g></svg><span>vent de ${dirName(cur.dir)}</span></div>`:""}</div>
+      ${windsockSvg(wv,wg)}
+      ${cur&&!man?`<div class="notice" style="background:var(--forest-bg);border-color:var(--forest)"><b>🦌 Le gibier a du nez :</b> le vent vient du <b>${dirName(cur.dir)}</b>. Avancez ou postez-vous <b>face au vent</b> (vers le ${dirName(cur.dir)}) pour ne pas être senti ; le gibier qui fuit part souvent vent arrière.</div>`:""}
+      <label class="f">Vent mesuré sur place<input type="range" id="mWind" min="0" max="90" step="1" value="${wv}"></label>${man?`<button class="btn small" id="mAuto" style="align-self:flex-start">Revenir aux prévisions</button>`:""}</div>
+    ${sunHtml}
+    <div class="card row" style="gap:14px"><span style="font-size:44px">${mo.ico}</span><div class="grow"><h2>${mo.n}</h2><span class="muted small">Lune éclairée à ${mo.illum} %. Par nuits de pleine lune, le grand gibier se nourrit davantage la nuit et bouge moins au petit matin.</span></div></div>
+    ${cur?`<div class="card row" style="gap:14px"><span style="font-size:36px">${pres==null?"⏲":pres<=-2?"↘️":pres>=2?"↗️":"➡️"}</span><div class="grow"><h2>${Math.round(cur.p)} hPa</h2><span class="muted small">${pres==null?"Pression atmosphérique.":`${pres>0?"+":""}${pres.toFixed(1)} hPa en 6 h : ${pres<=-2?"baisse, souvent avant une dégradation ; le gibier peut bouger davantage avant la pluie":pres>=2?"hausse, temps qui s'améliore":"stable"}.`}</span></div></div>`:""}
+    ${hours.length?`<div class="card stack"><h2>Prochaines heures</h2><div class="wx-hours">${hours.map(h=>`<div class="wx-h"><b>${h.t.slice(11,13)} h</b>${wIcon(h.code,h.day,38)}<span>${Math.round(h.temp)}°</span><small>💧 ${h.rain??0} %</small><small>🌬 ${dirName(h.dir)} ${Math.round(h.v)}</small></div>`).join("")}</div></div>`:""}
+    ${days.length?`<div class="card stack"><h2>5 jours</h2>${days.map((d,i)=>`<div class="wx-d"><b style="width:74px">${new Date(d.t+"T12:00").toLocaleDateString("fr-FR",{weekday:"short",day:"numeric"})}</b>${wIcon(d.code,1,38)}<span class="grow">${esc(WMO(d.code)[1])}</span><span>${Math.round(d.tmin)}° / <b>${Math.round(d.tmax)}°</b></span><span class="muted small">${moonPhase(new Date(d.t+"T22:00")).ico}</span></div>`).join("")}<span class="muted small">Prévisions Open-Meteo.</span></div>`:""}
+    ${!loc?`<div class="empty"><b>Choisissez votre territoire de chasse.</b><br>Votre position ou la commune : vent, heures de chasse, lune et prévisions s'affichent ici.</div>`:""}</div>`;
+  if(!WS.raf) WS.raf=requestAnimationFrame(wsFrame);
+  const setLoc=async l=>{ S.settings.loc=l; save(Object.assign(S.settings,{kind:"settings"})); S.meteoErr=""; await refreshMeteo(); };
+  $("#mGeo").onclick=async()=>{ toast("Recherche de votre position…"); const d=await devicePos(0); if(d) setLoc({name:"Ma position",lat:+d.lat.toFixed(4),lng:+d.lng.toFixed(4)}); else toast("Position indisponible : cherchez la commune"); };
+  if($("#mRef")) $("#mRef").onclick=()=>refreshMeteo(true);
+  const search=async()=>{ const q=$("#mQ").value.trim(); if(!q) return; const box=$("#mRes"); box.innerHTML=`<span class="muted">Recherche…</span>`;
+    try{ const j=await fetchJSON("https://geocoding-api.open-meteo.com/v1/search?count=6&language=fr&name="+encodeURIComponent(q)), r=j.results||[];
+      box.innerHTML=r.length?r.map((x,i)=>`<button class="btn small" data-mr="${i}" style="justify-content:flex-start">${esc(x.name)}${x.admin2?" · "+esc(x.admin2):""}</button>`).join(""):`<span class="muted">Aucun lieu trouvé</span>`;
+      box.querySelectorAll("[data-mr]").forEach(b=>b.onclick=()=>{ const x=r[+b.dataset.mr]; setLoc({name:x.name,lat:+x.latitude.toFixed(4),lng:+x.longitude.toFixed(4)}); });
+    }catch(e){ box.innerHTML=`<span class="muted">Recherche impossible sans connexion (ou dans la version en ligne).</span>`; } };
+  $("#mGo").onclick=search; $("#mQ").onkeydown=e=>{ if(e.key==="Enter") search(); };
+  $("#mWind").oninput=e=>{ const v=+e.target.value, g=$("#wsSock"); if(g){ g.setAttribute("data-v",v); g.setAttribute("data-g",v); } clearTimeout(S._mw); S._mw=setTimeout(()=>{ S.windMan=v; const y=scrollY; renderMeteo(); scrollTo(0,y); },500); };
+  if($("#mAuto")) $("#mAuto").onclick=()=>{ S.windMan=null; renderMeteo(); };
+  if($("#endN")) $("#endN").onchange=e=>{ S.settings.notifEnd=e.target.checked; save(Object.assign(S.settings,{kind:"settings"})); scheduleEnd(true); };
+  if(loc&&!c&&!S.meteoBusy) refreshMeteo(); }
+async function refreshMeteo(force){ const loc=S.settings.loc; if(!loc) return; S.meteoBusy=true;
+  try{ S.meteo=await loadMeteo(loc); S.meteoErr=""; if(force) toast("Météo actualisée"); }
+  catch(e){ const o=meteoCache(); if(o&&o.loc&&o.loc.lat===loc.lat&&o.loc.lng===loc.lng){ S.meteo=o; S.meteoErr="Pas de connexion : dernières prévisions enregistrées."; } else S.meteoErr="Prévisions indisponibles : pas de connexion, ou version en ligne (la météo fonctionne dans l'application Android). Vous pouvez saisir le vent au curseur."; }
+  S.meteoBusy=false; scheduleEnd(); if(S.view==="meteo"){ const y=scrollY; renderMeteo(); scrollTo(0,y); } }
+
+function scheduleEnd(say){ if(!(MP&&MP.scheduleNotif)) return; unsched(NOTIF_IDS.end); if(S.settings.notifEnd===false) return; const c=S.meteo||meteoCache(), t=nowLocal().slice(0,10); const D=c?.j?.daily; if(!D) return; const i=D.time.indexOf(t); if(i<0||!D.sunset?.[i]) return;
+  const end=new Date(D.sunset[i]).getTime()+3600e3, ok=sched(NOTIF_IDS.end,end-15*60e3,"⏰ Fin de la chasse dans 15 minutes",`Fin du jour de chasse vers ${addMin(D.sunset[i],60)} (heure indicative : 1 h après le coucher du soleil).`); if(say&&ok) toast("Rappel programmé pour ce soir"); }
+/* ================= PLUS ================= */
+function renderPlus(){ const s=curSeason();
+  const nb=S.battues.filter(b=>b.date>=nowLocal().slice(0,10)&&!b.annulee).length, ca=chienAlerts().length;
+  const tiles=[["postes","🗼","Postes et miradors","Miradors, postes, affûts, agrainoirs, caméras : position, photo, secteur de tir",S.postes.length?`${S.postes.length} poste(s)${S.postes.some(p=>p.etat&&p.etat!=="bon")?" · 🔧 à réparer":""}`:""],["battues","📅","Battues","Planning, rappels, postes et angles de 30°, feuille de présence signée",nb?`${nb} à venir`:""],["obs","👁","Animaux vus","Observations sans tir, sur la carte",`${S.obs.length} observation(s)`],["chiens","🐕","Mes chiens","Vaccins, puce, assurance, journal",ca?`💉 ${ca} rappel(s)`:`${S.chiens.length} chien(s)`],["armes","🔫","Mon armurerie","Armes, n° de série, calibre, SIA, munitions, révisions",armeAlerts().length?`⚠ ${armeAlerts().length} alerte(s)`:`${S.armes.length} arme(s)`],["plans","📋","Plan de chasse et quotas","Bracelets attribués, quotas (PMA), réalisé",`${S.plans.filter(x=>x.saison===s).length} ligne(s) cette saison`],["sorties","🥾","Sorties","Date, lieu, participants, tirs : taux de réussite",`${inSeason(S.sorties,s).length} sortie(s) cette saison`],["secu","🦺","Sécurité","Règles et check-list avant la battue",""],["export","📤","Exporter et sauvegarder","Carnet en PDF, tableau Excel, sauvegarde complète",""],["reglages","🪪","Ma fiche chasseur","Permis, SIA, assurance, adresse, téléphone, contact d'urgence",""],["aide","❓","Aide","Mode d'emploi pas à pas",""]];
+  app.innerHTML=`<div class="stack"><div><div class="eyebrow">Outils</div><h1>Plus</h1></div>${tiles.map(t=>`<button class="card item" data-go="${t[0]}"><div class="thumb">${t[1]}</div><div class="grow stack" style="gap:2px"><h3>${t[2]}</h3><span class="muted small">${t[3]}</span>${t[4]?`<span class="chip" style="align-self:flex-start">${t[4]}</span>`:""}</div></button>`).join("")}</div>`; bindCommon(); }
+function renderPlans(){ const s=S.plSeason||curSeason(), rows=S.plans.filter(x=>x.saison===s), P=inSeason(S.prises,s);
+  app.innerHTML=`<div class="stack"><div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="eyebrow">Saison ${s}</div><h1>Plan de chasse et quotas</h1></div><select id="plS" style="width:auto">${[...new Set([curSeason(),...seasons(),...S.plans.map(x=>x.saison)])].sort().reverse().map(x=>`<option ${x===s?"selected":""}>${x}</option>`).join("")}</select></div>
+    <div class="notice">Plan de chasse (grand gibier) : nombre d'animaux attribués et bracelets. Quota : prélèvement maximal autorisé (PMA) fixé par la fédération ou l'arrêté. Le réalisé se calcule tout seul avec vos prises.</div>
+    ${rows.map((pl,i)=>{ const done=P.filter(p=>p.espece===pl.espece).reduce((t,p)=>t+(+p.nombre||1),0), tot=+pl.attribues||0, used=P.filter(p=>p.espece===pl.espece&&p.bracelet).map(p=>p.bracelet);
+      return `<div class="card stack"><div class="row" style="justify-content:space-between"><b>${sp(pl.espece).ico} ${esc(sp(pl.espece).lab)}</b><span class="chip ${tot&&done>=tot?"nc":done?"ok":""}">${done} / ${tot||"?"} ${tot&&done>=tot?"· atteint":""}</span></div>
+        <div class="prog"><i class="${tot&&done>=tot?"full":""}" style="width:${tot?Math.min(100,100*done/tot):0}%"></i></div>
+        <div class="grid2"><label class="f">Espèce<select data-pl="${pl.id}:espece">${SPECIES.filter(x=>x[0]!=="autre").map(x=>`<option value="${x[0]}" ${pl.espece===x[0]?"selected":""}>${x[2]} ${x[1]}</option>`).join("")}</select></label><label class="f">Type<select data-pl="${pl.id}:type"><option value="plan" ${pl.type!=="quota"?"selected":""}>Plan de chasse</option><option value="quota" ${pl.type==="quota"?"selected":""}>Quota (PMA)</option></select></label></div>
+        <div class="grid2"><label class="f">${pl.type==="quota"?"Maximum autorisé":"Animaux attribués"}<input type="text" inputmode="numeric" data-pl="${pl.id}:attribues" value="${esc(pl.attribues||"")}"></label><label class="f">N° des bracelets<input type="text" data-pl="${pl.id}:bracelets" value="${esc(pl.bracelets||"")}" placeholder="ex. 1201 à 1206"></label></div>
+        ${used.length?`<span class="muted small">Bracelets posés : ${used.map(esc).join(", ")}</span>`:""}
+        <button class="btn small danger" data-pldel="${pl.id}" style="align-self:flex-start">Retirer</button></div>`; }).join("")||`<div class="empty">Aucun plan ni quota pour cette saison.</div>`}
+    <button class="btn green" id="plAdd">＋ Ajouter une espèce</button></div>`;
+  $("#plS").onchange=e=>{ S.plSeason=e.target.value; renderPlans(); };
+  $("#plAdd").onclick=()=>{ save({id:uid(),kind:"plan",saison:s,espece:"chevreuil",type:"plan",attribues:"",bracelets:""}); renderPlans(); };
+  app.querySelectorAll("[data-pl]").forEach(el=>el.addEventListener(el.tagName==="SELECT"?"change":"input",()=>{ const [id,k]=el.dataset.pl.split(":"), pl=S.plans.find(x=>x.id===id); pl[k]=el.value; save(pl); if(el.tagName==="SELECT"){ renderPlans(); } }));
+  app.querySelectorAll("[data-pldel]").forEach(b=>b.onclick=async()=>{ await remove(S.plans.find(x=>x.id===b.dataset.pldel)); renderPlans(); }); }
+function renderSorties(){ const data=[...S.sorties].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  app.innerHTML=`<div class="stack"><div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="eyebrow">Journal</div><h1>Sorties</h1></div><button class="btn primary" id="soAdd">＋ Sortie</button></div>
+    ${data.map(x=>`<button class="card item" data-so="${x.id}"><div class="thumb">🥾</div><div class="grow stack" style="gap:2px"><h3>${fmtD(x.date)} · ${esc(x.mode||"")}</h3><span class="muted small">${esc(x.lieu||"Lieu ?")}${x.participants?" · "+esc(x.participants)+" chasseur(s)":""}</span><div class="row">${x.tirs?`<span class="chip">${x.prisesN||0} pièce(s) / ${x.tirs} tir(s)</span>`:""}${x.vus?`<span class="chip warn">Vus : ${esc(x.vus)}</span>`:""}</div></div></button>`).join("")||`<div class="empty"><b>Aucune sortie.</b><br>Notez vos sorties, même bredouille : les tirs et les animaux vus donnent le taux de réussite et la présence du gibier.</div>`}</div>`;
+  $("#soAdd").onclick=()=>{ S.cur={id:uid(),kind:"sortie",date:nowLocal().slice(0,10),lieu:S.settings.territoire||"",mode:S.settings.mode||"Battue",participants:"",duree:"",tirs:"",prisesN:"",vus:"",notes:"",secu:[]}; go("sortie"); };
+  app.querySelectorAll("[data-so]").forEach(b=>b.onclick=()=>{ S.cur=S.sorties.find(x=>x.id===b.dataset.so); go("sortie"); }); }
+const SECU=["Gilet ou casquette orange fluo portés par tous","Consignes de la battue données (rond, postes, signaux, fin de traque)","Postes matérialisés, angles de tir de 30° repérés","Arme déchargée et ouverte pendant les déplacements","Tir fichant uniquement, jamais vers une route, une habitation ou un poste","Animal identifié avec certitude avant de tirer","Trousse de secours et numéro d'urgence (112) connus"];
+function renderSortie(){ const x=S.cur, saved=S.sorties.some(z=>z.id===x.id); x.secu=x.secu||[];
+  app.innerHTML=`<div class="stack"><div><div class="eyebrow">Sortie</div><h1>${fmtD(x.date)}</h1></div>
+    <div class="card stack"><div class="grid2"><label class="f">Date<input type="date" data-f="date" value="${esc(x.date)}"></label><label class="f">Mode<select data-f="mode">${MODES.map(m=>`<option ${x.mode===m?"selected":""}>${m}</option>`).join("")}</select></label></div>
+      <label class="f">Lieu / territoire<input type="text" data-f="lieu" value="${esc(x.lieu)}"></label>
+      <div class="grid2"><label class="f">Nombre de chasseurs<input type="text" inputmode="numeric" data-f="participants" value="${esc(x.participants)}"></label><label class="f">Durée (h)<input type="text" inputmode="decimal" data-f="duree" value="${esc(x.duree)}"></label></div>
+      <div class="grid2"><label class="f">Tirs effectués<input type="text" inputmode="numeric" data-f="tirs" value="${esc(x.tirs)}"></label><label class="f">Pièces prélevées<input type="text" inputmode="numeric" data-f="prisesN" value="${esc(x.prisesN)}"></label></div>
+      <label class="f">Animaux vus<input type="text" data-f="vus" value="${esc(x.vus)}" placeholder="ex. 3 chevreuils, 1 compagnie de sangliers"></label>
+      <label class="f">Notes<textarea data-f="notes">${esc(x.notes)}</textarea></label></div>
+    <div class="card stack"><h2>🦺 Check-list sécurité</h2>${SECU.map((t,i)=>`<label class="row" style="flex-wrap:nowrap;align-items:flex-start;gap:8px"><input type="checkbox" data-sc="${i}" ${x.secu.includes(i)?"checked":""} style="width:22px;height:22px;min-height:0;flex:none;accent-color:var(--ok)"><span>${esc(t)}</span></label>`).join("")}</div>
+    <button class="btn green" id="soSave">✔ Enregistrer la sortie</button>
+    ${saved?`<button class="btn danger" id="soDel">Supprimer cette sortie</button>`:""}</div>`;
+  const touch=()=>{ if(S.sorties.some(z=>z.id===x.id)) save(x); };
+  app.querySelectorAll("[data-f]").forEach(el=>el.addEventListener(el.tagName==="SELECT"||el.type==="date"?"change":"input",()=>{ x[el.dataset.f]=el.value; touch(); }));
+  app.querySelectorAll("[data-sc]").forEach(c=>c.onchange=()=>{ const i=+c.dataset.sc; x.secu=c.checked?[...new Set([...x.secu,i])]:x.secu.filter(y=>y!==i); touch(); });
+  $("#soSave").onclick=()=>{ save(x); toast("Sortie enregistrée"); go("sorties"); };
+  if($("#soDel")) $("#soDel").onclick=async()=>{ await remove(x); toast("Sortie supprimée"); go("sorties"); }; }
+function renderSecu(){ app.innerHTML=`<div class="stack"><div><div class="eyebrow">Avant de partir</div><h1>Sécurité</h1></div>${urgenceHtml(true)}
+    <div class="card stack"><h2>Les règles d'or</h2><ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px">
+      <li><b>Identifier</b> l'animal avec certitude avant de tirer. Dans le doute, on ne tire pas.</li>
+      <li><b>Angle de 30°</b> : en battue, ne jamais tirer dans l'angle des postes voisins ; repérez vos angles en arrivant au poste.</li>
+      <li><b>Tir fichant</b> : la balle doit finir dans le sol, à courte distance. Jamais vers une route, un chemin ou une habitation.</li>
+      <li><b>Arme déchargée</b> et ouverte en dehors de l'action de chasse, en voiture et pendant les déplacements.</li>
+      <li><b>Orange fluo</b> visible par tous (gilet, casquette), et pour les chiens un gilet de protection.</li>
+      <li><b>Ne jamais quitter son poste</b> pendant la traque, et ne pas tirer après le signal de fin.</li>
+      <li><b>Alcool et chasse</b> ne vont pas ensemble.</li></ol></div>
+    <div class="card stack"><h2>En cas d'accident</h2><span><b>112</b> (ou 15 / 18) : donnez le lieu précis. La position GPS de votre dernière prise ou de votre téléphone est dans l'onglet Carte.</span><button class="btn" id="secPos">📍 Afficher ma position actuelle</button><span id="secOut" class="muted"></span></div>
+    <div class="notice">Les règles exactes (horaires, gilets, armes, consignes de battue) sont fixées par la loi, l'arrêté préfectoral annuel et le schéma départemental de gestion cynégétique : consultez votre fédération départementale des chasseurs.</div></div>`;
+  bindCommon(); if($("#urgMsg")) $("#urgMsg").onclick=async()=>{ const t=await urgenceMessage(); $("#urgOut").innerHTML=`<pre style="white-space:pre-wrap;user-select:all;font:13px var(--body);background:var(--bg);padding:8px;border-radius:8px">${esc(t)}</pre>`; try{ await navigator.clipboard.writeText(t); toast("Message copié : collez-le dans un SMS au 112 ou à un proche"); }catch(e){ toast("Sélectionnez le texte pour le copier"); } };
+  $("#secPos").onclick=async()=>{ const d=await devicePos(0); $("#secOut").textContent=d?`Latitude ${d.lat.toFixed(5)}, longitude ${d.lng.toFixed(5)} (précision ${Math.round(d.acc||0)} m)`:"Position indisponible : activez la localisation."; }; }
+function renderReglages(){ const st=S.settings, f=(k,l,t="text",ph="")=>`<label class="f">${l}<input type="${t}" data-s="${k}" value="${esc(st[k]||"")}" placeholder="${ph}"></label>`;
+  app.innerHTML=`<div class="stack"><div><div class="eyebrow">Identité et documents</div><h1>Ma fiche chasseur</h1></div>
+    <div class="card stack"><h2>🪪 Identité</h2>${f("nom","Nom et prénom")}${f("adresse","Adresse")}<div class="grid2">${f("tel","Téléphone","tel")}${f("dept","Département","text","ex. 13")}</div></div>
+    <div class="card stack"><h2>📄 Permis, armes, assurance</h2><div class="grid2">${f("permis","N° du permis de chasser")}${f("validation","Validation (saison, n°)","text","ex. 2026-2027 départementale")}</div>
+      <div class="grid2">${f("sia","N° SIA (carte du détenteur d'armes)")}${f("federation","Fédération départementale")}</div><div class="grid2">${f("assureur","Assureur")}${f("police","N° de contrat d'assurance")}</div></div>
+    <div class="card stack"><h2>🚑 En cas d'accident</h2><div class="grid2">${f("urgNom","Personne à prévenir")}${f("urgTel","Son téléphone","tel")}</div><div class="grid2">${f("sang","Groupe sanguin","text","ex. O+")}${f("allergies","Allergies, traitements")}</div>
+      <span class="muted small">Ces informations restent dans votre carnet ; elles s'affichent sur la page Sécurité pour les secours.</span></div>
+    <div class="card stack"><h2>⚙️ Habitudes</h2>
+    ${f("territoire","Territoire habituel")}
+    <label class="f">Mode de chasse habituel<select data-s="mode">${MODES.map(m=>`<option ${st.mode===m?"selected":""}>${m}</option>`).join("")}</select></label></div>
+    <span class="muted small">${S.db?"☁️ Vos données suivent votre compte claude.ai sur vos appareils.":"📱 Vos données sont enregistrées sur cet appareil. Pensez à la sauvegarde (Plus › Exporter et sauvegarder)."}</span></div>`;
+  app.querySelectorAll("[data-s]").forEach(el=>el.addEventListener(el.tagName==="SELECT"?"change":"input",()=>{ st[el.dataset.s]=el.value; save(Object.assign(st,{kind:"settings"})); })); }
+function renderExport(){ app.innerHTML=`<div class="stack"><div><div class="eyebrow">Fichiers</div><h1>Exporter et sauvegarder</h1></div>
+    <div class="card stack"><h2>📄 Carnet de prélèvements (PDF)</h2><span class="muted small">Toutes les prises d'une saison, avec totaux par espèce : pratique pour la fédération ou le plan de chasse.</span><select id="exS">${seasons().map(x=>`<option>${x}</option>`).join("")}</select><button class="btn primary" id="exPdf">Créer le PDF</button></div>
+    <div class="card stack"><h2>📊 Tableau Excel</h2><span class="muted small">Prises et sorties de toutes les saisons, une ligne par prise.</span><button class="btn" id="exXls">Créer le fichier Excel</button></div>
+    <div class="card stack"><h2>💾 Sauvegarde complète</h2><span class="muted small">Un seul fichier avec tout : prises, photos, sorties, battues et signatures, postes et miradors, animaux vus, chiens, armurerie, plan de chasse, fiche chasseur. Rangez-le dans Google Drive ; restaurez-le sur un nouveau téléphone.</span><button class="btn green" id="exBk">Créer la sauvegarde</button>
+      <label class="btn"><input class="hid" type="file" accept=".json,application/json" id="rsIn">Restaurer une sauvegarde</label></div></div>`;
+  $("#exPdf").onclick=()=>makePdf($("#exS").value); $("#exXls").onclick=makeXls; $("#exBk").onclick=makeBackup;
+  $("#rsIn").onchange=async e=>{ const f=e.target.files[0]; e.target.value=""; if(!f) return; let d; try{ d=JSON.parse(await f.text()); }catch(err){ toast("Fichier illisible"); return; } if(d?.app!=="Carnet de chasse"){ toast("Ce fichier n'est pas une sauvegarde du carnet"); return; }
+    let n=0; for(const k of ALLK) for(const o of (d[k]||[])){ for(const p of [...(o.photos||[]),...(o.photo?[o.photo]:[])]){ if(p.data){ if(await IDB.put(p.id,p.data)) delete p.data; } } const a=S[k], i=a.findIndex(x=>x.id===o.id); if(i<0||(a[i].updated||0)<(o.updated||0)){ if(i<0) a.push(o); else a[i]=o; persist(o); n++; } }
+    if(d.settings) Object.assign(S.settings,d.settings); lsSave(); toast(`${n} élément(s) restauré(s)`); go("dash"); }; }
+async function makePdf(season){ const btn=$("#exPdf"); btn.disabled=true; btn.textContent="Préparation…";
+  try{ if(!(await need("jspdf","jspdf.umd.min.js","https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"))) throw new Error("module PDF indisponible");
+    const {jsPDF}=window.jspdf, doc=new jsPDF({unit:"mm",format:"a4"}), W=210, M=14; const P=inSeason(S.prises,season).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+    const cl=s=>String(s??"").replace(/[^\x00-\xFF]/g,"").replace(/’/g,"'");
+    doc.setFillColor(44,90,56); doc.rect(0,0,W,30,"F"); doc.setFillColor(217,72,15); doc.rect(0,30,W,2,"F");
+    doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(18); doc.text("CARNET DE PRELEVEMENTS",M,14); doc.setFontSize(11); doc.setFont("helvetica","normal"); doc.text(cl(`Saison ${season}${S.settings.nom?" - "+S.settings.nom:""}${S.settings.dept?" - Dept "+S.settings.dept:""}`),M,22);
+    let y=42; doc.setTextColor(24,35,29); const by={}; P.forEach(p=>{ by[labOf(p)]=(by[labOf(p)]||0)+(+p.nombre||1); });
+    doc.setFont("helvetica","bold"); doc.setFontSize(12); doc.text("Totaux par espece",M,y); y+=6; doc.setFont("helvetica","normal"); doc.setFontSize(10);
+    Object.entries(by).sort((a,b)=>b[1]-a[1]).forEach(([k,v],i)=>{ doc.text(cl(`${k} : ${v}`),M+(i%3)*62,y+Math.floor(i/3)*5.5); }); y+=Math.ceil(Object.keys(by).length/3)*5.5+6;
+    doc.setFont("helvetica","bold"); doc.setFontSize(12); doc.text(cl(`Detail des prises (${P.length})`),M,y); y+=5;
+    const cols=[["Date",24],["Espece",38],["Nb",9],["Sexe",17],["Poids",14],["Mode",30],["Bracelet",20],["Lieu",30]];
+    const head=()=>{ doc.setFillColor(225,235,226); doc.rect(M,y,W-2*M,7,"F"); doc.setFontSize(8.5); doc.setFont("helvetica","bold"); let x=M+1; cols.forEach(([l,w])=>{ doc.text(l,x,y+4.8); x+=w; }); y+=8; doc.setFont("helvetica","normal"); };
+    head(); P.forEach(p=>{ if(y>280){ doc.addPage(); y=16; head(); } let x=M+1; [fmtD(p.date),labOf(p),String(+p.nombre||1),p.sexe==="Indéterminé"?"-":p.sexe,p.poids?p.poids+" kg":"-",p.mode||"",p.bracelet||"",p.lieu||""].forEach((v,i)=>{ doc.text(doc.splitTextToSize(cl(v),cols[i][1]-2)[0]||"",x,y+3.5); x+=cols[i][1]; }); doc.setDrawColor(211,219,212); doc.line(M,y+5.5,W-M,y+5.5); y+=6.5; });
+    const n=doc.getNumberOfPages(); for(let i=1;i<=n;i++){ doc.setPage(i); doc.setFontSize(8); doc.setTextColor(86,99,91); doc.text(cl(`Carnet de chasse - edite le ${new Date().toLocaleDateString("fr-FR")}`),M,292); doc.text(`${i} / ${n}`,W-M,292,{align:"right"}); }
+    await giveFile(doc.output("blob"),`Carnet_prelevements_${season}.pdf`,"application/pdf");
+  }catch(e){ toast("PDF impossible : "+(e?.message||e)); }
+  btn.disabled=false; btn.textContent="Créer le PDF"; }
+async function makeXls(){ const btn=$("#exXls"); btn.disabled=true;
+  try{ if(!(await need("XLSX","xlsx.full.min.js","https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"))) throw new Error("module Excel indisponible");
+    const X=window.XLSX, wb=X.utils.book_new();
+    X.utils.book_append_sheet(wb,X.utils.json_to_sheet([...S.prises].sort((a,b)=>String(a.date).localeCompare(String(b.date))).map(p=>{ const g=p.lat!=null?p:(p.photos||[]).find(x=>x.lat!=null)||{}; return {Saison:seasonOf(p.date),Date:fmtDT(p.date),Espèce:labOf(p),Famille:CATS[sp(p.espece).cat],Nombre:+p.nombre||1,Sexe:p.sexe,Âge:p.age,"Poids (kg)":p.poids,Mode:p.mode,"Arme / calibre":p.arme,"Distance (m)":p.distance,Bracelet:p.bracelet,"Venaison (kg)":p.venaison||"",Destination:p.destination||"",Bénéficiaire:p.beneficiaire||"","Fiche d'examen":p.examen||"",Lieu:p.lieu,Latitude:g.lat??"",Longitude:g.lng??"",Météo:p.meteo?meteoLine(p.meteo):"",Notes:p.notes}; })),"Prises");
+    X.utils.book_append_sheet(wb,X.utils.json_to_sheet(S.sorties.map(x=>({Saison:seasonOf(x.date),Date:x.date,Mode:x.mode,Lieu:x.lieu,Chasseurs:x.participants,"Durée (h)":x.duree,Tirs:x.tirs,Prélevées:x.prisesN,Vus:x.vus,Notes:x.notes}))),"Sorties");
+    X.utils.book_append_sheet(wb,X.utils.json_to_sheet(S.obs.map(o=>({Saison:seasonOf(o.date),Date:fmtDT(o.date),Espèce:labOf(o),Nombre:+o.nombre||1,Latitude:o.lat??"",Longitude:o.lng??"",Notes:o.notes}))),"Animaux vus");
+    X.utils.book_append_sheet(wb,X.utils.json_to_sheet(S.battues.map(b=>({Date:b.date,Heure:b.heure,Territoire:b.lieu,"Rendez-vous":b.rdv,Chef:b.chef,Espèces:b.especes,Chasseurs:b.participants.map(p=>p.nom).join(", "),Postes:b.postes.length,Annulée:b.annulee?"oui":""}))),"Battues");
+    X.utils.book_append_sheet(wb,X.utils.json_to_sheet(S.postes.map(p=>({Type:ptOf2(p)[0],Numéro:p.num,Nom:p.nom,Territoire:p.territoire,Latitude:p.lat,Longitude:p.lng,"Direction de tir (°)":p.dir,"Ouverture (°)":p.angle,État:(PETAT[p.etat]||PETAT.bon)[0],"Dernière vérification":p.verif,Prises:posteStats(p).n,Notes:p.notes}))),"Postes");
+    X.utils.book_append_sheet(wb,X.utils.json_to_sheet(S.armes.map(a=>({Type:a.type,Marque:a.marque,Modèle:a.modele,Calibre:a.calibre,"N° de série":a.serie,Catégorie:a.categorie,SIA:a.siaOk?"oui":"non",Acquisition:a.acquisition,Lunette:a.lunette,Munition:a.munition,Stock:a.stock,"Dernière révision":a.revision,Notes:a.notes}))),"Armurerie");
+    X.utils.book_append_sheet(wb,X.utils.json_to_sheet(S.chiens.map(c=>({Nom:c.nom,Race:c.race,Sexe:c.sexe,"Né le":c.naissance,Puce:c.puce,Tatouage:c.tatouage,Assurance:c.assurance,Rage:c.vacc?.rage||"",CHPPL:c.vacc?.chppl||"","Toux du chenil":c.vacc?.toux||"",Vermifuge:c.vacc?.vermif||"",Journal:c.journal}))),"Chiens");
+    const buf=X.write(wb,{bookType:"xlsx",type:"array"}); await giveFile(new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}),`Carnet_chasse_${nowLocal().slice(0,10)}.xlsx`,"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  }catch(e){ toast("Excel impossible : "+(e?.message||e)); } btn.disabled=false; }
+async function makeBackup(){ const btn=$("#exBk"); btn.disabled=true; btn.textContent="Préparation des photos…";
+  try{ const d=JSON.parse(JSON.stringify({app:"Carnet de chasse",format:1,created:new Date().toISOString(),prises:S.prises,sorties:S.sorties,plans:S.plans,obs:S.obs,chiens:S.chiens,battues:S.battues,armes:S.armes,postes:S.postes,settings:S.settings}));
+    for(const p of [...d.prises.flatMap(x=>x.photos||[]),...d.obs.flatMap(x=>x.photos||[]),...d.chiens.map(x=>x.photo).filter(Boolean),...d.armes.map(x=>x.photo).filter(Boolean),...(d.postes||[]).map(x=>x.photo).filter(Boolean)]){ if(!p.data){ const s=await photoSrc(p); if(s&&s.startsWith("data:")) p.data=s; } }
+    await giveFile(new Blob([JSON.stringify(d)],{type:"application/json"}),`Carnet_chasse_sauvegarde_${nowLocal().slice(0,10)}.json`,"application/json");
+  }catch(e){ toast("Sauvegarde impossible"); } btn.disabled=false; btn.textContent="Créer la sauvegarde"; }
+const HELP=[["🚀","Premiers pas (2 minutes)",["Plus › Réglages : votre nom, votre territoire et votre mode de chasse habituel (ils se remplissent ensuite tout seuls).","Onglet Météo : choisissez votre territoire, pour le vent et les heures de chasse.","Au premier lancement sur téléphone, autorisez la localisation : c'est elle qui place vos prises sur la carte.","Tout s'enregistre automatiquement : il suffit de toucher « Enregistrer la prise » à la fin."]],
+ ["➕","Enregistrer une prise",["Touchez le bouton orange « ＋ Prise » en bas de l'écran.","Prenez une photo : la position GPS et la météo du moment sont enregistrées toutes seules.","Choisissez l'espèce (ou « ✨ Reconnaître l'espèce » dans la version en ligne), le nombre, puis « Enregistrer »."]],
+ ["📊","Tableau de bord",["Pièces prélevées, grand gibier, sorties, réussite au tir pour la saison choisie (du 1er juin au 31 mai).","Graphiques : prises par espèce, cumul comparé à la saison précédente, prises par mois.","Le tableau en bas se trie en touchant les titres de colonnes ; touchez une ligne pour ouvrir la prise."]],
+ ["🗺","Carte",["Chaque prise géolocalisée est une épingle avec sa photo ; la couleur indique la famille de gibier.","Vue satellite, plan ou relief ; touchez une épingle pour l'itinéraire dans Google Maps.","Le fond de carte demande du réseau ; sans réseau, les positions restent consultables."]],
+ ["🌬","Météo de chasse",["Choisissez votre territoire (position ou commune).","Vent et direction avec la manche à air : l'application rappelle de se poster face au vent.","Heures de chasse (1 h avant le lever, 1 h après le coucher, à titre indicatif), lune et tendance de la pression."]],
+ ["📋","Plan de chasse et quotas",["Plus › Plan de chasse : ajoutez les espèces attribuées, le nombre et les n° de bracelets.","Le réalisé se met à jour à chaque prise ; un message prévient quand le plan ou le quota est atteint."]],
+ ["🥾","Sorties",["Notez chaque sortie, même bredouille : chasseurs, tirs, pièces, animaux vus.","Le taux de réussite au tir apparaît sur le tableau de bord. Une check-list sécurité accompagne chaque sortie."]],
+ ["📤","PDF, Excel, sauvegarde",["Plus › Exporter : carnet de prélèvements en PDF, tableau Excel (prises, sorties, animaux vus, battues, chiens), sauvegarde complète avec toutes les photos et signatures.","Sur téléphone, un menu propose de voir, enregistrer dans un dossier (ou Drive), envoyer par e-mail ou partager."]],
+ ["📅","Battues : planning et rappels",["Touchez ＋ puis « Une battue » (ou Plus › Battues) : date, heure et lieu du rendez-vous, chef de battue.","Application Android : rappel par notification la veille à 19 h et 1 h avant. Partout : « Ajouter à mon agenda » crée l'événement avec ses rappels.","Placez les postes sur la carte (votre position ou en touchant la carte) : les zones rouges montrent les angles de 30° vers les voisins.","Feuille de présence : chaque chasseur coche permis et gilet, puis signe au doigt ; « PDF » produit la feuille complète."]],
+ ["👁","Animaux vus",["Touchez ＋ puis « Un animal vu » : espèce, nombre, notes. La position est enregistrée et l'observation apparaît sur la carte (épingle ronde)."]],
+ ["🐕","Chiens",["Plus › Mes chiens : puce, tatouage, assurance, vétérinaire, journal des blessures.","Indiquez la date des derniers vaccins : le tableau de bord prévient 30 jours avant le rappel."]],
+ ["🪪","Ma fiche chasseur et urgence",["Plus › Ma fiche chasseur : permis, validation, n° SIA, assurance, adresse, téléphone, personne à prévenir, groupe sanguin.","En cas d'accident : page Sécurité, la fiche d'urgence s'affiche et « Copier le message d'urgence » prépare un texte avec votre position GPS à envoyer par SMS."]],
+ ["🗼","Postes et miradors",["Plus › Postes et miradors › « ＋ Poste » : mirador, poste au sol, poste de battue, affût, agrainoir, pierre à sel, caméra, souille, coulée.","Sur place, « Ma position actuelle » enregistre le GPS ; ou placez-le en touchant la carte (le repère se déplace au doigt).","Secteur de tir : choisissez la direction (ou « Viser avec le téléphone ») et l'ouverture ; il est dessiné sur la carte.","État (bon, à réparer, hors service), photo, notes, distance et direction depuis votre position, « Y aller » dans Google Maps.","Dans une battue : « Depuis mes postes » ajoute les postes enregistrés. Dans une prise, le poste le plus proche est proposé tout seul ; le tableau de bord classe les meilleurs postes."]],
+ ["🔫","Mon armurerie",["Plus › Mon armurerie : chaque arme avec marque, modèle, calibre, n° de série, catégorie, case SIA, lunette.","Munitions : le stock se met à jour avec les boutons − 1, − 5, ＋ 20 ; une alerte apparaît sous le seuil choisi, et pour la révision annuelle.","Dans une prise, choisissez l'arme utilisée dans la liste."]],
+ ["⏰","Alerte fin de chasse",["Application Android, onglet Météo : cochez « Me prévenir 15 min avant la fin » ; la notification arrive 45 min après le coucher du soleil (heure indicative)."]],
+ ["🖼","Images des animaux",["Chaque espèce a son illustration dans le choix des espèces et les graphiques.","Dès que vous photographiez une prise, votre photo devient l'image de l'espèce partout dans le carnet (la plus récente)."]],
+ ["🗑","Corriger ou supprimer",["Touchez une prise pour l'ouvrir : chaque champ se corrige directement, l'enregistrement est automatique.","En bas de la prise : « Supprimer cette prise ». Même chose pour une sortie ; dans le plan de chasse, bouton « Retirer »."]],
+ ["❔","Questions fréquentes",["Ma prise n'est pas sur la carte : la localisation du téléphone était coupée ou refusée. Activez-la et autorisez l'application dans les réglages Android.","La météo ne s'affiche pas : il faut du réseau, et elle fonctionne dans l'application Android (la version en ligne bloque les sites extérieurs).","Changer de téléphone : faites une sauvegarde complète, rangez-la dans Google Drive, puis « Restaurer une sauvegarde » sur le nouveau téléphone.","La saison va du 1er juin au 31 mai ; choisissez la saison en haut du tableau de bord."]]];
+function renderAide(){ const q=(S.hq||"").toLowerCase(), L=HELP.filter(h=>!q||(h[1]+" "+h[2].join(" ")).toLowerCase().includes(q));
+  app.innerHTML=`<div class="stack"><div><div class="eyebrow">Mode d'emploi</div><h1>Aide</h1></div>
+    <div class="card stack" style="border-left:6px solid var(--accent)"><b>Le carnet en une phrase</b><span>Une photo, l'espèce, le nombre : la position, la date et la météo s'enregistrent toutes seules, et le tableau de bord se met à jour.</span></div>
+    <input type="search" id="hq" value="${esc(S.hq||"")}" placeholder="Rechercher dans l'aide (ex. carte, bracelet, PDF…)">${L.map((h,i)=>`<details class="card help" ${i===0||q?"open":""}><summary><span style="font-size:24px">${h[0]}</span>${esc(h[1])}</summary><ol>${h[2].map(t=>`<li>${esc(t)}</li>`).join("")}</ol></details>`).join("")}${L.length?"":`<div class="empty">Rien trouvé pour « ${esc(q)} ».</div>`}<span class="muted small">Le bouton « ? » en haut de l'écran ramène ici. Les règles de chasse (dates, horaires, quotas) dépendent de votre département : l'arrêté préfectoral fait foi.</span></div>`;
+  $("#hq").addEventListener("input",e=>{ S.hq=e.target.value; clearTimeout(S._hq); S._hq=setTimeout(()=>{ const ps=e.target.selectionStart; renderAide(); const i=$("#hq"); i.focus(); try{ i.setSelectionRange(ps,ps); }catch(_){} },250); }); }
+
+/* ================= BATTUES : PLANNING, POSTES, PRÉSENCE ================= */
+const NOTIF_IDS={end:8101};
+function sched(id,at,title,text){ if(!(MP&&MP.scheduleNotif)) return false; const d=at-Date.now(); if(d<=0) return false; try{ MP.scheduleNotif(d,title,text,id); return true; }catch(e){ return false; } }
+function unsched(id){ try{ MP&&MP.cancelNotif&&MP.cancelNotif(id); }catch(e){} }
+const hashId=s=>{ let h=7; for(const c of String(s)) h=(h*31+c.charCodeAt(0))|0; return 20000+Math.abs(h)%900000; };
+const bDate=b=>new Date(`${b.date}T${b.heure||"08:00"}`);
+function battueReminders(b){ const at=bDate(b).getTime(), id=hashId(b.id); unsched(id); unsched(id+1);
+  if(b.rappel===false||b.annulee) return;
+  const veille=new Date(bDate(b)); veille.setDate(veille.getDate()-1); veille.setHours(19,0,0,0);
+  sched(id,veille.getTime(),`🦌 Battue demain – ${b.lieu||""}`,`Rendez-vous ${fmtD(b.date)} à ${b.heure||"8:00"}${b.rdv?" : "+b.rdv:""}. Gilet orange, permis validé, assurance.`);
+  sched(id+1,at-3600e3,`⏰ Battue dans 1 heure`,`Rendez-vous à ${b.heure||"8:00"}${b.rdv?" – "+b.rdv:""}.`); }
+function icsFor(b){ const d=bDate(b), e=new Date(d.getTime()+(+b.dureeH||6)*3600e3), f=x=>`${x.getFullYear()}${pad(x.getMonth()+1)}${pad(x.getDate())}T${pad(x.getHours())}${pad(x.getMinutes())}00`;
+  const t=s=>String(s||"").replace(/[,;\\]/g,m=>"\\"+m).replace(/\n/g,"\\n");
+  return ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Carnet de chasse//FR","BEGIN:VEVENT",`UID:${b.id}@carnet-chasse`,`DTSTAMP:${f(new Date())}`,`DTSTART:${f(d)}`,`DTEND:${f(e)}`,`SUMMARY:${t("Battue – "+(b.lieu||""))}`,`LOCATION:${t(b.rdv||b.lieu||"")}`,`DESCRIPTION:${t((b.chef?"Chef de battue : "+b.chef+"\n":"")+(b.notes||""))}`,"BEGIN:VALARM","TRIGGER:-PT12H","ACTION:DISPLAY","DESCRIPTION:Battue demain","END:VALARM","BEGIN:VALARM","TRIGGER:-PT1H","ACTION:DISPLAY","DESCRIPTION:Battue dans 1 heure","END:VALARM","END:VEVENT","END:VCALENDAR"].join("\r\n"); }
+function newBattue(){ return {id:uid(),kind:"battue",date:nowLocal().slice(0,10),heure:"08:00",dureeH:"6",lieu:S.settings.territoire||"",rdv:"",chef:S.settings.nom||"",especes:"Sanglier, chevreuil",notes:"",rappel:true,participants:[],postes:[],consignes:[],annulee:false}; }
+function renderBattues(){ const today=nowLocal().slice(0,10), up=S.battues.filter(b=>b.date>=today).sort((a,b)=>(a.date+a.heure).localeCompare(b.date+b.heure)), past=S.battues.filter(b=>b.date<today).sort((a,b)=>b.date.localeCompare(a.date));
+  const card=b=>{ const d=bDate(b), days=Math.round((new Date(b.date+"T12:00")-new Date(today+"T12:00"))/864e5);
+    return `<button class="card item" data-bt="${b.id}"><div class="thumb" style="flex-direction:column;font-family:var(--display);line-height:1;background:${b.annulee?"var(--nc-bg)":"var(--forest-bg)"}"><b style="font-size:24px">${d.getDate()}</b><small style="font-size:12px">${d.toLocaleDateString("fr-FR",{month:"short"})}</small></div><div class="grow stack" style="gap:2px"><div class="row" style="gap:6px">${b.annulee?`<span class="chip nc">Annulée</span>`:days===0?`<span class="chip warn">Aujourd'hui</span>`:days>0&&days<=7?`<span class="chip warn">Dans ${days} j</span>`:""}${b.rappel!==false&&!b.annulee&&days>=0?`<span class="chip">🔔 Rappel</span>`:""}</div><h3>${esc(b.lieu||"Battue")}</h3><span class="muted small">${d.toLocaleDateString("fr-FR",{weekday:"long"})} · RDV ${esc(b.heure||"")}${b.rdv?" · "+esc(b.rdv):""} · ${b.participants.length} chasseur(s)</span></div></button>`; };
+  app.innerHTML=`<div class="stack"><div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="eyebrow">Planning</div><h1>Battues</h1></div><button class="btn primary" id="btAdd">＋ Battue</button></div>
+    ${MP&&MP.scheduleNotif?"":`<div class="notice">Les rappels par notification fonctionnent dans l'application Android. Ici, utilisez « Ajouter à mon agenda » dans chaque battue : votre agenda vous préviendra la veille et 1 h avant.</div>`}
+    <h2>À venir</h2>${up.map(card).join("")||`<div class="empty">Aucune battue prévue. Touchez « ＋ Battue » pour planifier la prochaine.</div>`}
+    ${past.length?`<h2>Passées</h2>${past.map(card).join("")}`:""}</div>`;
+  $("#btAdd").onclick=()=>{ S.cur=newBattue(); go("battue"); };
+  app.querySelectorAll("[data-bt]").forEach(b=>b.onclick=()=>{ S.cur=S.battues.find(x=>x.id===b.dataset.bt); go("battue"); }); }
+const BT_CONS=["Consignes de sécurité rappelées à tous (rond du matin)","Angles de 30° et postes expliqués","Signaux de début et de fin de traque donnés","Espèces et sexes autorisés précisés","Gilets orange portés par tous, chiens équipés","Permis validés et assurances vérifiés","Panneaux « chasse en cours » posés sur les routes"];
+function dest(lat,lng,brg,m){ const R=6371000, d=m/R, b=brg*Math.PI/180, la=lat*Math.PI/180, lo=lng*Math.PI/180; const la2=Math.asin(Math.sin(la)*Math.cos(d)+Math.cos(la)*Math.sin(d)*Math.cos(b)), lo2=lo+Math.atan2(Math.sin(b)*Math.sin(d)*Math.cos(la),Math.cos(d)-Math.sin(la)*Math.sin(la2)); return [la2*180/Math.PI,lo2*180/Math.PI]; }
+const bearing=(a,b)=>{ const f1=a.lat*Math.PI/180,f2=b.lat*Math.PI/180,dl=(b.lng-a.lng)*Math.PI/180; return (Math.atan2(Math.sin(dl)*Math.cos(f2),Math.cos(f1)*Math.sin(f2)-Math.sin(f1)*Math.cos(f2)*Math.cos(dl))*180/Math.PI+360)%360; };
+function renderBattue(){ const b=S.cur, saved=S.battues.some(x=>x.id===b.id); b.participants=b.participants||[]; b.postes=b.postes||[]; b.consignes=b.consignes||[];
+  app.innerHTML=`<div class="stack"><div><div class="eyebrow">Battue</div><h1>${esc(b.lieu||"Nouvelle battue")}</h1></div>
+    <div class="card stack"><h2>📅 Rendez-vous</h2>
+      <div class="grid2"><label class="f">Date<input type="date" data-f="date" value="${esc(b.date)}"></label><label class="f">Heure du rendez-vous<input type="time" data-f="heure" value="${esc(b.heure)}"></label></div>
+      <label class="f">Territoire<input type="text" data-f="lieu" value="${esc(b.lieu)}"></label>
+      <label class="f">Lieu du rendez-vous<input type="text" data-f="rdv" value="${esc(b.rdv)}" placeholder="ex. cabane de chasse, parking de la D80"></label>
+      <div class="grid2"><label class="f">Chef de battue<input type="text" data-f="chef" value="${esc(b.chef)}"></label><label class="f">Espèces chassées<input type="text" data-f="especes" value="${esc(b.especes)}"></label></div>
+      <label class="row" style="gap:8px;font-weight:600"><input type="checkbox" id="btRap" ${b.rappel!==false?"checked":""} style="width:22px;height:22px;min-height:0;accent-color:var(--ok)"> 🔔 Me rappeler la veille à 19 h et 1 h avant</label>
+      <label class="row" style="gap:8px;font-weight:600"><input type="checkbox" id="btAnn" ${b.annulee?"checked":""} style="width:22px;height:22px;min-height:0;accent-color:var(--nc)"> Battue annulée</label>
+      <button class="btn" id="btIcs">📅 Ajouter à mon agenda</button></div>
+    <div class="card stack"><h2>🗺 Postes</h2><span class="muted small">Placez chaque poste : à votre position, ou en touchant la carte. Les zones rouges montrent les angles de 30° vers les postes voisins, où l'on ne tire jamais.</span>
+      <div class="mapwrap"><div id="bmap" style="height:min(55vh,420px);background:var(--forest-bg)"></div></div>
+      <div class="row"><button class="btn small green" id="poHere">📍 Poste à ma position</button><button class="btn small" id="poTap">${S.tapAdd?"✋ Touchez la carte…":"👆 Placer en touchant la carte"}</button>${S.postes.length?`<button class="btn small primary" id="poMine">🗼 Depuis mes postes</button>`:""}</div>
+      ${b.postes.map((p,i)=>`<div class="row" style="flex-wrap:nowrap"><b style="width:28px">${i+1}</b><div class="grow stack" style="gap:2px">${p.label?`<span class="small muted">${esc(p.label)}</span>`:""}<input type="text" data-po="${i}" value="${esc(p.nom||"")}" placeholder="Chasseur au poste ${i+1}"></div><button class="btn small danger" data-podel="${i}" aria-label="Retirer le poste">×</button></div>`).join("")}</div>
+    <div class="card stack"><h2>👥 Feuille de présence</h2>
+      ${b.participants.map((p,i)=>`<div class="card stack" style="padding:10px;gap:6px"><div class="row" style="flex-wrap:nowrap"><input type="text" data-pa="${i}:nom" value="${esc(p.nom)}" placeholder="Nom"><input type="text" data-pa="${i}:poste" value="${esc(p.poste||"")}" placeholder="Poste" style="width:80px"></div>
+        <div class="row"><label class="row" style="gap:6px"><input type="checkbox" data-pc="${i}:permis" ${p.permis?"checked":""} style="width:20px;height:20px;min-height:0"> Permis validé</label><label class="row" style="gap:6px"><input type="checkbox" data-pc="${i}:gilet" ${p.gilet?"checked":""} style="width:20px;height:20px;min-height:0"> Gilet orange</label></div>
+        <div class="row">${p.sig?`<img src="${p.sig}" alt="Signature" style="height:42px;background:#fff;border-radius:6px;border:1px solid var(--line)">`:`<button class="btn small primary" data-sig="${i}">✍ Faire signer</button>`}<button class="btn small danger" data-padel="${i}">Retirer</button></div></div>`).join("")}
+      <button class="btn small" id="paAdd">＋ Ajouter un chasseur</button></div>
+    <div class="card stack"><h2>🦺 Consignes données</h2>${BT_CONS.map((t,i)=>`<label class="row" style="flex-wrap:nowrap;align-items:flex-start;gap:8px"><input type="checkbox" data-co="${i}" ${b.consignes.includes(i)?"checked":""} style="width:22px;height:22px;min-height:0;flex:none;accent-color:var(--ok)"><span>${esc(t)}</span></label>`).join("")}</div>
+    <div class="card stack"><label class="f">Notes<textarea data-f="notes">${esc(b.notes)}</textarea></label></div>
+    <div class="row"><button class="btn green grow" id="btSave">✔ Enregistrer</button><button class="btn" id="btPdf">📄 PDF</button></div>
+    ${saved?`<button class="btn danger" id="btDel">Supprimer cette battue</button>`:""}</div>`;
+  const touch=()=>{ if(S.battues.some(x=>x.id===b.id)){ save(b); battueReminders(b); } };
+  app.querySelectorAll("[data-f]").forEach(el=>el.addEventListener(el.type==="date"||el.type==="time"?"change":"input",()=>{ b[el.dataset.f]=el.value; touch(); }));
+  $("#btRap").onchange=e=>{ b.rappel=e.target.checked; touch(); toast(b.rappel?(MP&&MP.scheduleNotif?"Rappels programmés":"Ajoutez la battue à votre agenda pour être prévenu"):"Rappels désactivés"); };
+  $("#btAnn").onchange=e=>{ b.annulee=e.target.checked; touch(); };
+  $("#btIcs").onclick=()=>giveFile(new Blob([icsFor(b)],{type:"text/calendar"}),`Battue_${b.date}.ics`,"text/calendar",true);
+  app.querySelectorAll("[data-po]").forEach(el=>el.oninput=()=>{ b.postes[+el.dataset.po].nom=el.value; touch(); });
+  app.querySelectorAll("[data-podel]").forEach(x=>x.onclick=()=>{ b.postes.splice(+x.dataset.podel,1); touch(); keepY(renderBattue); });
+  app.querySelectorAll("[data-pa]").forEach(el=>el.oninput=()=>{ const [i,k]=el.dataset.pa.split(":"); b.participants[+i][k]=el.value; touch(); });
+  app.querySelectorAll("[data-pc]").forEach(el=>el.onchange=()=>{ const [i,k]=el.dataset.pc.split(":"); b.participants[+i][k]=el.checked; touch(); });
+  app.querySelectorAll("[data-padel]").forEach(x=>x.onclick=()=>{ b.participants.splice(+x.dataset.padel,1); touch(); keepY(renderBattue); });
+  app.querySelectorAll("[data-sig]").forEach(x=>x.onclick=async()=>{ const p=b.participants[+x.dataset.sig]; const s=await signPad("Signature de "+(p.nom||"chasseur")); if(s){ p.sig=s; p.sigAt=new Date().toISOString(); touch(); keepY(renderBattue); } });
+  $("#paAdd").onclick=()=>{ b.participants.push({nom:"",poste:"",permis:false,gilet:false,sig:null}); touch(); keepY(renderBattue); };
+  app.querySelectorAll("[data-co]").forEach(c=>c.onchange=()=>{ const i=+c.dataset.co; b.consignes=c.checked?[...new Set([...b.consignes,i])]:b.consignes.filter(y=>y!==i); touch(); });
+  $("#poHere").onclick=async()=>{ const d=await devicePos(0); if(!d){ toast("Position indisponible"); return; } b.postes.push({lat:+d.lat.toFixed(6),lng:+d.lng.toFixed(6),nom:""}); touch(); keepY(renderBattue); };
+  if($("#poMine")) $("#poMine").onclick=()=>pickPostes(b,()=>{ touch(); keepY(renderBattue); });
+  $("#poTap").onclick=()=>{ S.tapAdd=!S.tapAdd; $("#poTap").textContent=S.tapAdd?"✋ Touchez la carte…":"👆 Placer en touchant la carte"; };
+  $("#btSave").onclick=()=>{ save(b); battueReminders(b); toast(b.rappel!==false&&MP&&MP.scheduleNotif?"Battue enregistrée, rappels programmés":"Battue enregistrée"); go("battues"); };
+  $("#btPdf").onclick=()=>battuePdf(b);
+  if($("#btDel")) $("#btDel").onclick=async()=>{ unsched(hashId(b.id)); unsched(hashId(b.id)+1); await remove(b); toast("Battue supprimée"); go("battues"); };
+  battueMap(b,touch); }
+function keepY(fn){ const y=scrollY; fn(); scrollTo(0,y); }
+async function battueMap(b,touch){ let L; try{ L=await loadLeaflet(); }catch(e){ $("#bmap").innerHTML=`<div class="empty">Carte indisponible hors connexion. Les postes placés à votre position restent enregistrés.</div>`; return; } if(!$("#bmap")) return;
+  const sat=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Imagerie © Esri"}), plan=L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"});
+  const map=L.map("bmap",{layers:[sat]}); L.control.layers({"Satellite":sat,"Plan":plan},null,{position:"topright"}).addTo(map);
+  const P=b.postes.filter(p=>p.lat!=null);
+  if(P.length){ map.fitBounds(L.latLngBounds(P.map(p=>[p.lat,p.lng])).pad(.4),{maxZoom:17}); } else { const c=S.settings.loc||S.lastPos; map.setView(c?[c.lat,c.lng]:[46.6,2.4],c?15:5); }
+  if(P.length>1) L.polyline(P.map(p=>[p.lat,p.lng]),{color:"#ffffff",weight:2,dashArray:"6 6"}).addTo(map);
+  P.forEach((p,i)=>{ [P[i-1],P[i+1]].filter(Boolean).forEach(n=>{ const br=bearing(p,n), r=140, pts=[[p.lat,p.lng]]; for(let a=-30;a<=30;a+=5) pts.push(dest(p.lat,p.lng,br+a,r)); L.polygon(pts,{color:"#C0362C",weight:1,fillColor:"#C0362C",fillOpacity:.35}).addTo(map); });
+    L.marker([p.lat,p.lng],{icon:L.divIcon({className:"",html:`<div style="width:30px;height:30px;border-radius:50%;background:#D9480F;color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)">${b.postes.indexOf(p)+1}</div>`,iconSize:[30,30],iconAnchor:[15,15]})}).addTo(map).bindPopup(`Poste ${b.postes.indexOf(p)+1}${p.nom?" : "+esc(p.nom):""}`); });
+  map.on("click",e=>{ if(!S.tapAdd) return; S.tapAdd=false; b.postes.push({lat:+e.latlng.lat.toFixed(6),lng:+e.latlng.lng.toFixed(6),nom:""}); touch(); keepY(renderBattue); });
+  setTimeout(()=>map.invalidateSize(),200); }
+function signPad(title){ return new Promise(res=>{ const ov=document.createElement("div"); ov.className="overlay";
+  ov.innerHTML=`<div class="sheet stack"><h2>${esc(title)}</h2><canvas style="width:100%;height:200px;background:#fff;border-radius:10px;border:1px solid var(--line);touch-action:none"></canvas><div class="row"><button class="btn" data-a="x">Annuler</button><button class="btn" data-a="c">Effacer</button><button class="btn green grow" data-a="ok">Valider</button></div></div>`;
+  document.body.appendChild(ov); const cv=ov.querySelector("canvas"), r=devicePixelRatio||1; cv.width=cv.clientWidth*r; cv.height=cv.clientHeight*r; const ctx=cv.getContext("2d"); ctx.scale(r,r); ctx.lineWidth=2.4; ctx.lineCap="round"; ctx.strokeStyle="#14233a";
+  let dr=false,dirty=false,last=null; const pos=e=>{ const q=cv.getBoundingClientRect(); return {x:e.clientX-q.left,y:e.clientY-q.top}; };
+  cv.onpointerdown=e=>{ dr=true; last=pos(e); cv.setPointerCapture(e.pointerId); }; cv.onpointermove=e=>{ if(!dr) return; const p=pos(e); ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(p.x,p.y); ctx.stroke(); last=p; dirty=true; }; cv.onpointerup=()=>dr=false;
+  ov.querySelector('[data-a="x"]').onclick=()=>{ ov.remove(); res(null); }; ov.querySelector('[data-a="c"]').onclick=()=>{ ctx.clearRect(0,0,cv.width,cv.height); dirty=false; };
+  ov.querySelector('[data-a="ok"]').onclick=()=>{ if(!dirty){ toast("Signez d'abord"); return; } const u=cv.toDataURL("image/png"); ov.remove(); res(u); }; }); }
+async function battuePdf(b){ try{ if(!(await need("jspdf","jspdf.umd.min.js","https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"))) throw new Error("module PDF indisponible");
+  const {jsPDF}=window.jspdf, doc=new jsPDF({unit:"mm",format:"a4"}), W=210, M=14, cl=s=>String(s??"").replace(/[^\x00-\xFF]/g,"");
+  doc.setFillColor(44,90,56); doc.rect(0,0,W,28,"F"); doc.setFillColor(217,72,15); doc.rect(0,28,W,2,"F"); doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(17); doc.text("BATTUE - FEUILLE DE PRESENCE",M,13); doc.setFontSize(10.5); doc.setFont("helvetica","normal"); doc.text(cl(`${fmtD(b.date)} - RDV ${b.heure||""} - ${b.lieu||""}`),M,21);
+  let y=40; doc.setTextColor(24,35,29); doc.setFontSize(10); [["Chef de battue",b.chef],["Rendez-vous",b.rdv],["Especes chassees",b.especes]].forEach(([k,v])=>{ doc.setFont("helvetica","bold"); doc.text(k+" :",M,y); doc.setFont("helvetica","normal"); doc.text(cl(v||"-"),M+38,y); y+=6; }); y+=2;
+  doc.setFont("helvetica","bold"); doc.setFontSize(12); doc.text("Consignes donnees",M,y); y+=6; doc.setFontSize(9.5); doc.setFont("helvetica","normal"); BT_CONS.forEach((t,i)=>{ doc.rect(M,y-3,3.4,3.4); if(b.consignes.includes(i)) doc.text("x",M+.7,y-.2); doc.text(cl(t),M+6,y); y+=5.5; }); y+=3;
+  doc.setFont("helvetica","bold"); doc.setFontSize(12); doc.text(cl(`Chasseurs presents (${b.participants.length})`),M,y); y+=5; doc.setFontSize(9);
+  doc.setFillColor(225,235,226); doc.rect(M,y,W-2*M,7,"F"); [["Nom",M+1],["Poste",M+70],["Permis",M+88],["Gilet",M+106],["Signature",M+124]].forEach(([l,x])=>doc.text(l,x,y+4.8)); y+=8; doc.setFont("helvetica","normal");
+  b.participants.forEach(p=>{ if(y>270){ doc.addPage(); y=16; } doc.text(cl(p.nom||"-"),M+1,y+6); doc.text(cl(p.poste||"-"),M+70,y+6); doc.text(p.permis?"oui":"non",M+88,y+6); doc.text(p.gilet?"oui":"non",M+106,y+6); if(p.sig){ try{ doc.addImage(p.sig,"PNG",M+124,y,44,11); }catch(e){} } doc.setDrawColor(211,219,212); doc.line(M,y+12,W-M,y+12); y+=13; });
+  if(b.postes.length){ y+=4; if(y>250){ doc.addPage(); y=16; } doc.setFont("helvetica","bold"); doc.setFontSize(12); doc.text("Postes",M,y); y+=6; doc.setFont("helvetica","normal"); doc.setFontSize(9.5); b.postes.forEach((p,i)=>{ if(y>285){ doc.addPage(); y=16; } doc.text(cl(`${i+1}. ${p.nom||"-"}  (${p.lat}, ${p.lng})`),M,y); y+=5.5; }); }
+  await giveFile(doc.output("blob"),`Battue_${b.date}.pdf`,"application/pdf"); }catch(e){ toast("PDF impossible : "+(e?.message||e)); } }
+
+/* ================= ANIMAUX VUS ================= */
+function newObs(){ const o={id:uid(),kind:"obs",date:nowLocal(),espece:"",especeLib:"",nombre:1,notes:"",photos:[],lat:null,lng:null}; S.cur=o; go("obs1"); devicePos().then(d=>{ if(d&&o.lat==null){ o.lat=+d.lat.toFixed(6); o.lng=+d.lng.toFixed(6); const el=$("#obsPos"); if(el) el.textContent=`📍 ${o.lat.toFixed(5)}, ${o.lng.toFixed(5)}`; } }); }
+function renderObsList(){ const data=[...S.obs].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  app.innerHTML=`<div class="stack"><div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="eyebrow">Sans tir</div><h1>Animaux vus</h1></div><button class="btn primary" id="obAdd">＋ Vu</button></div>
+    <span class="muted small">Notez le gibier aperçu : il apparaît sur la carte (épingles rondes) et révèle les secteurs de passage.</span>
+    ${data.map(o=>`<button class="card item" data-ob="${o.id}"><div class="thumb" style="background:${CAT_BG[sp(o.espece).cat]}">${sp(o.espece).ico}</div><div class="grow stack" style="gap:2px"><h3>${+o.nombre>1?o.nombre+" × ":""}${esc(labOf(o))}</h3><span class="muted small">${fmtDT(o.date)}${o.lat!=null?" · 📍 GPS":""}</span></div></button>`).join("")||`<div class="empty">Aucune observation.</div>`}</div>`;
+  $("#obAdd").onclick=newObs; app.querySelectorAll("[data-ob]").forEach(b=>b.onclick=()=>{ S.cur=S.obs.find(x=>x.id===b.dataset.ob); go("obs1"); }); }
+function renderObs(){ const o=S.cur, saved=S.obs.some(x=>x.id===o.id);
+  app.innerHTML=`<div class="stack"><div><div class="eyebrow">Animal vu</div><h1>${o.espece?esc(labOf(o)):"Quelle espèce ?"}</h1></div>
+    <div class="card stack"><div class="sp">${SPECIES.map(s=>`<button class="${o.espece===s[0]?"on":""}" data-sp="${s[0]}">${spPic(s[0],44)}${esc(s[1])}</button>`).join("")}</div>${o.espece==="autre"?`<label class="f">Nom de l'espèce<input type="text" id="obLib" value="${esc(o.especeLib)}"></label>`:""}</div>
+    <div class="card stack"><div class="stepper"><button class="btn" id="minus">−</button><b id="nb">${+o.nombre||1}</b><button class="btn" id="plus">＋</button><span class="muted">animal(aux)</span></div>
+      <label class="f">Date et heure<input type="datetime-local" data-f="date" value="${esc(o.date)}"></label><label class="f">Notes<textarea data-f="notes" placeholder="Compagnie, direction de fuite, coulée…">${esc(o.notes)}</textarea></label>
+      <span class="muted small" id="obsPos">${o.lat!=null?`📍 ${o.lat.toFixed(5)}, ${o.lng.toFixed(5)}`:"Position : en attente du GPS"}</span></div>
+    <button class="btn green" id="obSave">✔ Enregistrer</button>${saved?`<button class="btn danger" id="obDel">Supprimer</button>`:""}</div>`;
+  const touch=()=>{ if(S.obs.some(x=>x.id===o.id)) save(o); };
+  app.querySelectorAll("[data-sp]").forEach(b=>b.onclick=()=>{ o.espece=b.dataset.sp; touch(); keepY(renderObs); });
+  if($("#obLib")) $("#obLib").oninput=e=>{ o.especeLib=e.target.value; touch(); };
+  app.querySelectorAll("[data-f]").forEach(el=>el.addEventListener(el.type==="datetime-local"?"change":"input",()=>{ o[el.dataset.f]=el.value; touch(); }));
+  $("#minus").onclick=()=>{ o.nombre=Math.max(1,(+o.nombre||1)-1); $("#nb").textContent=o.nombre; touch(); }; $("#plus").onclick=()=>{ o.nombre=(+o.nombre||1)+1; $("#nb").textContent=o.nombre; touch(); };
+  $("#obSave").onclick=()=>{ if(!o.espece){ toast("Choisissez l'espèce"); return; } save(o); toast("Observation enregistrée"); go("obs"); };
+  if($("#obDel")) $("#obDel").onclick=async()=>{ await remove(o); go("obs"); }; loadThumbs(); }
+
+/* ================= CHIENS ================= */
+const VACC=[["rage","Rage",12],["chppl","CHPPL (maladie de Carré, parvovirose…)",12],["toux","Toux du chenil",12],["vermif","Vermifuge",4]];
+function chienDue(c){ return VACC.map(([k,l,m])=>{ const d=c.vacc?.[k]; if(!d) return null; const n=new Date(d+"T12:00"); n.setMonth(n.getMonth()+m); return {k,l,next:n.toISOString().slice(0,10)}; }).filter(Boolean); }
+function chienAlerts(){ const t=nowLocal().slice(0,10), lim=new Date(); lim.setDate(lim.getDate()+30); const L=lim.toISOString().slice(0,10); const out=[]; S.chiens.forEach(c=>chienDue(c).forEach(v=>{ if(v.next<=L) out.push({c,v,late:v.next<t}); })); return out; }
+function renderChiens(){ app.innerHTML=`<div class="stack"><div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="eyebrow">Meute</div><h1>Mes chiens</h1></div><button class="btn primary" id="chAdd">＋ Chien</button></div>
+    ${S.chiens.map(c=>{ const a=chienAlerts().filter(x=>x.c===c); return `<button class="card item" data-ch="${c.id}"><div class="thumb">${c.photo?`<img data-cph="${c.id}" alt="">`:"🐕"}</div><div class="grow stack" style="gap:2px"><h3>${esc(c.nom||"Chien")}</h3><span class="muted small">${esc(c.race||"")}${c.puce?" · puce "+esc(c.puce):""}</span>${a.length?`<span class="chip ${a.some(x=>x.late)?"nc":"warn"}" style="align-self:flex-start">💉 ${a.map(x=>x.v.l.split(" ")[0]).join(", ")} ${a.some(x=>x.late)?"en retard":"à prévoir"}</span>`:""}</div></button>`; }).join("")||`<div class="empty">Ajoutez vos chiens : vaccins, puce, assurance, blessures.</div>`}</div>`;
+  $("#chAdd").onclick=()=>{ S.cur={id:uid(),kind:"chien",nom:"",race:"",sexe:"",naissance:"",puce:"",tatouage:"",assurance:"",veto:"",vacc:{},journal:"",photo:null}; go("chien"); };
+  app.querySelectorAll("[data-ch]").forEach(b=>b.onclick=()=>{ S.cur=S.chiens.find(x=>x.id===b.dataset.ch); go("chien"); });
+  app.querySelectorAll("img[data-cph]").forEach(async i=>{ const c=S.chiens.find(x=>x.id===i.dataset.cph); i.src=await photoSrc(c.photo); }); }
+function renderChien(){ const c=S.cur, saved=S.chiens.some(x=>x.id===c.id); c.vacc=c.vacc||{}; const due=chienDue(c);
+  app.innerHTML=`<div class="stack"><div><div class="eyebrow">Chien</div><h1>${esc(c.nom||"Nouveau chien")}</h1></div>
+    <div class="card stack"><div class="row"><div class="thumb" style="width:84px;height:84px">${c.photo?`<img id="cphImg" alt="">`:"🐕"}</div><label class="btn small"><input class="hid" type="file" accept="image/*" id="cph">📷 Photo</label></div>
+      <div class="grid2"><label class="f">Nom<input type="text" data-f="nom" value="${esc(c.nom)}"></label><label class="f">Race<input type="text" data-f="race" value="${esc(c.race)}"></label></div>
+      <div class="grid2"><label class="f">Sexe<select data-f="sexe">${["","Mâle","Femelle"].map(x=>`<option ${c.sexe===x?"selected":""}>${x}</option>`).join("")}</select></label><label class="f">Né le<input type="date" data-f="naissance" value="${esc(c.naissance)}"></label></div>
+      <div class="grid2"><label class="f">N° de puce<input type="text" data-f="puce" value="${esc(c.puce)}"></label><label class="f">Tatouage<input type="text" data-f="tatouage" value="${esc(c.tatouage)}"></label></div>
+      <div class="grid2"><label class="f">Assurance (n°)<input type="text" data-f="assurance" value="${esc(c.assurance)}"></label><label class="f">Vétérinaire (tél.)<input type="tel" data-f="veto" value="${esc(c.veto)}"></label></div></div>
+    <div class="card stack"><h2>💉 Vaccins et soins</h2>${VACC.map(([k,l,m])=>{ const d=due.find(x=>x.k===k), late=d&&d.next<nowLocal().slice(0,10); return `<div class="grid2" style="align-items:end"><label class="f">${esc(l)} (dernier)<input type="date" data-v="${k}" value="${esc(c.vacc[k]||"")}"></label><span class="${d?(late?"chip nc":"chip"):"muted small"}" style="align-self:center">${d?`Prochain : ${fmtD(d.next)}`:`Tous les ${m} mois`}</span></div>`; }).join("")}</div>
+    <div class="card stack"><label class="f">Journal (sorties, blessures, soins)<textarea data-f="journal" placeholder="ex. 12/10 : coup de boutoir patte avant, 3 points de suture">${esc(c.journal)}</textarea></label></div>
+    <button class="btn green" id="chSave">✔ Enregistrer</button>${saved?`<button class="btn danger" id="chDel">Supprimer</button>`:""}</div>`;
+  const touch=()=>{ if(S.chiens.some(x=>x.id===c.id)) save(c); };
+  app.querySelectorAll("[data-f]").forEach(el=>el.addEventListener(el.tagName==="SELECT"||el.type==="date"?"change":"input",()=>{ c[el.dataset.f]=el.value; touch(); }));
+  app.querySelectorAll("[data-v]").forEach(el=>el.onchange=()=>{ c.vacc[el.dataset.v]=el.value; touch(); keepY(renderChien); });
+  $("#cph").onchange=async e=>{ const f=[...e.target.files]; e.target.value=""; if(!f.length) return; const ph=(await ingestPhotos(f))[0]; if(ph){ c.photo=ph; touch(); keepY(renderChien); } };
+  if($("#cphImg")) photoSrc(c.photo).then(s=>$("#cphImg").src=s);
+  $("#chSave").onclick=()=>{ save(c); toast("Chien enregistré"); go("chiens"); };
+  if($("#chDel")) $("#chDel").onclick=async()=>{ await remove(c); go("chiens"); }; }
+
+/* ================= FICHE CHASSEUR ET URGENCE ================= */
+function urgenceHtml(big){ const st=S.settings, row=(k,v)=>v?`<div class="row" style="justify-content:space-between;gap:8px;flex-wrap:nowrap"><span class="muted small">${k}</span><b style="text-align:right">${esc(v)}</b></div>`:"";
+  const filled=st.nom||st.tel||st.adresse;
+  return `<div class="card stack" style="border:2px solid var(--nc)"><h2>🚑 Fiche d'urgence</h2>${filled?`${row("Nom",st.nom)}${row("Téléphone",st.tel)}${row("Adresse",st.adresse)}${row("Groupe sanguin",st.sang)}${row("Allergies, traitements",st.allergies)}${row("Personne à prévenir",[st.urgNom,st.urgTel].filter(Boolean).join(" – "))}${row("Permis de chasser",st.permis)}${row("Validation",st.validation)}${row("N° SIA",st.sia)}${row("Assurance",[st.assureur,st.police].filter(Boolean).join(" – "))}`:`<span class="muted">Remplissez votre fiche chasseur pour l'avoir ici en cas d'accident.</span>`}
+    ${big?`<div class="row"><button class="btn primary" id="urgMsg">📋 Copier le message d'urgence (avec position)</button><button class="btn" data-go="reglages">Modifier ma fiche</button></div><span class="muted small" id="urgOut"></span>`:""}</div>`; }
+async function urgenceMessage(){ const st=S.settings, d=await devicePos(0); return `URGENCE CHASSE – ${st.nom||""}${st.tel?" – tél. "+st.tel:""}\nPosition : ${d?`${d.lat.toFixed(5)}, ${d.lng.toFixed(5)} (https://www.google.com/maps?q=${d.lat.toFixed(5)},${d.lng.toFixed(5)})`:"indisponible"}\n${st.sang?"Groupe sanguin : "+st.sang+"\n":""}${st.allergies?"Allergies/traitements : "+st.allergies+"\n":""}${st.urgNom?"Prévenir : "+st.urgNom+" "+(st.urgTel||"")+"\n":""}Assurance : ${[st.assureur,st.police].filter(Boolean).join(" ")||"—"}`; }
+
+/* ================= ARMURERIE ================= */
+const ARME_TYPES=["Carabine","Fusil superposé","Fusil juxtaposé","Fusil semi-automatique","Fusil à pompe","Express","Mixte / drilling","Arc","Autre"];
+const armeLab=a=>[a.marque,a.modele].filter(Boolean).join(" ")+(a.calibre?` (${a.calibre})`:"")||a.type||"Arme";
+function armeAlerts(){ const out=[], t=new Date(); S.armes.forEach(a=>{ if(a.seuil!==""&&a.stock!==""&&+a.stock<=+a.seuil) out.push({a,txt:`Munitions basses : ${a.stock} restante(s)`}); if(a.revision){ const n=new Date(a.revision+"T12:00"); n.setFullYear(n.getFullYear()+1); if(n<t) out.push({a,txt:"Révision annuelle à prévoir"}); } }); return out; }
+function renderArmes(){ app.innerHTML=`<div class="stack"><div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="eyebrow">Inventaire</div><h1>Mon armurerie</h1></div><button class="btn primary" id="arAdd">＋ Arme</button></div>
+    ${S.armes.map(a=>{ const al=armeAlerts().filter(x=>x.a===a); return `<button class="card item" data-ar="${a.id}"><div class="thumb">${a.photo?`<img data-aph="${a.id}" alt="">`:"🎯"}</div><div class="grow stack" style="gap:2px"><div class="row" style="gap:6px"><span class="chip">${esc(a.type||"Arme")}</span>${a.categorie?`<span class="chip">Cat. ${esc(a.categorie)}</span>`:""}${a.siaOk?`<span class="chip ok">SIA ✓</span>`:""}</div><h3>${esc(armeLab(a))}</h3><span class="muted small">${a.serie?"N° "+esc(a.serie):""}${a.stock!==""&&a.stock!=null?` · ${esc(a.stock)} munition(s)`:""}</span>${al.map(x=>`<span class="chip warn" style="align-self:flex-start">${esc(x.txt)}</span>`).join("")}</div></button>`; }).join("")||`<div class="empty">Enregistrez vos armes : n° de série, calibre, catégorie, SIA, munitions, révisions.</div>`}
+    <span class="muted small">Ces informations restent dans votre carnet. La détention d'armes de catégorie C et D (soumise à enregistrement) se gère dans le Système d'information sur les armes (SIA) ; cette fiche ne le remplace pas.</span></div>`;
+  $("#arAdd").onclick=()=>{ S.cur={id:uid(),kind:"arme",type:"Carabine",marque:"",modele:"",calibre:"",serie:"",categorie:"C",siaOk:false,acquisition:"",lunette:"",stock:"",seuil:"",munition:"",revision:"",notes:"",photo:null}; go("arme"); };
+  app.querySelectorAll("[data-ar]").forEach(b=>b.onclick=()=>{ S.cur=S.armes.find(x=>x.id===b.dataset.ar); go("arme"); });
+  app.querySelectorAll("img[data-aph]").forEach(async i=>{ const a=S.armes.find(x=>x.id===i.dataset.aph); i.src=await photoSrc(a.photo); }); }
+function renderArme(){ const a=S.cur, saved=S.armes.some(x=>x.id===a.id), f=(k,l,t="text",ph="",im="")=>`<label class="f">${l}<input type="${t}" data-f="${k}" value="${esc(a[k]??"")}" placeholder="${ph}" ${im?`inputmode="${im}"`:""}></label>`;
+  const used=S.prises.filter(p=>a.id&&p.armeId===a.id).reduce((t,p)=>t+(+p.nombre||1),0);
+  app.innerHTML=`<div class="stack"><div><div class="eyebrow">Arme</div><h1>${esc(armeLab(a))}</h1></div>
+    <div class="card stack"><div class="row"><div class="thumb" style="width:84px;height:84px">${a.photo?`<img id="aphImg" alt="">`:"🎯"}</div><label class="btn small"><input class="hid" type="file" accept="image/*" id="aph">📷 Photo</label>${used?`<span class="chip ok">${used} prise(s) avec cette arme</span>`:""}</div>
+      <label class="f">Type<select data-f="type">${ARME_TYPES.map(x=>`<option ${a.type===x?"selected":""}>${x}</option>`).join("")}</select></label>
+      <div class="grid2">${f("marque","Marque")}${f("modele","Modèle")}</div><div class="grid2">${f("calibre","Calibre","text","ex. 9,3×62, cal. 12/76")}${f("serie","N° de série")}</div>
+      <div class="grid2"><label class="f">Catégorie<select data-f="categorie">${["C","D","B","Autre"].map(x=>`<option ${a.categorie===x?"selected":""}>${x}</option>`).join("")}</select></label>${f("acquisition","Date d'acquisition","date")}</div>
+      <label class="row" style="gap:8px;font-weight:600"><input type="checkbox" id="siaOk" ${a.siaOk?"checked":""} style="width:22px;height:22px;min-height:0;accent-color:var(--ok)"> Enregistrée dans le SIA</label>
+      ${f("lunette","Lunette, montage, réglage","text","ex. 2,5-10×50, réglée à 100 m")}</div>
+    <div class="card stack"><h2>Munitions et entretien</h2><div class="grid2">${f("munition","Munition utilisée","text","ex. balle 286 gr")}${f("stock","En stock","text","","numeric")}</div>
+      <div class="grid2">${f("seuil","M'alerter sous","text","ex. 10","numeric")}${f("revision","Dernière révision","date")}</div>
+      <div class="row"><button class="btn small" id="m1">− 1 cartouche</button><button class="btn small" id="m5">− 5</button><button class="btn small" id="p20">＋ 20 (boîte)</button></div></div>
+    <div class="card stack"><label class="f">Notes<textarea data-f="notes">${esc(a.notes)}</textarea></label></div>
+    <button class="btn green" id="arSave">✔ Enregistrer</button>${saved?`<button class="btn danger" id="arDel">Supprimer</button>`:""}</div>`;
+  const touch=()=>{ if(S.armes.some(x=>x.id===a.id)) save(a); };
+  app.querySelectorAll("[data-f]").forEach(el=>el.addEventListener(el.tagName==="SELECT"||el.type==="date"?"change":"input",()=>{ a[el.dataset.f]=el.value; touch(); }));
+  $("#siaOk").onchange=e=>{ a.siaOk=e.target.checked; touch(); };
+  const st=d=>{ a.stock=String(Math.max(0,(+a.stock||0)+d)); touch(); keepY(renderArme); }; $("#m1").onclick=()=>st(-1); $("#m5").onclick=()=>st(-5); $("#p20").onclick=()=>st(20);
+  $("#aph").onchange=async e=>{ const fl=[...e.target.files]; e.target.value=""; if(!fl.length) return; const ph=(await ingestPhotos(fl))[0]; if(ph){ a.photo=ph; touch(); keepY(renderArme); } };
+  if($("#aphImg")) photoSrc(a.photo).then(s=>$("#aphImg").src=s);
+  $("#arSave").onclick=()=>{ save(a); toast("Arme enregistrée"); go("armes"); };
+  if($("#arDel")) $("#arDel").onclick=async()=>{ await remove(a); go("armes"); }; }
+
+/* ================= POSTES ET MIRADORS ================= */
+const PTYPES={mirador:["Mirador","🗼"],sol:["Poste au sol","🎯"],battue:["Poste de battue","🔢"],affut:["Affût, hutte, palombière","🛖"],agrainoir:["Agrainoir","🌽"],sel:["Pierre à sel","🧂"],camera:["Caméra de chasse","📷"],souille:["Souille, point d'eau","💧"],coulee:["Coulée, passage","🐾"]};
+const PETAT={bon:["Bon état","ok"],reparer:["À réparer","warn"],hs:["Hors service","nc"]};
+const ptOf2=p=>PTYPES[p.type]||PTYPES.sol;
+const posteLab=p=>`${ptOf2(p)[1]} ${p.num?"n° "+p.num+" ":""}${p.nom||ptOf2(p)[0]}`;
+const distM=(a,b)=>{ const R=6371000,t=x=>x*Math.PI/180, dl=t(b.lat-a.lat), dn=t(b.lng-a.lng), h=Math.sin(dl/2)**2+Math.cos(t(a.lat))*Math.cos(t(b.lat))*Math.sin(dn/2)**2; return 2*R*Math.asin(Math.sqrt(h)); };
+const fmtM=m=>m<1000?Math.round(m)+" m":(m/1000).toFixed(1).replace(".",",")+" km";
+const DIR8=["N","NE","E","SE","S","SO","O","NO"];
+let HEADING=null; window.addEventListener("deviceorientationabsolute",e=>{ if(e.alpha!=null) HEADING=(360-e.alpha)%360; },true);
+function posteStats(p){ const P=S.prises.filter(x=>x.posteId===p.id); return {n:P.reduce((t,x)=>t+(+x.nombre||1),0),last:P.sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0]}; }
+function nearestPoste(lat,lng,max=150){ let best=null,bd=1e9; S.postes.forEach(p=>{ if(p.lat==null) return; const d=distM({lat,lng},p); if(d<bd){ bd=d; best=p; } }); return bd<=max?best:null; }
+function renderPostes(){ const f=S.pFlt||"", me=S.lastPos, data=S.postes.filter(p=>!f||p.type===f||(f==="reparer"&&p.etat&&p.etat!=="bon"));
+  if(me) data.sort((a,b)=>(a.lat==null)-(b.lat==null)||distM(me,a)-distM(me,b)); else data.sort((a,b)=>String(a.num||"").localeCompare(String(b.num||""),"fr",{numeric:true})||String(a.nom).localeCompare(String(b.nom)));
+  const used=Object.keys(PTYPES).filter(k=>S.postes.some(p=>p.type===k)), rep=S.postes.filter(p=>p.etat&&p.etat!=="bon").length;
+  app.innerHTML=`<div class="stack"><div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="eyebrow">Territoire</div><h1>Postes et miradors</h1></div><button class="btn primary" id="poAdd">＋ Poste</button></div>
+    <span class="muted small">Enregistrez chaque mirador, poste, affût, agrainoir ou caméra avec sa position : ils restent sur la carte et se réutilisent dans les battues.</span>
+    ${S.postes.length?`<div class="row"><button class="fchip ${!f?"on":""}" data-pf="">Tous <b>${S.postes.length}</b></button>${used.map(k=>`<button class="fchip ${f===k?"on":""}" data-pf="${k}">${PTYPES[k][1]} ${PTYPES[k][0]}</button>`).join("")}${rep?`<button class="fchip ${f==="reparer"?"on":""}" data-pf="reparer">🔧 À réparer <b>${rep}</b></button>`:""}</div>`:""}
+    ${data.map(p=>{ const st=posteStats(p); return `<button class="card item" data-pst="${p.id}"><div class="thumb">${p.photo?`<img data-pph="${p.id}" alt="">`:ptOf2(p)[1]}</div><div class="grow stack" style="gap:2px"><div class="row" style="gap:6px"><span class="chip">${ptOf2(p)[0]}</span>${p.etat&&p.etat!=="bon"?`<span class="chip ${PETAT[p.etat][1]}">${PETAT[p.etat][0]}</span>`:""}${st.n?`<span class="chip ok">🎯 ${st.n} prise(s)</span>`:""}</div><h3>${p.num?"N° "+esc(p.num)+" · ":""}${esc(p.nom||ptOf2(p)[0])}</h3><span class="muted small">${esc(p.territoire||"")}${me&&p.lat!=null?` · à ${fmtM(distM(me,p))}`:p.lat==null?" · position à renseigner":""}${p.dir!==""&&p.dir!=null?` · tir vers ${DIR8[Math.round(p.dir/45)%8]}`:""}</span></div></button>`; }).join("")||`<div class="empty"><b>Aucun poste enregistré.</b><br>Allez à votre mirador, touchez « ＋ Poste » puis « Ma position actuelle ».</div>`}</div>`;
+  $("#poAdd").onclick=()=>{ S.cur={id:uid(),kind:"poste",type:"mirador",nom:"",num:"",territoire:S.settings.territoire||"",lat:null,lng:null,dir:"",angle:"90",notes:"",photo:null,etat:"bon",verif:""}; go("poste"); devicePos().then(d=>{ if(d&&S.cur&&S.cur.kind==="poste"&&S.cur.lat==null){ S.cur.lat=+d.lat.toFixed(6); S.cur.lng=+d.lng.toFixed(6); if(S.view==="poste") keepY(renderPoste); } }); };
+  app.querySelectorAll("[data-pf]").forEach(b=>b.onclick=()=>{ S.pFlt=b.dataset.pf; renderPostes(); });
+  app.querySelectorAll("[data-pst]").forEach(b=>b.onclick=()=>{ S.cur=S.postes.find(x=>x.id===b.dataset.pst); go("poste"); });
+  app.querySelectorAll("img[data-pph]").forEach(async i=>{ const p=S.postes.find(x=>x.id===i.dataset.pph); i.src=await photoSrc(p.photo); });
+  if(!me) devicePos().then(d=>{ if(d&&S.view==="postes") renderPostes(); }); }
+function renderPoste(){ const p=S.cur, saved=S.postes.some(x=>x.id===p.id), me=S.lastPos, st=posteStats(p), f=(k,l,ph="",t="text")=>`<label class="f">${l}<input type="${t}" data-f="${k}" value="${esc(p[k]??"")}" placeholder="${ph}"></label>`;
+  app.innerHTML=`<div class="stack"><div class="row" style="flex-wrap:nowrap;gap:12px"><div class="thumb" style="width:64px;height:64px">${p.photo?`<img id="pphImg" alt="">`:ptOf2(p)[1]}</div><div><div class="eyebrow">${ptOf2(p)[0]}</div><h1>${esc(p.nom||(p.num?"Poste n° "+p.num:"Nouveau poste"))}</h1></div></div>
+    <div class="card stack"><h2>Type</h2><div class="sp">${Object.entries(PTYPES).map(([k,v])=>`<button class="${p.type===k?"on":""}" data-ty="${k}"><span style="font-size:24px">${v[1]}</span>${esc(v[0])}</button>`).join("")}</div></div>
+    <div class="card stack"><div class="grid2">${f("nom","Nom","ex. Mirador du Grand Chêne")}${f("num","Numéro","ex. 12")}</div>${f("territoire","Territoire, lot")}
+      <div class="grid2"><label class="f">État<select data-f="etat">${Object.entries(PETAT).map(([k,v])=>`<option value="${k}" ${p.etat===k?"selected":""}>${v[0]}</option>`).join("")}</select></label>${f("verif","Dernière vérification","","date")}</div>
+      <label class="btn small" style="align-self:flex-start"><input class="hid" type="file" accept="image/*" capture="environment" id="pph">📷 ${p.photo?"Changer la photo":"Photo du poste"}</label></div>
+    <div class="card stack"><h2>📍 Position</h2><b>${p.lat!=null?`${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}`:"Pas encore de position"}</b>${me&&p.lat!=null?`<span>Vous êtes à <b>${fmtM(distM(me,p))}</b>${distM(me,p)>15?` · direction <b>${DIR8[Math.round(bearingDeg(me,p)/45)%8]}</b> (${Math.round(bearingDeg(me,p))}°)`:" · vous y êtes"}</span>`:""}
+      <div class="row"><button class="btn small green" id="pHere">📍 Ma position actuelle</button><button class="btn small" id="pTap">👆 ${S.tapP?"Touchez la carte…":"Placer sur la carte"}</button>${p.lat!=null?`<a class="btn small" href="${gmaps(p.lat,p.lng)}" target="_blank" rel="noopener">🧭 Y aller (Google Maps)</a>`:""}</div>
+      <div class="mapwrap"><div id="pmap" style="height:260px;background:var(--forest-bg)"></div></div></div>
+    <div class="card stack"><h2>🎯 Secteur de tir</h2><span class="muted small">Direction vers laquelle on tire depuis ce poste ; elle est dessinée sur la carte.</span>
+      <div class="row">${DIR8.map((d,i)=>`<button class="fchip ${p.dir!==""&&p.dir!=null&&Math.round(p.dir/45)%8===i?"on":""}" data-dir="${i*45}">${d}</button>`).join("")}<button class="fchip" id="dirAim">📱 Viser avec le téléphone</button>${p.dir!==""&&p.dir!=null?`<button class="fchip" data-dir="">Effacer</button>`:""}</div>
+      <label class="f">Ouverture du secteur : <span data-ov>${p.angle||90}°</span><input type="range" min="20" max="180" step="10" id="pAng" value="${p.angle||90}"></label></div>
+    <div class="card stack"><label class="f">Notes<textarea data-f="notes" placeholder="Accès, échelle, vent favorable, lignes de tir interdites…">${esc(p.notes)}</textarea></label>${st.n?`<span>🎯 <b>${st.n}</b> pièce(s) prélevée(s) à ce poste${st.last?`, dernière le ${fmtD(st.last.date)} (${esc(labOf(st.last))})`:""}.</span>`:""}</div>
+    <button class="btn green" id="pSave">✔ Enregistrer le poste</button>${saved?`<button class="btn danger" id="pDel">Supprimer ce poste</button>`:""}</div>`;
+  const touch=()=>{ if(S.postes.some(x=>x.id===p.id)) save(p); };
+  app.querySelectorAll("[data-f]").forEach(el=>el.addEventListener(el.tagName==="SELECT"||el.type==="date"?"change":"input",()=>{ p[el.dataset.f]=el.value; touch(); }));
+  app.querySelectorAll("[data-ty]").forEach(b=>b.onclick=()=>{ p.type=b.dataset.ty; touch(); keepY(renderPoste); });
+  app.querySelectorAll("[data-dir]").forEach(b=>b.onclick=()=>{ p.dir=b.dataset.dir===""?"":+b.dataset.dir; touch(); keepY(renderPoste); });
+  $("#dirAim").onclick=()=>{ if(HEADING==null){ toast("Boussole indisponible sur cet appareil : choisissez la direction"); return; } p.dir=Math.round(HEADING); touch(); toast(`Direction enregistrée : ${p.dir}° (${DIR8[Math.round(p.dir/45)%8]})`); keepY(renderPoste); };
+  $("#pAng").oninput=e=>{ p.angle=e.target.value; app.querySelector("[data-ov]").textContent=p.angle+"°"; touch(); };
+  $("#pAng").onchange=()=>keepY(renderPoste);
+  $("#pHere").onclick=async()=>{ const d=await devicePos(0); if(!d){ toast("Position indisponible : activez la localisation"); return; } p.lat=+d.lat.toFixed(6); p.lng=+d.lng.toFixed(6); touch(); toast(`Position enregistrée (précision ${Math.round(d.acc||0)} m)`); keepY(renderPoste); };
+  $("#pTap").onclick=()=>{ S.tapP=!S.tapP; keepY(renderPoste); };
+  $("#pph").onchange=async e=>{ const fl=[...e.target.files]; e.target.value=""; if(!fl.length) return; const ph=(await ingestPhotos(fl))[0]; if(ph){ p.photo=ph; if(p.lat==null&&ph.lat!=null){ p.lat=ph.lat; p.lng=ph.lng; } touch(); keepY(renderPoste); } };
+  if($("#pphImg")) photoSrc(p.photo).then(s=>$("#pphImg").src=s);
+  $("#pSave").onclick=()=>{ if(p.lat==null){ toast("Donnez la position du poste (ma position, ou sur la carte)"); return; } save(p); toast("Poste enregistré"); go("postes"); };
+  if($("#pDel")) $("#pDel").onclick=async()=>{ await remove(p); toast("Poste supprimé"); go("postes"); };
+  posteMap(p,touch); }
+const bearingDeg=(a,b)=>{ const t=x=>x*Math.PI/180, f1=t(a.lat),f2=t(b.lat),dl=t(b.lng-a.lng); return (Math.atan2(Math.sin(dl)*Math.cos(f2),Math.cos(f1)*Math.sin(f2)-Math.sin(f1)*Math.cos(f2)*Math.cos(dl))*180/Math.PI+360)%360; };
+function sectorPts(p,r=200){ const a=+(p.angle||90), pts=[[p.lat,p.lng]]; for(let x=-a/2;x<=a/2;x+=5) pts.push(dest(p.lat,p.lng,+p.dir+x,r)); return pts; }
+function posteIcon(L,p,big){ return L.divIcon({className:"",html:`<div style="width:${big?40:34}px;height:${big?40:34}px;border-radius:10px;background:#fff;border:3px solid ${p.etat&&p.etat!=="bon"?"#C0362C":"#2C5A38"};display:flex;align-items:center;justify-content:center;font-size:${big?20:17}px;box-shadow:0 2px 6px rgba(0,0,0,.4);position:relative">${ptOf2(p)[1]}${p.num?`<b style="position:absolute;bottom:-9px;right:-9px;background:#D9480F;color:#fff;border-radius:99px;font:700 11px sans-serif;padding:1px 5px;border:2px solid #fff">${esc(p.num)}</b>`:""}</div>`,iconSize:[big?40:34,big?40:34],iconAnchor:[big?20:17,big?20:17]}); }
+async function posteMap(p,touch){ const el=$("#pmap"); let L; try{ L=await loadLeaflet(); }catch(e){ if(el) el.innerHTML=`<div class="empty">Carte indisponible hors connexion.</div>`; return; } if(!el||!el.isConnected||el._leaflet_id) return;
+  const sat=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Imagerie © Esri"}), m=L.map(el,{layers:[sat]});
+  const c=p.lat!=null?p:S.lastPos||S.settings.loc; m.setView(c?[c.lat,c.lng]:[46.6,2.4],c?16:5);
+  S.postes.filter(x=>x.id!==p.id&&x.lat!=null).forEach(x=>L.marker([x.lat,x.lng],{icon:posteIcon(L,x),opacity:.7}).addTo(m).bindPopup(esc(posteLab(x))));
+  if(p.lat!=null){ if(p.dir!==""&&p.dir!=null) L.polygon(sectorPts(p),{color:"#D9480F",weight:1,fillColor:"#D9480F",fillOpacity:.25}).addTo(m); L.marker([p.lat,p.lng],{icon:posteIcon(L,p,true),draggable:true}).addTo(m).on("dragend",e=>{ const l=e.target.getLatLng(); p.lat=+l.lat.toFixed(6); p.lng=+l.lng.toFixed(6); touch(); keepY(renderPoste); }); }
+  if(S.lastPos) L.circleMarker([S.lastPos.lat,S.lastPos.lng],{radius:7,color:"#fff",weight:3,fillColor:"#1E6FD9",fillOpacity:1}).addTo(m);
+  m.on("click",e=>{ if(!S.tapP) return; S.tapP=false; p.lat=+e.latlng.lat.toFixed(6); p.lng=+e.latlng.lng.toFixed(6); touch(); keepY(renderPoste); });
+  setTimeout(()=>m.invalidateSize(),200); }
+function pickPostes(b,done){ const list=S.postes.filter(p=>p.lat!=null).sort((x,y)=>String(x.num||"").localeCompare(String(y.num||""),"fr",{numeric:true})), sel=new Set();
+  if(!list.length){ toast("Aucun poste enregistré : Plus › Postes et miradors"); return; }
+  const ov=document.createElement("div"); ov.className="overlay"; ov.innerHTML=`<div class="sheet stack"><h2>Choisir les postes de la battue</h2>${list.map(p=>`<label class="row" style="flex-wrap:nowrap;gap:10px"><input type="checkbox" value="${p.id}" style="width:22px;height:22px;min-height:0" ${b.postes.some(x=>x.posteId===p.id)?"checked disabled":""}> <span>${esc(posteLab(p))}<br><span class="muted small">${esc(p.territoire||"")}</span></span></label>`).join("")}<div class="row"><button class="btn" data-a="all">Tout cocher</button><button class="btn green grow" data-a="ok">Ajouter</button><button class="btn" data-a="x">Annuler</button></div></div>`;
+  document.body.appendChild(ov); ov.onclick=e=>{ const a=e.target.dataset.a; if(e.target===ov||a==="x"){ ov.remove(); return; } if(a==="all") ov.querySelectorAll("input:not(:disabled)").forEach(c=>c.checked=true);
+    if(a==="ok"){ ov.querySelectorAll("input:checked:not(:disabled)").forEach(c=>{ const p=S.postes.find(x=>x.id===c.value); b.postes.push({lat:p.lat,lng:p.lng,nom:"",posteId:p.id,label:posteLab(p)}); }); ov.remove(); done(); } }; }
+
+/* ================= DÉMARRAGE ================= */
+lsLoad(); render(); setTimeout(()=>{ scheduleEnd(); S.battues.forEach(b=>{ if(b.date>=nowLocal().slice(0,10)) battueReminders(b); }); },3000);
+setTimeout(()=>{ if(MP&&MP.askLocation){ try{ MP.askLocation(); }catch(e){} } },2000);
+(async()=>{ const c=CLX; if(!c?.use) return;
+  try{ S.downloads=await c.use("downloads"); }catch(e){}
+  try{ S.assets=await c.use("assets"); }catch(e){}
+  try{ S.sample=await c.use("sample"); if(S.view==="prise") render(); }catch(e){}
+  try{ const [db,user]=await Promise.all([c.use("db"),c.use("user")]); if(db&&user){ const id=await user.id(); if(id){ S.db=db; S.uid=id;
+    const snap=await db.collection("data/users/"+id).get(); let ch=0;
+    snap.docs.filter(d=>d.exists).forEach(d=>{ const o=JSON.parse(JSON.stringify(d.data())); if(o.kind==="settings"){ Object.assign(S.settings,o); return; } const k=ARR[o.kind]; if(!k) return; const a=S[k], i=a.findIndex(x=>x.id===o.id); if(i<0||(a[i].updated||0)<(o.updated||0)){ if(i<0) a.push(o); else a[i]=o; ch++; } });
+    for(const k of ALLK) for(const o of S[k]) if(!snap.docs.some(d=>d.id===o.id)) persist(o);
+    lsSave(); if(ch) render(); } } }catch(e){} })();
+</script>
+<script>/* Application Android : impression (MAGPrint.printHtml), et fichiers téléchargés -> menu Android (enregistrer dans un dossier, e-mail, partager, imprimer) */
+(function(){if(!window.MAGPrint)return;var MP=window.MAGPrint;
+function fixForms(src,dst){var a=src.querySelectorAll("input,textarea,select"),b=dst.querySelectorAll("input,textarea,select");for(var i=0;i<a.length&&i<b.length;i++){var x=a[i],y=b[i];if(x.tagName==="TEXTAREA")y.textContent=x.value;else if(x.tagName==="SELECT"){Array.prototype.forEach.call(y.options,function(o,k){if(k===x.selectedIndex)o.setAttribute("selected","");else o.removeAttribute("selected")})}else if(x.type==="checkbox"||x.type==="radio"){if(x.checked)y.setAttribute("checked","");else y.removeAttribute("checked")}else y.setAttribute("value",x.value)}}
+function snap(win){var doc=win.document,d=doc.documentElement.cloneNode(true);fixForms(doc.documentElement,d);d.querySelectorAll("script").forEach(function(s){s.remove()});
+  doc.querySelectorAll("canvas").forEach(function(c,i){try{var img=d.querySelectorAll("canvas")[i];if(img){var im=doc.createElement("img");im.src=c.toDataURL("image/png");im.style.cssText="max-width:100%";img.replaceWith(im)}}catch(e){}});
+  return "<!doctype html>"+d.outerHTML}
+function toB64(blob){return new Promise(function(ok,ko){var r=new FileReader();r.onload=function(){var x=String(r.result);ok(x.slice(x.indexOf(",")+1))};r.onerror=ko;r.readAsDataURL(blob)})}
+function sendFile(href,name,win){if(!MP.fileMenu)return false;(win||window).fetch(href).then(function(r){return r.blob()}).then(function(b){return toB64(b).then(function(x){MP.fileMenu(x,name||"fichier",b.type||"application/octet-stream","","","")})}).catch(function(){});return true}
+function openBlob(href,name,win){if(!MP.openFile)return sendFile(href,name,win);(win||window).fetch(href).then(function(r){return r.blob()}).then(function(b){return toB64(b).then(function(x){MP.openFile(x,name||("document"+(b.type.indexOf("pdf")>=0?".pdf":"")),b.type||"application/octet-stream")})}).catch(function(){});return true}
+function hook(win){if(!win||win.__magp)return;win.__magp=1;
+  /* liens créés par programme (a.click() hors de la page) */
+  try{var AC=win.HTMLAnchorElement.prototype.click;win.HTMLAnchorElement.prototype.click=function(){var h=this.getAttribute("href")||"";if(/^(blob:|data:)/.test(h)){if(this.hasAttribute("download")){sendFile(h,this.getAttribute("download"),win);return}if(this.target==="_blank"){openBlob(h,"",win);return}}return AC.apply(this,arguments)}}catch(e){}
+  win.print=function(){try{MP.printHtml(snap(win),win.document.title||"MAG Formation 13")}catch(e){}};
+  var op=win.open;win.open=function(u){if(u&&/^(blob:|data:)/.test(String(u))){openBlob(String(u),"",win);return null}if(!u||u==="about:blank"){var buf="";var fw={closed:false,document:{open:function(){buf=""},write:function(h){buf+=h},writeln:function(h){buf+=h+"\n"},close:function(){}},focus:function(){},close:function(){fw.closed=true},print:function(){MP.printHtml(buf,"MAG Formation 13")}};return fw}return op?op.apply(win,arguments):null};
+  win.document.addEventListener("click",function(e){var a=e.target&&e.target.closest?e.target.closest("a[href]"):null;if(!a)return;var h=a.getAttribute("href")||"";if(!/^(blob:|data:)/.test(h))return;if(a.hasAttribute("download")){e.preventDefault();e.stopPropagation();sendFile(h,a.getAttribute("download"),win)}else if(a.target==="_blank"){e.preventDefault();e.stopPropagation();openBlob(h,a.getAttribute("data-name")||"",win)}},true)}
+hook(window);
+function watch(f){var go=function(){try{hook(f.contentWindow)}catch(e){}};f.addEventListener("load",function(){if(f.contentWindow)f.contentWindow.__magp=0;go()});go()}
+document.querySelectorAll("iframe").forEach(watch);
+new MutationObserver(function(ms){ms.forEach(function(m){m.addedNodes.forEach(function(n){if(n.tagName==="IFRAME")watch(n)})})}).observe(document.documentElement,{childList:true,subtree:true});
+})();</script>
+</body></html>
