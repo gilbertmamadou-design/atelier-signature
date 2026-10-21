@@ -206,5 +206,13 @@
   "name": "Budget",
   "icons": "android-icons-budget",
   "file": "Budget.apk"
+ },
+ {
+  "app": "liseuse",
+  "web": "www-liseuse",
+  "appid": "fr.magformation13.liseuse",
+  "name": "Liseuse",
+  "icons": "android-icons-liseuse",
+  "file": "Liseuse.apk"
  }
 ]

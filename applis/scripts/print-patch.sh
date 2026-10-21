@@ -1712,6 +1712,11 @@ if [ "$APP" = "coffre" ]; then
   grep -q 'android:allowBackup=' "$MAN" || sed -i '0,/<application/s//<application android:allowBackup="false"/' "$MAN"
   grep -q 'fullBackupContent' "$MAN" || sed -i '0,/<application/s//<application android:fullBackupContent="false"/' "$MAN"
 fi
+if [ "$APP" = "liseuse" ]; then
+  addperm INTERNET
+  addraw '<queries><intent><action android:name="android.intent.action.TTS_SERVICE" /></intent><intent><action android:name="android.intent.action.SEND" /><data android:mimeType="text/plain" /></intent><intent><action android:name="android.intent.action.VIEW" /><data android:scheme="https" /></intent><package android:name="fr.magformation13.fichiers" /><package android:name="fr.magformation13.socle" /></queries>'
+  addfilters '<intent-filter android:label="Ouvrir avec Liseuse"><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.DEFAULT" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="content" /><data android:scheme="file" /><data android:mimeType="application/epub+zip" /><data android:mimeType="application/pdf" /></intent-filter><intent-filter android:label="Ouvrir avec Liseuse"><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.DEFAULT" /><data android:scheme="content" /><data android:scheme="file" /><data android:host="*" /><data android:mimeType="application/octet-stream" /><data android:pathPattern=".*\\.epub" /><data android:pathPattern=".*\\..*\\.epub" /><data android:pathPattern=".*\\..*\\..*\\.epub" /></intent-filter><intent-filter android:label="Liseuse"><action android:name="android.intent.action.SEND" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="application/epub+zip" /><data android:mimeType="application/pdf" /></intent-filter>'
+fi
 if [ "$APP" = "meteo" ]; then
   addperm ACCESS_NETWORK_STATE RECEIVE_BOOT_COMPLETED INTERNET
   addactivity '<service android:name=".MeteoPersoJob" android:permission="android.permission.BIND_JOB_SERVICE" android:exported="false" />'
