@@ -1,170 +1,170 @@
 [
-  {
-    "app": "chasse",
-    "web": "www-chasse",
-    "appid": "fr.magformation13.chasse",
-    "name": "Carnet de chasse",
-    "icons": "android-icons-chasse",
-    "file": "Carnet-de-chasse.apk"
-  },
-  {
-    "app": "pdf",
-    "web": "www-pdf",
-    "appid": "fr.magformation13.pdf",
-    "name": "Atelier PDF",
-    "icons": "android-icons-pdf",
-    "file": "Atelier-PDF.apk"
-  },
-  {
-    "app": "sentiers",
-    "web": "www-sentiers",
-    "appid": "fr.magformation13.sentiers",
-    "name": "Sentiers",
-    "icons": "android-icons-sentiers",
-    "file": "Sentiers.apk"
-  },
-  {
-    "app": "ciel",
-    "web": "www-ciel",
-    "appid": "fr.magformation13.ciel",
-    "name": "Ciel",
-    "icons": "android-icons-ciel",
-    "file": "Ciel.apk"
-  },
-  {
-    "app": "musique",
-    "web": "www-musique",
-    "appid": "fr.magformation13.musique",
-    "name": "Mélodie",
-    "icons": "android-icons-musique",
-    "file": "Melodie.apk"
-  },
-  {
-    "app": "fichiers",
-    "web": "www-fichiers",
-    "appid": "fr.magformation13.fichiers",
-    "name": "Rangement",
-    "icons": "android-icons-fichiers",
-    "file": "Rangement.apk"
-  },
-  {
-    "app": "petitspas",
-    "web": "www-petitspas",
-    "appid": "fr.magformation13.petitspas",
-    "name": "Petits Pas",
-    "icons": "android-icons-petitspas",
-    "file": "Petits-Pas.apk"
-  },
-  {
-    "app": "reveil",
-    "web": "www-reveil",
-    "appid": "fr.magformation13.reveil",
-    "name": "Aube",
-    "icons": "android-icons-reveil",
-    "file": "Aube.apk"
-  },
-  {
-    "app": "fonds",
-    "web": "www-fonds",
-    "appid": "fr.magformation13.toile",
-    "name": "Toile",
-    "icons": "android-icons-fonds",
-    "file": "Toile.apk"
-  },
-  {
-    "app": "accueil",
-    "web": "www-accueil",
-    "appid": "fr.magformation13.socle",
-    "name": "Socle",
-    "icons": "android-icons-accueil",
-    "file": "Socle.apk"
-  },
-  {
-    "app": "galerie",
-    "web": "www-galerie",
-    "appid": "fr.magformation13.galerie",
-    "name": "Galerie",
-    "icons": "android-icons-galerie",
-    "file": "Galerie.apk"
-  },
-  {
-    "app": "agenda",
-    "web": "www-agenda",
-    "appid": "fr.magformation13.agenda",
-    "name": "Agenda",
-    "icons": "android-icons-agenda",
-    "file": "Agenda.apk"
-  },
-  {
-    "app": "contacts",
-    "web": "www-contacts",
-    "appid": "fr.magformation13.contacts",
-    "name": "Contacts",
-    "icons": "android-icons-contacts",
-    "file": "Contacts.apk"
-  },
-  {
-    "app": "notes",
-    "web": "www-notes",
-    "appid": "fr.magformation13.carnet",
-    "name": "Carnet",
-    "icons": "android-icons-notes",
-    "file": "Carnet.apk"
-  },
-  {
-    "app": "calcul",
-    "web": "www-calcul",
-    "appid": "fr.magformation13.calcul",
-    "name": "Calcul",
-    "icons": "android-icons-calcul",
-    "file": "Calcul.apk"
-  },
-  {
-    "app": "ondes",
-    "web": "www-ondes",
-    "appid": "fr.magformation13.ondes",
-    "name": "Ondes",
-    "icons": "android-icons-ondes",
-    "file": "Ondes.apk"
-  },
-  {
-    "app": "mesure",
-    "web": "www-mesure",
-    "appid": "fr.magformation13.mesure",
-    "name": "Mesure",
-    "icons": "android-icons-mesure",
-    "file": "Mesure.apk"
-  },
-  {
-    "app": "scan",
-    "web": "www-scan",
-    "appid": "fr.magformation13.scan",
-    "name": "Scan",
-    "icons": "android-icons-scan",
-    "file": "Scan.apk"
-  },
-  {
-    "app": "sauvegarde",
-    "web": "www-sauvegarde",
-    "appid": "fr.magformation13.sauvegarde",
-    "name": "Sauvegarde",
-    "icons": "android-icons-sauvegarde",
-    "file": "Sauvegarde.apk"
-  },
-  {
-    "app": "photo",
-    "web": "www-photo",
-    "appid": "fr.magformation13.photo",
-    "name": "Photo",
-    "icons": "android-icons-photo",
-    "file": "Photo.apk"
-  },
-  {
-    "app": "ecran",
-    "web": "www-ecran",
-    "appid": "fr.magformation13.ecran",
-    "name": "Écran",
-    "icons": "android-icons-ecran",
-    "file": "Ecran.apk"
-  }
+ {
+  "app": "chasse",
+  "web": "www-chasse",
+  "appid": "fr.magformation13.chasse",
+  "name": "Carnet de chasse",
+  "icons": "android-icons-chasse",
+  "file": "Carnet-de-chasse.apk"
+ },
+ {
+  "app": "pdf",
+  "web": "www-pdf",
+  "appid": "fr.magformation13.pdf",
+  "name": "Atelier PDF",
+  "icons": "android-icons-pdf",
+  "file": "Atelier-PDF.apk"
+ },
+ {
+  "app": "sentiers",
+  "web": "www-sentiers",
+  "appid": "fr.magformation13.sentiers",
+  "name": "Sentiers",
+  "icons": "android-icons-sentiers",
+  "file": "Sentiers.apk"
+ },
+ {
+  "app": "ciel",
+  "web": "www-ciel",
+  "appid": "fr.magformation13.ciel",
+  "name": "Ciel",
+  "icons": "android-icons-ciel",
+  "file": "Ciel.apk"
+ },
+ {
+  "app": "musique",
+  "web": "www-musique",
+  "appid": "fr.magformation13.musique",
+  "name": "Mélodie",
+  "icons": "android-icons-musique",
+  "file": "Melodie.apk"
+ },
+ {
+  "app": "fichiers",
+  "web": "www-fichiers",
+  "appid": "fr.magformation13.fichiers",
+  "name": "Rangement",
+  "icons": "android-icons-fichiers",
+  "file": "Rangement.apk"
+ },
+ {
+  "app": "petitspas",
+  "web": "www-petitspas",
+  "appid": "fr.magformation13.petitspas",
+  "name": "Petits Pas",
+  "icons": "android-icons-petitspas",
+  "file": "Petits-Pas.apk"
+ },
+ {
+  "app": "reveil",
+  "web": "www-reveil",
+  "appid": "fr.magformation13.reveil",
+  "name": "Aube",
+  "icons": "android-icons-reveil",
+  "file": "Aube.apk"
+ },
+ {
+  "app": "fonds",
+  "web": "www-fonds",
+  "appid": "fr.magformation13.toile",
+  "name": "Toile",
+  "icons": "android-icons-fonds",
+  "file": "Toile.apk"
+ },
+ {
+  "app": "accueil",
+  "web": "www-accueil",
+  "appid": "fr.magformation13.socle",
+  "name": "Socle",
+  "icons": "android-icons-accueil",
+  "file": "Socle.apk"
+ },
+ {
+  "app": "galerie",
+  "web": "www-galerie",
+  "appid": "fr.magformation13.galerie",
+  "name": "Galerie",
+  "icons": "android-icons-galerie",
+  "file": "Galerie.apk"
+ },
+ {
+  "app": "agenda",
+  "web": "www-agenda",
+  "appid": "fr.magformation13.agenda",
+  "name": "Agenda",
+  "icons": "android-icons-agenda",
+  "file": "Agenda.apk"
+ },
+ {
+  "app": "contacts",
+  "web": "www-contacts",
+  "appid": "fr.magformation13.contacts",
+  "name": "Contacts",
+  "icons": "android-icons-contacts",
+  "file": "Contacts.apk"
+ },
+ {
+  "app": "notes",
+  "web": "www-notes",
+  "appid": "fr.magformation13.carnet",
+  "name": "Carnet",
+  "icons": "android-icons-notes",
+  "file": "Carnet.apk"
+ },
+ {
+  "app": "calcul",
+  "web": "www-calcul",
+  "appid": "fr.magformation13.calcul",
+  "name": "Calcul",
+  "icons": "android-icons-calcul",
+  "file": "Calcul.apk"
+ },
+ {
+  "app": "ondes",
+  "web": "www-ondes",
+  "appid": "fr.magformation13.ondes",
+  "name": "Ondes",
+  "icons": "android-icons-ondes",
+  "file": "Ondes.apk"
+ },
+ {
+  "app": "mesure",
+  "web": "www-mesure",
+  "appid": "fr.magformation13.mesure",
+  "name": "Mesure",
+  "icons": "android-icons-mesure",
+  "file": "Mesure.apk"
+ },
+ {
+  "app": "scan",
+  "web": "www-scan",
+  "appid": "fr.magformation13.scan",
+  "name": "Scan",
+  "icons": "android-icons-scan",
+  "file": "Scan.apk"
+ },
+ {
+  "app": "sauvegarde",
+  "web": "www-sauvegarde",
+  "appid": "fr.magformation13.sauvegarde",
+  "name": "Sauvegarde",
+  "icons": "android-icons-sauvegarde",
+  "file": "Sauvegarde.apk"
+ },
+ {
+  "app": "photo",
+  "web": "www-photo",
+  "appid": "fr.magformation13.photo",
+  "name": "Photo",
+  "icons": "android-icons-photo",
+  "file": "Photo.apk"
+ },
+ {
+  "app": "ecran",
+  "web": "www-ecran",
+  "appid": "fr.magformation13.ecran",
+  "name": "Écran",
+  "icons": "android-icons-ecran",
+  "file": "Ecran.apk"
+ }
 ]
