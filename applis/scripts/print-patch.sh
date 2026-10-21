@@ -1559,7 +1559,7 @@ cp scripts/FileService.java "$FSV"
 sed -i "s/__PKG__/$PKG/" "$FSV"
 # Réveil, lever de soleil et endormissement (application Aube)
 for J in $(ls scripts/*Bridge.java 2>/dev/null | xargs -n1 basename 2>/dev/null | sed 's/\.java$//'); do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
-for J in AlarmService AlarmReceiver WallpaperJob WallpaperTile LauncherService LauncherA11y LauncherMedia WidgetProvider SauvegardeJob PhotoCamera EcranPlayer DictaService; do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
+for J in AlarmService AlarmReceiver WallpaperJob WallpaperTile LauncherService LauncherA11y LauncherMedia WidgetProvider SauvegardeJob PhotoCamera EcranPlayer DictaService MeteoPersoJob; do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
 # Bibliothèque des tâches de fond
 G=android/app/build.gradle
 grep -q "androidx.work:work-runtime" "$G" || sed -i '0,/^dependencies {/s//dependencies {\n    implementation "androidx.work:work-runtime:2.9.1"/' "$G"
@@ -1703,6 +1703,10 @@ if [ "$APP" = "urgence" ]; then
   addraw '<uses-feature android:name="android.hardware.telephony" android:required="false" /><uses-feature android:name="android.hardware.camera.flash" android:required="false" /><queries><intent><action android:name="android.intent.action.SENDTO" /><data android:scheme="smsto" /></intent><intent><action android:name="android.intent.action.DIAL" /><data android:scheme="tel" /></intent><intent><action android:name="android.intent.action.PICK" /><data android:mimeType="vnd.android.cursor.dir/phone_v2" /></intent></queries>'
   addactivity '<activity android:name=".UrgenceBridge$Fiche" android:label="Infos médicales" android:exported="false" android:showWhenLocked="true" android:turnScreenOn="true" android:launchMode="singleTask" android:taskAffinity="urgence.fiche" android:excludeFromRecents="true" android:screenOrientation="portrait" android:theme="@android:style/Theme.Material.NoActionBar" />'
   addactivity '<service android:name=".UrgenceBridge$Veille" android:foregroundServiceType="location" android:exported="false" />'
+fi
+if [ "$APP" = "meteo" ]; then
+  addperm ACCESS_NETWORK_STATE RECEIVE_BOOT_COMPLETED INTERNET
+  addactivity '<service android:name=".MeteoPersoJob" android:permission="android.permission.BIND_JOB_SERVICE" android:exported="false" />'
 fi
 if [ "$APP" = "dicta" ]; then
   addperm RECORD_AUDIO FOREGROUND_SERVICE FOREGROUND_SERVICE_MICROPHONE FOREGROUND_SERVICE_MEDIA_PLAYBACK WAKE_LOCK READ_MEDIA_AUDIO

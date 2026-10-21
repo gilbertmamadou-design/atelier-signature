@@ -182,5 +182,13 @@
   "name": "Urgence",
   "icons": "android-icons-urgence",
   "file": "Urgence.apk"
+ },
+ {
+  "app": "meteo",
+  "web": "www-meteo",
+  "appid": "fr.magformation13.meteo",
+  "name": "Météo",
+  "icons": "android-icons-meteo",
+  "file": "Meteo.apk"
  }
 ]

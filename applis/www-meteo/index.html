@@ -134,7 +134,7 @@ main{padding:2px 14px calc(92px + var(--safe-b))}
 .daysum{display:flex;flex-direction:column}
 .daysum .r{display:flex;gap:10px;padding:9px 0;border-top:1px solid var(--line);align-items:center}
 .daysum .r:first-child{border-top:0}
-.daysum .r .n{width:84px;flex:none;font-weight:600;text-transform:capitalize}
+.daysum .r .n{width:96px;flex:none;font-weight:600}
 .daysum .r .x{flex:1;font-size:13px;color:var(--tx2)}
 
 /* 10 jours */
@@ -209,8 +209,8 @@ nav.tabs button.on .ic{color:var(--acc)}
 /* Feuilles */
 .veil{position:fixed;inset:0;background:#0009;z-index:40;opacity:0;transition:opacity .2s;pointer-events:none}
 .veil.on{opacity:1;pointer-events:auto}
-.sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;background:var(--bg);border-radius:22px 22px 0 0;border-top:1px solid #ffffff1f;max-height:90vh;display:flex;flex-direction:column;transform:translateY(105%);transition:transform .25s ease}
-.sheet.on{transform:none}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;background:var(--bg);border-radius:22px 22px 0 0;border-top:1px solid #ffffff1f;max-height:90vh;display:flex;flex-direction:column;transform:translateY(105%);visibility:hidden;transition:transform .25s ease,visibility 0s .25s}
+.sheet.on{transform:none;visibility:visible;transition:transform .25s ease}
 .sheet.full{top:0;max-height:none;border-radius:0;border:0}
 .sheet .sh{display:flex;align-items:center;gap:8px;padding:12px 10px 8px 18px}
 .sheet.full .sh{padding-top:calc(12px + var(--safe-t))}
@@ -613,7 +613,7 @@ function gotLocation(o){
    ==================================================================== */
 const FMT = {};
 function fmt(opts){ const tz = D && D.timezone || undefined, k = JSON.stringify(opts) + tz; if (!FMT[k]) { try { FMT[k] = new Intl.DateTimeFormat('fr-FR', Object.assign({ timeZone: tz }, opts)); } catch (e) { FMT[k] = new Intl.DateTimeFormat('fr-FR', opts); } } return FMT[k]; }
-const hm = t => fmt({ hour: '2-digit', minute: '2-digit' }).format(t * 1000).replace(/^0/, '');
+const hm = t => { const s = fmt({ hour: '2-digit', minute: '2-digit' }).format(t * 1000).replace(/^0/, ''); return s === '0:00' ? 'minuit' : s; };
 const hh = t => +fmt({ hour: 'numeric', hourCycle: 'h23' }).format(t * 1000).replace(/\D/g, '') % 24;
 const dkey = t => fmt({ year: 'numeric', month: '2-digit', day: '2-digit' }).format(t * 1000);
 const wday = t => fmt({ weekday: 'long' }).format(t * 1000);
@@ -655,7 +655,7 @@ function rainHour(){
   } else {
     const st = sl.findIndex(x => x.v >= TH);
     if (st < 0){ sum = 'Pas de pluie dans les 2 prochaines heures'; sub = 'Prévision Météo-France au quart d\'heure'; }
-    else { sum = 'Pluie ' + word(mx) + ' vers ' + hm(sl[st].t); sub = st < 4 ? fr1(tot1) + ' mm attendus dans l\'heure' : 'Rien dans l\'heure qui vient'; }
+    else { sum = 'Pluie ' + word(mx) + ' vers ' + hm(sl[st].t); sub = 'Environ ' + fr1(sl.reduce((a, b) => a + b.v, 0)) + ' mm d\'ici ' + hm(sl[sl.length - 1].t + 900); }
   }
   return { sl, sum, sub, mx, rainy: mx >= TH, first: sl.findIndex(x => x.v >= TH) };
 }
@@ -820,7 +820,7 @@ function nowHtml(){
   s += '<p class="foot">' + (S.model === 'auto' ? 'Prévisions : meilleur modèle disponible' : 'Prévisions Météo-France (AROME, ARPEGE), complétées au-delà de 4 jours') + ' via Open-Meteo.<br>Qualité de l\'air et pollens : Copernicus CAMS. Radar : RainViewer.</p>';
   return s;
 }
-function uvLabel(u){ return u < 3 ? 'Faible' : u < 6 ? 'Modéré' : u < 8 ? 'Élevé' : u < 11 ? 'Très élevé' : 'Extrême'; }
+function uvLabel(u){ u = Math.round(u || 0); return u < 3 ? 'Faible' : u < 6 ? 'Modéré' : u < 8 ? 'Élevé' : u < 11 ? 'Très élevé' : 'Extrême'; }
 function compass(dir, spd){
   let t = '';
   for (let i = 0; i < 36; i++){ const a = i * 10 * Math.PI / 180, l = i % 9 === 0 ? 6 : 3; t += '<line x1="' + (37 + Math.sin(a) * 33).toFixed(1) + '" y1="' + (37 - Math.cos(a) * 33).toFixed(1) + '" x2="' + (37 + Math.sin(a) * (33 - l)).toFixed(1) + '" y2="' + (37 - Math.cos(a) * (33 - l)).toFixed(1) + '" stroke="' + (i % 9 === 0 ? '#b4b8c7' : '#ffffff30') + '" stroke-width="1.4"/>'; }
@@ -869,11 +869,11 @@ function hoursHtml(){
   idx.forEach((i, j) => { g += '<g transform="translate(' + (X(j) - 15) + ' 22) scale(.47)">' + wxSvg(h.weather_code[i], h.is_day[i]).replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '') + '</g>'; });
   // Température
   const pts = idx.map((i, j) => [X(j), ty(h.temperature_2m[i])]);
-  const gid = 'tg';
+  const gid = 'hTempFill';
   g += '<defs><linearGradient id="' + gid + '" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ffc857" stop-opacity=".28"/><stop offset="1" stop-color="#ffc857" stop-opacity="0"/></linearGradient>' +
-    '<linearGradient id="tl" x1="0" x2="' + Wt + '" gradientUnits="userSpaceOnUse">' + idx.map((i, j) => '<stop offset="' + (X(j) / Wt).toFixed(3) + '" stop-color="' + tColor(h.temperature_2m[i]) + '"/>').join('') + '</linearGradient></defs>';
+    '<linearGradient id="hTempLine" x1="0" x2="' + Wt + '" gradientUnits="userSpaceOnUse">' + idx.map((i, j) => '<stop offset="' + (X(j) / Wt).toFixed(3) + '" stop-color="' + tColor(h.temperature_2m[i]) + '"/>').join('') + '</linearGradient></defs>';
   const line = smooth(pts);
-  g += '<path d="' + line + 'L' + pts[pts.length - 1][0] + ' 160L' + pts[0][0] + ' 160z" fill="url(#' + gid + ')"/><path d="' + line + '" fill="none" stroke="url(#tl)" stroke-width="2.6" stroke-linecap="round"/>';
+  g += '<path d="' + line + 'L' + pts[pts.length - 1][0] + ' 160L' + pts[0][0] + ' 160z" fill="url(#' + gid + ')"/><path d="' + line + '" fill="none" stroke="url(#hTempLine)" stroke-width="2.6" stroke-linecap="round"/>';
   pts.forEach((p, j) => { g += '<circle cx="' + p[0] + '" cy="' + p[1].toFixed(1) + '" r="2.4" fill="' + tColor(T[j]) + '"/><text x="' + p[0] + '" y="' + (p[1] - 8).toFixed(1) + '" text-anchor="middle" font-size="12.5" font-weight="650" fill="#f2f3f7">' + round(T[j]) + '°</text>'; });
   // Pluie
   const rb = 222;
@@ -912,10 +912,11 @@ function halfDays(){
     const codes = grp.map(x => h.weather_code[x]), worst = Math.max.apply(null, codes), mid = grp[Math.floor(grp.length / 2)];
     const today = dkey(h.time[grp[0]]) === dkey(nowS()), tom = dkey(h.time[grp[0]]) === dkey(nowS() + 86400);
     const dn = P[2] === 'nuit' ? (today ? 'Cette nuit' : 'Nuit suivante') : (today ? (P[2] === 'soir' ? 'Ce soir' : P[2] === 'matin' ? 'Ce matin' : 'Cet après-midi') : (tom ? 'Demain ' + P[2] : wday(h.time[grp[0]]) + ' ' + P[2]));
-    let txt = wname(worst >= 51 ? worst : h.weather_code[mid]) + ', ' + round(Math.min.apply(null, tt)) + ' à ' + round(Math.max.apply(null, tt)) + '°';
+    const t1 = round(Math.min.apply(null, tt)), t2 = round(Math.max.apply(null, tt));
+    let txt = wname(worst >= 51 ? worst : h.weather_code[mid]) + ', ' + (t1 === t2 ? t1 : t1 + ' à ' + t2) + '°';
     if (rr >= 0.2) txt += ', ' + fr1(rr) + ' mm';
     if (gmax >= 50) txt += ', rafales ' + round(gmax) + ' km/h';
-    out.push({ n: dn, txt, code: worst >= 51 ? worst : h.weather_code[mid], day: P[2] !== 'nuit' && P[2] !== 'soir' ? 1 : h.is_day[mid] });
+    out.push({ n: dn.charAt(0).toUpperCase() + dn.slice(1), txt, code: worst >= 51 ? worst : h.weather_code[mid], day: P[2] !== 'nuit' && P[2] !== 'soir' ? 1 : h.is_day[mid] });
     i = k;
   }
   return out;
@@ -1032,11 +1033,11 @@ function radarShow(){
       RV.map.createPane('labels'); RV.map.getPane('labels').style.zIndex = 650; RV.map.getPane('labels').style.pointerEvents = 'none';
       RV.labels = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 19, pane: 'labels' }).addTo(RV.map);
       $('zIn').onclick = () => RV.map.zoomIn(); $('zOut').onclick = () => RV.map.zoomOut();
-      $('zHome').onclick = () => { if (RV.center) RV.map.setView(RV.center, 8); };
+      $('zHome').onclick = () => { if (RV.center) RV.map.setView(RV.center, 7); };
     }
     const c = [p.lat, p.lon];
     if (!RV.center || RV.center[0] !== c[0] || RV.center[1] !== c[1]){
-      RV.center = c; RV.map.setView(c, 8);
+      RV.center = c; RV.map.setView(c, 7);
       if (RV.mark) RV.mark.remove();
       RV.mark = L.circleMarker(c, { radius: 7, color: '#fff', weight: 3, fillColor: '#8fb4ff', fillOpacity: 1 }).addTo(RV.map);
     }
@@ -1052,7 +1053,7 @@ function radarFrames(){
     if (!past.length) throw new Error('vide');
     Object.keys(RV.layers).forEach(k => RV.map.removeLayer(RV.layers[k])); RV.layers = {};
     RV.frames = past.concat(fc); RV.at = Date.now(); RV.last = past.length - 1;
-    $('tl').max = RV.frames.length - 1;
+    $('tl').setAttribute('max', RV.frames.length - 1);
     $('tlA').textContent = '-' + Math.round((past[past.length - 1].t - past[0].t) / 60) + ' min';
     $('tlB').textContent = fc.length ? '+' + Math.round((fc[fc.length - 1].t - past[past.length - 1].t) / 60) + ' min' : 'maintenant';
     $('mapMsg').hidden = true;
@@ -1071,7 +1072,7 @@ function radarFrame(i){
   radarLayer(i).setOpacity(.78);
   Object.keys(RV.layers).forEach(k => { if (+k !== i) RV.layers[k].setOpacity(0); });
   radarLayer((i + 1) % RV.frames.length);   // préchargement de l'image suivante
-  RV.i = i; $('tl').value = i;
+  RV.i = i; $('tl').value = String(i); $('tl').setAttribute('value', i);
   const f = RV.frames[i], mins = Math.round((Date.now() / 1000 - f.t) / 60);
   const el = $('mapTime'); el.hidden = false; el.className = 'maptime' + (f.fc ? ' fc' : '');
   el.innerHTML = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' }).format(f.t * 1000) + '<small>' + (f.fc ? 'prévision' : mins <= 12 ? 'dernière image' : 'il y a ' + mins + ' min') + '</small>';
@@ -1229,7 +1230,7 @@ function alertsBody(){
   // État
   if (st){
     const ok = st.planned && any && st.notif === 'granted';
-    h += '<div class="card"><div class="state"><span class="dot ' + (ok ? 'on' : any ? 'warn' : '') + '"></span><div style="flex:1"><div style="font-weight:650">' + (!any ? 'Aucune alerte activée' : st.notif !== 'granted' ? 'Notifications non autorisées' : st.planned ? 'Surveillance active, toutes les ' + AL.every + ' h' : 'Surveillance en attente') + '</div>' +
+    h += '<div class="card"><div class="state"><span class="dot ' + (ok ? 'on' : any ? 'warn' : '') + '"></span><div style="flex:1"><div style="font-weight:650">' + (!any ? 'Aucune alerte activée' : st.notif !== 'granted' ? 'Notifications non autorisées' : st.planned ? 'Surveillance active, ' + (AL.every === 1 ? 'toutes les heures' : 'toutes les ' + AL.every + ' h') : 'Surveillance en attente') + '</div>' +
       '<div class="small muted">' + (ap ? 'Lieu : ' + esc(ap.name) : 'Choisis un lieu') + (st.last ? ' · dernière vérification ' + ago(st.last) : '') + '</div>' +
       (st.lastMsg ? '<div class="small" style="margin-top:4px;color:var(--tx2)">' + esc(st.lastMsg) + '</div>' : '') + '</div></div>' +
       '<div class="btns">' + (any && st.notif !== 'granted' ? '<button class="btn main" id="aNotif">' + ic('bell') + 'Autoriser les notifications</button>' : '') + '<button class="btn" id="aTest"' + (!any || !avail ? ' disabled style="opacity:.5"' : '') + '>Vérifier maintenant</button></div>' +
@@ -1254,7 +1255,7 @@ function alertsBody(){
     if (a[0] === 'wind') h += slider('wind.kmh', 'Rafales dès', o.kmh, 40, 110, 5, ' km/h', 'Le mistral dépasse souvent 60 km/h en rafales.');
   });
   h += '</div>';
-  h += '<div class="card"><h3>' + ic('clock') + 'Vérification</h3><div class="seg" data-k="every" style="margin-top:0">' + [1, 2, 3].map(x => '<button data-v="' + x + '" class="' + (AL.every === x ? 'on' : '') + '">Toutes les ' + x + ' h</button>').join('') + '</div>' +
+  h += '<div class="card"><h3>' + ic('clock') + 'Vérifier toutes les</h3><div class="seg" data-k="every" style="margin-top:0">' + [1, 2, 3].map(x => '<button data-v="' + x + '" class="' + (AL.every === x ? 'on' : '') + '">' + x + ' h</button>').join('') + '</div>' +
     '<div class="small muted" style="margin-top:8px">Avec réseau seulement. Android peut décaler un peu pour économiser la batterie : pour la pluie, garde 1 h.</div>' +
     '<div class="set" style="margin-top:6px;border-top:1px solid var(--line);padding-top:12px"><div class="t"><div>Silence la nuit</div><div>Pas de notification entre 22 h et 7 h</div></div><label class="sw"><input type="checkbox" id="aQuiet"' + (AL.quiet ? ' checked' : '') + '><span></span></label></div></div>';
   // Réglages
