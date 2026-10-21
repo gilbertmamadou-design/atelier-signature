@@ -173,6 +173,7 @@ select.in{appearance:none;-webkit-appearance:none;background-image:url("data:ima
 .cat{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 2px 7px;border-radius:14px;font-size:11.5px;color:var(--tx2);line-height:1.15;text-align:center;min-width:0}
 .cat span:last-child{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cat.on{background:var(--bg3);color:var(--tx)}
+.cat.on .ci{box-shadow:0 0 0 2px currentColor}
 .subs{display:flex;gap:6px;flex-wrap:wrap;margin:8px 2px 2px}
 .subs .chip{padding:6px 11px;font-size:12.5px}
 .meta{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0 8px}
@@ -574,7 +575,9 @@ function runRecurring(){
     var g = 0;
     while(r.next <= t && (!r.end || r.next <= r.end) && g++ < 600){
       if(!have[r.id + '|' + r.next]){
-        D.tx.push({id:uid(), c:Date.now() + n, date:r.next, type:r.type, amount:r.amount, cat:r.type === 'vir' ? null : r.cat, acc:r.acc, to:r.type === 'vir' ? r.to : undefined, pay:r.pay, note:r.note || '', rec:r.id});
+        var nt = {id:uid(), c:Date.now() + n, date:r.next, type:r.type, amount:r.amount, cat:r.type === 'vir' ? null : r.cat, acc:r.acc, pay:r.pay, note:r.note || '', rec:r.id};
+        if(r.type === 'vir') nt.to = r.to;
+        D.tx.push(nt);
         n++;
       }
       r.next = addPeriod(r.next, r.freq, r.day);
@@ -1320,10 +1323,8 @@ function openEntry(t){
 
 /* ================= Règles de catégorisation ================= */
 var STOP = /^(CB|CARTE|PRLV|PRELEVEMENT|SEPA|VIR|VIREMENT|INST|INSTANTANE|RECU|EMIS|PAIEMENT|ACHAT|FACTURE|FAC|DU|DE|LE|LA|LES|DES|EN|PAR|POUR|AU|CHEZ|ECH|ECHEANCE|REF|MOTIF|ID|FR|NUM|NO|SAS|SARL|SA|RETRAIT|DAB|X+\d*|\d.*)$/;
-function keyOf(label){
-  var w = norm(label).replace(/\d{2}[\/.]\d{2}([\/.]\d{2,4})?/g, ' ').replace(/[^A-Z0-9&' ]/g, ' ').split(/\s+/).filter(function(x){ return x.length >= 2 && !STOP.test(x); });
-  return w.slice(0, 2).join(' ');
-}
+function keyWords(label){ return norm(label).replace(/\d{2}[\/.]\d{2}([\/.]\d{2,4})?/g, ' ').replace(/[^A-Z0-9&' ]/g, ' ').split(/\s+/).filter(function(x){ return x.length >= 2 && !STOP.test(x); }); }
+function keyOf(label){ return keyWords(label).slice(0, 2).join(' '); }
 function learnRule(label, catId, say){
   var kw = keyOf(label); if(!kw || kw.length < 3) return null;
   var r = D.rules.find(function(x){ return x.kw === kw; });
@@ -1334,10 +1335,10 @@ function learnRule(label, catId, say){
   return r;
 }
 function autoCat(label, sign){
-  var n = ' ' + norm(label).replace(/[^A-Z0-9&.' ]/g, ' ').replace(/\s+/g, ' ') + ' ';
+  var n = ' ' + norm(label).replace(/[^A-Z0-9&.' ]/g, ' ').replace(/\s+/g, ' ') + ' ', kw = ' ' + keyWords(label).join(' ') + ' ';
   var kind = sign < 0 ? 'dep' : 'rev';
   var rules = D.rules.slice().sort(function(a, b){ return b.kw.length - a.kw.length; });
-  for(var i = 0; i < rules.length; i++){ var c = cat(rules[i].cat); if(c && c.kind === kind && n.indexOf(' ' + rules[i].kw) >= 0) return c.id; }
+  for(var i = 0; i < rules.length; i++){ var c = cat(rules[i].cat); if(c && c.kind === kind && (n.indexOf(' ' + rules[i].kw) >= 0 || kw.indexOf(' ' + rules[i].kw + ' ') >= 0)) return c.id; }
   for(var j = 0; j < DEF_KW.length; j++){ var d = cat(DEF_KW[j][1]); if(d && d.kind === kind && n.indexOf(' ' + DEF_KW[j][0]) >= 0) return d.id; }
   if(kind === 'rev'){ for(var k = 0; k < DEF_KW.length; k++){ if(n.indexOf(' ' + DEF_KW[k][0]) >= 0 && cat(DEF_KW[k][1]) && cat(DEF_KW[k][1]).kind === 'dep') return cat('c_rembt') ? 'c_rembt' : ((topCats('rev')[0] || {}).id); } }
   var f = kind === 'dep' ? 'c_divers' : 'c_autrerev';
@@ -1432,7 +1433,8 @@ function parseOFX(text){
 }
 function prettyLabel(l){
   var s = String(l || '').replace(/\s+/g, ' ').trim();
-  s = s.replace(/^(PAIEMENT PAR CARTE|PAIEMENT CB|ACHAT CB|CARTE X?\d*|CB\*?\d*|PRLV SEPA|PRELEVEMENT SEPA|PRELEVEMENT|PRLV|VIR(EMENT)? (SEPA )?(INST(ANTANE)? )?(RECU|EMIS)?|VIR(EMENT)?|RETRAIT DAB|CHQ\.?|CHEQUE)\s*/i, '');
+  s = s.replace(/^(PAIEMENT PAR CARTE|PAIEMENT CB|ACHAT CB|CARTE X?\d*|CB\*?\d*|PRLV SEPA|PRELEVEMENT SEPA|PRELEVEMENT|PRLV|VIR(EMENT)? (SEPA )?(INST(ANTANE)? )?(RECU|EMIS)?|VIR(EMENT)?|CHQ\.?|CHEQUE)\s*/i, '');
+  s = s.replace(/^\/?(DE|A|POUR)\s+/i, '').replace(/\s*\/(MOTIF|REF|ID|ECH|DE)\b.*$/i, '').replace(/\s+(ECH\/|ID EMETTEUR|REF\s?:|MANDAT).*$/i, '');
   s = s.replace(/\b\d{2}[\/.]\d{2}([\/.]\d{2,4})?\b/g, '').replace(/\bCARTE\s*X?\d{4}\b/gi, '').replace(/\s+/g, ' ').trim();
   if(!s) s = String(l).trim();
   if(s === s.toUpperCase()) s = s.toLowerCase().replace(/(^|[\s\-'])([a-zà-ÿ])/g, function(m, a, b){ return a + b.toUpperCase(); });

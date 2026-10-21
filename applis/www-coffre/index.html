@@ -130,11 +130,13 @@ main{padding:2px 14px calc(100px + var(--sb))}
 .empty{text-align:center;color:var(--tx3);padding:56px 26px 20px;font-size:14.5px;line-height:1.5}
 .empty svg{width:64px;height:64px;margin:0 auto 14px;stroke-width:1.3;opacity:.7}
 .empty b{display:block;color:var(--tx2);font-size:16px;margin-bottom:4px}
-.offer{display:flex;gap:12px;align-items:center;background:linear-gradient(135deg,#5fdcc014,#8fb4ff14);border-color:#5fdcc033}
-.offer .ic{width:30px;height:30px;color:var(--acc);stroke-width:1.6}
-.offer div{flex:1;font-size:13.5px;color:var(--tx2)}
-.offer b{display:block;color:var(--tx);font-size:14.5px;margin-bottom:2px}
-.offer .btn{flex:none;padding:9px 12px}
+.offer{background:linear-gradient(135deg,#5fdcc014,#8fb4ff14);border-color:#5fdcc033;margin-top:10px;padding:14px}
+.offer .oh{display:flex;gap:12px;align-items:flex-start}
+.offer .oh .ic{width:30px;height:30px;color:var(--acc);stroke-width:1.6;margin-top:2px}
+.offer .ot{flex:1;font-size:13.5px;color:var(--tx2);line-height:1.4}
+.offer b{display:block;color:var(--tx);font-size:15px;margin-bottom:2px}
+.offer .row{justify-content:flex-end;margin-top:10px}
+.offer .row .btn{flex:none;padding:9px 14px}
 
 #fab{position:fixed;right:16px;bottom:calc(80px + var(--sb));z-index:7;width:58px;height:58px;border-radius:19px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:var(--accd);display:flex;align-items:center;justify-content:center;box-shadow:0 10px 26px #0009}
 #fab .ic{width:28px;height:28px;stroke-width:2.3}
@@ -168,7 +170,7 @@ main{padding:2px 14px calc(100px + var(--sb))}
 .fl .fv.mono{font-size:16.5px}
 .fl .fv.dim{color:var(--tx2);letter-spacing:2px}
 .fl .fv.txt{word-break:break-word;font-size:15px;line-height:1.5;color:#e4e6ee}
-.big{font-family:var(--mono);font-size:30px;font-weight:650;letter-spacing:3px;color:var(--tx);margin-top:4px}
+.bigcode{font-family:var(--mono);font-size:30px;font-weight:650;letter-spacing:3px;color:var(--tx);margin-top:4px}
 .totp{display:flex;align-items:center;gap:14px;padding:14px 10px 14px 16px}
 .totp .code{flex:1;font-family:var(--mono);font-size:34px;font-weight:650;letter-spacing:2px;color:var(--acc)}
 .totp.low .code{color:var(--warn)}
@@ -2723,7 +2725,7 @@ function ago(t){
   var y = Math.floor(d / 365); return 'il y a ' + y + (y > 1 ? ' ans' : ' an');
 }
 function plural(n, s, p){ return n + ' ' + (n > 1 ? (p || s + 's') : s); }
-function toast(t, bad){ var e = $('toast'); e.textContent = t; e.className = 'on' + (bad ? ' bad' : ''); clearTimeout(toast.t); toast.t = setTimeout(function(){ e.className = ''; }, 3400); }
+function toast(t, bad){ var e = $('toast'); e.textContent = t; e.className = 'on' + (bad ? ' bad' : ''); clearTimeout(toast.t); toast.t = setTimeout(function(){ e.className = ''; }, bad ? 4200 : 2600); }
 function busy(btn, on){ if (!btn) return; btn.classList.toggle('busy', on); btn.disabled = on; }
 function host(u){ u = String(u || '').trim(); if (!u) return ''; try { return new URL(/^[a-z][\w+.-]*:\/\//i.test(u) ? u : 'https://' + u).hostname.replace(/^www\./, ''); } catch (e) { return u; } }
 function wait(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
@@ -3148,7 +3150,7 @@ function showSetup(){
     if (!v) { $('sg').className = 'gauge'; $('sgl').className = 'glab'; $('sgl').innerHTML = '<span>Une phrase de plusieurs mots est facile à retenir et solide.</span>'; }
     else gauge('sg', 'sgl', s, v.length < 10 ? 'Trop court' : 'Craqué en ' + crackTime(s.bits + 19));
   };
-  $('sp1').oninput = upd; upd();
+  $('sp1').oninput = function(){ $('sMsg').textContent = ''; upd(); }; $('sp2').oninput = function(){ $('sMsg').textContent = ''; };  upd();
   $('sSuggest').onclick = function(){
     var g = genPhrase({ words:5, sep:'-', cap:true, dig:true });
     $('sp1').value = g.pw; $('sp2').value = ''; $('sp1').type = 'text'; $('sp2').type = 'password';
@@ -3326,7 +3328,7 @@ function renderList(){
 }
 function renderOffer(){
   var st = bioState(), h = '';
-  if (st && st.api >= 28 && st.hw && !SET.bio && !SET.noBioOffer && D.items.length) h = '<div class="card offer">' + ic('finger') + '<div><b>Ouvrir avec ton empreinte</b>Plus rapide que le mot de passe maître, qui reste toujours possible.</div><button class="btn main" id="oBio">Activer</button><button class="hb" id="oNo" aria-label="Plus tard" style="margin-right:-8px">' + ic('close') + '</button></div>';
+  if (st && st.api >= 28 && st.hw && !SET.bio && !SET.noBioOffer && D.items.length) h = '<div class="card offer"><div class="oh">' + ic('finger') + '<div class="ot"><b>Ouvrir avec ton empreinte</b>Plus rapide que le mot de passe maître, qui reste toujours possible.</div></div><div class="row"><button class="btn ghost" id="oNo">Plus tard</button><button class="btn main" id="oBio">Activer</button></div></div>';
   $('offer').innerHTML = h;
   if (h) { $('oBio').onclick = bioEnable; $('oNo').onclick = function(){ SET.noBioOffer = true; saveSet(); renderOffer(); }; }
 }
@@ -3346,16 +3348,18 @@ function renderDetail(){
   var t = TYPES[it.type], f = it.f, rows = [];
   var cfg = otpCfg(it);
   FIELDS[it.type].forEach(function(d){
-    var k = d[0], v = f[k]; if (v == null || v === '' || k === 'totp' || k === 'secret') return;
+    var k = d[0], v = f[k]; if (v == null || v === '') return;
     if (d[2] === 'sel') { var o = d[3].filter(function(x){ return x[0] === String(v); })[0]; v = o ? o[1] : v; if (it.type === 'totp') return; }
     if (d[2] === 'bool') { if (!v) return; v = 'Oui'; }
+    var plain = d[2] === 'sel' || d[2] === 'bool';
     var masked = !!MASKED[d[2]], txt = d[2] === 'area', big = it.type === 'code' && k === 'code';
-    var val = masked ? '<div class="' + (big ? 'big' : 'fv dim') + '" data-v="' + k + '" data-h="1">' + esc(maskOf(k, v, big)) + '</div>'
+    var val = masked ? '<div class="' + (big ? 'bigcode' : 'fv dim') + '" data-v="' + k + '" data-h="1">' + esc(maskOf(k, v, big)) + '</div>'
       : '<div class="fv' + (txt ? ' txt' : (k === 'user' || k === 'exp') ? ' mono' : '') + '">' + esc(k === 'number' ? cardFmt(v) : v) + '</div>';
     rows.push('<div class="fl"><div class="fx"><div class="fk">' + esc(d[1]) + (k === 'number' && brand(v) ? ' · ' + brand(v) : '') + '</div>' + val + '</div>' +
       (masked ? '<button class="hb" data-rev="' + k + '" aria-label="Afficher">' + ic('eye') + '</button>' : '') +
-      '<button class="hb" data-cp="' + k + '" aria-label="Copier">' + ic('copy') + '</button></div>');
+      (plain ? '' : '<button class="hb" data-cp="' + k + '" aria-label="Copier">' + ic('copy') + '</button>') + '</div>');
   });
+  rows.sort(function(x, y){ return (x.indexOf('data-cp="secret"') >= 0 || x.indexOf('data-cp="totp"') >= 0) - (y.indexOf('data-cp="secret"') >= 0 || y.indexOf('data-cp="totp"') >= 0); });
   var otp = cfg ? '<div class="card" style="padding:0"><div class="totp" data-otp="' + esc(it.id) + '"><div style="flex:1"><div class="fk" style="font-size:12px;color:var(--tx3);font-weight:600">Code à usage unique' + (it.type === 'login' ? ' (2FA)' : '') + '</div><div class="code">------</div></div><div class="rs">' + ring() + '<span></span></div><button class="hb" data-cpotp aria-label="Copier le code">' + ic('copy') + '</button></div></div>' : '';
   var wifi = it.type === 'wifi' && f.ssid ? '<button class="btn" id="dQr" style="width:100%;margin-bottom:12px">' + ic('qr') + 'QR code de connexion</button><div id="dQrBox" hidden></div>' : '';
   var pwInfo = '';
@@ -3391,7 +3395,7 @@ function onDetailClick(e){
     return;
   }
   if (b.hasAttribute('data-rev')) {
-    var k = b.getAttribute('data-rev'), el = $('vDetail').querySelector('[data-v="' + k + '"]'), big = el.classList.contains('big');
+    var k = b.getAttribute('data-rev'), el = $('vDetail').querySelector('[data-v="' + k + '"]'), big = el.classList.contains('bigcode');
     if (el.getAttribute('data-h') === '1') { el.textContent = k === 'number' ? cardFmt(it.f[k]) : it.f[k]; el.setAttribute('data-h', '0'); if (!big) el.className = 'fv mono'; b.innerHTML = ic('eyeoff'); }
     else { el.textContent = maskOf(k, it.f[k], big); el.setAttribute('data-h', '1'); if (!big) el.className = 'fv dim'; b.innerHTML = ic('eye'); }
     return;
@@ -3610,9 +3614,8 @@ function renderSet(){
     '<div class="card"><h3>Sécurité</h3>' +
     '<div class="set"><div class="t"><div>Empreinte digitale</div><div>' + bioTxt + '</div></div><label class="sw"><input type="checkbox" id="rBio"' + (SET.bio ? ' checked' : '') + (!st || !st.hw || st.api < 28 ? ' disabled' : '') + '><span></span></label></div>' +
     '<div class="block" style="border-top:1px solid var(--line);padding-top:12px"><div class="bl">Verrouiller après une inactivité de</div>' + seg('lockMin', [[1, '1 min'], [2, '2 min'], [5, '5 min'], [15, '15 min'], [30, '30 min']]) + '</div>' +
-    '<div class="block"><div class="bl">Quand tu quittes l\'appli</div>' + seg('bg', [[0, 'Tout de suite'], [30, '30 s'], [120, '2 min'], [300, '5 min']]) + '<div class="hint">Le coffre se verrouille si tu reviens après ce délai, ou quand l\'écran s\'éteint.</div></div>' +
-    '<div class="set" style="border-top:1px solid var(--line)"><div class="t"><div>Mot de passe maître</div><div>Le changer ne modifie pas tes fiches</div></div><button class="btn" id="rPw">Changer</button></div>' +
-    '<div class="set"><div class="t"><div>Verrouiller maintenant</div></div><button class="btn" id="rLock">' + ic('lock') + 'Verrouiller</button></div></div>' +
+    '<div class="block"><div class="bl">Quand tu quittes l\'appli</div>' + seg('bg', [[0, 'Aussitôt'], [30, '30 s'], [120, '2 min'], [300, '5 min']]) + '<div class="hint">Le coffre se verrouille si tu reviens après ce délai, ou quand l\'écran s\'éteint.</div></div>' +
+    '<div class="set" style="border-top:1px solid var(--line)"><div class="t"><div>Mot de passe maître</div><div>Le changer ne modifie pas tes fiches</div></div><button class="btn" id="rPw">Changer</button></div></div>' +
     '<div class="card"><h3>Sauvegarde</h3>' +
     '<div class="set"><div class="t"><div>Exporter</div><div>Fichier .coffre chiffré, à garder sur une clé USB ou un autre appareil. Dernier export : ' + (SET.lastExport ? fdate(SET.lastExport) : 'jamais') + '</div></div><button class="btn" id="rExp">' + ic('out') + 'Exporter</button></div>' +
     '<div class="set"><div class="t"><div>Importer</div><div>Fichier .coffre, ou CSV de Chrome ou Bitwarden (colonnes name, url, username, password)</div></div><button class="btn" id="rImp">' + ic('in') + 'Importer</button></div>' +
@@ -3624,7 +3627,6 @@ function renderSet(){
   });
   $('rBio').onchange = function(){ if (this.checked) { this.checked = false; bioEnable(); } else bioDisable(); };
   $('rPw').onclick = changeMaster;
-  $('rLock').onclick = function(){ lock('manual'); };
   $('rExp').onclick = doExport;
   $('rImp').onclick = function(){ pickFile('merge'); };
   $('rBk').onchange = function(){ SET.backup = this.checked; saveSet(); publish(); toast(SET.backup ? 'Copie chiffrée transmise à Sauvegarde' : 'Sauvegarde ne reçoit plus le coffre'); };
