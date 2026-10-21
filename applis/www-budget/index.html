@@ -186,6 +186,8 @@ select.in{appearance:none;-webkit-appearance:none;background-image:url("data:ima
 .pad button.op{color:var(--acc);font-size:22px}
 .pad button.ok{grid-column:span 2;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#10131c;font-size:15px;gap:7px}
 .entry.typing .pad{display:none}
+.noteok{display:none;width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#10131c;align-items:center;justify-content:center;flex:none;margin-right:-6px}
+.entry.typing .noteok{display:flex}
 .shake{animation:shk .35s}
 @keyframes shk{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 
@@ -1196,7 +1198,7 @@ function openEntry(t){
     '<div class="amount"><div class="v num" id="eAmt"></div><div class="eq num" id="eEq"></div></div>' +
     '<div class="escroll"><div id="eCats"></div>' +
     '<div class="meta" id="eMeta"></div>' +
-    '<div class="note">' + ic('edit', 's') + '<input id="eNote" placeholder="Note (facultatif)" maxlength="120" autocomplete="off"></div>' +
+    '<div class="note">' + ic('edit', 's') + '<input id="eNote" placeholder="Note (facultatif)" maxlength="120" autocomplete="off" enterkeyhint="done"><button class="noteok" id="eNoteOk" aria-label="Valider">' + ic('check') + '</button></div>' +
     (t.rec ? '<p class="small" style="margin:10px 4px 0">' + ic('repeat', 's').replace('class="ic s"', 'class="ic s" style="display:inline;vertical-align:-3px"') + ' Créée par une opération récurrente. Les changements ne s\'appliquent qu\'à celle-ci.</p>' : '') +
     '</div>' +
     '<div class="pad" id="ePad">' + ['7','8','9','del','4','5','6','+','1','2','3','−',',','0','ok'].map(function(k){
@@ -1214,6 +1216,8 @@ function openEntry(t){
   E('#eNote').onfocus = function(){ E('#entry').classList.add('typing'); };
   E('#eNote').onblur = function(){ setTimeout(function(){ E('#entry').classList.remove('typing'); }, 120); };
   E('#eNote').onkeydown = function(e){ if(e.key === 'Enter'){ this.blur(); } };
+  E('#eNoteOk').onmousedown = function(e){ e.preventDefault(); };
+  E('#eNoteOk').onclick = function(){ E('#eNote').blur(); E('#entry').classList.remove('typing'); submit(); };
 
   function drawAmt(){
     var shown = st.expr ? st.expr.replace(/([+−])/g, ' $1 ') : '0';

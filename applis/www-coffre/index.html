@@ -3547,7 +3547,7 @@ function renderGen(fresh){
   $('gDict').textContent = 'Mots tirés au hasard parmi ' + WORDS.length + ' mots français courants.';
   $('gNew').innerHTML = ic('refresh') + 'Nouveau'; $('gCopy').innerHTML = ic('copy') + 'Copier';
   if (fresh || !GEN) GEN = generate();
-  var o = $('gOut'); o.innerHTML = '';
+  $('gOut').innerHTML = '<div></div>'; var o = $('gOut').firstChild;
   if (g.mode === 'pw') GEN.pw.split('').forEach(function(c){ var s = document.createElement('span'); s.textContent = c; if (/\d/.test(c)) s.className = 'd'; else if (/[^A-Za-z]/.test(c)) s.className = 's'; o.appendChild(s); });
   else GEN.pw.split(/([^A-Za-z]+)/).forEach(function(p){ var s = document.createElement('span'); s.textContent = p; if (p && /[^A-Za-z]/.test(p)) s.className = /\d/.test(p) && !/[^\d]/.test(p) ? 'd' : 'w'; o.appendChild(s); });
   var b = Math.round(GEN.bits), s = { score: b < 28 ? 0 : b < 40 ? 1 : b < 60 ? 2 : b < 80 ? 3 : 4, bits:b };
