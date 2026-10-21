@@ -83,7 +83,7 @@ main{padding:4px 16px 12px}
 .row .a small{display:block;font-size:11.5px;color:var(--tx3);font-weight:500}
 .ci{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none}
 .ci .ic{width:19px;height:19px}
-.day{display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;color:var(--tx3);margin:16px 4px 6px;text-transform:capitalize}
+.day{display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;color:var(--tx3);margin:16px 4px 6px}
 .day:first-child{margin-top:4px}
 .list{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:2px 14px}
 .empty{color:var(--tx3);font-size:13.5px;text-align:center;padding:22px 10px;line-height:1.5}
@@ -329,6 +329,7 @@ var IC = {
   arrowUp:'M12 19V5M6 11l6-6 6 6',
   arrowDown:'M12 5v14M6 13l6 6 6-6',
   chevron:'m9 6 6 6-6 6',
+  down:'m6 9 6 6 6-6',
   palette:'M12 3a9 9 0 0 0 0 18c1.1 0 1.5-.8 1.5-1.5 0-1.2-1-1.5-1-2.5s.8-1.5 2-1.5H17a4 4 0 0 0 4-4c0-4.7-4-8.5-9-8.5zM7.5 12h.01M9.5 8h.01M14.5 8h.01'
 };
 var CAT_ICONS = ['cart','fork','coffee','bread','home','sofa','shield','bolt','flame','drop','car','fuel','train','wrench','heart','pill','repeat','phone','wifi','play','ticket','dumbbell','bag','shirt','gift','plane','bank','card','book','paw','child','brief','coins','undo','people','tag','jar','cash','target','dots'];
@@ -887,9 +888,9 @@ function renderOps(){
 function renderOpsList(){
   var ch = $('fchips'); if(!ch) return;
   var h = '<button class="chip' + (F.all ? '' : ' on') + '" data-f="m">' + ic('cal', 's') + esc(cap(ymLabel(VIEW_YM, true))) + '</button><button class="chip' + (F.all ? ' on' : '') + '" data-f="all">Tout</button>';
-  h += '<label class="chip' + (F.type ? ' on' : '') + '">' + (F.type ? {dep:'Dépenses', rev:'Revenus', vir:'Virements'}[F.type] : 'Type') + ic('chevron', 's') + '<select data-s="type"><option value="">Tous les types</option>' + opts({dep:'Dépenses', rev:'Revenus', vir:'Virements'}, F.type) + '</select></label>';
-  h += '<label class="chip' + (F.cat ? ' on' : '') + '">' + (F.cat ? esc(catName(F.cat)) : 'Catégorie') + ic('chevron', 's') + '<select data-s="cat"><option value="">Toutes les catégories</option><optgroup label="Dépenses">' + catOptions('dep', F.cat) + '</optgroup><optgroup label="Revenus">' + catOptions('rev', F.cat) + '</optgroup></select></label>';
-  if(D.accounts.length > 1) h += '<label class="chip' + (F.acc ? ' on' : '') + '">' + (F.acc ? esc(accName(F.acc)) : 'Compte') + ic('chevron', 's') + '<select data-s="acc"><option value="">Tous les comptes</option>' + accOptions(F.acc) + '</select></label>';
+  h += '<label class="chip' + (F.type ? ' on' : '') + '">' + (F.type ? {dep:'Dépenses', rev:'Revenus', vir:'Virements'}[F.type] : 'Type') + ic('down', 's') + '<select data-s="type"><option value="">Tous les types</option>' + opts({dep:'Dépenses', rev:'Revenus', vir:'Virements'}, F.type) + '</select></label>';
+  h += '<label class="chip' + (F.cat ? ' on' : '') + '">' + (F.cat ? esc(catName(F.cat)) : 'Catégorie') + ic('down', 's') + '<select data-s="cat"><option value="">Toutes les catégories</option><optgroup label="Dépenses">' + catOptions('dep', F.cat) + '</optgroup><optgroup label="Revenus">' + catOptions('rev', F.cat) + '</optgroup></select></label>';
+  if(D.accounts.length > 1) h += '<label class="chip' + (F.acc ? ' on' : '') + '">' + (F.acc ? esc(accName(F.acc)) : 'Compte') + ic('down', 's') + '<select data-s="acc"><option value="">Tous les comptes</option>' + accOptions(F.acc) + '</select></label>';
   ch.innerHTML = h;
   ch.querySelector('[data-f="m"]').onclick = function(){ F.all = false; renderOpsList(); };
   ch.querySelector('[data-f="all"]').onclick = function(){ F.all = true; renderOpsList(); };
@@ -900,7 +901,7 @@ function renderOpsList(){
   var out = '<div class="sum">' + list.length + ' opération' + (list.length > 1 ? 's' : '') + (dep ? ' · dépenses ' + fmt(dep) : '') + (rev ? ' · revenus ' + fmt(rev) : '') + '</div>';
   if(!list.length) out += '<div class="list"><div class="empty">' + (F.q ? 'Aucun résultat pour « ' + esc(F.q) + ' ».' : 'Aucune opération ' + (F.all ? '' : 'en ' + esc(ymLabel(VIEW_YM))) + '.') + '</div></div>';
   var day = '', buf = '', dn = 0;
-  function flush(){ if(day) out += '<div class="day"><span>' + esc(dayLabel(day)) + '</span><span class="num">' + (dn ? fmt(dn, {sign:1}) : '') + '</span></div><div class="list">' + buf + '</div>'; }
+  function flush(){ if(day) out += '<div class="day"><span>' + esc(cap(dayLabel(day))) + '</span><span class="num">' + (dn ? fmt(dn, {sign:1}) : '') + '</span></div><div class="list">' + buf + '</div>'; }
   list.slice(0, F.limit).forEach(function(t){
     if(t.date !== day){ flush(); day = t.date; buf = ''; dn = 0; }
     buf += txRow(t); if(t.type === 'dep') dn -= t.amount; else if(t.type === 'rev') dn += t.amount;

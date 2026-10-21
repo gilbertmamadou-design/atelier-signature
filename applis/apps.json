@@ -190,5 +190,13 @@
   "name": "Météo",
   "icons": "android-icons-meteo",
   "file": "Meteo.apk"
+ },
+ {
+  "app": "coffre",
+  "web": "www-coffre",
+  "appid": "fr.magformation13.coffre",
+  "name": "Coffre",
+  "icons": "android-icons-coffre",
+  "file": "Coffre.apk"
  }
 ]

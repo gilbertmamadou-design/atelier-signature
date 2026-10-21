@@ -1704,6 +1704,14 @@ if [ "$APP" = "urgence" ]; then
   addactivity '<activity android:name=".UrgenceBridge$Fiche" android:label="Infos médicales" android:exported="false" android:showWhenLocked="true" android:turnScreenOn="true" android:launchMode="singleTask" android:taskAffinity="urgence.fiche" android:excludeFromRecents="true" android:screenOrientation="portrait" android:theme="@android:style/Theme.Material.NoActionBar" />'
   addactivity '<service android:name=".UrgenceBridge$Veille" android:foregroundServiceType="location" android:exported="false" />'
 fi
+if [ "$APP" = "coffre" ]; then
+  addperm USE_BIOMETRIC
+  grep -q 'USE_FINGERPRINT' "$MAN" || addraw '<uses-permission android:name="android.permission.USE_FINGERPRINT" android:maxSdkVersion="28" />'
+  # Le coffre ne part jamais dans une sauvegarde Google
+  sed -i 's/android:allowBackup="true"/android:allowBackup="false"/' "$MAN"
+  grep -q 'android:allowBackup=' "$MAN" || sed -i '0,/<application/s//<application android:allowBackup="false"/' "$MAN"
+  grep -q 'fullBackupContent' "$MAN" || sed -i '0,/<application/s//<application android:fullBackupContent="false"/' "$MAN"
+fi
 if [ "$APP" = "meteo" ]; then
   addperm ACCESS_NETWORK_STATE RECEIVE_BOOT_COMPLETED INTERNET
   addactivity '<service android:name=".MeteoPersoJob" android:permission="android.permission.BIND_JOB_SERVICE" android:exported="false" />'

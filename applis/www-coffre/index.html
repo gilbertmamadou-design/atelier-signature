@@ -3115,7 +3115,7 @@ function dialog(o){
     wrap.querySelector('.scrim').onclick = function(){ if (!o.modal) closeLayers(1); };
     wrap.querySelectorAll('input').forEach(function(i){ i.addEventListener('keydown', function(e){ if (e.key === 'Enter') go(); }); });
     eyes(wrap);
-    var first = wrap.querySelector('input'); if (first) setTimeout(function(){ first.focus(); }, 60);
+    var first = wrap.querySelector('input'); if (first) setTimeout(function(){ if (!wrap.contains(document.activeElement)) first.focus(); }, 60);
     function closeLayersSilently(){ // la fermeture a déjà été faite : on retire seulement l'entrée d'historique
       if (stack.length) { stack.pop(); histBack(1); }
     }
@@ -3493,7 +3493,7 @@ function openEdit(type, id, replace){
     D.items = D.items.filter(function(x){ return x !== it; }); delete otpCache[it.id];
     await persist(); closeLayers(2); renderAll(); toast('Fiche supprimée');
   };
-  if (!it) setTimeout(function(){ var i = pg.querySelector('[data-k=_title]'); if (i) i.focus(); }, 80);
+  if (!it) setTimeout(function(){ var i = pg.querySelector('[data-k=_title]'); if (i && !pg.contains(document.activeElement)) i.focus(); }, 80);
 }
 async function saveEdit(type, it){
   var pg = $('vEdit'), f = {}, m = $('eMsg');
