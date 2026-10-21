@@ -214,5 +214,13 @@
   "name": "Liseuse",
   "icons": "android-icons-liseuse",
   "file": "Liseuse.apk"
+ },
+ {
+  "app": "qr",
+  "web": "www-qr",
+  "appid": "fr.magformation13.qr",
+  "name": "QR",
+  "icons": "android-icons-qr",
+  "file": "QR.apk"
  }
 ]
