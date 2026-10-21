@@ -346,7 +346,7 @@ public class MainActivity extends BridgeActivity {
     private final java.util.List<Object> extraBridges = new java.util.ArrayList<Object>();
     private void loadExtraBridges(WebView wv) {
         String pkg = MainActivity.class.getPackage().getName();
-        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge" }) {
+        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge" }) {
             try {
                 Class<?> k = Class.forName(pkg + "." + n);
                 Object o = k.getConstructor(android.app.Activity.class, WebView.class).newInstance(this, wv);
@@ -1559,7 +1559,7 @@ cp scripts/FileService.java "$FSV"
 sed -i "s/__PKG__/$PKG/" "$FSV"
 # Réveil, lever de soleil et endormissement (application Aube)
 for J in $(ls scripts/*Bridge.java 2>/dev/null | xargs -n1 basename 2>/dev/null | sed 's/\.java$//'); do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
-for J in AlarmService AlarmReceiver WallpaperJob WallpaperTile LauncherService LauncherA11y LauncherMedia WidgetProvider SauvegardeJob PhotoCamera EcranPlayer; do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
+for J in AlarmService AlarmReceiver WallpaperJob WallpaperTile LauncherService LauncherA11y LauncherMedia WidgetProvider SauvegardeJob PhotoCamera EcranPlayer DictaService MeteoPersoJob; do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
 # Bibliothèque des tâches de fond
 G=android/app/build.gradle
 grep -q "androidx.work:work-runtime" "$G" || sed -i '0,/^dependencies {/s//dependencies {\n    implementation "androidx.work:work-runtime:2.9.1"/' "$G"
@@ -1697,6 +1697,41 @@ if [ "$APP" = "ecran" ]; then
   grep -q 'READ_EXTERNAL_STORAGE' "$MAN" || addraw '<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />'
   addraw '<queries><package android:name="com.google.android.youtube" /><package android:name="fr.francetv.pluzz" /><package android:name="tv.arte.plus7" /><package android:name="fr.tf1.mytf1" /><package android:name="fr.m6.m6replay" /><package android:name="com.dotscreen.tv5mondeplus.mobile" /><package android:name="fr.artestudio.arteradio.mobile" /><package android:name="fr.magformation13.ondes" /><package android:name="fr.magformation13.galerie" /><intent><action android:name="android.intent.action.VIEW" /><data android:scheme="market" /></intent><intent><action android:name="android.intent.action.VIEW" /><data android:scheme="https" /></intent><intent><action android:name="android.intent.action.VIEW" /><data android:mimeType="video/*" /></intent></queries>'
   addactivity '<activity android:name=".EcranPlayer" android:label="Écran" android:exported="true" android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" android:screenOrientation="sensorLandscape" android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation|uiMode|density" android:supportsPictureInPicture="true" android:resizeableActivity="true" android:launchMode="singleTask" android:taskAffinity="ecran.lecteur" android:autoRemoveFromRecents="true"><intent-filter android:label="Ouvrir avec Écran"><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.DEFAULT" /><data android:scheme="content" android:mimeType="video/*" /><data android:scheme="file" android:mimeType="video/*" /></intent-filter><intent-filter android:label="Ouvrir avec Écran"><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.DEFAULT" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="http" android:mimeType="video/*" /><data android:scheme="https" android:mimeType="video/*" /><data android:scheme="https" android:mimeType="application/x-mpegURL" /><data android:scheme="https" android:mimeType="application/vnd.apple.mpegurl" /></intent-filter></activity>'
+fi
+if [ "$APP" = "urgence" ]; then
+  addperm SEND_SMS CALL_PHONE VIBRATE WAKE_LOCK USE_FULL_SCREEN_INTENT
+  addraw '<uses-feature android:name="android.hardware.telephony" android:required="false" /><uses-feature android:name="android.hardware.camera.flash" android:required="false" /><queries><intent><action android:name="android.intent.action.SENDTO" /><data android:scheme="smsto" /></intent><intent><action android:name="android.intent.action.DIAL" /><data android:scheme="tel" /></intent><intent><action android:name="android.intent.action.PICK" /><data android:mimeType="vnd.android.cursor.dir/phone_v2" /></intent></queries>'
+  addactivity '<activity android:name=".UrgenceBridge$Fiche" android:label="Infos médicales" android:exported="false" android:showWhenLocked="true" android:turnScreenOn="true" android:launchMode="singleTask" android:taskAffinity="urgence.fiche" android:excludeFromRecents="true" android:screenOrientation="portrait" android:theme="@android:style/Theme.Material.NoActionBar" />'
+  addactivity '<service android:name=".UrgenceBridge$Veille" android:foregroundServiceType="location" android:exported="false" />'
+fi
+if [ "$APP" = "coffre" ]; then
+  addperm USE_BIOMETRIC
+  grep -q 'USE_FINGERPRINT' "$MAN" || addraw '<uses-permission android:name="android.permission.USE_FINGERPRINT" android:maxSdkVersion="28" />'
+  # Le coffre ne part jamais dans une sauvegarde Google
+  sed -i 's/android:allowBackup="true"/android:allowBackup="false"/' "$MAN"
+  grep -q 'android:allowBackup=' "$MAN" || sed -i '0,/<application/s//<application android:allowBackup="false"/' "$MAN"
+  grep -q 'fullBackupContent' "$MAN" || sed -i '0,/<application/s//<application android:fullBackupContent="false"/' "$MAN"
+fi
+if [ "$APP" = "liseuse" ]; then
+  addperm INTERNET
+  addraw '<queries><intent><action android:name="android.intent.action.TTS_SERVICE" /></intent><intent><action android:name="android.intent.action.SEND" /><data android:mimeType="text/plain" /></intent><intent><action android:name="android.intent.action.VIEW" /><data android:scheme="https" /></intent><package android:name="fr.magformation13.fichiers" /><package android:name="fr.magformation13.socle" /></queries>'
+  addfilters '<intent-filter android:label="Ouvrir avec Liseuse"><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.DEFAULT" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="content" /><data android:scheme="file" /><data android:mimeType="application/epub+zip" /><data android:mimeType="application/pdf" /></intent-filter><intent-filter android:label="Ouvrir avec Liseuse"><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.DEFAULT" /><data android:scheme="content" /><data android:scheme="file" /><data android:host="*" /><data android:mimeType="application/octet-stream" /><data android:pathPattern=".*\\.epub" /><data android:pathPattern=".*\\..*\\.epub" /><data android:pathPattern=".*\\..*\\..*\\.epub" /></intent-filter><intent-filter android:label="Liseuse"><action android:name="android.intent.action.SEND" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="application/epub+zip" /><data android:mimeType="application/pdf" /></intent-filter>'
+fi
+if [ "$APP" = "qr" ]; then
+  addperm CAMERA VIBRATE ACCESS_WIFI_STATE CHANGE_WIFI_STATE ACCESS_COARSE_LOCATION ACCESS_FINE_LOCATION
+  grep -q 'WRITE_EXTERNAL_STORAGE' "$MAN" || addraw '<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />'
+  addraw '<uses-feature android:name="android.hardware.camera.any" android:required="false" /><uses-feature android:name="android.hardware.wifi" android:required="false" /><queries><intent><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="https" /></intent><intent><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="http" /></intent><intent><action android:name="android.intent.action.VIEW" /><data android:scheme="geo" /></intent><intent><action android:name="android.intent.action.VIEW" /><data android:scheme="market" /></intent><intent><action android:name="android.intent.action.DIAL" /><data android:scheme="tel" /></intent><intent><action android:name="android.intent.action.SENDTO" /><data android:scheme="mailto" /></intent><intent><action android:name="android.intent.action.SENDTO" /><data android:scheme="smsto" /></intent><intent><action android:name="android.intent.action.INSERT" /><data android:mimeType="vnd.android.cursor.dir/raw_contact" /></intent><intent><action android:name="android.intent.action.INSERT" /><data android:mimeType="vnd.android.cursor.dir/event" /></intent><intent><action android:name="android.intent.action.WEB_SEARCH" /></intent><intent><action android:name="android.settings.WIFI_ADD_NETWORKS" /></intent><intent><action android:name="android.intent.action.SEND" /><data android:mimeType="image/png" /></intent></queries>'
+  addfilters '<intent-filter android:label="Créer un QR code"><action android:name="android.intent.action.SEND" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="text/plain" /></intent-filter>'
+fi
+if [ "$APP" = "meteo" ]; then
+  addperm ACCESS_NETWORK_STATE RECEIVE_BOOT_COMPLETED INTERNET
+  addactivity '<service android:name=".MeteoPersoJob" android:permission="android.permission.BIND_JOB_SERVICE" android:exported="false" />'
+fi
+if [ "$APP" = "dicta" ]; then
+  addperm RECORD_AUDIO FOREGROUND_SERVICE FOREGROUND_SERVICE_MICROPHONE FOREGROUND_SERVICE_MEDIA_PLAYBACK WAKE_LOCK READ_MEDIA_AUDIO
+  grep -q 'READ_EXTERNAL_STORAGE' "$MAN" || addraw '<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" /><uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />'
+  addraw '<uses-feature android:name="android.hardware.microphone" android:required="true" /><queries><package android:name="fr.magformation13.carnet" /><intent><action android:name="android.speech.RecognitionService" /></intent><intent><action android:name="android.intent.action.SEND" /><data android:mimeType="text/plain" /></intent><intent><action android:name="android.intent.action.SEND" /><data android:mimeType="audio/*" /></intent></queries>'
+  addactivity '<service android:name=".DictaService" android:foregroundServiceType="microphone|mediaPlayback" android:exported="false" />'
 fi
 if [ "$APP" = "sauvegarde" ]; then
   sed -i 's#</application>#    <service android:name=".SauvegardeJob" android:permission="android.permission.BIND_JOB_SERVICE" android:exported="false" />\n    </application>#' "$MAN"

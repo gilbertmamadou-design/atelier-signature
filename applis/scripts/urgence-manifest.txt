@@ -1,0 +1,66 @@
+# Urgence : lignes à ajouter à android/app/src/main/AndroidManifest.xml (uniquement pour l'appli Urgence)
+#
+# Classes natives : un seul fichier, scripts/UrgenceBridge.java (déjà copié par la boucle scripts/*Bridge.java,
+# __PKG__ remplacé, chargé sous window.MAGUrgence). Il contient deux classes imbriquées, à déclarer ci-dessous :
+#   UrgenceBridge$Fiche   activité native « Infos médicales » (s'affiche par-dessus l'écran verrouillé)
+#   UrgenceBridge$Veille  service au premier plan, type location (partage de position, détection de chute)
+# Elles sont imbriquées exprès : les autres applis compilent le même fichier sans rien déclarer, sans erreur.
+# Aucun fichier Java supplémentaire à copier.
+#
+# Attention au « $ » si ces lignes sont ajoutées par sed/echo dans print-patch.sh : utiliser des guillemets simples
+# (ou \$ entre guillemets doubles), sinon le shell remplace $Fiche / $Veille par une chaîne vide.
+
+# --- 1) Avant </manifest> : autorisations ---
+    <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.flash" android:required="false" />
+    <queries>
+        <intent><action android:name="android.intent.action.SENDTO" /><data android:scheme="smsto" /></intent>
+        <intent><action android:name="android.intent.action.DIAL" /><data android:scheme="tel" /></intent>
+        <intent><action android:name="android.intent.action.PICK" /><data android:mimeType="vnd.android.cursor.dir/phone_v2" /></intent>
+    </queries>
+# Déjà déclarées pour toutes les applis MAG par print-patch.sh (à garder) :
+#   ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION, POST_NOTIFICATIONS, FOREGROUND_SERVICE, FOREGROUND_SERVICE_LOCATION
+# Pas besoin de READ_CONTACTS : le choix d'un contact passe par ACTION_PICK (accès accordé pour ce seul contact).
+# Pas besoin de CAMERA : la torche (CameraManager.setTorchMode) n'en a pas besoin.
+
+# --- 2) Avant </application> ---
+        <activity android:name=".UrgenceBridge$Fiche"
+            android:label="Infos médicales"
+            android:exported="false"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:launchMode="singleTask"
+            android:taskAffinity="urgence.fiche"
+            android:excludeFromRecents="true"
+            android:screenOrientation="portrait"
+            android:theme="@android:style/Theme.Material.NoActionBar" />
+        <service android:name=".UrgenceBridge$Veille"
+            android:foregroundServiceType="location"
+            android:exported="false" />
+
+# Version une ligne (pour addactivity / sed) :
+#   <activity android:name=".UrgenceBridge$Fiche" android:label="Infos médicales" android:exported="false" android:showWhenLocked="true" android:turnScreenOn="true" android:launchMode="singleTask" android:taskAffinity="urgence.fiche" android:excludeFromRecents="true" android:screenOrientation="portrait" android:theme="@android:style/Theme.Material.NoActionBar" />
+#   <service android:name=".UrgenceBridge$Veille" android:foregroundServiceType="location" android:exported="false" />
+
+# --- 3) Rien à ajouter sur MainActivity ---
+# - Le raccourci « SOS » (raccourcis dynamiques, appui long sur l'icône) ouvre MainActivity avec l'extra socle {"sos":1},
+#   déjà transmis à window.onSocle par MainActivity : la page montre le bouton SOS, sans rien envoyer.
+# - Le raccourci « Infos médicales » et la notification permanente ouvrent UrgenceBridge$Fiche.
+#
+# Remarques
+# - android:showWhenLocked dans le manifeste est indispensable : c'est lui qui permet à l'interface système d'ouvrir
+#   la fiche depuis une notification de l'écran verrouillé SANS demander le déverrouillage (setShowWhenLocked en code
+#   seul ne suffit pas pour ce cas). Seule la fiche est visible : le reste de l'appli reste protégé par le code.
+# - SEND_SMS est une autorisation « restreinte » : sur Android 13 et plus, pour un APK installé hors Play Store,
+#   la boîte de dialogue peut ne pas apparaître (refus immédiat). L'appli détecte ce cas (état « blocked ») et guide :
+#   Infos de l'appli > menu ⋮ > Autoriser les paramètres restreints > Autorisations > SMS > Autoriser.
+#   Sans elle, le SOS ouvre l'appli SMS avec le message et tous les destinataires (smsto:a;b) : un appui sur Envoyer.
+# - Si on retire la ligne SEND_SMS, tout fonctionne en mode « appli SMS » (état « undeclared »), mais le partage
+#   de position en continu et l'envoi automatique après une chute sont alors impossibles (désactivés dans la page).
+# - USE_FULL_SCREEN_INTENT : sur Android 14+, peut être refusée par défaut ; la page propose d'ouvrir le réglage
+#   (alarme de chute en plein écran sur le téléphone verrouillé). Sinon, notification prioritaire classique.

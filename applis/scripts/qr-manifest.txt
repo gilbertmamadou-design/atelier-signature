@@ -1,0 +1,46 @@
+<!-- QR : lignes à insérer dans android/app/src/main/AndroidManifest.xml -->
+
+<!-- 1) Dans <manifest>, avant <application> -->
+<uses-feature android:name="android.hardware.camera.any" android:required="false" />
+<uses-feature android:name="android.hardware.wifi" android:required="false" />
+<!-- Aperçu de la caméra (getUserMedia dans la WebView) -->
+<uses-permission android:name="android.permission.CAMERA" />
+<!-- Vibration à la lecture (MAGQr.vibrate et navigator.vibrate) -->
+<uses-permission android:name="android.permission.VIBRATE" />
+<!-- Se connecter à un réseau Wi-Fi lu dans un QR code (suggestion Android 10, ajout direct Android 9 et avant) -->
+<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+<uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+<!-- Bouton « Ma position » du QR code de position (facultatif) -->
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<!-- Enregistrer le PNG dans Images/QR sur Android 9 et avant -->
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+
+<!-- Android 11+ : applis que QR peut ouvrir (liens, contacts, agenda, e-mail, SMS, téléphone, cartes, recherche) -->
+<queries>
+    <intent><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="https" /></intent>
+    <intent><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="http" /></intent>
+    <intent><action android:name="android.intent.action.VIEW" /><data android:scheme="geo" /></intent>
+    <intent><action android:name="android.intent.action.VIEW" /><data android:scheme="market" /></intent>
+    <intent><action android:name="android.intent.action.DIAL" /><data android:scheme="tel" /></intent>
+    <intent><action android:name="android.intent.action.SENDTO" /><data android:scheme="mailto" /></intent>
+    <intent><action android:name="android.intent.action.SENDTO" /><data android:scheme="smsto" /></intent>
+    <intent><action android:name="android.intent.action.INSERT" /><data android:mimeType="vnd.android.cursor.dir/raw_contact" /></intent>
+    <intent><action android:name="android.intent.action.INSERT" /><data android:mimeType="vnd.android.cursor.dir/event" /></intent>
+    <intent><action android:name="android.intent.action.WEB_SEARCH" /></intent>
+    <intent><action android:name="android.settings.WIFI_ADD_NETWORKS" /></intent>
+    <intent><action android:name="android.intent.action.SEND" /><data android:mimeType="image/png" /></intent>
+</queries>
+
+<!-- 2) Dans <application>, sur l'activité MainActivity existante (à côté de son intent-filter MAIN/LAUNCHER) :
+        « Partager vers QR » depuis une autre appli (lien ou texte) -->
+<intent-filter android:label="Créer un QR code">
+    <action android:name="android.intent.action.SEND" />
+    <category android:name="android.intent.category.DEFAULT" />
+    <data android:mimeType="text/plain" />
+</intent-filter>
+
+<!-- Rien d'autre à déclarer :
+     - le FileProvider ${applicationId}.fileprovider (partage du PNG) est déjà ajouté par scripts/print-patch.sh ;
+     - MainActivity est en launchMode singleTask (Capacitor) : un partage reçu appli ouverte passe par onNewIntent → QrBridge.onIntent ;
+     - codes de requête utilisés : 6001 (Wi-Fi), 6002 (contact), 6003 (agenda). -->

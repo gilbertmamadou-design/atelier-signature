@@ -1,0 +1,1174 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Urgence</title>
+<meta name="theme-color" content="#0f1116">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#0f1116;--bg2:#181b23;--bg3:#222632;--bg4:#2c3140;--line:#ffffff14;
+  --tx:#f2f3f7;--tx2:#b4b8c7;--tx3:#7d8294;
+  --acc:#8fb4ff;--acc2:#b79bff;--ok:#6fd6a4;--bad:#ff7b7b;--warn:#ffb35c;
+  --sos:#ff4d4d;--sos2:#c81e1e;
+  --r:18px;--safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none}
+body{-webkit-user-select:none;user-select:none}
+input,textarea,select{font:inherit;color:inherit;-webkit-user-select:text;user-select:text}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+svg{display:block}
+.ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+[hidden]{display:none!important}
+
+header{padding:calc(14px + var(--safe-t)) 16px 6px;display:flex;align-items:center;gap:10px}
+.logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:22px}
+.logo svg{width:32px;height:32px}
+header .sp{flex:1}
+.pill{font-size:13px;color:var(--tx2);background:var(--bg2);border:1px solid var(--line);padding:8px 12px;border-radius:99px;display:flex;align-items:center;gap:7px;font-weight:600}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--warn);flex:none}
+.dot.on{background:var(--ok)}
+main{padding:2px 16px calc(28px + var(--safe-b))}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.card h3{margin:0 0 12px;font-size:12.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--tx3);font-weight:700}
+.wcard{background:#ffb35c1a;border-color:#ffb35c40;color:#ffd7a8;font-size:14px}
+.note{font-size:13px;color:var(--tx3);line-height:1.45;margin:10px 2px 0}
+
+/* Bouton SOS */
+.hero{padding:10px 0 14px;text-align:center}
+.sosw{position:relative;width:min(66vw,250px);aspect-ratio:1;margin:0 auto}
+.sosw svg.ring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);pointer-events:none}
+.ring circle{fill:none;stroke-width:7}
+.ring .tr{stroke:#ff4d4d22}
+.ring .pg{stroke:#fff;stroke-linecap:round;transition:none}
+.sos{position:absolute;inset:16px;border-radius:50%;background:radial-gradient(circle at 34% 28%,#ff8a7e,#ec3b32 52%,#a8151b);box-shadow:0 16px 44px #e0302a59,inset 0 -8px 18px #0000004d,inset 0 2px 0 #ffffff40;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;touch-action:none}
+.sos b{font-size:58px;letter-spacing:3px;font-weight:900;line-height:1}
+.sos span{font-size:13px;font-weight:600;opacity:.92}
+.sos.press{transform:scale(.97)}
+.sos.pulse{animation:pu 1.2s ease-in-out infinite}
+@keyframes pu{50%{box-shadow:0 0 0 18px #ff4d4d33,0 16px 44px #e0302a59}}
+.hint{margin-top:12px;font-size:14px;color:var(--tx2);min-height:20px}
+.hint b{color:var(--tx)}
+.to{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:6px 10px;border-radius:99px;background:var(--bg2);border:1px solid var(--line);color:var(--tx2)}
+.chip .ic{width:16px;height:16px}
+.chip.ok{color:var(--ok);border-color:#6fd6a440}
+.chip.warn{color:var(--warn);border-color:#ffb35c40}
+.chip.bad{color:var(--bad);border-color:#ff7b7b40}
+
+/* Appels rapides */
+.quick{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:8px;margin-bottom:12px}
+.qb{background:var(--bg2);border:1px solid var(--line);border-radius:16px;min-height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+.qb b{font-size:24px;font-weight:800;line-height:1.05}
+.qb span{font-size:12px;color:var(--tx3);font-weight:600}
+.qb.r{background:#ff4d4d1a;border-color:#ff4d4d55}
+.qb.r b{color:#ff8a80}
+.qb:active,.tool:active{transform:scale(.97)}
+
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.tool{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:14px;text-align:left;display:flex;flex-direction:column;gap:10px;min-height:108px}
+.tool .ico{width:42px;height:42px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:#8fb4ff1f;color:var(--acc)}
+.tool .ico.r{background:#ff4d4d1f;color:#ff8a80}
+.tool .ico.y{background:#ffb35c1f;color:var(--warn)}
+.tool .ico.g{background:#6fd6a41f;color:var(--ok)}
+.tool b{font-size:15.5px;font-weight:700;display:block}
+.tool span{font-size:12.5px;color:var(--tx3);display:block;margin-top:1px;line-height:1.3}
+.tool span.on{color:var(--ok)}
+
+/* Écrans */
+.scr{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;z-index:10}
+.tb{display:flex;align-items:center;gap:6px;padding:calc(8px + var(--safe-t)) 8px 4px;flex:none}
+.tb h2{flex:1;margin:0;font-size:19px;font-weight:700;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{width:50px;height:50px;border-radius:15px;display:flex;align-items:center;justify-content:center;flex:none}
+.ib:active{background:var(--bg3)}
+.bd{flex:1;overflow-y:auto;overflow-x:hidden;padding:4px 16px calc(24px + var(--safe-b))}
+.row{display:flex;gap:8px;margin-top:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:54px;padding:10px 12px;border-radius:15px;background:var(--bg3);border:1px solid var(--line);font-weight:700;font-size:15.5px;flex:1;min-width:0;text-align:center;line-height:1.2}
+.btn:active{transform:scale(.97)}
+.btn.main{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#10131c;border:0}
+.btn.red{background:linear-gradient(135deg,#ff5a4f,#d42a22);color:#fff;border:0}
+.btn.sm{min-height:44px;font-size:14px;padding:8px 10px}
+.btn[disabled]{opacity:.45}
+.seg{display:flex;background:var(--bg3);border-radius:14px;padding:4px;gap:4px;flex-wrap:wrap}
+.seg button{flex:1 0 auto;min-height:44px;padding:6px 8px;border-radius:11px;font-size:14px;font-weight:700;color:var(--tx2);text-align:center;line-height:1.15}
+.seg button.on{background:var(--bg4);color:var(--tx);box-shadow:0 0 0 1px #ffffff2a inset}
+.set{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+.set:first-of-type{border-top:0;padding-top:2px}
+.set .t{flex:1;min-width:0}
+.set .t div:first-child{font-weight:600}
+.set .t div+div{font-size:12.5px;color:var(--tx3);margin-top:2px}
+.sw{position:relative;width:50px;height:30px;flex:none}
+.sw input{opacity:0;position:absolute;inset:0;margin:0;z-index:1}
+.sw span{position:absolute;inset:0;border-radius:99px;background:var(--bg4);transition:.2s}
+.sw span:after{content:"";position:absolute;left:3px;top:3px;width:24px;height:24px;border-radius:50%;background:#cfd3df;transition:.2s}
+.sw input:checked+span{background:var(--ok)}
+.sw input:checked+span:after{transform:translateX(20px);background:#fff}
+.lab{font-weight:600;margin:12px 0 8px}
+.state{display:flex;gap:12px;align-items:flex-start;font-size:14px;line-height:1.45;color:var(--tx2)}
+.state .ico{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:none;background:var(--bg3)}
+.state.ok .ico{background:#6fd6a41f;color:var(--ok)}
+.state.warn .ico{background:#ffb35c1f;color:var(--warn)}
+.state.bad .ico{background:#ff7b7b1f;color:var(--bad)}
+.state b{color:var(--tx);display:block;font-size:15px;margin-bottom:2px}
+ol.steps{margin:8px 0 0;padding-left:20px;color:var(--tx2);font-size:14px;line-height:1.5}
+
+/* Compte à rebours */
+#s-count{background:radial-gradient(circle at 50% 30%,#d8342b,#8e1116 75%);color:#fff;align-items:center;justify-content:space-between;padding:calc(26px + var(--safe-t)) 20px calc(22px + var(--safe-b));text-align:center}
+#s-count .ttl{font-size:21px;font-weight:800;letter-spacing:.3px}
+#s-count .sub{font-size:15px;opacity:.9;margin-top:6px;line-height:1.4}
+.cd{position:relative;width:min(62vw,230px);aspect-ratio:1}
+.cd svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.cd circle{fill:none;stroke-width:9}
+.cd .tr{stroke:#ffffff2e}
+.cd .pg{stroke:#fff;stroke-linecap:round;transition:stroke-dashoffset 1s linear}
+.cd b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:110px;font-weight:900;font-variant-numeric:tabular-nums}
+.cdinfo{font-size:14.5px;line-height:1.55;background:#00000026;border-radius:14px;padding:10px 14px;width:100%;max-width:420px}
+.cdinfo div{display:flex;gap:8px;align-items:center;justify-content:center}
+.cdinfo .ic{width:18px;height:18px}
+.cancel{width:100%;max-width:420px;min-height:86px;border-radius:22px;background:#fff;color:#a3161a;font-size:26px;font-weight:900;letter-spacing:.5px;box-shadow:0 10px 30px #0005}
+.now{margin-top:12px;font-size:15px;font-weight:700;color:#fff;opacity:.85;padding:10px 16px;text-decoration:underline}
+
+/* Résultat */
+.res{border-radius:var(--r);padding:16px;margin-bottom:12px;display:flex;gap:12px;align-items:center}
+.res .ico{width:48px;height:48px;border-radius:15px;display:flex;align-items:center;justify-content:center;flex:none}
+.res .ico .ic{width:26px;height:26px}
+.res b{font-size:18px;display:block}
+.res span{font-size:14px;color:var(--tx2);display:block;margin-top:2px;line-height:1.4}
+.res.ok{background:#6fd6a41a;border:1px solid #6fd6a440}.res.ok .ico{background:#6fd6a42e;color:var(--ok)}
+.res.warn{background:#ffb35c1a;border:1px solid #ffb35c40}.res.warn .ico{background:#ffb35c2e;color:var(--warn)}
+.res.bad{background:#ff7b7b1a;border:1px solid #ff7b7b40}.res.bad .ico{background:#ff7b7b2e;color:var(--bad)}
+.res.wait{background:var(--bg2);border:1px solid var(--line)}.res.wait .ico{background:var(--bg3);color:var(--acc)}
+.who{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.who:first-of-type{border-top:0;padding-top:0}
+.who .t{flex:1;min-width:0}
+.who .t b{display:block;font-size:15.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.who .t span{font-size:13px;color:var(--tx3)}
+.st{font-size:13px;font-weight:700;display:flex;align-items:center;gap:5px;flex:none}
+.st.ok{color:var(--ok)}.st.bad{color:var(--bad)}.st.wait{color:var(--tx3)}
+.msg{background:var(--bg3);border-radius:12px;padding:12px;font-size:14px;line-height:1.45;color:var(--tx2);word-break:break-word;-webkit-user-select:text;user-select:text}
+.spin{width:16px;height:16px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .8s linear infinite;flex:none}
+.res .spin{width:24px;height:24px;border-width:3px}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* Numéros */
+.num{display:flex;align-items:center;gap:14px;width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px 12px 12px;margin-bottom:10px;text-align:left}
+.num:active{transform:scale(.98);background:var(--bg3)}
+.num .n{min-width:78px;height:62px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;flex:none;padding:0 8px}
+.num .n.s{font-size:15px;line-height:1.15;text-align:center;min-width:78px}
+.num .t{flex:1;min-width:0}
+.num .t b{display:block;font-size:16.5px}
+.num .t span{display:block;font-size:13px;color:var(--tx3);line-height:1.35;margin-top:2px}
+.num .go{color:var(--tx3)}
+.c-red{background:#ff4d4d24;color:#ff8a80}
+.c-blue{background:#8fb4ff24;color:var(--acc)}
+.c-org{background:#ffb35c24;color:var(--warn)}
+.c-vio{background:#b79bff24;color:var(--acc2)}
+.c-grn{background:#6fd6a424;color:var(--ok)}
+.c-cyan{background:#5fd4e624;color:#7fe0ee}
+.num.big{border-color:#ff4d4d55;background:#ff4d4d12}
+.num.big .n{min-width:96px;height:76px;font-size:40px;background:linear-gradient(135deg,#ff5a4f,#d42a22);color:#fff}
+.rf{display:flex;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.rf:first-of-type{border-top:0;padding-top:0}
+.rf .k{width:34px;height:34px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-weight:800;flex:none;color:var(--acc)}
+.rf b{display:block;font-size:15.5px}
+.rf span{display:block;font-size:14px;color:var(--tx2);line-height:1.45;margin-top:2px}
+.where{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:.3px;-webkit-user-select:text;user-select:text}
+.where+div{font-size:13.5px;color:var(--tx3);margin-top:3px}
+
+/* Contacts */
+.ct{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+.ct:first-child{border-top:0;padding-top:0}
+.av{width:44px;height:44px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:var(--acc);flex:none}
+.ct .t{flex:1;min-width:0}
+.ct .t b{display:block;font-size:15.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ct .t span{font-size:13.5px;color:var(--tx3);font-variant-numeric:tabular-nums}
+.ct.off .av,.ct.off .t{opacity:.45}
+.x{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--tx3);flex:none}
+.x:active{background:var(--bg3)}
+.empty{color:var(--tx3);font-size:14px;text-align:center;padding:10px 6px 4px;line-height:1.5}
+
+/* Fiche */
+.fv{background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin-bottom:8px}
+.fv small{display:block;font-size:12px;letter-spacing:.5px;text-transform:uppercase;color:var(--tx3);font-weight:700}
+.fv div{font-size:17px;font-weight:600;margin-top:3px;white-space:pre-wrap;word-break:break-word}
+.fv.sg div{font-size:30px;font-weight:900;color:#ff8a80}
+.fname{font-size:26px;font-weight:800;margin:4px 2px 0}
+.fsub{font-size:15px;color:var(--tx2);margin:2px 2px 12px}
+.fld{margin-bottom:12px}
+.fld label{display:block;font-weight:600;font-size:14px;margin:0 2px 6px;color:var(--tx2)}
+.in{width:100%;min-height:50px;background:var(--bg3);border:1px solid var(--line);border-radius:13px;padding:12px;font-size:16px;outline:0}
+.in:focus{border-color:#8fb4ff88}
+textarea.in{min-height:76px;resize:vertical;line-height:1.4}
+.inrow{display:flex;gap:8px}
+.inrow .in{flex:1;min-width:0}
+.inrow .btn{flex:none;min-height:50px;width:54px;padding:0}
+.blood{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.blood button{min-height:46px;border-radius:12px;background:var(--bg3);border:1px solid var(--line);font-weight:800;font-size:16px;color:var(--tx2)}
+.blood button.on{background:#ff4d4d2e;border-color:#ff4d4d88;color:#fff}
+.blood button.w{grid-column:span 4;font-size:14px;font-weight:700}
+
+/* Fiche plein écran (lisible en plein soleil) */
+#s-full{background:#fff;color:#111;z-index:30}
+#s-full .hd{background:#b3141b;color:#fff;padding:calc(16px + var(--safe-t)) 18px 14px}
+#s-full .hd b{font-size:22px;display:block;letter-spacing:.4px}
+#s-full .hd span{font-size:14px;opacity:.9}
+#s-full .bd{padding:6px 18px calc(20px + var(--safe-b))}
+.fl{padding:12px 0;border-bottom:2px solid #eee}
+.fl small{display:block;font-size:13px;font-weight:800;text-transform:uppercase;color:#a3161a;letter-spacing:.5px}
+.fl div{font-size:24px;font-weight:700;line-height:1.25;white-space:pre-wrap;word-break:break-word;margin-top:2px}
+.fl.big div{font-size:44px;font-weight:900}
+.fl.nm div{font-size:32px;font-weight:900}
+#s-full .close{display:block;width:100%;margin-top:18px;min-height:60px;border-radius:16px;background:#111;color:#fff;font-weight:800;font-size:18px}
+
+/* Lampe */
+.lamps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.lp{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:14px;min-height:124px;display:flex;flex-direction:column;justify-content:space-between;text-align:left;gap:10px}
+.lp .ico{width:46px;height:46px;border-radius:14px;background:var(--bg3);display:flex;align-items:center;justify-content:center}
+.lp b{font-size:16px;display:block}
+.lp span{font-size:12.5px;color:var(--tx3);display:block;margin-top:1px}
+.lp.on{background:#ffe14d;color:#1a1600;border-color:transparent}
+.lp.on .ico{background:#0000001a}
+.lp.on span{color:#3d3500}
+.lp.w2{grid-column:span 2;flex-direction:row;align-items:center;min-height:84px;justify-content:flex-start}
+.lp.siren.on{background:#ff4d4d;color:#fff}
+.lp.siren.on span{color:#ffe0dd}
+.stopall{width:100%}
+#s-flash{z-index:40;background:#d50000;align-items:center;justify-content:flex-end;padding-bottom:calc(30px + var(--safe-b))}
+#s-flash.w{background:#fff}
+#s-flash div{font-size:15px;font-weight:700;padding:10px 18px;border-radius:99px;background:#0000004d;color:#fff}
+
+/* Feuille */
+#veil{position:fixed;inset:0;background:#0009;z-index:50;opacity:0;transition:opacity .2s}
+#veil.on{opacity:1}
+#sheet{position:fixed;left:0;right:0;bottom:0;z-index:51;background:var(--bg2);border-radius:22px 22px 0 0;padding:18px 16px calc(18px + var(--safe-b));transform:translateY(105%);transition:transform .22s;max-height:88vh;overflow-y:auto;border-top:1px solid var(--line)}
+#sheet.on{transform:none}
+#sheet h2{margin:0 0 10px;font-size:19px}
+#sheet p{margin:0 0 10px;color:var(--tx2);font-size:14.5px;line-height:1.5}
+#toast{position:fixed;left:16px;right:16px;bottom:calc(18px + var(--safe-b));background:#2b3042;border:1px solid #ffffff1f;color:var(--tx);padding:12px 14px;border-radius:14px;font-size:14px;box-shadow:0 10px 30px #0008;transform:translateY(160%);transition:transform .25s;z-index:60}
+#toast.on{transform:none}
+#toast.bad{border-color:#ff7b7b66}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff6b5f"/><stop offset="1" stop-color="#c81e1e"/></linearGradient></defs><rect x="2" y="2" width="28" height="28" rx="8" fill="url(#lg)"/><circle cx="16" cy="16" r="2.6" fill="#fff"/><path d="M11.5 11.5a6.4 6.4 0 0 0 0 9M20.5 11.5a6.4 6.4 0 0 1 0 9M8.3 8.3a10.9 10.9 0 0 0 0 15.4M23.7 8.3a10.9 10.9 0 0 1 0 15.4" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>
+    Urgence
+  </div>
+  <div class="sp"></div>
+  <div class="pill"><span class="dot" id="rdyDot"></span><span id="rdyTxt">À configurer</span></div>
+</header>
+
+<main>
+  <div class="card wcard" id="noBridge" hidden>Cette page fonctionne dans l'application Android <b>Urgence</b> : c'est elle qui envoie les SMS, lit ta position et allume la torche.</div>
+
+  <section class="hero">
+    <div class="sosw">
+      <svg class="ring" viewBox="0 0 100 100"><circle class="tr" cx="50" cy="50" r="46"/><circle class="pg" id="ringPg" cx="50" cy="50" r="46" stroke-dasharray="289" stroke-dashoffset="289"/></svg>
+      <button class="sos" id="sos" aria-label="SOS : appui long 2 secondes ou trois appuis"><b>SOS</b><span>Appui long 2 s</span><span>ou 3 appuis</span></button>
+    </div>
+    <div class="hint" id="hint">Alerte tes contacts avec ta position</div>
+    <div class="to" id="sosTo"></div>
+  </section>
+
+  <div class="quick">
+    <button class="qb r" data-call="112"><b>112</b><span>Urgences</span></button>
+    <button class="qb" data-call="15"><b>15</b><span>SAMU</span></button>
+    <button class="qb" data-call="18"><b>18</b><span>Pompiers</span></button>
+  </div>
+
+  <div class="grid" id="tools"></div>
+  <p class="note" style="text-align:center">Appel, SMS et position fonctionnent sans Internet. Pense à garder le téléphone chargé sur le chantier.</p>
+</main>
+
+<!-- Compte à rebours -->
+<div class="scr" id="s-count" hidden>
+  <div>
+    <div class="ttl">Alerte SOS dans</div>
+    <div class="sub" id="cdTo"></div>
+  </div>
+  <div class="cd"><svg viewBox="0 0 100 100"><circle class="tr" cx="50" cy="50" r="44"/><circle class="pg" id="cdPg" cx="50" cy="50" r="44" stroke-dasharray="276.5" stroke-dashoffset="0"/></svg><b id="cdN">5</b></div>
+  <div class="cdinfo"><div id="cdLoc"></div><div id="cdBat"></div></div>
+  <div style="width:100%;display:flex;flex-direction:column;align-items:center">
+    <button class="cancel" id="cdCancel">ANNULER</button>
+    <button class="now" id="cdNow">Envoyer tout de suite</button>
+  </div>
+</div>
+
+<!-- Résultat de l'alerte -->
+<div class="scr" id="s-res" hidden>
+  <div class="tb"><button class="ib" data-back><svg class="ic" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><h2>Alerte SOS</h2></div>
+  <div class="bd" id="resBd"></div>
+</div>
+
+<!-- Numéros d'urgence -->
+<div class="scr" id="s-nums" hidden>
+  <div class="tb"><button class="ib" data-back><svg class="ic" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><h2>Numéros d'urgence</h2></div>
+  <div class="bd">
+    <div id="numList"></div>
+    <section class="card" style="margin-top:4px">
+      <h3>Où suis-je ?</h3>
+      <div class="where" id="whereC">Recherche…</div>
+      <div id="whereA">À lire aux secours si on te demande ta position.</div>
+      <div class="row"><button class="btn sm" id="whereCopy"><svg class="ic" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>Copier</button><button class="btn sm" id="whereSay"><svg class="ic" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>Écouter</button></div>
+    </section>
+    <section class="card">
+      <h3>Les bons réflexes</h3>
+      <div class="rf"><div class="k">1</div><div><b>Protéger</b><span>Écarte le danger sans te mettre en danger : coupe le courant ou la machine, balise la zone, ne déplace la victime que si le danger est immédiat.</span></div></div>
+      <div class="rf"><div class="k">2</div><div><b>Alerter</b><span>Appelle le 15, le 18 ou le 112. Dis qui tu es, où tu es (adresse, accès au chantier), ce qui s'est passé, combien de victimes et leur état. Ne raccroche pas le premier.</span></div></div>
+      <div class="rf"><div class="k">3</div><div><b>Secourir</b><span>Fais les gestes que tu connais (comprimer un saignement, position latérale de sécurité, massage cardiaque et défibrillateur), reste avec la victime jusqu'à l'arrivée des secours.</span></div></div>
+    </section>
+  </div>
+</div>
+
+<!-- Fiche médicale -->
+<div class="scr" id="s-fiche" hidden>
+  <div class="tb"><button class="ib" data-back><svg class="ic" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><h2>Fiche médicale</h2><button class="ib" id="fEditB" aria-label="Modifier"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></button></div>
+  <div class="bd">
+    <div id="fView"></div>
+    <div id="fEdit" hidden></div>
+  </div>
+</div>
+
+<div class="scr" id="s-full" hidden>
+  <div class="hd"><b>INFORMATIONS MÉDICALES</b><span>Medical information · Información médica</span></div>
+  <div class="bd" id="fullBd"></div>
+</div>
+
+<!-- Lampe et sirène -->
+<div class="scr" id="s-lamp" hidden>
+  <div class="tb"><button class="ib" data-back><svg class="ic" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><h2>Lampe et sirène</h2></div>
+  <div class="bd">
+    <div class="lamps">
+      <button class="lp" data-lamp="sos"><div class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M8 3h8v4l-2 3v11h-4V10L8 7z"/><path d="M12 13v2"/></svg></div><div><b>SOS lumineux</b><span>Torche en morse, visible de loin</span></div></button>
+      <button class="lp" data-lamp="on"><div class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M8 3h8v4l-2 3v11h-4V10L8 7z"/><path d="M8 7h8"/></svg></div><div><b>Torche</b><span>Lumière fixe</span></div></button>
+      <button class="lp" data-lamp="strobe"><div class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M13 2 5 14h6l-1 8 8-12h-6z"/></svg></div><div><b>Stroboscope</b><span>Éclairs rapides, pour être vu de loin</span></div></button>
+      <button class="lp" data-flash="1"><div class="ico"><svg class="ic" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg></div><div><b>Écran clignotant</b><span>Rouge et blanc en rythme SOS</span></div></button>
+      <button class="lp w2 siren" id="sirenB"><div class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M6 18v-5a6 6 0 0 1 12 0v5"/><path d="M4 18h16v3H4z"/><path d="M12 3v2M4.6 6.1l1.4 1.4M19.4 6.1 18 7.5M12 11v4"/></svg></div><div><b>Sirène</b><span>Volume d'alarme au maximum</span></div></button>
+    </div>
+    <button class="btn stopall" id="stopAll"><svg class="ic" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>Tout arrêter</button>
+    <p class="note" id="lampNote">La torche et la sirène continuent si tu verrouilles l'écran. Le signal SOS en morse (trois courts, trois longs, trois courts) est compris dans le monde entier.</p>
+  </div>
+</div>
+<div class="scr" id="s-flash" hidden><div>Touche l'écran pour arrêter</div></div>
+
+<!-- Contacts -->
+<div class="scr" id="s-contacts" hidden>
+  <div class="tb"><button class="ib" data-back><svg class="ic" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><h2>Contacts d'urgence</h2></div>
+  <div class="bd">
+    <section class="card">
+      <h3>Prévenus par le SOS</h3>
+      <div id="ctList"></div>
+      <div class="row"><button class="btn sm" id="ctPick"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>Du carnet</button><button class="btn sm" id="ctAdd"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>À la main</button></div>
+    </section>
+    <section class="card">
+      <h3>Envoi des SMS</h3>
+      <div id="smsState"></div>
+      <div class="row"><button class="btn sm" id="ctTest"><svg class="ic" viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-2-7z"/><path d="M12 13l8-9"/></svg>Tester l'envoi</button></div>
+    </section>
+    <section class="card">
+      <h3>Après l'envoi du SOS</h3>
+      <div class="seg" id="autoCall"><button data-v="none">Ne pas appeler</button><button data-v="first">Appeler le 1er contact</button><button data-v="112">Appeler le 112</button></div>
+      <div class="note" id="callNote"></div>
+      <div class="lab">Ajouté à la fin du message</div>
+      <textarea class="in" id="extra" maxlength="160" placeholder="Ex. : Chantier 12 rue des Lilas, accès par le portail gris"></textarea>
+    </section>
+  </div>
+</div>
+
+<!-- Partage de position -->
+<div class="scr" id="s-track" hidden>
+  <div class="tb"><button class="ib" data-back><svg class="ic" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><h2>Partage de position</h2></div>
+  <div class="bd">
+    <section class="card">
+      <div id="trState"></div>
+    </section>
+    <section class="card" id="trCfg">
+      <h3>Envoyer ma position</h3>
+      <div class="lab" style="margin-top:0">Toutes les</div>
+      <div class="seg" id="trEvery"><button data-v="5">5 min</button><button data-v="10">10 min</button><button data-v="15">15 min</button><button data-v="30">30 min</button></div>
+      <div class="lab">Pendant</div>
+      <div class="seg" id="trDur"><button data-v="30">30 min</button><button data-v="60">1 h</button><button data-v="120">2 h</button><button data-v="240">4 h</button><button data-v="480">8 h</button></div>
+      <div class="row"><button class="btn main" id="trGo"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M8.5 15.5a5 5 0 0 1 0-7M15.5 8.5a5 5 0 0 1 0 7M5.6 18.4a9 9 0 0 1 0-12.8M18.4 5.6a9 9 0 0 1 0 12.8"/></svg>Démarrer le partage</button></div>
+      <p class="note">Par SMS aux contacts cochés, même écran éteint. Utile pour un travail isolé, une randonnée ou un trajet de nuit. Une notification permet de l'arrêter.</p>
+    </section>
+  </div>
+</div>
+
+<!-- Détection de chute -->
+<div class="scr" id="s-fall" hidden>
+  <div class="tb"><button class="ib" data-back><svg class="ic" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><h2>Détection de chute</h2></div>
+  <div class="bd">
+    <section class="card">
+      <div class="set"><div class="t"><div>Surveiller les chutes</div><div id="fallSub">Désactivée</div></div><label class="sw"><input type="checkbox" id="fallSw"><span></span></label></div>
+      <div id="fallWarn"></div>
+      <div class="row"><button class="btn sm" id="fallTest" disabled>Faire un essai (10 s, sans envoi)</button></div>
+    </section>
+    <section class="card">
+      <h3>Comment ça marche</h3>
+      <div class="rf"><div class="k">1</div><div><b>Chute puis choc</b><span>Le téléphone détecte une chute libre suivie d'un choc fort.</span></div></div>
+      <div class="rf"><div class="k">2</div><div><b>30 s sans bouger</b><span>Si tu te relèves ou bouges, rien ne se passe.</span></div></div>
+      <div class="rf"><div class="k">3</div><div><b>Alarme et compte à rebours</b><span>Sirène et vibrations pendant 30 s : touche « Je vais bien » pour annuler. Sinon, le SOS part avec ta position.</span></div></div>
+      <p class="note">Un téléphone qui tombe d'un échafaudage déclenche aussi l'alarme : c'est voulu, tu l'annules. Garde le téléphone sur toi (poche de poitrine ou de pantalon). La veille consomme un peu de batterie.</p>
+    </section>
+  </div>
+</div>
+
+<div id="veil" hidden></div>
+<div id="sheet" hidden></div>
+<div id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+var U = window.MAGUrgence, P = window.MAGPrint;
+var $ = function(i){ return document.getElementById(i); };
+var KEY = 'urgence-v1';
+
+/* ---------- Icônes ---------- */
+var IC = {
+  phone:'<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>',
+  med:'<rect x="3.5" y="3.5" width="17" height="17" rx="5"/><path d="M12 8v8M8 12h8"/>',
+  users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/>',
+  torch:'<path d="M8 3h8v4l-2 3v11h-4V10L8 7z"/><path d="M12 13v2"/>',
+  track:'<circle cx="12" cy="12" r="2"/><path d="M8.5 15.5a5 5 0 0 1 0-7M15.5 8.5a5 5 0 0 1 0 7M5.6 18.4a9 9 0 0 1 0-12.8M18.4 5.6a9 9 0 0 1 0 12.8"/>',
+  fall:'<path d="M3 12h4l3-8 4 16 3-8h4"/>',
+  pin:'<path d="M12 21s-7-6.3-7-12a7 7 0 0 1 14 0c0 5.7-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/>',
+  bat:'<rect x="3" y="7" width="16" height="10" rx="2.5"/><path d="M22 11v2"/>',
+  check:'<path d="M5 12l5 5L20 7"/>',
+  x:'<path d="M6 6l12 12M18 6 6 18"/>',
+  msg:'<path d="M4 5h16v11H9l-5 4z"/>',
+  alert:'<path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17v.5"/>',
+  lock:'<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>',
+  expand:'<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
+  bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
+  home:'<path d="M4 11 12 4l8 7v9H4z"/><path d="M10 20v-5h4v5"/>',
+  book:'<circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/>',
+  chev:'<path d="M9 5l7 7-7 7"/>',
+  trash:'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>'
+};
+function ic(n, cls){ return '<svg class="ic' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24">' + (IC[n] || '') + '</svg>'; }
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]; }); }
+function J(s, d){ try{ var v = JSON.parse(s); return v == null ? d : v; }catch(e){ return d; } }
+function toast(t, bad){ var e = $('toast'); e.textContent = t; e.className = 'on' + (bad ? ' bad' : ''); clearTimeout(toast.t); toast.t = setTimeout(function(){ e.className = ''; }, 3600); }
+function buzz(ms){ try{ if(U) U.vibrate(ms); else if(navigator.vibrate) navigator.vibrate(ms); }catch(e){} }
+
+/* ---------- Données ---------- */
+var FICHE0 = { nom:'', naissance:'', sang:'', allergies:'', traitements:'', maladies:'', prevenirNom:'', prevenirTel:'', medecinNom:'', medecinTel:'', notes:'' };
+var D = J(localStorage.getItem(KEY), null) || {};
+D.contacts = Array.isArray(D.contacts) ? D.contacts : [];
+D.fiche = Object.assign({}, FICHE0, D.fiche || {});
+D.set = Object.assign({ autoCall:'none', extra:'', trackEvery:10, trackDur:60 }, D.set || {});
+var INFO = {}, TRACK = { on:false }, FALL = { on:false, phase:'off' };
+
+function active(){ return D.contacts.filter(function(c){ return c.on !== false && c.num; }); }
+function ficheFilled(){ var f = D.fiche; return !!(f.nom || f.sang || f.allergies || f.traitements || f.maladies || f.prevenirTel); }
+
+var saveT;
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(D)); }catch(e){}
+  clearTimeout(saveT);
+  saveT = setTimeout(publish, 300);
+  renderHome();
+}
+function publish(){
+  var n = active().length;
+  try{ if(U && U.saveData) U.saveData(JSON.stringify(D)); }catch(e){}
+  try{ if(P && P.widgetPut) P.widgetPut(JSON.stringify({ contacts:n, ready:n > 0 })); }catch(e){}
+  try{ if(P && P.backupPut) P.backupPut(JSON.stringify({ contacts:D.contacts, fiche:D.fiche })); }catch(e){}
+}
+function refreshInfo(){ if(U){ INFO = J(U.info(), {}); } renderHome(); }
+
+/* ---------- Numéros ---------- */
+function clean(n){ return String(n || '').replace(/[^0-9+*#]/g, ''); }
+function fmtNum(n){
+  var c = clean(n);
+  if(/^0\d{9}$/.test(c)) return c.replace(/(\d{2})(?=\d)/g, '$1 ');
+  if(/^\+33\d{9}$/.test(c)) return '+33 ' + c.slice(3, 4) + ' ' + c.slice(4).replace(/(\d{2})(?=\d)/g, '$1 ');
+  return n;
+}
+function initials(s){ var p = String(s || '?').trim().split(/\s+/); return ((p[0] || '?')[0] + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase(); }
+function call(num, direct){
+  if(U){ U.call(String(num), !!direct); }
+  else location.href = 'tel:' + clean(num);
+}
+
+/* ---------- Pile de retour (bouton retour Android) ---------- */
+var stack = [];
+function pushLayer(close){ stack.push(close); try{ history.pushState({ n: stack.length }, ''); }catch(e){} }
+window.addEventListener('popstate', function(){ var c = stack.pop(); if(c) c(); });
+function back(){ if(stack.length) history.back(); }
+document.querySelectorAll('[data-back]').forEach(function(b){ b.onclick = back; });
+function openScr(id, onClose){
+  $(id).hidden = false; $(id).querySelector('.bd') && ($(id).querySelector('.bd').scrollTop = 0);
+  pushLayer(function(){ $(id).hidden = true; if(onClose) onClose(); });
+}
+function closeAll(){ while(stack.length){ try{ stack.pop()(); }catch(e){} } try{ history.replaceState({ n:0 }, ''); }catch(e){} }
+
+/* ---------- Feuille ---------- */
+function sheet(html, onClose){
+  $('sheet').innerHTML = html; $('sheet').hidden = false; $('veil').hidden = false;
+  requestAnimationFrame(function(){ $('sheet').classList.add('on'); $('veil').classList.add('on'); });
+  pushLayer(function(){ $('sheet').classList.remove('on'); $('veil').classList.remove('on'); setTimeout(function(){ if(!$('sheet').classList.contains('on')){ $('sheet').hidden = true; $('veil').hidden = true; } }, 230); if(onClose) onClose(); });
+}
+$('veil').onclick = back;
+
+/* ---------- Accueil ---------- */
+var TOOLS = [
+  ['nums', 'Numéros d\'urgence', 'r', 'phone'],
+  ['fiche', 'Fiche médicale', 'r', 'med'],
+  ['contacts', 'Contacts', '', 'users'],
+  ['lamp', 'Lampe et sirène', 'y', 'torch'],
+  ['track', 'Partage de position', 'g', 'track'],
+  ['fall', 'Détection de chute', '', 'fall']
+];
+function toolSub(id){
+  var n = active().length;
+  if(id === 'nums') return '112, 15, 18, 17, 114…';
+  if(id === 'fiche') return ficheFilled() ? 'Remplie' + (INFO.medNotif ? ' · écran verrouillé' : '') : 'À remplir';
+  if(id === 'contacts') return n ? n + ' contact' + (n > 1 ? 's' : '') + ' prévenu' + (n > 1 ? 's' : '') : 'Aucun contact';
+  if(id === 'lamp') return 'Torche SOS, sirène';
+  if(id === 'track') return TRACK.on ? '<span class="on">Actif jusqu\'à ' + hm(TRACK.until) + '</span>' : 'Arrêté';
+  if(id === 'fall') return FALL.on ? '<span class="on">Veille active</span>' : 'Désactivée';
+  return '';
+}
+function renderHome(){
+  $('tools').innerHTML = TOOLS.map(function(t){
+    return '<button class="tool" data-open="' + t[0] + '"><div class="ico ' + t[2] + '">' + ic(t[3]) + '</div><div><b>' + t[1] + '</b><span>' + toolSub(t[0]) + '</span></div></button>';
+  }).join('');
+  $('tools').querySelectorAll('[data-open]').forEach(function(b){ b.onclick = function(){ openTool(b.dataset.open); }; });
+  var a = active(), chips = [];
+  if(!a.length) chips.push('<button class="chip warn" data-open2="contacts">' + ic('users') + 'Ajoute un contact d\'urgence</button>');
+  else chips.push('<span class="chip">' + ic('users') + esc(a.slice(0, 2).map(function(c){ return c.name || fmtNum(c.num); }).join(', ') + (a.length > 2 ? ' +' + (a.length - 2) : '')) + '</span>');
+  if(U){
+    var sms = INFO.sms;
+    if(a.length) chips.push(sms === 'granted' ? '<span class="chip ok">' + ic('msg') + 'Envoi direct</span>' : '<button class="chip warn" data-open2="contacts">' + ic('msg') + 'Via l\'appli SMS</button>');
+    if(INFO.loc !== 'granted' && INFO.loc !== 'coarse') chips.push('<button class="chip warn" id="chipLoc">' + ic('pin') + 'Autoriser la position</button>');
+    else if(INFO.gps === false) chips.push('<button class="chip warn" id="chipGps">' + ic('pin') + 'GPS désactivé</button>');
+  }
+  $('sosTo').innerHTML = chips.join('');
+  $('sosTo').querySelectorAll('[data-open2]').forEach(function(b){ b.onclick = function(){ openTool(b.dataset.open2); }; });
+  if($('chipLoc')) $('chipLoc').onclick = function(){ U.ask('loc'); };
+  if($('chipGps')) $('chipGps').onclick = function(){ U.openSettings('gps'); };
+  var ready = a.length > 0;
+  $('rdyDot').classList.toggle('on', ready);
+  $('rdyTxt').textContent = ready ? 'Prêt' : 'À configurer';
+}
+function openTool(id){
+  if(id === 'nums') openNums();
+  else if(id === 'fiche') openFiche();
+  else if(id === 'contacts') openContacts();
+  else if(id === 'lamp') openLamp();
+  else if(id === 'track') openTrack();
+  else if(id === 'fall') openFall();
+}
+document.querySelectorAll('[data-call]').forEach(function(b){ b.onclick = function(){ call(b.dataset.call, false); }; });
+
+/* ---------- Déclenchement du SOS : appui long 2 s ou 3 appuis ---------- */
+(function(){
+  var b = $('sos'), pg = $('ringPg'), L = 289, HOLD = 2000;
+  var t0 = 0, raf = 0, taps = [], fired = false;
+  function setRing(f){ pg.style.strokeDashoffset = String(L * (1 - Math.max(0, Math.min(1, f)))); }
+  function loop(){
+    var f = (Date.now() - t0) / HOLD; setRing(f);
+    if(f >= 1){ fired = true; stop(); taps = []; sosStart(); return; }
+    raf = requestAnimationFrame(loop);
+  }
+  function stop(){ cancelAnimationFrame(raf); raf = 0; b.classList.remove('press'); setRing(0); }
+  b.addEventListener('pointerdown', function(e){
+    e.preventDefault(); if(SOS) return;
+    fired = false; t0 = Date.now(); b.classList.add('press'); b.classList.remove('pulse');
+    try{ b.setPointerCapture(e.pointerId); }catch(x){}
+    raf = requestAnimationFrame(loop);
+    $('hint').innerHTML = 'Garde le doigt appuyé…';
+  });
+  function up(){
+    if(!raf && !b.classList.contains('press')) return;
+    var held = Date.now() - t0; stop();
+    if(fired) return;
+    if(held < 600){
+      var now = Date.now(); taps = taps.filter(function(t){ return now - t < 1500; }); taps.push(now);
+      buzz(30);
+      if(taps.length >= 3){ taps = []; sosStart(); return; }
+      $('hint').innerHTML = 'Encore <b>' + (3 - taps.length) + '</b> appui' + (3 - taps.length > 1 ? 's' : '') + ' pour lancer l\'alerte';
+      clearTimeout(up.t); up.t = setTimeout(resetHint, 1600);
+    } else resetHint();
+  }
+  b.addEventListener('pointerup', up);
+  b.addEventListener('pointercancel', function(){ stop(); resetHint(); });
+  b.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+})();
+function resetHint(){ $('hint').textContent = 'Alerte tes contacts avec ta position'; }
+
+/* ---------- Position ---------- */
+var LOC = null, locWatchers = [];
+function locStart(ms){ if(U) U.locate(ms || 60000); else if(navigator.geolocation){ navigator.geolocation.getCurrentPosition(function(p){ onLoc({ lat:p.coords.latitude, lng:p.coords.longitude, acc:p.coords.accuracy, age:0 }); onLocEnd({ ok:true }); }, function(){ onLocEnd({ ok:false }); }, { enableHighAccuracy:true, timeout:20000 }); } }
+function onLoc(o){
+  if(o.lat == null) return;
+  o.t = Date.now() - (o.age || 0);
+  LOC = o;
+  locWatchers.forEach(function(f){ try{ f(o, false); }catch(e){} });
+}
+function onLocEnd(o){
+  if(o && o.lat != null) onLoc(o);
+  locWatchers.forEach(function(f){ try{ f(o, true); }catch(e){} });
+}
+function locAgeMin(l){ return l ? (Date.now() - l.t) / 60000 : 1e9; }
+function fmtAge(m){ return m < 120 ? Math.round(m) + ' min' : Math.round(m / 60) + ' h'; }
+function bat(){ try{ return U ? U.battery() : -1; }catch(e){ return -1; } }
+function osm(l){ var la = l.lat.toFixed(5), lo = l.lng.toFixed(5); return 'https://www.openstreetmap.org/?mlat=' + la + '&mlon=' + lo + '#map=17/' + la + '/' + lo; }
+function compose(l, head){
+  var s = head || 'J\'ai besoin d\'aide.';
+  if(l){
+    s += ' Ma position : ' + osm(l);
+    if(l.acc >= 0) s += ' (précision ± ' + Math.round(l.acc) + ' m)';
+    var m = locAgeMin(l); if(m >= 2) s += ', relevée il y a ' + fmtAge(m);
+  } else s += ' Ma position : inconnue (pas de signal GPS)';
+  var b = bat(); if(b >= 0) s += ', batterie ' + b + ' %';
+  s += '.';
+  var x = (D.set.extra || '').trim(); if(x) s += ' ' + x;
+  return s;
+}
+
+/* ---------- Alerte SOS ---------- */
+var SOS = null;
+function sosStart(){
+  if(SOS) return;
+  buzz(120);
+  var a = active();
+  SOS = { phase:'count', left:5, nums:a.map(function(c){ return clean(c.num); }), names:a, st:{}, follow:false };
+  $('cdTo').textContent = a.length ? 'Envoi à ' + a.map(function(c){ return c.name || fmtNum(c.num); }).join(', ') : 'Aucun contact enregistré : tu pourras appeler le 112';
+  $('cdN').textContent = '5'; $('cdPg').style.transition = 'none'; $('cdPg').style.strokeDashoffset = '0';
+  $('s-count').hidden = false;
+  pushLayer(function(){ $('s-count').hidden = true; if(SOS && SOS.phase === 'count') sosCancel(); });
+  try{ if(P && P.keepScreen) P.keepScreen(true); }catch(e){}
+  if(!LOC || locAgeMin(LOC) > 1) locStart(90000); else locStart(60000);
+  cdLoc(); var b = bat(); $('cdBat').innerHTML = b >= 0 ? ic('bat') + 'Batterie ' + b + ' %' : '';
+  locWatchers.push(cdLoc);
+  requestAnimationFrame(function(){ requestAnimationFrame(function(){ $('cdPg').style.transition = ''; $('cdPg').style.strokeDashoffset = String(276.5 / 5); }); });
+  SOS.timer = setInterval(cdTick, 1000);
+}
+function cdLoc(){
+  var l = LOC;
+  $('cdLoc').innerHTML = ic('pin') + (l ? 'Position trouvée · ± ' + Math.round(l.acc) + ' m' + (locAgeMin(l) >= 2 ? ' (il y a ' + fmtAge(locAgeMin(l)) + ')' : '') : 'Recherche de la position…');
+}
+function cdTick(){
+  if(!SOS || SOS.phase !== 'count') return;
+  SOS.left--;
+  if(SOS.left <= 0){ sosFire(); return; }
+  $('cdN').textContent = SOS.left;
+  $('cdPg').style.strokeDashoffset = String(276.5 * (5 - SOS.left + 1) / 5);
+  buzz(70);
+}
+function sosCancel(){
+  if(!SOS) return;
+  clearInterval(SOS.timer); clearTimeout(SOS.waitT); SOS = null;
+  locWatchers = locWatchers.filter(function(f){ return f !== cdLoc && f !== sosLoc; });
+  try{ if(U) U.stopLocate(); }catch(e){}
+  try{ if(P && P.keepScreen) P.keepScreen(false); }catch(e){}
+  resetHint();
+  toast('Alerte annulée, rien n\'a été envoyé');
+}
+$('cdCancel').onclick = function(){ back(); };
+$('cdNow').onclick = function(){ if(SOS && SOS.phase === 'count') sosFire(); };
+
+function sosFire(){
+  clearInterval(SOS.timer);
+  SOS.phase = 'wait';
+  locWatchers = locWatchers.filter(function(f){ return f !== cdLoc; });
+  // Remplace l'écran du compte à rebours par celui du résultat (même entrée d'historique)
+  $('s-count').hidden = true;
+  stack.pop();
+  $('s-res').hidden = false;
+  stack.push(function(){ $('s-res').hidden = true; sosDone(); });
+  buzz(300);
+  if(!SOS.nums.length){ SOS.phase = 'none'; renderRes(); return; }
+  if(LOC && locAgeMin(LOC) < 30){ sosSend(); return; }
+  renderRes();
+  locWatchers.push(sosLoc);
+  SOS.waitT = setTimeout(function(){ if(SOS && SOS.phase === 'wait') sosSend(); }, 15000);
+}
+function sosLoc(o, end){
+  if(!SOS) return;
+  if(SOS.phase === 'wait' && (LOC || end)){ clearTimeout(SOS.waitT); sosSend(); return; }
+  // Après l'envoi direct : une seule précision complémentaire si la position devient nettement meilleure
+  if(SOS.phase === 'sent' && SOS.mode === 'direct' && !SOS.follow && LOC && LOC.acc >= 0 && LOC.acc < 100 && Date.now() - SOS.at < 180000 && (SOS.acc == null || LOC.acc < SOS.acc / 2)){
+    SOS.follow = true;
+    var m = (SOS.acc == null ? 'Ma position vient d\'être trouvée : ' : 'Position précisée : ') + osm(LOC) + ' (précision ± ' + Math.round(LOC.acc) + ' m).';
+    try{ U.sendSms(JSON.stringify(SOS.nums), m, 'follow'); SOS.followAcc = Math.round(LOC.acc); renderRes(); }catch(e){}
+  }
+}
+function sosSend(){
+  if(!SOS) return;
+  clearTimeout(SOS.waitT);
+  SOS.msg = compose(LOC);
+  SOS.acc = LOC ? Math.round(LOC.acc) : null;
+  SOS.at = Date.now();
+  SOS.phase = 'sent';
+  if(locWatchers.indexOf(sosLoc) < 0) locWatchers.push(sosLoc);
+  var r = 'error:Pont absent';
+  if(U){ try{ r = U.sendSms(JSON.stringify(SOS.nums), SOS.msg, 'sos'); }catch(e){ r = 'error:' + e.message; } }
+  else { location.href = 'sms:' + SOS.nums.join(',') + '?body=' + encodeURIComponent(SOS.msg); r = 'app:Navigateur'; }
+  if(r === 'direct'){
+    SOS.mode = 'direct';
+    SOS.nums.forEach(function(n){ SOS.st[n] = { done:0, parts:1, ok:null, err:'' }; });
+    SOS.callT = setTimeout(autoCall, 12000);
+  } else if(r.indexOf('app:') === 0){
+    SOS.mode = 'app'; SOS.why = r.slice(4);
+    SOS.pendingCall = D.set.autoCall !== 'none';
+  } else { SOS.mode = 'error'; SOS.why = r.slice(6); }
+  renderRes();
+}
+function onSms(o){
+  if(!SOS || o.tag === 'test' || o.tag === 'follow'){
+    if(o.tag === 'test') toast(o.ok ? 'Test envoyé à ' + fmtNum(o.num) : 'Test vers ' + fmtNum(o.num) + ' : ' + (o.err || 'échec'), !o.ok);
+    return;
+  }
+  var s = SOS.st[o.num]; if(!s) return;
+  s.parts = o.parts || 1; s.done++;
+  if(!o.ok){ s.ok = false; s.err = o.err || 'Échec'; }
+  else if(s.done >= s.parts && s.ok !== false) s.ok = true;
+  renderRes();
+  var all = SOS.nums.every(function(n){ return SOS.st[n].ok !== null; });
+  if(all){ clearTimeout(SOS.callT); setTimeout(autoCall, 1200); }
+}
+function autoCall(){
+  if(!SOS || SOS.called || D.set.autoCall === 'none') return;
+  SOS.called = true; SOS.pendingCall = false;
+  var n = D.set.autoCall === '112' ? '112' : SOS.nums[0];
+  if(n) call(n, true);
+}
+function sosDone(){
+  if(!SOS) return;
+  clearInterval(SOS.timer); clearTimeout(SOS.waitT); clearTimeout(SOS.callT);
+  locWatchers = locWatchers.filter(function(f){ return f !== sosLoc && f !== cdLoc; });
+  SOS = null;
+  try{ if(U) U.stopLocate(); }catch(e){}
+  try{ if(P && P.keepScreen) P.keepScreen(false); }catch(e){}
+  resetHint();
+}
+function renderRes(){
+  if(!SOS) return;
+  var h = '', s = SOS;
+  if(s.phase === 'none'){
+    h += '<div class="res bad"><div class="ico">' + ic('alert') + '</div><div><b>Aucun contact d\'urgence</b><span>Rien n\'a été envoyé. Appelle directement les secours.</span></div></div>';
+  } else if(s.phase === 'wait'){
+    h += '<div class="res wait"><div class="ico"><span class="spin"></span></div><div><b>Recherche de ta position…</b><span>L\'alerte part dès qu\'elle est trouvée (15 s au plus).</span></div></div>';
+    h += '<button class="btn red" id="rNow" style="width:100%;margin-bottom:12px">' + ic('msg') + 'Envoyer sans attendre la position</button>';
+  } else if(s.mode === 'direct'){
+    var nOk = s.nums.filter(function(n){ return s.st[n].ok === true; }).length, nBad = s.nums.filter(function(n){ return s.st[n].ok === false; }).length;
+    var pend = s.nums.length - nOk - nBad;
+    if(pend) h += '<div class="res wait"><div class="ico"><span class="spin"></span></div><div><b>Envoi en cours…</b><span>Le téléphone envoie le SMS à ' + s.nums.length + ' contact' + (s.nums.length > 1 ? 's' : '') + '.</span></div></div>';
+    else if(!nBad) h += '<div class="res ok"><div class="ico">' + ic('check') + '</div><div><b>Alerte envoyée</b><span>Ton SMS est parti vers ' + nOk + ' contact' + (nOk > 1 ? 's' : '') + '.' + (s.followAcc ? ' Position précisée envoyée (± ' + s.followAcc + ' m).' : '') + '</span></div></div>';
+    else h += '<div class="res bad"><div class="ico">' + ic('alert') + '</div><div><b>' + (nOk ? 'Envoi partiel' : 'Le SMS n\'est pas parti') + '</b><span>Vérifie le réseau et réessaie, ou ouvre l\'appli SMS. Si tu le peux, appelle.</span></div></div>';
+  } else if(s.mode === 'app'){
+    h += '<div class="res warn"><div class="ico">' + ic('msg') + '</div><div><b>Termine dans l\'appli SMS</b><span>Le message est prêt avec tous les destinataires : appuie sur <b style="display:inline;font-size:inherit">Envoyer</b>. Envoi direct impossible : ' + esc(s.why || 'autorisation SMS absente') + '.</span></div></div>';
+  } else {
+    h += '<div class="res bad"><div class="ico">' + ic('alert') + '</div><div><b>Envoi impossible</b><span>' + esc(s.why || '') + '. Appelle les secours.</span></div></div>';
+  }
+  // Boutons d'appel
+  var first = s.names[0];
+  h += '<div class="row" style="margin:0 0 12px">' + '<button class="btn red" data-c="112">' + ic('phone') + 'Appeler le 112</button>' + (first ? '<button class="btn" data-c="' + esc(clean(first.num)) + '">' + ic('phone') + esc(first.name ? first.name.split(/[\s(]/)[0] : 'Appeler') + '</button>' : '') + '</div>';
+  if(s.phase !== 'none'){
+    h += '<section class="card"><h3>Destinataires</h3>' + s.names.map(function(c){
+      var n = clean(c.num), st = s.st[n], lab;
+      if(s.phase === 'wait') lab = '<span class="st wait">En attente</span>';
+      else if(s.mode !== 'direct') lab = '<span class="st wait">' + ic('msg') + 'Appli SMS</span>';
+      else if(!st || st.ok === null) lab = '<span class="st wait"><span class="spin"></span>Envoi</span>';
+      else if(st.ok) lab = '<span class="st ok">' + ic('check') + 'Envoyé</span>';
+      else lab = '<span class="st bad">' + ic('x') + esc(st.err) + '</span>';
+      return '<div class="who"><div class="av">' + esc(initials(c.name || '#')) + '</div><div class="t"><b>' + esc(c.name || fmtNum(c.num)) + '</b><span>' + esc(fmtNum(c.num)) + '</span></div>' + lab + '</div>';
+    }).join('') + '</section>';
+  }
+  if(s.msg) h += '<section class="card"><h3>Message</h3><div class="msg">' + esc(s.msg) + '</div>' +
+    '<div class="row"><button class="btn sm" id="rAgain">' + ic('msg') + 'Renvoyer</button><button class="btn sm" id="rApp">Appli SMS</button></div></section>';
+  if(s.pendingCall) h += '<p class="note">Quand tu reviendras ici, l\'appel ' + (D.set.autoCall === '112' ? 'au 112' : 'à ' + esc((first && first.name) || 'ton premier contact')) + ' se lancera.</p>';
+  h += '<button class="btn" id="rDone" style="width:100%;margin-top:4px">Terminé</button>';
+  $('resBd').innerHTML = h;
+  $('resBd').querySelectorAll('[data-c]').forEach(function(b){ b.onclick = function(){ if(SOS) SOS.pendingCall = false; call(b.dataset.c, b.dataset.c !== '112'); }; });
+  if($('rNow')) $('rNow').onclick = sosSend;
+  if($('rAgain')) $('rAgain').onclick = function(){ SOS.st = {}; SOS.called = true; sosSend(); };
+  if($('rApp')) $('rApp').onclick = function(){ if(U) U.openSms(JSON.stringify(SOS.nums), SOS.msg); };
+  $('rDone').onclick = back;
+}
+
+/* ---------- Numéros d'urgence ---------- */
+var NUMS = [
+  ['112', 'Urgences · Europe', 'Tout type d\'urgence, dans toute l\'Europe, même sans carte SIM ni réseau de ton opérateur.', 'big'],
+  ['15', 'SAMU', 'Urgence médicale : malaise, blessure grave, chute de hauteur.', 'c-red'],
+  ['18', 'Pompiers', 'Incendie, accident, personne coincée ou ensevelie, secours à personne.', 'c-org'],
+  ['17', 'Police · Gendarmerie', 'Agression, vol, violence, accident de la route avec danger.', 'c-blue'],
+  ['114', 'SMS, tchat ou visio', 'Pour les personnes sourdes ou malentendantes, ou si tu ne peux pas parler sans danger.', 'c-vio', 'sms'],
+  ['196', 'Sauvetage en mer', 'Personne à la mer, bateau en difficulté (CROSS).', 'c-cyan'],
+  ['0491752525', 'Centre antipoison', 'Marseille, pour la région PACA, 24 h/24 : produit avalé, inhalé ou projeté (solvant, ciment, chaux).', 'c-grn', '', '04 91 75 25 25']
+];
+function openNums(){
+  $('numList').innerHTML = NUMS.map(function(n, i){
+    var big = n[3] === 'big', shown = n[5] || n[0];
+    return '<button class="num' + (big ? ' big' : '') + '" data-i="' + i + '"><div class="n ' + (big ? '' : n[3]) + (n[5] ? ' s' : '') + '">' + (n[5] ? 'Anti-<br>poison' : n[0]) + '</div><div class="t"><b>' + esc(n[1]) + (n[5] ? '<br><span style="font-size:15px;color:var(--tx);font-weight:800;margin:0">' + shown + '</span>' : '') + '</b><span>' + esc(n[2]) + '</span></div><div class="go">' + ic(n[4] === 'sms' ? 'msg' : 'phone') + '</div></button>';
+  }).join('');
+  $('numList').querySelectorAll('[data-i]').forEach(function(b){ b.onclick = function(){
+    var n = NUMS[+b.dataset.i];
+    if(n[4] === 'sms'){ if(U) U.openSms('["114"]', ''); else location.href = 'sms:114'; }
+    else call(n[0], false);
+  }; });
+  whereShow();
+  locWatchers.push(whereShow);
+  locStart(60000);
+  openScr('s-nums', function(){ locWatchers = locWatchers.filter(function(f){ return f !== whereShow; }); if(!SOS) try{ U && U.stopLocate(); }catch(e){} });
+}
+function dms(v, pos, neg){ var a = Math.abs(v), d = Math.floor(a), m = (a - d) * 60; return d + '° ' + m.toFixed(3).replace('.', ',') + '′ ' + (v >= 0 ? pos : neg); }
+function whereShow(o, end){
+  var l = LOC;
+  if(!l){ $('whereC').textContent = end ? 'Position introuvable' : 'Recherche…'; $('whereA').textContent = end ? (o && o.gpsOff ? 'Le GPS est désactivé dans les réglages.' : 'Va à découvert et réessaie.') : 'À lire aux secours si on te demande ta position.'; return; }
+  $('whereC').innerHTML = l.lat.toFixed(5) + ', ' + l.lng.toFixed(5);
+  $('whereA').textContent = dms(l.lat, 'N', 'S') + ' · ' + dms(l.lng, 'E', 'O') + ' · ± ' + Math.round(l.acc) + ' m' + (locAgeMin(l) >= 2 ? ' · il y a ' + fmtAge(locAgeMin(l)) : '');
+}
+$('whereCopy').onclick = function(){
+  if(!LOC){ toast('Position pas encore trouvée'); return; }
+  var t = LOC.lat.toFixed(5) + ', ' + LOC.lng.toFixed(5);
+  try{ navigator.clipboard.writeText(t).then(function(){ toast('Coordonnées copiées'); }, function(){ toast(t); }); }catch(e){ toast(t); }
+};
+$('whereSay').onclick = function(){
+  if(!LOC){ toast('Position pas encore trouvée'); return; }
+  function say(v){ return String(Math.abs(v).toFixed(5)).replace('.', ' virgule '); }
+  var t = 'Latitude ' + say(LOC.lat) + (LOC.lat >= 0 ? ' nord' : ' sud') + '. Longitude ' + say(LOC.lng) + (LOC.lng >= 0 ? ' est' : ' ouest') + '. Précision ' + Math.round(LOC.acc) + ' mètres.';
+  try{ if(P && P.speak) P.speak(t); else toast(t); }catch(e){ toast(t); }
+};
+
+/* ---------- Fiche médicale ---------- */
+var FF = [
+  ['allergies', 'Allergies', 'Ex. : pénicilline, piqûres de guêpe'],
+  ['traitements', 'Traitements · Medication', 'Médicaments pris régulièrement'],
+  ['maladies', 'Maladies · Conditions', 'Ex. : diabète, asthme, épilepsie'],
+  ['notes', 'Notes', 'Ex. : porteur de lentilles, donneur d\'organes']
+];
+var BLOOD = ['A+', 'A−', 'B+', 'B−', 'AB+', 'AB−', 'O+', 'O−'];
+function dateFr(s){ var p = String(s || '').split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : s; }
+function ageOf(s){ var p = String(s || '').split('-').map(Number); if(p.length !== 3 || !p[0]) return ''; var n = new Date(), a = n.getFullYear() - p[0]; if(n.getMonth() + 1 < p[1] || (n.getMonth() + 1 === p[1] && n.getDate() < p[2])) a--; return a >= 0 && a < 130 ? a + ' ans' : ''; }
+function person(n, t){ return [n, t ? fmtNum(t) : ''].filter(Boolean).join('\n'); }
+function openFiche(){
+  ficheEdit(!ficheFilled());
+  openScr('s-fiche');
+}
+function ficheView(){
+  var f = D.fiche, h = '';
+  if(f.nom) h += '<div class="fname">' + esc(f.nom) + '</div>';
+  if(f.naissance) h += '<div class="fsub">Né(e) le ' + esc(dateFr(f.naissance)) + (ageOf(f.naissance) ? ' · ' + ageOf(f.naissance) : '') + '</div>';
+  if(f.sang) h += '<div class="fv sg"><small>Groupe sanguin · Blood type</small><div>' + esc(f.sang) + '</div></div>';
+  FF.forEach(function(x){ if(f[x[0]]) h += '<div class="fv"><small>' + x[1] + '</small><div>' + esc(f[x[0]]) + '</div></div>'; });
+  if(f.prevenirNom || f.prevenirTel) h += '<div class="fv"><small>Personne à prévenir</small><div>' + esc(person(f.prevenirNom, f.prevenirTel)) + '</div></div>';
+  if(f.medecinNom || f.medecinTel) h += '<div class="fv"><small>Médecin traitant</small><div>' + esc(person(f.medecinNom, f.medecinTel)) + '</div></div>';
+  h += '<div class="row" style="margin-bottom:12px"><button class="btn red" id="fFull">' + ic('expand') + 'Plein écran pour les secours</button></div>';
+  var lockOk = !U || INFO.fiche !== false;
+  h += '<section class="card"><h3>Écran verrouillé</h3>' +
+    '<div class="set"><div class="t"><div>Notification « Infos médicales »</div><div>Toujours visible, même téléphone verrouillé : un secouriste la touche pour lire ta fiche sans ton code.</div></div><label class="sw"><input type="checkbox" id="fNotif"' + (INFO.medNotif ? ' checked' : '') + (lockOk ? '' : ' disabled') + '><span></span></label></div>' +
+    '<div class="row"><button class="btn sm" id="fLock">' + ic('lock') + 'Aperçu verrouillé</button><button class="btn sm" id="fPin">' + ic('home') + 'Raccourci</button></div>' +
+    (lockOk ? '' : '<p class="note">Cette version de l\'appli n\'a pas l\'écran natif « Infos médicales ».</p>') +
+    '<p class="note">Android propose aussi ses propres « Informations d\'urgence » (Paramètres › Sécurité et urgences) : tu peux y recopier l\'essentiel.</p></section>';
+  $('fView').innerHTML = h;
+  $('fFull').onclick = ficheFull;
+  $('fNotif').onchange = function(e){
+    if(!U){ e.target.checked = false; toast('Disponible dans l\'appli Android'); return; }
+    var r = U.medNotif(e.target.checked);
+    if(r === 'perm') toast('Autorise les notifications, puis réessaie');
+    else if(r === 'error'){ toast('Notification impossible', true); e.target.checked = false; }
+    else toast(e.target.checked ? 'Notification affichée sur l\'écran verrouillé' : 'Notification retirée');
+    refreshInfo();
+  };
+  $('fLock').onclick = function(){ if(!U || !U.openFiche()) toast('Disponible dans l\'appli Android'); };
+  $('fPin').onclick = function(){ if(!U || !U.pinShortcut()) toast('Ton écran d\'accueil ne permet pas d\'ajouter ce raccourci'); };
+}
+function ficheEdit(on){
+  $('fView').hidden = on; $('fEdit').hidden = !on;
+  $('fEditB').hidden = on;
+  if(!on){ ficheView(); return; }
+  var f = D.fiche, h = '';
+  function inp(k, lab, type, ph){ return '<div class="fld"><label for="f_' + k + '">' + lab + '</label><input class="in" id="f_' + k + '" type="' + (type || 'text') + '" value="' + esc(f[k]) + '" placeholder="' + esc(ph || '') + '"' + (type === 'tel' ? ' inputmode="tel"' : '') + '></div>'; }
+  function ta(k, lab, ph){ return '<div class="fld"><label for="f_' + k + '">' + lab + '</label><textarea class="in" id="f_' + k + '" placeholder="' + esc(ph) + '">' + esc(f[k]) + '</textarea></div>'; }
+  h += inp('nom', 'Nom et prénom', 'text', 'Prénom Nom');
+  h += inp('naissance', 'Date de naissance', 'date');
+  h += '<div class="fld"><label>Groupe sanguin</label><div class="blood" id="fBlood">' + BLOOD.map(function(b){ return '<button data-b="' + b + '"' + (f.sang === b ? ' class="on"' : '') + '>' + b + '</button>'; }).join('') + '<button class="w' + (!f.sang ? ' on' : '') + '" data-b="">Je ne sais pas</button></div></div>';
+  FF.forEach(function(x){ h += ta(x[0], x[1].split(' · ')[0], x[2]); });
+  h += '<div class="fld"><label for="f_prevenirNom">Personne à prévenir</label><input class="in" id="f_prevenirNom" value="' + esc(f.prevenirNom) + '" placeholder="Nom"></div>';
+  h += '<div class="fld"><div class="inrow"><input class="in" id="f_prevenirTel" type="tel" inputmode="tel" value="' + esc(f.prevenirTel) + '" placeholder="Téléphone"><button class="btn" id="fPickP" aria-label="Choisir dans le carnet">' + ic('book') + '</button></div></div>';
+  h += '<div class="fld"><label for="f_medecinNom">Médecin traitant</label><input class="in" id="f_medecinNom" value="' + esc(f.medecinNom) + '" placeholder="Dr …"></div>';
+  h += '<div class="fld"><div class="inrow"><input class="in" id="f_medecinTel" type="tel" inputmode="tel" value="' + esc(f.medecinTel) + '" placeholder="Téléphone"><button class="btn" id="fPickM" aria-label="Choisir dans le carnet">' + ic('book') + '</button></div></div>';
+  h += '<div class="row" style="margin-bottom:8px"><button class="btn main" id="fSave">' + ic('check') + 'Enregistrer</button>' + (ficheFilled() ? '<button class="btn" id="fCancel" style="flex:.6">Annuler</button>' : '') + '</div>';
+  h += '<p class="note">Ces informations restent sur ton téléphone. Elles sont lisibles par toute personne qui a ton téléphone en main si tu actives l\'affichage sur l\'écran verrouillé.</p>';
+  $('fEdit').innerHTML = h;
+  var blood = f.sang;
+  $('fBlood').querySelectorAll('button').forEach(function(b){ b.onclick = function(){ blood = b.dataset.b; $('fBlood').querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', x === b); }); }; });
+  $('fPickP').onclick = function(){ pickFor = 'prevenir'; if(U) U.pickContact(); };
+  $('fPickM').onclick = function(){ pickFor = 'medecin'; if(U) U.pickContact(); };
+  $('fSave').onclick = function(){
+    Object.keys(FICHE0).forEach(function(k){ var e = $('f_' + k); if(e) D.fiche[k] = e.value.trim(); });
+    D.fiche.sang = blood || '';
+    save(); ficheEdit(false); $('s-fiche').querySelector('.bd').scrollTop = 0; toast('Fiche enregistrée');
+  };
+  if($('fCancel')) $('fCancel').onclick = function(){ ficheEdit(false); };
+}
+$('fEditB').onclick = function(){ ficheEdit(true); };
+function ficheFull(){
+  var f = D.fiche, h = '';
+  function fl(lab, v, cls){ return v ? '<div class="fl ' + (cls || '') + '"><small>' + lab + '</small><div>' + esc(v) + '</div></div>' : ''; }
+  h += fl('Nom · Name', f.nom, 'nm');
+  if(f.naissance) h += fl('Date de naissance · Born', dateFr(f.naissance) + (ageOf(f.naissance) ? ' (' + ageOf(f.naissance) + ')' : ''));
+  h += fl('Groupe sanguin · Blood type', f.sang, 'big');
+  FF.forEach(function(x){ h += fl(x[1], f[x[0]]); });
+  h += fl('Personne à prévenir · Emergency contact', person(f.prevenirNom, f.prevenirTel));
+  h += fl('Médecin · Doctor', person(f.medecinNom, f.medecinTel));
+  if(!ficheFilled()) h += '<div class="fl"><div style="font-size:18px;color:#555">Fiche vide</div></div>';
+  h += '<button class="close" id="fullClose">Fermer</button>';
+  $('fullBd').innerHTML = h; $('fullBd').scrollTop = 0;
+  $('fullClose').onclick = back;
+  try{ if(U) U.brightness(true); if(P && P.keepScreen) P.keepScreen(true); }catch(e){}
+  openScr('s-full', function(){ try{ if(U) U.brightness(false); if(P && P.keepScreen && !SOS) P.keepScreen(false); }catch(e){} });
+}
+
+/* ---------- Contacts ---------- */
+var pickFor = 'contacts';
+function onContact(o){
+  if(o.err){ if(o.err !== 'cancel') toast(o.err, true); return; }
+  if(pickFor === 'prevenir' || pickFor === 'medecin'){
+    var k = pickFor; pickFor = 'contacts';
+    if($('f_' + k + 'Nom')) $('f_' + k + 'Nom').value = o.name || '';
+    if($('f_' + k + 'Tel')) $('f_' + k + 'Tel').value = o.num || '';
+    return;
+  }
+  addContact(o.name, o.num);
+}
+function addContact(name, num){
+  var c = clean(num);
+  if(c.replace(/\D/g, '').length < 3){ toast('Numéro invalide', true); return false; }
+  if(D.contacts.some(function(x){ return clean(x.num) === c; })){ toast('Ce numéro est déjà dans la liste'); return false; }
+  D.contacts.push({ id:Date.now().toString(36), name:(name || '').trim(), num:num.trim(), on:true });
+  save(); renderContacts(); toast((name || fmtNum(num)) + ' ajouté');
+  return true;
+}
+function openContacts(){ renderContacts(); openScr('s-contacts'); }
+function renderContacts(){
+  var l = D.contacts;
+  $('ctList').innerHTML = l.length ? l.map(function(c, i){
+    return '<div class="ct' + (c.on === false ? ' off' : '') + '"><div class="av">' + esc(initials(c.name || '#')) + '</div><div class="t"><b>' + esc(c.name || 'Sans nom') + '</b><span>' + esc(fmtNum(c.num)) + '</span></div><label class="sw"><input type="checkbox" data-on="' + i + '"' + (c.on !== false ? ' checked' : '') + ' aria-label="Prévenir par le SOS"><span></span></label><button class="x" data-del="' + i + '" aria-label="Retirer">' + ic('trash') + '</button></div>';
+  }).join('') : '<div class="empty">Aucun contact pour l\'instant.<br>Ajoute un proche, ton chef de chantier ou un collègue.</div>';
+  $('ctList').querySelectorAll('[data-on]').forEach(function(e){ e.onchange = function(){ D.contacts[+e.dataset.on].on = e.checked; save(); renderContacts(); }; });
+  $('ctList').querySelectorAll('[data-del]').forEach(function(b){ b.onclick = function(){
+    var c = D.contacts[+b.dataset.del];
+    sheet('<h2>Retirer ' + esc(c.name || fmtNum(c.num)) + ' ?</h2><p>Ce contact ne recevra plus les alertes SOS.</p><div class="row"><button class="btn red" id="dOk">Retirer</button><button class="btn" id="dNo">Garder</button></div>');
+    $('dOk').onclick = function(){ D.contacts.splice(D.contacts.indexOf(c), 1); save(); renderContacts(); back(); };
+    $('dNo').onclick = back;
+  }; });
+  renderSms();
+  $('autoCall').querySelectorAll('button').forEach(function(b){ b.classList.toggle('on', b.dataset.v === D.set.autoCall); });
+  $('extra').value = D.set.extra || '';
+  var cn = D.set.autoCall === 'none' ? '' : INFO.call === 'granted' ? 'L\'appel démarre seul quelques secondes après l\'envoi.' : 'Le composeur s\'ouvrira avec le numéro : il faudra appuyer sur Appeler. <button class="chip" id="askCall" style="margin-top:6px">Autoriser l\'appel direct</button>';
+  if(D.set.autoCall === '112') cn += ' Pour le 112, Android ouvre toujours le composeur (sécurité contre les appels par erreur).';
+  $('callNote').innerHTML = cn;
+  if($('askCall')) $('askCall').onclick = function(){ U && U.ask('call'); };
+}
+function renderSms(){
+  var s = U ? INFO.sms : 'web', h;
+  if(s === 'granted') h = st('ok', 'check', 'Envoi direct', 'Le téléphone envoie le SMS tout seul, même écran verrouillé. Chaque envoi est confirmé.' + (INFO.sim === false ? ' <b style="display:inline;color:var(--warn);font-size:inherit">Aucune carte SIM détectée.</b>' : ''));
+  else if(s === 'ask' || s === 'denied') h = st('warn', 'msg', 'Via l\'appli SMS', 'Pour l\'instant, le SOS ouvre ton appli SMS avec le message prêt : il faudra appuyer sur Envoyer. Autorise les SMS pour que l\'alerte parte sans autre geste.') + '<div class="row"><button class="btn sm main" id="smsAsk">Autoriser les SMS</button></div>';
+  else if(s === 'blocked') h = st('warn', 'lock', 'SMS bloqués par Android', 'Android bloque cette autorisation pour les applis installées hors du Play Store (« paramètre restreint »). En attendant, le SOS passe par ton appli SMS.') +
+    '<ol class="steps"><li>Touche <b>Infos de l\'appli</b> ci-dessous.</li><li>Menu <b>⋮</b> en haut à droite › <b>Autoriser les paramètres restreints</b> (confirme avec ton code).</li><li><b>Autorisations</b> › <b>SMS</b> › <b>Autoriser</b>, puis reviens ici.</li></ol><div class="row"><button class="btn sm main" id="smsSet">Infos de l\'appli</button><button class="btn sm" id="smsAsk">Redemander</button></div>';
+  else if(s === 'undeclared') h = st('warn', 'msg', 'Via l\'appli SMS', 'Cette version de l\'appli ne peut pas envoyer de SMS elle-même : le SOS ouvre ton appli SMS avec le message et les destinataires, il suffit d\'appuyer sur Envoyer.');
+  else if(s === 'none') h = st('bad', 'alert', 'Pas de SMS sur cet appareil', 'Cet appareil ne peut pas envoyer de SMS. Utilise les numéros d\'urgence par un autre téléphone.');
+  else h = st('warn', 'msg', 'Mode navigateur', 'Dans l\'appli Android, les SMS partent directement.');
+  $('smsState').innerHTML = h;
+  if($('smsAsk')) $('smsAsk').onclick = function(){ U && U.ask('sms'); };
+  if($('smsSet')) $('smsSet').onclick = function(){ U && U.openSettings('app'); };
+}
+function st(cls, icon, title, text){ return '<div class="state ' + cls + '"><div class="ico">' + ic(icon) + '</div><div><b>' + title + '</b>' + text + '</div></div>'; }
+$('ctPick').onclick = function(){ pickFor = 'contacts'; if(U) U.pickContact(); else toast('Disponible dans l\'appli Android'); };
+$('ctAdd').onclick = function(){
+  sheet('<h2>Ajouter un contact</h2><div class="fld"><label for="nName">Nom</label><input class="in" id="nName" placeholder="Ex. : Marie (épouse)"></div><div class="fld"><label for="nNum">Numéro de portable</label><input class="in" id="nNum" type="tel" inputmode="tel" placeholder="06 12 34 56 78"></div><div class="row"><button class="btn main" id="nOk">Ajouter</button><button class="btn" id="nNo" style="flex:.6">Annuler</button></div>');
+  setTimeout(function(){ try{ $('nName').focus(); }catch(e){} }, 250);
+  $('nOk').onclick = function(){ if(addContact($('nName').value, $('nNum').value)) back(); };
+  $('nNo').onclick = back;
+};
+$('ctTest').onclick = function(){
+  var a = active();
+  if(!a.length){ toast('Ajoute d\'abord un contact'); return; }
+  var msg = 'Test de l\'appli Urgence : ceci n\'est pas une alerte. Si tu reçois ce message, mes SMS d\'urgence te parviendront. Merci !';
+  sheet('<h2>Tester l\'envoi</h2><p>Un SMS de test part vers ' + esc(a.map(function(c){ return c.name || fmtNum(c.num); }).join(', ')) + ' :</p><div class="msg" style="margin-bottom:12px">' + esc(msg) + '</div><div class="row"><button class="btn main" id="tOk">' + ic('msg') + 'Envoyer le test</button><button class="btn" id="tNo" style="flex:.6">Annuler</button></div>');
+  $('tNo').onclick = back;
+  $('tOk').onclick = function(){
+    back();
+    if(!U){ location.href = 'sms:' + a.map(function(c){ return clean(c.num); }).join(',') + '?body=' + encodeURIComponent(msg); return; }
+    var r = U.sendSms(JSON.stringify(a.map(function(c){ return clean(c.num); })), msg, 'test');
+    if(r === 'direct') toast('Envoi du test…');
+    else if(r.indexOf('app:') === 0) toast('Appli SMS ouverte : appuie sur Envoyer (' + r.slice(4) + ')');
+    else toast(r.slice(6), true);
+  };
+};
+$('autoCall').onclick = function(e){
+  var b = e.target.closest('button'); if(!b) return;
+  D.set.autoCall = b.dataset.v; save(); renderContacts();
+  if(b.dataset.v === 'first' && U && INFO.call !== 'granted' && INFO.call !== 'none') U.ask('call');
+};
+$('extra').oninput = function(){ D.set.extra = $('extra').value; clearTimeout(this.t); this.t = setTimeout(save, 400); };
+
+/* ---------- Lampe, écran, sirène ---------- */
+var LAMP = 'off', FLASH = null, nativeLamp = false;
+function openLamp(){ renderLamp(); openScr('s-lamp'); }
+function renderLamp(){
+  document.querySelectorAll('[data-lamp]').forEach(function(b){ b.classList.toggle('on', LAMP === b.dataset.lamp); });
+  $('sirenB').classList.toggle('on', !!(U && U.sirenOn && U.sirenOn()) || sirenWeb);
+  if(U && INFO.torch === false) $('lampNote').textContent = 'Ce téléphone n\'a pas de torche utilisable : prends l\'écran clignotant.';
+}
+document.querySelectorAll('[data-lamp]').forEach(function(b){ b.onclick = function(){
+  var m = b.dataset.lamp; LAMP = LAMP === m ? 'off' : m;
+  if(U){ if(!U.lamp(LAMP) && LAMP !== 'off'){ toast('Torche indisponible', true); LAMP = 'off'; } }
+  else if(LAMP !== 'off'){ toast('Disponible dans l\'appli Android'); LAMP = 'off'; }
+  renderLamp();
+}; });
+// Écran clignotant : fond rouge, éclairs blancs au rythme SOS
+var MORSE = [1, -1, 1, -1, 1, -3, 3, -1, 3, -1, 3, -3, 1, -1, 1, -1, 1, -7];
+document.querySelector('[data-flash]').onclick = function(){
+  var el = $('s-flash'), k = 0;
+  el.hidden = false;
+  try{ if(U) U.brightness(true); if(P && P.keepScreen) P.keepScreen(true); }catch(e){}
+  (function step(){ var v = MORSE[k % MORSE.length]; el.classList.toggle('w', v > 0); k++; FLASH = setTimeout(step, Math.abs(v) * 220); })();
+  pushLayer(function(){ clearTimeout(FLASH); FLASH = null; el.hidden = true; el.classList.remove('w'); try{ if(U) U.brightness(false); if(P && P.keepScreen && !SOS) P.keepScreen(false); }catch(e){} });
+};
+$('s-flash').onclick = back;
+var sirenWeb = false, actx = null, osc = null;
+$('sirenB').onclick = function(){
+  if(U){ var on = !U.sirenOn(); U.siren(on); if(on) toast('Sirène au volume maximum'); renderLamp(); return; }
+  // Repli navigateur
+  try{
+    if(sirenWeb){ osc.stop(); sirenWeb = false; renderLamp(); return; }
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    osc = actx.createOscillator(); var g = actx.createGain(); g.gain.value = .6; osc.type = 'square';
+    var t = actx.currentTime; for(var i = 0; i < 300; i++){ osc.frequency.setValueAtTime(650, t + i * 2); osc.frequency.linearRampToValueAtTime(1550, t + i * 2 + 1); osc.frequency.linearRampToValueAtTime(650, t + i * 2 + 2); }
+    osc.connect(g).connect(actx.destination); osc.start(); sirenWeb = true; renderLamp();
+  }catch(e){ toast('Son indisponible', true); }
+};
+$('stopAll').onclick = function(){
+  LAMP = 'off';
+  if(U) U.stopAll();
+  if(sirenWeb){ try{ osc.stop(); }catch(e){} sirenWeb = false; }
+  renderLamp(); toast('Tout est arrêté');
+};
+function onLamp(o){ nativeLamp = true; if(o.mode === 'off' && LAMP !== 'off'){ LAMP = 'off'; renderLamp(); } }
+
+/* ---------- Partage de position ---------- */
+function hm(t){ var d = new Date(t || 0); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+function openTrack(){ if(U) TRACK = J(U.trackState(), TRACK); openScr('s-track'); renderTrack(); }
+function renderTrack(){
+  renderHome();
+  if($('s-track').hidden && !TRACK.on) return;
+  var a = active(), h, can = true;
+  if(TRACK.on){
+    h = st('ok', 'track', 'Partage en cours', 'Position envoyée toutes les ' + TRACK.every + ' min à tes contacts, jusqu\'à ' + hm(TRACK.until) + '. ' + (TRACK.sent ? TRACK.sent + ' envoi' + (TRACK.sent > 1 ? 's' : '') + ', le dernier à ' + hm(TRACK.last) + '.' : 'Premier envoi dans quelques secondes.')) +
+      '<div class="row"><button class="btn red" id="trStop">Arrêter le partage</button></div>';
+  } else {
+    var why = '';
+    if(!a.length){ why = 'Ajoute d\'abord un contact d\'urgence.'; can = false; }
+    else if(U && INFO.sms !== 'granted'){ why = 'Le partage automatique a besoin de l\'autorisation d\'envoyer des SMS (voir Contacts › Envoi des SMS) : sans elle, Android ne laisse pas l\'appli envoyer seule.'; can = false; }
+    else if(U && INFO.service === false){ why = 'Cette version de l\'appli n\'a pas le service de partage.'; can = false; }
+    h = st(can ? '' : 'warn', can ? 'pin' : 'alert', TRACK.err ? TRACK.err : 'Partage arrêté', why || 'Choisis le rythme et la durée, puis démarre.');
+    if(!can && a.length && U && INFO.sms !== 'granted') h += '<div class="row"><button class="btn sm" id="trSms">Réglage des SMS</button></div>';
+  }
+  $('trState').innerHTML = h;
+  $('trCfg').hidden = !!TRACK.on;
+  $('trGo').disabled = !can;
+  $('trEvery').querySelectorAll('button').forEach(function(b){ b.classList.toggle('on', +b.dataset.v === D.set.trackEvery); });
+  $('trDur').querySelectorAll('button').forEach(function(b){ b.classList.toggle('on', +b.dataset.v === D.set.trackDur); });
+  if($('trStop')) $('trStop').onclick = function(){ U && U.trackStop(); };
+  if($('trSms')) $('trSms').onclick = function(){ back(); setTimeout(openContacts, 50); };
+}
+$('trEvery').onclick = function(e){ var b = e.target.closest('button'); if(!b) return; D.set.trackEvery = +b.dataset.v; save(); renderTrack(); };
+$('trDur').onclick = function(e){ var b = e.target.closest('button'); if(!b) return; D.set.trackDur = +b.dataset.v; save(); renderTrack(); };
+$('trGo').onclick = function(){
+  if(!U) return;
+  var r = U.trackStart(JSON.stringify(active().map(function(c){ return clean(c.num); })), D.set.trackEvery, D.set.trackDur);
+  if(r === 'ok'){ toast('Partage démarré'); setTimeout(function(){ TRACK = J(U.trackState(), TRACK); renderTrack(); }, 400); }
+  else if(r === 'loc') toast('Autorise la position, puis redémarre');
+  else if(r === 'sms') toast('Autorisation SMS nécessaire', true);
+  else toast(r.replace(/^error:/, ''), true);
+};
+
+/* ---------- Détection de chute ---------- */
+function openFall(){ if(U) FALL = J(U.fallState(), FALL); openScr('s-fall'); renderFall(); }
+function renderFall(){
+  renderHome();
+  var on = !!FALL.on;
+  $('fallSw').checked = on;
+  $('fallTest').disabled = !on || FALL.phase === 'alarm' || FALL.phase === 'test';
+  var ph = { watch:'Veille active', still:'Choc détecté : surveillance de l\'immobilité…', alarm:'ALARME : envoi imminent', test:'Essai en cours', sent:FALL.msg || 'Alerte envoyée' }[FALL.phase];
+  $('fallSub').textContent = on ? (ph || 'Veille active') : 'Désactivée';
+  var w = '';
+  if(on && (FALL.phase === 'alarm' || FALL.phase === 'test')) w += '<div class="row"><button class="btn red" id="fallCancel">Je vais bien, annuler</button></div>';
+  if(U && INFO.sms !== 'granted') w += '<p class="note" style="color:#ffd7a8">Sans l\'autorisation SMS, l\'alerte ne peut pas partir toute seule : une notification te proposera de l\'envoyer.</p>';
+  if(U && INFO.fullScreen === false) w += '<p class="note">Pour que l\'alarme s\'affiche en plein écran sur le téléphone verrouillé, autorise les « notifications plein écran ». <button class="chip" id="fallFs">Ouvrir le réglage</button></p>';
+  if(!active().length) w += '<p class="note" style="color:#ffd7a8">Ajoute un contact d\'urgence, sinon personne ne sera prévenu.</p>';
+  $('fallWarn').innerHTML = w;
+  if($('fallCancel')) $('fallCancel').onclick = function(){ U && U.fallCancel(); };
+  if($('fallFs')) $('fallFs').onclick = function(){ U && U.openSettings('fullscreen'); };
+}
+$('fallSw').onchange = function(e){
+  if(!U){ e.target.checked = false; toast('Disponible dans l\'appli Android'); return; }
+  var r = U.fallWatch(e.target.checked);
+  if(r === 'ok'){ toast(e.target.checked ? 'Détection de chute activée' : 'Détection de chute désactivée'); setTimeout(function(){ FALL = J(U.fallState(), FALL); renderFall(); }, 400); }
+  else { e.target.checked = false; toast(r === 'loc' ? 'Autorise la position, puis réactive' : r === 'service' ? 'Service absent de cette version' : r.replace(/^error:/, ''), true); }
+};
+$('fallTest').onclick = function(){ if(U){ U.fallTest(); toast('Essai : sirène 10 s, rien ne sera envoyé'); } };
+
+/* ---------- Événements du pont ---------- */
+window.urgenceEvent = function(type, o){
+  if(typeof o === 'string') o = J(o, {});
+  o = o || {};
+  switch(type){
+    case 'loc': onLoc(o); break;
+    case 'locend': onLocEnd(o); break;
+    case 'contact': onContact(o); break;
+    case 'sms': onSms(o); break;
+    case 'lamp': onLamp(o); break;
+    case 'perm':
+      INFO = o; renderHome();
+      if(!$('s-contacts').hidden) renderContacts();
+      if(!$('s-fiche').hidden && !$('fView').hidden) ficheView();
+      if(!$('s-track').hidden) renderTrack();
+      if(o.asked === 'sms' && o.sms === 'blocked') toast('Android bloque les SMS pour cette appli : suis les étapes affichées', true);
+      if(o.asked === 'loc' && SOS) locStart(60000);
+      break;
+    case 'track': TRACK = o; renderTrack(); break;
+    case 'fall': FALL = o; renderFall(); break;
+    case 'resume':
+      refreshInfo();
+      if(!$('s-contacts').hidden) renderContacts();
+      if(SOS && SOS.pendingCall){ SOS.pendingCall = false; setTimeout(autoCall, 600); renderRes(); }
+      break;
+  }
+};
+
+/* ---------- Tuile Socle : {sos:1} ouvre l'écran SOS, sans rien envoyer ---------- */
+window.onSocle = function(a){
+  var o = typeof a === 'string' ? J(a, {}) : (a || {});
+  if(!o.sos) return;
+  if(SOS) return;
+  closeAll();
+  window.scrollTo(0, 0);
+  $('sos').classList.add('pulse');
+  $('hint').innerHTML = '<b>Appui long 2 s</b> ou <b>3 appuis</b> pour lancer l\'alerte';
+  setTimeout(function(){ $('sos').classList.remove('pulse'); }, 12000);
+};
+
+/* ---------- Démarrage ---------- */
+if(!U) $('noBridge').hidden = false;
+refreshInfo();
+if(U){ try{ TRACK = J(U.trackState(), TRACK); FALL = J(U.fallState(), FALL); }catch(e){} renderHome(); }
+// Première ouverture : demander la position (indispensable au SOS)
+if(U && INFO.loc === 'ask') setTimeout(function(){ U.ask('loc'); }, 800);
+publish();
+setTimeout(function(){ try{ if(P && P.takeSocle){ var x = P.takeSocle(); if(x) window.onSocle(x); } }catch(e){} }, 400);
+document.addEventListener('visibilitychange', function(){ if(!document.hidden) refreshInfo(); });
+})();
+</script>
+</body>
+</html>

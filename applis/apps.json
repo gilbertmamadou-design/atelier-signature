@@ -166,5 +166,61 @@
   "name": "Écran",
   "icons": "android-icons-ecran",
   "file": "Ecran.apk"
+ },
+ {
+  "app": "dicta",
+  "web": "www-dicta",
+  "appid": "fr.magformation13.dicta",
+  "name": "Dictaphone",
+  "icons": "android-icons-dicta",
+  "file": "Dictaphone.apk"
+ },
+ {
+  "app": "urgence",
+  "web": "www-urgence",
+  "appid": "fr.magformation13.urgence",
+  "name": "Urgence",
+  "icons": "android-icons-urgence",
+  "file": "Urgence.apk"
+ },
+ {
+  "app": "meteo",
+  "web": "www-meteo",
+  "appid": "fr.magformation13.meteo",
+  "name": "Météo",
+  "icons": "android-icons-meteo",
+  "file": "Meteo.apk"
+ },
+ {
+  "app": "coffre",
+  "web": "www-coffre",
+  "appid": "fr.magformation13.coffre",
+  "name": "Coffre",
+  "icons": "android-icons-coffre",
+  "file": "Coffre.apk"
+ },
+ {
+  "app": "budget",
+  "web": "www-budget",
+  "appid": "fr.magformation13.budget",
+  "name": "Budget",
+  "icons": "android-icons-budget",
+  "file": "Budget.apk"
+ },
+ {
+  "app": "liseuse",
+  "web": "www-liseuse",
+  "appid": "fr.magformation13.liseuse",
+  "name": "Liseuse",
+  "icons": "android-icons-liseuse",
+  "file": "Liseuse.apk"
+ },
+ {
+  "app": "qr",
+  "web": "www-qr",
+  "appid": "fr.magformation13.qr",
+  "name": "QR",
+  "icons": "android-icons-qr",
+  "file": "QR.apk"
  }
 ]

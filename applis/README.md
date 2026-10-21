@@ -17,6 +17,13 @@ Petites applications Android faites sur mesure pour un téléphone Oukitel WP60 
 | Scan | Numérisation de documents en PDF |
 | Mesure | Règle, niveau, pentes, sonomètre, luxmètre, boussole |
 | Sauvegarde | Copie automatique vers carte SD, clé USB ou dossier |
+| Urgence | SOS avec position, numéros d'urgence, fiche médicale, lampe et sirène |
+| Coffre | Mots de passe et codes chiffrés, empreinte, codes 2FA |
+| QR | Lire et créer des QR codes et codes-barres |
+| Liseuse | Livres EPUB et PDF, livres libres de droits |
+| Budget | Dépenses et revenus perso, budgets, relevés bancaires |
+| Dictaphone | Enregistrements vocaux, marqueurs, dictée |
+| Météo | Prévisions, radar de pluie, qualité de l'air, alertes |
 | Mélodie, Rangement, Aube, Ciel, Sentiers, Petits Pas, Carnet de chasse, Atelier PDF | Musique, fichiers, réveil, ciel, randonnée, enfants, chasse, PDF |
 
 ## Récupérer un APK
