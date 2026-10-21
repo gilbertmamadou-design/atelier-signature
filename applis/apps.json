@@ -198,5 +198,13 @@
   "name": "Coffre",
   "icons": "android-icons-coffre",
   "file": "Coffre.apk"
+ },
+ {
+  "app": "budget",
+  "web": "www-budget",
+  "appid": "fr.magformation13.budget",
+  "name": "Budget",
+  "icons": "android-icons-budget",
+  "file": "Budget.apk"
  }
 ]
