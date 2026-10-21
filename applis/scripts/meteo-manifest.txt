@@ -1,0 +1,38 @@
+# Météo (fr.magformation13.meteo) : lignes à ajouter à android/app/src/main/AndroidManifest.xml
+# Appli grand public de prévisions personnelles (à ne pas confondre avec Vigie, alertes de chantier, ni avec MeteoWorker).
+#
+# Fichiers :
+#  - scripts/MeteoBridge.java   : déjà copié automatiquement (boucle scripts/*Bridge.java de print-patch.sh)
+#                                 et chargé sous window.MAGMeteo (« MeteoBridge » figure déjà dans loadExtraBridges).
+#  - scripts/MeteoPersoJob.java : à copier SEULEMENT pour cette appli, avec __PKG__ remplacé, par exemple dans print-patch.sh :
+#      if [ "$APP" = "meteo" ]; then cp scripts/MeteoPersoJob.java "$(dirname "$F")/MeteoPersoJob.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/MeteoPersoJob.java"; fi
+#    (le pont le trouve par réflexion ; sans lui, la page affiche « alertes indisponibles » et tout le reste fonctionne).
+#    Ne PAS l'ajouter à la boucle commune « for J in AlarmService … » : dans une appli qui ne déclare pas le service,
+#    JobScheduler refuserait la planification (le pont l'attrape, mais autant ne pas l'embarquer).
+#  - www-meteo/index.html : leaflet.js et leaflet.css sont copiés automatiquement dans le dossier de la page (radar).
+#
+# Entrée apps.json proposée :
+#  { "app": "meteo", "web": "www-meteo", "appid": "fr.magformation13.meteo", "name": "Météo", "icons": "android-icons-meteo", "file": "Meteo.apk" }
+
+# ---------- 1. Dans <application> … </application> ----------
+<service android:name=".MeteoPersoJob" android:permission="android.permission.BIND_JOB_SERVICE" android:exported="false" />
+
+# ---------- 2. Avant </manifest> : autorisations ----------
+# Vérification périodique avec contrainte réseau (JobScheduler l'exige pour setRequiredNetworkType)
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+# Tâche conservée après un redémarrage du téléphone (setPersisted)
+<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+# Internet : déjà présent dans le manifeste Capacitor
+<uses-permission android:name="android.permission.INTERNET" />
+# Déjà ajoutées pour toutes les applis MAG par print-patch.sh (à garder) :
+#   ACCESS_COARSE_LOCATION (position approximative : suffit pour la météo), ACCESS_FINE_LOCATION, POST_NOTIFICATIONS,
+#   fr.magformation13.permission.WIDGET (tuile Socle et canal de sauvegarde)
+# Pas besoin d'ACCESS_BACKGROUND_LOCATION : les alertes surveillent un lieu fixe (ville choisie,
+# ou dernière position connue enregistrée quand l'appli était ouverte).
+
+# ---------- 3. Notes ----------
+# Codes de requête utilisés : 6201 (position), 6202 (notifications). Identifiant de tâche : 6210. Notifications : 6221 à 6225.
+# Canal de notification créé à la première alerte : « Alertes météo » (meteo_alertes).
+# Appui sur une notification : ouvre l'appli avec l'extra « socle » = {"place": "<ville>"} → window.onSocle ouvre la ville.
+# Pour que Sauvegarde récupère les villes et alertes : ajouter "fr.magformation13.meteo" à SauvegardeJob.MAG
+# et à la liste <queries> de Sauvegarde.

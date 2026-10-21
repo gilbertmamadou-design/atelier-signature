@@ -1,0 +1,37 @@
+# Coffre (gestionnaire de mots de passe) : lignes à ajouter à android/app/src/main/AndroidManifest.xml (uniquement pour l'appli Coffre)
+# CoffreBridge.java est déjà copié automatiquement (boucle scripts/*Bridge.java) et chargé sous window.MAGCoffre.
+# Aucun autre fichier natif à copier.
+
+# ---------- 1. Avant </manifest> : empreinte ----------
+<uses-permission android:name="android.permission.USE_BIOMETRIC" />
+<uses-permission android:name="android.permission.USE_FINGERPRINT" android:maxSdkVersion="28" />
+# (USE_FINGERPRINT ne sert qu'à Android 9, pour savoir si une empreinte est enregistrée.)
+
+# ---------- 2. Dans <application ...> : pas de copie des données par Google ----------
+# Le coffre est chiffré, mais il n'a rien à faire dans une sauvegarde Google Drive ni dans un transfert d'appareil
+# (la clé d'empreinte du Keystore ne suit pas de toute façon). Ajouter ces attributs à la balise <application> :
+#     android:allowBackup="false"
+#     android:fullBackupContent="false"
+# Si le manifeste porte déjà android:allowBackup="true", le remplacer par "false".
+
+# ---------- 3. Facultatif : supprimer l'accès internet ----------
+# La page est déjà bloquée par sa politique de sécurité (Content-Security-Policy : connect-src 'none').
+# Pour aller plus loin, retirer la permission INTERNET ajoutée par le modèle Capacitor
+# (les pages sont servies en local par Capacitor, sans réseau). Nécessite xmlns:tools="http://schemas.android.com/tools"
+# sur la balise <manifest> :
+#     <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+# À tester sur le téléphone avant de l'adopter : si la page reste blanche, enlever cette ligne.
+
+# ---------- Rien d'autre ----------
+# - FLAG_SECURE est posé par le pont (secure(true), appelé par la page au chargement) : pas de capture d'écran,
+#   aperçu masqué dans les applis récentes.
+# - Pas d'activité, de service ni de récepteur supplémentaire. Codes de requête : aucun utilisé (plage réservée 5950–5999).
+# - Exemple de bloc pour scripts/print-patch.sh (à côté des autres « if [ "$APP" = ... ] ») :
+#     if [ "$APP" = "coffre" ]; then
+#       addperm USE_BIOMETRIC
+#       grep -q "USE_FINGERPRINT" "$MAN" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.USE_FINGERPRINT" android:maxSdkVersion="28" />\n</manifest>#' "$MAN"
+#       sed -i 's/android:allowBackup="true"/android:allowBackup="false"/' "$MAN"
+#       grep -q 'android:allowBackup' "$MAN" || sed -i '0,/<application/s//<application android:allowBackup="false" android:fullBackupContent="false"/' "$MAN"
+#     fi
+# - Entrée apps.json correspondante (à ajouter à la main) :
+#     { "app": "coffre", "web": "www-coffre", "appid": "fr.magformation13.coffre", "name": "Coffre", "icons": "android-icons-coffre", "file": "Coffre.apk" }

@@ -1,0 +1,57 @@
+# Liseuse (fr.magformation13.liseuse) : lignes à ajouter à android/app/src/main/AndroidManifest.xml (uniquement pour Liseuse)
+# LiseuseBridge.java est copié automatiquement (boucle scripts/*Bridge.java, __PKG__ remplacé) et chargé sous window.MAGLiseuse.
+# jszip.min.js, pdf.min.js et pdf.worker.min.js doivent être copiés dans www-liseuse/ à la compilation.
+
+# ---------- 1. Avant </manifest> : autorisations ----------
+<uses-permission android:name="android.permission.INTERNET" />
+# Aucune autorisation de stockage : les livres sont choisis avec le sélecteur d'Android (ACTION_OPEN_DOCUMENT)
+# ou reçus par « Ouvrir avec » (autorisation de lecture temporaire accordée par l'appli qui envoie).
+# Déjà déclarées pour toutes les applis MAG (à garder) : POST_NOTIFICATIONS, fr.magformation13.permission.WIDGET
+
+# ---------- 2. Avant </manifest> : visibilité (Android 11+) ----------
+# Synthèse vocale (TextToSpeech), partage d'une citation, ouverture d'une page Gutenberg/Wikisource dans le navigateur.
+<queries>
+    <intent><action android:name="android.intent.action.TTS_SERVICE" /></intent>
+    <intent><action android:name="android.intent.action.SEND" /><data android:mimeType="text/plain" /></intent>
+    <intent><action android:name="android.intent.action.VIEW" /><data android:scheme="https" /></intent>
+    <package android:name="fr.magformation13.fichiers" />
+    <package android:name="fr.magformation13.socle" />
+</queries>
+
+# ---------- 3. Dans <activity android:name=".MainActivity" …>, à côté de l'intent-filter MAIN/LAUNCHER ----------
+# MainActivity doit rester en android:launchMode="singleTask" (valeur du modèle Capacitor) : un second « Ouvrir avec »
+# arrive alors par onNewIntent → LiseuseBridge.onIntent → événement « files » ; au premier lancement la page appelle pending().
+<intent-filter android:label="Ouvrir avec Liseuse">
+    <action android:name="android.intent.action.VIEW" />
+    <category android:name="android.intent.category.DEFAULT" />
+    <category android:name="android.intent.category.BROWSABLE" />
+    <data android:scheme="content" />
+    <data android:scheme="file" />
+    <data android:mimeType="application/epub+zip" />
+    <data android:mimeType="application/pdf" />
+</intent-filter>
+# Certains gestionnaires de fichiers et navigateurs annoncent un EPUB sans type précis : on accepte l'extension.
+<intent-filter android:label="Ouvrir avec Liseuse">
+    <action android:name="android.intent.action.VIEW" />
+    <category android:name="android.intent.category.DEFAULT" />
+    <data android:scheme="content" />
+    <data android:scheme="file" />
+    <data android:host="*" />
+    <data android:mimeType="application/octet-stream" />
+    <data android:pathPattern=".*\\.epub" />
+    <data android:pathPattern=".*\\..*\\.epub" />
+    <data android:pathPattern=".*\\..*\\..*\\.epub" />
+</intent-filter>
+# « Partager » un livre vers Liseuse (depuis Rangement, un navigateur, une messagerie)
+<intent-filter android:label="Liseuse">
+    <action android:name="android.intent.action.SEND" />
+    <category android:name="android.intent.category.DEFAULT" />
+    <data android:mimeType="application/epub+zip" />
+    <data android:mimeType="application/pdf" />
+</intent-filter>
+
+# Remarques
+# - Le type du fichier est vérifié par ses premiers octets (« PK » = EPUB, « %PDF » = PDF) : un faux fichier est refusé.
+# - Le pont n'agit sur un intent que si la page Liseuse l'a déjà appelé (pending/cleanup) : présent dans toutes les applis,
+#   il reste inerte ailleurs (Atelier PDF, Rangement…).
+# - Codes de requête utilisés : 6050 (sélection des livres).
