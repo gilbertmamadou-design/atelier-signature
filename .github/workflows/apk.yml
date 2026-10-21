@@ -29,7 +29,7 @@ jobs:
           fetch-depth: 0
       - id: p
         env:
-          HAS_KEY: ${{ secrets.KEYSTORE_B64 != '' }}
+          HAS_KEY: ${{ secrets.KEYSTORE_B64 != '' || vars.KEYSTORE_B64 != '' }}
           BEFORE: ${{ github.event.before }}
           WANT: ${{ github.event.inputs.applis }}
         run: |
@@ -99,7 +99,7 @@ jobs:
 
       - name: Clé de signature (secret KEYSTORE_B64)
         env:
-          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 || vars.KEYSTORE_B64 }}
         run: |
           if [ -z "$KEYSTORE_B64" ]; then echo "::error::Ajoute le secret KEYSTORE_B64 : Settings > Secrets and variables > Actions > New repository secret"; exit 1; fi
           mkdir -p keystore
