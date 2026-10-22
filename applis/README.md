@@ -12,7 +12,7 @@ Petites applications Android faites sur mesure pour un téléphone Oukitel WP60 
 | Carnet | Notes et listes (remplace Keep) |
 | Calcul | Calculatrice avec mode chantier |
 | Ondes | Podcasts, musique libre (Creative Commons), fichiers par lien direct |
-| Écran | Vidéos : celles du téléphone, PeerTube, domaine public, chaînes YouTube par le lecteur officiel |
+| Écran | Vidéos : celles du téléphone, PeerTube, domaine public, chaînes YouTube par le lecteur officiel ; rubrique Animés 100 % légale (chaînes officielles, plateformes ayant les droits, premiers animés japonais du domaine public) |
 | Photo | Appareil photo et mode chantier (bandeau date/adresse, annotations, rapport PDF) |
 | Scan | Numérisation de documents en PDF |
 | Mesure | Règle, niveau, pentes, sonomètre, luxmètre, boussole |
