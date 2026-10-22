@@ -230,5 +230,13 @@
   "name": "Réseau",
   "icons": "android-icons-reseau",
   "file": "Reseau.apk"
+ },
+ {
+  "app": "lecteur",
+  "web": "www-lecteur",
+  "appid": "fr.magformation13.lecteur",
+  "name": "Lecteur PDF",
+  "icons": "android-icons-lecteur",
+  "file": "Lecteur-PDF.apk"
  }
 ]

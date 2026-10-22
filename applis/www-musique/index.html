@@ -1359,11 +1359,26 @@ async function readFlac(file) {
   return out;
 }
 
+/* ============ Commandes venues de la tuile Musique de Socle ============ */
+// {play:1} : reprendre la dernière écoute (ou tout lire) ; skip:"next"/"prev" ; back:1 = revenir à Socle ensuite
+let SOCLE_Q = null, LIB_READY = false;
+window.onSocle = a => { try { SOCLE_Q = JSON.parse(a); } catch (e) { return; } if (LIB_READY) socleRun(); };
+function socleRun() {
+  const s = SOCLE_Q; SOCLE_Q = null;
+  if (!s || !s.play || !NATIVE || !TR.length) return;
+  const st = nativeState();
+  if (P.i < 0 || !P.queue.length) playList(sortedTracks(TR, ST.sort), 0, "Tous les titres");
+  else if (!(st.alive && st.playing)) { MP.musicPlay(q2native(P.queue), P.i, P.pos || 0); P.playing = true; paintPlay(); }
+  if (s.skip === "next") setTimeout(next, 700); else if (s.skip === "prev") setTimeout(prev, 700);
+  if (s.back && MP.appBack) setTimeout(() => MP.appBack(), 900);
+}
+
 /* ============ Démarrage ============ */
 (async function start() {
   if (!NATIVE) { await new Promise(r => setTimeout(r, 200)); MP = window.MAGPrint; NATIVE = !!(MP && MP.musicScan); }
   await loadCustomArt();
   await loadLibrary();
+  LIB_READY = true; if (SOCLE_Q) socleRun();
   if (NATIVE) { setInterval(pollNative, 500); document.addEventListener("visibilitychange", () => { if (!document.hidden) pollNative(); }); }
   setInterval(() => { if (P.sleepAt > 0) paintModes(); }, 20000);
 })();
