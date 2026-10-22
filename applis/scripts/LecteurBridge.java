@@ -397,6 +397,38 @@ public class LecteurBridge {
         return token;
     }
 
+    /** Envoie une copie du document à une appli précise (ACTION_SEND + setPackage), avec une action « socle » facultative :
+     *  par ex. Atelier PDF ouvre directement l'outil demandé ({"tool":"ocr"}) avec ce fichier. Réponse : événement « out » (mode « send »). */
+    @JavascriptInterface public String sendTo(final String src, final String name, final String pkg, final String socle) {
+        active = true;
+        final String token = tok("t");
+        new Thread(new Runnable() { public void run() {
+            try {
+                File dir = new File(a.getCacheDir(), "partage"); dir.mkdirs();
+                final File g = new File(dir, safeName(name));
+                InputStream in;
+                if (src.startsWith("local:")) { File lf = localFile(src.substring(6)); if (lf == null) throw new Exception("Fichier introuvable"); in = new FileInputStream(lf); }
+                else in = a.getContentResolver().openInputStream(Uri.parse(src));
+                copy(in, new FileOutputStream(g));
+                a.runOnUiThread(new Runnable() { public void run() {
+                    try {
+                        Uri u = androidx.core.content.FileProvider.getUriForFile(a, a.getPackageName() + ".fileprovider", g);
+                        Intent i = new Intent(Intent.ACTION_SEND);
+                        i.setType("application/pdf");
+                        i.putExtra(Intent.EXTRA_STREAM, u);
+                        i.setClipData(ClipData.newRawUri(g.getName(), u));
+                        i.setPackage(pkg);
+                        if (socle != null && !socle.isEmpty()) i.putExtra("socle", socle);
+                        i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+                        a.startActivity(i);
+                        emitOut(token, "send", true, null, g.getName(), null);
+                    } catch (Throwable t) { emitOut(token, "send", false, null, name, msg(t)); }
+                } });
+            } catch (Throwable t) { emitOut(token, "send", false, null, name, msg(t)); }
+        } }).start();
+        return token;
+    }
+
     private static String safeName(String n) {
         if (n == null || n.trim().isEmpty()) n = "document.pdf";
         n = n.replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]", "_").trim();

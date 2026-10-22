@@ -358,7 +358,7 @@ public class MainActivity extends BridgeActivity {
     private final java.util.List<Object> extraBridges = new java.util.ArrayList<Object>();
     private void loadExtraBridges(WebView wv) {
         String pkg = MainActivity.class.getPackage().getName();
-        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge", "ReseauBridge", "LecteurBridge" }) {
+        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge", "ReseauBridge", "LecteurBridge", "PdfBridge" }) {
             try {
                 Class<?> k = Class.forName(pkg + "." + n);
                 Object o = k.getConstructor(android.app.Activity.class, WebView.class).newInstance(this, wv);
@@ -1584,7 +1584,7 @@ FSV="$(dirname "$F")/FileService.java"
 cp scripts/FileService.java "$FSV"
 sed -i "s/__PKG__/$PKG/" "$FSV"
 # Réveil, lever de soleil et endormissement (application Aube)
-for J in $(ls scripts/*Bridge.java 2>/dev/null | xargs -n1 basename 2>/dev/null | sed 's/\.java$//'); do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
+for J in $(ls scripts/*Bridge.java 2>/dev/null | xargs -n1 basename 2>/dev/null | sed 's/\.java$//' | grep -vx 'PdfBridge'); do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
 for J in AlarmService AlarmReceiver WallpaperJob WallpaperTile LauncherService LauncherA11y LauncherMedia WidgetProvider SauvegardeJob PhotoCamera EcranPlayer DictaService MeteoPersoJob MelodieVolume; do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
 # Bibliothèque des tâches de fond
 G=android/app/build.gradle
@@ -1721,7 +1721,7 @@ fi
 if [ "$APP" = "ecran" ]; then
   addperm INTERNET READ_MEDIA_VIDEO
   grep -q 'READ_EXTERNAL_STORAGE' "$MAN" || addraw '<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />'
-  addraw '<queries><package android:name="com.google.android.youtube" /><package android:name="fr.francetv.pluzz" /><package android:name="tv.arte.plus7" /><package android:name="fr.tf1.mytf1" /><package android:name="fr.m6.m6replay" /><package android:name="com.dotscreen.tv5mondeplus.mobile" /><package android:name="fr.artestudio.arteradio.mobile" /><package android:name="fr.magformation13.ondes" /><package android:name="fr.magformation13.galerie" /><intent><action android:name="android.intent.action.VIEW" /><data android:scheme="market" /></intent><intent><action android:name="android.intent.action.VIEW" /><data android:scheme="https" /></intent><intent><action android:name="android.intent.action.VIEW" /><data android:mimeType="video/*" /></intent></queries>'
+  addraw '<queries><package android:name="com.google.android.youtube" /><package android:name="fr.francetv.pluzz" /><package android:name="tv.arte.plus7" /><package android:name="fr.tf1.mytf1" /><package android:name="fr.m6.m6replay" /><package android:name="com.dotscreen.tv5mondeplus.mobile" /><package android:name="fr.artestudio.arteradio.mobile" /><package android:name="fr.anidn" /><package android:name="com.crunchyroll.crunchyroid" /><package android:name="com.netflix.mediaclient" /><package android:name="com.amazon.avod.thirdpartyclient" /><package android:name="com.disney.disneyplus" /><package android:name="tv.pluto.android" /><package android:name="fr.francetv.zouzous" /><package android:name="fr.magformation13.ondes" /><package android:name="fr.magformation13.galerie" /><intent><action android:name="android.intent.action.VIEW" /><data android:scheme="market" /></intent><intent><action android:name="android.intent.action.VIEW" /><data android:scheme="https" /></intent><intent><action android:name="android.intent.action.VIEW" /><data android:mimeType="video/*" /></intent></queries>'
   addactivity '<activity android:name=".EcranPlayer" android:label="Écran" android:exported="true" android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" android:screenOrientation="sensorLandscape" android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation|uiMode|density" android:supportsPictureInPicture="true" android:resizeableActivity="true" android:launchMode="singleTask" android:taskAffinity="ecran.lecteur" android:autoRemoveFromRecents="true"><intent-filter android:label="Ouvrir avec Écran"><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.DEFAULT" /><data android:scheme="content" android:mimeType="video/*" /><data android:scheme="file" android:mimeType="video/*" /></intent-filter><intent-filter android:label="Ouvrir avec Écran"><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.DEFAULT" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="http" android:mimeType="video/*" /><data android:scheme="https" android:mimeType="video/*" /><data android:scheme="https" android:mimeType="application/x-mpegURL" /><data android:scheme="https" android:mimeType="application/vnd.apple.mpegurl" /></intent-filter></activity>'
 fi
 if [ "$APP" = "urgence" ]; then
@@ -1757,6 +1757,25 @@ fi
 if [ "$APP" = "lecteur" ]; then
   addraw '<queries><intent><action android:name="android.intent.action.TTS_SERVICE" /></intent><intent><action android:name="android.intent.action.SEND" /><data android:mimeType="application/pdf" /></intent><intent><action android:name="android.intent.action.VIEW" /><data android:mimeType="application/pdf" /></intent><package android:name="fr.magformation13.pdf" /><package android:name="fr.magformation13.socle" /></queries>'
   addfilters '<intent-filter android:label="Ouvrir avec Lecteur PDF"><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.DEFAULT" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="content" /><data android:scheme="file" /><data android:mimeType="application/pdf" /><data android:mimeType="application/x-pdf" /></intent-filter><intent-filter android:label="Ouvrir avec Lecteur PDF"><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.DEFAULT" /><data android:scheme="content" /><data android:scheme="file" /><data android:host="*" /><data android:mimeType="application/octet-stream" /><data android:pathPattern=".*\\.pdf" /><data android:pathPattern=".*\\..*\\.pdf" /><data android:pathPattern=".*\\..*\\..*\\.pdf" /></intent-filter><intent-filter android:label="Ouvrir avec Lecteur PDF"><action android:name="android.intent.action.SEND" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="application/pdf" /></intent-filter>'
+fi
+# Atelier PDF : reconnaissance de texte hors ligne (ML Kit, modèle latin embarqué, sans Google Play Services),
+# mot de passe (PDFBox-Android, Apache 2.0), PDF reçus par « Partager » (depuis Lecteur PDF, Fichiers…) : PdfBridge.java,
+# copié ici seulement car il dépend de ces deux bibliothèques (ajoutées à cette appli seule).
+if [ "$APP" = "pdf" ]; then
+  cp scripts/PdfBridge.java "$(dirname "$F")/PdfBridge.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/PdfBridge.java"
+  grep -q "com.google.mlkit:text-recognition" "$G" || sed -i '0,/^dependencies {/s//dependencies {\n    implementation "com.google.mlkit:text-recognition:16.0.1"\n    implementation "com.tom-roush:pdfbox-android:2.0.27.0"/' "$G"
+  # ML Kit demande Android 6 (API 23) au minimum ; le téléphone visé est sous Android 15
+  sed -i 's/minSdkVersion = 2[0-2]$/minSdkVersion = 23/' android/variables.gradle
+  cat >> "$G" <<'GRADLE'
+
+android {
+    // Bibliothèque native d'ML Kit : seulement pour les processeurs ARM des téléphones (APK plus léger)
+    defaultConfig { ndk { abiFilters "arm64-v8a", "armeabi-v7a" } }
+    packaging { resources { excludes += ["META-INF/versions/9/OSGI-INF/MANIFEST.MF", "META-INF/DEPENDENCIES", "META-INF/LICENSE.md", "META-INF/NOTICE.md"] } }
+}
+GRADLE
+  grep -n "mlkit\|pdfbox" "$G"; grep -n "minSdkVersion" android/variables.gradle
+  addfilters '<intent-filter android:label="Atelier PDF"><action android:name="android.intent.action.SEND" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="application/pdf" /></intent-filter><intent-filter android:label="Atelier PDF"><action android:name="android.intent.action.SEND_MULTIPLE" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="application/pdf" /></intent-filter>'
 fi
 if [ "$APP" = "meteo" ]; then
   addperm ACCESS_NETWORK_STATE RECEIVE_BOOT_COMPLETED INTERNET

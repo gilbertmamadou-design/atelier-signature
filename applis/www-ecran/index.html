@@ -28,6 +28,7 @@ main{padding:2px 16px calc(96px + var(--safe-b))}
 nav{position:fixed;left:0;right:0;bottom:0;z-index:8;display:flex;justify-content:space-around;padding:8px 4px calc(8px + var(--safe-b));background:linear-gradient(transparent,var(--bg) 30%)}
 nav button{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--tx3);padding:6px 4px;border-radius:14px;flex:1;max-width:76px}
 nav button svg{width:23px;height:23px}
+nav button{white-space:nowrap;letter-spacing:-.1px}
 nav button.on{color:var(--acc);background:#ff8f7014}
 .badge{position:absolute;top:2px;left:50%;margin-left:6px;background:var(--acc);color:var(--ink);font-size:10px;font-weight:800;border-radius:9px;padding:0 5px;min-width:16px;text-align:center;line-height:16px}
 .search{display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:11px 14px;margin:4px 0 10px;color:var(--tx3)}
@@ -142,6 +143,21 @@ nav button.on{color:var(--acc);background:#ff8f7014}
 .app .t b{display:block;font-weight:700}
 .app .t span{display:block;font-size:12.5px;color:var(--tx3);line-height:1.35}
 .app .t .st{font-size:11.5px;font-weight:700;color:var(--ok);margin-top:2px}
+/* Animés */
+.legal{display:flex;gap:10px;align-items:flex-start;padding:11px 13px;border-radius:14px;background:#6fd6a412;border:1px solid #6fd6a430;font-size:13px;color:var(--tx2);line-height:1.45;margin:2px 0 6px}
+.legal svg{color:var(--ok);flex:none}
+.legal b{color:var(--tx)}
+.app .t .pst{display:inline-block;font-size:11px;font-weight:800;border-radius:6px;padding:1px 6px;margin:3px 0 1px;letter-spacing:.2px}
+.pst.free{color:var(--ok);background:#6fd6a41c}.pst.pub{color:var(--acc2);background:#ffc46b1c}.pst.paid{color:var(--tx2);background:#ffffff12}
+.app .act{display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex:none}
+.star{width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center;color:var(--tx3);background:var(--bg3);flex:none}
+.star.on{color:var(--acc2)}
+.star.on svg{fill:currentColor}
+.arow{display:flex;gap:8px;align-items:center}
+.arow .li{flex:1;min-width:0}
+.banner{display:flex;gap:12px;align-items:center;width:100%;padding:12px;border-radius:16px;background:linear-gradient(135deg,#2a2140,#1d2433);border:1px solid #b79bff33;margin-top:14px}
+.banner .ico{width:42px;height:42px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#ff8fb4,#b79bff);color:var(--ink);flex:none}
+.banner .t{flex:1;min-width:0}.banner .t b{display:block;font-weight:700}.banner .t span{display:block;font-size:12.5px;color:var(--tx2);line-height:1.35}
 .empty{text-align:center;color:var(--tx3);padding:30px 18px;font-size:14px;line-height:1.55}
 .empty svg{width:40px;height:40px;margin:0 auto 10px;color:var(--bg4);stroke-width:1.5}
 .ok{color:var(--ok)}.bad{color:var(--bad)}
@@ -170,6 +186,7 @@ nav button.on{color:var(--acc);background:#ff8f7014}
   <button data-tab="pt"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>PeerTube</button>
   <button data-tab="lib"><svg class="i" viewBox="0 0 24 24"><path d="M4 20V8l8-4 8 4v12M4 20h16M8 11v6M12 11v6M16 11v6"/></svg>Libres</button>
   <button data-tab="subs"><svg class="i" viewBox="0 0 24 24"><path d="M5 11a8 8 0 0 1 8 8M5 5a14 14 0 0 1 14 14"/><circle cx="6" cy="18" r="1.5"/></svg>Chaînes<span class="badge" id="subBadge" hidden></span></button>
+  <button data-tab="anime"><svg class="i" viewBox="0 0 24 24"><path d="M12 3.5l2.5 5.2 5.7.8-4.1 4 1 5.7L12 16.5l-5.1 2.7 1-5.7-4.1-4 5.7-.8z"/></svg>Animés</button>
 </nav>
 <div id="toast"></div>
 
@@ -199,16 +216,17 @@ var I={
   rocket:ic('<path d="M5 15c-1.5 1.3-2 4-2 4s2.7-.5 4-2M9 15l-3-3c1.8-4.8 5.5-8 12-9 0 6.5-3.2 10.2-8 12z"/><circle cx="14.5" cy="9.5" r="1.5"/>'),
   globe:ic('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.6 5.6 3.6 9s-1.1 6.4-3.6 9c-2.5-2.6-3.6-5.6-3.6-9S9.5 5.6 12 3z"/>'),
   trash:ic('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>'), refresh:ic('<path d="M20 11a8 8 0 0 0-14.3-4.3L4 8M4 4v4h4M4 13a8 8 0 0 0 14.3 4.3L20 16M20 20v-4h-4"/>'),
+  star:ic('<path d="M12 3.5l2.5 5.2 5.7.8-4.1 4 1 5.7L12 16.5l-5.1 2.7 1-5.7-4.1-4 5.7-.8z"/>'),
   lock:ic('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'), sort:ic('<path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/>')
 };
 var LOGO='<svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8f70"/><stop offset="1" stop-color="#ffc46b"/></linearGradient></defs><rect x="2" y="5" width="28" height="20" rx="6" fill="url(#lg)"/><path d="M13.5 10.5v9l7-4.5z" fill="#1a0f0a"/><path d="M11 28h10" stroke="#ffc46b" stroke-width="2.4" stroke-linecap="round"/></svg>';
 
 /* ---------- Données gardées ---------- */
 var K='ecran-v1';
-var D=Object.assign({ptSubs:[], ytSubs:[], cache:{}, seen:{}, ptQ:'', ptSort:'match', libTab:'films', mineSort:'date', mineFolder:'', lastRefresh:0}, J(localStorage.getItem(K),{}));
+var D=Object.assign({ptSubs:[], ytSubs:[], cache:{}, seen:{}, ptQ:'', ptSort:'match', libTab:'films', mineSort:'date', mineFolder:'', lastRefresh:0, aniFav:[], aniIds:[], aniYt:{}}, J(localStorage.getItem(K),{}));
 function save(){ try{ localStorage.setItem(K, JSON.stringify(D)); }catch(e){} backup(); }
 var backupT;
-function backup(){ clearTimeout(backupT); backupT=setTimeout(function(){ try{ if(P && P.backupPut) P.backupPut(JSON.stringify({app:'Écran', peertube:D.ptSubs, youtube:D.ytSubs})); }catch(e){} }, 1500); }
+function backup(){ clearTimeout(backupT); backupT=setTimeout(function(){ try{ if(P && P.backupPut) P.backupPut(JSON.stringify({app:'Écran', peertube:D.ptSubs, youtube:D.ytSubs, animes:D.aniFav})); }catch(e){} }, 1500); }
 
 /* ---------- Réseau (par le téléphone : pas de restriction CORS) ---------- */
 var REQ={}, rq=0;
@@ -259,7 +277,7 @@ function render(view,args,restore){
   cur={view:view,args:args||{},key:args&&args.key||''};
   $('main').onclick=null;
   $('bTv').hidden = view==='tv';
-  ({home:viewHome, mine:viewMine, pt:viewPt, lib:viewLib, subs:viewSubs, tv:viewTv, det:viewDet, chan:viewChan, folder:viewMine})[view](cur.args);
+  ({home:viewHome, mine:viewMine, pt:viewPt, lib:viewLib, subs:viewSubs, tv:viewTv, det:viewDet, chan:viewChan, folder:viewMine, anime:viewAnime})[view](cur.args);
   window.scrollTo(0, restore ? (SCROLL[view+(cur.key||'')]||0) : 0);
 }
 
@@ -299,6 +317,7 @@ function askThumb(id){ if(thWait[id]||!A||!A.thumbs) return; thWait[id]=1; thQ.p
 function refreshProgress(){
   document.querySelectorAll('[data-pg]').forEach(function(el){ var id=el.dataset.pg, p=POS[id]; el.hidden=!(p&&!p.done&&p.pos>5000); el.firstChild.style.width=pct(id)+'%'; });
   if(cur.view==='home') { var c=$('cont'); if(c) c.innerHTML=continueRow(); }
+  if(cur.view==='anime') { var a=$('aCont'); if(a) a.innerHTML=aniContinue(); }
   if(cur.view==='det' && LAST_DET) detButtons();
 }
 
@@ -343,20 +362,23 @@ window.onSocle=function(a){
    ========================================================= */
 /* --- PeerTube (Sepia Search + API de l'instance) --- */
 var SEPIA='https://sepiasearch.org/api/v1/search/videos';
+/* Licences PeerTube libres : 1-6 = Creative Commons (BY, BY-SA, BY-ND, BY-NC, BY-NC-SA, BY-NC-ND), 7 = domaine public (CC0) */
+var PT_LIBRE=[1,2,3,4,5,6,7];
 var PT_CATS=[['Bricolage','bricolage',12],['Sciences','science',15],['Histoire','histoire',0],['Documentaires','documentaire',0],['Musique','musique',1],['Cuisine','cuisine',18],['Éducation','cours',13],['Nature','nature',0],['Informatique','logiciel libre',0],['Jardinage','jardin',0],['Voyages','voyage',6],['Enfants','enfants',17]];
 function ptItem(v){
   var host=''; try{ host=new URL(v.url).host; }catch(e){ host=(v.channel&&v.channel.host)||(v.account&&v.account.host)||''; }
   var ch=v.channel||{};
   var av=(ch.avatars&&ch.avatars.length?ch.avatars[Math.min(1,ch.avatars.length-1)]:ch.avatar)||null;
   return {k:'pt', id:'pt:'+host+':'+v.uuid, uuid:v.uuid, host:host, title:v.name, thumb:v.thumbnailUrl||(v.thumbnailPath?'https://'+host+v.thumbnailPath:''), dur:v.duration,
-    sub:(ch.displayName||ch.name||'')+(ch.host?' · '+ch.host:''), views:v.views, date:v.publishedAt, live:v.isLive, licence:v.licence&&v.licence.label,
+    sub:(ch.displayName||ch.name||'')+(ch.host?' · '+ch.host:''), views:v.views, date:v.publishedAt, live:v.isLive, licence:v.licence&&v.licence.label, licId:v.licence&&v.licence.id,
     chan:{name:ch.name, host:ch.host||host, display:ch.displayName||ch.name, avatar:av?(av.fileUrl||(av.path?'https://'+(ch.host||host)+av.path:'')):''}};
 }
 function ptSearch(q, opt){
   opt=opt||{};
-  var u=SEPIA+'?search='+encodeURIComponent(q)+'&count='+(opt.count||20)+'&start='+(opt.start||0)+'&languageOneOf=fr&nsfw=false&sort='+(opt.sort==='date'?'-publishedAt':'-match');
+  var u=SEPIA+'?search='+encodeURIComponent(q)+'&count='+(opt.count||20)+'&start='+(opt.start||0)+(opt.anyLang?'':'&languageOneOf=fr')+'&nsfw=false&sort='+(opt.sort==='date'?'-publishedAt':'-match');
   if(opt.cat) u+='&categoryOneOf='+opt.cat;
-  return getJSON(u).then(function(r){ return {total:r.total||0, items:(r.data||[]).filter(function(v){ return v.uuid && !v.nsfw; }).map(ptItem)}; });
+  if(opt.libre) u+=PT_LIBRE.map(function(l){ return '&licenceOneOf='+l; }).join('');
+  return getJSON(u).then(function(r){ return {total:r.total||0, items:(r.data||[]).filter(function(v){ return v.uuid && !v.nsfw && (!opt.libre || v.licence && PT_LIBRE.indexOf(+v.licence.id)>=0); }).map(ptItem)}; });
 }
 function ptChannelVideos(ch, n){
   return getJSON('https://'+ch.host+'/api/v1/video-channels/'+encodeURIComponent(ch.name)+'/videos?count='+(n||15)+'&sort=-publishedAt').then(function(r){
@@ -468,7 +490,11 @@ function ytParseInput(s){
 function ytResolve(s){
   var p=ytParseInput(s); if(!p) return Promise.reject(new Error('Adresse de chaîne non reconnue'));
   if(p.id) return Promise.resolve(p.id);
-  return get(p.page).then(function(h){
+  return ytPageId(p.page);
+}
+/* Lit seulement l'identifiant officiel de la chaîne (UC…) sur sa page publique */
+function ytPageId(page){
+  return get(page).then(function(h){
     var m=/<link rel="canonical" href="https:\/\/www\.youtube\.com\/channel\/(UC[\w-]{22})"/.exec(h)||/"externalId":"(UC[\w-]{22})"/.exec(h)||/"channelId":"(UC[\w-]{22})"/.exec(h)||/channel_id=(UC[\w-]{22})/.exec(h);
     if(!m) throw new Error('Chaîne introuvable : vérifie l\'adresse');
     return m[1];
@@ -585,6 +611,7 @@ function viewHome(){
   h+='<div id="hSubs"></div>';
   h+='<div class="sect">Films du domaine public<button data-lib="films">Tout voir</button></div><div class="hrow" id="hFilms">'+skelRow(4,true)+'</div>';
   h+='<div class="sect">Vidéos de la NASA<button data-lib="nasa">Tout voir</button></div><div class="hrow" id="hNasa">'+skelRow(3)+'</div>';
+  h+='<button class="banner" data-tab2="anime"><span class="ico">'+I.star+'</span><span class="t"><b>Animés</b><span>Chaînes officielles, plateformes légales et premiers dessins animés japonais</span></span>'+ic('<path d="m9 6 6 6-6 6"/>')+'</button>';
   h+='<div class="sect">Regarder aussi</div><div class="tiles">'+
     '<button class="tile" data-go="tv"><span class="ico" style="background:linear-gradient(135deg,#8fb4ff,#b79bff)">'+I.tv+'</span><b>TV gratuite</b><span>Applis officielles</span></button>'+
     '<button class="tile" data-tab2="mine"><span class="ico" style="background:linear-gradient(135deg,var(--acc),var(--acc2))">'+I.folder+'</span><b>Mes vidéos</b><span>Sur le téléphone</span></button>'+
@@ -1006,7 +1033,7 @@ function addYt(){
 }
 function viewChan(args){
   var k=args.key, yt=/^yt:/.test(k), s;
-  if(yt) s=D.ytSubs.filter(function(x){ return 'yt:'+x.id===k; })[0]||{id:k.slice(3), title:'Chaîne YouTube'};
+  if(yt) s=D.ytSubs.filter(function(x){ return 'yt:'+x.id===k; })[0]||{id:k.slice(3), title:args.title||'Chaîne YouTube'};
   else { var m=/^pt:(.+)@(.+)$/.exec(k); s=D.ptSubs.filter(function(x){ return x.name===m[1]&&x.host===m[2]; })[0]||(LAST_DET&&LAST_DET.chan&&LAST_DET.chan.name===m[1]?LAST_DET.chan:{name:m[1],host:m[2],display:m[1]}); }
   var title=s.display||s.title;
   setHead(title, true);
@@ -1060,6 +1087,156 @@ function viewTv(){
     var x=TV[+t.dataset.tv];
     if(A && A.openApp) A.openApp(x.pkg, x.name); else toast('Disponible dans l\'application');
   };
+}
+
+/* =========================================================
+   ANIMÉS : uniquement des sources qui ont les droits
+   Infos vérifiées en octobre 2026 (offres, statut des chaînes, noms de paquets).
+   ========================================================= */
+var ANI_DATE='octobre 2026';
+/* Chaînes YouTube des ayants droit ou distributeurs officiels, visibles en France.
+   Lecture : appli YouTube officielle (A.openYouTube), jamais d'extraction de flux. */
+var ANI_CH=[
+  {k:'pokemon', name:'Pokémon TV', id:'UC8wrbl5viYtQmRUgdFdf4ew', by:'The Pokémon Company', d:'Épisodes complets de la série Pokémon, dont la saison 1 en français', kw:'pokemon sacha pikachu enfants vf', c:'#e8b622', lg:'PKMN'},
+  {k:'slashanim', name:'slash anim', page:'https://www.youtube.com/@slashanim', by:'France Télévisions', d:'Goldorak U en entier et d\'autres séries animées de france.tv slash', kw:'goldorak grendizer france tv slash vf', c:'#2b5be3', lg:'slash'},
+  {k:'crfr', name:'Crunchyroll FR', page:'https://www.youtube.com/Crunchyroll_FR', by:'Crunchyroll', d:'Bandes-annonces et parfois une série entière offerte quelques jours', kw:'crunchyroll vostfr simulcast trigun', c:'#f47521', lg:'CR'},
+  {k:'gundam', name:'GundamInfo', page:'https://www.youtube.com/user/GundamInfo', by:'Chaîne mondiale officielle de Gundam (Bandai Namco)', d:'Séries Gundam complètes, sous-titrées en anglais ; certaines pour un temps limité', kw:'gundam mecha robot wing mercury anglais', c:'#3a4a7a', lg:'GDM'}
+];
+/* Plateformes : appli officielle si installée, sinon le site. st : free (gratuit), pub (gratuit avec pub), paid (abonnement) */
+var ANI_PF=[
+  {k:'m6adn', name:'M6+ · espace ADN', pkg:'fr.m6.m6replay', url:'https://www.6play.fr/', st:'pub', d:'Environ 2 500 épisodes d\'ADN (Naruto, Hunter x Hunter, Fairy Tail…) avec un compte gratuit', kw:'adn naruto hunter fairy tail berserk gto yu-gi-oh m6', c:'#3a3f50', lg:'M6+'},
+  {k:'ftv', name:'france.tv', pkg:'fr.francetv.pluzz', url:'https://www.france.tv/', st:'pub', d:'Goldorak U, films japonais selon la programmation (Ghibli, Suzume…)', kw:'france tv goldorak ghibli suzume slash', c:'#2b5be3', lg:'f.tv'},
+  {k:'okoo', name:'Okoo', pkg:'fr.francetv.zouzous', url:'https://www.france.tv/enfants/', st:'free', d:'Pour les enfants, sans pub : la série Goldorak d\'origine et des dessins animés', kw:'okoo enfants goldorak dessins animés', c:'#ff6f3c', lg:'okoo'},
+  {k:'arte', name:'ARTE', pkg:'tv.arte.plus7', url:'https://www.arte.tv/fr/', st:'free', d:'Sans pub : cinéma et courts métrages d\'animation, programmation variable', kw:'arte cinéma animation courts', c:'#e8572a', lg:'arte'},
+  {k:'pluto', name:'Pluto TV', pkg:'tv.pluto.android', url:'https://pluto.tv/', st:'pub', d:'Chaînes en continu ; des chaînes animés y ont été lancées (One Piece, Olive et Tom), la grille change', kw:'pluto one piece olive tom captain tsubasa', c:'#2a2a2a', lg:'pluto'},
+  {k:'adn', name:'ADN', pkg:'fr.anidn', url:'https://animationdigitalnetwork.com/', st:'paid', d:'Abonnement pour tout le catalogue ; quelques épisodes gratuits avec pub (compte)', kw:'adn animation digital network simulcast one piece conan', c:'#0096d6', lg:'ADN'},
+  {k:'cr', name:'Crunchyroll', pkg:'com.crunchyroll.crunchyroid', url:'https://www.crunchyroll.com/', st:'paid', d:'Plus d\'offre gratuite depuis le 1er janvier 2026 ; abonnement dès 5,99 €/mois', kw:'crunchyroll simulcast vostfr', c:'#f47521', lg:'CR'},
+  {k:'nf', name:'Netflix', pkg:'com.netflix.mediaclient', url:'https://www.netflix.com/', st:'paid', d:'Séries et films d\'animation japonais ; formule avec pub dès 7,99 €/mois', kw:'netflix', c:'#b20710', lg:'N'},
+  {k:'dp', name:'Disney+', pkg:'com.disney.disneyplus', url:'https://www.disneyplus.com/', st:'paid', d:'Accueille 1 500 épisodes du catalogue ADN (accord de juin 2026) ; avec pub dès 6,99 €/mois', kw:'disney adn one piece', c:'#113ccf', lg:'D+'},
+  {k:'pv', name:'Prime Video', pkg:'com.amazon.avod.thirdpartyclient', url:'https://www.primevideo.com/', st:'paid', d:'Inclus dans l\'abonnement Amazon Prime', kw:'prime video amazon', c:'#1a98ff', lg:'prime'}
+];
+var ANI_ST={free:'Gratuit', pub:'Gratuit avec pub', paid:'Abonnement'};
+/* Premiers dessins animés japonais (1917-1932) : réalisateurs morts avant 1970, films dans le domaine public ;
+   fichiers MP4 sur Internet Archive marqués « Public Domain Mark 1.0 » (sauf Osekisho : domaine public par la loi). */
+var ANI_PD=[
+  {ident:'hanawa-hekonai-meito-no-maki-1917', title:'Namakura Gatana, le sabre émoussé', year:1917, by:'Jun\'ichi Kōuchi', dur:251},
+  {ident:'taro-san-no-kisha-1929', title:'Le Train de Tarō', year:1929, by:'Yasuji Murata', dur:926},
+  {ident:'kuronyago-1929', title:'Kuro Nyago, le chat noir', year:1929, by:'Noburō Ōfuji', dur:180},
+  {ident:'osekisho_1930', title:'Osekisho, le poste-frontière', year:1930, by:'Noburō Ōfuji', dur:483},
+  {ident:'umi-no-momotaro-1932', title:'Momotarō sous la mer', year:1932, by:'Yasuji Murata', dur:121}
+].map(function(f){ return {k:'ia', id:'ia:'+f.ident, ident:f.ident, title:f.title, thumb:'https://archive.org/services/img/'+f.ident, sub:f.year+' · '+f.by, dur:f.dur, licence:'Domaine public', kw:(f.title+' '+f.by+' '+f.year).toLowerCase()}; });
+var NFAJ={name:'Japanese Animated Film Classics', url:'https://animation.filmarchives.jp/', d:'64 films japonais d\'avant-guerre, sur le site du National Film Archive of Japan (sous-titres anglais)'};
+
+function aniIdOk(id){ id=String(id).split('#')[0]; return ANI_PD.some(function(f){ return f.id===id; }) || D.aniIds.indexOf(id)>=0; }
+function aniMark(o){ if(!o||!o.id||o.k==='yt') return; var i=D.aniIds.indexOf(o.id); if(i>=0) D.aniIds.splice(i,1); D.aniIds.unshift(o.id); D.aniIds=D.aniIds.slice(0,60); save(); }
+function aniFav(k){ return D.aniFav.indexOf(k)>=0; }
+function aniToggleFav(k,name){ var i=D.aniFav.indexOf(k); if(i>=0){ D.aniFav.splice(i,1); toast(name+' retiré des favoris'); } else { D.aniFav.unshift(k); toast(name+' ajouté aux favoris'); } save(); }
+function aniChId(c){ return c.id || D.aniYt[c.k] || ''; }
+function aniResolve(c){
+  var id=aniChId(c); if(id) return Promise.resolve(id);
+  return ytPageId(c.page).then(function(id){ D.aniYt[c.k]=id; save(); return id; });
+}
+function aniFollowed(c){ var id=aniChId(c); return !!id && D.ytSubs.some(function(s){ return s.id===id; }); }
+function aniStar(k,name){ var on=aniFav(k); return '<button class="star'+(on?' on':'')+'" data-fav="'+esc(k)+'" data-fname="'+esc(name)+'" aria-label="'+(on?'Retirer des favoris':'Ajouter aux favoris')+'">'+I.star+'</button>'; }
+function aniLogo(x){ return '<div class="lg" style="background:'+x.c+'">'+esc(x.lg)+'</div>'; }
+function aniChCard(c){
+  var f=aniFollowed(c);
+  return '<div class="app" data-q="'+esc((c.name+' '+c.by+' '+c.kw).toLowerCase())+'">'+aniLogo(c)+'<button class="t" data-ach="'+esc(c.k)+'" style="text-align:left"><b>'+esc(c.name)+'</b><span>'+esc(c.d)+'</span><span style="font-size:11.5px;margin-top:3px"><em class="src yt" style="font-style:normal">YouTube</em> '+esc(c.by)+'</span></button>'+
+    '<div class="act"><button class="btn sm'+(f?' on':'')+'" data-afol="'+esc(c.k)+'">'+(f?I.check+'Suivie':I.plus+'Suivre')+'</button></div></div>';
+}
+function aniPfCard(x, inst){
+  var ok=inst[x.pkg];
+  return '<div class="app" data-q="'+esc((x.name+' '+x.kw+' '+ANI_ST[x.st]).toLowerCase())+'">'+aniLogo(x)+'<div class="t"><b>'+esc(x.name)+'</b><span class="pst '+x.st+'">'+ANI_ST[x.st]+'</span><span>'+esc(x.d)+'</span>'+(ok?'<span class="st">Appli installée</span>':'')+'</div>'+
+    '<div class="act"><button class="btn sm'+(ok?' main':'')+'" data-apf="'+esc(x.k)+'">'+(ok?'Ouvrir':'Site')+'</button>'+aniStar('pf:'+x.k,x.name)+'</div></div>';
+}
+function aniPdRow(o){
+  return '<div class="arow" data-q="'+esc(o.kw+' domaine public ancien')+'">'+li(o)+aniStar(o.id,o.title)+'</div>';
+}
+function aniContinue(){
+  var l=continueItems().filter(function(x){ return aniIdOk(x.id); }); if(!l.length) return '';
+  return '<div class="sect">Reprendre</div><div class="hrow">'+l.map(function(x){
+    var o={id:x.id, title:x.p.item.title, thumb:x.p.item.thumb, dur:Math.round(x.p.dur/1000)};
+    return '<button class="hc" data-acont="'+esc(x.id)+'">'+thumb(o)+'<div class="t"><b>'+esc(o.title)+'</b><span class="acc" style="color:var(--acc)">Reprendre à '+fmtMs(x.p.pos)+'</span></div></button>';
+  }).join('')+'</div>';
+}
+var aniQ='', ANIPT={};
+function viewAnime(){
+  setHead('Animés', false);
+  var inst = A && A.installed ? J(A.installed(JSON.stringify(ANI_PF.map(function(x){ return x.pkg; }))),{}) : {};
+  var h='<div class="search">'+I.search+'<input id="qa" placeholder="Chercher un animé, une chaîne, une plateforme" value="'+esc(aniQ)+'" enterkeyhint="search" autocomplete="off">'+'<button class="x" id="qax" aria-label="Effacer"'+(aniQ?'':' hidden')+'>'+I.x+'</button>'+'</div>'+
+    '<div class="legal">'+I.shield+'<span><b>Ici, uniquement des sources qui ont les droits.</b> Les sites de streaming non autorisés ne sont pas proposés.</span></div>';
+  h+='<div id="aCont">'+aniContinue()+'</div>';
+  // Favoris
+  var favs=D.aniFav.map(function(k){
+    if(/^pf:/.test(k)){ var x=ANI_PF.filter(function(p){ return 'pf:'+p.k===k; })[0]; return x?aniPfCard(x,inst):''; }
+    var o=ANI_PD.filter(function(f){ return f.id===k; })[0]; return o?aniPdRow(o):'';
+  }).join('');
+  if(favs) h+='<div data-blk="1"><div class="sect">Mes favoris</div>'+favs+'</div>';
+  h+='<div data-blk="1"><div class="sect">Chaînes officielles gratuites</div><div class="note" style="margin:-3px 2px 9px">Publiées par les ayants droit eux-mêmes ; les vidéos s\'ouvrent dans l\'appli YouTube officielle.</div>'+ANI_CH.map(aniChCard).join('')+'</div>';
+  h+='<div data-blk="1"><div class="sect">Plateformes légales</div>'+ANI_PF.map(function(x){ return aniPfCard(x,inst); }).join('')+'</div>';
+  h+='<div data-blk="1"><div class="sect">Aux origines de l\'anime · domaine public</div><div class="note" style="margin:-3px 2px 6px">Les premiers dessins animés japonais (muets), libres de droits, conservés par Internet Archive. Lecture dans Écran, avec reprise.</div>'+ANI_PD.map(aniPdRow).join('')+
+    '<div class="app" data-q="'+esc((NFAJ.name+' musée archive film japon avant-guerre').toLowerCase())+'">'+aniLogo({c:'#5b4a3a',lg:'NFAJ'})+'<div class="t"><b>'+esc(NFAJ.name)+'</b><span class="pst free">Gratuit</span><span>'+esc(NFAJ.d)+'</span></div><div class="act"><button class="btn sm" data-anfaj="1">Site</button></div></div></div>';
+  h+='<div data-blk="1" data-q="peertube animation libre"><div class="sect">Animation sous licence libre · PeerTube</div><div id="aPt">'+skel(3)+'</div></div>';
+  h+='<div id="aNone" hidden>'+emptyBox(I.search,'Rien ici pour « '+aniQ+' ». Touche Entrée pour chercher sur PeerTube (licences libres).')+'</div>';
+  h+='<p class="foot">Infos vérifiées en '+ANI_DATE+'. Les offres gratuites changent souvent : en cas de doute, l\'appli ou le site officiel fait foi.</p>';
+  $('main').innerHTML=h;
+  aniFilter();
+  var qa=$('qa');
+  qa.addEventListener('input',function(){ aniQ=qa.value.trim(); $('qax').hidden=!qa.value; aniFilter(); });
+  qa.addEventListener('keydown',function(e){ if(e.key==='Enter'){ qa.blur(); aniQ=qa.value.trim(); aniPt(); aniFilter(); } });
+  $('main').onclick=function(e){
+    var t=e.target.closest('[data-ach],[data-afol],[data-apf],[data-fav],[data-anfaj],[data-acont],[data-it],[data-retry],#qax'); if(!t) return;
+    if(t.id==='qax'){ aniQ=''; viewAnime(); return; }
+    if(t.dataset.retry){ aniPt(); return; }
+    if(t.dataset.it){ aniMark(ITEMS[t.dataset.it]); return; }   // l'ouverture est faite par l'écouteur commun
+    if(t.dataset.acont){ var x=continueItems().filter(function(c){ return c.id===t.dataset.acont; })[0]; if(x) play([{url:x.p.item.url, title:x.p.item.title, sub:x.p.item.sub, id:x.id, thumb:x.p.item.thumb}],0); return; }
+    if(t.dataset.fav){ aniToggleFav(t.dataset.fav, t.dataset.fname); var y=window.scrollY; viewAnime(); window.scrollTo(0,y); return; }
+    if(t.dataset.anfaj){ if(A&&A.openUrl) A.openUrl(NFAJ.url); else toast('S\'ouvre dans le navigateur'); return; }
+    if(t.dataset.apf){ aniOpenPf(ANI_PF.filter(function(x){ return x.k===t.dataset.apf; })[0], inst); return; }
+    var c=ANI_CH.filter(function(x){ return x.k===(t.dataset.ach||t.dataset.afol); })[0]; if(!c) return;
+    var old=t.innerHTML; t.innerHTML='<span class="spin sm"></span>'+(t.dataset.afol?'':old);
+    aniResolve(c).then(function(id){
+      if(t.dataset.afol) aniToggleFollow(c,id);
+      else go('chan',{key:'yt:'+id, title:c.name});
+    }).catch(function(e){ t.innerHTML=old; toast(e.message,true); });
+  };
+  aniPt();
+}
+function aniFilter(){
+  var q=aniQ.toLowerCase(), any=false;
+  document.querySelectorAll('#main [data-blk]').forEach(function(b){
+    // Bloc PeerTube : visible sans recherche, ou une fois la recherche lancée (Entrée)
+    if(b.dataset.q!=null){ var show=!q||!!ANIPT[q]; b.hidden=!show; if(show&&q) any=true; return; }
+    var n=0;
+    b.querySelectorAll('[data-q]').forEach(function(el){ var ok=!q||el.dataset.q.indexOf(q)>=0; el.hidden=!ok; if(ok) n++; });
+    b.hidden=!n;
+    if(n) any=true;
+  });
+  var c=$('aCont'); if(c) c.hidden=!!q;
+  var none=$('aNone'); if(none){ none.hidden=any||!q; if(!none.hidden) none.innerHTML=emptyBox(I.search,'Rien ici pour « '+aniQ+' ». Touche Entrée pour chercher sur PeerTube (licences libres).'); }
+}
+function aniPt(){
+  var q=aniQ||'', key=q.toLowerCase(), el=$('aPt'); if(!el) return;
+  var term=q ? q+' animation' : 'animation';
+  el.innerHTML='<div class="note" style="margin:-3px 2px 4px">'+(q?'Résultats pour « '+esc(q)+' » ':'Courts métrages et films d\'animation ')+'publiés sous licence Creative Commons ou dans le domaine public.</div>'+skel(3);
+  var p=ANIPT[key]||(ANIPT[key]=ptSearch(term,{libre:1, anyLang:1, count:12}).then(function(r){ return r.items; }));
+  p.then(function(l){
+    var e=$('aPt'); if(!e||cur.view!=='anime'||(aniQ||'').toLowerCase()!==key) return;
+    e.innerHTML=e.firstChild.outerHTML+(l.length?l.map(li).join(''):emptyBox(I.search,'Aucune vidéo sous licence libre trouvée.'));
+    aniFilter();
+  }).catch(function(err){ delete ANIPT[key]; var e=$('aPt'); if(e&&cur.view==='anime') e.innerHTML=errBox(err); });
+}
+function aniToggleFollow(c,id){
+  if(D.ytSubs.some(function(s){ return s.id===id; })){ D.ytSubs=D.ytSubs.filter(function(s){ return s.id!==id; }); delete D.cache['yt:'+id]; delete D.seen['yt:'+id]; toast('Tu ne suis plus '+c.name); }
+  else { D.ytSubs.push({id:id, title:c.name, thumb:''}); D.seen['yt:'+id]=Date.now()-3*86400000; toast('Tu suis '+c.name+' : ses vidéos arrivent dans Chaînes'); fetchSub({yt:1,id:id}).then(function(){ save(); updBadge(); publish(); }).catch(function(){}); }
+  save(); updBadge(); publish();
+  if(cur.view==='anime'){ var y=window.scrollY; viewAnime(); window.scrollTo(0,y); }
+}
+function aniOpenPf(x, inst){
+  if(!x) return;
+  if(!A){ toast('S\'ouvre dans l\'application Écran'); return; }
+  if(inst[x.pkg] && A.openApp) A.openApp(x.pkg, x.name);
+  else if(A.openUrl) A.openUrl(x.url);
 }
 
 /* ---------- Démarrage ---------- */

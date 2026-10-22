@@ -208,6 +208,9 @@ input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;bac
 .tools button svg.i{width:26px;height:26px}
 #pchip{position:absolute;right:12px;bottom:calc(14px + var(--safe-b));z-index:25;background:#000a;color:#fff;font-weight:800;font-size:15px;padding:9px 14px;border-radius:99px;min-height:44px;display:flex;align-items:center}
 #viewer:not(.nobars) #pchip{display:none}
+#ocrChip{position:absolute;left:50%;transform:translateX(-50%);top:calc(64px + var(--safe-t));z-index:29;display:flex;align-items:center;gap:2px;background:var(--bar);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:99px;padding:3px;max-width:calc(100% - 24px);box-shadow:0 4px 14px #0004}
+#ocrChip button{min-height:40px;border-radius:99px;font-weight:700;font-size:14px;padding:0 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#ocrChip #ocrNo{padding:0;width:40px;flex:none;opacity:.75}
+#viewer.nobars #ocrChip,#ocrChip[hidden]{display:none}
 #bubble{position:absolute;left:50%;bottom:calc(150px + var(--safe-b));transform:translateX(-50%);background:#000c;color:#fff;font-size:30px;font-weight:800;padding:12px 22px;border-radius:18px;z-index:40;pointer-events:none}
 /* recherche */
 #sbar{display:flex;align-items:center;gap:4px;flex:1;min-width:0}
@@ -314,6 +317,7 @@ input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;bac
     </div>
   </div>
   <button id="pchip" class="num"></button>
+  <div id="ocrChip" hidden><button id="ocrGo">🔤 Rendre le texte cherchable</button><button id="ocrNo" aria-label="Ne plus proposer pour ce document">✕</button></div>
   <div id="bubble" hidden></div>
   <div id="selbar" hidden><button id="selMinus" aria-label="Plus petit">−</button><button id="selPlus" aria-label="Plus grand">+</button><button id="selDel" class="bad" aria-label="Supprimer"></button><button id="selOk" aria-label="Terminé"></button></div>
 </div>
@@ -811,6 +815,7 @@ async function openDoc(d, opt){
   V.lastW=0; buildPages(); goTo(V.cur, pos.f||0);
   updateUi();
   dimsLoop(gen);
+  checkScanned(d, gen);
 }
 function lostSheet(d){
   var sh=openSheet('Document introuvable','<p class="note">« '+esc(d.title)+' » a peut-être été déplacé, renommé ou supprimé, ou l\'autorisation de le lire a été retirée.</p><div class="menu"><button id="lsPick">'+ic('folder')+'<span>Le retrouver<small>Choisis à nouveau le fichier : la page et les signets sont gardés</small></span></button><button id="lsDel" class="bad">'+ic('trash')+'<span>Retirer de la liste</span></button></div>');
@@ -1229,6 +1234,7 @@ function moreSheet(){
     '<button data-a="print">'+ic('print')+'<span>Imprimer</span></button>'+
     '<button data-a="save">'+ic('save')+'<span>Enregistrer une copie<small>'+(hasDraft()?'Avec tes ajouts (formulaire, annotations)':'Dans Téléchargements ou un dossier choisi')+'</small></span></button>'+
     '<button data-a="with">'+ic('open')+'<span>Ouvrir avec une autre appli</span></button>'+
+    (V.scanned?'<button data-a="ocr">'+ic('text')+'<span>Rendre le texte cherchable<small>Document scanné : reconnaissance du texte avec Atelier PDF</small></span></button>':'')+
     '<button data-a="tools">'+ic('tool')+'<span>Outils PDF<small>Fusionner, découper, compresser… avec Atelier PDF</small></span></button>'+
     '<button data-a="info">'+ic('info')+'<span>Infos du document</span></button>'+
     (hasDraft()?'<hr><button data-a="clear" class="bad">'+ic('trash')+'<span>Effacer mes ajouts<small>Champs remplis et annotations non enregistrés</small></span></button>':'')+
@@ -1242,6 +1248,7 @@ function moreSheet(){
       if(a==='save') saveSheet();
       if(a==='with') srcAction(V.doc,'view');
       if(a==='tools') openTools();
+      if(a==='ocr') sendToAtelier('ocr');
       if(a==='info') infoSheet(V.doc, V.pdf);
       if(a==='clear') clearDraft();
     });
@@ -1258,11 +1265,31 @@ async function clearDraft(){
   V.els.forEach(function(el){ if(el._r){ releaseEl(el); } }); schedule();
   toast('Ajouts effacés');
 }
-function openTools(){
-  var b=B(), pkg='fr.magformation13.pdf';
-  if(b && b.installed && b.installed(pkg)){ b.launch(pkg); toast('Dans Atelier PDF, choisis le fichier « '+(V.doc?V.doc.name:'')+' »', false, 5000); }
-  else toast('Atelier PDF n\'est pas installé sur ce téléphone', true);
+function openTools(){ sendToAtelier(''); }
+/* Envoie le document (copie d'origine) à Atelier PDF, qui l'ouvre directement ; tool : outil à ouvrir (« ocr »…) */
+function sendToAtelier(tool){
+  var b=B(), pkg='fr.magformation13.pdf', d=V.doc;
+  if(!b || !b.installed || !b.installed(pkg)){ toast('Atelier PDF n\'est pas installé sur ce téléphone', true); return; }
+  if(b.sendTo && d && !/^idb:/.test(d.src)){
+    var t=b.sendTo(d.src, d.name||(d.title+'.pdf'), pkg, JSON.stringify(tool?{tool:tool,from:'lecteur'}:{from:'lecteur'}));
+    OUT[t]=function(o){ if(!o.ok) toast('Envoi à Atelier PDF impossible : '+(o.err||''), true); };
+    return;
+  }
+  b.launch(pkg); toast('Dans Atelier PDF, choisis le fichier « '+(d?d.name:'')+' »', false, 5000);
 }
+/* Document scanné (aucun texte sur les premières pages) : proposer discrètement la reconnaissance de texte d'Atelier PDF */
+async function checkScanned(d, gen){
+  var chip=$('ocrChip'); chip.hidden=true; V.scanned=false;
+  try{
+    var n=Math.min(V.n,3), chars=0;
+    for(var p=1;p<=n;p++){ var pg=await V.pdf.getPage(p), tc=await pg.getTextContent(); if(gen!==openDoc.gen||!V.open) return; tc.items.forEach(function(it){ chars+=String(it.str||'').replace(/\s/g,'').length; }); }
+    if(chars>=10) return;
+    var b=B(); if(!b || !b.installed || !b.installed('fr.magformation13.pdf')) return;
+    V.scanned=true; if(!d.noOcr) chip.hidden=false;
+  }catch(e){}
+}
+$('ocrGo').onclick=function(){ $('ocrChip').hidden=true; sendToAtelier('ocr'); };
+$('ocrNo').onclick=function(){ $('ocrChip').hidden=true; if(V.doc){ V.doc.noOcr=true; saveDoc(V.doc); } toast('Toujours disponible dans le menu ⋮'); };
 /* Envoi du document d'origine (copie) vers le partage, l'impression, une autre appli */
 function srcAction(d, mode){
   var b=B();

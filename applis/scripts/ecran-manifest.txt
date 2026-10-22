@@ -13,6 +13,14 @@
         <package android:name="fr.m6.m6replay" />
         <package android:name="com.dotscreen.tv5mondeplus.mobile" />
         <package android:name="fr.artestudio.arteradio.mobile" />
+        <!-- Plateformes d'animés (rubrique Animés) -->
+        <package android:name="fr.anidn" />
+        <package android:name="com.crunchyroll.crunchyroid" />
+        <package android:name="com.netflix.mediaclient" />
+        <package android:name="com.amazon.avod.thirdpartyclient" />
+        <package android:name="com.disney.disneyplus" />
+        <package android:name="tv.pluto.android" />
+        <package android:name="fr.francetv.zouzous" />
         <package android:name="fr.magformation13.ondes" />
         <package android:name="fr.magformation13.galerie" />
         <intent><action android:name="android.intent.action.VIEW" /><data android:scheme="market" /></intent>
@@ -55,5 +63,5 @@
 #   (portrait ou paysage) ou selon le réglage de rotation choisi dans le lecteur.
 # - taskAffinity + singleTask : le lecteur a sa propre tâche, nécessaire au mode image dans l'image
 #   (le retour depuis la fenêtre flottante ne ramène pas la page Écran au premier plan par erreur).
-# - Les noms de paquets des applis TV ont été vérifiés sur le Play Store (fiches publiques) ;
+# - Les noms de paquets des applis TV et des plateformes d'animés ont été vérifiés sur le Play Store (fiches publiques) ;
 #   si l'un change, la page bascule sur une recherche Play Store par nom.
