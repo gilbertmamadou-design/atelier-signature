@@ -43,6 +43,12 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stro
 .t-clock .cwx .ds{font-size:12px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .t-clock .cwx.ask{font-size:13px;color:var(--acc);flex-direction:row;align-items:center;gap:5px;margin-top:10px}
 .t-clock .cwx.ask svg{width:15px;height:15px}
+.t-clock:not(.w2) .time{font-size:46px}
+.t-clock:not(.w2) .crow{flex-direction:column;gap:6px}
+.t-clock:not(.w2) .cwx{align-items:flex-start;text-align:left;max-width:100%;padding:0}
+.t-clock:not(.w2) .cwx .tp{font-size:24px}
+.t-clock:not(.w2) .cwx .tp svg{width:24px;height:24px}
+.t-clock:not(.w2) .cwx.ask{margin-top:0}
 .bar{height:6px;border-radius:9px;background:rgba(255,255,255,.18);margin-top:9px;overflow:hidden}
 .bar i{display:block;height:100%;border-radius:9px;background:var(--acc)}
 .ev{display:flex;gap:8px;margin-top:7px;font-size:13px;align-items:flex-start}
@@ -407,7 +413,7 @@ function byKey(k){ return findApp(function(a){ return a.key===k; }) || findApp(f
 function defaultFavs(){
   var picks=[ ['dialer','phone','téléphone'], ['messag','mms','sms'], ['camera','caméra'], ['fr.magformation13.galerie','gallery','galerie','photos'], ['fr.magformation13.agenda'], ['fr.magformation13.contacts'], ['fr.magformation13.carnet','fr.magformation13.toile'], ['chrome','browser','navigateur','firefox'], ['fr.magformation13.reveil'], ['maps'] ];
   var f=[];
-  picks.forEach(function(p){ var a=findApp(function(x){ return f.indexOf(x.key)<0 && kw(x,p); }); if(a) f.push(a.key); });
+  picks.forEach(function(p){ var a=null; for(var j=0;j<p.length && !a;j++) a=findApp(function(x){ return f.indexOf(x.key)<0 && kw(x,[p[j]]); }); if(a) f.push(a.key); });
   C.favs=f.slice(0,8); APPS.forEach(function(a){ if(a.pkg.indexOf('fr.magformation13.')===0 && C.magSeen.indexOf(a.pkg)<0) C.magSeen.push(a.pkg); }); save();
 }
 function iconHtml(a){
@@ -481,8 +487,7 @@ function tileHtml(cfg, idx){
 }
 function render(){
   $('grid').innerHTML = C.tiles.map(tileHtml).join('');
-  var ta=document.querySelector('.t-note textarea');
-  if(ta) ta.addEventListener('input', function(){ localStorage.setItem('socle-note', ta.value); });
+  document.querySelectorAll('.t-note textarea').forEach(function(ta){ ta.addEventListener('input', function(){ localStorage.setItem('socle-note', ta.value); }); });
 }
 function refresh(type){
   document.querySelectorAll('.tile[data-t="'+type+'"]').forEach(function(el){
@@ -579,7 +584,7 @@ function batEstimate(b){
 function dur(ms){ var h=ms/3600000; if(h>=48) return Math.round(h/24)+' jours'; if(h>=24) return '1 jour '+Math.round(h-24)+' h'; if(h>=1) return Math.floor(h)+' h '+String(Math.round((h%1)*60)).padStart(2,'0'); return Math.max(1,Math.round(h*60))+' min'; }
 function batteryHtml(){
   var b=batInfo(); if(b.level<0) return '<div class="hd">'+ic('bat')+'Batterie</div><div class="big">—</div>';
-  return '<div class="hd">'+ic(b.plugged?'bolt':'bat')+'Batterie'+(b.temp>=40?' · '+b.temp+' °C':'')+'</div><div class="big">'+b.level+' %</div><div class="bar"><i style="width:'+b.level+'%'+(b.level<=15&&!b.plugged?';background:#ff6b6b':'')+'"></i></div><div class="sub">'+batEstimate(b)+'</div>';
+  return '<div class="hd">'+ic(b.plugged?'bolt':'bat')+'Batterie'+(b.temp>=40?' · '+Math.round(b.temp)+' °C':'')+'</div><div class="big">'+b.level+' %</div><div class="bar"><i style="width:'+b.level+'%'+(b.level<=15&&!b.plugged?';background:#ff6b6b':'')+'"></i></div><div class="sub">'+batEstimate(b)+'</div>';
 }
 
 /* Agenda */
@@ -592,8 +597,9 @@ function agendaHtml(wide){
   var n=wide?4:3, today=new Date().toDateString(); if(arguments[1]) n=8;
   hd='<div class="hdr">'+hd+(magApp('calendar')?'<button class="hbtn" data-act="evnew" aria-label="Nouvel événement">'+ic('plus')+'</button>':'')+'</div>';
   return hd+l.slice(0,n).map(function(e){
-    var d=new Date(e.begin), same=d.toDateString()===today;
-    var when = e.all ? (same?'Jour':dayLabel(e.begin).slice(0,4)+'.') : (same? hm(e.begin).replace(' h ','h') : DAYS[d.getDay()]+' '+d.getHours()+'h');
+    var d=new Date(e.begin); if(e.all){ d=new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); }
+    var same=d.toDateString()===today;
+    var when = e.all ? (same?'Jour':DAYS[d.getDay()]) : (same? hm(e.begin).replace(' h ','h') : DAYS[d.getDay()]+' '+d.getHours()+'h');
     return '<div class="ev" data-ev="'+e.id+'"><i class="c" style="background:'+esc(e.color)+'"></i><b>'+esc(when)+'</b><span>'+esc(e.title)+'</span></div>';
   }).join('');
 }
@@ -606,7 +612,7 @@ function toolsHtml(){
 
 /* Musique en cours */
 var MED={none:true}, medArt='', medArtSrc='', medSig='';
-function medPos(){ if(!MED || !MED.dur) return 0; var p=MED.pos||0; if(MED.playing && MED.at && MED.now) p+= (Date.now()-medRecv)*(MED.speed||1); return Math.max(0,Math.min(MED.dur,p)); }
+function medPos(){ if(!MED || !MED.dur) return 0; var p=MED.pos||0; if(MED.playing && MED.at && MED.now) p+= (MED.now-MED.at+Date.now()-medRecv)*(MED.speed||1); return Math.max(0,Math.min(MED.dur,p)); }
 var medRecv=0;
 function mt(ms){ var s=Math.floor(ms/1000); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
 function musicHtml(){
@@ -679,12 +685,12 @@ function missing(name,role){ return '<div class="empty">Installe <b>'+name+'</b>
 function cols(cfg, small, big){ return cfg.w===2 ? big : small; }
 
 /* Galerie : photos récentes */
-var PHOTOS=null;
+var PHOTOS=null, PHOTOS_N=0;
 function photosHtml(cfg){
   var hd='<div class="hdr"><div class="hd">'+ic('photo')+'Photos récentes</div></div>';
   if(!A) return hd+'<div class="empty">Disponible dans l\'application</div>';
   var c=cols(cfg,2,4), n=c*(cfg.h===2?3:(cfg.w===2?1:2));
-  if(PHOTOS===null || PHOTOS.length<n) PHOTOS=J(A.homePhotos(Math.max(n,12),220),null);
+  if(PHOTOS===null || (PHOTOS.length<n && PHOTOS_N<n)){ PHOTOS_N=Math.max(n,12); PHOTOS=J(A.homePhotos(PHOTOS_N,220),null); }
   if(PHOTOS===null) return hd+'<button class="mini" data-act="perm-photos">Autoriser l\'accès aux photos</button>';
   if(!PHOTOS.length) return hd+'<div class="empty">Aucune photo</div>';
   return hd+'<div class="pgrid" style="grid-template-columns:repeat('+c+',1fr)">'+PHOTOS.slice(0,n).map(function(p){ return '<img src="'+p.thumb+'" alt="" data-photo="'+esc(p.uri)+'">'; }).join('')+'</div>';
@@ -698,6 +704,7 @@ function contactsHtml(cfg){
   if(l===null) return hd+'<button class="mini" data-act="perm-contacts">Autoriser les contacts</button>';
   if(!l.length) return hd+'<div class="empty">Ajoute des favoris (étoile) dans Contacts</div>';
   return hd+'<div class="cgrid" style="grid-template-columns:repeat('+c+',minmax(0,1fr))">'+l.map(function(x){
+    if(!x.name) x.name=x.num||'?';
     var ini=x.name.split(/\s+/).map(function(w){ return w[0]||''; }).join('').slice(0,2).toUpperCase();
     return '<button class="cav" data-contact2="'+esc(x.uri)+'" data-num="'+esc(x.num)+'">'+(x.photo?'<img class="av" src="'+x.photo+'" alt="">':'<div class="av">'+esc(ini)+'</div>')+'<span class="sh">'+esc(x.name.split(' ')[0])+'</span></button>';
   }).join('')+'</div>';
@@ -723,7 +730,7 @@ function podcastHtml(cfg){
   var hd='<div class="hd">'+ic('mic')+'Ondes</div>';
   if(!has) return hd+missing('Ondes');
   var d=WCACHE[ONDES]!==undefined?WCACHE[ONDES]:wdata(ONDES), e=d&&d.ep;
-  var nw=d&&d.newCount?'<div class="sub" style="color:var(--acc)">'+d.newCount+' nouvel'+(d.newCount>1?'s':'')+' épisode'+(d.newCount>1?'s':'')+'</div>':'';
+  var nw=d&&d.newCount?'<div class="sub" style="color:var(--acc)">'+d.newCount+(d.newCount>1?' nouveaux':' nouvel')+' épisode'+(d.newCount>1?'s':'')+'</div>':'';
   if(!e) return hd+'<div class="empty">Aucune écoute en cours</div>'+nw+'<button class="mini" data-act="ondes-open">Ouvrir Ondes</button>';
   var pct=e.dur?Math.min(100,e.pos/e.dur*100):0;
   return hd+'<div class="mus" style="margin-top:7px">'+(e.art?'<img class="art" src="'+esc(e.art)+'" alt="" style="width:46px;height:46px">':'')+'<div class="tt"><b style="font-size:13.5px">'+esc(e.title)+'</b><span>'+esc(e.sub)+'</span></div></div>'+
@@ -765,7 +772,7 @@ function mesureHtml(cfg){
 function backupHtml(cfg){
   var hd='<div class="hd">'+ic('save')+'Sauvegarde</div>'; if(!app(SAUVE)) return hd+missing('Sauvegarde');
   var d=wd(SAUVE)||{}, l=d.last;
-  var st=!l?'<div class="empty">Jamais sauvegardé</div>':'<div class="sub" style="color:'+(l.ok?'var(--acc)':'#ff9a8a')+';font-weight:600">'+(l.ok?'À jour':'Dernière sauvegarde incomplète')+'</div><div class="sub">'+ago2(l.date)+(l.files!=null?' · '+l.files+' fichiers':'')+'</div>';
+  var st=!l?'<div class="empty">Jamais sauvegardé</div>':'<div class="sub" style="color:'+(l.ok?'var(--acc)':'#ff9a8a')+';font-weight:600">'+(l.ok?'À jour':'Dernière sauvegarde incomplète')+'</div><div class="sub">'+ago2(l.date)+(l.files>0?' · '+l.files+' fichier'+(l.files>1?'s':''):'')+'</div>';
   return hd+st+(d.dest?'<div class="sub">'+esc(d.dest)+'</div>':'')+(d.next?'<div class="sub">Prochaine : '+new Date(d.next).toLocaleString('fr-FR',{weekday:'short',hour:'2-digit',minute:'2-digit'})+'</div>':'')+'<button class="mini" data-act="bk-now">'+ic('save')+'Sauvegarder</button>';
 }
 function videoHtml(cfg){
@@ -807,7 +814,7 @@ function budgetHtml(cfg){
   var d=wd(BUD)||{}, m=d.month, t=d.text||{};
   if(!m) return hd+'<div class="empty">Ouvre Budget pour commencer</div>';
   var pct=m.budget>0?Math.min(100,m.spent/m.budget*100):0, over=m.budget>0&&m.spent>m.budget;
-  var h=hd+'<div style="display:flex;align-items:baseline;gap:8px;margin-top:6px"><div class="big" style="margin:0;font-size:26px">'+esc(t.spent||eur(m.spent))+'</div><div class="sub">dépensés</div></div>';
+  var h=hd+'<div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;margin-top:6px"><div class="big" style="margin:0;font-size:26px">'+esc(t.spent||eur(m.spent))+'</div><div class="sub">dépensés</div></div>';
   if(m.budget>0) h+='<div class="mbar"><i style="width:'+pct+'%'+(over?';background:#ff6b6b':'')+'"></i></div><div class="sub">'+(over?'<span style="color:#ff9a8a">Budget dépassé de '+eur(m.spent-m.budget)+'</span>':'Reste '+esc(t.left||eur(m.left))+' sur '+esc(t.budget||eur(m.budget)))+'</div>';
   if(cfg.h===2 && d.top && d.top.length) h+='<div style="margin-top:8px">'+d.top.map(function(x){ return '<div class="ev"><i class="c" style="background:'+esc(x.color||'var(--acc)')+'"></i><span>'+esc(x.cat)+'</span><b style="min-width:0;color:var(--tx)">'+eur(x.amount)+'</b></div>'; }).join('')+'</div>';
   return h;
@@ -815,7 +822,7 @@ function budgetHtml(cfg){
 function dictaHtml(cfg){
   var hd='<div class="hd">'+ic('mic')+'Dictaphone</div>'; if(!app(DIC)) return hd+missing('Dictaphone');
   var d=wd(DIC)||{};
-  if(d.recording) return hd+'<div class="sub" style="color:#ff6b6b;font-weight:600;margin-top:6px">Enregistrement en cours</div><div class="big" style="font-size:24px">'+mt(Date.now()-(d.since||Date.now()))+'</div><button class="mini" data-act="dic-open">'+ic('mic')+'Voir</button>';
+  if(d.recording) return hd+'<div class="sub" style="color:#ff6b6b;font-weight:600;margin-top:6px">Enregistrement en cours</div><div class="big" style="font-size:24px" data-since="'+(d.since||Date.now())+'">'+mt(Date.now()-(d.since||Date.now()))+'</div><button class="mini" data-act="dic-open">'+ic('mic')+'Voir</button>';
   var l=d.last;
   return hd+(l?'<div class="sub" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(l.name)+'</div><div class="sub">'+mt(l.dur||0)+' · '+ago2(l.date)+'</div>':'<div class="empty">Aucun enregistrement</div>')+'<button class="mini" data-act="dic-rec" style="background:#e5484d;color:#fff">'+ic('mic')+'Enregistrer</button>';
 }
@@ -823,9 +830,11 @@ function meteoAppHtml(cfg){
   var hd='<div class="hd">'+ic('pin')+'Météo'+(wd(MET)&&wd(MET).place?' · '+esc(wd(MET).place):'')+'</div>'; if(!app(MET)) return hd+missing('Météo');
   var d=wd(MET)||{}, n=d.now, t=d.today;
   if(!n) return hd+'<div class="empty">Ouvre Météo une fois pour l\'afficher ici</div>';
-  var w=wmo(n.code, n.isDay);
-  var h=hd+'<div style="display:flex;align-items:center;gap:10px;margin-top:6px"><div class="big" style="margin:0">'+n.temp+'°</div>'+ic(w[1],' style="width:32px;height:32px"')+'<div style="flex:1"><div class="sub">'+w[0]+'</div>'+(t?'<div class="sub">'+t.min+'° / '+t.max+'° · pluie '+(t.rain||0)+' %</div>':'')+'</div></div>';
-  if(d.next && d.next.length) h+='<div style="display:flex;justify-content:space-between;margin-top:9px">'+d.next.slice(0,5).map(function(x){ var ww=wmo(x.code,1); return '<div style="text-align:center;font-size:12px;color:var(--tx2)">'+x.h+' h'+ic(ww[1],' style="width:20px;height:20px;margin:3px auto"')+'<b style="color:var(--tx)">'+x.temp+'°</b></div>'; }).join('')+'</div>';
+  var w=wmo(n.code, n.isDay), old=d.at && Date.now()-d.at>3600000;
+  var h=hd+'<div style="display:flex;flex-wrap:wrap;align-items:center;gap:0 10px;margin-top:6px"><div class="big" style="margin:0">'+n.temp+'°</div>'+ic(w[1],' style="width:32px;height:32px"')+'<div style="flex:1 1 110px;min-width:0"><div class="sub">'+w[0]+'</div>'+(t?'<div class="sub">'+t.min+'° / '+t.max+'° · pluie '+(t.rain||0)+' %</div>':'')+(old?'<div class="sub">'+ago2(d.at)+'</div>':'')+'</div></div>';
+  /* Heures à venir : on écarte celles déjà passées si l'appli n'a pas publié depuis longtemps */
+  var nx=(d.next||[]).filter(function(x){ if(!d.at) return true; var s=new Date(d.at); s.setMinutes(0,0,0); var tt=s.setHours(x.h); if(tt<d.at-3600000) tt+=86400000; return tt>Date.now()-1800000; });
+  if(nx.length) h+='<div style="display:flex;justify-content:space-between;margin-top:9px">'+nx.slice(0,cfg.w===2?5:4).map(function(x){ var ww=wmo(x.code,1); return '<div style="text-align:center;font-size:12px;color:var(--tx2)">'+x.h+' h'+ic(ww[1],' style="width:20px;height:20px;margin:3px auto"')+'<b style="color:var(--tx)">'+x.temp+'°</b></div>'; }).join('')+'</div>';
   return h;
 }
 
@@ -835,6 +844,7 @@ function reseauHtml(cfg){
   var hd='<div class="hd">'+ic('web')+'Réseau</div>'; if(!app(RES)) return hd+missing('Réseau');
   var d=wd(RES)||{}, q=Math.max(0,Math.min(4,d.quality||0));
   var bars='<span style="display:inline-flex;gap:2px;align-items:flex-end;height:16px;margin-left:6px">'+[1,2,3,4].map(function(i){ return '<i style="display:block;width:4px;height:'+(4+i*3)+'px;border-radius:2px;background:'+(i<=q?'var(--acc)':'rgba(255,255,255,.25)')+'"></i>'; }).join('')+'</span>';
+  if(!d.type) return hd+'<div class="empty">Ouvre Réseau une fois pour l\'afficher ici</div><button class="mini" data-act="res-speed">'+ic('bolt')+'Tester</button>';
   var name=d.type==='none'?'Hors ligne':(d.type==='mobile'?(d.name||'Mobile')+(d.gen?' · '+d.gen:''):(d.name||'Wifi'));
   var l=d.last;
   return hd+'<div style="display:flex;align-items:center;margin-top:6px"><b style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px">'+esc(name)+'</b>'+bars+'</div>'+
@@ -859,9 +869,9 @@ function lecteurHtml(cfg){
 /* Calcul rapide */
 function calcHtml(cfg){
   var has=magApp('calc');
-  return '<div class="hdr"><div class="hd">'+ic('calc')+'Calcul</div>'+(has?'<button class="hbtn" data-act="calc-open" aria-label="Ouvrir Calcul">'+ic('mnext')+'</button>':'')+'</div><input class="calcin" inputmode="decimal" placeholder="12,5 × 4 + 3" id="qcalc"><div class="calcres" id="qcres"></div>';
+  return '<div class="hdr"><div class="hd">'+ic('calc')+'Calcul</div>'+(has?'<button class="hbtn" data-act="calc-open" aria-label="Ouvrir Calcul">'+ic('mnext')+'</button>':'')+'</div><input class="calcin" inputmode="decimal" placeholder="12,5 × 4 + 3"><div class="calcres"></div>';
 }
-document.addEventListener('input',function(e){ if(e.target.id==='qcalc'){ var r=calcExpr(e.target.value); $('qcres').textContent=r||''; } });
+document.addEventListener('input',function(e){ if(e.target.classList.contains('calcin')){ var r=calcExpr(e.target.value); e.target.parentNode.querySelector('.calcres').textContent=r||''; } });
 
 /* Favoris et applis MAG */
 function favsHtml(){
@@ -1213,10 +1223,11 @@ window.accueilPerms=function(){
   if($('drawer').classList.contains('on')) renderList();
   if(pendingLocate){ pendingLocate=false; var p=J(A.homePerms(),{}); if(p.location) locateMe(); else toast('Choisis une ville à la place'); }
 };
-var lastAppsSig='';
+var lastAppsSig='', lastResume=0;
 window.accueilResume=function(){
+  if(Date.now()-lastResume<1000) return; lastResume=Date.now();
   if(A){ var l=A.homeApps(); if(l.length!==lastAppsSig.length || l!==lastAppsSig){ lastAppsSig=l; loadApps(); if($('drawer').classList.contains('on')) renderList(); } }
-  WCACHE={}; PHOTOS=null; theme(); render(); fetchWeather(false); autoLocate(); medSig=''; pollMedia();
+  WCACHE={}; PHOTOS=null; PHOTOS_N=0; theme(); render(); fetchWeather(false); autoLocate(); medSig=''; pollMedia();
 };
 
 /* ---------- Démarrage ---------- */
@@ -1228,7 +1239,7 @@ setTimeout(autoLocate, 1500);
 /* Une seule fois : la météo de l'horloge suit ma position (si la position est refusée, la ville choisie reste) */
 if(A && !C.wxPos){ C.wxPos=1; save(); if(!C.city || !C.city.auto) setTimeout(locateMe, 2500); }
 setInterval(function(){ if(!document.hidden){ refresh('clock'); } }, 15000);
-setInterval(pollMedia, 1000); setTimeout(pollMedia, 300);
+setInterval(function(){ pollMedia(); if(!document.hidden) document.querySelectorAll('[data-since]').forEach(function(el){ el.textContent=mt(Date.now()-el.dataset.since); }); }, 1000); setTimeout(pollMedia, 300);
 setInterval(function(){ if(!document.hidden){ refresh('battery'); refresh('alarm'); refresh('agenda'); fetchWeather(false); } }, 120000);
 document.addEventListener('visibilitychange', function(){ if(!document.hidden) window.accueilResume(); });
 if(A){ var pp=J(A.homePerms(),{}); if(!pp.home && !localStorage.getItem('socle-welcome')){ localStorage.setItem('socle-welcome','1'); setTimeout(function(){ openSheet('<h2>Bienvenue dans Socle</h2><div class="empty" style="font-size:14px;color:var(--tx2);line-height:1.55">Pour que Socle remplace ton écran d\'accueil, choisis-le comme <b>appli d\'accueil</b> par défaut. Tu pourras revenir à l\'ancien à tout moment depuis les mêmes réglages.<br><br>Astuces : appui long sur une tuile pour modifier la disposition, appui long sur une appli pour l\'ajouter aux favoris, glisser vers le haut pour toutes les applis.</div><div style="display:flex;gap:8px;margin-top:16px"><button class="pbtn main" id="wH">Choisir Socle</button><button class="pbtn" id="wL">Plus tard</button></div>','welcome'); $('wH').onclick=function(){ A.homeOpen('home',''); closeSheet(); }; $('wL').onclick=closeSheet; }, 600); } }

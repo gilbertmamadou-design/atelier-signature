@@ -658,7 +658,7 @@ select{font:inherit;color:var(--tx);background:var(--bg3);border:1px solid var(-
   function widget(){
     if(!P || !P.widgetPut) return;
     var l = ST.last, d = ST.dest;
-    try{ P.widgetPut(JSON.stringify({ last: l ? {date:l.end, ok:!!l.ok, files:l.files||0, size:l.size||0} : null, next: ST.next||0, dest: d ? (d.label||'') : '', running: !!ST.running })); }catch(e){}
+    try{ P.widgetPut(JSON.stringify({ last: l ? {date:l.end, ok:!!(l.ok || (!l.fatal && !l.cancelled)), files:l.files||0, size:l.size||0} : null, next: ST.next||0, dest: d ? (d.label||'') : '', running: !!ST.running })); }catch(e){}
   }
   $('bDest').onclick = function(){ if(B) B.pickDest(); };
   $('bOpenDest').onclick = function(){ if(B) B.openDest(); };

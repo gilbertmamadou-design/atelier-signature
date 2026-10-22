@@ -212,6 +212,10 @@ public class LauncherService {
         java.util.Calendar cal = java.util.Calendar.getInstance();
         cal.set(java.util.Calendar.HOUR_OF_DAY, 0); cal.set(java.util.Calendar.MINUTE, 0); cal.set(java.util.Calendar.SECOND, 0);
         long start = cal.getTimeInMillis(), end = start + days * 86400000L;
+        // Jours entiers : Android les range en UTC (minuit à minuit) ; celui d'hier déborde sur ce matin en heure locale
+        java.util.Calendar u = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"));
+        u.clear(); u.set(cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH), cal.get(java.util.Calendar.DAY_OF_MONTH));
+        long todayUtc = u.getTimeInMillis();
         Uri.Builder b = CalendarContract.Instances.CONTENT_URI.buildUpon();
         ContentUris.appendId(b, start);
         ContentUris.appendId(b, end);
@@ -222,6 +226,7 @@ public class LauncherService {
                 long en = cur.getLong(3);
                 boolean all = cur.getInt(4) == 1;
                 if (!all && en < now) continue;
+                if (all && en <= todayUtc) continue;
                 JSONObject o = new JSONObject();
                 o.put("id", cur.getLong(0)); o.put("title", cur.getString(1) == null ? "(sans titre)" : cur.getString(1));
                 o.put("begin", cur.getLong(2)); o.put("end", en); o.put("all", all);
