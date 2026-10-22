@@ -208,9 +208,8 @@ public class PdfBridge {
                 pdfbox();
                 try { d = PDDocument.load(f); }
                 catch (InvalidPasswordException e) { fail(job, "Ce PDF a déjà un mot de passe : retirez-le d'abord", "pw"); return; }
-                if (d.isEncrypted()) d.setAllSecurityToBeRemoved(true);
                 AccessPermission ap = new AccessPermission();
-                ap.setCanPrint(print); ap.setCanPrintFaithful(print);
+                ap.setCanPrint(print);
                 ap.setCanExtractContent(copy); ap.setCanExtractForAccessibility(true);
                 ap.setCanModify(modify); ap.setCanAssembleDocument(modify); ap.setCanFillInForm(true); ap.setCanModifyAnnotations(modify);
                 StandardProtectionPolicy sp = new StandardProtectionPolicy(ownerPw, userPw, ap);
@@ -238,14 +237,6 @@ public class PdfBridge {
             } catch (Throwable t) { fail(job, "Ouverture impossible : " + msg(t), null); }
             finally { try { if (d != null) d.close(); } catch (Exception e) { } drop(token); }
         } }).start();
-    }
-    @JavascriptInterface public boolean isEncrypted(String token) {
-        File f = fileOf(token); if (f == null) return false;
-        PDDocument d = null;
-        try { pdfbox(); d = PDDocument.load(f, ""); return d.isEncrypted(); }
-        catch (InvalidPasswordException e) { return true; }
-        catch (Throwable t) { return false; }
-        finally { try { if (d != null) d.close(); } catch (Exception e) { } }
     }
     private void done(String job, PDDocument d) throws Exception { done(job, d, new JSONObject()); }
     private void done(String job, PDDocument d, JSONObject o) throws Exception {
