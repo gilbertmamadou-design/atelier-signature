@@ -24,6 +24,7 @@ Petites applications Android faites sur mesure pour un téléphone Oukitel WP60 
 | Budget | Dépenses et revenus perso, budgets, relevés bancaires |
 | Dictaphone | Enregistrements vocaux, marqueurs, dictée |
 | Météo | Prévisions, radar de pluie, qualité de l'air, alertes |
+| Réseau | Wifi et 4G/5G : état, test de débit, wifi autour, appareils, connexion aux wifi protégés |
 | Mélodie, Rangement, Aube, Ciel, Sentiers, Petits Pas, Carnet de chasse, Atelier PDF | Musique, fichiers, réveil, ciel, randonnée, enfants, chasse, PDF |
 
 ## Récupérer un APK
