@@ -271,6 +271,17 @@ input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;bac
 #selbar{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(150px + var(--safe-b));z-index:35;display:flex;gap:6px;background:var(--bar);border:1px solid var(--line2);border-radius:16px;padding:6px;box-shadow:0 6px 20px #0006}
 #selbar button{min-width:56px;height:50px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;background:var(--bg3)}
 #selbar button.bad{color:var(--bad)}
+/* zones de signature repérées (outil Signer) */
+.szL{position:absolute;inset:0;z-index:5;pointer-events:none;display:none}
+#viewer.ann.t-sign .szL{display:block}
+.sz{position:absolute;border:2px dashed #ff7a00;background:#ff7a0012;border-radius:4px}
+.sz b{position:absolute;left:3px;top:2px;font:800 12px/1.2 system-ui,sans-serif;color:#b44a00;background:#fffc;border-radius:4px;padding:1px 5px;white-space:nowrap}
+.sz.done{border-color:#1d8a5577;background:transparent}
+.sz.flash{animation:szf 1.4s ease-out}
+@keyframes szf{0%,50%{box-shadow:0 0 0 6px #ff7a0088}100%{box-shadow:0 0 0 0 #ff7a0000}}
+.ctx .btn.sm{flex:none;min-height:50px}
+.ctx .btn.on{background:var(--acc);color:var(--ink)}
+.ctx.wrap .hint.full{flex:1 1 100%}
 #sigpad{width:100%;height:230px;background:#fff;border-radius:14px;touch-action:none;display:block;border:1px solid var(--line2)}
 /* lecture à voix haute */
 #ttsbar{display:flex;align-items:center;gap:6px;padding:4px 4px 8px;border-bottom:1px solid var(--line);margin-bottom:6px}
@@ -324,7 +335,7 @@ input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;bac
   <button id="pchip" class="num"></button>
   <div id="ocrChip" hidden><button id="ocrGo">🔤 Rendre le texte cherchable</button><button id="ocrNo" aria-label="Ne plus proposer pour ce document">✕</button></div>
   <div id="bubble" hidden></div>
-  <div id="selbar" hidden><button id="selMinus" aria-label="Plus petit">−</button><button id="selPlus" aria-label="Plus grand">+</button><button id="selDel" class="bad" aria-label="Supprimer"></button><button id="selOk" aria-label="Terminé"></button></div>
+  <div id="selbar" hidden><button id="selMinus" aria-label="Plus petit">−</button><button id="selPlus" aria-label="Plus grand">+</button><button id="selEdit" aria-label="Modifier le texte" hidden></button><button id="selDel" class="bad" aria-label="Supprimer"></button><button id="selOk" aria-label="Terminé"></button></div>
 </div>
 
 <div id="sheetWrap" hidden><div class="scrim"></div><div class="sheet" id="sheet"></div></div>
@@ -440,7 +451,7 @@ function dbPut(st,o){ return tx(st,'readwrite',function(s){ return s.put(o); });
 function dbDel(st,id){ return tx(st,'readwrite',function(s){ return s.delete(id); }); }
 function dbAll(st){ return tx(st,'readonly',function(s){ return s.getAll(); }); }
 
-var DEF={theme:'auto', keep:true, mode:'cont', fit:'width', paper:'normal', rate:1, pen:'#1a1a1a', penW:2, hlc:'#ffe600', txc:'#1a1a1a', txs:12, ckk:'v', cks:11, ckc:'#1a1a1a'};
+var DEF={theme:'auto', keep:true, mode:'cont', fit:'width', paper:'normal', rate:1, pen:'#1a1a1a', penW:2, hlc:'#ffe600', txc:'#1a1a1a', txs:12, ckk:'v', cks:11, ckc:'#1a1a1a', lap:'Lu et approuvé, bon pour accord', lapDate:true};
 var S=Object.assign({}, DEF, J(localStorage.getItem('lecteur-set'),{}));
 function saveS(){ try{ localStorage.setItem('lecteur-set', JSON.stringify(S)); }catch(e){} }
 var L=Object.assign({filter:'recent', openId:''}, J(localStorage.getItem('lecteur-ui'),{}));
@@ -1003,6 +1014,7 @@ async function buildLayers(el, pg, p, gen){
     buildForm(el, p, an);
   }catch(e){ console.warn('annotations', e); }
   buildAnn(el, p);
+  if(V.sz && V.sz[p]) drawZones(el);
 }
 function vpRect(p, r){ var v=V.vp1[p]; var a=v.convertToViewportRectangle(r); return {x:Math.min(a[0],a[2]), y:Math.min(a[1],a[3]), w:Math.abs(a[2]-a[0]), h:Math.abs(a[3]-a[1])}; }
 function cssBox(b){ return 'left:calc(var(--scale-factor)*'+b.x.toFixed(2)+'px);top:calc(var(--scale-factor)*'+b.y.toFixed(2)+'px);width:calc(var(--scale-factor)*'+b.w.toFixed(2)+'px);height:calc(var(--scale-factor)*'+b.h.toFixed(2)+'px)'; }
@@ -1559,6 +1571,8 @@ function exitAnnot(){
   saveDraft(true); updateSaveBtn();
 }
 function setTool(t){
+  if(t==='sign' && V.sel){ var sa=V.ann.filter(function(x){ return x.id===V.sel && x.t==='img'; })[0]; if(sa) V.lastSign=sa.id; }   // signature sélectionnée : cible de « Lu et approuvé »
+  if(t!=='sign') V.lapArm=false;
   V.tool=t; selectItem(null);
   viewer.classList.remove.apply(viewer.classList, TCLS); viewer.classList.add('t-'+t);
   document.querySelectorAll('#annTools button').forEach(function(b){ b.classList.toggle('on', b.dataset.t===t); });
@@ -1568,21 +1582,24 @@ function setTool(t){
   else if(t==='hl') h=HLC.map(function(x){ return '<button class="sw2'+(S.hlc===x?' on':'')+'" data-c="'+x+'" style="background:'+x+'"></button>'; }).join('')+'<span class="hint">Passe le doigt sur le texte</span>';
   else if(t==='text'||t==='date') h=PENC.map(function(x){ return '<button class="sw2'+(S.txc===x?' on':'')+'" data-c="'+x+'" style="background:'+x+'"></button>'; }).join('')+'<span class="hint">Touche la page où placer '+(t==='date'?'la date':'le texte')+'</span>';
   else if(t==='mark') h=MKS.map(function(m){ return '<button class="ck'+(S.ckk===m[0]?' on':'')+'" data-k="'+m[0]+'" aria-label="'+m[1]+'"><svg viewBox="0 0 24 24">'+markShape(m[0],12,12,20,'currentColor')+'</svg></button>'; }).join('')+'<span style="width:4px;flex:none"></span>'+MKZ.map(function(z){ return '<button class="ck'+(S.cks===z[0]?' on':'')+'" data-s="'+z[0]+'">'+z[1]+'</button>'; }).join('')+PENC.map(function(x){ return '<button class="sw2'+(S.ckc===x?' on':'')+'" data-c="'+x+'" style="background:'+x+'"></button>'; }).join('')+'<span class="hint">Touche une case pour la cocher, retouche pour enlever</span>';
-  else if(t==='sign') h='<span class="hint">Touche la page où placer ta signature</span><button class="btn sm" id="ctxSign" style="flex:none">Refaire</button>';
+  else if(t==='sign') h='<button class="btn sm" id="ctxLap">'+ic('text')+'Lu et approuvé</button><button class="btn sm num" id="ctxZones">Zones : …</button><button class="btn sm" id="ctxSign">Refaire</button><span class="hint full" id="ctxSHint"></span>';
   else if(t==='erase') h='<span class="hint">Touche une annotation pour l\'effacer</span>';
   else h='<span class="hint">'+(V.hasForm?'Touche un champ pour le remplir. ':'')+'Touche un ajout pour le déplacer, l\'agrandir ou le supprimer.</span>';
-  c.innerHTML=h; c.classList.toggle('wrap', t==='mark');
+  c.innerHTML=h; c.classList.toggle('wrap', t==='mark'||t==='sign');
+  if(t==='sign'){ signCtxUpd(); scanZones(); }
   c.onclick=function(e){
     var s=e.target.closest('[data-c]'); if(s){ if(t==='pen') S.pen=s.dataset.c; else if(t==='hl') S.hlc=s.dataset.c; else if(t==='mark') S.ckc=s.dataset.c; else S.txc=s.dataset.c; saveS(); setTool(t); return; }
     var k=e.target.closest('[data-k]'); if(k){ S.ckk=k.dataset.k; saveS(); setTool(t); return; }
     var z=e.target.closest('[data-s]'); if(z){ S.cks=+z.dataset.s; saveS(); setTool(t); return; }
     var w=e.target.closest('[data-w]'); if(w){ S.penW=+w.dataset.w; saveS(); setTool(t); return; }
     if(e.target.closest('#ctxSign')) signPad(function(){ setTool('sign'); });
+    if(e.target.closest('#ctxZones')) nextZone();
+    if(e.target.closest('#ctxLap')) lapButton();
   };
 }
 function pushUndo(){ V.undo.push(JSON.stringify(V.ann)); if(V.undo.length>40) V.undo.shift(); }
 function undo(){ if(!V.undo.length){ toast('Rien à annuler'); return; } V.ann=J(V.undo.pop(),[]); annChanged(); }
-function annChanged(pages){ V.dirty=true; saveDraft(); updateSaveBtn(); V.els.forEach(function(el){ if(el._r && (!pages||pages.indexOf(el._p)>=0)) buildAnn(el, el._p); }); }
+function annChanged(pages){ V.dirty=true; saveDraft(); updateSaveBtn(); V.els.forEach(function(el){ if(el._r && (!pages||pages.indexOf(el._p)>=0)){ buildAnn(el, el._p); if(V.sz && V.sz[el._p]) drawZones(el); } }); }
 function svgItem(a){
   var cls='it'+(V.sel===a.id?' selected':'');
   if(a.t==='ink'||a.t==='hl'){
@@ -1644,7 +1661,7 @@ function bindAnn(svg, el){
     if(e.type==='pointercancel'||Math.hypot(e.clientX-dn.x,e.clientY-dn.y)>12||Date.now()-dn.t>600) return;
     if(V.tool==='erase'){ if(dn.it){ pushUndo(); V.ann=V.ann.filter(function(a){ return a.id!==dn.it.dataset.id; }); annChanged([el._p]); } return; }
     if(V.tool==='text'||V.tool==='date') textSheet(el._p, dn.pt, V.tool==='date'?today():'');
-    else if(V.tool==='sign') placeSign(el._p, dn.pt);
+    else if(V.tool==='sign') signTap(el, dn.pt);
     else if(V.tool==='mark') markTap(el, dn.pt);
     else if(V.tool==='main') selectItem(null);
   };
@@ -1703,7 +1720,7 @@ function snapBox(el, pt){
   return null;
 }
 function selectItem(a){
-  V.sel=a?a.id:null; $('selbar').hidden=!a;
+  V.sel=a?a.id:null; $('selbar').hidden=!a; $('selEdit').hidden=!(a&&a.t==='text');
   V.els.forEach(function(el){ if(el._r) buildAnn(el, el._p); });
 }
 $('selDel').innerHTML=ic('trash'); $('selOk').innerHTML=ic('check'); $('vUndo').innerHTML=ic('undo'); $('vUndo').onclick=undo;
@@ -1711,8 +1728,22 @@ $('selDel').onclick=function(){ if(!V.sel) return; pushUndo(); var id=V.sel; V.a
 $('selPlus').onclick=function(){ var a=V.ann.filter(function(x){ return x.id===V.sel; })[0]; if(a){ pushUndo(); scaleItem(a,1.15); annChanged([a.p]); } };
 $('selMinus').onclick=function(){ var a=V.ann.filter(function(x){ return x.id===V.sel; })[0]; if(a){ pushUndo(); scaleItem(a,1/1.15); annChanged([a.p]); } };
 $('selOk').onclick=function(){ selectItem(null); };
-function textSheet(p, pt, preset){
+$('selEdit').innerHTML=ic('edit');
+$('selEdit').onclick=function(){ var a=V.ann.filter(function(x){ return x.id===V.sel && x.t==='text'; })[0]; if(a) textSheet(a.p, null, a.txt, a); };
+function textSheet(p, pt, preset, edit){
   var sizes=[[9,'Petit'],[12,'Moyen'],[16,'Grand'],[22,'Très grand']];
+  if(edit){
+    // modifier un texte déjà posé (même taille, même place) ; « Lu et approuvé » : le libellé est mémorisé
+    var sh2=openSheet('Modifier le texte','<textarea class="inp" id="txv">'+esc(preset||'')+'</textarea><div class="row"><button class="btn" data-close>Annuler</button><button class="btn main" id="txOk">'+ic('check')+'Enregistrer</button></div>');
+    var i2=sh2.querySelector('#txv'); setTimeout(function(){ i2.focus(); i2.setSelectionRange(i2.value.length,i2.value.length); },250);
+    sh2.querySelector('#txOk').onclick=function(){
+      var v=i2.value.replace(/\s+$/,''); if(!v){ back(); return; }
+      pushUndo(); edit.txt=v;
+      if(edit.lap){ var ls=v.split('\n'), dl=function(l){ return /^\s*le\s+\d{1,2}\/\d{1,2}\/\d{2,4}\s*$/i.test(l); }; var lab=ls.filter(function(l){ return !dl(l); }).join('\n').trim(); if(lab){ S.lap=lab; S.lapDate=ls.some(dl); saveS(); } }
+      closeThen(function(){ annChanged([edit.p]); });
+    };
+    return;
+  }
   var sh=openSheet(preset?'Ajouter la date':'Ajouter du texte','<textarea class="inp" id="txv" placeholder="Ton texte">'+esc(preset||'')+'</textarea><div class="lbl">Taille</div><div class="opts" id="txs">'+sizes.map(function(s){ return '<button class="opt'+(S.txs===s[0]?' on':'')+'" data-s="'+s[0]+'">'+s[1]+'</button>'; }).join('')+'</div><div class="row"><button class="btn" data-close>Annuler</button><button class="btn main" id="txOk">'+ic('check')+'Placer</button></div>');
   var i=sh.querySelector('#txv'); setTimeout(function(){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); },250);
   sh.querySelector('#txs').onclick=function(e){ var b=e.target.closest('.opt'); if(!b) return; S.txs=+b.dataset.s; saveS(); sh.querySelectorAll('#txs .opt').forEach(function(x){ x.classList.toggle('on', x===b); }); };
@@ -1724,7 +1755,7 @@ function textSheet(p, pt, preset){
 }
 /* Signature dessinée, mémorisée pour la réutiliser */
 function signChoice(){
-  if(!localStorage.getItem('lecteur-sign')){ signPad(function(){ setTool('sign'); toast('Touche la page où placer ta signature'); }); return; }
+  if(!localStorage.getItem('lecteur-sign')){ signPad(function(){ setTool('sign'); toast('Touche une zone en surbrillance ou la page pour signer'); }); return; }
   setTool('sign');
 }
 function placeSign(p, pt){
@@ -1732,8 +1763,248 @@ function placeSign(p, pt){
   var im=new Image(); im.onload=function(){
     var w=Math.min(150, dims(p).w*0.4), h=w*im.height/im.width;
     pushUndo(); var a={id:uid('a'), p:p, t:'img', src:src, x:pt[0]-w/2, y:pt[1]-h/2, w:w, h:h}; V.ann.push(a); annChanged([p]);
-    setTool('main'); selectItem(a); toast('Signature placée : fais-la glisser pour la déplacer');
+    V.lastSign=a.id; setTool('main'); selectItem(a); toast('Signature placée : fais-la glisser pour la déplacer');
   }; im.src=src;
+}
+/* ---------- Zones de signature : champs /Sig et mentions (« Signature », « Lu et approuvé »…) ---------- */
+function rInter(a,b){ var w=Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x), h=Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y); return w>0&&h>0?w*h:0; }
+function rGrow(a,m){ return {x:a.x-m, y:a.y-m, w:a.w+2*m, h:a.h+2*m}; }
+function rIn(a,pt,m){ m=m||0; return pt[0]>=a.x-m && pt[0]<=a.x+a.w+m && pt[1]>=a.y-m && pt[1]<=a.y+a.h+m; }
+var SZ_STRONG=/signature|\bsigne(e|es|s)?\b|lu et approuve|bon pour accord|\bcachet\b/, SZ_WEAK=/\ble client\b|\bl'entreprise\b|\bvisa\b/;
+/** Repère les zones d'une page (coordonnées de la page à l'échelle 1, comme les annotations) */
+function findZones(p, v, an, tc){
+  var W=v.width, H=v.height, out=[], sigs=[], obst=[], up=[];
+  (an||[]).forEach(function(a){
+    if(a.subtype!=='Widget' || !a.rect) return;
+    var r=vpRect(p, a.rect); if(r.w<1||r.h<1) return;
+    if(a.fieldType==='Sig'){ if(r.w>=20 && r.h>=10 && sigs.length<4) sigs.push({x:r.x, y:r.y, w:r.w, h:r.h, k:'sig', f:a.fieldName||''}); }
+    else obst.push(r);
+  });
+  tc.items.forEach(function(it, idx){
+    var s=it.str||''; if(!s.trim()) return;
+    var m=pdfjsLib.Util.transform(v.transform, it.transform), fu=Math.hypot(it.transform[0],it.transform[1])||1, wu=(it.width||0)/fu;
+    var xs=[], ys=[]; [[0,-0.25],[wu,-0.25],[0,0.9],[wu,0.9]].forEach(function(c){ xs.push(m[0]*c[0]+m[2]*c[1]+m[4]); ys.push(m[1]*c[0]+m[3]*c[1]+m[5]); });
+    var b={x:Math.min.apply(null,xs), y:Math.min.apply(null,ys)}; b.w=Math.max.apply(null,xs)-b.x; b.h=Math.max.apply(null,ys)-b.y; b.i=idx;
+    if(!/^[\s._\-…·:]*$/.test(s)) obst.push(b);              // pointillés / soulignés : pas un obstacle
+    var fs=-m[3];
+    if(m[0]>0 && fs>0 && Math.abs(m[1])<0.02*m[0] && Math.abs(m[2])<0.02*fs) up.push({x:m[4], x1:m[4]+wu*m[0], base:m[5], fs:fs, s:s, i:idx});   // texte droit à l'écran
+  });
+  // lignes puis segments (morceaux de texte contigus sur une même ligne)
+  up.sort(function(a,b){ return a.base-b.base || a.x-b.x; });
+  var lines=[];
+  up.forEach(function(t){ var l=lines[lines.length-1]; if(l && Math.abs(t.base-l.base)<0.35*Math.max(t.fs,l.fs)) l.items.push(t); else lines.push({base:t.base, items:[t]}); });
+  var segs=[];
+  lines.forEach(function(l){
+    l.items.sort(function(a,b){ return a.x-b.x; });
+    var cur=null;
+    l.items.forEach(function(t){
+      if(cur && t.x-cur.x1<1.2*Math.max(t.fs,cur.fs)){ cur.s+=(t.x-cur.x1>0.15*t.fs?' ':'')+t.s; cur.x1=Math.max(cur.x1,t.x1); cur.fs=Math.max(cur.fs,t.fs); cur.ids.push(t.i); }
+      else { cur={x:t.x, x1:t.x1, base:t.base, fs:t.fs, s:t.s, ids:[t.i]}; segs.push(cur); }
+    });
+  });
+  segs.forEach(function(g){ g.f=fold(g.s); g.n=g.f.split(/[^a-z0-9]+/).filter(Boolean).length; g.top=g.base-0.85*g.fs; g.bot=g.base+0.25*g.fs; });
+  var para=function(g){ return segs.some(function(o){ return o!==g && o.n>8 && o.base<g.base && g.base-o.base<2.2*g.fs && o.x<g.x1 && o.x1>g.x; }); };
+  var ment=[];
+  segs.forEach(function(g){
+    if(g.n>8 || g.n<1) return;                                  // ligne d'un long paragraphe
+    var st=SZ_STRONG.test(g.f), wk=!st && SZ_WEAK.test(g.f); if(!st && !wk) return;
+    if(wk && g.top<H*0.4) return;                               // « le client » en en-tête : pas une zone
+    if(para(g)) return;                                         // fin de paragraphe
+    ment.push({g:g, st:st});
+  });
+  ment.sort(function(a,b){ return (b.st-a.st) || a.g.top-b.g.top; });
+  out=sigs.slice();
+  ment.forEach(function(mm){
+    if(out.length>=4) return;
+    var g=mm.g, mr={x:g.x, y:g.top, w:g.x1-g.x, h:g.bot-g.top};
+    if(sigs.some(function(s){ return rInter(rGrow(s,40), mr)>0; })) return;   // le champ de signature voisin suffit
+    var ob=obst.filter(function(o){ return g.ids.indexOf(o.i)<0; });
+    var free=function(r){ return !ob.some(function(o){ return rInter(o,r)>1; }); };
+    var fit=function(r){ if(r.x+r.w>W-6) r.x=Math.max(6,W-6-r.w); if(r.x+r.w>W-6) r.w=W-6-r.x; if(r.y<6) r.y=6; if(r.y+r.h>H-6) r.h=H-6-r.y; return r; };
+    var c=[], below=fit({x:g.x, y:g.bot+3, w:180, h:60});
+    if(below.h>=36 && below.w>=100) c.push(below);
+    var rt=fit({x:g.x1+8, y:(g.top+g.bot)/2-30, w:180, h:60}); if(rt.x>=g.x1+6 && rt.w>=120 && rt.h>=36) c.push(rt);
+    if(below.h>=36){ var lim=below.y+below.h; ob.forEach(function(o){ if(o.x<below.x+below.w && o.x+o.w>below.x && o.y>=below.y && o.y<lim) lim=o.y; }); if(lim-2-below.y>=36) c.push({x:below.x, y:below.y, w:below.w, h:lim-2-below.y}); }
+    var z=c.filter(free)[0]; if(!z) return;
+    if(sigs.some(function(s){ return rInter(rGrow(s,24), z)>0; })) return;
+    if(out.some(function(o){ return rInter(rGrow(o,4), z)>0; })) return;
+    out.push({x:z.x, y:z.y, w:z.w, h:z.h, k:'txt', m:mr});
+  });
+  out.forEach(function(z,i){ z.id=p+'-'+i; });
+  return out;
+}
+async function zonesOf(p){
+  var pg=await V.pdf.getPage(p), v=pg.getViewport({scale:1}); V.vp1[p]=v;
+  var an=V.annots[p]; if(!an){ an=await pg.getAnnotations({intent:'display'}); V.annots[p]=an; }
+  var tc=await pg.getTextContent();
+  return findZones(p, v, an, tc);
+}
+/* Parcourt tout le document en arrière-plan (pages visibles d'abord) */
+async function scanZones(){
+  if(V.szScan || !V.n) return;
+  V.szScan=true; V.sz=V.sz||{}; V.szRef=V.szRef||{};
+  var gen=V.gen, order=[], seen={}, r=V.vis||[V.cur,V.cur], max=Math.min(V.n,300);
+  for(var p=r[0];p<=r[1];p++){ order.push(p); seen[p]=1; }
+  for(p=1;p<=max;p++) if(!seen[p]) order.push(p);
+  for(var i=0;i<order.length;i++){
+    p=order[i]; if(!V.open||V.gen!==gen) return;
+    if(V.sz[p]) continue;
+    try{ V.sz[p]=await zonesOf(p); }catch(e){ V.sz[p]=[]; }
+    if(!V.open||V.gen!==gen) return;
+    var el=elOf(p); if(el && el._r) drawZones(el);
+    if(i%4===0) signCtxUpd();
+    if(i%10===9) await tick();
+  }
+  V.szDone=true; signCtxUpd();
+}
+function allZones(){ var l=[]; Object.keys(V.sz||{}).forEach(function(p){ (V.sz[p]||[]).forEach(function(z){ l.push({p:+p, z:z}); }); }); l.sort(function(a,b){ return a.p-b.p || a.z.y-b.z.y || a.z.x-b.z.x; }); return l; }
+function zoneUsed(p, z){ return V.ann.some(function(a){ return a.p===p && a.t==='img' && rIn(z, [a.x+a.w/2, a.y+a.h/2]); }); }
+function zoneAt(p, pt){ var best=null; ((V.sz||{})[p]||[]).forEach(function(z){ if(rIn(z, pt, 4) && (!best || z.w*z.h<best.w*best.h)) best=z; }); return best; }
+function drawZones(el){
+  var p=el._p, zs=(V.sz||{})[p], L=el.querySelector('.szL');
+  if(!zs || !zs.length || !el._r){ if(L) L.remove(); return; }
+  if(!V.szRef[p]) refineZones(el, p);
+  if(!L){ L=document.createElement('div'); L.className='szL'; el.appendChild(L); }
+  L.innerHTML=zs.map(function(z){ var u=zoneUsed(p,z); return '<div class="sz'+(u?' done':'')+(V.szFlash===z.id?' flash':'')+'" data-z="'+z.id+'" style="'+cssBox(z)+'">'+(u?'':'<b>Signer ici</b>')+'</div>'; }).join('');
+}
+/* Un cadre vide dessiné près de la mention (sous elle, autour d'elle ou à sa droite) devient la zone */
+function refineZones(el, p){
+  var zs=V.sz[p]; if(!el.querySelector(':scope>canvas')) return;
+  V.szRef[p]=true;
+  zs.forEach(function(z){
+    if(z.k!=='txt') return;
+    var f=findFrame(el, z.m, zs.filter(function(o){ return o!==z; }));
+    if(f){ z.x=f.x; z.y=f.y; z.w=f.w; z.h=f.h; z.k='cadre'; }
+  });
+}
+function findFrame(el, m, avoid){
+  try{
+    var cv=el.querySelector(':scope>canvas'), d=dims(el._p); if(!cv||!cv.width||!d) return null;
+    var k=cv.width/d.w;
+    var X0=Math.max(0,Math.floor((m.x-40)*k)), Y0=Math.max(0,Math.floor((m.y-12)*k)), X1=Math.min(cv.width,Math.ceil((m.x+m.w+420)*k)), Y1=Math.min(cv.height,Math.ceil((m.y+m.h+240)*k)), w=X1-X0, h=Y1-Y0;
+    if(w<20||h<20) return null;
+    var tc=document.createElement('canvas'); tc.width=w; tc.height=h; var tx=tc.getContext('2d',{willReadFrequently:true}); tx.fillStyle='#fff'; tx.fillRect(0,0,w,h); tx.drawImage(cv,X0,Y0,w,h,0,0,w,h);
+    var px=tx.getImageData(0,0,w,h).data; tc.width=tc.height=0;
+    var D=new Uint8Array(w*h); for(var i=0,j=0;j<D.length;i+=4,j++) D[j]=(0.2126*px[i]+0.7152*px[i+1]+0.0722*px[i+2])<160?1:0;
+    var dk=function(x,y){ return x>=0&&y>=0&&x<w&&y<h&&D[y*w+x]===1; };
+    // traits horizontaux d'au moins 60 pt
+    var minRun=60*k, lines=[];
+    for(var y=0;y<h;y++){
+      var x=0;
+      while(x<w){
+        if(!D[y*w+x]){ x++; continue; }
+        var s=x, last=x; x++; while(x<w && x-last<=2){ if(D[y*w+x]) last=x; x++; }
+        if(last-s+1<minRun) continue;
+        var mg=false; for(var q=lines.length-1;q>=0 && q>=lines.length-40;q--){ var Ln=lines[q]; if(y-Ln.y1<=1 && Math.abs(Ln.x0-s)<=3 && Math.abs(Ln.x1-last)<=3){ Ln.y1=y; mg=true; break; } }
+        if(!mg) lines.push({y0:y, y1:y, x0:s, x1:last});
+      }
+    }
+    var tol=Math.max(3,4*k), best=null, bs=1e9;
+    var cov=function(xa, ya, yb){ var n=0, ok=0; for(var y=ya;y<yb;y++){ n++; if(dk(xa,y)||dk(xa+1,y)||dk(xa-1,y)||dk(xa+2,y)||dk(xa-2,y)) ok++; } return n?ok/n:0; };
+    var empty=function(a){ var x0=Math.round(a.x*k)-X0, y0=Math.round(a.y*k)-Y0, x1=Math.round((a.x+a.w)*k)-X0, y1=Math.round((a.y+a.h)*k)-Y0, n=0, dn=0; for(var y=Math.max(0,y0);y<Math.min(h,y1);y++) for(var x=Math.max(0,x0);x<Math.min(w,x1);x++){ n++; if(D[y*w+x]) dn++; } return n>0 && dn/n<0.01; };
+    for(var a=0;a<lines.length;a++) for(var b=a+1;b<lines.length;b++){
+      var T=lines[a], Bm=lines[b];
+      if(Math.abs(T.x0-Bm.x0)>tol || Math.abs(T.x1-Bm.x1)>tol) continue;
+      var gp=(Bm.y0-T.y1)/k; if(gp<24 || gp>230) continue;
+      var L0=Math.max(T.x0,Bm.x0), R0=Math.min(T.x1,Bm.x1);
+      if(cov(L0, T.y1+1, Bm.y0)<0.9 || cov(R0, T.y1+1, Bm.y0)<0.9) continue;
+      var th=Math.max(T.y1-T.y0, Bm.y1-Bm.y0)+3;
+      var r={x:(X0+L0+th)/k, y:(Y0+T.y1+3)/k}; r.w=(X0+R0-th)/k-r.x; r.h=(Y0+Bm.y0-3)/k-r.y;
+      if(r.w<70) continue;
+      var sc2=null;
+      if(r.y>=m.y+m.h-4 && r.y<=m.y+m.h+45 && r.x<=m.x+40 && r.x+r.w>=m.x+20) sc2=r.y-(m.y+m.h);                       // sous la mention
+      else if(r.x<=m.x+2 && r.x+r.w>=m.x+m.w-2 && r.y<=m.y+2 && r.y+r.h>=m.y+m.h+26 && m.y-r.y<r.h*0.4){ var top=m.y+m.h+2; r.h=r.y+r.h-top; r.y=top; sc2=0; }   // mention dans le cadre, en haut
+      else if(r.x>=m.x+m.w-4 && r.x<=m.x+m.w+45 && r.y<=m.y+m.h && r.y+r.h>=m.y) sc2=r.x-(m.x+m.w)+5;               // à droite
+      if(sc2==null || r.h<24 || !empty(r)) continue;
+      if((avoid||[]).some(function(o){ return rInter(o, r)>1; })) continue;
+      if(sc2<bs){ bs=sc2; best=r; }
+    }
+    return best?{x:+best.x.toFixed(2), y:+best.y.toFixed(2), w:+best.w.toFixed(2), h:+best.h.toFixed(2)}:null;
+  }catch(e){ return null; }
+}
+/* Barre de l'outil Signer : compteur de zones, aide */
+function signCtxUpd(){
+  if(V.tool!=='sign') return;
+  var b=$('ctxZones'), hn=$('ctxSHint'), la=$('ctxLap'); if(!b) return;
+  var n=allZones().length;
+  b.textContent='Zones : '+(V.szDone?n:(n?n+'…':'…'));
+  b.disabled=V.szDone && !n;
+  la.classList.toggle('on', !!V.lapArm);
+  hn.textContent=V.lapArm?'Touche une zone ou l\'endroit où écrire « '+(S.lap||'Lu et approuvé').split('\n')[0]+' »':(n?'Touche une zone en surbrillance pour y signer':'Touche la page où placer ta signature');
+}
+/* « Zones : n » : aller à la zone suivante (défilement), en boucle */
+function nextZone(){
+  var l=allZones(); if(!l.length){ toast(V.szDone?'Aucune zone de signature repérée':'Recherche des zones…'); return; }
+  var idx;
+  if(V.szi!=null && V.szi<l.length && V.szLast && l[V.szi] && l[V.szi].z.id===V.szLast) idx=(V.szi+1)%l.length;
+  else {
+    var pos=function(e){ var el=elOf(e.p); if(V.mode==='page') return e.p===V.cur?e.z.y:(e.p<V.cur?-1e9:1e9); return el?el.offsetTop+e.z.y*(el._s||1):1e12; };
+    var ref=V.mode==='page'?sc.scrollTop/((elOf(V.cur)||{})._s||1):sc.scrollTop+TOPY;
+    idx=l.findIndex(function(e){ return pos(e)>=ref-2; }); if(idx<0) idx=0;
+  }
+  var e=l[idx]; V.szi=idx; V.szLast=e.z.id;
+  if(V.mode==='page' && V.cur!==e.p) goTo(e.p,0);
+  var el=elOf(e.p); if(!el) return;
+  sc.scrollTop=Math.max(0,(V.mode==='page'?0:el.offsetTop)+e.z.y*(el._s||1)-sc.clientHeight*0.35);
+  if(el.offsetWidth>sc.clientWidth) sc.scrollLeft=Math.max(0, el.offsetLeft+(e.z.x+e.z.w/2)*(el._s||1)-sc.clientWidth/2);
+  V.barsAt=sc.scrollTop; schedule();
+  V.szFlash=e.z.id; if(el._r) drawZones(el);
+  clearTimeout(V.szFT); V.szFT=setTimeout(function(){ V.szFlash=null; }, 1500);
+  toast('Zone '+(idx+1)+' sur '+l.length+' · page '+e.p, false, 1800);
+}
+/* Toucher avec l'outil Signer : dans une zone → signature calée dedans ; ailleurs → comme avant */
+function signTap(el, pt){
+  var p=el._p, z=zoneAt(p, pt);
+  if(V.lapArm){ V.lapArm=false; signCtxUpd(); placeLap(z?{zone:z, p:p}:{pt:pt, p:p}); return; }
+  if(!z){ placeSign(p, pt); return; }
+  if(zoneUsed(p, z)){ toast('Déjà signé ici. « Déplacer » pour l\'ajuster, ou Annuler.'); return; }
+  placeSignIn(p, z);
+}
+function signRatio(src){ return new Promise(function(res){ var im=new Image(); im.onload=function(){ res(im.width/Math.max(1,im.height)); }; im.onerror=function(){ res(3); }; im.src=src; }); }
+/* Partie libre de la zone : sous un texte (« Lu et approuvé ») déjà posé en haut de la zone */
+function zoneFree(p, z, skip){
+  var y0=z.y;
+  V.ann.forEach(function(a){ if(a.p!==p || a.t!=='text' || a===skip) return; var b=itemBox(a); if(rInter(b,z)>0 && b.y+b.h<z.y+z.h*0.6) y0=Math.max(y0, b.y+b.h+2); });
+  return {x:z.x, y:y0, w:z.w, h:z.y+z.h-y0};
+}
+function fitIn(a, r, ratio){ var w=Math.min(r.w*0.9, r.h*0.9*ratio), h=w/ratio; a.w=w; a.h=h; a.x=r.x+(r.w-w)/2; a.y=r.y+(r.h-h)/2; return a; }
+async function placeSignIn(p, z){
+  var src=localStorage.getItem('lecteur-sign'); if(!src){ signPad(function(){ setTool('sign'); placeSignIn(p, z); }); return; }
+  var ratio=await signRatio(src);
+  pushUndo();
+  var a=fitIn({id:uid('a'), p:p, t:'img', src:src, zr:{x:z.x, y:z.y, w:z.w, h:z.h}}, zoneFree(p, z), ratio);
+  V.ann.push(a); V.lastSign=a.id; annChanged([p]);
+  toast('Signature placée dans la zone. « Déplacer » pour l\'ajuster.');
+}
+/* « Lu et approuvé » : au-dessus de la signature visée, en haut d'une zone, ou au point touché */
+function lapText(){ return String(S.lap||DEF.lap)+(S.lapDate!==false?'\nLe '+today():''); }
+function lapButton(){
+  var sg=V.lastSign && V.ann.filter(function(a){ return a.id===V.lastSign && a.t==='img'; })[0];
+  var vis=V.vis||[V.cur,V.cur];
+  if(sg && sg.p>=vis[0] && sg.p<=vis[1]){ V.lastSign=null; placeLap({sig:sg, p:sg.p}); return; }
+  V.lapArm=!V.lapArm; signCtxUpd();
+  if(V.lapArm) toast('Touche une zone, ou l\'endroit où écrire la mention');
+}
+function placeLap(tg){
+  var txt=lapText(), ls=txt.split('\n'), n=ls.length, mc=Math.max.apply(null, ls.map(function(l){ return l.length; })), p=tg.p;
+  var a={id:uid('a'), p:p, t:'text', c:S.txc, txt:txt, lap:1};
+  var size=function(maxW, maxH){ var s=10; if(maxW) s=Math.min(s, maxW/(mc*0.52)); if(maxH) s=Math.min(s, maxH/(1.2*n)); return clamp(s,6,10); };
+  pushUndo();
+  var z=tg.zone || (tg.sig && tg.sig.zr && rIn(tg.sig.zr, [tg.sig.x+tg.sig.w/2, tg.sig.y+tg.sig.h/2]) ? tg.sig.zr : null);
+  if(z){
+    // en haut de la zone ; une signature déjà dans la zone est recalée dessous
+    a.s=size(z.w-8, z.h*0.42); a.x=z.x+4; a.y=z.y+3+0.8*a.s; V.ann.push(a);
+    var sg=tg.sig || V.ann.filter(function(x){ return x.p===p && x.t==='img' && rIn(z,[x.x+x.w/2, x.y+x.h/2]); })[0];
+    if(sg){ var r=zoneFree(p, z), k=sg.w/Math.max(1,sg.h); fitIn(sg, r, k); }
+  } else if(tg.sig){
+    var g=tg.sig; a.s=size(Math.max(g.w*1.4, 120)); a.x=g.x; a.y=g.y-2+0.8*a.s-1.2*n*a.s;
+    if(a.y-0.8*a.s<4) a.y=g.y+g.h+2+0.8*a.s;
+    V.ann.push(a);
+  } else {
+    a.s=size(dims(p).w-tg.pt[0]-6); a.x=tg.pt[0]; a.y=tg.pt[1]+a.s*0.35; V.ann.push(a);
+  }
+  annChanged([p]);
+  toast('« '+ls[0]+' » ajouté. Pour le modifier : « Déplacer », touche-le puis ✎.', false, 4000);
 }
 function signPad(done){
   var sh=openSheet('Ma signature','<canvas id="sigpad"></canvas><p class="note" style="margin:8px 2px 0">Signe avec le doigt dans le cadre blanc. Elle sera gardée sur ce téléphone pour la prochaine fois.</p><div class="row"><button class="btn" id="sgClr">'+ic('trash')+'Effacer</button><button class="btn main" id="sgOk">'+ic('check')+'Enregistrer</button></div>');
@@ -1806,7 +2077,7 @@ async function buildCopy(){
     try{ form.updateFieldAppearances(font); }catch(e){ console.warn(e); }
   }
   // annotations : coordonnées de l'écran (page à l'échelle 1) → points PDF
-  var pages=doc.getPages(), imgs={};
+  var pages=doc.getPages(), imgs={}, placed=[];
   for(var i=0;i<V.ann.length;i++){
     var a=V.ann[i], page=pages[a.p-1]; if(!page) continue;
     var v=V.vp1[a.p]; if(!v){ v=(await V.pdf.getPage(a.p)).getViewport({scale:1}); V.vp1[a.p]=v; }
@@ -1822,8 +2093,9 @@ async function buildCopy(){
       for(var j=0;j<ls.length;j++){ var bp=cv(a.x, a.y+j*a.s*1.2); page.drawText(safeText(font, ls[j]), {x:bp[0], y:bp[1], size:a.s, font:font, color:hexRgb(Lb,a.c), rotate:rot}); }
     } else if(a.t==='img'){
       var im=imgs[a.src]; if(!im){ im=await doc.embedPng(a.src); imgs[a.src]=im; }
-      var bl=cv(a.x, a.y+a.h);
+      var bl=cv(a.x, a.y+a.h), tr=cv(a.x+a.w, a.y);
       page.drawImage(im, {x:bl[0], y:bl[1], width:a.w, height:a.h, rotate:rot});
+      placed.push({p:a.p-1, x:Math.min(bl[0],tr[0]), y:Math.min(bl[1],tr[1]), w:Math.abs(tr[0]-bl[0]), h:Math.abs(tr[1]-bl[1])});
     } else if(a.t==='mark'){
       var mc=hexRgb(Lb,a.c);
       if(a.k==='o'){ var mo=cv(a.x,a.y); page.drawCircle({x:mo[0], y:mo[1], size:a.s*MKR, color:mc}); }
@@ -1833,8 +2105,30 @@ async function buildCopy(){
       }
     }
   }
+  if(placed.length) hideSigWidgets(Lb, doc, pages, placed);
   var out=await doc.save();
   return {bytes:out, miss:miss};
+}
+/* Champ de signature (/Sig) recouvert par la signature dessinée : le champ reste (non signé numériquement),
+   seule son apparence (cadre, fond éventuel) est retirée pour que l'image posée reste visible partout. */
+function hideSigWidgets(Lb, doc, pages, placed){
+  try{
+    var af=doc.catalog.lookup(Lb.PDFName.of('AcroForm')); if(!af) return;
+    var AP=Lb.PDFName.of('AP'), MK=Lb.PDFName.of('MK'), BG=Lb.PDFName.of('BG');
+    doc.getForm().getFields().forEach(function(f){
+      if(!(f instanceof Lb.PDFSignature)) return;
+      f.acroField.getWidgets().forEach(function(w){
+        try{
+          var ref=doc.context.getObjectRef(w.dict), r0=w.getRectangle(), r={x:r0.x, y:r0.y, w:r0.width, h:r0.height}, pi=-1;
+          for(var i=0;i<pages.length && pi<0;i++){ var an=pages[i].node.Annots(); if(an && ref && an.asArray().some(function(x){ return x===ref || (x.objectNumber===ref.objectNumber && x.generationNumber===ref.generationNumber); })) pi=i; }
+          var hit=placed.some(function(s){ if(pi>=0 && s.p!==pi) return false; var ov=rInter(s, r); return ov>0.3*Math.min(s.w*s.h, r.w*r.h); });
+          if(!hit) return;
+          w.dict.delete(AP);
+          var mk=w.dict.lookup(MK); if(mk instanceof Lb.PDFDict) mk.delete(BG);
+        }catch(e){}
+      });
+    });
+  }catch(e){}
 }
 function findOpt(name, v){ for(var p in V.annots){ var l=V.annots[p]||[]; for(var i=0;i<l.length;i++){ var a=l[i]; if(a.fieldName===name && a.options){ for(var k=0;k<a.options.length;k++) if(a.options[k].exportValue===v) return a.options[k].displayValue; } } } return null; }
 async function sendOut(bytes, name, mode){
@@ -1959,7 +2253,7 @@ async function start(){
   // ménage : copies privées qui ne sont plus dans la liste
   setTimeout(function(){ try{ if(!dbOk||!b||!b.locals||importing||exporting) return; var keep={}; DOCS.forEach(function(d){ keep[d.src]=1; }); J(b.locals(),[]).forEach(function(s){ if(!keep[s]) b.forget(s); }); }catch(e){} },8000);
 }
-window.__lecteur={V:function(){ return V; }, DOCS:function(){ return DOCS; }, exportCopy:exportCopy, buildCopy:buildCopy, openDoc:openDoc, setField:setField, runSearch:runSearch, goTo:goTo, navSheet:navSheet};
+window.__lecteur={V:function(){ return V; }, DOCS:function(){ return DOCS; }, exportCopy:exportCopy, buildCopy:buildCopy, openDoc:openDoc, setField:setField, runSearch:runSearch, goTo:goTo, navSheet:navSheet, findZones:findZones};
 start();
 })();
 </script>
