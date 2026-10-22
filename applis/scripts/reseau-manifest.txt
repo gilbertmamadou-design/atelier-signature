@@ -1,0 +1,68 @@
+# Réseau (fr.magformation13.reseau) : lignes à ajouter à android/app/src/main/AndroidManifest.xml
+# Outils wifi et mobile (4G/5G) : état de la connexion, test de débit, wifi autour, appareils du réseau local, ping, DNS…
+#
+# Fichiers :
+#  - scripts/ReseauBridge.java : copié automatiquement (boucle scripts/*Bridge.java de print-patch.sh), __PKG__ remplacé.
+#    Exposé sous window.MAGReseau À CONDITION d'ajouter "ReseauBridge" à la liste de loadExtraBridges dans print-patch.sh :
+#      for (String n : new String[]{ "GalerieBridge", …, "MeteoBridge", "ReseauBridge" })
+#    (absent de la liste aujourd'hui : sans cet ajout, la page affiche « Fonctions du téléphone indisponibles »).
+#    Le constructeur n'a aucun effet de bord : le fichier peut être compilé dans toutes les applis.
+#    Classes imbriquées (TelSig, TelDisp, Psl) : simples rappels de téléphonie, RIEN à déclarer dans le manifeste.
+#    Aucun service, aucune activité supplémentaire.
+#  - www-reseau/index.html : page unique, aucun fichier annexe.
+#
+# Entrée apps.json proposée :
+#  { "app": "reseau", "web": "www-reseau", "appid": "fr.magformation13.reseau", "name": "Réseau", "icons": "android-icons-reseau", "file": "Reseau.apk" }
+#
+# Bloc print-patch.sh proposé (même style que les autres applis) :
+#   if [ "$APP" = "reseau" ]; then
+#     addperm ACCESS_NETWORK_STATE ACCESS_WIFI_STATE CHANGE_WIFI_STATE CHANGE_WIFI_MULTICAST_STATE ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION READ_PHONE_STATE INTERNET
+#     addraw '<uses-feature android:name="android.hardware.wifi" android:required="false" /><uses-feature android:name="android.hardware.telephony" android:required="false" /><uses-feature android:name="android.hardware.location" android:required="false" /><queries><intent><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="https" /></intent><intent><action android:name="android.intent.action.SEND" /><data android:mimeType="text/plain" /></intent></queries>'
+#   fi
+
+# ---------- 1. Avant </manifest> : autorisations ----------
+# Internet : test de débit (speed.cloudflare.com), IP publique (ipinfo.io, repli api.ipify.org), ping, DNS
+<uses-permission android:name="android.permission.INTERNET" />
+# Type de connexion, adresses IP, passerelle, DNS (ConnectivityManager, LinkProperties)
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+# Signal, canal, vitesse de liaison du wifi ; résultats de scan
+<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+# WifiManager.startScan() (lancer un scan des réseaux autour)
+<uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+# Verrou multidiffusion pendant la recherche d'appareils (mDNS / SSDP)
+<uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+# Nom du wifi (SSID), liste des wifi autour, antenne mobile (CellInfo), relevés de couverture géolocalisés.
+# Android exige la position précise pour tout cela (un nom de wifi peut révéler où l'on se trouve).
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+# Type de réseau mobile exact (4G, 4G+, 5G NSA/SA : getDataNetworkType, TelephonyDisplayInfo). Facultatif :
+# sans elle, la page déduit 4G/5G de la puissance du signal (SignalStrength, sans autorisation).
+<uses-permission android:name="android.permission.READ_PHONE_STATE" />
+<uses-feature android:name="android.hardware.wifi" android:required="false" />
+<uses-feature android:name="android.hardware.telephony" android:required="false" />
+<uses-feature android:name="android.hardware.location" android:required="false" />
+# Android 11+ : ouvrir la carte ARCEP dans le navigateur, partager les infos de connexion en texte
+<queries>
+    <intent><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="https" /></intent>
+    <intent><action android:name="android.intent.action.SEND" /><data android:mimeType="text/plain" /></intent>
+</queries>
+# Déjà déclarées pour toutes les applis MAG par print-patch.sh (à garder) :
+#   ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION, fr.magformation13.permission.WIDGET (tuile Socle et sauvegarde)
+# NON nécessaires : ACCESS_BACKGROUND_LOCATION (tout se fait appli ouverte), NEARBY_WIFI_DEVICES (on passe par la position),
+#   aucun service au premier plan, pas de usesCleartextTraffic (la description UPnP est lue par socket brut).
+
+# ---------- 2. Dans <application> ----------
+# Rien.
+
+# ---------- 3. Notes ----------
+# Codes de requête : 6250 (position), 6251 (état du téléphone).
+# Événements JS : window.reseauEvent(type, json) avec type = perm, net, resume, scan, publicip, speed, speedDone,
+#   lanProgress, lanHost, lanService, lanDone, ping, pingDone, trace, traceDone, dns, port, location.
+# Tuile Socle : MAGPrint.widgetPut({type:'wifi'|'mobile'|'none', name, gen, quality:0-4, dbm, last:{down, up, ping, date}}).
+#   Action de tuile : extra « socle » = {"speed":1} → ouvre l'écran du test de débit (démarrage automatique
+#   seulement en wifi ; sur le réseau mobile, la page demande d'abord confirmation).
+# Sauvegarde : MAGPrint.backupPut({tests, releves, appareils_nommes}). Pour que Sauvegarde la récupère : ajouter
+#   "fr.magformation13.reseau" à SauvegardeJob.MAG et à la liste <queries> de Sauvegarde.
+# Android limite les scans wifi à 4 toutes les 2 minutes (appli au premier plan) : au-delà, startScan() est refusé et
+# la page affiche la dernière liste connue avec son âge. Le réglage « Limitation de la recherche Wi-Fi » (options pour
+# les développeurs) lève cette limite.

@@ -1,0 +1,1416 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Réseau</title>
+<meta name="theme-color" content="#0f1116">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#0f1116;--bg2:#181b23;--bg3:#222632;--bg4:#2c3140;--line:#ffffff14;
+  --tx:#f2f3f7;--tx2:#b4b8c7;--tx3:#7d8294;
+  --acc:#8fb4ff;--acc2:#b79bff;--ok:#6fd6a4;--bad:#ff7b7b;--warn:#ffb35c;--mid:#ffd166;
+  --r:18px;--safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);--nav:66px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none}
+body{-webkit-user-select:none;user-select:none}
+input,textarea,select{font:inherit;color:inherit;-webkit-user-select:text;user-select:text}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+svg{display:block}
+.ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+[hidden]{display:none!important}
+.num{font-variant-numeric:tabular-nums}
+.sel{-webkit-user-select:text;user-select:text}
+
+/* En-tête */
+header{padding:calc(14px + var(--safe-t)) 16px 8px;display:flex;align-items:center;gap:10px}
+.logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:22px;min-width:0}
+.logo svg{width:32px;height:32px;flex:none}
+.logo span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header .sp{flex:1}
+.pill{font-size:13px;color:var(--tx2);background:var(--bg2);border:1px solid var(--line);padding:9px 13px;border-radius:99px;display:flex;align-items:center;gap:7px;font-weight:600;min-height:42px;white-space:nowrap}
+.pill .ic{width:18px;height:18px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--tx3);flex:none}
+.dot.ok{background:var(--ok)}.dot.warn{background:var(--warn)}.dot.bad{background:var(--bad)}
+main{padding:4px 16px calc(var(--nav) + 24px + var(--safe-b))}
+
+/* Cartes */
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.card h3{margin:0 0 12px;font-size:12.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--tx3);font-weight:700;display:flex;align-items:center;gap:8px}
+.card h3 .sp{flex:1}
+.card h3 button{font-size:13px;letter-spacing:0;text-transform:none;color:var(--acc);font-weight:700;padding:4px 2px}
+.warn-c{background:#ffb35c14;border-color:#ffb35c40}
+.warn-c p{color:#ffd7a8}
+.info-c{background:#8fb4ff10;border-color:#8fb4ff38}
+.card p{margin:0 0 10px;font-size:14.5px;line-height:1.5;color:var(--tx2)}
+.card p:last-child{margin-bottom:0}
+.card p b{color:var(--tx)}
+.hint{font-size:13px;color:var(--tx3);line-height:1.45;margin:8px 2px 0}
+
+/* Carte principale de l'état */
+.hero{display:flex;gap:14px;align-items:center}
+.hero .badge{width:64px;height:64px;border-radius:20px;display:flex;align-items:center;justify-content:center;flex:none;background:#8fb4ff1f;color:var(--acc)}
+.hero .badge .ic{width:34px;height:34px;stroke-width:1.8}
+.hero.mob .badge{background:#b79bff22;color:var(--acc2)}
+.hero.none .badge{background:#ff7b7b1f;color:var(--bad)}
+.hero .t{min-width:0;flex:1}
+.hero .k{font-size:13px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.hero .n{font-size:23px;font-weight:800;line-height:1.15;margin:2px 0 3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hero .s{font-size:14px;color:var(--tx2);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.gen{display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:30px;padding:0 9px;border-radius:9px;background:var(--acc2);color:#14101f;font-weight:800;font-size:15px;flex:none}
+.sig{display:flex;align-items:center;gap:14px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.sig .v{font-size:34px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
+.sig .v small{font-size:15px;color:var(--tx2);font-weight:600;margin-left:3px}
+.sig .w{font-size:14px;color:var(--tx2);line-height:1.35;flex:1;min-width:0}
+.sig .w b{display:block;font-size:16px;color:var(--tx)}
+.bars{display:flex;align-items:flex-end;gap:4px;height:34px;flex:none}
+.bars i{width:8px;border-radius:3px;background:var(--bg4)}
+.bars i:nth-child(1){height:25%}.bars i:nth-child(2){height:50%}.bars i:nth-child(3){height:75%}.bars i:nth-child(4){height:100%}
+.bars.sm{height:18px;gap:2px}.bars.sm i{width:4px;border-radius:1.5px}
+.q4 i{background:var(--ok)}.q3 i{background:#a6e07a}.q2 i{background:var(--mid)}.q1 i{background:var(--warn)}.q0 i{background:var(--bad)}
+.bars.q0 i:nth-child(n+2),.bars.q1 i:nth-child(n+2),.bars.q2 i:nth-child(n+3),.bars.q3 i:nth-child(n+4){background:var(--bg4)}
+.c-ok{color:var(--ok)}.c-mid{color:var(--mid)}.c-warn{color:var(--warn)}.c-bad{color:var(--bad)}
+
+/* Grille de valeurs */
+.kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.kv>div{background:var(--bg3);border-radius:14px;padding:10px 12px;min-width:0}
+.kv .l{font-size:12px;color:var(--tx3);font-weight:700}
+.kv .v{font-size:17px;font-weight:700;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
+.kv .e{font-size:12px;color:var(--tx3);line-height:1.3;margin-top:2px}
+.kv .w2{grid-column:span 2}
+.rows{display:flex;flex-direction:column}
+.rw{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.rw:first-child{border-top:0;padding-top:2px}
+.rw .l{flex:1;min-width:0}
+.rw .l b{display:block;font-size:14.5px;font-weight:600}
+.rw .l span{display:block;font-size:12.5px;color:var(--tx3);line-height:1.35;margin-top:1px}
+.rw .v{font-weight:700;text-align:right;font-variant-numeric:tabular-nums;max-width:58%;overflow-wrap:anywhere;font-size:15px}
+.rw .v small{display:block;font-weight:500;color:var(--tx3);font-size:12px;word-break:normal}
+
+/* Boutons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:54px;padding:10px 14px;border-radius:15px;background:var(--bg3);border:1px solid var(--line);font-weight:700;font-size:15.5px;flex:1;min-width:0;text-align:center;line-height:1.2}
+.btn:active{transform:scale(.97)}
+.btn.main{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#10131c;border:0}
+.btn.stop{background:#ff7b7b26;color:var(--bad);border-color:#ff7b7b55}
+.btn.sm{min-height:44px;font-size:14px;padding:8px 12px}
+.btn.wide{width:100%;flex:none}
+.btn[disabled]{opacity:.45}
+.row{display:flex;gap:8px;margin-top:10px}
+.lnk{color:var(--acc);font-weight:700;font-size:14px;padding:6px 0}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.chip{min-height:38px;padding:7px 12px;border-radius:99px;background:var(--bg3);border:1px solid var(--line);font-size:13.5px;font-weight:600;color:var(--tx2)}
+.chip:active,.chip.on{background:var(--acc);color:#10131c;border-color:transparent}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:3px 8px;border-radius:99px;background:var(--bg3);color:var(--tx2);white-space:nowrap}
+.tag.ok{background:#6fd6a426;color:var(--ok)}
+.tag.warn{background:#ffb35c26;color:var(--warn)}
+.tag.bad{background:#ff7b7b26;color:var(--bad)}
+.tag.acc{background:#8fb4ff26;color:var(--acc)}
+.seg{display:flex;background:var(--bg3);border-radius:14px;padding:4px;gap:4px;margin-bottom:12px}
+.seg button{flex:1;min-height:44px;padding:6px 4px;border-radius:11px;font-size:14.5px;font-weight:700;color:var(--tx2);text-align:center;line-height:1.15}
+.seg button.on{background:var(--bg4);color:var(--tx);box-shadow:0 0 0 1px #ffffff2a inset}
+
+/* Raccourcis réglages */
+.short{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.short button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 2px;border-radius:14px;background:var(--bg3);font-size:11.5px;font-weight:600;color:var(--tx2);line-height:1.15;text-align:center;min-height:76px}
+.short button:active{background:var(--bg4)}
+.short .ic{width:24px;height:24px;color:var(--acc)}
+
+/* Navigation du bas */
+nav{position:fixed;left:0;right:0;bottom:0;z-index:8;background:#13151cf2;border-top:1px solid var(--line);display:flex;padding:6px 6px calc(6px + var(--safe-b));-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0 4px;border-radius:14px;font-size:12px;font-weight:700;color:var(--tx3);min-height:54px}
+nav button .ic{width:24px;height:24px}
+nav button.on{color:var(--tx)}
+nav button.on .ic{color:var(--acc)}
+nav button.on span.pi{background:#8fb4ff26}
+nav span.pi{display:flex;align-items:center;justify-content:center;width:52px;height:30px;border-radius:99px}
+
+h1{font-size:24px;margin:2px 2px 12px;font-weight:800}
+
+/* Test de débit */
+.gauge{position:relative;width:min(84vw,300px);margin:0 auto}
+.gauge svg{width:100%;height:auto}
+.gauge .ctr{position:absolute;left:0;right:0;top:35%;text-align:center}
+.gauge .val{font-size:52px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-1px}
+.gauge .unit{font-size:14px;color:var(--tx2);font-weight:600;margin-top:2px}
+.gauge .ph{display:inline-flex;align-items:center;gap:6px;margin-top:10px;font-size:13.5px;font-weight:700;color:var(--tx2);background:var(--bg3);border-radius:99px;padding:5px 12px}
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:6px 0 12px}
+.trio>div{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:10px 6px;text-align:center}
+.trio>div.on{border-color:#8fb4ff88;background:#8fb4ff12}
+.trio .l{font-size:11.5px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;justify-content:center;gap:4px}
+.trio .l .ic{width:15px;height:15px}
+.trio .v{font-size:24px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}
+.trio .u{font-size:11.5px;color:var(--tx3)}
+.verdict{font-size:15px;line-height:1.5;color:var(--tx2)}
+.verdict b{color:var(--tx)}
+.hist-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.hist-row:first-child{border-top:0}
+.hist-row .ic{color:var(--tx3)}
+.hist-row .m{flex:1;min-width:0}
+.hist-row .m b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-row .m span{font-size:12.5px;color:var(--tx3)}
+.hist-row .r{text-align:right;font-variant-numeric:tabular-nums;font-size:13px;color:var(--tx2);white-space:nowrap}
+.hist-row .r b{color:var(--tx);font-size:15px}
+.legend{display:flex;gap:14px;font-size:12.5px;color:var(--tx2);margin-top:6px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+/* Wifi autour */
+.chart{width:100%;height:auto;background:var(--bg3);border-radius:14px}
+.net{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+.net:first-child{border-top:0;padding-top:2px}
+.net .m{flex:1;min-width:0}
+.net .m b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.net .m span{font-size:12.5px;color:var(--tx3)}
+.net .r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;font-size:14px;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.net .sw{width:10px;height:10px;border-radius:3px;flex:none}
+.advice{display:flex;gap:12px;align-items:center}
+.advice .big{font-size:40px;font-weight:800;line-height:1;color:var(--ok);min-width:56px;text-align:center}
+.advice .big small{display:block;font-size:11px;color:var(--tx3);font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin-top:4px}
+
+/* Appareils */
+.prog{height:8px;background:var(--bg3);border-radius:99px;overflow:hidden;margin:10px 0 4px}
+.prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:99px;transition:width .3s}
+.dev{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line);width:100%;text-align:left}
+.dev:first-child{border-top:0;padding-top:2px}
+.dev .di{width:44px;height:44px;border-radius:13px;background:var(--bg3);display:flex;align-items:center;justify-content:center;color:var(--acc);flex:none}
+.dev .di.gw{background:#6fd6a41f;color:var(--ok)}
+.dev .di.me{background:#b79bff22;color:var(--acc2)}
+.dev .di.unk{color:var(--tx3)}
+.dev .m{flex:1;min-width:0}
+.dev .m b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dev .m span{display:block;font-size:12.5px;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dev .ip{font-size:13px;color:var(--tx2);font-variant-numeric:tabular-nums;font-weight:600}
+.dev>.ic{color:var(--tx3);width:18px;height:18px}
+
+/* Outils */
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.tool{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:14px;text-align:left;display:flex;flex-direction:column;gap:10px;min-height:118px}
+.tool:active{transform:scale(.98);background:var(--bg3)}
+.tool .ico{width:44px;height:44px;border-radius:13px;background:#8fb4ff1f;color:var(--acc);display:flex;align-items:center;justify-content:center}
+.tool b{font-size:16px;font-weight:700;display:block}
+.tool span{font-size:12.5px;color:var(--tx3);display:block;margin-top:1px;line-height:1.3}
+
+/* Écrans */
+.scr{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;z-index:10}
+.tb{display:flex;align-items:center;gap:6px;padding:calc(8px + var(--safe-t)) 8px 6px;flex:none}
+.tb h2{flex:1;margin:0;font-size:19px;font-weight:700;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{width:50px;height:50px;border-radius:15px;display:flex;align-items:center;justify-content:center;flex:none}
+.ib:active{background:var(--bg3)}
+.bd{flex:1;overflow-y:auto;overflow-x:hidden;padding:4px 16px calc(24px + var(--safe-b))}
+.inp{width:100%;min-height:52px;background:var(--bg3);border:1px solid var(--line);border-radius:14px;padding:10px 14px;font-size:17px;outline:none}
+.inp:focus{border-color:#8fb4ff88}
+.f2{display:flex;gap:8px}
+.f2 .inp:last-child{width:110px;flex:none}
+label.lb{display:block;font-size:13px;font-weight:700;color:var(--tx3);margin:0 2px 6px}
+.out{margin-top:12px}
+.pl{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--line);font-variant-numeric:tabular-nums;font-size:14.5px}
+.pl:first-child{border-top:0}
+.pl .n{width:34px;color:var(--tx3);font-size:13px}
+.pl .b{flex:1;height:8px;background:var(--bg3);border-radius:99px;overflow:hidden}
+.pl .b i{display:block;height:100%;border-radius:99px;background:var(--acc)}
+.pl .v{width:84px;text-align:right;font-weight:700}
+.pl .v.bad{color:var(--bad)}
+.mono{font-family:ui-monospace,"Roboto Mono",monospace;font-size:14px;word-break:break-all}
+.rel{display:flex;gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
+.rel:first-child{border-top:0;padding-top:2px}
+.rel .m{flex:1;min-width:0}
+.rel .m b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rel .m span{display:block;font-size:12.5px;color:var(--tx3)}
+.rel .r{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;font-size:14px;white-space:nowrap}
+.rel .r small{display:block;font-weight:500;color:var(--tx3);font-size:12px}
+.rel .del{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--tx3)}
+
+/* Feuille du bas */
+#sheetBg{position:fixed;inset:0;background:#000a;z-index:40;display:flex;align-items:flex-end}
+.sheet{background:var(--bg2);border-radius:22px 22px 0 0;width:100%;max-height:88vh;overflow-y:auto;padding:18px 16px calc(18px + var(--safe-b));border-top:1px solid var(--line)}
+.sheet h3{margin:0 0 6px;font-size:19px}
+.sheet p{margin:8px 0;color:var(--tx2);font-size:14.5px;line-height:1.5}
+.sheet p b{color:var(--tx)}
+.sheet .col{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+#toast{position:fixed;left:16px;right:16px;top:calc(12px + var(--safe-t));background:#2b3042;border:1px solid #ffffff1f;color:var(--tx);padding:13px 14px;border-radius:14px;font-size:15px;box-shadow:0 10px 30px #0008;transform:translateY(-30%);opacity:0;transition:transform .25s,opacity .25s;z-index:60;pointer-events:none}
+#toast.on{transform:none;opacity:1}
+.spin{animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.empty{text-align:center;color:var(--tx3);font-size:14px;padding:14px 8px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><svg viewBox="0 0 32 32"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8fb4ff"/><stop offset="1" stop-color="#b79bff"/></linearGradient></defs><rect width="32" height="32" rx="9" fill="url(#lg)"/><g fill="none" stroke="#10131c" stroke-width="2.3" stroke-linecap="round"><path d="M7 13.5a12.5 12.5 0 0 1 18 0"/><path d="M10.2 17a8 8 0 0 1 11.6 0"/><path d="M13.4 20.4a3.6 3.6 0 0 1 5.2 0"/></g><circle cx="16" cy="24" r="1.7" fill="#10131c"/></svg><span id="hTitle">Réseau</span></div>
+  <div class="sp"></div>
+  <button class="pill" id="hPill"><span class="dot" id="hDot"></span><span id="hTxt">…</span></button>
+</header>
+
+<!-- ===== État ===== -->
+<main id="v-etat">
+  <div class="card warn-c" id="noBridge" hidden><p><b>Fonctions du téléphone indisponibles.</b> Cette page a besoin de l'appli Réseau installée pour lire le wifi et le réseau mobile.</p></div>
+  <div class="card" id="heroCard"></div>
+  <div class="card warn-c" id="permCard" hidden></div>
+  <div class="card" id="detCard"></div>
+  <div class="card" id="mobCard"></div>
+  <div class="card" id="ipCard"></div>
+  <div class="row" style="margin:0 0 12px">
+    <button class="btn main" data-go="debit"><svg class="ic" viewBox="0 0 24 24"><use href="#i-speed"/></svg>Tester le débit</button>
+    <button class="btn" id="shareBtn" style="flex:none;width:58px" aria-label="Partager"><svg class="ic" viewBox="0 0 24 24"><use href="#i-share"/></svg></button>
+  </div>
+  <div class="card">
+    <h3>Réglages du téléphone</h3>
+    <div class="short" id="shortcuts"></div>
+  </div>
+</main>
+
+<!-- ===== Test de débit ===== -->
+<main id="v-debit" hidden>
+  <h1>Test de débit</h1>
+  <div class="card" style="padding:14px 12px 10px">
+    <div class="gauge"><svg viewBox="0 0 300 250" id="gSvg"></svg>
+      <div class="ctr"><div class="val" id="gVal">0</div><div class="unit">Mb/s</div><div class="ph" id="gPh">Prêt</div></div>
+    </div>
+    <div class="hint" id="spNet" style="text-align:center;margin-top:0"></div>
+  </div>
+  <div class="trio">
+    <div id="tPing"><div class="l">Ping</div><div class="v">–</div><div class="u">ms</div></div>
+    <div id="tDown"><div class="l"><svg class="ic" viewBox="0 0 24 24"><path d="M12 4v15M6 13l6 6 6-6"/></svg>Réception</div><div class="v">–</div><div class="u">Mb/s</div></div>
+    <div id="tUp"><div class="l"><svg class="ic" viewBox="0 0 24 24"><path d="M12 20V5M6 11l6-6 6 6"/></svg>Envoi</div><div class="v">–</div><div class="u">Mb/s</div></div>
+  </div>
+  <button class="btn main wide" id="spGo"><svg class="ic" viewBox="0 0 24 24"><use href="#i-play"/></svg>Lancer le test</button>
+  <div class="card warn-c" id="spMob" hidden style="margin-top:12px"></div>
+  <div class="card" id="spRes" hidden style="margin-top:12px"></div>
+  <div class="card" style="margin-top:12px">
+    <h3>Historique<span class="sp"></span><button id="histClear" hidden>Effacer</button></h3>
+    <div id="histChart"></div>
+    <div id="histList"></div>
+  </div>
+  <p class="hint">Mesure faite avec les serveurs de Cloudflare (le plus proche de toi), avec plusieurs connexions en même temps, environ 10 secondes dans chaque sens. Le ping est le temps d'aller-retour d'un message : plus il est bas, plus la connexion est réactive.</p>
+</main>
+
+<!-- ===== Wifi autour ===== -->
+<main id="v-wifi" hidden>
+  <h1>Wifi autour</h1>
+  <div class="card warn-c" id="wfWarn" hidden></div>
+  <div class="row" style="margin:0 0 12px">
+    <button class="btn main" id="wfScan"><svg class="ic" viewBox="0 0 24 24"><use href="#i-refresh"/></svg>Rechercher</button>
+  </div>
+  <div class="hint" id="wfAge" style="margin:-4px 2px 12px"></div>
+  <div class="seg" id="wfSeg"><button data-b="2.4" class="on">2,4 GHz</button><button data-b="5">5 GHz</button><button data-b="6">6 GHz</button></div>
+  <div class="card" style="padding:10px"><div id="wfChart"></div><div class="hint" id="wfChartNote" style="margin:8px 4px 2px"></div></div>
+  <div class="card" id="wfAdvice" hidden></div>
+  <div class="card"><h3 id="wfListH">Réseaux visibles</h3><div id="wfList"></div></div>
+  <p class="hint">Android autorise 4 recherches toutes les 2 minutes. Au-delà, la liste affichée est la dernière connue : attends un peu puis relance.</p>
+</main>
+
+<!-- ===== Appareils ===== -->
+<main id="v-app" hidden>
+  <h1>Appareils sur ton wifi</h1>
+  <div class="card">
+    <div id="lanHead"><p>Réseau cherche les appareils branchés sur ta box : ordinateurs, imprimantes, télévisions, caméras…</p></div>
+    <div class="prog" id="lanProg" hidden><i></i></div>
+    <div class="hint" id="lanStat" hidden></div>
+    <div class="row"><button class="btn main" id="lanGo"><svg class="ic" viewBox="0 0 24 24"><use href="#i-search"/></svg>Rechercher les appareils</button></div>
+  </div>
+  <div class="card" id="lanCard" hidden><h3 id="lanH">Appareils trouvés</h3><div id="lanList"></div></div>
+  <div class="card info-c">
+    <p><b>Pourquoi la liste peut être incomplète ?</b> Depuis Android 11, aucune appli ne peut lire la liste des appareils connus de la box. Réseau essaie donc de joindre chaque adresse une par une et écoute les appareils qui s'annoncent (imprimantes, télévisions, enceintes). Un téléphone en veille ou un appareil protégé peut ne pas répondre. La liste complète se trouve dans l'interface de ta box.</p>
+  </div>
+</main>
+
+<!-- ===== Outils ===== -->
+<main id="v-outils" hidden>
+  <h1>Outils</h1>
+  <div class="grid" id="toolGrid"></div>
+</main>
+
+<nav id="nav">
+  <button data-tab="etat" class="on"><span class="pi"><svg class="ic" viewBox="0 0 24 24"><use href="#i-pulse"/></svg></span>État</button>
+  <button data-tab="debit"><span class="pi"><svg class="ic" viewBox="0 0 24 24"><use href="#i-speed"/></svg></span>Débit</button>
+  <button data-tab="wifi"><span class="pi"><svg class="ic" viewBox="0 0 24 24"><use href="#i-wifi"/></svg></span>Wifi</button>
+  <button data-tab="app"><span class="pi"><svg class="ic" viewBox="0 0 24 24"><use href="#i-devices"/></svg></span>Appareils</button>
+  <button data-tab="outils"><span class="pi"><svg class="ic" viewBox="0 0 24 24"><use href="#i-grid"/></svg></span>Outils</button>
+</nav>
+
+<!-- ===== Écrans d'outils ===== -->
+<section class="scr" id="s-ping" hidden>
+  <div class="tb"><button class="ib" data-back><svg class="ic" viewBox="0 0 24 24"><use href="#i-back"/></svg></button><h2>Ping</h2></div>
+  <div class="bd">
+    <p class="hint" style="margin:0 2px 12px">Envoie de petits messages à un appareil ou un site et mesure le temps de réponse. Utile pour savoir si la box ou Internet répond.</p>
+    <label class="lb" for="pgHost">Adresse ou nom</label>
+    <div class="f2"><input class="inp" id="pgHost" placeholder="ex. google.fr" autocapitalize="off" autocomplete="off" spellcheck="false"><select class="inp" id="pgCount"><option value="4">4 fois</option><option value="10" selected>10 fois</option><option value="20">20 fois</option></select></div>
+    <div class="chips" id="pgChips"></div>
+    <div class="row"><button class="btn main" id="pgGo"><svg class="ic" viewBox="0 0 24 24"><use href="#i-play"/></svg>Lancer</button></div>
+    <div class="card out" id="pgSum" hidden></div>
+    <div class="card out" id="pgOut" hidden></div>
+  </div>
+</section>
+
+<section class="scr" id="s-trace" hidden>
+  <div class="tb"><button class="ib" data-back><svg class="ic" viewBox="0 0 24 24"><use href="#i-back"/></svg></button><h2>Chemin (traceroute)</h2></div>
+  <div class="bd">
+    <p class="hint" style="margin:0 2px 12px">Montre les relais traversés pour atteindre un site : ta box, puis les équipements de ton opérateur, puis Internet. Pratique pour voir où ça bloque.</p>
+    <label class="lb" for="trHost">Adresse ou nom</label>
+    <input class="inp" id="trHost" placeholder="ex. google.fr" autocapitalize="off" autocomplete="off" spellcheck="false">
+    <div class="chips" id="trChips"></div>
+    <div class="row"><button class="btn main" id="trGo"><svg class="ic" viewBox="0 0 24 24"><use href="#i-play"/></svg>Lancer</button></div>
+    <div class="card out" id="trOut" hidden></div>
+  </div>
+</section>
+
+<section class="scr" id="s-dns" hidden>
+  <div class="tb"><button class="ib" data-back><svg class="ic" viewBox="0 0 24 24"><use href="#i-back"/></svg></button><h2>Recherche DNS</h2></div>
+  <div class="bd">
+    <p class="hint" style="margin:0 2px 12px">Le DNS est l'annuaire d'Internet : il traduit un nom (google.fr) en adresse numérique. Si un site ne s'ouvre pas, vérifie ici que son nom est bien trouvé.</p>
+    <label class="lb" for="dnHost">Nom du site</label>
+    <input class="inp" id="dnHost" placeholder="ex. impots.gouv.fr" autocapitalize="off" autocomplete="off" spellcheck="false">
+    <div class="row"><button class="btn main" id="dnGo"><svg class="ic" viewBox="0 0 24 24"><use href="#i-search"/></svg>Chercher</button></div>
+    <div class="card out" id="dnOut" hidden></div>
+  </div>
+</section>
+
+<section class="scr" id="s-port" hidden>
+  <div class="tb"><button class="ib" data-back><svg class="ic" viewBox="0 0 24 24"><use href="#i-back"/></svg></button><h2>Test d'un port</h2></div>
+  <div class="bd">
+    <p class="hint" style="margin:0 2px 12px">Vérifie si un service répond sur un appareil (par exemple la page de réglages d'une caméra, port 80). Un port est comme une porte numérotée.</p>
+    <label class="lb" for="ptHost">Adresse et port</label>
+    <div class="f2"><input class="inp" id="ptHost" placeholder="ex. 192.168.1.1" autocapitalize="off" autocomplete="off" spellcheck="false"><input class="inp" id="ptPort" inputmode="numeric" placeholder="port" value="80"></div>
+    <div class="chips" id="ptChips"></div>
+    <div class="row"><button class="btn main" id="ptGo"><svg class="ic" viewBox="0 0 24 24"><use href="#i-play"/></svg>Tester</button></div>
+    <div class="card out" id="ptOut" hidden></div>
+  </div>
+</section>
+
+<section class="scr" id="s-subnet" hidden>
+  <div class="tb"><button class="ib" data-back><svg class="ic" viewBox="0 0 24 24"><use href="#i-back"/></svg></button><h2>Calcul de sous-réseau</h2></div>
+  <div class="bd">
+    <p class="hint" style="margin:0 2px 12px">Pour régler une adresse fixe sur une caméra ou une imprimante : indique une adresse et la taille du réseau (/24 = masque 255.255.255.0, le cas des box).</p>
+    <label class="lb" for="snIp">Adresse / préfixe</label>
+    <input class="inp" id="snIp" placeholder="ex. 192.168.1.20/24" autocapitalize="off" autocomplete="off" spellcheck="false">
+    <div class="chips" id="snChips"></div>
+    <div class="card out" id="snOut" hidden></div>
+  </div>
+</section>
+
+<section class="scr" id="s-couv" hidden>
+  <div class="tb"><button class="ib" data-back><svg class="ic" viewBox="0 0 24 24"><use href="#i-back"/></svg></button><h2>Couverture mobile</h2></div>
+  <div class="bd">
+    <div class="card">
+      <h3>Carte officielle</h3>
+      <p>La carte « Mon réseau mobile » de l'Arcep (le gendarme des télécoms) montre la couverture 4G/5G de chaque opérateur, rue par rue.</p>
+      <button class="btn wide" id="arcepGo"><svg class="ic" viewBox="0 0 24 24"><use href="#i-globe"/></svg>Ouvrir la carte ici</button>
+      <p class="hint" id="arcepNote">La carte s'ouvre dans le navigateur. Si elle n'est pas centrée sur toi, tape l'adresse du lieu.</p>
+    </div>
+    <div class="card">
+      <h3>Mes relevés<span class="sp"></span><button id="relCsv" hidden>Exporter</button></h3>
+      <p>Note la qualité du réseau mobile là où tu es (chantier, client…) : position, date, opérateur et force du signal.</p>
+      <button class="btn main wide" id="relGo"><svg class="ic" viewBox="0 0 24 24"><use href="#i-pin"/></svg>Enregistrer un relevé ici</button>
+      <div id="relList" style="margin-top:12px"></div>
+    </div>
+  </div>
+</section>
+
+<section class="scr" id="s-reg" hidden>
+  <div class="tb"><button class="ib" data-back><svg class="ic" viewBox="0 0 24 24"><use href="#i-back"/></svg></button><h2>Réglages Android</h2></div>
+  <div class="bd"><div class="card"><div class="rows" id="regList"></div></div></div>
+</section>
+
+<div id="sheetBg" hidden><div class="sheet" id="sheet"></div></div>
+<div id="toast"></div>
+
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M2.5 9a14 14 0 0 1 19 0"/><path d="M5.5 12.5a9.5 9.5 0 0 1 13 0"/><path d="M8.6 15.9a5 5 0 0 1 6.8 0"/><circle cx="12" cy="19.3" r=".9"/></symbol>
+  <symbol id="i-ant" viewBox="0 0 24 24"><circle cx="12" cy="9" r="1.8"/><path d="M12 11v10M8.5 21h7"/><path d="M8.3 5.3a5.2 5.2 0 0 0 0 7.4M15.7 5.3a5.2 5.2 0 0 1 0 7.4"/><path d="M5.5 2.5a9.2 9.2 0 0 0 0 13M18.5 2.5a9.2 9.2 0 0 1 0 13"/></symbol>
+  <symbol id="i-off" viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M8.6 15.9a5 5 0 0 1 6.8 0"/><path d="M5.5 12.5a9.5 9.5 0 0 1 4.2-2.3M14.6 10.3a9.4 9.4 0 0 1 3.9 2.2"/><path d="M2.5 9a14 14 0 0 1 4.4-2.8M11 5a14 14 0 0 1 10.5 4"/><circle cx="12" cy="19.3" r=".9"/></symbol>
+  <symbol id="i-speed" viewBox="0 0 24 24"><path d="M3.5 17.5a9 9 0 1 1 17 0"/><path d="M12 14l4.5-5"/><circle cx="12" cy="14.5" r="1.4"/></symbol>
+  <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M2.5 12h4l3-7.5 5 15 3-7.5h4"/></symbol>
+  <symbol id="i-devices" viewBox="0 0 24 24"><rect x="2.5" y="4" width="14" height="10" rx="1.8"/><path d="M6 18h7"/><rect x="15" y="9" width="6.5" height="11" rx="1.6"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></symbol>
+  <symbol id="i-router" viewBox="0 0 24 24"><rect x="2.5" y="13" width="19" height="7" rx="2"/><path d="M6.5 16.5h.01M10 16.5h.01"/><path d="M16 13V8.5"/><path d="M13.5 6.6a3.5 3.5 0 0 1 5 0M11.3 4.3a6.6 6.6 0 0 1 9.4 0"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M11 18.5h2"/></symbol>
+  <symbol id="i-printer" viewBox="0 0 24 24"><path d="M7 9V3.5h10V9"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v6.5H7z"/></symbol>
+  <symbol id="i-tv" viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8 21h8"/></symbol>
+  <symbol id="i-speaker" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><circle cx="12" cy="14" r="3.5"/><path d="M12 6.5h.01"/></symbol>
+  <symbol id="i-pc" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M1.5 20h21"/></symbol>
+  <symbol id="i-cam" viewBox="0 0 24 24"><rect x="2.5" y="7" width="13" height="10" rx="2"/><path d="M15.5 10.5l6-3v9l-6-3"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3.5 11L12 4l8.5 7"/><path d="M6 9.5V20h12V9.5"/></symbol>
+  <symbol id="i-unk" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.4c-.6.3-1 .8-1 1.5v.5M12 17h.01"/></symbol>
+  <symbol id="i-ping" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.8"/><path d="M8.5 15.5a5 5 0 0 1 0-7M15.5 8.5a5 5 0 0 1 0 7M5.6 18.4a9 9 0 0 1 0-12.8M18.4 5.6a9 9 0 0 1 0 12.8"/></symbol>
+  <symbol id="i-route" viewBox="0 0 24 24"><circle cx="5.5" cy="18.5" r="2"/><circle cx="18.5" cy="5.5" r="2"/><path d="M7.5 18.5H14a3.2 3.2 0 0 0 0-6.4h-4a3.2 3.2 0 0 1 0-6.4h6.5"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.3-4.3"/></symbol>
+  <symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 2.5v5M15 2.5v5"/><path d="M6 7.5h12V11a6 6 0 0 1-12 0z"/><path d="M12 17v4.5"/></symbol>
+  <symbol id="i-calc" viewBox="0 0 24 24"><rect x="5" y="2.5" width="14" height="19" rx="2.2"/><path d="M8.5 7h7M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="M8.2 10.8l7.6-4.1M8.2 13.2l7.6 4.1"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></symbol>
+  <symbol id="i-plane" viewBox="0 0 24 24"><path d="M12 2.8c.8 0 1.3.7 1.3 1.5V9l7.5 4.6v2l-7.5-2.4v4.4l2 1.5v1.8L12 20l-3.3.9v-1.8l2-1.5v-4.4l-7.5 2.4v-2L10.7 9V4.3c0-.8.5-1.5 1.3-1.5z"/></symbol>
+  <symbol id="i-hot" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.8"/><path d="M8.5 15.5a5 5 0 0 1 0-7M15.5 8.5a5 5 0 0 1 0 7M5.6 18.4a9 9 0 0 1 0-12.8M18.4 5.6a9 9 0 0 1 0 12.8"/></symbol>
+  <symbol id="i-vpn" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+  <symbol id="i-data" viewBox="0 0 24 24"><path d="M8 20V5M4.5 8.5L8 5l3.5 3.5M16 4v15M12.5 15.5L16 19l3.5-3.5"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11.5a8 8 0 1 1-2.4-5.7"/><path d="M20 4v5h-5"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5l12 7.5-12 7.5z"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
+  <symbol id="i-loc" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/><circle cx="12" cy="12" r="7"/></symbol>
+</svg>
+
+<script>
+(function(){
+'use strict';
+var R = window.MAGReseau || null, P = window.MAGPrint || null;
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]; }); }
+function ic(n, cls){ return '<svg class="ic' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24"><use href="#i-' + n + '"/></svg>'; }
+function store(k, v){ try{ if(v === undefined){ var s = localStorage.getItem('reseau.' + k); return s ? JSON.parse(s) : null; } localStorage.setItem('reseau.' + k, JSON.stringify(v)); }catch(e){ return null; } }
+function J(s){ if(typeof s !== 'string') return s || {}; try{ return JSON.parse(s); }catch(e){ return {}; } }
+function fr(n, d){ if(n == null || isNaN(n)) return '–'; return Number(n).toLocaleString('fr-FR', { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 }); }
+function mbps(v){ if(v == null || isNaN(v)) return '–'; return v >= 100 ? fr(v, 0) : v >= 10 ? fr(v, 1) : fr(v, 2).replace(/0$/, ''); }
+var toastT;
+function toast(t){ var e = $('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function(){ e.classList.remove('on'); }, 3200); }
+function dt(t){ var d = new Date(t); return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); }
+function ago(s){ if(s < 60) return 'il y a ' + Math.max(1, Math.round(s)) + ' s'; if(s < 3600) return 'il y a ' + Math.round(s / 60) + ' min'; return 'il y a ' + Math.round(s / 3600) + ' h'; }
+
+/* ---------- Données mémorisées ---------- */
+var TESTS = store('tests') || [], RELEVES = store('releves') || [], NAMES = store('noms') || {};
+function save(){ store('tests', TESTS); store('releves', RELEVES); store('noms', NAMES); backup(); }
+function backup(){ try{ if(P && P.backupPut) P.backupPut(JSON.stringify({ app: 'Réseau', tests: TESTS, releves: RELEVES, appareils_nommes: NAMES, at: Date.now() })); }catch(e){} }
+
+/* ---------- Pile de retour (bouton retour Android) ---------- */
+var stack = [];
+function pushLayer(close){ stack.push(close); try{ history.pushState({ n: stack.length }, ''); }catch(e){} }
+window.addEventListener('popstate', function(){ var c = stack.pop(); if(c) c(); });
+function back(){ if(stack.length) history.back(); }
+document.querySelectorAll('[data-back]').forEach(function(b){ b.onclick = back; });
+
+/* ---------- Qualité du signal, en mots ---------- */
+function wifiQ(r){
+  if(r == null || r <= -127) return null;
+  if(r >= -50) return { q: 4, w: 'Excellent signal', c: 'ok', e: 'tu es tout près de la box' };
+  if(r >= -60) return { q: 4, w: 'Très bon signal', c: 'ok', e: 'tout fonctionne, même la vidéo 4K' };
+  if(r >= -67) return { q: 3, w: 'Bon signal', c: 'ok', e: 'vidéo et appels vidéo sans souci' };
+  if(r >= -75) return { q: 2, w: 'Signal moyen', c: 'mid', e: 'ça marche, mais le débit baisse' };
+  if(r >= -82) return { q: 1, w: 'Signal faible', c: 'warn', e: 'coupures possibles : rapproche-toi de la box' };
+  return { q: 0, w: 'Signal très faible', c: 'bad', e: 'connexion instable, trop loin de la box' };
+}
+function rsrpQ(r){
+  if(r == null) return null;
+  if(r >= -80) return { q: 4, w: 'Excellent signal', c: 'ok', e: 'antenne proche, débit maximal' };
+  if(r >= -90) return { q: 3, w: 'Bon signal', c: 'ok', e: 'Internet rapide et appels clairs' };
+  if(r >= -100) return { q: 2, w: 'Signal moyen', c: 'mid', e: 'ça marche, débit réduit à l\'intérieur' };
+  if(r >= -110) return { q: 1, w: 'Signal faible', c: 'warn', e: 'lent, coupures possibles ; essaie près d\'une fenêtre' };
+  return { q: 0, w: 'Signal très faible', c: 'bad', e: 'limite de couverture : appels et Internet difficiles' };
+}
+function dbmQ(d){ // 2G/3G
+  if(d == null) return null;
+  if(d >= -75) return { q: 4, w: 'Excellent signal', c: 'ok', e: '' };
+  if(d >= -85) return { q: 3, w: 'Bon signal', c: 'ok', e: '' };
+  if(d >= -95) return { q: 2, w: 'Signal moyen', c: 'mid', e: '' };
+  if(d >= -105) return { q: 1, w: 'Signal faible', c: 'warn', e: '' };
+  return { q: 0, w: 'Signal très faible', c: 'bad', e: '' };
+}
+function rsrqTxt(v){ return v >= -10 ? ['bonne', 'c-ok', 'peu de brouillage'] : v >= -15 ? ['moyenne', 'c-mid', 'antenne assez chargée'] : ['mauvaise', 'c-warn', 'antenne saturée ou brouillée']; }
+function sinrTxt(v){ return v >= 20 ? ['excellente', 'c-ok', 'signal très propre'] : v >= 13 ? ['bonne', 'c-ok', 'signal propre'] : v >= 0 ? ['moyenne', 'c-mid', 'un peu de bruit autour'] : ['mauvaise', 'c-warn', 'beaucoup de bruit, débit faible']; }
+function bars(q, sm){ return '<span class="bars' + (sm ? ' sm' : '') + ' q' + (q == null ? 0 : q) + '"><i></i><i></i><i></i><i></i></span>'; }
+
+var STD = { 1: 'Wi-Fi ancien (a/b/g)', 4: 'Wi-Fi 4 (802.11n)', 5: 'Wi-Fi 5 (802.11ac)', 6: 'Wi-Fi 6 (802.11ax)', 7: 'WiGig (802.11ad)', 8: 'Wi-Fi 7 (802.11be)' };
+var SEC = { 0: 'Aucune (réseau ouvert)', 1: 'WEP (dépassée)', 2: 'WPA2', 3: 'WPA2 Entreprise', 4: 'WPA3', 5: 'WPA3 Entreprise', 6: 'Ouvert chiffré (OWE)', 9: 'WPA3 Entreprise', 11: 'Passpoint', 12: 'Passpoint' };
+function secOf(cap){
+  cap = cap || '';
+  if(/SAE/.test(cap)) return /PSK/.test(cap) ? { t: 'WPA2/WPA3', c: 'ok' } : { t: 'WPA3', c: 'ok' };
+  if(/EAP/.test(cap)) return { t: 'Entreprise', c: 'ok' };
+  if(/RSN|WPA2/.test(cap)) return { t: 'WPA2', c: 'ok' };
+  if(/WPA/.test(cap)) return { t: 'WPA (ancien)', c: 'warn' };
+  if(/WEP/.test(cap)) return { t: 'WEP (dépassé)', c: 'bad' };
+  if(/OWE/.test(cap)) return { t: 'Ouvert chiffré', c: 'warn' };
+  return { t: 'Ouvert', c: 'bad' };
+}
+var LTEB = { 1: '2100 MHz', 3: '1800 MHz', 7: '2600 MHz', 8: '900 MHz', 20: '800 MHz', 28: '700 MHz', 32: '1500 MHz', 38: '2600 MHz' };
+var NRB = { 78: '3,5 GHz', 28: '700 MHz', 1: '2100 MHz', 3: '1800 MHz', 7: '2600 MHz', 8: '900 MHz', 20: '800 MHz', 77: '3,7 GHz', 258: '26 GHz' };
+
+/* ---------- État ---------- */
+var ST = {}, PUB = null, lastKey = '';
+function readStatus(){
+  if(!R){ ST = { type: 'none', wifi: {}, mobile: {}, ip: {}, perms: {} }; return ST; }
+  try{ ST = J(R.status()); }catch(e){ ST = {}; }
+  ST.wifi = ST.wifi || {}; ST.mobile = ST.mobile || {}; ST.ip = ST.ip || {}; ST.perms = ST.perms || {};
+  return ST;
+}
+function mobSig(m){
+  var s = (m && m.signal) || {};
+  var nr = s.nr, lte = s.lte;
+  var main = null, kind = '';
+  if(nr && (/5G/.test(m.gen) || !lte)){ main = nr; kind = 'NR'; }
+  else if(lte){ main = lte; kind = 'LTE'; }
+  else if(s.wcdma){ main = s.wcdma; kind = '3G'; }
+  else if(s.gsm){ main = s.gsm; kind = '2G'; }
+  if(!main) return null;
+  var dbm = main.rsrp != null ? main.rsrp : main.dbm;
+  var q = main.rsrp != null ? rsrpQ(dbm) : dbmQ(dbm);
+  return { main: main, kind: kind, dbm: dbm, q: q, lte: lte, nr: nr };
+}
+function opName(m){ var a = (m.operator || '').trim(), b = (m.simOperator || '').trim(); if(b && a.toLowerCase().indexOf(b.toLowerCase()) === 0) return b; return a || b; }
+function neg(v){ return v == null ? '–' : String(v).replace('-', '\u2212'); }
+function cur(){ // résumé courant : tuile, historique, relevés
+  var w = ST.wifi, m = ST.mobile;
+  if(ST.type === 'wifi'){ var q = wifiQ(w.rssi); return { type: 'wifi', name: w.ssid || 'Wi-Fi', gen: w.band ? w.band.replace('.', ',') + ' GHz' : '', quality: q ? q.q : 0, dbm: w.rssi }; }
+  if(ST.type === 'mobile'){ var s = mobSig(m); return { type: 'mobile', name: opName(m) || 'Réseau mobile', gen: m.gen || '', quality: s && s.q ? s.q.q : 0, dbm: s ? s.dbm : null }; }
+  if(ST.type === 'ethernet') return { type: 'wifi', name: 'Câble', gen: '', quality: 4, dbm: null };
+  return { type: 'none', name: 'Pas de connexion', gen: '', quality: 0, dbm: null };
+}
+
+function renderHeader(){
+  var c = cur(), d = $('hDot');
+  d.className = 'dot ' + (ST.type === 'none' ? 'bad' : ST.validated === false ? 'warn' : 'ok');
+  $('hTxt').textContent = ST.type === 'wifi' ? 'Wi-Fi' : ST.type === 'mobile' ? (c.gen || 'Mobile') : ST.type === 'ethernet' ? 'Câble' : ST.airplane ? 'Mode avion' : 'Hors ligne';
+}
+
+function renderEtat(){
+  var w = ST.wifi, m = ST.mobile, ip = ST.ip, pm = ST.perms || {};
+  $('noBridge').hidden = !!R;
+  var h = '';
+  if(ST.type === 'wifi' || ST.type === 'ethernet'){
+    var q = wifiQ(w.rssi);
+    var name = ST.type === 'ethernet' ? 'Câble réseau' : (w.ssid || (pm.loc === 'granted' && pm.locOn !== false ? 'Wifi sans nom' : 'Nom du wifi caché'));
+    h += '<div class="hero"><div class="badge">' + ic('wifi') + '</div><div class="t"><div class="k">Connecté en wifi</div><div class="n">' + esc(name) + '</div>' +
+      '<div class="s">' + (ST.validated === false ? '<span class="tag warn">Internet ne répond pas</span>' : '<span class="tag ok">Internet fonctionne</span>') + (ST.vpn ? '<span class="tag acc">VPN</span>' : '') + '</div></div></div>';
+    if(q) h += '<div class="sig">' + bars(q.q) + '<div class="v num">' + neg(w.rssi) + '<small>dBm</small></div><div class="w"><b class="c-' + q.c + '">' + q.w + '</b>' + q.e + '</div></div>';
+  } else if(ST.type === 'mobile'){
+    var s = mobSig(m), op = opName(m);
+    h += '<div class="hero mob"><div class="badge">' + ic('ant') + '</div><div class="t"><div class="k">Réseau mobile</div><div class="n">' + esc(op || 'Opérateur inconnu') + '</div>' +
+      '<div class="s">' + (m.gen ? '<span class="gen">' + esc(m.gen) + '</span>' : '') + (m.roaming ? '<span class="tag warn">Itinérance</span>' : '') + (ST.validated === false ? '<span class="tag warn">Internet ne répond pas</span>' : '<span class="tag ok">Internet fonctionne</span>') + (ST.vpn ? '<span class="tag acc">VPN</span>' : '') + '</div></div></div>';
+    if(s && s.q) h += '<div class="sig">' + bars(s.q.q) + '<div class="v num">' + neg(s.dbm) + '<small>dBm</small></div><div class="w"><b class="c-' + s.q.c + '">' + s.q.w + '</b>' + s.q.e + '</div></div>';
+  } else {
+    h += '<div class="hero none"><div class="badge">' + ic('off') + '</div><div class="t"><div class="k">Aucune connexion</div><div class="n">' + (ST.airplane ? 'Mode avion activé' : 'Hors ligne') + '</div>' +
+      '<div class="s">' + (ST.airplane ? 'Désactive le mode avion pour te reconnecter.' : w.on === false ? 'Le wifi est coupé et les données mobiles ne passent pas.' : 'Ni wifi ni données mobiles pour le moment.') + '</div></div></div>' +
+      '<div class="row"><button class="btn sm" data-set="' + (ST.airplane ? 'airplane' : 'wifi') + '">' + (ST.airplane ? 'Mode avion' : 'Réglages wifi') + '</button><button class="btn sm" data-set="data">Données mobiles</button></div>';
+  }
+  $('heroCard').innerHTML = h;
+
+  // Autorisations
+  var pc = '';
+  if(R && pm.loc && pm.loc !== 'granted'){
+    pc = '<p><b>Pourquoi Android demande ta position ?</b> Le nom d\'un wifi et la liste des wifi autour peuvent révéler où tu te trouves : Android ne les montre donc qu\'aux applis autorisées à voir la position. Réseau ne garde pas ta position et ne l\'envoie nulle part (sauf dans les relevés que tu enregistres, sur ce téléphone).</p>' +
+      (pm.loc === 'blocked' ? '<button class="btn wide" data-set="app">Ouvrir les autorisations de l\'appli</button>' : '<button class="btn main wide" data-perm="loc">' + ic('loc') + 'Autoriser la position</button>');
+  } else if(R && pm.locOn === false && (ST.type === 'wifi' || $('v-wifi').hidden === false)){
+    pc = '<p><b>La localisation du téléphone est coupée.</b> Android cache alors le nom du wifi et les wifi autour. Active-la le temps de consulter Réseau.</p><button class="btn wide" data-set="location">Activer la localisation</button>';
+  }
+  $('permCard').innerHTML = pc; $('permCard').hidden = !pc;
+
+  // Détails wifi
+  var d = '';
+  if(ST.type === 'wifi' && w.connected){
+    var b6 = w.band === '6';
+    d += '<h3>Détails du wifi</h3><div class="kv">' +
+      kv('Bande', w.band ? w.band.replace('.', ',') + ' GHz' : '–', w.band === '2.4' ? 'porte loin, mais plus lente et encombrée' : w.band === '5' ? 'rapide, porte moins à travers les murs' : b6 ? 'très rapide, courte portée' : '') +
+      kv('Canal', w.channel || '–', w.band === '2.4' ? 'idéal : 1, 6 ou 11' : 'fréquence utilisée par la box') +
+      kv('Vitesse de liaison', w.link > 0 ? fr(w.link) + ' Mb/s' : '–', 'entre le téléphone et la box (pas Internet)') +
+      kv('Norme', w.std && STD[w.std] ? (b6 && w.std === 6 ? 'Wi-Fi 6E' : STD[w.std].split(' (')[0]) : '–', w.std && STD[w.std] && STD[w.std].indexOf('(') > 0 ? STD[w.std].replace(/^.*\((.*)\)$/, '$1') : '') +
+      (w.sec != null && SEC[w.sec] ? kv('Sécurité', SEC[w.sec], w.sec === 0 ? 'tout le monde peut voir ce qui passe' : w.sec === 1 ? 'protection facile à casser' : 'connexion chiffrée', w.sec <= 1 ? 'c-warn' : '') : '') +
+      (w.tx > 0 && w.rx > 0 ? kv('Envoi / réception', fr(w.tx) + ' / ' + fr(w.rx), 'Mb/s, liaison actuelle') : '') +
+      '</div>';
+  }
+  $('detCard').innerHTML = d; $('detCard').hidden = !d;
+
+  // Mobile
+  var mo = '';
+  if(m.noPhone){ mo = ''; }
+  else if(!m.sim){ mo = '<h3>Réseau mobile</h3><p>' + (ST.airplane ? 'Mode avion activé.' : 'Pas de carte SIM utilisable.') + '</p>'; }
+  else {
+    var sg = mobSig(m), op2 = opName(m);
+    mo = '<h3>Réseau mobile' + (ST.type === 'wifi' ? ' (en attente)' : '') + '</h3>';
+    if(ST.type !== 'mobile'){
+      mo += '<div class="rw" style="padding-top:0;border:0;align-items:center"><div class="l"><b>' + esc(op2 || 'Opérateur inconnu') + (m.gen ? ' · ' + esc(m.gen) : '') + '</b><span>' + (sg && sg.q ? sg.q.w + ' (' + neg(sg.dbm) + ' dBm)' : 'Signal inconnu') + (m.dataOn === false ? ' · données mobiles coupées' : '') + '</span></div>' + (sg && sg.q ? bars(sg.q.q, true) : '') + '</div>';
+    } else {
+      mo += '<div class="rows">';
+      if(sg){
+        var x = sg.main;
+        if(x.rsrp != null) mo += row('Puissance (RSRP)', neg(x.rsrp) + ' dBm', sg.q.w + ' : ' + sg.q.e + '. Entre -80 (excellent) et -120 (limite).');
+        if(x.rsrq != null){ var t1 = rsrqTxt(x.rsrq); mo += row('Qualité (RSRQ)', '<span class="' + t1[1] + '">' + neg(x.rsrq) + ' dB</span>', 'Qualité ' + t1[0] + ' : ' + t1[2] + '.'); }
+        if(x.sinr != null){ var t2 = sinrTxt(x.sinr); mo += row('Rapport signal/bruit (SINR)', '<span class="' + t2[1] + '">' + neg(x.sinr) + ' dB</span>', 'Netteté ' + t2[0] + ' : ' + t2[2] + '.'); }
+        if(sg.kind === 'NR' && sg.lte) mo += row('4G associée', neg(sg.lte.rsrp) + ' dBm', 'En 5G « NSA », le téléphone reste aussi accroché à la 4G.');
+      }
+      var cell = (m.cells || [])[0];
+      if(cell){
+        var bnd = (cell.bands || [])[0], fq = bnd ? (cell.kind === 'NR' ? NRB[bnd] : LTEB[bnd]) : '';
+        if(bnd) mo += row('Fréquence', (cell.kind === 'NR' ? 'n' : 'B') + bnd + (fq ? ' <small>' + fq + '</small>' : ''), /^(700|800|900)/.test(fq || '') ? 'Basse fréquence : porte loin et traverse les murs, débit modéré.' : /GHz/.test(fq || '') ? 'Haute fréquence : très rapide, mais porte moins loin.' : 'Fréquence moyenne : bon compromis portée / débit.');
+        mo += row('Antenne', (cell.pci != null ? 'PCI ' + cell.pci : '') + (cell.tac != null ? ' <small>zone ' + cell.tac + '</small>' : ''), 'Identifiant de l\'antenne qui te sert' + (m.neighbours ? ' (' + m.neighbours + ' autre' + (m.neighbours > 1 ? 's' : '') + ' captée' + (m.neighbours > 1 ? 's' : '') + ')' : '') + '.');
+      }
+      mo += row('Itinérance', m.roaming ? '<span class="c-warn">Oui</span>' : 'Non', m.roaming ? 'Tu utilises le réseau d\'un autre opérateur : des frais peuvent s\'appliquer.' : 'Tu es sur le réseau de ton opérateur.');
+      mo += '</div>';
+      if(R && pm.phone !== 'granted' && !(m.override >= 0)) mo += '<p class="hint">Pour distinguer précisément 4G, 4G+ et 5G, Android demande l\'accès à « l\'état du téléphone ». Réseau ne lit ni tes appels ni ton numéro. ' + (pm.phone === 'blocked' ? '<button class="lnk" data-set="app">Ouvrir les autorisations</button>' : '<button class="lnk" data-perm="phone">Autoriser</button>') + '</p>';
+    }
+  }
+  $('mobCard').innerHTML = mo; $('mobCard').hidden = !mo;
+
+  // Adresses
+  var a = '';
+  if(ST.type !== 'none'){
+    a = '<h3>Adresses</h3><div class="rows">' +
+      row('IP publique', PUB ? (PUB.ok ? '<span class="sel">' + esc(PUB.ip) + '</span>' + (PUB.org ? '<small>' + esc(PUB.org) + '</small>' : '') : '–') : '<small>recherche…</small>', 'Ton adresse vue par les sites Internet.') +
+      row('IP locale', ip.v4 && ip.v4[0] ? '<span class="sel">' + esc(ip.v4[0]) + (ip.prefix ? '/' + ip.prefix : '') + '</span>' : '–', 'L\'adresse du téléphone dans ' + (ST.type === 'wifi' ? 'ton réseau wifi.' : 'le réseau de l\'opérateur.')) +
+      (ip.gateway ? row(ST.type === 'wifi' ? 'Box (passerelle)' : 'Passerelle', '<span class="sel">' + esc(ip.gateway) + '</span>', ST.type === 'wifi' ? 'Tape cette adresse dans un navigateur pour ouvrir les réglages de ta box.' : 'Équipement de l\'opérateur par lequel tout passe.') : '') +
+      (ip.dns && ip.dns.length ? row('DNS', '<span class="sel">' + ip.dns.slice(0, 2).map(esc).join('<br>') + '</span>', ip.privateDns ? 'Annuaire d\'Internet, en mode privé (chiffré)' + (ip.privateDnsName ? ' : ' + esc(ip.privateDnsName) : '') + '.' : 'L\'annuaire qui traduit les noms de sites en adresses.') : '') +
+      (ip.v6 && ip.v6.length ? row('IPv6', '<span class="sel" style="font-size:12.5px">' + esc(ip.v6[0]) + '</span>', 'Adresse de nouvelle génération.') : '') +
+      '</div>';
+  }
+  $('ipCard').innerHTML = a; $('ipCard').hidden = !a;
+  bindDyn($('v-etat'));
+}
+function kv(l, v, e, cls){ return '<div><div class="l">' + l + '</div><div class="v ' + (cls || '') + '">' + v + '</div>' + (e ? '<div class="e">' + e + '</div>' : '') + '</div>'; }
+function row(l, v, e){ return '<div class="rw"><div class="l"><b>' + l + '</b>' + (e ? '<span>' + e + '</span>' : '') + '</div><div class="v">' + v + '</div></div>'; }
+function bindDyn(root){
+  root.querySelectorAll('[data-set]').forEach(function(b){ b.onclick = function(){ openSet(b.dataset.set); }; });
+  root.querySelectorAll('[data-perm]').forEach(function(b){ b.onclick = function(){ if(R) R.askPerm(b.dataset.perm); }; });
+  root.querySelectorAll('[data-go]').forEach(function(b){ b.onclick = function(){ goTab(b.dataset.go); }; });
+}
+function openSet(w){ if(R) R.openSettings(w); else toast('Disponible dans l\'appli'); }
+
+var SHORT = [['wifi', 'wifi', 'Wifi'], ['data', 'data', 'Données mobiles'], ['hotspot', 'hot', 'Point d\'accès'], ['airplane', 'plane', 'Mode avion'], ['vpn', 'vpn', 'VPN']];
+$('shortcuts').innerHTML = SHORT.map(function(s){ return '<button data-set="' + s[0] + '">' + ic(s[1]) + s[2] + '</button>'; }).join('');
+bindDyn($('shortcuts').parentNode);
+
+function refresh(){
+  readStatus();
+  var key = ST.type + '|' + (ST.wifi.ssid || '') + '|' + ((ST.ip.v4 || [])[0] || '') + '|' + ST.vpn;
+  if(key !== lastKey){ lastKey = key; PUB = null; if(R && ST.type !== 'none') R.publicIp(); else if(!R) PUB = null; publish(); }
+  renderHeader();
+  if(tab === 'etat') renderEtat();
+  if(tab === 'debit') renderSpNet();
+}
+var pollT = null;
+function poll(on){ clearInterval(pollT); pollT = null; if(on) pollT = setInterval(function(){ if(!document.hidden) refresh(); }, 3000); }
+$('hPill').onclick = function(){ refresh(); if(R && ST.type !== 'none'){ PUB = null; R.publicIp(); } toast('Informations mises à jour'); };
+
+/* ---------- Tuile Socle ---------- */
+function publish(){
+  try{
+    if(!P || !P.widgetPut) return;
+    var c = cur(), l = TESTS[0];
+    P.widgetPut(JSON.stringify({ type: c.type, name: c.name, gen: c.gen, quality: c.quality, dbm: c.dbm, last: l ? { down: l.down, up: l.up, ping: l.ping, date: l.t } : null }));
+  }catch(e){}
+}
+
+/* ---------- Onglets ---------- */
+var tab = 'etat', tabLayer = false;
+var TITLES = { etat: 'Réseau', debit: 'Réseau', wifi: 'Réseau', app: 'Réseau', outils: 'Réseau' };
+function showTab(t){
+  tab = t;
+  ['etat', 'debit', 'wifi', 'app', 'outils'].forEach(function(x){ $('v-' + x).hidden = x !== t; });
+  document.querySelectorAll('#nav button').forEach(function(b){ b.classList.toggle('on', b.dataset.tab === t); });
+  window.scrollTo(0, 0);
+  poll(t === 'etat' || t === 'debit');
+  if(t === 'etat'){ refresh(); }
+  if(t === 'debit'){ refresh(); renderHist(); }
+  if(t === 'wifi') wifiOpen();
+  if(t === 'app') renderLan();
+}
+function goTab(t){
+  if(t === tab){ window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+  if(t === 'etat'){ if(tabLayer) back(); else showTab('etat'); return; }
+  showTab(t);
+  if(!tabLayer){ tabLayer = true; pushLayer(function(){ tabLayer = false; showTab('etat'); }); }
+}
+document.querySelectorAll('#nav button').forEach(function(b){ b.onclick = function(){ goTab(b.dataset.tab); }; });
+
+/* ---------- Écrans et feuilles ---------- */
+var scrOpen = null;
+function openScr(id, onOpen){
+  $(id).hidden = false; scrOpen = id;
+  pushLayer(function(){ $(id).hidden = true; scrOpen = null; if(id === 's-ping' || id === 's-trace'){ if(R) R.toolStop(); } });
+  if(onOpen) onOpen();
+}
+var sheetOpen = false;
+function sheet(html, bind){
+  $('sheet').innerHTML = html; $('sheetBg').hidden = false; sheetOpen = true;
+  pushLayer(function(){ $('sheetBg').hidden = true; sheetOpen = false; });
+  if(bind) bind($('sheet'));
+}
+function closeSheet(){ if(sheetOpen) back(); }
+$('sheetBg').onclick = function(e){ if(e.target === $('sheetBg')) closeSheet(); };
+
+/* ---------- Partage ---------- */
+function infoText(){
+  readStatus();
+  var w = ST.wifi, m = ST.mobile, ip = ST.ip, L = ['Ma connexion (' + dt(Date.now()) + ')'];
+  if(ST.type === 'wifi'){ var q = wifiQ(w.rssi); L.push('Wi-Fi : ' + (w.ssid || 'nom caché') + (w.rssi ? ', ' + w.rssi + ' dBm' + (q ? ' (' + q.w.toLowerCase() + ')' : '') : '')); if(w.band) L.push('Bande ' + w.band.replace('.', ',') + ' GHz, canal ' + w.channel + (w.link > 0 ? ', liaison ' + w.link + ' Mb/s' : '')); }
+  if(m.sim){ var s = mobSig(m); L.push('Mobile : ' + (opName(m) || '?') + (m.gen ? ' ' + m.gen : '') + (s ? ', ' + neg(s.dbm) + ' dBm' + (s.q ? ' (' + s.q.w.toLowerCase() + ')' : '') : '') + (m.roaming ? ', itinérance' : '')); }
+  if(ST.type === 'none') L.push('Aucune connexion');
+  if(ip.v4 && ip.v4[0]) L.push('IP locale : ' + ip.v4[0]);
+  if(ip.gateway) L.push('Passerelle : ' + ip.gateway);
+  if(ip.dns && ip.dns.length) L.push('DNS : ' + ip.dns.join(', '));
+  if(PUB && PUB.ok) L.push('IP publique : ' + PUB.ip + (PUB.org ? ' (' + PUB.org + ')' : ''));
+  var t = TESTS[0]; if(t) L.push('Dernier test (' + dt(t.t) + ') : réception ' + mbps(t.down) + ' Mb/s, envoi ' + mbps(t.up) + ' Mb/s, ping ' + fr(t.ping) + ' ms');
+  return L.join('\n');
+}
+$('shareBtn').onclick = function(){ var t = infoText(); if(R) R.share(t); else if(navigator.share) navigator.share({ text: t }).catch(function(){}); else toast('Partage indisponible'); };
+
+/* =================== TEST DE DÉBIT =================== */
+var TICKS = [0, 1, 5, 10, 20, 50, 100, 250, 500, 1000];
+function gFrac(v){
+  if(!(v > 0)) return 0;
+  for(var i = 1; i < TICKS.length; i++) if(v <= TICKS[i]) return (i - 1 + (v - TICKS[i - 1]) / (TICKS[i] - TICKS[i - 1])) / (TICKS.length - 1);
+  return 1;
+}
+var GA0 = 135, GSW = 270, GR = 118, GCX = 150, GCY = 150;
+function pt(a, r){ var t = a * Math.PI / 180; return [GCX + r * Math.cos(t), GCY + r * Math.sin(t)]; }
+function arc(a0, a1, r){ var p0 = pt(a0, r), p1 = pt(a1, r); return 'M' + p0[0].toFixed(1) + ' ' + p0[1].toFixed(1) + 'A' + r + ' ' + r + ' 0 ' + (a1 - a0 > 180 ? 1 : 0) + ' 1 ' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1); }
+(function buildGauge(){
+  var s = '<defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8fb4ff"/><stop offset="1" stop-color="#b79bff"/></linearGradient></defs>';
+  s += '<path d="' + arc(GA0, GA0 + GSW, GR) + '" stroke="#2c3140" stroke-width="16" fill="none" stroke-linecap="round"/>';
+  s += '<path id="gArc" d="' + arc(GA0, GA0 + GSW, GR) + '" stroke="url(#gg)" stroke-width="16" fill="none" stroke-linecap="round" pathLength="1000" stroke-dasharray="0 1000"/>';
+  TICKS.forEach(function(t, i){
+    var a = GA0 + GSW * i / (TICKS.length - 1), p = pt(a, GR - 26);
+    s += '<text x="' + p[0].toFixed(1) + '" y="' + (p[1] + 4).toFixed(1) + '" fill="#7d8294" font-size="11.5" font-weight="600" text-anchor="middle" font-family="system-ui,sans-serif">' + t + '</text>';
+  });
+  $('gSvg').innerHTML = s;
+})();
+var gShown = 0, gTarget = 0, gRaf = 0;
+function gauge(v){
+  gTarget = v || 0;
+  if(gRaf) return;
+  (function step(){
+    gShown += (gTarget - gShown) * 0.22;
+    if(Math.abs(gTarget - gShown) < 0.02) gShown = gTarget;
+    var f = gFrac(gShown);
+    $('gArc').setAttribute('stroke-dasharray', (f * 1000).toFixed(1) + ' 1000');
+    $('gVal').textContent = gShown >= 100 ? fr(gShown) : gShown >= 10 ? fr(gShown, 1) : fr(gShown, gShown > 0 ? 2 : 0);
+    gRaf = gShown !== gTarget ? requestAnimationFrame(step) : 0;
+  })();
+}
+var SP = { run: false, res: null, cfg: null };
+function trioSet(id, v, on){ var e = $(id); e.querySelector('.v').textContent = v; e.classList.toggle('on', !!on); }
+function renderSpNet(){
+  var c = cur(), t = '';
+  if(c.type === 'wifi') t = 'Sur le wifi ' + (ST.type === 'ethernet' ? '' : '« ' + esc(c.name) + ' »');
+  else if(c.type === 'mobile') t = 'Sur le réseau mobile ' + esc(c.name) + (c.gen ? ' ' + esc(c.gen) : '');
+  else t = 'Aucune connexion : le test est impossible';
+  $('spNet').innerHTML = t;
+  var mob = c.type === 'mobile' && !SP.run;
+  $('spMob').hidden = !mob;
+  if(mob){ var e = estimate(); $('spMob').innerHTML = '<p><b>Attention à ton forfait.</b> Sur le réseau mobile, un test complet consomme environ <b>' + e.full + ' Mo</b> de données. Le test léger en consomme ' + e.light + ' Mo au plus. Une confirmation te sera demandée.</p>'; }
+  if(!SP.run) $('spGo').disabled = c.type === 'none';
+}
+function estimate(){
+  var last = TESTS.filter(function(t){ return t.type === 'mobile'; })[0];
+  var d = last ? last.down : 60, u = last ? last.up : 15;
+  var full = Math.min(300, Math.max(20, Math.round((d * 8 + u * 8) / 8 / 10) * 10));
+  return { full: full, light: Math.min(40, Math.max(10, Math.round((d * 4 + u * 4) / 8 / 5) * 5)) };
+}
+function spAsk(){
+  if(SP.run){ if(R) R.speedStop(); return; }
+  readStatus();
+  var c = cur();
+  if(c.type === 'none'){ toast('Aucune connexion'); return; }
+  if(c.type === 'mobile'){
+    var e = estimate();
+    sheet('<h3>Test sur le réseau mobile</h3><p>Le test télécharge puis envoie des données pour mesurer la vitesse : cela consomme une partie de ton forfait.</p>' +
+      '<p><b>Test complet</b> : environ ' + e.full + ' Mo, 10 secondes dans chaque sens.<br><b>Test léger</b> : ' + e.light + ' Mo au plus, résultat un peu moins précis.</p>' +
+      '<div class="col"><button class="btn main" id="sqFull">Test complet (~' + e.full + ' Mo)</button><button class="btn" id="sqLight">Test léger (' + e.light + ' Mo max)</button><button class="btn" id="sqNo">Annuler</button></div>', function(r){
+      r.querySelector('#sqFull').onclick = function(){ closeSheet(); spStart({ dur: 10, streams: 4, maxMB: 300 }); };
+      r.querySelector('#sqLight').onclick = function(){ closeSheet(); spStart({ dur: 5, streams: 3, maxMB: e.light }); };
+      r.querySelector('#sqNo').onclick = closeSheet;
+    });
+    return;
+  }
+  spStart({ dur: 10, streams: 6, maxMB: 0 });
+}
+function spStart(cfg){
+  if(!R){ toast('Le test de débit fonctionne dans l\'appli'); return; }
+  readStatus();
+  SP.cfg = cfg; SP.cur = cur(); SP.res = { ping: null, down: null, up: null };
+  if(!R.speedStart(JSON.stringify(cfg))){ toast('Un test est déjà en cours'); return; }
+  SP.run = true; $('spRes').hidden = true; $('spMob').hidden = true;
+  trioSet('tPing', '–'); trioSet('tDown', '–'); trioSet('tUp', '–');
+  gauge(0); $('gPh').textContent = 'Préparation…';
+  $('spGo').className = 'btn stop wide'; $('spGo').innerHTML = ic('stop') + 'Arrêter';
+  try{ if(P && P.keepScreen) P.keepScreen(true); }catch(e){}
+}
+$('spGo').onclick = spAsk;
+function spEvent(o){
+  var ph = o.phase;
+  if(ph === 'prep'){ $('gPh').textContent = 'Recherche du serveur…'; }
+  else if(ph === 'ping'){ $('gPh').textContent = 'Mesure du ping…'; trioSet('tPing', fr(o.v), true); gauge(0); }
+  else if(ph === 'pingDone'){ SP.res.ping = o.v; SP.res.jitter = o.v2 || 0; trioSet('tPing', fr(o.v)); }
+  else if(ph === 'down'){ $('gPh').innerHTML = 'Réception…'; gauge(o.v); trioSet('tDown', mbps(o.v), true); }
+  else if(ph === 'downDone'){ SP.res.down = o.v; trioSet('tDown', mbps(o.v)); gauge(0); }
+  else if(ph === 'up'){ $('gPh').innerHTML = 'Envoi…'; gauge(o.v); trioSet('tUp', mbps(o.v), true); }
+  else if(ph === 'upDone'){ SP.res.up = o.v; trioSet('tUp', mbps(o.v)); }
+}
+function spDone(o){
+  SP.run = false;
+  try{ if(P && P.keepScreen) P.keepScreen(false); }catch(e){}
+  $('spGo').className = 'btn main wide'; $('spGo').innerHTML = ic('refresh') + 'Relancer le test';
+  ['tPing', 'tDown', 'tUp'].forEach(function(i){ $(i).classList.remove('on'); });
+  if(!o.ok){
+    gauge(0); $('gPh').textContent = o.stopped ? 'Test arrêté' : 'Échec du test';
+    if(!o.stopped){ $('spRes').hidden = false; $('spRes').innerHTML = '<p><b>Le test n\'a pas pu aller au bout.</b> Vérifie ta connexion puis réessaie. ' + (o.err ? '<span class="hint">(' + esc(o.err) + ')</span>' : '') + '</p>'; }
+    renderSpNet(); return;
+  }
+  var c = SP.cur || cur();
+  var t = { id: Date.now(), t: Date.now(), type: c.type, name: c.name, gen: c.gen, dbm: c.dbm, down: o.down, up: o.up, ping: o.ping, jitter: o.jitter, mb: o.mb, colo: o.colo || '', light: SP.cfg && SP.cfg.dur < 10 };
+  TESTS.unshift(t); if(TESTS.length > 100) TESTS.length = 100;
+  save(); publish();
+  gauge(o.down || 0); $('gPh').textContent = 'Terminé';
+  trioSet('tPing', fr(o.ping)); trioSet('tDown', mbps(o.down)); trioSet('tUp', mbps(o.up));
+  $('spRes').hidden = false; $('spRes').innerHTML = '<h3>Ce que ça veut dire</h3><div class="verdict">' + verdict(t) + '</div>';
+  renderHist(); renderSpNet();
+}
+function verdict(t){
+  var d = t.down || 0, s;
+  if(d < 3) s = '<b>Lent.</b> Messages et navigation simple passent, mais la vidéo risque de couper.';
+  else if(d < 10) s = '<b>Correct.</b> Vidéo en qualité normale et appels vidéo possibles.';
+  else if(d < 30) s = '<b>Bon.</b> Vidéo HD et appels vidéo fluides.';
+  else if(d < 100) s = '<b>Très bon.</b> Vidéo 4K et plusieurs écrans en même temps.';
+  else s = '<b>Excellent.</b> Rien ne devrait ralentir, même de gros téléchargements.';
+  var p = t.ping;
+  s += ' Réactivité : ' + (p < 20 ? 'très bonne (jeux en ligne, visio)' : p < 50 ? 'bonne' : p < 100 ? 'un peu lente (petit délai en visio)' : 'lente (visio et jeux gênés)') + '.';
+  if(t.jitter > 30) s += ' La connexion est <b>instable</b> (gigue de ' + fr(t.jitter) + ' ms) : les appels peuvent hacher.';
+  if(t.up != null && t.up < 2) s += ' L\'envoi est faible : envoyer des photos ou des vidéos sera long.';
+  if(t.colo) s += '<p class="hint" style="margin-top:8px">Serveur Cloudflare : ' + esc(t.colo) + ' · ' + fr(t.mb, 0) + ' Mo utilisés · gigue ' + fr(t.jitter) + ' ms</p>';
+  return s;
+}
+function renderHist(){
+  $('histClear').hidden = !TESTS.length;
+  if(!TESTS.length){ $('histChart').innerHTML = ''; $('histList').innerHTML = '<div class="empty">Aucun test pour l\'instant.</div>'; return; }
+  var L = TESTS.slice(0, 10).reverse(), W = 320, H = 150, pad = 30, bw = (W - pad - 8) / L.length;
+  var mx = Math.max.apply(null, L.map(function(t){ return Math.max(t.down || 0, t.up || 0); })) || 1;
+  var nice = [5, 10, 20, 50, 100, 200, 300, 500, 1000, 2000]; var top = nice.filter(function(n){ return n >= mx; })[0] || mx;
+  var y = function(v){ return 10 + (H - 34) * (1 - v / top); };
+  var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="chart" style="background:none">';
+  [0, .5, 1].forEach(function(f){ var yy = y(top * f); s += '<line x1="' + pad + '" x2="' + W + '" y1="' + yy + '" y2="' + yy + '" stroke="#ffffff12"/><text x="' + (pad - 5) + '" y="' + (yy + 4) + '" fill="#7d8294" font-size="10" text-anchor="end">' + fr(top * f) + '</text>'; });
+  L.forEach(function(t, i){
+    var gw = Math.min(bw, 36), x = pad + 4 + i * bw + (bw - gw) / 2, w = Math.max(3, gw / 2 - 3);
+    s += '<rect x="' + x.toFixed(1) + '" y="' + y(t.down || 0).toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + (y(0) - y(t.down || 0)).toFixed(1) + '" rx="2" fill="#8fb4ff"/>';
+    s += '<rect x="' + (x + w + 1.5).toFixed(1) + '" y="' + y(t.up || 0).toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + (y(0) - y(t.up || 0)).toFixed(1) + '" rx="2" fill="#b79bff"/>';
+    var d = new Date(t.t);
+    s += '<text x="' + (x + w).toFixed(1) + '" y="' + (H - 8) + '" fill="#7d8294" font-size="9.5" text-anchor="middle">' + d.getDate() + '/' + (d.getMonth() + 1) + '</text>';
+  });
+  s += '</svg><div class="legend"><span><i style="background:#8fb4ff"></i>Réception (Mb/s)</span><span><i style="background:#b79bff"></i>Envoi (Mb/s)</span></div>';
+  $('histChart').innerHTML = s;
+  $('histList').innerHTML = '<div style="margin-top:8px">' + TESTS.slice(0, 20).map(function(t){
+    return '<div class="hist-row">' + ic(t.type === 'mobile' ? 'ant' : 'wifi') + '<div class="m"><b>' + esc(t.name || '') + (t.gen && t.type === 'mobile' ? ' · ' + esc(t.gen) : '') + '</b><span>' + dt(t.t) + (t.light ? ' · léger' : '') + '</span></div>' +
+      '<div class="r"><b>' + mbps(t.down) + '</b> / ' + mbps(t.up) + '<br>' + fr(t.ping) + ' ms</div></div>';
+  }).join('') + '</div>';
+}
+$('histClear').onclick = function(){
+  sheet('<h3>Effacer l\'historique ?</h3><p>Les ' + TESTS.length + ' tests enregistrés seront supprimés.</p><div class="col"><button class="btn stop" id="hcY">Effacer</button><button class="btn" id="hcN">Annuler</button></div>', function(r){
+    r.querySelector('#hcY').onclick = function(){ TESTS = []; save(); publish(); renderHist(); closeSheet(); };
+    r.querySelector('#hcN').onclick = closeSheet;
+  });
+};
+
+/* =================== WIFI AUTOUR =================== */
+var WF = { list: [], at: 0, band: '2.4', busy: false, warn: '' };
+function wifiOpen(){
+  if(R) R.startWatch();
+  readStatus();
+  if(ST.wifi.band && !WF.touched) WF.band = ST.wifi.band;
+  segSync();
+  if(!WF.at || Date.now() - WF.at > 30000) wifiScan(); else renderWifi();
+}
+function segSync(){ document.querySelectorAll('#wfSeg button').forEach(function(b){ b.classList.toggle('on', b.dataset.b === WF.band); }); }
+document.querySelectorAll('#wfSeg button').forEach(function(b){ b.onclick = function(){ WF.band = b.dataset.b; WF.touched = true; segSync(); renderWifi(); }; });
+function wifiScan(){
+  if(!R){ WF.warn = '<p>La recherche des wifi fonctionne dans l\'appli Réseau.</p>'; renderWifi(); return; }
+  WF.busy = true; $('wfScan').disabled = true; $('wfScan').innerHTML = ic('refresh', 'spin') + 'Recherche…';
+  R.scan();
+}
+$('wfScan').onclick = wifiScan;
+function scanEvent(o){
+  WF.busy = false; $('wfScan').disabled = false; $('wfScan').innerHTML = ic('refresh') + 'Rechercher';
+  WF.warn = '';
+  if(!o.ok){
+    if(o.err === 'perm'){ var pm = J(R.permState()); WF.warn = '<p><b>Android exige l\'accès à la position</b> pour lister les wifi autour, car leurs noms permettent de savoir où tu es. Réseau ne garde pas ta position.</p>' + (pm.loc === 'blocked' ? '<button class="btn wide" data-set="app">Ouvrir les autorisations de l\'appli</button>' : '<button class="btn main wide" data-perm="loc">' + ic('loc') + 'Autoriser la position</button>'); }
+    else if(o.err === 'locoff') WF.warn = '<p><b>La localisation du téléphone est coupée.</b> Android ne donne pas la liste des wifi sans elle.</p><button class="btn wide" data-set="location">Activer la localisation</button>';
+    else if(o.err === 'wifioff') WF.warn = '<p><b>Le wifi du téléphone est coupé.</b> Allume-le pour voir les réseaux autour.</p><button class="btn wide" data-set="wifi">Allumer le wifi</button>';
+    else WF.warn = '<p>Recherche impossible sur ce téléphone.</p>';
+  } else {
+    WF.list = (o.list || []).filter(function(n){ return n.rssi > -100; });
+    WF.at = Date.now();
+    WF.minAge = WF.list.length ? Math.min.apply(null, WF.list.map(function(n){ return n.age || 0; })) : 0;
+    if(o.throttled) WF.warn = '<p><b>Android limite les recherches</b> à 4 toutes les 2 minutes pour économiser la batterie. Voici la dernière liste connue' + (WF.minAge > 5 ? ' (' + ago(WF.minAge) + ')' : '') + '. Réessaie dans une minute.</p>';
+  }
+  renderWifi();
+}
+var PAL = ['#8fb4ff', '#6fd6a4', '#ffb35c', '#ff7b7b', '#b79bff', '#5fd4e8', '#ffd166', '#f78fb3', '#9be27a', '#c9a0ff', '#ff9f68', '#7fd1ff'];
+function renderWifi(){
+  $('wfWarn').innerHTML = WF.warn; $('wfWarn').hidden = !WF.warn; bindDyn($('wfWarn'));
+  $('wfAge').textContent = WF.at ? 'Dernière recherche : ' + new Date(WF.at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + ' · ' + WF.list.length + ' réseau' + (WF.list.length > 1 ? 'x' : '') : '';
+  var has6 = WF.list.some(function(n){ return n.band === '6'; });
+  document.querySelector('#wfSeg [data-b="6"]').hidden = !has6;
+  if(WF.band === '6' && !has6){ WF.band = '2.4'; segSync(); }
+  var L = WF.list.filter(function(n){ return n.band === WF.band; }).sort(function(a, b){ return b.rssi - a.rssi; });
+  // couleurs stables par réseau
+  var col = {}; WF.list.slice().sort(function(a, b){ return b.rssi - a.rssi; }).forEach(function(n, i){ col[n.bssid] = isMine(n) ? '#ffffff' : PAL[i % PAL.length]; });
+  $('wfChart').innerHTML = chanChart(L, WF.band, col);
+  $('wfChartNote').textContent = L.length ? 'Chaque bosse est un wifi : plus elle est haute, plus il est fort. Les bosses qui se chevauchent se gênent.' + (L.some(isMine) ? ' Ta box est en blanc.' : '') : '';
+  $('wfListH').textContent = 'Réseaux visibles en ' + WF.band.replace('.', ',') + ' GHz (' + L.length + ')';
+  $('wfList').innerHTML = L.length ? L.map(function(n){
+    var q = wifiQ(n.rssi), sc = secOf(n.sec);
+    return '<div class="net"><span class="sw" style="background:' + col[n.bssid] + '"></span><div class="m"><b>' + (n.ssid ? esc(n.ssid) : '<i style="color:var(--tx3)">Réseau masqué</i>') + (n.me ? ' <span class="tag acc">Connecté</span>' : isMine(n) ? ' <span class="tag">Ta box</span>' : '') + '</b>' +
+      '<span>Canal ' + n.channel + (n.width > 20 ? ' · ' + n.width + ' MHz' : '') + ' · <span class="c-' + (sc.c === 'ok' ? 'ok' : sc.c === 'warn' ? 'warn' : 'bad') + '">' + sc.t + '</span>' + (n.std && STD[n.std] ? ' · ' + STD[n.std].split(' (')[0] : '') + '</span></div>' +
+      '<div class="r">' + bars(q ? q.q : 0, true) + '<span class="num">' + neg(n.rssi) + ' dBm</span></div></div>';
+  }).join('') : '<div class="empty">' + (WF.at ? 'Aucun wifi visible sur cette bande.' : 'Lance une recherche.') + '</div>';
+  renderAdvice();
+}
+function chanChart(L, band, col){
+  var W = 340, H = 200, x0 = 30, x1 = W - 8, yTop = 12, yBot = H - 26;
+  var segs = band === '2.4' ? [[-1, 15]] : band === '5' ? [[32, 68], [96, 144]] : [[1, 93]];
+  if(band === '5' && L.some(function(n){ return n.channel >= 149; })) segs.push([147, 169]);
+  if(band === '6') { var cs = L.map(function(n){ return n.channel; }); segs = [[Math.max(1, Math.min.apply(null, cs.concat([33])) - 12), Math.min(233, Math.max.apply(null, cs.concat([65])) + 12)]]; }
+  var gap = 10, tot = segs.reduce(function(s, g){ return s + g[1] - g[0]; }, 0), avail = x1 - x0 - gap * (segs.length - 1);
+  function X(ch){ var x = x0; for(var i = 0; i < segs.length; i++){ var g = segs[i]; if(ch <= g[1] || i === segs.length - 1){ return x + (Math.max(g[0], Math.min(g[1], ch)) - g[0]) / tot * avail; } x += (g[1] - g[0]) / tot * avail + gap; } return x; }
+  function Y(r){ return yBot - (Math.max(-100, Math.min(-25, r)) + 100) / 75 * (yBot - yTop); }
+  var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="chart">';
+  [-30, -50, -70, -90].forEach(function(r){ s += '<line x1="' + x0 + '" x2="' + x1 + '" y1="' + Y(r) + '" y2="' + Y(r) + '" stroke="#ffffff10"/><text x="' + (x0 - 4) + '" y="' + (Y(r) + 3.5) + '" fill="#7d8294" font-size="9.5" text-anchor="end">' + r + '</text>'; });
+  var ticks = band === '2.4' ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] : band === '5' ? [36, 44, 52, 60, 100, 108, 116, 124, 132, 140].concat(segs.length > 2 ? [149, 157, 165] : []) : [];
+  if(band === '6'){ for(var c6 = 1; c6 <= 233; c6 += 16) if(c6 >= segs[0][0] && c6 <= segs[0][1]) ticks.push(c6); }
+  ticks.forEach(function(c){ var bold = band === '2.4' && (c === 1 || c === 6 || c === 11); s += '<text x="' + X(c).toFixed(1) + '" y="' + (H - 9) + '" fill="' + (bold ? '#b4b8c7' : '#7d8294') + '" font-size="' + (bold ? 11 : 9.5) + '" font-weight="' + (bold ? 700 : 500) + '" text-anchor="middle">' + c + '</text>'; });
+  s += '<line x1="' + x0 + '" x2="' + x1 + '" y1="' + yBot + '" y2="' + yBot + '" stroke="#ffffff30"/>';
+  var order = L.slice().sort(function(a, b){ return (isMine(a) ? 1 : 0) - (isMine(b) ? 1 : 0) || a.rssi - b.rssi; });
+  var labels = [];
+  order.forEach(function(n){
+    var c = n.center || n.channel, half = band === '2.4' ? (n.width >= 40 ? 4 : 2) : (n.width / 10);
+    var a = X(c - half), b = X(c + half), top = Y(n.rssi), k = col[n.bssid];
+    var mid = (a + b) / 2;
+    s += '<path d="M' + a.toFixed(1) + ' ' + yBot + ' C' + (a + (mid - a) * .35).toFixed(1) + ' ' + top.toFixed(1) + ' ' + (b - (b - mid) * .35).toFixed(1) + ' ' + top.toFixed(1) + ' ' + b.toFixed(1) + ' ' + yBot + '" fill="' + k + (isMine(n) ? '30' : '1c') + '" stroke="' + k + '" stroke-width="' + (isMine(n) ? 2.6 : 1.5) + '"/>';
+    labels.push({ x: mid, y: top + (yBot - top) * .25 - 4, t: n.ssid || 'masqué', k: k, me: isMine(n), r: n.rssi });
+  });
+  // étiquettes des réseaux les plus forts, sans chevauchement
+  labels.sort(function(a, b){ return (b.me ? 1 : 0) - (a.me ? 1 : 0) || b.r - a.r; });
+  var placed = [];
+  labels.slice(0, 7).forEach(function(l){
+    var t = l.t.length > 14 ? l.t.slice(0, 13) + '…' : l.t, w = t.length * 5.6 + 6, y = Math.max(yTop + 8, l.y);
+    for(var tries = 0; tries < 6 && placed.some(function(p){ return Math.abs(p.x - l.x) < (p.w + w) / 2 && Math.abs(p.y - y) < 12; }); tries++) y += 12;
+    if(y > yBot - 4) return;
+    var x = Math.max(x0 + w / 2, Math.min(x1 - w / 2, l.x));
+    placed.push({ x: x, y: y, w: w });
+    s += '<text x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" fill="' + l.k + '" font-size="10" font-weight="' + (l.me ? 800 : 600) + '" text-anchor="middle" paint-order="stroke" stroke="#222632" stroke-width="3">' + esc(t) + '</text>';
+  });
+  if(!L.length) s += '<text x="' + (W / 2) + '" y="' + (H / 2) + '" fill="#7d8294" font-size="13" text-anchor="middle">' + (WF.at ? 'Aucun wifi sur cette bande' : 'Pas encore de recherche') + '</text>';
+  return s + '</svg>';
+}
+function isMine(n){ return n.me || (ST.wifi && ST.wifi.ssid && n.ssid === ST.wifi.ssid); }
+function renderAdvice(){
+  var band = WF.band;
+  var me = WF.list.filter(function(n){ return n.band === band && isMine(n); }).sort(function(a, b){ return (b.me ? 1 : 0) - (a.me ? 1 : 0) || b.rssi - a.rssi; })[0];
+  var others = WF.list.filter(function(n){ return n.band === band && !isMine(n); });
+  if(!WF.list.length || band === '6'){ $('wfAdvice').hidden = true; return; }
+  var cands = band === '2.4' ? [1, 6, 11] : [36, 52, 100, 116];
+  function load(c){
+    var sum = 0;
+    others.forEach(function(n){
+      var w = Math.max(0, n.rssi + 100);
+      if(band === '2.4'){ var lo = (n.center || n.channel) - (n.width >= 40 ? 4 : 2), hi = (n.center || n.channel) + (n.width >= 40 ? 4 : 2); var ov = Math.max(0, Math.min(hi, c + 2) - Math.max(lo, c - 2)) / 4; sum += ov * w; }
+      else { var lo2 = (n.center || n.channel) - n.width / 10, hi2 = (n.center || n.channel) + n.width / 10; if(hi2 > c - 2 && lo2 < c + 14) sum += w; }
+    });
+    return sum;
+  }
+  var sc = cands.map(function(c){ return { c: c, l: load(c) }; }).sort(function(a, b){ return a.l - b.l; });
+  var best = sc[0];
+  var mine = me ? me.channel : null, mineLoad = mine ? load(band === '2.4' ? mine : cands.reduce(function(p, c){ return mine >= c && mine < c + 16 ? c : p; }, cands[0])) : null;
+  var good = me && mineLoad != null && mineLoad <= best.l * 1.15 + 5;
+  var shown = good ? mine : best.c;
+  var h = '<h3>Conseil pour ta box (' + band.replace('.', ',') + ' GHz)</h3><div class="advice"><div class="big">' + shown + (band === '5' && !good ? '<small>à ' + (best.c + 12) + '</small>' : '<small>canal</small>') + '</div><div class="verdict">';
+  if(good) h += '<b>Ta box est déjà sur un bon canal.</b> Rien à changer.';
+  else {
+    h += 'Le canal <b>' + best.c + '</b>' + (band === '5' ? ' (bloc ' + best.c + '-' + (best.c + 12) + ')' : '') + ' est le moins encombré' + (me ? ', alors que ta box utilise le ' + mine : '') + '.';
+    if(band === '5' && best.c >= 52) h += ' Ces canaux « radar » peuvent faire une courte pause au démarrage de la box.';
+  }
+  h += '</div></div>';
+  if(!good) h += '<p class="hint" style="margin-top:12px">Pour changer : ouvre l\'adresse de ta box' + (ST.ip && ST.ip.gateway ? ' (' + esc(ST.ip.gateway) + ')' : '') + ' dans un navigateur, menu Wi-Fi, réglage « Canal ». La plupart des box choisissent seules (mode automatique) : ce n\'est utile que si le wifi est lent alors que le signal est bon.</p>';
+  $('wfAdvice').innerHTML = h; $('wfAdvice').hidden = false;
+}
+
+/* =================== APPAREILS =================== */
+var LAN = { hosts: {}, run: false, done: 0, total: 0, at: 0 };
+function devKey(h){ return h.host ? 'h:' + h.host : h.mdns ? 'm:' + h.mdns : h.upnp ? 'u:' + h.upnp : ''; }
+function devName(h){
+  var k = devKey(h);
+  if(k && NAMES[k]) return { n: NAMES[k], custom: true };
+  if(NAMES['ip:' + h.ip]) return { n: NAMES['ip:' + h.ip], custom: true };
+  var f = h.txt && (h.txt.fn || h.txt.n);
+  if(f) return { n: f };
+  if(h.upnp) return { n: h.upnp };
+  if(h.mdns) return { n: h.mdns.replace(/^[0-9A-F]{12}@/i, '').replace(/-[0-9a-f]{20,}$/i, '') };
+  if(h.host){ var s = h.host.replace(/\.(home|lan|local|box|localdomain|fritz\.box|freebox|sfr|bbox)$/i, ''); if(!/^\d+\.\d+\.\d+\.\d+$/.test(s)) return { n: s }; }
+  if(h.gw) return { n: 'Box internet' };
+  if(h.me) return { n: 'Ce téléphone' };
+  return { n: 'Appareil inconnu', unk: true };
+}
+function hasSvc(h, re){ return (h.svc || []).some(function(s){ return re.test(s); }); }
+function hasPort(h, p){ return (h.ports || []).indexOf(p) >= 0; }
+function devKind(h){
+  if(h.gw) return { i: 'router', t: 'Box internet (passerelle)', c: 'gw' };
+  if(h.me) return { i: 'phone', t: 'Ce téléphone', c: 'me' };
+  if(hasSvc(h, /_ipp|_printer|_pdl/) || /printer/i.test(h.utype || '')) return { i: 'printer', t: 'Imprimante' };
+  if(hasSvc(h, /_googlecast/)) return { i: 'tv', t: 'Chromecast ou télé Google' };
+  if(hasSvc(h, /_airplay|_raop/)) return { i: 'tv', t: 'Appareil AirPlay (Apple TV, enceinte…)' };
+  if(hasSvc(h, /_spotify|_sonos/)) return { i: 'speaker', t: 'Enceinte connectée' };
+  if(/MediaRenderer/i.test(h.utype || '')) return { i: 'tv', t: 'Télé ou lecteur multimédia' };
+  if(hasSvc(h, /_companion-link/) || hasPort(h, 62078)) return { i: 'phone', t: 'Probablement un iPhone, iPad ou Mac', hint: true };
+  if(hasSvc(h, /_hap/)) return { i: 'home', t: 'Objet connecté (maison)' };
+  if(hasPort(h, 9100) || hasPort(h, 631)) return { i: 'printer', t: 'Probablement une imprimante', hint: true };
+  if(hasPort(h, 8008)) return { i: 'tv', t: 'Probablement une télé ou un Chromecast', hint: true };
+  if(hasPort(h, 554)) return { i: 'cam', t: 'Caméra ou décodeur (flux vidéo)', hint: true };
+  if(hasSvc(h, /_smb|_workstation/) || hasPort(h, 445)) return { i: 'pc', t: 'Ordinateur ou disque réseau', hint: true };
+  if(hasPort(h, 7000)) return { i: 'tv', t: 'Probablement un appareil AirPlay', hint: true };
+  if(hasPort(h, 22)) return { i: 'pc', t: 'Ordinateur ou serveur', hint: true };
+  if(hasPort(h, 80) || hasPort(h, 443) || hasPort(h, 8080)) return { i: 'unk', t: 'Appareil avec une page de réglages', c: 'unk', hint: true };
+  return { i: 'unk', t: 'Type inconnu', c: 'unk' };
+}
+function devMaker(h){
+  var a = [];
+  if(h.maker) a.push(h.maker);
+  if(h.model && h.model !== h.maker) a.push(h.model);
+  var t = h.txt || {};
+  if(!a.length){ var mm = t.usb_MFG || t.manufacturer; if(mm) a.push(mm); var md = t.md || t.model || t.usb_MDL || t.ty || t.am; if(md) a.push(md); }
+  return a.join(' · ');
+}
+function ipNum(ip){ return ip.split('.').reduce(function(s, x){ return s * 256 + (+x); }, 0); }
+function lanHost(o){
+  var h = LAN.hosts[o.ip] || (LAN.hosts[o.ip] = { ip: o.ip, svc: [], ports: [] });
+  if(o.ports) h.ports = o.ports; if(o.ms != null) h.ms = o.ms; if(o.me) h.me = true; if(o.gw) h.gw = true;
+  h.alive = true; schedLan();
+}
+function lanService(o){
+  if(!o.ip) return;
+  var h = LAN.hosts[o.ip] || (LAN.hosts[o.ip] = { ip: o.ip, svc: [], ports: [] });
+  h.alive = true;
+  if(o.src === 'dns' && o.host) h.host = o.host;
+  if(o.src === 'mdns'){ if(o.type && h.svc.indexOf(o.type) < 0) h.svc.push(o.type); if(o.name && !h.mdns) h.mdns = o.name; if(o.txt){ h.txt = h.txt || {}; for(var k in o.txt) if(!h.txt[k]) h.txt[k] = o.txt[k]; } }
+  if(o.src === 'upnp'){ if(o.name) h.upnp = o.name; if(o.maker) h.maker = o.maker; if(o.model) h.model = o.model; if(o.type) h.utype = o.type; }
+  schedLan();
+}
+var lanT = 0;
+function schedLan(){ if(lanT) return; lanT = setTimeout(function(){ lanT = 0; if(tab === 'app') renderLan(); }, 250); }
+function renderLan(){
+  var L = Object.keys(LAN.hosts).map(function(k){ return LAN.hosts[k]; }).filter(function(h){ return h.alive; });
+  L.sort(function(a, b){ return (b.gw ? 2 : b.me ? 1 : 0) - (a.gw ? 2 : a.me ? 1 : 0) || ipNum(a.ip) - ipNum(b.ip); });
+  $('lanCard').hidden = !L.length && !LAN.run;
+  $('lanH').textContent = L.length ? L.length + ' appareil' + (L.length > 1 ? 's' : '') + ' trouvé' + (L.length > 1 ? 's' : '') : 'Recherche en cours…';
+  $('lanList').innerHTML = L.map(function(h){
+    var n = devName(h), k = devKind(h), mk = devMaker(h);
+    return '<button class="dev" data-ip="' + esc(h.ip) + '"><div class="di ' + (k.c || '') + '">' + ic(k.i) + '</div><div class="m"><b>' + esc(n.n) + '</b><span>' + esc(k.t === n.n ? (mk || '') : k.t) + (mk && k.t !== n.n ? ' · ' + esc(mk) : '') + '</span><span class="ip">' + esc(h.ip) + '</span></div>' + ic('chev') + '</button>';
+  }).join('') || '<div class="empty">Personne pour l\'instant…</div>';
+  $('lanList').querySelectorAll('.dev').forEach(function(b){ b.onclick = function(){ devSheet(LAN.hosts[b.dataset.ip]); }; });
+  var pr = $('lanProg'); pr.hidden = !LAN.run; pr.firstChild.style.width = (LAN.total ? 100 * LAN.done / LAN.total : 0) + '%';
+  var st = $('lanStat');
+  st.hidden = !(LAN.run || LAN.at);
+  st.textContent = LAN.run ? 'Adresses testées : ' + LAN.done + ' sur ' + (LAN.total || 254) + ' — compte environ 30 secondes.' : LAN.at ? 'Dernière recherche : ' + new Date(LAN.at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + (LAN.me ? ' · réseau ' + LAN.me.replace(/\.\d+$/, '.0') + '/' + (LAN.prefix || 24) : '') : '';
+  $('lanGo').className = LAN.run ? 'btn stop' : 'btn main';
+  $('lanGo').innerHTML = LAN.run ? ic('stop') + 'Arrêter' : ic('search') + (LAN.at ? 'Relancer la recherche' : 'Rechercher les appareils');
+}
+$('lanGo').onclick = function(){
+  if(!R){ toast('La recherche fonctionne dans l\'appli'); return; }
+  if(LAN.run){ R.lanStop(); return; }
+  readStatus();
+  if(ST.type !== 'wifi' && !(ST.wifi && ST.wifi.connected)){ toast('Connecte-toi d\'abord à un wifi'); return; }
+  LAN.hosts = {}; LAN.done = 0; LAN.total = 0;
+  if(R.lanStart()){ LAN.run = true; renderLan(); }
+};
+function devSheet(h){
+  if(!h) return;
+  var n = devName(h), k = devKind(h), mk = devMaker(h), key = devKey(h) || ('ip:' + h.ip);
+  var PN = { 80: 'page web', 443: 'page web sécurisée', 22: 'accès à distance (SSH)', 554: 'flux vidéo (caméra)', 8080: 'page web', 62078: 'synchronisation Apple', 7000: 'AirPlay', 8008: 'Chromecast', 9100: 'impression', 445: 'partage de fichiers', 631: 'impression (IPP)', 5000: 'service UPnP / NAS' };
+  var SV = { '_http._tcp': 'page web', '_ipp._tcp': 'imprimante', '_ipps._tcp': 'imprimante', '_printer._tcp': 'imprimante', '_pdl-datastream._tcp': 'imprimante', '_googlecast._tcp': 'Chromecast', '_airplay._tcp': 'AirPlay', '_raop._tcp': 'son AirPlay', '_companion-link._tcp': 'appareil Apple', '_smb._tcp': 'partage de fichiers', '_hap._tcp': 'HomeKit', '_spotify-connect._tcp': 'Spotify Connect', '_sonos._tcp': 'Sonos', '_device-info._tcp': 'infos appareil', '_workstation._tcp': 'ordinateur' };
+  var src = n.custom ? 'nom choisi par toi' : (h.txt && h.txt.fn) || h.upnp ? 'nom annoncé par l\'appareil' : h.mdns ? 'nom annoncé par l\'appareil' : h.host ? 'nom donné par la box' : '';
+  var rows = row('Adresse IP', '<span class="sel">' + esc(h.ip) + '</span>', h.gw ? 'Ouvre-la dans un navigateur pour régler ta box.' : '') +
+    row('Type', esc(k.t), k.hint ? 'Déduit des services qui répondent : c\'est un indice, pas une certitude.' : '') +
+    (mk ? row('Fabricant / modèle', esc(mk), 'Déclaré par l\'appareil lui-même.') : row('Fabricant', '<span style="color:var(--tx3)">inconnu</span>', 'Android 11+ empêche de lire l\'adresse matérielle (MAC) qui permettrait de le deviner.')) +
+    (h.host ? row('Nom réseau', '<span class="sel" style="font-size:13px">' + esc(h.host) + '</span>', '') : '') +
+    (h.ms != null ? row('Temps de réponse', fr(h.ms) + ' ms', '') : '') +
+    ((h.ports || []).length ? row('Ports ouverts', h.ports.map(function(p){ return p + (PN[p] ? ' <small>' + PN[p] + '</small>' : ''); }).join(''), '') : '') +
+    ((h.svc || []).length ? row('Services annoncés', h.svc.map(function(s){ s = s.replace(/\.$/, ''); return esc(SV[s] || s); }).join(', '), '') : '');
+  sheet('<h3>' + esc(n.n) + '</h3>' + (src ? '<p class="hint" style="margin:0 0 6px">' + src + '</p>' : '') + '<div class="rows">' + rows + '</div>' +
+    '<label class="lb" style="margin-top:14px" for="dvName">Nom personnalisé</label><input class="inp" id="dvName" maxlength="40" placeholder="ex. Imprimante du bureau" value="' + esc(n.custom ? n.n : '') + '">' +
+    '<p class="hint">' + (devKey(h) ? 'Le nom est retenu pour cet appareil.' : 'Le nom est retenu pour l\'adresse ' + esc(h.ip) + ' : si la box lui en donne une autre, il faudra le renommer.') + '</p>' +
+    '<div class="col"><button class="btn main" id="dvSave">Enregistrer le nom</button><div class="row" style="margin:0"><button class="btn" id="dvPing">' + ic('ping') + 'Ping</button>' + ((h.ports || []).indexOf(80) >= 0 || (h.ports || []).indexOf(443) >= 0 ? '<button class="btn" id="dvWeb">' + ic('globe') + 'Page web</button>' : '') + '</div></div>', function(r){
+    r.querySelector('#dvSave').onclick = function(){
+      var v = r.querySelector('#dvName').value.trim();
+      delete NAMES['ip:' + h.ip]; if(devKey(h)) delete NAMES[devKey(h)];
+      if(v) NAMES[key] = v;
+      save(); closeSheet(); renderLan(); toast(v ? 'Nom enregistré' : 'Nom effacé');
+    };
+    r.querySelector('#dvPing').onclick = function(){ closeSheet(); setTimeout(function(){ openPing(h.ip); }, 60); };
+    var wb = r.querySelector('#dvWeb'); if(wb) wb.onclick = function(){ var u = ((h.ports || []).indexOf(443) >= 0 ? 'https://' : 'http://') + h.ip; if(R && u.indexOf('https') === 0) R.openUrl(u); else window.open(u, '_blank'); };
+  });
+}
+
+/* =================== OUTILS =================== */
+var TOOLS = [['ping', 'ping', 'Ping', 'La box ou un site répond-il ?'], ['trace', 'route', 'Chemin', 'Par où passent tes données'], ['dns', 'search', 'Recherche DNS', 'Trouver l\'adresse d\'un site'], ['port', 'plug', 'Test d\'un port', 'Un service répond-il ?'], ['subnet', 'calc', 'Sous-réseau', 'Masque, plage d\'adresses'], ['couv', 'pin', 'Couverture mobile', 'Carte Arcep et relevés'], ['share', 'share', 'Partager mes infos', 'Envoyer l\'état de la connexion'], ['reg', 'gear', 'Réglages Android', 'Wifi, données, VPN…']];
+$('toolGrid').innerHTML = TOOLS.map(function(t){ return '<button class="tool" data-tool="' + t[0] + '"><div class="ico">' + ic(t[1]) + '</div><div><b>' + t[2] + '</b><span>' + t[3] + '</span></div></button>'; }).join('');
+$('toolGrid').querySelectorAll('[data-tool]').forEach(function(b){ b.onclick = function(){ openTool(b.dataset.tool); }; });
+function openTool(t){
+  if(t === 'ping') return openPing('');
+  if(t === 'share') return $('shareBtn').onclick();
+  if(t === 'subnet') return openScr('s-subnet', function(){ readStatus(); if(!$('snIp').value && ST.ip.v4 && ST.ip.v4[0]) $('snIp').value = ST.ip.v4[0] + '/' + (ST.ip.prefix || 24); subnet(); });
+  if(t === 'couv') return openScr('s-couv', renderRel);
+  if(t === 'reg') return openScr('s-reg');
+  openScr('s-' + t, function(){ readStatus(); });
+}
+function hostChips(id, input, extra){
+  readStatus();
+  var a = [];
+  if(ST.ip.gateway) a.push(['Ma box', ST.ip.gateway]);
+  a.push(['google.fr', 'google.fr'], ['1.1.1.1', '1.1.1.1']);
+  (extra || []).forEach(function(x){ a.push(x); });
+  $(id).innerHTML = a.map(function(x){ return '<button class="chip" data-v="' + esc(x[1]) + '">' + esc(x[0]) + '</button>'; }).join('');
+  $(id).querySelectorAll('.chip').forEach(function(b){ b.onclick = function(){ $(input).value = b.dataset.v; }; });
+}
+function validHost(v){ return /^[A-Za-z0-9._:\-]{1,253}$/.test(v); }
+function cleanHost(v){ v = (v || '').trim(); v = v.replace(/^[a-z]+:\/\//i, '').replace(/[\/?#].*$/, ''); if(!/:.*:/.test(v)) v = v.replace(/:\d+$/, ''); return v; }
+
+// Ping
+var PG = { run: false, n: 0, max: 0 };
+function openPing(host){
+  openScr('s-ping', function(){ hostChips('pgChips', 'pgHost'); if(host) $('pgHost').value = host; else if(!$('pgHost').value && ST.ip.gateway) $('pgHost').value = ST.ip.gateway; });
+}
+$('pgGo').onclick = function(){
+  if(PG.run){ if(R) R.toolStop(); return; }
+  var h = cleanHost($('pgHost').value); $('pgHost').value = h;
+  if(!validHost(h)){ toast('Indique une adresse ou un nom de site'); return; }
+  if(!R){ toast('Le ping fonctionne dans l\'appli'); return; }
+  PG = { run: true, n: 0, max: 0, rows: [] };
+  $('pgSum').hidden = true; $('pgOut').hidden = false; $('pgOut').innerHTML = '<div class="empty">Envoi vers ' + esc(h) + '…</div>';
+  $('pgGo').className = 'btn stop'; $('pgGo').innerHTML = ic('stop') + 'Arrêter';
+  R.ping(h, +$('pgCount').value);
+};
+function pingEvent(o){
+  if(!PG.run) return;
+  PG.rows.push(o); if(o.ms) PG.max = Math.max(PG.max, o.ms);
+  var mx = Math.max(20, PG.max * 1.15);
+  $('pgOut').innerHTML = PG.rows.slice(-30).map(function(r){
+    return '<div class="pl"><span class="n">n°' + r.seq + '</span><span class="b"><i style="width:' + (r.lost ? 0 : Math.max(3, 100 * r.ms / mx)) + '%;background:' + (r.lost ? '' : r.ms < 50 ? 'var(--ok)' : r.ms < 150 ? 'var(--mid)' : 'var(--warn)') + '"></i></span><span class="v' + (r.lost ? ' bad' : '') + '">' + (r.lost ? 'perdu' : fr(r.ms, r.ms < 10 ? 1 : 0) + ' ms') + '</span></div>';
+  }).join('');
+}
+function pingDone(o){
+  PG.run = false;
+  $('pgGo').className = 'btn main'; $('pgGo').innerHTML = ic('play') + 'Relancer';
+  if(!o.ok){ $('pgOut').innerHTML = '<p>' + (o.err === 'unknownhost' ? '<b>Nom introuvable.</b> Vérifie l\'orthographe, ou ta connexion Internet.' : 'Le ping n\'a pas pu être lancé.') + '</p>'; return; }
+  var s = '<h3>Résultat' + (o.ip ? ' · <span class="sel" style="text-transform:none">' + esc(o.ip) + '</span>' : '') + '</h3><div class="kv">' +
+    kv('Reçus', o.recv + ' / ' + o.sent, '') + kv('Pertes', '<span class="' + (o.loss === 0 ? 'c-ok' : o.loss < 20 ? 'c-mid' : 'c-bad') + '">' + o.loss + ' %</span>', '') +
+    (o.avg != null ? kv('Moyenne', fr(o.avg, o.avg < 10 ? 1 : 0) + ' ms', '') + kv('Mini / maxi', fr(o.min, 0) + ' / ' + fr(o.max, 0), 'ms') : '') + '</div><p class="verdict" style="margin-top:10px">';
+  if(o.recv === 0) s += '<b>Aucune réponse.</b> L\'appareil est éteint, injoignable, ou il ignore les pings (beaucoup de sites et d\'ordinateurs le font).';
+  else if(o.loss >= 20) s += '<b>Connexion instable :</b> ' + o.loss + ' % des messages se perdent. Rapproche-toi de la box ou redémarre-la.';
+  else if(o.avg < 30) s += '<b>Très bonne réponse :</b> ' + fr(o.avg) + ' ms en moyenne, la connexion est réactive.';
+  else if(o.avg < 100) s += '<b>Réponse correcte :</b> ' + fr(o.avg) + ' ms en moyenne.';
+  else s += '<b>Réponse lente :</b> ' + fr(o.avg) + ' ms en moyenne. Les appels vidéo peuvent avoir du retard.';
+  s += '</p>' + (o.method === 'isReachable' ? '<p class="hint">Mesure de secours : le ping du téléphone n\'est pas disponible, les temps sont moins précis.</p>' : '');
+  $('pgSum').innerHTML = s; $('pgSum').hidden = false;
+}
+
+// Traceroute
+var TR = { run: false, hops: [] };
+$('trGo').onclick = function(){
+  if(TR.run){ if(R) R.toolStop(); return; }
+  var h = cleanHost($('trHost').value); $('trHost').value = h;
+  if(!validHost(h)){ toast('Indique une adresse ou un nom de site'); return; }
+  if(!R){ toast('Disponible dans l\'appli'); return; }
+  TR = { run: true, hops: [] };
+  $('trOut').hidden = false; $('trOut').innerHTML = '<div class="empty">Recherche du chemin vers ' + esc(h) + '… (jusqu\'à une minute)</div>';
+  $('trGo').className = 'btn stop'; $('trGo').innerHTML = ic('stop') + 'Arrêter';
+  R.traceroute(h);
+};
+function trRender(extra){
+  readStatus();
+  $('trOut').innerHTML = '<h3>Relais traversés</h3>' + TR.hops.map(function(o){
+    var who = o.ip === ST.ip.gateway ? 'ta box' : o.end ? 'destination' : o.ttl <= 3 && o.ip && /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.)/.test(o.ip) ? 'réseau local ou opérateur' : '';
+    return '<div class="pl"><span class="n">' + o.ttl + '</span><span style="flex:1;min-width:0" class="mono">' + (o.ip ? esc(o.ip) : '<span style="color:var(--tx3)">* pas de réponse</span>') + (who ? ' <span class="tag' + (o.end ? ' ok' : '') + '">' + who + '</span>' : '') + '</span><span class="v">' + (o.ms != null ? fr(o.ms, 0) + ' ms' : '') + '</span></div>';
+  }).join('') + (extra || '');
+}
+function traceEvent(o){ if(!TR.run) return; TR.hops.push(o); trRender(); }
+function traceDone(o){
+  TR.run = false; $('trGo').className = 'btn main'; $('trGo').innerHTML = ic('play') + 'Relancer';
+  if(!o.ok){ $('trOut').innerHTML = o.err === 'unknownhost' ? '<p><b>Nom introuvable.</b> Vérifie l\'orthographe.</p>' : '<p><b>Ce téléphone ne permet pas de suivre le chemin</b> sans droits administrateur. Les autres outils restent disponibles.</p>'; return; }
+  trRender('<p class="hint">' + (o.reached ? 'Destination atteinte en ' + TR.hops.length + ' étapes.' : o.stopped ? 'Arrêté.' : 'Destination non atteinte : elle ne répond peut-être pas aux pings.') + ' Les « * » sont des relais qui ne répondent pas, c\'est fréquent et sans gravité.</p>');
+}
+
+// DNS
+$('dnGo').onclick = function(){
+  var h = cleanHost($('dnHost').value); $('dnHost').value = h;
+  if(!validHost(h)){ toast('Indique un nom de site'); return; }
+  if(!R){ toast('Disponible dans l\'appli'); return; }
+  $('dnOut').hidden = false; $('dnOut').innerHTML = '<div class="empty">Recherche…</div>'; R.dns(h);
+};
+function dnsEvent(o){
+  if(!o.ok){ $('dnOut').innerHTML = '<p><b>Nom introuvable.</b> Ce site n\'existe pas, ou l\'annuaire (DNS) ne répond pas : vérifie ta connexion.</p>'; return; }
+  readStatus();
+  $('dnOut').innerHTML = '<h3>' + esc(o.host) + '</h3><div class="rows">' +
+    (o.v4 && o.v4.length ? row('Adresses IPv4 (A)', '<span class="sel mono">' + o.v4.map(esc).join('<br>') + '</span>', '') : '') +
+    (o.v6 && o.v6.length ? row('Adresses IPv6 (AAAA)', '<span class="sel mono" style="font-size:12px">' + o.v6.map(esc).join('<br>') + '</span>', '') : '') +
+    (o.name ? row('Nom associé', '<span class="sel">' + esc(o.name) + '</span>', '') : '') +
+    row('Temps de réponse', fr(o.ms, 0) + ' ms', o.ms < 5 ? 'Réponse déjà connue du téléphone (mémoire).' : 'Temps mis par l\'annuaire pour répondre.') +
+    (ST.ip.dns && ST.ip.dns.length ? row('Annuaire utilisé', '<span class="sel">' + esc(ST.ip.dns[0]) + '</span>', ST.ip.privateDns ? 'DNS privé actif.' : '') : '') + '</div>';
+}
+
+// Port
+var PCH = [['80', 'Web'], ['443', 'Web sécurisé'], ['22', 'SSH'], ['554', 'Caméra'], ['8080', 'Web 8080'], ['3389', 'Bureau à distance'], ['9100', 'Imprimante']];
+$('ptChips').innerHTML = PCH.map(function(p){ return '<button class="chip" data-p="' + p[0] + '">' + p[0] + ' · ' + p[1] + '</button>'; }).join('');
+$('ptChips').querySelectorAll('.chip').forEach(function(b){ b.onclick = function(){ $('ptPort').value = b.dataset.p; }; });
+$('ptGo').onclick = function(){
+  var h = cleanHost($('ptHost').value); $('ptHost').value = h;
+  var p = parseInt($('ptPort').value, 10);
+  if(!validHost(h)){ toast('Indique une adresse'); return; }
+  if(!(p >= 1 && p <= 65535)){ toast('Le port est un nombre entre 1 et 65535'); return; }
+  if(!R){ toast('Disponible dans l\'appli'); return; }
+  $('ptOut').hidden = false; $('ptOut').innerHTML = '<div class="empty">Test en cours…</div>'; R.portTest(h, p, 3000);
+};
+function portEvent(o){
+  if(!o.ok){ $('ptOut').innerHTML = '<p><b>Adresse introuvable.</b> Vérifie l\'orthographe.</p>'; return; }
+  var M = { open: ['tag ok', 'Ouvert', 'Un service répond sur ce port : la porte est ouverte.'], closed: ['tag warn', 'Fermé', 'L\'appareil répond, mais aucun service n\'écoute sur ce port.'], timeout: ['tag bad', 'Pas de réponse', 'Rien ne répond : port filtré par un pare-feu, ou appareil éteint.'], unreach: ['tag bad', 'Injoignable', 'L\'appareil n\'est pas joignable depuis ce réseau.'] };
+  var m = M[o.state] || M.timeout;
+  $('ptOut').innerHTML = '<div class="rw" style="border:0;padding:0"><div class="l"><b>' + esc(o.host) + ' : ' + o.port + '</b><span>' + esc(o.ip || '') + ' · ' + fr(o.ms, 0) + ' ms</span></div><span class="' + m[0] + '" style="font-size:14px;padding:6px 12px">' + m[1] + '</span></div><p style="margin-top:10px">' + m[2] + '</p>';
+}
+
+// Sous-réseau (calcul local)
+$('snIp').oninput = subnet;
+$('snChips').innerHTML = ['/24', '/16', '/25', '/28', '/30'].map(function(p){ return '<button class="chip" data-p="' + p + '">' + p + '</button>'; }).join('');
+$('snChips').querySelectorAll('.chip').forEach(function(b){ b.onclick = function(){ var v = $('snIp').value.split('/')[0] || '192.168.1.1'; $('snIp').value = v + b.dataset.p; subnet(); }; });
+function i2s(n){ return [n >>> 24, n >>> 16 & 255, n >>> 8 & 255, n & 255].join('.'); }
+function subnet(){
+  var v = $('snIp').value.trim(), m = v.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})(?:\s*\/\s*(\d{1,2})|\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}))?$/);
+  var out = $('snOut');
+  if(!m){ out.hidden = !v; out.innerHTML = '<p>Format attendu : <b>192.168.1.20/24</b> ou <b>192.168.1.20 255.255.255.0</b></p>'; return; }
+  var o = [m[1], m[2], m[3], m[4]].map(Number);
+  if(o.some(function(x){ return x > 255; })){ out.hidden = false; out.innerHTML = '<p>Chaque nombre doit être entre 0 et 255.</p>'; return; }
+  var ip = ((o[0] << 24) | (o[1] << 16) | (o[2] << 8) | o[3]) >>> 0, pfx;
+  if(m[6]){ var mk = m[6].split('.').map(Number); var mn = ((mk[0] << 24) | (mk[1] << 16) | (mk[2] << 8) | mk[3]) >>> 0; pfx = 0; while(pfx < 32 && (mn >>> (31 - pfx) & 1)) pfx++; if(((pfx ? (0xffffffff << (32 - pfx)) >>> 0 : 0)) !== mn){ out.hidden = false; out.innerHTML = '<p>Ce masque n\'est pas valide.</p>'; return; } }
+  else pfx = m[5] != null ? +m[5] : 24;
+  if(pfx > 32){ out.hidden = false; out.innerHTML = '<p>Le préfixe va de /0 à /32.</p>'; return; }
+  var mask = pfx ? (0xffffffff << (32 - pfx)) >>> 0 : 0, net = (ip & mask) >>> 0, bc = (net | (~mask >>> 0)) >>> 0;
+  var hosts = pfx >= 31 ? Math.pow(2, 32 - pfx) : Math.pow(2, 32 - pfx) - 2;
+  var first = pfx >= 31 ? net : net + 1, last = pfx >= 31 ? bc : bc - 1;
+  var priv = o[0] === 10 || (o[0] === 172 && o[1] >= 16 && o[1] <= 31) || (o[0] === 192 && o[1] === 168);
+  var cg = o[0] === 100 && o[1] >= 64 && o[1] <= 127;
+  out.hidden = false;
+  out.innerHTML = '<div class="rows">' +
+    row('Masque', '<span class="sel mono">' + i2s(mask) + '</span>', '/' + pfx) +
+    row('Réseau', '<span class="sel mono">' + i2s(net) + '</span>', 'Première adresse, réservée au réseau.') +
+    row('Adresses utilisables', '<span class="sel mono">' + i2s(first) + '<br>à ' + i2s(last) + '</span>', fr(hosts) + ' appareil' + (hosts > 1 ? 's' : '') + ' possible' + (hosts > 1 ? 's' : '') + '.') +
+    row('Diffusion', '<span class="sel mono">' + i2s(bc) + '</span>', 'Dernière adresse, réservée.') +
+    row('Masque inverse', '<span class="sel mono">' + i2s(~mask >>> 0) + '</span>', 'Utilisé par certains équipements (ACL).') +
+    row('Type', priv ? 'Privée' : cg ? 'Partagée (opérateur)' : o[0] === 127 ? 'Boucle locale' : o[0] >= 224 ? 'Spéciale' : 'Publique', priv ? 'Adresse de réseau local, invisible depuis Internet.' : cg ? 'Adresse donnée par un opérateur mobile, partagée avec d\'autres clients.' : '') +
+    '</div>' + (priv && pfx === 24 ? '<p class="hint">Pour une adresse fixe, choisis un numéro libre en dehors de la plage distribuée par la box (souvent au-dessus de .200), avec le masque ' + i2s(mask) + ' et la passerelle ' + i2s(net + 1) + ' (en général la box).</p>' : '');
+}
+
+// Réglages
+var REG = [['wifi', 'wifi', 'Wifi', 'Choisir un réseau, oublier un mot de passe'], ['data', 'data', 'Données mobiles', 'Activer, choisir la 4G/5G'], ['hotspot', 'hot', 'Point d\'accès', 'Partager la connexion du téléphone'], ['airplane', 'plane', 'Mode avion', 'Tout couper d\'un coup'], ['vpn', 'vpn', 'VPN', 'Réseau privé virtuel'], ['roaming', 'globe', 'Itinérance', 'Utilisation à l\'étranger'], ['location', 'loc', 'Localisation', 'Nécessaire pour voir les noms de wifi'], ['app', 'gear', 'Autorisations de Réseau', 'Position, état du téléphone']];
+$('regList').innerHTML = REG.map(function(r){ return '<button class="rw" data-set="' + r[0] + '" style="width:100%;text-align:left;align-items:center"><span style="color:var(--acc)">' + ic(r[1]) + '</span><div class="l"><b>' + r[2] + '</b><span>' + r[3] + '</span></div>' + ic('chev') + '</button>'; }).join('');
+bindDyn($('regList'));
+
+/* =================== COUVERTURE / RELEVÉS =================== */
+var LOC = { want: null, last: null };
+function arcepUrl(p){ return 'https://monreseaumobile.arcep.fr/' + (p ? '?lat=' + p.lat.toFixed(5) + '&lng=' + p.lon.toFixed(5) + '&zoom=15' : ''); }
+$('arcepGo').onclick = function(){
+  if(!R){ window.open(arcepUrl(null), '_blank'); return; }
+  if(LOC.last && Date.now() - LOC.last.t < 120000){ R.openUrl(arcepUrl(LOC.last)); return; }
+  LOC.want = 'arcep'; toast('Recherche de ta position…'); R.locate();
+};
+$('relGo').onclick = function(){
+  if(!R){ toast('Les relevés fonctionnent dans l\'appli'); return; }
+  LOC.want = 'releve'; $('relGo').disabled = true; $('relGo').innerHTML = ic('loc', 'spin') + 'Position en cours…'; R.locate();
+};
+function locEvent(o){
+  var w = LOC.want; LOC.want = null;
+  $('relGo').disabled = false; $('relGo').innerHTML = ic('pin') + 'Enregistrer un relevé ici';
+  if(!o.ok){
+    if(w === 'arcep'){ R.openUrl(arcepUrl(null)); return; }
+    if(w === 'releve') toast(o.err === 'perm' ? 'Autorise la position pour enregistrer un relevé' : o.err === 'off' ? 'Active la localisation du téléphone' : 'Position introuvable : réessaie dehors ou près d\'une fenêtre');
+    if(w === 'releve' && o.err === 'off') openSet('location');
+    return;
+  }
+  LOC.last = { lat: o.lat, lon: o.lon, acc: o.acc, t: Date.now() };
+  if(w === 'arcep') R.openUrl(arcepUrl(LOC.last));
+  if(w === 'releve') relSheet(o);
+}
+function relSheet(o){
+  readStatus();
+  var m = ST.mobile, s = mobSig(m);
+  var r = { id: Date.now(), t: Date.now(), lat: o.lat, lon: o.lon, acc: o.acc, op: opName(m), gen: m.gen || '', dbm: s ? s.dbm : null, rsrq: s && s.main.rsrq != null ? s.main.rsrq : null, sinr: s && s.main.sinr != null ? s.main.sinr : null, q: s && s.q ? s.q.q : null, qw: s && s.q ? s.q.w : 'Pas de signal', note: '' };
+  sheet('<h3>Nouveau relevé</h3><div class="rows">' +
+    row('Opérateur', esc(r.op || '–') + (r.gen ? ' <small>' + esc(r.gen) + '</small>' : ''), '') +
+    row('Signal', r.dbm != null ? neg(r.dbm) + ' dBm' : '–', r.qw) +
+    row('Position', fr(o.lat, 5) + ', ' + fr(o.lon, 5), 'Précision : ' + (o.acc > 0 ? '± ' + o.acc + ' m' : 'inconnue') + (o.old ? ' (position récente du téléphone)' : '')) + '</div>' +
+    (ST.type === 'wifi' ? '<p class="hint">Tu es en wifi : le relevé note quand même le signal mobile.</p>' : '') +
+    '<label class="lb" style="margin-top:12px" for="rlNote">Lieu ou remarque</label><input class="inp" id="rlNote" maxlength="80" placeholder="ex. Chantier Dupont, sous-sol">' +
+    '<div class="col"><button class="btn main" id="rlOk">Enregistrer</button><button class="btn" id="rlNo">Annuler</button></div>', function(el){
+    el.querySelector('#rlOk').onclick = function(){ r.note = el.querySelector('#rlNote').value.trim(); RELEVES.unshift(r); save(); closeSheet(); renderRel(); toast('Relevé enregistré'); };
+    el.querySelector('#rlNo').onclick = closeSheet;
+  });
+}
+function renderRel(){
+  $('relCsv').hidden = !RELEVES.length;
+  $('relList').innerHTML = RELEVES.length ? RELEVES.map(function(r){
+    var q = r.dbm != null ? rsrpQ(r.dbm) : null;
+    return '<div class="rel">' + bars(r.q, true) + '<div class="m"><b>' + esc(r.note || 'Relevé sans nom') + '</b><span>' + dt(r.t) + ' · ' + esc(r.op || '?') + (r.gen ? ' ' + esc(r.gen) : '') + '</span></div><div class="r"><span class="' + (q ? 'c-' + q.c : '') + '">' + (r.dbm != null ? neg(r.dbm) + ' dBm' : '–') + '</span><small>' + esc(q ? q.w.replace(' signal', '').replace('Signal ', '') : 'pas de signal') + '</small></div><button class="del" data-del="' + r.id + '" aria-label="Supprimer">' + ic('trash') + '</button></div>';
+  }).join('') : '<div class="empty">Aucun relevé enregistré.</div>';
+  $('relList').querySelectorAll('[data-del]').forEach(function(b){ b.onclick = function(){
+    var id = +b.dataset.del;
+    sheet('<h3>Supprimer ce relevé ?</h3><div class="col"><button class="btn stop" id="dY">Supprimer</button><button class="btn" id="dN">Annuler</button></div>', function(el){
+      el.querySelector('#dY').onclick = function(){ RELEVES = RELEVES.filter(function(x){ return x.id !== id; }); save(); closeSheet(); renderRel(); };
+      el.querySelector('#dN').onclick = closeSheet;
+    });
+  }; });
+}
+$('relCsv').onclick = function(){
+  var q = function(s){ s = String(s == null ? '' : s); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  var L = ['Date;Heure;Lieu;Latitude;Longitude;Précision (m);Opérateur;Réseau;Signal (dBm);RSRQ (dB);SINR (dB);Qualité'];
+  RELEVES.forEach(function(r){ var d = new Date(r.t); L.push([d.toLocaleDateString('fr-FR'), d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }), r.note, String(r.lat.toFixed(6)).replace('.', ','), String(r.lon.toFixed(6)).replace('.', ','), r.acc, r.op, r.gen, r.dbm, r.rsrq, r.sinr, r.qw].map(q).join(';')); });
+  var csv = '﻿' + L.join('\r\n'), name = 'releves-reseau-' + new Date().toISOString().slice(0, 10) + '.csv';
+  try{
+    if(P && P.fileMenu){ P.fileMenu(btoa(unescape(encodeURIComponent(csv))), name, 'text/csv', '', 'Relevés de couverture mobile', RELEVES.length + ' relevé(s) de couverture mobile, enregistrés avec l\'appli Réseau.'); return; }
+  }catch(e){}
+  var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = name; a.click();
+};
+
+/* =================== ÉVÉNEMENTS DU PONT =================== */
+var netT = 0;
+window.reseauEvent = function(type, o){
+  o = J(o);
+  switch(type){
+    case 'net': clearTimeout(netT); netT = setTimeout(refresh, 300); break;
+    case 'perm': refresh(); if(tab === 'wifi'){ var p = o || {}; if(p.loc === 'granted') wifiScan(); } break;
+    case 'resume': refresh(); if(tab === 'wifi' && WF.warn) wifiScan(); break;
+    case 'publicip': PUB = o; if(tab === 'etat') renderEtat(); break;
+    case 'speed': spEvent(o); break;
+    case 'speedDone': spDone(o); break;
+    case 'scan': scanEvent(o); break;
+    case 'lanProgress': LAN.done = o.done || 0; LAN.total = o.total || LAN.total; if(o.me){ LAN.me = o.me; LAN.prefix = o.prefix; } schedLan(); break;
+    case 'lanHost': lanHost(o); break;
+    case 'lanService': lanService(o); break;
+    case 'lanDone':
+      LAN.run = false; LAN.at = Date.now();
+      if(!o.ok) toast(o.err === 'nowifi' ? 'Connecte-toi d\'abord à un wifi' : 'Recherche impossible');
+      renderLan(); break;
+    case 'ping': pingEvent(o); break;
+    case 'pingDone': pingDone(o); break;
+    case 'trace': traceEvent(o); break;
+    case 'traceDone': traceDone(o); break;
+    case 'dns': dnsEvent(o); break;
+    case 'port': portEvent(o); break;
+    case 'location': locEvent(o); break;
+  }
+};
+
+/* ---------- Action de la tuile Socle ---------- */
+window.onSocle = function(a){
+  var o = J(a); if(typeof a === 'string' && !Object.keys(o).length) o = { what: a };
+  if(o.speed || o.what === 'speed'){
+    while(sheetOpen || scrOpen){ var c = stack.pop(); if(c) c(); else break; }
+    goTab('debit');
+    readStatus();
+    if(!SP.run){ if(cur().type === 'wifi') spStart({ dur: 10, streams: 6, maxMB: 0 }); else if(cur().type === 'mobile') spAsk(); }
+  }
+};
+
+document.addEventListener('visibilitychange', function(){ if(!document.hidden) refresh(); });
+window.addEventListener('pagehide', function(){ try{ if(R){ R.stopWatch(); } }catch(e){} });
+if(R) try{ R.startWatch(); }catch(e){}
+showTab('etat');
+backup();
+setTimeout(function(){ try{ if(P && P.takeSocle){ var x = P.takeSocle(); if(x) window.onSocle(x); } }catch(e){} }, 400);
+})();
+</script>
+</body>
+</html>
