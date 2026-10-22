@@ -17,7 +17,7 @@
 # Bloc print-patch.sh proposé (même style que les autres applis) :
 #   if [ "$APP" = "reseau" ]; then
 #     addperm ACCESS_NETWORK_STATE ACCESS_WIFI_STATE CHANGE_WIFI_STATE CHANGE_WIFI_MULTICAST_STATE ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION READ_PHONE_STATE INTERNET
-#     addraw '<uses-feature android:name="android.hardware.wifi" android:required="false" /><uses-feature android:name="android.hardware.telephony" android:required="false" /><uses-feature android:name="android.hardware.location" android:required="false" /><queries><intent><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="https" /></intent><intent><action android:name="android.intent.action.SEND" /><data android:mimeType="text/plain" /></intent></queries>'
+#     addraw '<uses-feature android:name="android.hardware.wifi" android:required="false" /><uses-feature android:name="android.hardware.telephony" android:required="false" /><uses-feature android:name="android.hardware.location" android:required="false" /><queries><intent><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="https" /></intent><intent><action android:name="android.intent.action.SEND" /><data android:mimeType="text/plain" /></intent><intent><action android:name="android.settings.WIFI_ADD_NETWORKS" /></intent><intent><action android:name="android.settings.panel.action.WIFI" /></intent></queries>'
 #   fi
 
 # ---------- 1. Avant </manifest> : autorisations ----------
@@ -27,7 +27,9 @@
 <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 # Signal, canal, vitesse de liaison du wifi ; résultats de scan
 <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-# WifiManager.startScan() (lancer un scan des réseaux autour)
+# WifiManager.startScan() (lancer un scan des réseaux autour) ; connexion à un wifi dont l'utilisateur a le mot de passe :
+# Android 11+ fenêtre système Settings.ACTION_WIFI_ADD_NETWORKS, Android 10 addNetworkSuggestions/removeNetworkSuggestions,
+# Android 9 et moins addNetwork/enableNetwork/removeNetwork
 <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
 # Verrou multidiffusion pendant la recherche d'appareils (mDNS / SSDP)
 <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
@@ -45,6 +47,8 @@
 <queries>
     <intent><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="https" /></intent>
     <intent><action android:name="android.intent.action.SEND" /><data android:mimeType="text/plain" /></intent>
+    <intent><action android:name="android.settings.WIFI_ADD_NETWORKS" /></intent>
+    <intent><action android:name="android.settings.panel.action.WIFI" /></intent>
 </queries>
 # Déjà déclarées pour toutes les applis MAG par print-patch.sh (à garder) :
 #   ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION, fr.magformation13.permission.WIDGET (tuile Socle et sauvegarde)
@@ -55,9 +59,16 @@
 # Rien.
 
 # ---------- 3. Notes ----------
-# Codes de requête : 6250 (position), 6251 (état du téléphone).
+# Codes de requête : 6250 (position), 6251 (état du téléphone), 6252 (fenêtre « Ajouter des réseaux wifi », résultat lu dans onResult).
+# Connexion wifi : seulement avec le mot de passe saisi par l'utilisateur (WPA2, WPA3-SAE, ouvert, masqué, entreprise PEAP/TTLS
+#   + MSCHAPV2/PAP avec domaine obligatoire). Aucun mot de passe n'est stocké (SharedPreferences « reseau »/added = nom,
+#   sécurité, méthode d'ajout seulement), ni transmis à backupPut/widgetPut. Repli : réglages wifi + mot de passe dans le
+#   presse-papiers marqué sensible, effacé après 60 s.
+# Validation du certificat entreprise : setDomainSuffixMatch + setCaPath("/system/etc/security/cacerts") par réflexion
+#   (API système, souvent refusée aux applis) puis repli sur les autorités « system: » du magasin AndroidCAStore
+#   (setCaCertificates), équivalent à « Utiliser les certificats système ».
 # Événements JS : window.reseauEvent(type, json) avec type = perm, net, resume, scan, publicip, speed, speedDone,
-#   lanProgress, lanHost, lanService, lanDone, ping, pingDone, trace, traceDone, dns, port, location.
+#   lanProgress, lanHost, lanService, lanDone, ping, pingDone, trace, traceDone, dns, port, location, wifiAdd.
 # Tuile Socle : MAGPrint.widgetPut({type:'wifi'|'mobile'|'none', name, gen, quality:0-4, dbm, last:{down, up, ping, date}}).
 #   Action de tuile : extra « socle » = {"speed":1} → ouvre l'écran du test de débit (démarrage automatique
 #   seulement en wifi ; sur le réseau mobile, la page demande d'abord confirmation).

@@ -296,7 +296,7 @@ var TYPES = {
   sos:{n:'Urgence : bouton SOS',i:'sos',w:1}, coffre:{n:'Coffre : mots de passe',i:'lock',w:1},
   qrcode:{n:'QR : lire un code',i:'qr',w:1}, livre:{n:'Liseuse : livre en cours',i:'book',w:2},
   budget:{n:'Budget : dépenses du mois',i:'wallet',w:2,tall:1}, dicta:{n:'Dictaphone',i:'mic',w:1},
-  meteoapp:{n:'Météo : aujourd\'hui',i:'sun',w:2}, mag:{n:'Mes applis MAG',i:'mag',w:2}, note:{n:'Note rapide',i:'note',w:1}
+  meteoapp:{n:'Météo : aujourd\'hui',i:'sun',w:2}, reseau:{n:'Réseau : connexion et débit',i:'web',w:1}, mag:{n:'Mes applis MAG',i:'mag',w:2}, note:{n:'Note rapide',i:'note',w:1}
 };
 
 /* ---------- Marges du système ---------- */
@@ -455,6 +455,7 @@ function tileHtml(cfg, idx){
     case 'budget': body = budgetHtml(cfg); break;
     case 'dicta': body = dictaHtml(cfg); break;
     case 'meteoapp': body = meteoAppHtml(cfg); break;
+    case 'reseau': body = reseauHtml(cfg); break;
     case 'note': body = '<div class="hd">'+ic('note')+'Note rapide</div><textarea placeholder="Écris ici…">'+esc(localStorage.getItem('socle-note')||'')+'</textarea>'; break;
   }
   var ed = '<div class="ed"><button data-ed="left" aria-label="Avant">'+ic('left')+'</button><button data-ed="size" aria-label="Taille">'+ic('size')+'</button><button data-ed="right" aria-label="Après">'+ic('right')+'</button><button class="x" data-ed="del" aria-label="Retirer">'+ic('x')+'</button></div>';
@@ -771,6 +772,19 @@ function meteoAppHtml(cfg){
   return h;
 }
 
+/* Réseau */
+var RES='fr.magformation13.reseau';
+function reseauHtml(cfg){
+  var hd='<div class="hd">'+ic('web')+'Réseau</div>'; if(!app(RES)) return hd+missing('Réseau');
+  var d=wd(RES)||{}, q=Math.max(0,Math.min(4,d.quality||0));
+  var bars='<span style="display:inline-flex;gap:2px;align-items:flex-end;height:16px;margin-left:6px">'+[1,2,3,4].map(function(i){ return '<i style="display:block;width:4px;height:'+(4+i*3)+'px;border-radius:2px;background:'+(i<=q?'var(--acc)':'rgba(255,255,255,.25)')+'"></i>'; }).join('')+'</span>';
+  var name=d.type==='none'?'Hors ligne':(d.type==='mobile'?(d.name||'Mobile')+(d.gen?' · '+d.gen:''):(d.name||'Wifi'));
+  var l=d.last;
+  return hd+'<div style="display:flex;align-items:center;margin-top:6px"><b style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px">'+esc(name)+'</b>'+bars+'</div>'+
+    (l?'<div class="sub">'+Math.round(l.down||0)+' ↓ · '+Math.round(l.up||0)+' ↑ Mb/s</div><div class="sub">'+ago2(l.date)+'</div>':'<div class="sub">Aucun test de débit</div>')+
+    '<button class="mini" data-act="res-speed">'+ic('bolt')+'Tester</button>';
+}
+
 /* Calcul rapide */
 function calcHtml(cfg){
   var has=magApp('calc');
@@ -828,6 +842,7 @@ $('grid').addEventListener('click', function(e){
     if(k2==='ecran-resume') A.homeLaunchWith(ECRAN, JSON.stringify({resume:1}));
     if(k2==='ecran-open'){ var e3=app(ECRAN); if(e3) launch(e3); }
     if(k2==='sos') A.homeLaunchWith(URG, JSON.stringify({sos:1}));
+    if(k2==='res-speed') A.homeLaunchWith(RES, JSON.stringify({speed:1}));
     if(k2==='cof-open'){ var c4=app(COF); if(c4) launch(c4); }
     if(k2==='qr-scan') A.homeLaunchWith(QRP, JSON.stringify({scan:1}));
     if(k2==='lis-resume') A.homeLaunchWith(LIS, JSON.stringify({resume:1}));
@@ -854,7 +869,7 @@ $('grid').addEventListener('click', function(e){
   if(tp==='notes'){ var c3=findApp(function(x){ return x.pkg===CARNET; }); if(c3) launch(c3); }
   if(tp==='podcast'){ var o2=findApp(function(x){ return x.pkg===ONDES; }); if(o2) launch(o2); }
   if(tp==='wallpaper'){ var t2=findApp(function(x){ return x.pkg===TOILE; }); if(t2) launch(t2); }
-  var tmap={camera:PHOTO,scandoc:SCANP,mesure:MESURE,backup:SAUVE,video:ECRAN,sos:URG,coffre:COF,qrcode:QRP,livre:LIS,budget:BUD,dicta:DIC,meteoapp:MET}; if(tmap[tp]){ var ap2=app(tmap[tp]); if(ap2) launch(ap2); }
+  var tmap={camera:PHOTO,scandoc:SCANP,mesure:MESURE,backup:SAUVE,video:ECRAN,sos:URG,coffre:COF,qrcode:QRP,livre:LIS,budget:BUD,dicta:DIC,meteoapp:MET,reseau:RES}; if(tmap[tp]){ var ap2=app(tmap[tp]); if(ap2) launch(ap2); }
 });
 
 /* ---------- Gestes ---------- */
@@ -904,7 +919,7 @@ function startEdit(){ document.body.classList.add('edit'); }
 function endEdit(){ document.body.classList.remove('edit'); }
 $('bDone').onclick=endEdit;
 $('bAddTile').onclick=function(){
-  var need={notes:CARNET,podcast:ONDES,wallpaper:TOILE,camera:PHOTO,scandoc:SCANP,mesure:MESURE,backup:SAUVE,video:ECRAN,sos:URG,coffre:COF,qrcode:QRP,livre:LIS,budget:BUD,dicta:DIC,meteoapp:MET};
+  var need={notes:CARNET,podcast:ONDES,wallpaper:TOILE,camera:PHOTO,scandoc:SCANP,mesure:MESURE,backup:SAUVE,video:ECRAN,sos:URG,coffre:COF,qrcode:QRP,livre:LIS,budget:BUD,dicta:DIC,meteoapp:MET,reseau:RES};
   var h='<h2>Ajouter une tuile</h2><div class="menu">'+Object.keys(TYPES).map(function(k){ var miss=need[k]&&!findApp(function(a){ return a.pkg===need[k]; }); return '<button data-add="'+k+'"'+(miss?' style="opacity:.5"':'')+'>'+ic(TYPES[k].i)+'<span style="flex:1;text-align:left">'+TYPES[k].n+(miss?'<br><small style="color:var(--tx3)">Appli non installée</small>':'')+'</span></button>'; }).join('')+'</div><div class="empty">Astuce : en mode modification, le bouton ⤢ passe une tuile de demi-largeur à pleine largeur, puis en grande hauteur pour les tuiles qui le permettent.</div>';
   openSheet(h,'add');
 };

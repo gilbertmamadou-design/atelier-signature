@@ -222,5 +222,13 @@
   "name": "QR",
   "icons": "android-icons-qr",
   "file": "QR.apk"
+ },
+ {
+  "app": "reseau",
+  "web": "www-reseau",
+  "appid": "fr.magformation13.reseau",
+  "name": "Réseau",
+  "icons": "android-icons-reseau",
+  "file": "Reseau.apk"
  }
 ]

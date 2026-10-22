@@ -164,6 +164,14 @@ h1{font-size:24px;margin:2px 2px 12px;font-weight:800}
 .net .m span{font-size:12.5px;color:var(--tx3)}
 .net .r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;font-size:14px;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
 .net .sw{width:10px;height:10px;border-radius:3px;flex:none}
+button.net{width:100%;text-align:left}
+button.net:active{background:var(--bg3)}
+.pw{position:relative}
+.pw .inp{padding-right:58px}
+.pw button{position:absolute;right:4px;top:4px;width:48px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;color:var(--tx2)}
+.pw button.on{color:var(--acc)}
+.fm label.lb{margin-top:12px}
+select.inp{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,#b4b8c7 50%),linear-gradient(135deg,#b4b8c7 50%,transparent 50%);background-position:calc(100% - 20px) 50%,calc(100% - 14px) 50%;background-size:6px 6px;background-repeat:no-repeat;padding-right:34px}
 .advice{display:flex;gap:12px;align-items:center}
 .advice .big{font-size:40px;font-weight:800;line-height:1;color:var(--ok);min-width:56px;text-align:center}
 .advice .big small{display:block;font-size:11px;color:var(--tx3);font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin-top:4px}
@@ -213,7 +221,7 @@ label.lb{display:block;font-size:13px;font-weight:700;color:var(--tx3);margin:0 
 .pl .v.bad{color:var(--bad)}
 .mono{font-family:ui-monospace,"Roboto Mono",monospace;font-size:14px;word-break:break-all}
 .rel{display:flex;gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
-.rel:first-child{border-top:0;padding-top:2px}
+.rel:first-child,h3+.rel{border-top:0;padding-top:2px}
 .rel .m{flex:1;min-width:0}
 .rel .m b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rel .m span{display:block;font-size:12.5px;color:var(--tx3)}
@@ -291,12 +299,14 @@ label.lb{display:block;font-size:13px;font-weight:700;color:var(--tx3);margin:0 
   <div class="card warn-c" id="wfWarn" hidden></div>
   <div class="row" style="margin:0 0 12px">
     <button class="btn main" id="wfScan"><svg class="ic" viewBox="0 0 24 24"><use href="#i-refresh"/></svg>Rechercher</button>
+    <button class="btn" id="wfHidden" style="flex:none;width:auto"><svg class="ic" viewBox="0 0 24 24"><use href="#i-lock"/></svg>Réseau masqué</button>
   </div>
   <div class="hint" id="wfAge" style="margin:-4px 2px 12px"></div>
   <div class="seg" id="wfSeg"><button data-b="2.4" class="on">2,4 GHz</button><button data-b="5">5 GHz</button><button data-b="6">6 GHz</button></div>
   <div class="card" style="padding:10px"><div id="wfChart"></div><div class="hint" id="wfChartNote" style="margin:8px 4px 2px"></div></div>
   <div class="card" id="wfAdvice" hidden></div>
-  <div class="card"><h3 id="wfListH">Réseaux visibles</h3><div id="wfList"></div></div>
+  <div class="card"><h3 id="wfListH">Réseaux visibles</h3><div id="wfList"></div><p class="hint">Touche un réseau pour voir ses détails ou t'y connecter avec son mot de passe.</p></div>
+  <div class="card" id="wfAdded" hidden></div>
   <p class="hint">Android autorise 4 recherches toutes les 2 minutes. Au-delà, la liste affichée est la dernière connue : attends un peu puis relance.</p>
 </main>
 
@@ -451,6 +461,8 @@ label.lb{display:block;font-size:13px;font-weight:700;color:var(--tx3);margin:0 
   <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
   <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
   <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
   <symbol id="i-loc" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/><circle cx="12" cy="12" r="7"/></symbol>
 </svg>
 
@@ -903,6 +915,7 @@ $('histClear').onclick = function(){
 var WF = { list: [], at: 0, band: '2.4', busy: false, warn: '' };
 function wifiOpen(){
   if(R) R.startWatch();
+  renderAdded();
   readStatus();
   if(ST.wifi.band && !WF.touched) WF.band = ST.wifi.band;
   segSync();
@@ -947,10 +960,12 @@ function renderWifi(){
   $('wfListH').textContent = 'Réseaux visibles en ' + WF.band.replace('.', ',') + ' GHz (' + L.length + ')';
   $('wfList').innerHTML = L.length ? L.map(function(n){
     var q = wifiQ(n.rssi), sc = secOf(n.sec);
-    return '<div class="net"><span class="sw" style="background:' + col[n.bssid] + '"></span><div class="m"><b>' + (n.ssid ? esc(n.ssid) : '<i style="color:var(--tx3)">Réseau masqué</i>') + (n.me ? ' <span class="tag acc">Connecté</span>' : isMine(n) ? ' <span class="tag">Ta box</span>' : '') + '</b>' +
+    return '<button class="net" data-bssid="' + esc(n.bssid) + '"><span class="sw" style="background:' + col[n.bssid] + '"></span><div class="m"><b>' + (n.ssid ? esc(n.ssid) : '<i style="color:var(--tx3)">Réseau masqué</i>') + (n.me ? ' <span class="tag acc">Connecté</span>' : isMine(n) ? ' <span class="tag">Ta box</span>' : '') + '</b>' +
       '<span>Canal ' + n.channel + (n.width > 20 ? ' · ' + n.width + ' MHz' : '') + ' · <span class="c-' + (sc.c === 'ok' ? 'ok' : sc.c === 'warn' ? 'warn' : 'bad') + '">' + sc.t + '</span>' + (n.std && STD[n.std] ? ' · ' + STD[n.std].split(' (')[0] : '') + '</span></div>' +
-      '<div class="r">' + bars(q ? q.q : 0, true) + '<span class="num">' + neg(n.rssi) + ' dBm</span></div></div>';
+      '<div class="r">' + bars(q ? q.q : 0, true) + '<span class="num">' + neg(n.rssi) + ' dBm</span></div></button>';
   }).join('') : '<div class="empty">' + (WF.at ? 'Aucun wifi visible sur cette bande.' : 'Lance une recherche.') + '</div>';
+  $('wfList').querySelectorAll('[data-bssid]').forEach(function(b){ b.onclick = function(){ netSheet(WF.list.filter(function(n){ return n.bssid === b.dataset.bssid; })[0]); }; });
+  renderAdded();
   renderAdvice();
 }
 function chanChart(L, band, col){
@@ -1020,6 +1035,126 @@ function renderAdvice(){
   h += '</div></div>';
   if(!good) h += '<p class="hint" style="margin-top:12px">Pour changer : ouvre l\'adresse de ta box' + (ST.ip && ST.ip.gateway ? ' (' + esc(ST.ip.gateway) + ')' : '') + ' dans un navigateur, menu Wi-Fi, réglage « Canal ». La plupart des box choisissent seules (mode automatique) : ce n\'est utile que si le wifi est lent alors que le signal est bon.</p>';
   $('wfAdvice').innerHTML = h; $('wfAdvice').hidden = false;
+}
+
+/* ---------- Connexion à un wifi (mot de passe connu de l'utilisateur) ---------- */
+function secCode(cap){
+  cap = cap || '';
+  if(/EAP/.test(cap)) return 'eap';
+  if(/SAE/.test(cap)) return /PSK/.test(cap) ? 'wpa2' : 'wpa3';
+  if(/PSK|RSN|WPA/.test(cap)) return 'wpa2';
+  if(/WEP/.test(cap)) return 'wep';
+  if(/OWE/.test(cap)) return 'owe';
+  return 'open';
+}
+function netSheet(n){
+  if(!n) return;
+  var q = wifiQ(n.rssi), sc = secOf(n.sec), code = secCode(n.sec);
+  var h = '<h3>' + (n.ssid ? esc(n.ssid) : 'Réseau masqué') + '</h3><div class="rows">' +
+    row('Signal', neg(n.rssi) + ' dBm', q ? q.w + ' : ' + q.e + '.' : '') +
+    row('Bande et canal', n.band.replace('.', ',') + ' GHz · ' + n.channel + (n.width > 20 ? ' <small>' + n.width + ' MHz</small>' : ''), '') +
+    row('Sécurité', '<span class="c-' + (sc.c === 'ok' ? 'ok' : sc.c === 'warn' ? 'warn' : 'bad') + '">' + sc.t + '</span>', code === 'open' ? 'Sans mot de passe : ce que tu envoies peut être vu par d\'autres. Évite les achats et les codes.' : code === 'eap' ? 'Réseau d\'entreprise ou d\'école : identifiant et mot de passe personnels.' : 'Protégé par un mot de passe.') +
+    (n.std && STD[n.std] ? row('Norme', STD[n.std].split(' (')[0], '') : '') + '</div>';
+  var col = '<div class="col">';
+  if(n.me) h += '<p><b>Tu es connecté à ce réseau.</b></p>';
+  else if(!n.ssid) h += '<p class="hint">Ce réseau cache son nom : utilise le bouton « Réseau masqué » et tape son nom exact.</p>';
+  else if(code === 'wep' || code === 'owe') { h += '<p class="hint">Ce type de sécurité se règle seulement dans les réglages wifi d\'Android.</p>'; col += '<button class="btn" id="nsSet">' + ic('gear') + 'Ouvrir les réglages wifi</button>'; }
+  else col += '<button class="btn main" id="nsGo">' + ic('lock') + 'Se connecter</button>';
+  sheet(h + col + '<button class="btn" id="nsClose">Fermer</button></div>', function(r){
+    var g = r.querySelector('#nsGo'); if(g) g.onclick = function(){ closeSheet(); setTimeout(function(){ connectSheet({ ssid: n.ssid, sec: code, hidden: false }); }, 60); };
+    var st = r.querySelector('#nsSet'); if(st) st.onclick = function(){ closeSheet(); openSet('wifi'); };
+    r.querySelector('#nsClose').onclick = closeSheet;
+  });
+}
+$('wfHidden').onclick = function(){ connectSheet({ ssid: '', sec: 'wpa2', hidden: true }); };
+function connectSheet(c){
+  var SECS = [['wpa2', 'WPA2 / WPA3 (mot de passe)'], ['wpa3', 'WPA3 seulement'], ['open', 'Aucune (réseau ouvert)'], ['eap', 'Entreprise / école (identifiant)']];
+  var h = '<h3>' + (c.hidden ? 'Réseau masqué' : 'Se connecter à « ' + esc(c.ssid) + ' »') + '</h3><div class="fm">';
+  if(c.hidden){
+    h += '<label class="lb" for="cxSsid">Nom exact du réseau</label><input class="inp" id="cxSsid" maxlength="32" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="respecte majuscules et espaces">' +
+      '<label class="lb" for="cxSec">Sécurité</label><select class="inp" id="cxSec">' + SECS.map(function(x){ return '<option value="' + x[0] + '"' + (x[0] === c.sec ? ' selected' : '') + '>' + x[1] + '</option>'; }).join('') + '</select>';
+  }
+  h += '<div id="cxPers"><label class="lb" for="cxPass">Mot de passe du wifi</label><div class="pw"><input class="inp" id="cxPass" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="63"><button type="button" class="eye" data-for="cxPass" aria-label="Afficher">' + ic('eye') + '</button></div>' +
+    '<p class="hint">Souvent écrit sous la box (« clé de sécurité »). 8 caractères au moins.</p></div>';
+  h += '<div id="cxEap" hidden>' +
+    '<label class="lb">Méthode</label><div class="seg" id="cxMeth"><button data-v="PEAP" class="on">PEAP</button><button data-v="TTLS">TTLS</button></div>' +
+    '<label class="lb" style="margin-top:0">Authentification interne</label><div class="seg" id="cxPh2"><button data-v="MSCHAPV2" class="on">MSCHAPV2</button><button data-v="PAP">PAP</button></div>' +
+    '<label class="lb" style="margin-top:0" for="cxId">Identifiant</label><input class="inp" id="cxId" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ex. prenom.nom@etablissement.fr">' +
+    '<label class="lb" for="cxEp">Mot de passe</label><div class="pw"><input class="inp" id="cxEp" type="password" autocomplete="off" autocapitalize="off" spellcheck="false"><button type="button" class="eye" data-for="cxEp" aria-label="Afficher">' + ic('eye') + '</button></div>' +
+    '<label class="lb" for="cxAnon">Identité anonyme <span style="font-weight:500">(facultatif)</span></label><input class="inp" id="cxAnon" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ex. anonymous@etablissement.fr">' +
+    '<label class="lb" for="cxDom">Domaine du serveur</label><input class="inp" id="cxDom" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ex. etablissement.fr">' +
+    '<p class="hint">Le domaine permet au téléphone de vérifier qu\'il parle au vrai serveur (et pas à un faux réseau qui volerait ton mot de passe). Android l\'exige : demande-le au service informatique, ou regarde leur page « eduroam ».</p></div>';
+  h += '</div><p class="hint">Réseau ne garde pas le mot de passe : il le confie directement à Android.</p>' +
+    '<div class="col"><button class="btn main" id="cxGo">' + ic('lock') + 'Se connecter</button><button class="btn" id="cxSet">Passer par les réglages wifi</button></div>';
+  sheet(h, function(r){
+    function sec(){ return c.hidden ? r.querySelector('#cxSec').value : c.sec; }
+    function sync(){ var s2 = sec(); r.querySelector('#cxPers').hidden = s2 === 'open' || s2 === 'eap'; r.querySelector('#cxEap').hidden = s2 !== 'eap'; }
+    if(c.hidden) r.querySelector('#cxSec').onchange = sync;
+    sync();
+    r.querySelectorAll('.eye').forEach(function(b){ b.onclick = function(){ var i = r.querySelector('#' + b.dataset.for); var show = i.type === 'password'; i.type = show ? 'text' : 'password'; b.classList.toggle('on', show); b.setAttribute('aria-label', show ? 'Masquer' : 'Afficher'); }; });
+    ['cxMeth', 'cxPh2'].forEach(function(id){ r.querySelectorAll('#' + id + ' button').forEach(function(b){ b.onclick = function(){ r.querySelectorAll('#' + id + ' button').forEach(function(x){ x.classList.toggle('on', x === b); }); }; }); });
+    function val(id){ var e = r.querySelector('#' + id); return e ? e.value : ''; }
+    function seg(id){ var e = r.querySelector('#' + id + ' button.on'); return e ? e.dataset.v : ''; }
+    function wipe(){ r.querySelectorAll('input[type=password],#cxEp,#cxPass').forEach(function(i){ i.value = ''; }); }
+    r.querySelector('#cxSet').onclick = function(){
+      var p = sec() === 'eap' ? '' : val('cxPass');
+      wipe(); closeSheet();
+      if(R) R.wifiSettingsWithPass(p); else toast('Disponible dans l\'appli');
+      if(p) toast('Mot de passe copié : colle-le dans le champ du réseau');
+    };
+    r.querySelector('#cxGo').onclick = function(){
+      var cfg = { ssid: c.hidden ? val('cxSsid').trim() : c.ssid, sec: sec(), hidden: !!c.hidden };
+      if(!cfg.ssid){ toast('Indique le nom du réseau'); return; }
+      if(cfg.sec === 'wpa2' || cfg.sec === 'wpa3'){
+        cfg.pass = val('cxPass');
+        if(cfg.sec === 'wpa2' && (cfg.pass.length < 8 || cfg.pass.length > 63)){ toast('Le mot de passe doit faire entre 8 et 63 caractères'); return; }
+        if(!cfg.pass){ toast('Indique le mot de passe'); return; }
+      }
+      if(cfg.sec === 'eap'){
+        cfg.eap = { method: seg('cxMeth'), phase2: seg('cxPh2'), identity: val('cxId').trim(), password: val('cxEp'), anon: val('cxAnon').trim(), domain: val('cxDom').trim().replace(/^\*?\./, '') };
+        if(!cfg.eap.identity || !cfg.eap.password){ toast('Indique ton identifiant et ton mot de passe'); return; }
+        if(!cfg.eap.domain){ toast('Le domaine du serveur est nécessaire (ou passe par les réglages wifi)'); return; }
+      }
+      if(!R){ toast('Disponible dans l\'appli'); return; }
+      var res = J(R.wifiConnect(JSON.stringify(cfg)));
+      cfg = null; wipe();
+      closeSheet();
+      setTimeout(function(){ connectResult(res); }, 80);
+    };
+  });
+}
+var ERRW = { passlen: 'Le mot de passe doit faire entre 8 et 63 caractères.', nodomain: 'Android exige le domaine du serveur pour ce type de réseau.', nocapath: 'Ce téléphone ne permet pas à une appli de vérifier le certificat du serveur.', nowpa3: 'Cette version d\'Android ne gère pas le WPA3 depuis une appli.', ssid: 'Le nom du réseau est invalide.', addfailed: 'Android a refusé ce réseau.', nointent: 'La fenêtre d\'ajout de réseau d\'Android est introuvable.' };
+function connectResult(o){
+  if(o.ok && o.via === 'intent'){ toast('Confirme dans la fenêtre d\'Android'); return; }
+  if(o.ok && o.via === 'suggestion'){ resultSheet('<h3>Réseau proposé à Android</h3><p>Android affiche une <b>notification « Réseaux wifi suggérés »</b> (ou « Autoriser les réseaux suggérés par Réseau ? ») : touche <b>Autoriser</b>. Le téléphone se connectera tout seul quand ce réseau sera à portée.</p><p class="hint">Rien ne s\'affiche ? Ouvre les réglages de l\'appli, rubrique Wi-Fi, ou passe par les réglages wifi.</p>'); renderAdded(); return; }
+  if(o.ok){ toast('Connexion en cours…'); renderAdded(); return; }
+  resultSheet('<h3>Connexion impossible</h3><p>' + esc(ERRW[o.err] || 'Android n\'a pas accepté ce réseau.') + '</p><p>Tu peux l\'ajouter toi-même dans les réglages wifi d\'Android.</p>', true);
+}
+function resultSheet(h, set){
+  sheet(h + '<div class="col">' + (set ? '<button class="btn main" id="rsSet">' + ic('gear') + 'Ouvrir les réglages wifi</button>' : '') + '<button class="btn" id="rsOk">OK</button></div>', function(r){
+    var s2 = r.querySelector('#rsSet'); if(s2) s2.onclick = function(){ closeSheet(); openSet('wifi'); };
+    r.querySelector('#rsOk').onclick = closeSheet;
+  });
+}
+function wifiAddEvent(o){
+  if(o.ok){ toast(o.code === 2 ? 'Ce réseau était déjà enregistré' : 'Réseau enregistré : le téléphone va s\'y connecter'); renderAdded(); setTimeout(refresh, 2500); }
+  else if(o.cancelled) toast('Ajout annulé');
+  else connectResult({ ok: false, err: o.err || 'addfailed' });
+}
+function renderAdded(){
+  var L = []; try{ L = R && R.wifiAdded ? J(R.wifiAdded()) : []; }catch(e){}
+  if(!Array.isArray(L)) L = [];
+  $('wfAdded').hidden = !L.length;
+  if(!L.length) return;
+  var SN = { wpa2: 'WPA2/WPA3', wpa3: 'WPA3', open: 'ouvert', eap: 'entreprise' };
+  $('wfAdded').innerHTML = '<h3>Mes réseaux ajoutés par Réseau</h3>' + L.map(function(n){
+    return '<div class="rel">' + ic(n.sec === 'eap' ? 'vpn' : 'wifi') + '<div class="m"><b>' + esc(n.ssid) + '</b><span>' + (SN[n.sec] || '') + (n.hidden ? ' · masqué' : '') + ' · ' + dt(n.at) + '</span></div><button class="btn sm" style="flex:none" data-forget="' + esc(n.ssid) + '">Oublier</button></div>';
+  }).join('') + '<p class="hint">Les mots de passe ne sont pas conservés par Réseau.</p>';
+  $('wfAdded').querySelectorAll('[data-forget]').forEach(function(b){ b.onclick = function(){
+    var r = J(R.wifiForget(b.dataset.forget)); renderAdded();
+    if(r.settings) resultSheet('<h3>Dernière étape dans les réglages</h3><p>Android ne laisse pas une appli effacer un réseau ajouté par sa fenêtre de confirmation. Dans les réglages wifi, ouvre <b>Réseaux enregistrés</b>, touche « ' + esc(b.dataset.forget) + ' » puis <b>Supprimer</b>.</p>', true);
+    else toast('Réseau oublié');
+  }; });
 }
 
 /* =================== APPAREILS =================== */
@@ -1390,6 +1525,7 @@ window.reseauEvent = function(type, o){
     case 'dns': dnsEvent(o); break;
     case 'port': portEvent(o); break;
     case 'location': locEvent(o); break;
+    case 'wifiAdd': wifiAddEvent(o); break;
   }
 };
 

@@ -3,11 +3,15 @@ package __PKG__;
 // Réseau : état de la connexion (wifi et mobile 4G/5G), test de débit, wifi autour, appareils du réseau local, outils (ping, DNS, port).
 // Exposé en JavaScript sous window.MAGReseau. Aucun effet au chargement : rien ne démarre tant que la page n'appelle pas.
 // Événements : window.reseauEvent(type, json).
-// Codes de requête : 6250 (position), 6251 (état du téléphone).
+// Codes de requête : 6250 (position), 6251 (état du téléphone), 6252 (ajout d'un réseau wifi).
+// Connexion wifi : uniquement aux réseaux dont l'utilisateur a le mot de passe ; aucun mot de passe n'est enregistré par l'appli.
 
 import android.Manifest;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
+import android.content.ClipData;
+import android.content.ClipDescription;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -27,7 +31,10 @@ import android.net.Uri;
 import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
 import android.net.wifi.ScanResult;
+import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiEnterpriseConfig;
 import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiNetworkSuggestion;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -93,7 +100,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ReseauBridge {
-    static final int REQ_LOC = 6250, REQ_PHONE = 6251;
+    static final int REQ_LOC = 6250, REQ_PHONE = 6251, REQ_ADD_NET = 6252;
     static final String PREFS = "reseau";
     private static final String UA = "Mozilla/5.0 (Linux; Android 15) Reseau/1.0";
     private static final String CF = "https://speed.cloudflare.com";
@@ -109,7 +116,25 @@ public class ReseauBridge {
     public ReseauBridge(Activity a, WebView wv) { this.a = a; this.wv = wv; }
 
     // ---------- Cycle de vie (appelé par MainActivity) ----------
-    public void onResult(int requestCode, int resultCode, Intent data) { }
+    public void onResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode != REQ_ADD_NET) return;
+        JSONObject o = new JSONObject();
+        try {
+            o.put("via", "intent"); o.put("ssid", pendingAdd == null ? "" : pendingAdd.optString("ssid"));
+            int code = -1;
+            if (resultCode == Activity.RESULT_OK && data != null && Build.VERSION.SDK_INT >= 30) {
+                ArrayList<Integer> l = data.getIntegerArrayListExtra(Settings.EXTRA_WIFI_NETWORK_RESULT_LIST);
+                if (l != null && !l.isEmpty() && l.get(0) != null) code = l.get(0);
+            }
+            // 0 : ajouté, 1 : échec, 2 : déjà enregistré ; annulé par l'utilisateur : RESULT_CANCELED
+            o.put("ok", resultCode == Activity.RESULT_OK && code != 1);
+            o.put("code", code);
+            if (resultCode != Activity.RESULT_OK) o.put("cancelled", true);
+            if (o.optBoolean("ok") && pendingAdd != null) remember(pendingAdd, "intent", -1);
+        } catch (Exception e) { }
+        pendingAdd = null;
+        emit("wifiAdd", o.toString());
+    }
     public void onPermissions(int requestCode) {
         if (requestCode != REQ_LOC && requestCode != REQ_PHONE) return;
         emit("perm", permState());
@@ -1314,6 +1339,190 @@ public class ReseauBridge {
                 if (url == null || !url.startsWith("https://")) return;
                 a.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             } catch (Throwable t) { toast("Impossible d'ouvrir le lien"); }
+        } });
+    }
+
+    // ---------- Connexion à un wifi (avec le mot de passe fourni par l'utilisateur) ----------
+    private JSONObject pendingAdd = null;   // sans le mot de passe
+
+    private static String q(String s) { return "\"" + s + "\""; }
+
+    private static WifiEnterpriseConfig eapConfig(JSONObject e, boolean requireCa) throws Exception {
+        WifiEnterpriseConfig c = new WifiEnterpriseConfig();
+        c.setEapMethod("TTLS".equalsIgnoreCase(e.optString("method")) ? WifiEnterpriseConfig.Eap.TTLS : WifiEnterpriseConfig.Eap.PEAP);
+        c.setPhase2Method("PAP".equalsIgnoreCase(e.optString("phase2")) ? WifiEnterpriseConfig.Phase2.PAP : WifiEnterpriseConfig.Phase2.MSCHAPV2);
+        c.setIdentity(e.optString("identity"));
+        c.setPassword(e.optString("password"));
+        if (e.optString("anon").length() > 0) c.setAnonymousIdentity(e.optString("anon"));
+        String dom = e.optString("domain").trim();
+        if (dom.length() > 0) {
+            c.setDomainSuffixMatch(dom);
+            // Certificats d'autorité du système pour vérifier le serveur
+            if (Build.VERSION.SDK_INT >= 29) {
+                // setCaPath (« certificats du système ») n'est pas ouvert à toutes les applis : sinon on passe
+                // les autorités du magasin système (AndroidCAStore), ce qui revient au même.
+                boolean caOk = false;
+                try { WifiEnterpriseConfig.class.getMethod("setCaPath", String.class).invoke(c, "/system/etc/security/cacerts"); caOk = true; } catch (Throwable t) { }
+                if (!caOk) {
+                    try {
+                        java.security.KeyStore ks = java.security.KeyStore.getInstance("AndroidCAStore");
+                        ks.load(null, null);
+                        List<java.security.cert.X509Certificate> cas = new ArrayList<>();
+                        java.util.Enumeration<String> al = ks.aliases();
+                        while (al.hasMoreElements()) {
+                            String n = al.nextElement();
+                            if (!n.startsWith("system:")) continue;
+                            java.security.cert.Certificate ct = ks.getCertificate(n);
+                            if (ct instanceof java.security.cert.X509Certificate) cas.add((java.security.cert.X509Certificate) ct);
+                        }
+                        if (!cas.isEmpty()) { c.setCaCertificates(cas.toArray(new java.security.cert.X509Certificate[0])); caOk = true; }
+                    } catch (Throwable t) { }
+                }
+                if (!caOk && requireCa) throw new Exception("nocapath");
+            }
+        } else if (requireCa) throw new Exception("nodomain");
+        return c;
+    }
+
+    private WifiNetworkSuggestion suggestion(JSONObject o, boolean forRemoval) throws Exception {
+        String ssid = o.optString("ssid"), sec = o.optString("sec"), pass = forRemoval ? "00000000" : o.optString("pass");
+        WifiNetworkSuggestion.Builder b = new WifiNetworkSuggestion.Builder().setSsid(ssid);
+        if (o.optBoolean("hidden")) b.setIsHiddenSsid(true);
+        if ("wpa2".equals(sec)) b.setWpa2Passphrase(pass);
+        else if ("wpa3".equals(sec)) b.setWpa3Passphrase(pass);
+        else if ("eap".equals(sec)) {
+            JSONObject e = o.optJSONObject("eap"); if (e == null) e = new JSONObject();
+            if (forRemoval) { e = new JSONObject(e.toString()); e.put("password", "x"); }
+            b.setWpa2EnterpriseConfig(eapConfig(e, Build.VERSION.SDK_INT >= 30 && !forRemoval));
+        }
+        return b.build();
+    }
+
+    /** cfg {ssid, sec: open|wpa2|wpa3|eap, pass, hidden, eap:{method, phase2, identity, password, anon, domain}}.
+     *  Retour {ok, via: intent|suggestion|legacy, pending, err}. Pour « intent », le résultat arrive par l'événement « wifiAdd ». */
+    @SuppressWarnings("deprecation")
+    @JavascriptInterface public String wifiConnect(String json) {
+        JSONObject r = new JSONObject();
+        try {
+            final JSONObject o = new JSONObject(json);
+            String ssid = o.optString("ssid"), sec = o.optString("sec");
+            if (ssid.isEmpty() || ssid.length() > 32) throw new Exception("ssid");
+            if ("wpa2".equals(sec) && (o.optString("pass").length() < 8 || o.optString("pass").length() > 63)) throw new Exception("passlen");
+            if ("wpa3".equals(sec) && o.optString("pass").isEmpty()) throw new Exception("passlen");
+            final JSONObject safe = new JSONObject(o.toString()); safe.remove("pass");
+            if (safe.optJSONObject("eap") != null) safe.getJSONObject("eap").remove("password");
+            WifiManager w = wm();
+            if (w != null && !w.isWifiEnabled() && Build.VERSION.SDK_INT < 29) w.setWifiEnabled(true);
+            if (Build.VERSION.SDK_INT >= 30) {
+                final ArrayList<WifiNetworkSuggestion> l = new ArrayList<>();
+                l.add(suggestion(o, false));
+                pendingAdd = safe;
+                ui.post(new Runnable() { public void run() {
+                    try {
+                        Intent i = new Intent(Settings.ACTION_WIFI_ADD_NETWORKS);
+                        i.putParcelableArrayListExtra(Settings.EXTRA_WIFI_NETWORK_LIST, l);
+                        a.startActivityForResult(i, REQ_ADD_NET);
+                    } catch (Throwable t) {
+                        pendingAdd = null;
+                        emit("wifiAdd", "{\"ok\":false,\"via\":\"intent\",\"err\":\"nointent\"}");
+                    }
+                } });
+                r.put("ok", true); r.put("via", "intent"); r.put("pending", true);
+            } else if (Build.VERSION.SDK_INT == 29) {
+                if ("eap".equals(sec) && o.optJSONObject("eap") != null && o.getJSONObject("eap").optString("domain").trim().isEmpty()) throw new Exception("nodomain");
+                List<WifiNetworkSuggestion> l = new ArrayList<>();
+                l.add(suggestion(o, false));
+                try { w.removeNetworkSuggestions(Collections.singletonList(suggestion(o, true))); } catch (Throwable t) { }
+                int st = w.addNetworkSuggestions(l);
+                r.put("status", st);
+                r.put("ok", st == WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS || st == 3 /* déjà présente */);
+                r.put("via", "suggestion");
+                if (r.optBoolean("ok")) remember(safe, "suggestion", -1); else r.put("err", "status" + st);
+            } else {
+                if ("wpa3".equals(sec)) throw new Exception("nowpa3");
+                WifiConfiguration c = new WifiConfiguration();
+                c.SSID = q(ssid);
+                c.hiddenSSID = o.optBoolean("hidden");
+                if ("wpa2".equals(sec)) { c.preSharedKey = q(o.optString("pass")); c.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK); }
+                else if ("eap".equals(sec)) {
+                    c.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_EAP); c.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.IEEE8021X);
+                    c.enterpriseConfig = eapConfig(o.optJSONObject("eap") == null ? new JSONObject() : o.getJSONObject("eap"), false);
+                } else c.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE);
+                int id = w.addNetwork(c);
+                if (id < 0) throw new Exception("addfailed");
+                boolean en = w.enableNetwork(id, true);
+                w.reconnect();
+                r.put("ok", en); r.put("via", "legacy"); r.put("netId", id);
+                remember(safe, "legacy", id);
+            }
+        } catch (Throwable t) {
+            try { r.put("ok", false); r.put("err", err(t, "échec")); } catch (Exception e) { }
+        }
+        return r.toString();
+    }
+
+    private void remember(JSONObject safe, String via, int netId) {
+        try {
+            JSONArray l = added(), k = new JSONArray();
+            for (int i = 0; i < l.length(); i++) if (!l.getJSONObject(i).optString("ssid").equals(safe.optString("ssid"))) k.put(l.get(i));
+            JSONObject e = new JSONObject();
+            e.put("ssid", safe.optString("ssid")); e.put("sec", safe.optString("sec")); e.put("hidden", safe.optBoolean("hidden")); e.put("via", via); e.put("at", System.currentTimeMillis());
+            if (netId >= 0) e.put("netId", netId);
+            JSONObject eap = safe.optJSONObject("eap");
+            if (eap != null) { JSONObject x = new JSONObject(); x.put("method", eap.optString("method")); x.put("phase2", eap.optString("phase2")); x.put("identity", eap.optString("identity")); x.put("domain", eap.optString("domain")); e.put("eap", x); }
+            k.put(e);
+            prefs().edit().putString("added", k.toString()).apply();
+        } catch (Exception e) { }
+    }
+    private JSONArray added() { try { return new JSONArray(prefs().getString("added", "[]")); } catch (Exception e) { return new JSONArray(); } }
+
+    /** Réseaux ajoutés par l'appli (jamais de mot de passe). */
+    @JavascriptInterface public String wifiAdded() { return added().toString(); }
+
+    /** Oublie un réseau ajouté. Retour {ok, settings: true si l'utilisateur doit finir dans les réglages (réseau ajouté par la fenêtre d'Android)}. */
+    @SuppressWarnings("deprecation")
+    @JavascriptInterface public String wifiForget(String ssid) {
+        JSONObject r = new JSONObject();
+        try {
+            JSONArray l = added(), k = new JSONArray(); JSONObject f = null;
+            for (int i = 0; i < l.length(); i++) { JSONObject e = l.getJSONObject(i); if (e.optString("ssid").equals(ssid)) f = e; else k.put(e); }
+            prefs().edit().putString("added", k.toString()).apply();
+            boolean needSettings = false;
+            if (f != null) {
+                String via = f.optString("via");
+                WifiManager w = wm();
+                if ("suggestion".equals(via) && Build.VERSION.SDK_INT >= 29) w.removeNetworkSuggestions(Collections.singletonList(suggestion(f, true)));
+                else if ("legacy".equals(via) && f.has("netId")) { if (!w.removeNetwork(f.getInt("netId"))) needSettings = true; else w.saveConfiguration(); }
+                else needSettings = true;   // ajouté par la fenêtre système : seul l'utilisateur peut l'oublier
+            }
+            r.put("ok", true); r.put("settings", needSettings);
+        } catch (Throwable t) { try { r.put("ok", false); r.put("settings", true); } catch (Exception e) { } }
+        return r.toString();
+    }
+
+    /** Repli : copie le mot de passe (marqué sensible, effacé après 60 s) puis ouvre les réglages wifi. */
+    @JavascriptInterface public void wifiSettingsWithPass(final String pass) {
+        ui.post(new Runnable() { public void run() {
+            try {
+                if (pass != null && !pass.isEmpty()) {
+                    final ClipboardManager cb = (ClipboardManager) a.getSystemService(Context.CLIPBOARD_SERVICE);
+                    ClipData cd = ClipData.newPlainText("Mot de passe wifi", pass);
+                    android.os.PersistableBundle ex = new android.os.PersistableBundle();
+                    ex.putBoolean("android.content.extra.IS_SENSITIVE", true);
+                    cd.getDescription().setExtras(ex);
+                    cb.setPrimaryClip(cd);
+                    ui.postDelayed(new Runnable() { public void run() {
+                        try {
+                            ClipData c = cb.getPrimaryClip();
+                            if (c != null && c.getDescription() != null && "Mot de passe wifi".contentEquals(c.getDescription().getLabel())) {
+                                if (Build.VERSION.SDK_INT >= 28) cb.clearPrimaryClip(); else cb.setPrimaryClip(ClipData.newPlainText("", ""));
+                            }
+                        } catch (Throwable t) { }
+                    } }, 60000);
+                    if (Build.VERSION.SDK_INT < 33) toast("Mot de passe copié : colle-le dans le champ du réseau");
+                }
+            } catch (Throwable t) { }
+            openSettings("wifi");
         } });
     }
 
