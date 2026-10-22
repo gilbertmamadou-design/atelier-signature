@@ -8,6 +8,7 @@
 #    (absent de la liste aujourd'hui : sans cet ajout, la page affiche « Fonctions du téléphone indisponibles »).
 #    Le constructeur n'a aucun effet de bord : le fichier peut être compilé dans toutes les applis.
 #    Classes imbriquées (TelSig, TelDisp, Psl) : simples rappels de téléphonie, RIEN à déclarer dans le manifeste.
+#    Classe imbriquée VpnAlert : récepteur (alerte « wifi non protégé ») à déclarer dans <application> (section 2).
 #    Aucun service, aucune activité supplémentaire.
 #  - www-reseau/index.html : page unique, aucun fichier annexe.
 #
@@ -18,6 +19,9 @@
 #   if [ "$APP" = "reseau" ]; then
 #     addperm ACCESS_NETWORK_STATE ACCESS_WIFI_STATE CHANGE_WIFI_STATE CHANGE_WIFI_MULTICAST_STATE ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION READ_PHONE_STATE INTERNET
 #     addraw '<uses-feature android:name="android.hardware.wifi" android:required="false" /><uses-feature android:name="android.hardware.telephony" android:required="false" /><uses-feature android:name="android.hardware.location" android:required="false" /><queries><intent><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="https" /></intent><intent><action android:name="android.intent.action.SEND" /><data android:mimeType="text/plain" /></intent><intent><action android:name="android.settings.WIFI_ADD_NETWORKS" /></intent><intent><action android:name="android.settings.panel.action.WIFI" /></intent></queries>'
+#     addraw '<queries><package android:name="com.wireguard.android" /><intent>…market…</intent><intent>…http…</intent></queries>'
+#     addactivity '<receiver android:name=".ReseauBridge$VpnAlert" android:exported="false">…BOOT_COMPLETED, MY_PACKAGE_REPLACED…</receiver>'
+#     (+ RECEIVE_BOOT_COMPLETED dans addperm)
 #   fi
 
 # ---------- 1. Avant </manifest> : autorisations ----------
@@ -50,16 +54,51 @@
     <intent><action android:name="android.settings.WIFI_ADD_NETWORKS" /></intent>
     <intent><action android:name="android.settings.panel.action.WIFI" /></intent>
 </queries>
+# VPN : savoir si WireGuard est installé et l'ouvrir (getLaunchIntentForPackage), sinon sa page Play Store (market://,
+# repli https) ; Freebox OS s'ouvre en http (http://mafreebox.freebox.fr, seulement depuis le réseau de la box)
+<queries>
+    <package android:name="com.wireguard.android" />
+    <intent><action android:name="android.intent.action.VIEW" /><data android:scheme="market" /></intent>
+    <intent><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="http" /></intent>
+</queries>
+# Réarmer l'alerte « wifi non protégé » au démarrage du téléphone
+<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 # Déjà déclarées pour toutes les applis MAG par print-patch.sh (à garder) :
-#   ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION, fr.magformation13.permission.WIDGET (tuile Socle et sauvegarde)
+#   ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION, POST_NOTIFICATIONS (alerte VPN), fr.magformation13.permission.WIDGET (tuile Socle et sauvegarde)
 # NON nécessaires : ACCESS_BACKGROUND_LOCATION (tout se fait appli ouverte), NEARBY_WIFI_DEVICES (on passe par la position),
 #   aucun service au premier plan, pas de usesCleartextTraffic (la description UPnP est lue par socket brut).
 
 # ---------- 2. Dans <application> ----------
-# Rien.
+# Alerte « wifi non protégé » appli fermée. Non exporté : BOOT_COMPLETED et MY_PACKAGE_REPLACED viennent du système
+# (toujours autorisé) ; les autres actions (…VPN_NET, …VPN_TRUST) viennent de PendingIntent explicites créés par l'appli.
+<receiver android:name=".ReseauBridge$VpnAlert" android:exported="false">
+    <intent-filter>
+        <action android:name="android.intent.action.BOOT_COMPLETED" />
+        <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+    </intent-filter>
+</receiver>
 
 # ---------- 3. Notes ----------
-# Codes de requête : 6250 (position), 6251 (état du téléphone), 6252 (fenêtre « Ajouter des réseaux wifi », résultat lu dans onResult).
+# Codes de requête : 6250 (position), 6251 (état du téléphone), 6252 (fenêtre « Ajouter des réseaux wifi », résultat lu dans onResult),
+#   6253 (notifications, alerte VPN). PendingIntent : 6260 (réseau wifi disponible), 6271-6273 (notification VPN).
+# VPN (WireGuard, com.wireguard.android) :
+#   - État : réseau TRANSPORT_VPN parmi getActiveNetwork/getAllNetworks (un VPN qui exclut Réseau de son tunnel est invisible).
+#     Nom de l'appli VPN : seulement si Android expose le réglage « VPN permanent » (Settings.Secure always_on_vpn_app),
+#     sinon « probablement WireGuard » quand il est installé (aucune API publique ne donne l'appli propriétaire du VPN).
+#   - Alerte appli fermée : ConnectivityManager.registerNetworkCallback(NetworkRequest wifi, PendingIntent) vers
+#     ReseauBridge$VpnAlert ; PendingIntent FLAG_MUTABLE (Android 12+ : sinon le système ne peut pas y ajouter
+#     EXTRA_NETWORK) et Intent explicite (exigé par Android 14 pour un PendingIntent modifiable). Envoyé seulement quand un
+#     wifi devient disponible (équivalent de onAvailable). Le récepteur attend 7 s (goAsync, laisse un VPN permanent se
+#     reconnecter) puis : VPN actif → rien ; wifi ouvert ou WEP (WifiInfo.getCurrentSecurityType, Android 12+ ; sinon scan)
+#     → notification (canal « reseau_vpn ») avec « Activer WireGuard » et « Ne plus prévenir pour ce réseau ».
+#     Une alerte par wifi et par heure (prefs reseau/alerted), liste de confiance (prefs reseau/trusted), réglage
+#     prefs reseau/vpnAlert (actif par défaut). Réarmé à l'ouverture de la page (vpnArm), au démarrage du téléphone et après
+#     une mise à jour de l'appli. Appli fermée, Android cache souvent le nom du wifi (position « seulement pendant
+#     l'utilisation ») : l'alerte dit alors « Ce wifi » et la liste de confiance ne peut pas s'appliquer.
+#   - Tuile : le récepteur complète vpn/wifiSec dans la tuile (WidgetProvider.put) ; Socle lit l'état VPN en direct par
+#     MAGPrint.homeVpn() (ajouté dans print-patch.sh, Socle reçoit ACCESS_NETWORK_STATE).
+#   - « Suis-je chez moi ? » : https://1.1.1.1/cdn-cgi/trace (Cloudflare, IPv4 forcée ; repli speed.cloudflare.com),
+#     comparée à l'IP publique mémorisée sur le wifi « maison » (stockage local de la page, jamais envoyée ailleurs).
 # Connexion wifi : seulement avec le mot de passe saisi par l'utilisateur (WPA2, WPA3-SAE, ouvert, masqué, entreprise PEAP/TTLS
 #   + MSCHAPV2/PAP avec domaine obligatoire). Aucun mot de passe n'est stocké (SharedPreferences « reseau »/added = nom,
 #   sécurité, méthode d'ajout seulement), ni transmis à backupPut/widgetPut. Repli : réglages wifi + mot de passe dans le
@@ -68,10 +107,12 @@
 #   (API système, souvent refusée aux applis) puis repli sur les autorités « system: » du magasin AndroidCAStore
 #   (setCaCertificates), équivalent à « Utiliser les certificats système ».
 # Événements JS : window.reseauEvent(type, json) avec type = perm, net, resume, scan, publicip, speed, speedDone,
-#   lanProgress, lanHost, lanService, lanDone, ping, pingDone, trace, traceDone, dns, port, location, wifiAdd.
-# Tuile Socle : MAGPrint.widgetPut({type:'wifi'|'mobile'|'none', name, gen, quality:0-4, dbm, last:{down, up, ping, date}}).
+#   lanProgress, lanHost, lanService, lanDone, ping, pingDone, trace, traceDone, dns, port, location, wifiAdd, vpn, vpnip.
+# Tuile Socle : MAGPrint.widgetPut({type:'wifi'|'mobile'|'none', name, gen, quality:0-4, dbm, last:{down, up, ping, date},
+#   vpn:bool, wifiSec:'open'|'owe'|'wep'|'psk'|'sae'|'eap'|''}).
 #   Action de tuile : extra « socle » = {"speed":1} → ouvre l'écran du test de débit (démarrage automatique
-#   seulement en wifi ; sur le réseau mobile, la page demande d'abord confirmation).
+#   seulement en wifi ; sur le réseau mobile, la page demande d'abord confirmation) ; {"tab":"vpn"} → écran VPN
+#   (bouton VPN de la tuile quand WireGuard n'est pas installé, et toucher la notification d'alerte).
 # Sauvegarde : MAGPrint.backupPut({tests, releves, appareils_nommes}). Pour que Sauvegarde la récupère : ajouter
 #   "fr.magformation13.reseau" à SauvegardeJob.MAG et à la liste <queries> de Sauvegarde.
 # Android limite les scans wifi à 4 toutes les 2 minutes (appli au premier plan) : au-delà, startScan() est refusé et

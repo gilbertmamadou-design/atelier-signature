@@ -3,11 +3,17 @@ package __PKG__;
 // Réseau : état de la connexion (wifi et mobile 4G/5G), test de débit, wifi autour, appareils du réseau local, outils (ping, DNS, port).
 // Exposé en JavaScript sous window.MAGReseau. Aucun effet au chargement : rien ne démarre tant que la page n'appelle pas.
 // Événements : window.reseauEvent(type, json).
-// Codes de requête : 6250 (position), 6251 (état du téléphone), 6252 (ajout d'un réseau wifi).
+// Codes de requête : 6250 (position), 6251 (état du téléphone), 6252 (ajout d'un réseau wifi), 6253 (notifications).
 // Connexion wifi : uniquement aux réseaux dont l'utilisateur a le mot de passe ; aucun mot de passe n'est enregistré par l'appli.
+// VPN : état (réseau TRANSPORT_VPN), ouverture de WireGuard (com.wireguard.android), alerte « wifi non protégé » appli fermée
+// par le récepteur imbriqué VpnAlert (registerNetworkCallback avec PendingIntent, réarmé au démarrage du téléphone).
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.ClipData;
 import android.content.ClipDescription;
@@ -17,6 +23,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.drawable.Icon;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -100,7 +107,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ReseauBridge {
-    static final int REQ_LOC = 6250, REQ_PHONE = 6251, REQ_ADD_NET = 6252;
+    static final int REQ_LOC = 6250, REQ_PHONE = 6251, REQ_ADD_NET = 6252, REQ_NOTIF = 6253;
     static final String PREFS = "reseau";
     private static final String UA = "Mozilla/5.0 (Linux; Android 15) Reseau/1.0";
     private static final String CF = "https://speed.cloudflare.com";
@@ -136,6 +143,7 @@ public class ReseauBridge {
         emit("wifiAdd", o.toString());
     }
     public void onPermissions(int requestCode) {
+        if (requestCode == REQ_NOTIF) { emit("vpn", vpnState()); return; }
         if (requestCode != REQ_LOC && requestCode != REQ_PHONE) return;
         emit("perm", permState());
         if (requestCode == REQ_LOC && pendingLocate) { pendingLocate = false; if (hasLoc()) locateNow(); else emit("location", "{\"ok\":false,\"err\":\"perm\"}"); }
@@ -256,7 +264,7 @@ public class ReseauBridge {
                 o.put("downKbps", caps.getLinkDownstreamBandwidthKbps());
                 o.put("upKbps", caps.getLinkUpstreamBandwidthKbps());
             }
-            o.put("type", type); o.put("vpn", vpn);
+            o.put("type", type); o.put("vpn", vpn || vpnActive(a));
             try { o.put("airplane", Settings.Global.getInt(a.getContentResolver(), Settings.Global.AIRPLANE_MODE_ON, 0) == 1); } catch (Throwable t) { }
 
             // Adresses (réseau actif, ou wifi s'il n'y a qu'un VPN devant)
@@ -292,6 +300,10 @@ public class ReseauBridge {
                     if (Build.VERSION.SDK_INT >= 29) { w.put("tx", wi.getTxLinkSpeedMbps()); w.put("rx", wi.getRxLinkSpeedMbps()); }
                     if (Build.VERSION.SDK_INT >= 30) w.put("std", wi.getWifiStandard());
                     if (Build.VERSION.SDK_INT >= 31) { try { w.put("sec", wi.getCurrentSecurityType()); } catch (Throwable t) { } }
+                    else if (hasFine() && b != null) {
+                        // Android 11 et moins : sécurité lue dans le dernier scan (même point d'accès)
+                        try { for (ScanResult r : wmg.getScanResults()) if (b.equalsIgnoreCase(r.BSSID)) { w.put("caps", r.capabilities == null ? "" : r.capabilities); break; } } catch (Throwable t) { }
+                    }
                     w.put("hidden", wi.getHiddenSSID());
                 }
             } else w.put("connected", false);
@@ -442,7 +454,7 @@ public class ReseauBridge {
 
     // ---------- Surveillance (pendant que la page est ouverte) ----------
     private boolean watching = false;
-    private ConnectivityManager.NetworkCallback netCb;
+    private ConnectivityManager.NetworkCallback netCb, vpnCb;
     private BroadcastReceiver rx;
     private Object telCbA, telCbB;
     private PhoneStateListener psl;
@@ -481,6 +493,15 @@ public class ReseauBridge {
             cm().registerNetworkCallback(req, netCb);
         } catch (Throwable t) { netCb = null; }
         try {
+            // VPN activé ou coupé (WireGuard…) : la demande doit retirer NOT_VPN, sinon les VPN sont exclus
+            NetworkRequest vr = new NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_VPN).removeCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN).build();
+            vpnCb = new ConnectivityManager.NetworkCallback() {
+                @Override public void onAvailable(Network n) { netChanged(); }
+                @Override public void onLost(Network n) { netChanged(); }
+            };
+            cm().registerNetworkCallback(vr, vpnCb);
+        } catch (Throwable t) { vpnCb = null; }
+        try {
             rx = new BroadcastReceiver() {
                 @Override public void onReceive(Context ctx, Intent i) {
                     String ac = i.getAction();
@@ -518,6 +539,8 @@ public class ReseauBridge {
     private void stopWatchInner() {
         try { if (netCb != null) cm().unregisterNetworkCallback(netCb); } catch (Throwable t) { }
         netCb = null;
+        try { if (vpnCb != null) cm().unregisterNetworkCallback(vpnCb); } catch (Throwable t) { }
+        vpnCb = null;
         try { if (rx != null) a.unregisterReceiver(rx); } catch (Throwable t) { }
         rx = null;
         TelephonyManager t = tm();
@@ -1317,6 +1340,7 @@ public class ReseauBridge {
             else if ("airplane".equals(what)) l.add(new Intent(Settings.ACTION_AIRPLANE_MODE_SETTINGS));
             else if ("vpn".equals(what)) l.add(new Intent(Settings.ACTION_VPN_SETTINGS));
             else if ("location".equals(what)) l.add(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+            else if ("notif".equals(what) && Build.VERSION.SDK_INT >= 26) { l.add(new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, a.getPackageName())); l.add(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + a.getPackageName()))); }
             else if ("app".equals(what)) l.add(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + a.getPackageName())));
             l.add(new Intent(Settings.ACTION_WIRELESS_SETTINGS));
             l.add(new Intent(Settings.ACTION_SETTINGS));
@@ -1524,6 +1548,299 @@ public class ReseauBridge {
             } catch (Throwable t) { }
             openSettings("wifi");
         } });
+    }
+
+    // ---------- VPN (WireGuard) ----------
+    static final String WG = "com.wireguard.android";
+    static final String CH_VPN = "reseau_vpn";
+    static final int NOTIF_VPN = 6270;
+
+    static SharedPreferences vprefs(Context c) { return c.getSharedPreferences(PREFS, Context.MODE_PRIVATE); }
+    static boolean alertOn(Context c) { return vprefs(c).getBoolean("vpnAlert", true); }
+
+    /** Un VPN est-il actif ? (réseau de transport VPN parmi tous les réseaux visibles par l'appli) */
+    @SuppressWarnings("deprecation")
+    static boolean vpnActive(Context c) {
+        try {
+            ConnectivityManager cm = (ConnectivityManager) c.getSystemService(Context.CONNECTIVITY_SERVICE);
+            Network act = cm.getActiveNetwork();
+            NetworkCapabilities k0 = act == null ? null : cm.getNetworkCapabilities(act);
+            if (k0 != null && k0.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) return true;
+            for (Network n : cm.getAllNetworks()) { NetworkCapabilities k = cm.getNetworkCapabilities(n); if (k != null && k.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) return true; }
+        } catch (Throwable t) { }
+        return false;
+    }
+    @SuppressWarnings("deprecation")
+    static Network wifiNet(Context c) {
+        try {
+            ConnectivityManager cm = (ConnectivityManager) c.getSystemService(Context.CONNECTIVITY_SERVICE);
+            for (Network n : cm.getAllNetworks()) { NetworkCapabilities k = cm.getNetworkCapabilities(n); if (k != null && k.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) && !k.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) return n; }
+        } catch (Throwable t) { }
+        return null;
+    }
+    /** WifiInfo.SECURITY_TYPE_* → open | owe | wep | psk | sae | eap | "" */
+    static String secKey(int t) {
+        switch (t) {
+            case 0: return "open";
+            case 6: return "owe";
+            case 1: return "wep";
+            case 2: case 7: return "psk";
+            case 4: case 13: return "sae";
+            case 3: case 5: case 8: case 9: case 10: case 11: case 12: return "eap";
+        }
+        return "";
+    }
+    /** Capacités d'un résultat de scan ([RSN-PSK-CCMP][ESS]…) → même codes */
+    static String capKey(String cap) {
+        if (cap == null) return "";
+        if (cap.contains("EAP")) return "eap";
+        if (cap.contains("SAE")) return "sae";
+        if (cap.contains("OWE")) return "owe";
+        if (cap.contains("PSK") || cap.contains("RSN") || cap.contains("WPA")) return "psk";
+        if (cap.contains("WEP")) return "wep";
+        return "open";
+    }
+    /** {nom du wifi (vide si Android le cache), code de sécurité} pour le wifi connecté. */
+    @SuppressWarnings({"deprecation", "MissingPermission"})
+    static String[] wifiNow(Context c, Network net) {
+        String ssid = "", sec = "";
+        try {
+            ConnectivityManager cm = (ConnectivityManager) c.getSystemService(Context.CONNECTIVITY_SERVICE);
+            WifiManager wm = (WifiManager) c.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+            WifiInfo wi = null, w2 = null;
+            if (net != null && Build.VERSION.SDK_INT >= 31) { NetworkCapabilities k = cm.getNetworkCapabilities(net); if (k != null && k.getTransportInfo() instanceof WifiInfo) wi = (WifiInfo) k.getTransportInfo(); }
+            try { w2 = wm.getConnectionInfo(); } catch (Throwable t) { }
+            if (wi != null) ssid = unq(wi.getSSID());
+            if (ssid.isEmpty() && w2 != null) ssid = unq(w2.getSSID());
+            if (Build.VERSION.SDK_INT >= 31) {
+                int t = -1;
+                try { if (wi != null) t = wi.getCurrentSecurityType(); } catch (Throwable e) { }
+                try { if (t < 0 && w2 != null) t = w2.getCurrentSecurityType(); } catch (Throwable e) { }
+                sec = secKey(t);
+            }
+            if (sec.isEmpty() && w2 != null) {
+                String b = w2.getBSSID();
+                if (b != null && !"02:00:00:00:00:00".equals(b)) { List<ScanResult> rs = wm.getScanResults(); if (rs != null) for (ScanResult r : rs) if (b.equalsIgnoreCase(r.BSSID)) { sec = capKey(r.capabilities); break; } }
+            }
+        } catch (Throwable t) { }
+        return new String[]{ ssid, sec };
+    }
+    static boolean wgInstalled(Context c) { try { c.getPackageManager().getPackageInfo(WG, 0); return true; } catch (Throwable t) { return false; } }
+    /** WireGuard s'il est installé, sinon sa page Play Store (market://, repli https). */
+    static Intent wgIntent(Context c) {
+        Intent i = null;
+        try { i = c.getPackageManager().getLaunchIntentForPackage(WG); } catch (Throwable t) { }
+        if (i == null) {
+            i = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + WG));
+            try { if (i.resolveActivity(c.getPackageManager()) == null) i = new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=" + WG)); } catch (Throwable t) { }
+        }
+        return i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+    }
+    static List<String> trusted(Context c) {
+        List<String> l = new ArrayList<>();
+        try { JSONArray a = new JSONArray(vprefs(c).getString("trusted", "[]")); for (int i = 0; i < a.length(); i++) l.add(a.getString(i)); } catch (Exception e) { }
+        return l;
+    }
+    static void trust(Context c, String ssid, boolean add) {
+        if (ssid == null || ssid.isEmpty()) return;
+        List<String> l = trusted(c);
+        l.remove(ssid);
+        if (add) l.add(ssid);
+        vprefs(c).edit().putString("trusted", new JSONArray(l).toString()).apply();
+    }
+    /** Complète la tuile Socle (vpn, wifiSec) sans ouvrir la page, si la page l'a déjà publiée une fois. */
+    static void widgetVpn(Context c, boolean vpn, String sec) {
+        try {
+            JSONObject o = new JSONObject(WidgetProvider.prefs(c).getString("data", "{}"));
+            if (!o.has("type")) return;
+            o.put("vpn", vpn); o.put("wifiSec", sec == null ? "" : sec);
+            WidgetProvider.put(c, o.toString());
+        } catch (Throwable t) { }
+    }
+    // PendingIntent MUTABLE : le système y ajoute le réseau (ConnectivityManager.EXTRA_NETWORK). Intent explicite (exigé
+    // par Android 14 pour un PendingIntent modifiable), vers un récepteur non exporté de l'appli.
+    static PendingIntent netPi(Context c) {
+        Intent i = new Intent(c, VpnAlert.class).setAction(c.getPackageName() + ".VPN_NET");
+        return PendingIntent.getBroadcast(c, 6260, i, PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0));
+    }
+    /** Arme (ou désarme) l'alerte : le système envoie netPi à chaque wifi qui devient disponible, appli fermée comprise. */
+    static void armAlert(Context c, boolean quiet) {
+        try {
+            ConnectivityManager cm = (ConnectivityManager) c.getSystemService(Context.CONNECTIVITY_SERVICE);
+            PendingIntent pi = netPi(c);
+            if (!alertOn(c)) { try { cm.unregisterNetworkCallback(pi); } catch (Throwable t) { } pi.cancel(); return; }
+            // Le wifi déjà connecté est signalé tout de suite : pas d'alerte quand la page est ouverte (elle l'affiche déjà)
+            if (quiet) vprefs(c).edit().putLong("quietUntil", System.currentTimeMillis() + 15000).apply();
+            NetworkRequest req = new NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI).build();
+            cm.registerNetworkCallback(req, pi);   // remplace l'inscription précédente du même PendingIntent
+        } catch (Throwable t) { }
+    }
+    static void check(Context c, Network net) {
+        ConnectivityManager cm = (ConnectivityManager) c.getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (net != null) { NetworkCapabilities k = cm.getNetworkCapabilities(net); if (k == null || !k.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) net = null; }
+        if (net == null) net = wifiNet(c);
+        if (net == null) return;                      // wifi déjà perdu
+        boolean vpn = vpnActive(c);
+        String[] w = wifiNow(c, net);
+        widgetVpn(c, vpn, w[1]);
+        NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (vpn) { try { nm.cancel(NOTIF_VPN); } catch (Throwable t) { } return; }
+        if (!alertOn(c)) return;
+        if (!"open".equals(w[1]) && !"wep".equals(w[1])) return;
+        SharedPreferences p = vprefs(c);
+        long now = System.currentTimeMillis();
+        if (now < p.getLong("quietUntil", 0)) return;
+        if (!w[0].isEmpty() && trusted(c).contains(w[0])) return;
+        // Une alerte par wifi et par heure
+        String key = w[0].isEmpty() ? "?" : w[0];
+        JSONObject seen; try { seen = new JSONObject(p.getString("alerted", "{}")); } catch (Exception e) { seen = new JSONObject(); }
+        if (now - seen.optLong(key, 0) < 3600000L) return;
+        JSONObject keep = new JSONObject();
+        try {
+            Iterator<String> it = seen.keys();
+            while (it.hasNext()) { String k = it.next(); if (now - seen.optLong(k, 0) < 86400000L) keep.put(k, seen.optLong(k)); }
+            keep.put(key, now);
+        } catch (Exception e) { }
+        p.edit().putString("alerted", keep.toString()).apply();
+        notifyOpen(c, w[0], w[1]);
+    }
+    @SuppressWarnings("deprecation")
+    static void notifyOpen(Context c, String ssid, String sec) {
+        try {
+            if (Build.VERSION.SDK_INT >= 33 && c.checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) return;
+            NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+            Notification.Builder b;
+            if (Build.VERSION.SDK_INT >= 26) {
+                NotificationChannel ch = new NotificationChannel(CH_VPN, "Wifi non protégé", NotificationManager.IMPORTANCE_HIGH);
+                ch.setDescription("Prévient quand le téléphone se connecte à un wifi ouvert ou WEP sans VPN");
+                nm.createNotificationChannel(ch);
+                b = new Notification.Builder(c, CH_VPN);
+            } else b = new Notification.Builder(c).setPriority(Notification.PRIORITY_HIGH);
+            String name = ssid.isEmpty() ? "Ce wifi" : "« " + ssid + " »";
+            String txt = name + ("wep".equals(sec) ? " n'a qu'une protection WEP, facile à casser" : " est ouvert (sans mot de passe)") + " : ce que tu envoies peut être vu par d'autres. Active ton VPN WireGuard pour passer par ta box.";
+            int icon = c.getApplicationInfo().icon;
+            b.setSmallIcon(icon).setContentTitle("Wifi non protégé : active ton VPN").setContentText(txt)
+                .setStyle(new Notification.BigTextStyle().bigText(txt)).setAutoCancel(true).setOnlyAlertOnce(true);
+            Intent open = c.getPackageManager().getLaunchIntentForPackage(c.getPackageName());
+            if (open != null) {
+                open.putExtra("socle", "{\"tab\":\"vpn\"}").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                b.setContentIntent(PendingIntent.getActivity(c, 6271, open, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT));
+            }
+            PendingIntent wg = PendingIntent.getActivity(c, 6273, wgIntent(c), PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+            b.addAction(new Notification.Action.Builder(Icon.createWithResource(c, icon), wgInstalled(c) ? "Activer WireGuard" : "Installer WireGuard", wg).build());
+            if (!ssid.isEmpty()) {
+                Intent t = new Intent(c, VpnAlert.class).setAction(c.getPackageName() + ".VPN_TRUST").putExtra("ssid", ssid);
+                b.addAction(new Notification.Action.Builder(Icon.createWithResource(c, icon), "Ne plus prévenir pour ce réseau",
+                    PendingIntent.getBroadcast(c, 6272, t, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT)).build());
+            }
+            nm.notify(NOTIF_VPN, b.build());
+        } catch (Throwable t) { }
+    }
+
+    /** Récepteur déclaré dans le manifeste (non exporté) : démarrage du téléphone, mise à jour de l'appli, wifi connecté, « Ne plus prévenir ». */
+    public static class VpnAlert extends BroadcastReceiver {
+        @SuppressWarnings("deprecation")
+        @Override public void onReceive(Context ctx, Intent i) {
+            final Context c = ctx.getApplicationContext();
+            String ac = i == null ? null : i.getAction();
+            if (ac == null) return;
+            if (Intent.ACTION_BOOT_COMPLETED.equals(ac) || Intent.ACTION_MY_PACKAGE_REPLACED.equals(ac)) { armAlert(c, false); return; }
+            if (ac.endsWith(".VPN_TRUST")) {
+                trust(c, i.getStringExtra("ssid"), true);
+                try { ((NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE)).cancel(NOTIF_VPN); } catch (Throwable t) { }
+                return;
+            }
+            if (!ac.endsWith(".VPN_NET")) return;
+            Network n = null;
+            try { n = i.getParcelableExtra(ConnectivityManager.EXTRA_NETWORK); } catch (Throwable t) { }
+            final Network net = n;
+            // Laisse quelques secondes à un VPN permanent pour se reconnecter avant de juger
+            final PendingResult pr = goAsync();
+            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() { public void run() {
+                try { check(c, net); } catch (Throwable t) { }
+                pr.finish();
+            } }, 7000);
+        }
+    }
+
+    /** {vpn, wg (installé), alwaysOn, alwaysOnName, alert, notif: granted|ask|blocked, trusted:[]} */
+    @JavascriptInterface public String vpnState() {
+        JSONObject o = new JSONObject();
+        try {
+            o.put("vpn", vpnActive(a));
+            o.put("wg", wgInstalled(a));
+            String ao = null;
+            try { ao = Settings.Secure.getString(a.getContentResolver(), "always_on_vpn_app"); } catch (Throwable t) { }
+            if (ao != null && !ao.isEmpty()) {
+                o.put("alwaysOn", ao);
+                try { o.put("alwaysOnName", String.valueOf(a.getPackageManager().getApplicationLabel(a.getPackageManager().getApplicationInfo(ao, 0)))); } catch (Throwable t) { if (WG.equals(ao)) o.put("alwaysOnName", "WireGuard"); }
+            }
+            o.put("alert", alertOn(a));
+            String ns = "granted";
+            if (Build.VERSION.SDK_INT >= 33) ns = state("android.permission.POST_NOTIFICATIONS", "notifAsked");
+            else { try { if (!((NotificationManager) a.getSystemService(Context.NOTIFICATION_SERVICE)).areNotificationsEnabled()) ns = "blocked"; } catch (Throwable t) { } }
+            o.put("notif", ns);
+            o.put("trusted", new JSONArray(trusted(a)));
+        } catch (Exception e) { }
+        return o.toString();
+    }
+    /** Réarme l'alerte (appelé à l'ouverture de la page). */
+    @JavascriptInterface public void vpnArm() { armAlert(a.getApplicationContext(), true); }
+    /** Active ou coupe l'alerte « wifi non protégé ». À l'activation, demande l'autorisation des notifications si besoin. */
+    @JavascriptInterface public void vpnAlert(final boolean on) {
+        vprefs(a).edit().putBoolean("vpnAlert", on).apply();
+        armAlert(a.getApplicationContext(), true);
+        if (on) vpnNotifAsk(); else emit("vpn", vpnState());
+    }
+    /** Autorisation des notifications : fenêtre d'Android, ou réglages de l'appli si elle a été refusée. Réponse : événement « vpn ». */
+    @JavascriptInterface public void vpnNotifAsk() {
+        ui.post(new Runnable() { public void run() {
+            try {
+                if (Build.VERSION.SDK_INT < 33 || granted("android.permission.POST_NOTIFICATIONS")) { emit("vpn", vpnState()); return; }
+                if ("blocked".equals(state("android.permission.POST_NOTIFICATIONS", "notifAsked"))) { openSettings("notif"); return; }
+                prefs().edit().putBoolean("notifAsked", true).apply();
+                a.requestPermissions(new String[]{ "android.permission.POST_NOTIFICATIONS" }, REQ_NOTIF);
+            } catch (Throwable t) { emit("vpn", vpnState()); }
+        } });
+    }
+    @JavascriptInterface public void vpnTrust(String ssid, boolean add) { trust(a, ssid, add); }
+    /** Ouvre WireGuard, ou sa page Play Store. Retour : "app" | "store" | "" */
+    @JavascriptInterface public String wgOpen() {
+        final boolean inst = wgInstalled(a);
+        ui.post(new Runnable() { public void run() {
+            try { a.startActivity(wgIntent(a)); }
+            catch (Throwable t) {
+                try { a.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=" + WG)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); }
+                catch (Throwable e) { toast("Impossible d'ouvrir WireGuard"); }
+            }
+        } });
+        return inst ? "app" : "store";
+    }
+    /** Interface de la Freebox (répond seulement depuis le réseau de la box, en http). Adresse fixe. */
+    @JavascriptInterface public void openFreebox() {
+        ui.post(new Runnable() { public void run() {
+            try { a.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("http://mafreebox.freebox.fr")).addCategory(Intent.CATEGORY_BROWSABLE).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); }
+            catch (Throwable t) { toast("Aucun navigateur pour ouvrir Freebox OS"); }
+        } });
+    }
+    /** Adresse publique de sortie (Cloudflare, en IPv4 via 1.1.1.1 ; repli speed.cloudflare.com). Événement « vpnip » {ok, ip, v4, colo, vpn}. */
+    @JavascriptInterface public void vpnTrace() {
+        new Thread(new Runnable() { public void run() {
+            JSONObject o = new JSONObject();
+            try {
+                String tr;
+                try { tr = httpGet("https://1.1.1.1/cdn-cgi/trace", 4000); }
+                catch (Throwable t) { tr = httpGet(CF + "/cdn-cgi/trace", 4000); }
+                for (String line : tr.split("\n")) {
+                    if (line.startsWith("ip=")) o.put("ip", line.substring(3).trim());
+                    else if (line.startsWith("colo=")) o.put("colo", line.substring(5).trim());
+                }
+                o.put("v4", o.optString("ip").matches("^\\d+\\.\\d+\\.\\d+\\.\\d+$"));
+                o.put("ok", o.optString("ip").length() > 0);
+            } catch (Throwable t) { try { o.put("ok", false); o.put("err", err(t, "Pas de connexion")); } catch (Exception e) { } }
+            try { o.put("vpn", vpnActive(a)); } catch (Exception e) { }
+            emit("vpnip", o.toString());
+        } }).start();
     }
 
     private void toast(final String t) { ui.post(new Runnable() { public void run() { Toast.makeText(a, t, Toast.LENGTH_LONG).show(); } }); }

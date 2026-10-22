@@ -241,6 +241,43 @@ label.lb{display:block;font-size:13px;font-weight:700;color:var(--tx3);margin:0 
 .spin{animation:sp 1s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 .empty{text-align:center;color:var(--tx3);font-size:14px;padding:14px 8px}
+
+/* VPN */
+.vpn{display:flex;gap:14px;align-items:center}
+.vpn .badge{width:60px;height:60px;border-radius:19px;display:flex;align-items:center;justify-content:center;flex:none;background:var(--bg3);color:var(--tx3)}
+.vpn .badge .ic{width:34px;height:34px;stroke-width:1.8}
+.vpn.on .badge{background:#6fd6a426;color:var(--ok)}
+.vpn .t{flex:1;min-width:0}
+.vpn .n{font-size:21px;font-weight:800;line-height:1.2}
+.vpn.on .n{color:var(--ok)}
+.vpn .s{font-size:13.5px;color:var(--tx2);margin-top:3px;line-height:1.4}
+.secl{display:flex;align-items:flex-start;gap:11px;margin-top:14px;padding:11px 12px;border-radius:14px;background:var(--bg3)}
+.secl>.ic{margin-top:1px}
+.secl b{display:block;font-size:15px}
+.secl span{display:block;font-size:13px;color:var(--tx2);line-height:1.4;margin-top:1px}
+.secl.ok>.ic{color:var(--ok)}
+.secl.warn{background:#ffb35c1c}.secl.warn>.ic,.secl.warn b{color:var(--warn)}
+.secl.bad{background:#ff7b7b1f}.secl.bad>.ic,.secl.bad b{color:var(--bad)}
+.alertv{margin:10px 0 0;font-size:14.5px;line-height:1.45;color:#ffd7a8}
+.swr{display:flex;align-items:center;gap:12px;width:100%;text-align:left;min-height:60px;padding:4px 0}
+.swr .l{flex:1;min-width:0}
+.swr .l b{display:block;font-size:15.5px}
+.swr .l span{display:block;font-size:13px;color:var(--tx3);line-height:1.4;margin-top:2px}
+.tg{width:54px;height:32px;border-radius:99px;background:var(--bg4);position:relative;flex:none;transition:background .2s}
+.tg::after{content:'';position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#fff;transition:transform .2s}
+.swr[aria-checked="true"] .tg{background:var(--ok)}
+.swr[aria-checked="true"] .tg::after{transform:translateX(22px)}
+.steps{counter-reset:st;margin:4px 0 6px;padding:0;list-style:none}
+.steps li{position:relative;padding:0 0 14px 42px;font-size:14.5px;line-height:1.5;color:var(--tx2)}
+.steps li::before{counter-increment:st;content:counter(st);position:absolute;left:0;top:-1px;width:29px;height:29px;border-radius:50%;background:var(--bg4);color:var(--tx);font-weight:800;display:flex;align-items:center;justify-content:center;font-size:14px}
+.steps b{color:var(--tx)}
+.steps .btn{margin-top:8px;width:100%}
+.lim{margin:0;padding:0;list-style:none}
+.lim li{font-size:13.5px;line-height:1.45;color:var(--tx2);padding:8px 0;border-top:1px solid var(--line)}
+.lim li:first-child{border-top:0;padding-top:0}
+.lim b{color:var(--tx)}
+.ipout{font-size:15px;line-height:1.5;margin-top:12px}
+.ipout .big{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 </style>
 </head>
 <body>
@@ -254,6 +291,7 @@ label.lb{display:block;font-size:13px;font-weight:700;color:var(--tx3);margin:0 
 <main id="v-etat">
   <div class="card warn-c" id="noBridge" hidden><p><b>Fonctions du téléphone indisponibles.</b> Cette page a besoin de l'appli Réseau installée pour lire le wifi et le réseau mobile.</p></div>
   <div class="card" id="heroCard"></div>
+  <div class="card" id="vpnCard"></div>
   <div class="card warn-c" id="permCard" hidden></div>
   <div class="card" id="detCard"></div>
   <div class="card" id="mobCard"></div>
@@ -422,6 +460,16 @@ label.lb{display:block;font-size:13px;font-weight:700;color:var(--tx3);margin:0 
   <div class="bd"><div class="card"><div class="rows" id="regList"></div></div></div>
 </section>
 
+<section class="scr" id="s-vpn" hidden>
+  <div class="tb"><button class="ib" data-back><svg class="ic" viewBox="0 0 24 24"><use href="#i-back"/></svg></button><h2>VPN</h2></div>
+  <div class="bd">
+    <div class="card" id="vpnMain"></div>
+    <div class="card" id="vpnWhere"></div>
+    <div class="card" id="vpnAlertC"></div>
+    <div class="card" id="vpnGuide"></div>
+  </div>
+</section>
+
 <div id="sheetBg" hidden><div class="sheet" id="sheet"></div></div>
 <div id="toast"></div>
 
@@ -453,6 +501,8 @@ label.lb{display:block;font-size:13px;font-weight:700;color:var(--tx3);margin:0 
   <symbol id="i-plane" viewBox="0 0 24 24"><path d="M12 2.8c.8 0 1.3.7 1.3 1.5V9l7.5 4.6v2l-7.5-2.4v4.4l2 1.5v1.8L12 20l-3.3.9v-1.8l2-1.5v-4.4l-7.5 2.4v-2L10.7 9V4.3c0-.8.5-1.5 1.3-1.5z"/></symbol>
   <symbol id="i-hot" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.8"/><path d="M8.5 15.5a5 5 0 0 1 0-7M15.5 8.5a5 5 0 0 1 0 7M5.6 18.4a9 9 0 0 1 0-12.8M18.4 5.6a9 9 0 0 1 0 12.8"/></symbol>
   <symbol id="i-vpn" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6z"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3.5L2.5 20h19z"/><path d="M12 10v4.5M12 17.3h.01"/></symbol>
   <symbol id="i-data" viewBox="0 0 24 24"><path d="M8 20V5M4.5 8.5L8 5l3.5 3.5M16 4v15M12.5 15.5L16 19l3.5-3.5"/></symbol>
   <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11.5a8 8 0 1 1-2.4-5.7"/><path d="M20 4v5h-5"/></symbol>
   <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
@@ -597,6 +647,7 @@ function renderEtat(){
       '<div class="row"><button class="btn sm" data-set="' + (ST.airplane ? 'airplane' : 'wifi') + '">' + (ST.airplane ? 'Mode avion' : 'Réglages wifi') + '</button><button class="btn sm" data-set="data">Données mobiles</button></div>';
   }
   $('heroCard').innerHTML = h;
+  $('vpnCard').innerHTML = vpnHtml(false); bindVpn($('vpnCard'));
 
   // Autorisations
   var pc = '';
@@ -682,23 +733,176 @@ $('shortcuts').innerHTML = SHORT.map(function(s){ return '<button data-set="' + 
 bindDyn($('shortcuts').parentNode);
 
 function refresh(){
-  readStatus();
+  readStatus(); readVpn();
   var key = ST.type + '|' + (ST.wifi.ssid || '') + '|' + ((ST.ip.v4 || [])[0] || '') + '|' + ST.vpn;
   if(key !== lastKey){ lastKey = key; PUB = null; if(R && ST.type !== 'none') R.publicIp(); else if(!R) PUB = null; publish(); }
   renderHeader();
   if(tab === 'etat') renderEtat();
   if(tab === 'debit') renderSpNet();
+  if(scrOpen === 's-vpn') renderVpn();
 }
 var pollT = null;
 function poll(on){ clearInterval(pollT); pollT = null; if(on) pollT = setInterval(function(){ if(!document.hidden) refresh(); }, 3000); }
 $('hPill').onclick = function(){ refresh(); if(R && ST.type !== 'none'){ PUB = null; R.publicIp(); } toast('Informations mises à jour'); };
+
+/* =================== VPN (WireGuard, Freebox) =================== */
+var VS = { vpn: false, wg: false, alert: true, notif: 'granted', trusted: [] }, VIP = null, VIP_RUN = false;
+var HOME = store('vpnHome') || null;   // { ssid, ip, at } : wifi de la Freebox et adresse publique vue depuis la maison
+var WG_STORE = 'https://play.google.com/store/apps/details?id=com.wireguard.android';
+var SECN = { 0: 'open', 1: 'wep', 2: 'psk', 3: 'eap', 4: 'sae', 5: 'eap', 6: 'owe', 7: 'psk', 8: 'eap', 9: 'eap', 10: 'eap', 11: 'eap', 12: 'eap', 13: 'sae' };
+var SECW = {
+  open: ['Wifi ouvert (sans mot de passe)', 'bad', 'N\'importe qui peut s\'y connecter et voir passer ce qui n\'est pas chiffré.'],
+  wep: ['Wifi chiffré (WEP, obsolète)', 'bad', 'Protection ancienne, cassée en quelques minutes : à traiter comme un wifi ouvert.'],
+  owe: ['Wifi ouvert chiffré (OWE)', 'warn', 'Chiffré, mais sans mot de passe : n\'importe qui peut s\'y connecter. Un VPN reste conseillé.'],
+  psk: ['Wifi protégé', 'ok', 'Chiffré par un mot de passe (WPA2).'],
+  sae: ['Wifi protégé', 'ok', 'Chiffré par un mot de passe (WPA3, le plus récent).'],
+  eap: ['Wifi d\'entreprise', 'ok', 'Chaque personne a son identifiant (école, entreprise, eduroam…).']
+};
+function capKey(c){ c = c || ''; if(/EAP/.test(c)) return 'eap'; if(/SAE/.test(c)) return 'sae'; if(/OWE/.test(c)) return 'owe'; if(/PSK|RSN|WPA/.test(c)) return 'psk'; if(/WEP/.test(c)) return 'wep'; return 'open'; }
+/** Sécurité du wifi connecté : open | owe | wep | psk | sae | eap | '' (inconnue ou pas en wifi) */
+function wifiSec(){
+  var w = ST.wifi || {};
+  if(ST.type !== 'wifi' || !w.connected) return '';
+  if(w.sec != null && SECN[w.sec]) return SECN[w.sec];
+  if(w.caps != null) return capKey(w.caps);
+  var n = (typeof WF !== 'undefined' && WF.list || []).filter(function(x){ return x.me || (w.bssid && x.bssid === w.bssid); })[0];
+  return n ? capKey(n.sec) : '';
+}
+function readVpn(){
+  if(R && R.vpnState){ try{ VS = J(R.vpnState()); }catch(e){} }
+  VS.trusted = Array.isArray(VS.trusted) ? VS.trusted : [];
+  if(VS.alert == null) VS.alert = true;
+  return VS;
+}
+function vpnOn(){ return !!(ST.vpn || VS.vpn); }
+function risky(){ var k = wifiSec(); return !vpnOn() && (k === 'open' || k === 'wep'); }
+function atHome(){ return !!(HOME && HOME.ssid && ST.type === 'wifi' && ST.wifi.ssid === HOME.ssid); }
+function wgBtn(main){ return '<button class="btn' + (main ? ' main' : '') + '" data-vpn="wg">' + ic('vpn') + (VS.wg ? 'Ouvrir WireGuard' : 'Installer WireGuard') + '</button>'; }
+function vpnHtml(full){
+  var on = vpnOn(), k = wifiSec(), sw = SECW[k], rk = risky();
+  var who = VS.alwaysOnName ? esc(VS.alwaysOnName) + ' (VPN permanent)' : VS.wg ? 'Probablement WireGuard' : 'Un VPN est actif';
+  var h = (full ? '' : '<h3>Protection VPN</h3>') +
+    '<div class="vpn' + (on ? ' on' : '') + '"><div class="badge">' + ic(on ? 'vpn' : 'shield') + '</div><div class="t"><div class="n">' + (on ? 'Protégé par VPN' : 'Pas de VPN') + '</div><div class="s">' +
+    (on ? who + ' : tes données partent chiffrées dans le tunnel.' : ST.type === 'none' ? 'Aucune connexion pour le moment.' : 'Ta connexion part directement sur ' + (ST.type === 'wifi' ? 'ce wifi.' : 'le réseau mobile.')) + '</div></div></div>';
+  if(sw) h += '<div class="secl ' + sw[1] + '">' + ic(sw[1] === 'ok' ? 'lock' : 'warn') + '<div><b>' + sw[0] + '</b><span>' + sw[2] + '</span></div></div>';
+  else if(ST.type === 'wifi') h += '<div class="secl">' + ic('wifi') + '<div><b>Sécurité du wifi inconnue</b><span>Lance une recherche dans l\'onglet Wifi pour la connaître.</span></div></div>';
+  if(rk) h += '<p class="alertv"><b>Active ton VPN</b> avant d\'ouvrir ta banque, tes mails ou un site où tu te connectes.</p>';
+  else if(on && (k === 'open' || k === 'wep')) h += '<p class="hint">Wifi non protégé, mais le VPN chiffre tout : tu peux l\'utiliser.</p>';
+  h += '<div class="row">' + wgBtn(rk || (!on && !VS.wg)) + (full ? '' : '<button class="btn" data-vpn="scr">' + ic('home') + 'VPN maison</button>') + '</div>';
+  return h;
+}
+function vpnWhereHtml(){
+  var on = vpnOn(), h = '<h3>Suis-je chez moi ?</h3><p>Montre l\'adresse Internet sous laquelle tu sors. Avec le VPN de ta Freebox, ce doit être celle de ta maison.</p>';
+  h += '<button class="btn main wide" data-vpn="trace"' + (VIP_RUN || ST.type === 'none' ? ' disabled' : '') + '>' + ic(VIP_RUN ? 'refresh' : 'globe', VIP_RUN ? 'spin' : '') + (VIP_RUN ? 'Vérification…' : 'Vérifier par où je sors') + '</button>';
+  if(VIP){
+    if(!VIP.ok) h += '<p class="ipout">Vérification impossible : pas de réponse d\'Internet.</p>';
+    else {
+      h += '<div class="ipout">Ta connexion sort par :<div class="big sel">' + esc(VIP.ip) + '</div>' + (VIP.colo ? '<span class="hint">Serveur Cloudflare : ' + esc(VIP.colo) + '</span>' : '') + '</div>';
+      var same = HOME && HOME.ip && VIP.v4 && VIP.ip === HOME.ip;
+      if(same && VIP.vpn) h += '<div class="secl ok">' + ic('home') + '<div><b>✔ Ta connexion passe par ta Freebox</b><span>Tu es protégé comme à la maison, et tu peux joindre les appareils de chez toi.</span></div></div>';
+      else if(same) h += '<div class="secl ok">' + ic('home') + '<div><b>Tu es sur la connexion de ta Freebox</b><span>Adresse de la maison' + (HOME.at ? ' (vue le ' + dt(HOME.at) + ')' : '') + '.</span></div></div>';
+      else if(VIP.vpn && HOME && HOME.ip) h += '<div class="secl warn">' + ic('warn') + '<div><b>Ta connexion ne sort pas par ta Freebox</b><span>Le VPN actif mène ailleurs (autre VPN ?), ou l\'adresse de ta box a changé : reconnecte-toi une fois au wifi de la maison, VPN coupé, pour la mettre à jour.</span></div></div>';
+      else if(VIP.vpn && !VIP.v4) h += '<p class="hint">Adresse IPv6 : la comparaison avec la maison (IPv4) n\'est pas possible.</p>';
+    }
+  }
+  // Wifi de la maison
+  if(HOME && HOME.ssid) h += '<p class="hint" style="margin-top:12px">Wifi de ta Freebox : <b>' + esc(HOME.ssid) + '</b>' + (HOME.ip ? ' · adresse de la maison connue' : ' · adresse pas encore mémorisée : reviens ici sur ce wifi, VPN coupé') + '. <button class="lnk" data-vpn="unhome">Oublier</button></p>';
+  else h += '<p class="hint" style="margin-top:12px">Pour comparer, Réseau doit connaître l\'adresse de ta maison : connecte-toi au wifi de ta Freebox, VPN coupé, puis touche le bouton ci-dessous.</p>';
+  if(ST.type === 'wifi' && ST.wifi.ssid && !on && !atHome() && (wifiSec() === 'psk' || wifiSec() === 'sae')) h += '<button class="btn wide" data-vpn="home" style="margin-top:8px">' + ic('home') + 'C\'est le wifi de ma Freebox</button>';
+  return h;
+}
+function vpnAlertHtml(){
+  var h = '<h3>Alerte wifi public</h3>' +
+    '<button class="swr" data-vpn="tog" role="switch" aria-checked="' + (VS.alert ? 'true' : 'false') + '"><span class="l"><b>Me prévenir sur un wifi non protégé</b><span>Une notification quand le téléphone se connecte à un wifi ouvert ou WEP sans VPN, même Réseau fermé.</span></span><span class="tg"></span></button>';
+  if(VS.alert && VS.notif && VS.notif !== 'granted') h += '<div class="secl warn">' + ic('warn') + '<div><b>Notifications refusées</b><span>Sans elles, l\'alerte ne peut pas s\'afficher.</span></div></div><button class="btn wide" data-vpn="notif" style="margin-top:8px">' + (VS.notif === 'blocked' ? 'Ouvrir les réglages des notifications' : 'Autoriser les notifications') + '</button>';
+  var ss = ST.type === 'wifi' && ST.wifi.ssid, k = wifiSec();
+  h += '<p style="margin:14px 0 4px"><b>Wifi de confiance</b> (jamais d\'alerte)</p>';
+  h += VS.trusted.length ? VS.trusted.map(function(n){ return '<div class="rel">' + ic('wifi') + '<div class="m"><b>' + esc(n) + '</b></div><button class="btn sm" style="flex:none" data-vpn="untrust" data-ssid="' + esc(n) + '">Retirer</button></div>'; }).join('') : '<p class="hint" style="margin-top:0">Aucun. Touche « Ne plus prévenir pour ce réseau » dans l\'alerte, ou le bouton ci-dessous.</p>';
+  if(ss && (k === 'open' || k === 'wep') && VS.trusted.indexOf(ST.wifi.ssid) < 0) h += '<button class="btn wide" data-vpn="trust" style="margin-top:8px">Faire confiance à « ' + esc(ST.wifi.ssid) + ' »</button>';
+  h += '<p class="hint">Une seule alerte par wifi et par heure. Réseau fermé, Android cache parfois le nom du wifi : l\'alerte dit alors « Ce wifi ».</p>';
+  return h;
+}
+function vpnGuideHtml(){
+  return '<h3>Mon VPN maison (Freebox)</h3>' +
+    '<p>Ta Freebox peut servir de VPN. Sur un wifi public, tout passe par un tunnel chiffré jusqu\'à ta maison ; et de partout, tu accèdes aux appareils de chez toi (imprimante, disque, caméras).</p>' +
+    '<ol class="steps">' +
+    '<li><b>Installe WireGuard</b> sur ce téléphone : l\'appli officielle, gratuite.' + (VS.wg ? '<br><span class="c-ok">✔ Déjà installée</span>' : wgBtn(true)) + '</li>' +
+    '<li>À la maison, sur le wifi de la box, ouvre <b>Freebox OS</b> (de préférence sur un ordinateur : il faudra scanner un QR code avec le téléphone) et connecte-toi.<button class="btn" data-vpn="freebox">' + ic('globe') + 'Ouvrir Freebox OS</button></li>' +
+    '<li><b>Paramètres de la Freebox</b> › passe en <b>Mode avancé</b> › <b>Serveur VPN</b> › onglet <b>WireGuard</b> : coche <b>Activer</b>, garde le port proposé, puis <b>Appliquer</b>.</li>' +
+    '<li>Onglet <b>Utilisateurs</b> › <b>Ajouter un utilisateur</b> : type <b>WireGuard</b>, avec un nom qui dit l\'appareil (ex. « téléphone »).</li>' +
+    '<li>Ouvre la configuration de cet utilisateur : un <b>QR code</b> s\'affiche.</li>' +
+    '<li>Dans WireGuard : <b>+</b> › <b>Scanner depuis un code QR</b>, donne un nom au tunnel, puis accepte la demande de connexion VPN d\'Android.</li>' +
+    '<li>Active le tunnel : une clé apparaît en haut de l\'écran et Réseau affiche <b class="c-ok">Protégé par VPN</b>.</li>' +
+    '</ol>' +
+    '<div class="card info-c" style="margin:0 0 12px"><p><b>Conseil : VPN permanent.</b> Android relance alors WireGuard tout seul et coupe Internet si le tunnel tombe. Réglages › Réseau et Internet › VPN › ⚙ à côté de WireGuard › <b>VPN permanent</b>.</p>' +
+    (VS.alwaysOnName ? '<p class="c-ok"><b>✔ VPN permanent activé</b> : ' + esc(VS.alwaysOnName) + '</p>' : '') +
+    '<button class="btn wide" data-vpn="always">' + ic('gear') + 'Ouvrir les réglages VPN</button></div>' +
+    '<p style="margin-bottom:6px"><b>Bon à savoir</b></p><ul class="lim">' +
+    '<li><b>IPv4 seulement</b> : le VPN de la Freebox ne transporte pas l\'IPv6. Les sites restent accessibles normalement.</li>' +
+    '<li><b>IPv4 partagée</b> : si ta Freebox est dans ce mode (État de la Freebox › État Internet), le port du VPN doit être dans la plage de ports qui t\'est attribuée. Garde le port proposé par Freebox OS.</li>' +
+    '<li><b>Un profil par appareil</b> : crée un utilisateur WireGuard pour chaque téléphone ou ordinateur, ne réutilise pas le même QR code.</li>' +
+    '<li><b>Freebox OS</b> (mafreebox.freebox.fr) ne s\'ouvre que depuis le réseau de ta box : à la maison, ou par le VPN une fois en place.</li>' +
+    '</ul>';
+}
+function renderVpn(){
+  $('vpnMain').innerHTML = vpnHtml(true); $('vpnWhere').innerHTML = vpnWhereHtml(); $('vpnAlertC').innerHTML = vpnAlertHtml(); $('vpnGuide').innerHTML = vpnGuideHtml();
+  bindVpn($('s-vpn'));
+}
+function openVpn(){
+  openScr('s-vpn', function(){
+    readStatus(); readVpn(); renderVpn(); $('s-vpn').querySelector('.bd').scrollTop = 0;
+    // Vérification automatique quand elle a un sens : VPN actif, ou wifi de la maison (pour mémoriser son adresse)
+    if(R && !VIP_RUN && ST.type !== 'none' && (vpnOn() || atHome())) vpnTrace();
+  });
+}
+function vpnTrace(){
+  if(!R || !R.vpnTrace){ toast('Disponible dans l\'appli'); return; }
+  VIP_RUN = true; VIP = null; renderVpn(); R.vpnTrace();
+}
+function vpnIpEvent(o){
+  VIP_RUN = false; VIP = o;
+  readStatus();
+  // Sur le wifi de la Freebox, VPN coupé : on retient l'adresse de la maison
+  if(o.ok && o.v4 && !o.vpn && atHome()){ HOME.ip = o.ip; HOME.at = Date.now(); store('vpnHome', HOME); }
+  if(scrOpen === 's-vpn') renderVpn();
+}
+function openWG(){
+  if(!R || !R.wgOpen){ window.open(WG_STORE, '_blank'); return; }
+  var r = R.wgOpen();
+  if(r === 'store') toast('Installe WireGuard (gratuit), puis reviens ici');
+}
+function bindVpn(root){
+  root.querySelectorAll('[data-vpn]').forEach(function(b){ b.onclick = function(){
+    var a = b.dataset.vpn;
+    if(a === 'wg') openWG();
+    else if(a === 'scr') openVpn();
+    else if(a === 'trace') vpnTrace();
+    else if(a === 'always') openSet('vpn');
+    else if(a === 'freebox'){ if(R && R.openFreebox) R.openFreebox(); else window.open('http://mafreebox.freebox.fr', '_blank'); }
+    else if(a === 'home'){ HOME = { ssid: ST.wifi.ssid, ip: '', at: 0 }; store('vpnHome', HOME); toast('Wifi de la maison retenu'); vpnTrace(); }
+    else if(a === 'unhome'){ HOME = null; try{ localStorage.removeItem('reseau.vpnHome'); }catch(e){} renderVpn(); }
+    else if(a === 'tog'){
+      VS.alert = !VS.alert;
+      if(R && R.vpnAlert) R.vpnAlert(VS.alert); else toast('Disponible dans l\'appli');
+      toast(VS.alert ? 'Alerte activée' : 'Alerte coupée'); renderVpn();
+    }
+    else if(a === 'notif'){ if(R && R.vpnNotifAsk) R.vpnNotifAsk(); }
+    else if(a === 'trust' || a === 'untrust'){
+      var n = a === 'trust' ? ST.wifi.ssid : b.dataset.ssid;
+      if(R && R.vpnTrust) R.vpnTrust(n, a === 'trust');
+      readVpn();
+      if(!(R && R.vpnTrust)){ VS.trusted = VS.trusted.filter(function(x){ return x !== n; }); if(a === 'trust') VS.trusted.push(n); }
+      toast(a === 'trust' ? 'Plus d\'alerte pour « ' + n + ' »' : '« ' + n + ' » retiré'); renderVpn();
+    }
+  }; });
+}
 
 /* ---------- Tuile Socle ---------- */
 function publish(){
   try{
     if(!P || !P.widgetPut) return;
     var c = cur(), l = TESTS[0];
-    P.widgetPut(JSON.stringify({ type: c.type, name: c.name, gen: c.gen, quality: c.quality, dbm: c.dbm, last: l ? { down: l.down, up: l.up, ping: l.ping, date: l.t } : null }));
+    P.widgetPut(JSON.stringify({ type: c.type, name: c.name, gen: c.gen, quality: c.quality, dbm: c.dbm, last: l ? { down: l.down, up: l.up, ping: l.ping, date: l.t } : null, vpn: vpnOn(), wifiSec: wifiSec() }));
   }catch(e){}
 }
 
@@ -747,6 +951,7 @@ function infoText(){
   if(ST.type === 'wifi'){ var q = wifiQ(w.rssi); L.push('Wi-Fi : ' + (w.ssid || 'nom caché') + (w.rssi ? ', ' + w.rssi + ' dBm' + (q ? ' (' + q.w.toLowerCase() + ')' : '') : '')); if(w.band) L.push('Bande ' + w.band.replace('.', ',') + ' GHz, canal ' + w.channel + (w.link > 0 ? ', liaison ' + w.link + ' Mb/s' : '')); }
   if(m.sim){ var s = mobSig(m); L.push('Mobile : ' + (opName(m) || '?') + (m.gen ? ' ' + m.gen : '') + (s ? ', ' + neg(s.dbm) + ' dBm' + (s.q ? ' (' + s.q.w.toLowerCase() + ')' : '') : '') + (m.roaming ? ', itinérance' : '')); }
   if(ST.type === 'none') L.push('Aucune connexion');
+  if(vpnOn()) L.push('VPN actif');
   if(ip.v4 && ip.v4[0]) L.push('IP locale : ' + ip.v4[0]);
   if(ip.gateway) L.push('Passerelle : ' + ip.gateway);
   if(ip.dns && ip.dns.length) L.push('DNS : ' + ip.dns.join(', '));
@@ -1526,6 +1731,8 @@ window.reseauEvent = function(type, o){
     case 'port': portEvent(o); break;
     case 'location': locEvent(o); break;
     case 'wifiAdd': wifiAddEvent(o); break;
+    case 'vpn': readVpn(); if(tab === 'etat') renderEtat(); if(scrOpen === 's-vpn') renderVpn(); break;
+    case 'vpnip': vpnIpEvent(o); break;
   }
 };
 
@@ -1538,11 +1745,16 @@ window.onSocle = function(a){
     readStatus();
     if(!SP.run){ if(cur().type === 'wifi') spStart({ dur: 10, streams: 6, maxMB: 0 }); else if(cur().type === 'mobile') spAsk(); }
   }
+  if(o.tab === 'vpn' || o.what === 'vpn'){
+    while(sheetOpen || (scrOpen && scrOpen !== 's-vpn')){ var c2 = stack.pop(); if(c2) c2(); else break; }
+    if(scrOpen !== 's-vpn') openVpn(); else renderVpn();
+  }
 };
 
 document.addEventListener('visibilitychange', function(){ if(!document.hidden) refresh(); });
 window.addEventListener('pagehide', function(){ try{ if(R){ R.stopWatch(); } }catch(e){} });
 if(R) try{ R.startWatch(); }catch(e){}
+try{ if(R && R.vpnArm) R.vpnArm(); }catch(e){}
 showTab('etat');
 backup();
 setTimeout(function(){ try{ if(P && P.takeSocle){ var x = P.takeSocle(); if(x) window.onSocle(x); } }catch(e){} }, 400);

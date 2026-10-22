@@ -253,6 +253,7 @@ var IC = {
   moon:'<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
   bat:'<rect x="2" y="7" width="18" height="10" rx="2.5"/><path d="M22 11v2"/>',
   bolt:'<path d="m13 2-8 12h6l-1 8 8-12h-6z"/>',
+  shield:'<path d="M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6z"/>',
   cal:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>',
   tool:'<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/>',
   torch:'<path d="M8 2h8l-1 6H9zM9 8h6v13a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1zM12 12v3"/>',
@@ -319,7 +320,7 @@ var TYPES = {
   sos:{n:'Urgence : bouton SOS',i:'sos',w:1}, coffre:{n:'Coffre : mots de passe',i:'lock',w:1},
   qrcode:{n:'QR : lire un code',i:'qr',w:1}, livre:{n:'Liseuse : livre en cours',i:'book',w:2},
   budget:{n:'Budget : dépenses du mois',i:'wallet',w:2,tall:1}, dicta:{n:'Dictaphone',i:'mic',w:1},
-  meteoapp:{n:'Météo : aujourd\'hui',i:'sun',w:2}, reseau:{n:'Réseau : connexion et débit',i:'web',w:1}, lecteur:{n:'Lecteur PDF : documents récents',i:'pdf',w:2}, mag:{n:'Mes applis MAG',i:'mag',w:2}, note:{n:'Note rapide',i:'note',w:1}
+  meteoapp:{n:'Météo : aujourd\'hui',i:'sun',w:2}, reseau:{n:'Réseau : connexion, débit et VPN',i:'web',w:1}, lecteur:{n:'Lecteur PDF : documents récents',i:'pdf',w:2}, mag:{n:'Mes applis MAG',i:'mag',w:2}, note:{n:'Note rapide',i:'note',w:1}
 };
 
 /* ---------- Marges du système ---------- */
@@ -839,17 +840,29 @@ function meteoAppHtml(cfg){
 }
 
 /* Réseau */
-var RES='fr.magformation13.reseau';
+var RES='fr.magformation13.reseau', WGP='com.wireguard.android';
+var SECK={0:'open',1:'wep',2:'psk',3:'eap',4:'sae',5:'eap',6:'owe',7:'psk',8:'eap',9:'eap',10:'eap',11:'eap',12:'eap',13:'sae'};
+/* VPN : état en direct (MAGPrint.homeVpn) si possible, sinon ce que Réseau a publié (vpn, wifiSec) */
+function resVpn(d){
+  var lv=A&&A.homeVpn?J(A.homeVpn(),null):null;
+  var vpn=lv&&lv.vpn!=null?!!lv.vpn:!!d.vpn;
+  var wifi=lv&&lv.wifi!=null?!!lv.wifi:d.type==='wifi';
+  var sec=!wifi?'':(lv&&lv.sec!=null&&SECK[lv.sec])?SECK[lv.sec]:(d.type==='wifi'?(d.wifiSec||''):'');
+  return {vpn:vpn, sec:sec, open:!vpn&&(sec==='open'||sec==='wep')};
+}
 function reseauHtml(cfg){
   var hd='<div class="hd">'+ic('web')+'Réseau</div>'; if(!app(RES)) return hd+missing('Réseau');
-  var d=wd(RES)||{}, q=Math.max(0,Math.min(4,d.quality||0));
-  var bars='<span style="display:inline-flex;gap:2px;align-items:flex-end;height:16px;margin-left:6px">'+[1,2,3,4].map(function(i){ return '<i style="display:block;width:4px;height:'+(4+i*3)+'px;border-radius:2px;background:'+(i<=q?'var(--acc)':'rgba(255,255,255,.25)')+'"></i>'; }).join('')+'</span>';
-  if(!d.type) return hd+'<div class="empty">Ouvre Réseau une fois pour l\'afficher ici</div><button class="mini" data-act="res-speed">'+ic('bolt')+'Tester</button>';
+  var d=wd(RES)||{}, q=Math.max(0,Math.min(4,d.quality||0)), w2=cfg.w===2;
+  var bars='<span style="display:inline-flex;gap:2px;align-items:flex-end;height:16px;margin-left:6px;flex:none">'+[1,2,3,4].map(function(i){ return '<i style="display:block;width:4px;height:'+(4+i*3)+'px;border-radius:2px;background:'+(i<=q?'var(--acc)':'rgba(255,255,255,.25)')+'"></i>'; }).join('')+'</span>';
+  var vb=w2?' <button class="mini" data-act="res-vpn">'+ic('shield')+'VPN</button>':'';
+  if(!d.type) return hd+'<div class="empty">Ouvre Réseau une fois pour l\'afficher ici</div><button class="mini" data-act="res-speed">'+ic('bolt')+'Tester</button>'+vb;
+  var v=resVpn(d), lab=v.vpn?'VPN':v.sec==='wep'?'Wifi WEP':'Wifi ouvert';
+  var sh=v.vpn||v.open?'<span title="'+lab+'" style="display:inline-flex;align-items:center;gap:3px;margin-left:7px;flex:none;font-size:11.5px;font-weight:700;color:'+(v.vpn?'#6fd6a4':'#ffb35c')+'">'+ic('shield',' style="width:16px;height:16px"')+(w2?lab:'')+'</span>':'';
   var name=d.type==='none'?'Hors ligne':(d.type==='mobile'?(d.name||'Mobile')+(d.gen?' · '+d.gen:''):(d.name||'Wifi'));
   var l=d.last;
-  return hd+'<div style="display:flex;align-items:center;margin-top:6px"><b style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px">'+esc(name)+'</b>'+bars+'</div>'+
+  return hd+'<div style="display:flex;align-items:center;margin-top:6px"><b style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:0 1 auto">'+esc(name)+'</b>'+bars+sh+'</div>'+
     (l?'<div class="sub">'+Math.round(l.down||0)+' ↓ · '+Math.round(l.up||0)+' ↑ Mb/s</div><div class="sub">'+ago2(l.date)+'</div>':'<div class="sub">Aucun test de débit</div>')+
-    '<button class="mini" data-act="res-speed">'+ic('bolt')+'Tester</button>';
+    '<button class="mini" data-act="res-speed">'+ic('bolt')+'Tester</button>'+vb;
 }
 
 /* Lecteur PDF : documents récents (toucher un document l'ouvre à la bonne page) */
@@ -928,6 +941,7 @@ $('grid').addEventListener('click', function(e){
     if(k2==='ecran-open'){ var e3=app(ECRAN); if(e3) launch(e3); }
     if(k2==='sos') A.homeLaunchWith(URG, JSON.stringify({sos:1}));
     if(k2==='res-speed') A.homeLaunchWith(RES, JSON.stringify({speed:1}));
+    if(k2==='res-vpn'){ var wg=app(WGP); if(wg) launch(wg); else A.homeLaunchWith(RES, JSON.stringify({tab:'vpn'})); }
     if(k2==='lec-pick') A.homeLaunchWith(LEC, JSON.stringify({pick:1}));
     if(k2==='cof-open'){ var c4=app(COF); if(c4) launch(c4); }
     if(k2==='qr-scan') A.homeLaunchWith(QRP, JSON.stringify({scan:1}));

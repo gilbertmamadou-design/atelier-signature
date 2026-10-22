@@ -298,6 +298,27 @@ public class MainActivity extends BridgeActivity {
         public void homeLaunchWith(final String pkg, final String action) { runOnUiThread(new Runnable() { public void run() { if (!LauncherService.launchWith(MainActivity.this, pkg, action)) toast("Appli non installée"); } }); }
         @JavascriptInterface
         public String homePhotos(int n, int size) { return LauncherService.photos(getApplicationContext(), n, size); }
+        // Tuile Réseau : VPN actif ? wifi connecté et sa sécurité (WifiInfo.SECURITY_TYPE_*, Android 12+), lus en direct
+        @JavascriptInterface
+        @SuppressWarnings("deprecation")
+        public String homeVpn() {
+            org.json.JSONObject o = new org.json.JSONObject();
+            try {
+                android.net.ConnectivityManager cm = (android.net.ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+                boolean vpn = false, wifi = false; int sec = -1;
+                for (android.net.Network n : cm.getAllNetworks()) {
+                    android.net.NetworkCapabilities k = cm.getNetworkCapabilities(n);
+                    if (k == null) continue;
+                    if (k.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN)) vpn = true;
+                    else if (k.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI)) {
+                        wifi = true;
+                        if (Build.VERSION.SDK_INT >= 31 && k.getTransportInfo() instanceof android.net.wifi.WifiInfo) { try { sec = ((android.net.wifi.WifiInfo) k.getTransportInfo()).getCurrentSecurityType(); } catch (Throwable t) { } }
+                    }
+                }
+                o.put("vpn", vpn); o.put("wifi", wifi); if (sec >= 0) o.put("sec", sec);
+            } catch (Throwable t) { }
+            return o.toString();
+        }
         @JavascriptInterface
         public void homeOpenPhoto(final String uri, final String pkg) { runOnUiThread(new Runnable() { public void run() { if (!LauncherService.openPhoto(MainActivity.this, uri, pkg)) toast("Impossible d'ouvrir la photo"); } }); }
         @JavascriptInterface
@@ -1670,7 +1691,7 @@ XML
 XML
   sed -i 's#</application>#    <service android:name=".LauncherA11y" android:label="Socle : gestes" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:exported="false"><intent-filter><action android:name="android.accessibilityservice.AccessibilityService" /></intent-filter><meta-data android:name="android.accessibilityservice" android:resource="@xml/socle_a11y" /></service>\n        <service android:name=".LauncherMedia" android:label="Socle : musique" android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" android:exported="true"><intent-filter><action android:name="android.service.notification.NotificationListenerService" /></intent-filter></service>\n    </application>#' "$MAN"
   sed -i 's#</manifest>#    <queries><intent><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent></queries>\n</manifest>#' "$MAN"
-  for P in READ_CALENDAR READ_CONTACTS EXPAND_STATUS_BAR READ_MEDIA_IMAGES READ_MEDIA_VISUAL_USER_SELECTED; do
+  for P in READ_CALENDAR READ_CONTACTS EXPAND_STATUS_BAR READ_MEDIA_IMAGES READ_MEDIA_VISUAL_USER_SELECTED ACCESS_NETWORK_STATE; do
     grep -q "android.permission.$P" "$MAN" || sed -i "s#</manifest>#    <uses-permission android:name=\"android.permission.$P\" />\n</manifest>#" "$MAN"
   done
   grep -n "category" "$MAN"
@@ -1762,8 +1783,12 @@ if [ "$APP" = "qr" ]; then
   addfilters '<intent-filter android:label="Créer un QR code"><action android:name="android.intent.action.SEND" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="text/plain" /></intent-filter>'
 fi
 if [ "$APP" = "reseau" ]; then
-  addperm INTERNET ACCESS_NETWORK_STATE ACCESS_WIFI_STATE CHANGE_WIFI_STATE CHANGE_WIFI_MULTICAST_STATE ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION READ_PHONE_STATE
+  addperm INTERNET ACCESS_NETWORK_STATE ACCESS_WIFI_STATE CHANGE_WIFI_STATE CHANGE_WIFI_MULTICAST_STATE ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION READ_PHONE_STATE RECEIVE_BOOT_COMPLETED
   addraw '<uses-feature android:name="android.hardware.wifi" android:required="false" /><uses-feature android:name="android.hardware.telephony" android:required="false" /><uses-feature android:name="android.hardware.location" android:required="false" /><queries><intent><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="https" /></intent><intent><action android:name="android.intent.action.SEND" /><data android:mimeType="text/plain" /></intent><intent><action android:name="android.settings.WIFI_ADD_NETWORKS" /></intent><intent><action android:name="android.settings.panel.action.WIFI" /></intent></queries>'
+  # VPN : WireGuard (ouvrir l'appli ou sa page Play Store) ; alerte « wifi non protégé » appli fermée (récepteur non exporté,
+  # réarmé au démarrage du téléphone et après une mise à jour ; le wifi connecté arrive par PendingIntent de ConnectivityManager)
+  addraw '<queries><package android:name="com.wireguard.android" /><intent><action android:name="android.intent.action.VIEW" /><data android:scheme="market" /></intent><intent><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="http" /></intent></queries>'
+  addactivity '<receiver android:name=".ReseauBridge$VpnAlert" android:exported="false"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED" /><action android:name="android.intent.action.MY_PACKAGE_REPLACED" /></intent-filter></receiver>'
 fi
 # Lecteur PDF : « Ouvrir avec » / « Partager » pour les PDF, synthèse vocale, ouverture d'Atelier PDF (LecteurBridge.java),
 # protection de « ma signature » par empreinte / visage / code du téléphone (USE_BIOMETRIC, BiometricPrompt)
