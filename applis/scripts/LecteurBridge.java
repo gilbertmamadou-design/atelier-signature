@@ -14,6 +14,7 @@ package __PKG__;
 // Enregistrement : la page envoie le PDF produit par morceaux (outBegin / outChunk / outEnd) ; le fichier va dans
 // Téléchargements/Lecteur PDF (nouveau fichier, jamais d'écrasement), ou dans un dossier choisi, ou part au partage
 // ou à l'impression. Aucun accès réseau.
+// Signature : authAvailable / authenticate (BiometricPrompt, empreinte / visage / code) pour protéger « ma signature ».
 // Codes de requête : 6300 (choix de PDF), 6301 (« Enregistrer sous… »).
 
 import android.app.Activity;
@@ -25,6 +26,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.CancellationSignal;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.print.PageRange;
@@ -571,6 +573,76 @@ public class LecteurBridge {
     @JavascriptInterface public void ttsStop() {
         synchronized (ttsQueue) { ttsQueue.clear(); }
         try { if (tts != null) tts.stop(); } catch (Throwable t) { }
+    }
+
+    // ---------- Protection de « ma signature » : empreinte, visage ou code du téléphone ----------
+    // Android 11+ (API 30) : BiometricPrompt avec BIOMETRIC_STRONG | DEVICE_CREDENTIAL ; Android 10 (API 29) :
+    // setDeviceCredentialAllowed(true) ; en dessous : indisponible (la page grise l'option). Pas de clé ni de chiffrement :
+    // c'est une vérification de présence du propriétaire, la page garde seule la durée de validité (2 min).
+    // Réponse : événement « auth » {token, ok, cancel?, err?}.
+    private CancellationSignal authCancel;
+    // constantes inlinées à la compilation : aucune référence à la classe Authenticators (API 30) sur Android 10
+    private static final int AUTH_STRONG_OR_CODE = android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_STRONG
+        | android.hardware.biometrics.BiometricManager.Authenticators.DEVICE_CREDENTIAL;
+
+    /** {"ok":true} si le téléphone peut demander une identification ; sinon why = "api" (Android < 10), "nocred" (aucun verrouillage d'écran), "hw" */
+    @JavascriptInterface public String authAvailable() {
+        int api = Build.VERSION.SDK_INT;
+        try {
+            if (api >= 30) {
+                android.hardware.biometrics.BiometricManager bm = a.getSystemService(android.hardware.biometrics.BiometricManager.class);
+                int r = bm == null ? -1 : bm.canAuthenticate(AUTH_STRONG_OR_CODE);
+                if (r == android.hardware.biometrics.BiometricManager.BIOMETRIC_SUCCESS) return "{\"ok\":true}";
+                if (r == android.hardware.biometrics.BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED) return "{\"ok\":false,\"why\":\"nocred\"}";
+                return "{\"ok\":false,\"why\":\"hw\"}";
+            }
+            if (api == 29) {
+                android.app.KeyguardManager km = (android.app.KeyguardManager) a.getSystemService(android.content.Context.KEYGUARD_SERVICE);
+                return km != null && km.isDeviceSecure() ? "{\"ok\":true}" : "{\"ok\":false,\"why\":\"nocred\"}";
+            }
+        } catch (Throwable t) { return "{\"ok\":false,\"why\":\"hw\"}"; }
+        return "{\"ok\":false,\"why\":\"api\"}";
+    }
+
+    @SuppressWarnings("deprecation")
+    @JavascriptInterface public void authenticate(final String token, final String title, final String sub) {
+        if (Build.VERSION.SDK_INT < 29) { emitAuth(token, false, false, "Indisponible sur cette version d'Android"); return; }
+        a.runOnUiThread(new Runnable() { public void run() {
+            try {
+                final boolean[] over = { false };
+                android.hardware.biometrics.BiometricPrompt.Builder pb = new android.hardware.biometrics.BiometricPrompt.Builder(a)
+                    .setTitle(title == null || title.isEmpty() ? "Ma signature" : title);
+                if (sub != null && !sub.isEmpty()) pb.setSubtitle(sub);
+                // pas de bouton négatif : interdit avec le code du téléphone (Android propose « Annuler » / « Utiliser le code »)
+                if (Build.VERSION.SDK_INT >= 30) pb.setAllowedAuthenticators(AUTH_STRONG_OR_CODE);
+                else pb.setDeviceCredentialAllowed(true);
+                pb.setConfirmationRequired(false);
+                try { if (authCancel != null) authCancel.cancel(); } catch (Exception e) { }
+                authCancel = new CancellationSignal();
+                pb.build().authenticate(authCancel, a.getMainExecutor(), new android.hardware.biometrics.BiometricPrompt.AuthenticationCallback() {
+                    @Override public void onAuthenticationSucceeded(android.hardware.biometrics.BiometricPrompt.AuthenticationResult r) {
+                        if (over[0]) return; over[0] = true; emitAuth(token, true, false, null);
+                    }
+                    @Override public void onAuthenticationError(int code, CharSequence msg) {
+                        if (over[0]) return; over[0] = true;
+                        boolean cancel = code == android.hardware.biometrics.BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED
+                            || code == android.hardware.biometrics.BiometricPrompt.BIOMETRIC_ERROR_CANCELED
+                            || code == 13 /* bouton négatif */;
+                        emitAuth(token, false, cancel, cancel ? null : (msg == null ? "Identification impossible" : msg.toString()));
+                    }
+                    // onAuthenticationFailed : doigt ou visage non reconnu, la fenêtre reste ouverte (Android affiche le message)
+                });
+            } catch (Throwable t) { emitAuth(token, false, false, "Identification indisponible : " + t.getClass().getSimpleName()); }
+        } });
+    }
+    private void emitAuth(String token, boolean ok, boolean cancel, String err) {
+        try {
+            JSONObject o = new JSONObject();
+            o.put("token", token == null ? "" : token); o.put("ok", ok);
+            if (cancel) o.put("cancel", true);
+            if (err != null) o.put("err", err);
+            emit("auth", o.toString());
+        } catch (Exception e) { }
     }
 
     // ---------- Divers ----------
