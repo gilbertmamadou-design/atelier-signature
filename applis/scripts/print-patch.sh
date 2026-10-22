@@ -225,6 +225,8 @@ public class MainActivity extends BridgeActivity {
         public void backupPut(String json) { WidgetProvider.putBackup(getApplicationContext(), json); }
         @JavascriptInterface
         public String takeSocle() { String s = pendingSocle; pendingSocle = ""; return s == null ? "" : s; }
+        @JavascriptInterface
+        public void appBack() { runOnUiThread(new Runnable() { public void run() { try { moveTaskToBack(true); } catch (Exception e) { } } }); }
         // ----- Socle : écran d'accueil en tableau de bord -----
         @JavascriptInterface
         public String homeApps() { return LauncherService.apps(getApplicationContext()); }
@@ -346,7 +348,7 @@ public class MainActivity extends BridgeActivity {
     private final java.util.List<Object> extraBridges = new java.util.ArrayList<Object>();
     private void loadExtraBridges(WebView wv) {
         String pkg = MainActivity.class.getPackage().getName();
-        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge", "ReseauBridge" }) {
+        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge", "ReseauBridge", "LecteurBridge" }) {
             try {
                 Class<?> k = Class.forName(pkg + "." + n);
                 Object o = k.getConstructor(android.app.Activity.class, WebView.class).newInstance(this, wv);
@@ -1727,6 +1729,11 @@ if [ "$APP" = "reseau" ]; then
   addperm INTERNET ACCESS_NETWORK_STATE ACCESS_WIFI_STATE CHANGE_WIFI_STATE CHANGE_WIFI_MULTICAST_STATE ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION READ_PHONE_STATE
   addraw '<uses-feature android:name="android.hardware.wifi" android:required="false" /><uses-feature android:name="android.hardware.telephony" android:required="false" /><uses-feature android:name="android.hardware.location" android:required="false" /><queries><intent><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="https" /></intent><intent><action android:name="android.intent.action.SEND" /><data android:mimeType="text/plain" /></intent><intent><action android:name="android.settings.WIFI_ADD_NETWORKS" /></intent><intent><action android:name="android.settings.panel.action.WIFI" /></intent></queries>'
 fi
+# Lecteur PDF : « Ouvrir avec » / « Partager » pour les PDF, synthèse vocale, ouverture d'Atelier PDF (LecteurBridge.java)
+if [ "$APP" = "lecteur" ]; then
+  addraw '<queries><intent><action android:name="android.intent.action.TTS_SERVICE" /></intent><intent><action android:name="android.intent.action.SEND" /><data android:mimeType="application/pdf" /></intent><intent><action android:name="android.intent.action.VIEW" /><data android:mimeType="application/pdf" /></intent><package android:name="fr.magformation13.pdf" /><package android:name="fr.magformation13.socle" /></queries>'
+  addfilters '<intent-filter android:label="Ouvrir avec Lecteur PDF"><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.DEFAULT" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="content" /><data android:scheme="file" /><data android:mimeType="application/pdf" /><data android:mimeType="application/x-pdf" /></intent-filter><intent-filter android:label="Ouvrir avec Lecteur PDF"><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.DEFAULT" /><data android:scheme="content" /><data android:scheme="file" /><data android:host="*" /><data android:mimeType="application/octet-stream" /><data android:pathPattern=".*\\.pdf" /><data android:pathPattern=".*\\..*\\.pdf" /><data android:pathPattern=".*\\..*\\..*\\.pdf" /></intent-filter><intent-filter android:label="Ouvrir avec Lecteur PDF"><action android:name="android.intent.action.SEND" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="application/pdf" /></intent-filter>'
+fi
 if [ "$APP" = "meteo" ]; then
   addperm ACCESS_NETWORK_STATE RECEIVE_BOOT_COMPLETED INTERNET
   addactivity '<service android:name=".MeteoPersoJob" android:permission="android.permission.BIND_JOB_SERVICE" android:exported="false" />'
@@ -1742,7 +1749,7 @@ if [ "$APP" = "sauvegarde" ]; then
   addperm RECEIVE_BOOT_COMPLETED READ_CONTACTS READ_CALENDAR READ_MEDIA_IMAGES READ_MEDIA_VIDEO READ_MEDIA_AUDIO READ_MEDIA_VISUAL_USER_SELECTED MANAGE_EXTERNAL_STORAGE
   grep -q 'READ_EXTERNAL_STORAGE' "$MAN" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />\n</manifest>#' "$MAN"
   Q='<queries><intent><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent><intent><action android:name="android.intent.action.VIEW" /><data android:mimeType="text/x-vcard" /></intent><intent><action android:name="android.intent.action.VIEW" /><data android:mimeType="text/calendar" /></intent><intent><action android:name="android.intent.action.VIEW" /><data android:mimeType="application/json" /></intent><intent><action android:name="android.intent.action.SEND" /><data android:mimeType="*/*" /></intent>'
-  for K in carnet scan mesure photo ondes toile socle suite qhse chasse sentiers vigie petitspas reveil musique fichiers ciel pdf echafaudage galerie agenda contacts calcul ecran; do Q="$Q<package android:name=\"fr.magformation13.$K\" />"; done
+  for K in carnet scan mesure photo ondes toile socle suite qhse chasse sentiers vigie petitspas reveil musique fichiers ciel pdf echafaudage galerie agenda contacts calcul ecran lecteur; do Q="$Q<package android:name=\"fr.magformation13.$K\" />"; done
   sed -i "s#</manifest>#    $Q</queries>\n</manifest>#" "$MAN"
 fi
 if [ "$APP" = "ondes" ]; then

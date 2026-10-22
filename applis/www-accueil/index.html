@@ -84,6 +84,13 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stro
 .nt .li svg{width:14px;height:14px}
 .nt .li.c{text-decoration:line-through;opacity:.6}
 .wallp{display:flex;gap:12px;align-items:center;margin-top:9px}
+.ld{display:flex;gap:10px;align-items:center;width:100%;text-align:left;margin-top:8px;border-radius:12px;min-height:50px}
+.ld:active{background:rgba(255,255,255,.08)}
+.ld img,.ld .ph3{width:36px;height:48px;border-radius:5px;object-fit:cover;object-position:top;background:#fff;flex:none;display:flex;align-items:center;justify-content:center;color:#8b90a0}
+.ld .tt{flex:1;min-width:0}
+.ld .tt b{display:block;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ld .tt span{display:block;font-size:12px;color:var(--tx2)}
+.ld .mbar{margin-top:5px;height:3px}
 .wallp img,.wallp .ph2{width:58px;aspect-ratio:9/19;border-radius:9px;object-fit:cover;background:rgba(255,255,255,.12);flex:none}
 .calcin{width:100%;background:rgba(255,255,255,.1);border:0;outline:0;border-radius:12px;padding:10px 12px;margin-top:9px;font-size:17px;font-variant-numeric:tabular-nums}
 .calcres{font-size:24px;font-weight:600;margin-top:6px;text-align:right;font-variant-numeric:tabular-nums;min-height:30px}
@@ -266,6 +273,7 @@ var IC = {
   lock:'<rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
   qr:'<path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z"/>',
   book:'<path d="M12 6c-2-1.5-5-2-8-1.5v14c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5v-14c-3-.5-6 0-8 1.5zM12 6v14"/>',
+  pdf:'<path d="M12 21H6V3h8l5 5v4"/><path d="M14 3v5h5M9 9h3M9 13h3"/><circle cx="16" cy="16.5" r="3"/><path d="m21 21.5-2.7-2.7"/>',
   wallet:'<rect x="3" y="6" width="18" height="13" rx="3"/><path d="M16 12.5h5M7 6V5a1 1 0 0 1 1-1h9"/>',
   mplay:'<path d="M7 4v16l13-8z"/>', mpause:'<path d="M7 4v16M17 4v16"/>',
   mprev:'<path d="M19 20 9 12l10-8zM5 4v16"/>', mnext:'<path d="m5 4 10 8-10 8zM19 4v16"/>'
@@ -296,7 +304,7 @@ var TYPES = {
   sos:{n:'Urgence : bouton SOS',i:'sos',w:1}, coffre:{n:'Coffre : mots de passe',i:'lock',w:1},
   qrcode:{n:'QR : lire un code',i:'qr',w:1}, livre:{n:'Liseuse : livre en cours',i:'book',w:2},
   budget:{n:'Budget : dépenses du mois',i:'wallet',w:2,tall:1}, dicta:{n:'Dictaphone',i:'mic',w:1},
-  meteoapp:{n:'Météo : aujourd\'hui',i:'sun',w:2}, reseau:{n:'Réseau : connexion et débit',i:'web',w:1}, mag:{n:'Mes applis MAG',i:'mag',w:2}, note:{n:'Note rapide',i:'note',w:1}
+  meteoapp:{n:'Météo : aujourd\'hui',i:'sun',w:2}, reseau:{n:'Réseau : connexion et débit',i:'web',w:1}, lecteur:{n:'Lecteur PDF : documents récents',i:'pdf',w:2}, mag:{n:'Mes applis MAG',i:'mag',w:2}, note:{n:'Note rapide',i:'note',w:1}
 };
 
 /* ---------- Marges du système ---------- */
@@ -456,6 +464,7 @@ function tileHtml(cfg, idx){
     case 'dicta': body = dictaHtml(cfg); break;
     case 'meteoapp': body = meteoAppHtml(cfg); break;
     case 'reseau': body = reseauHtml(cfg); break;
+    case 'lecteur': body = lecteurHtml(cfg); break;
     case 'note': body = '<div class="hd">'+ic('note')+'Note rapide</div><textarea placeholder="Écris ici…">'+esc(localStorage.getItem('socle-note')||'')+'</textarea>'; break;
   }
   var ed = '<div class="ed"><button data-ed="left" aria-label="Avant">'+ic('left')+'</button><button data-ed="size" aria-label="Taille">'+ic('size')+'</button><button data-ed="right" aria-label="Après">'+ic('right')+'</button><button class="x" data-ed="del" aria-label="Retirer">'+ic('x')+'</button></div>';
@@ -582,6 +591,21 @@ function musicHtml(){
   if(MED.dur>0){ var p=medPos(); h+='<div class="mbar"><i id="mBar" style="width:'+(p/MED.dur*100)+'%"></i></div><div class="mtm"><span id="mCur">'+mt(p)+'</span><span>'+mt(MED.dur)+'</span></div>'; }
   return h+ctl(true);
 }
+/* Mélodie : son lecteur tourne-t-il vraiment ? (si Android l'a arrêté, l'état publié est périmé) */
+var MELP='fr.magformation13.musique', melAliveV=false, melAliveAt=0;
+function melAlive(force){
+  if(!A || !A.homeWidgetCall) return true;
+  if(force || Date.now()-melAliveAt>4000){ melAliveV=!!A.homeWidgetCall(MELP,'music_alive',''); melAliveAt=Date.now(); }
+  return melAliveV;
+}
+/* Commande musique vers Mélodie quand son lecteur ne tourne pas : on la réveille, elle relance la lecture puis rend la main à Socle */
+function melWake(cmd){
+  if(!findApp(function(a){ return a.pkg===MELP; })) return false;
+  if(cmd==='pause') return true;
+  A.homeLaunchWith(MELP, JSON.stringify({play:1, back:1, skip:cmd==='next'||cmd==='prev'?cmd:undefined}));
+  MED.playing=true; medSig=''; setTimeout(pollMedia,1500); setTimeout(pollMedia,3000);
+  return true;
+}
 /* Repli sans l'accès « Socle : musique » : Mélodie et Ondes publient elles-mêmes le morceau en cours */
 function mediaFromApps(m){
   if(!A.homeWidget) return m;
@@ -591,6 +615,7 @@ function mediaFromApps(m){
     var d=J(A.homeWidget(x[0]),null); if(!d) return;
     var t=d.music || (d.ep ? {title:d.ep.title, artist:d.ep.sub, album:'', dur:(d.ep.dur||0)*1000, pos:(d.ep.pos||0)*1000, playing:d.ep.playing, at:d.ep.at||d.at, art:d.ep.art} : null);
     if(!t || !t.title) return;
+    if(t.playing && x[0]===MELP && !melAlive()) t=Object.assign({},t,{playing:false});
     var at=t.at||d.at||0; if(!t.playing && now-at>6*3600000) return;
     var score=(t.playing?1e13:0)+at;
     if(!best || score>best.score) best={score:score, pkg:x[0], app:x[1], t:t, at:at};
@@ -785,6 +810,20 @@ function reseauHtml(cfg){
     '<button class="mini" data-act="res-speed">'+ic('bolt')+'Tester</button>';
 }
 
+/* Lecteur PDF : documents récents (toucher un document l'ouvre à la bonne page) */
+var LEC='fr.magformation13.lecteur';
+function lecteurHtml(cfg){
+  var has=app(LEC);
+  var hd='<div class="hdr"><div class="hd">'+ic('pdf')+'Lecteur PDF</div>'+(has?'<button class="hbtn" data-act="lec-pick" aria-label="Ouvrir un PDF">'+ic('plus')+'</button>':'')+'</div>';
+  if(!has) return hd+missing('Lecteur PDF');
+  var d=wd(LEC)||{}, l=(d.docs||[]).slice(0, cfg.w===2?3:1);
+  if(!l.length) return hd+'<div class="empty">Aucun document récent</div><button class="mini" data-act="lec-pick">'+ic('pdf')+'Ouvrir un PDF</button>';
+  return hd+l.map(function(x){
+    var pct=x.pages>1?Math.round(((x.page||1)-1)/(x.pages-1)*100):100;
+    return '<button class="ld" data-lecdoc="'+esc(x.id)+'">'+(x.thumb?'<img src="'+esc(x.thumb)+'" alt="">':'<span class="ph3">'+ic('pdf')+'</span>')+'<span class="tt"><b>'+esc(x.title||'Document')+'</b><span>'+(x.pages?'p. '+(x.page||1)+' / '+x.pages:'')+(x.at?(x.pages?' · ':'')+ago2(x.at):'')+'</span>'+(x.pages>1?'<span class="mbar"><i style="width:'+pct+'%"></i></span>':'')+'</span></button>';
+  }).join('');
+}
+
 /* Calcul rapide */
 function calcHtml(cfg){
   var has=magApp('calc');
@@ -825,6 +864,9 @@ $('grid').addEventListener('click', function(e){
     if(k2==='level') levelSheet();
     if(k2==='perm-cal' && A) A.homeAsk('calendar');
     if((k2==='mtoggle' || k2==='mprev' || k2==='mnext') && MED.fromApp && MED.pkg==='fr.magformation13.ondes'){ A.homeLaunchWith(MED.pkg, JSON.stringify({resume:1})); return; }
+    if((k2==='mtoggle' || k2==='mprev' || k2==='mnext') && A && ((MED.fromApp && MED.pkg===MELP) || MED.none) && !melAlive(true)){
+      if(melWake(k2==='mtoggle' ? (MED.playing&&!MED.none ? 'pause' : 'play') : k2.slice(1))) return;
+    }
     if(k2==='mtoggle' || k2==='mprev' || k2==='mnext'){ if(A&&A.homeMediaCmd){ A.homeMediaCmd(k2==='mtoggle'?(MED.none?'play':'toggle'):k2.slice(1),0); if(k2==='mtoggle'&&!MED.none){ MED.playing=!MED.playing; medSig=''; } setTimeout(pollMedia,350); setTimeout(pollMedia,1200); } }
     if(k2==='maccess') mediaHelp();
     if(k2==='perm-photos' && A) A.homeAsk('photos');
@@ -843,6 +885,7 @@ $('grid').addEventListener('click', function(e){
     if(k2==='ecran-open'){ var e3=app(ECRAN); if(e3) launch(e3); }
     if(k2==='sos') A.homeLaunchWith(URG, JSON.stringify({sos:1}));
     if(k2==='res-speed') A.homeLaunchWith(RES, JSON.stringify({speed:1}));
+    if(k2==='lec-pick') A.homeLaunchWith(LEC, JSON.stringify({pick:1}));
     if(k2==='cof-open'){ var c4=app(COF); if(c4) launch(c4); }
     if(k2==='qr-scan') A.homeLaunchWith(QRP, JSON.stringify({scan:1}));
     if(k2==='lis-resume') A.homeLaunchWith(LIS, JSON.stringify({resume:1}));
@@ -858,6 +901,7 @@ $('grid').addEventListener('click', function(e){
   var ph=e.target.closest('[data-photo]'); if(ph && A){ var g=magApp('gallery'); A.homeOpenPhoto(ph.dataset.photo, g&&C.preferMag?g.pkg:''); return; }
   var cc=e.target.closest('[data-contact2]'); if(cc && A){ openRole('contacts','contact', cc.dataset.contact2); return; }
   var cn=e.target.closest('[data-cnote]'); if(cn && A){ A.homeLaunchWith(CARNET, JSON.stringify({open:cn.dataset.cnote})); return; }
+  var ld=e.target.closest('[data-lecdoc]'); if(ld && A){ A.homeLaunchWith(LEC, JSON.stringify({open:ld.dataset.lecdoc})); return; }
   if(e.target.closest('.calcin')) return;
   var tile=e.target.closest('.tile'); if(!tile) return;
   var tp=tile.dataset.t;
@@ -869,7 +913,7 @@ $('grid').addEventListener('click', function(e){
   if(tp==='notes'){ var c3=findApp(function(x){ return x.pkg===CARNET; }); if(c3) launch(c3); }
   if(tp==='podcast'){ var o2=findApp(function(x){ return x.pkg===ONDES; }); if(o2) launch(o2); }
   if(tp==='wallpaper'){ var t2=findApp(function(x){ return x.pkg===TOILE; }); if(t2) launch(t2); }
-  var tmap={camera:PHOTO,scandoc:SCANP,mesure:MESURE,backup:SAUVE,video:ECRAN,sos:URG,coffre:COF,qrcode:QRP,livre:LIS,budget:BUD,dicta:DIC,meteoapp:MET,reseau:RES}; if(tmap[tp]){ var ap2=app(tmap[tp]); if(ap2) launch(ap2); }
+  var tmap={camera:PHOTO,scandoc:SCANP,mesure:MESURE,backup:SAUVE,video:ECRAN,sos:URG,coffre:COF,qrcode:QRP,livre:LIS,budget:BUD,dicta:DIC,meteoapp:MET,reseau:RES,lecteur:LEC}; if(tmap[tp]){ var ap2=app(tmap[tp]); if(ap2) launch(ap2); }
 });
 
 /* ---------- Gestes ---------- */
@@ -919,7 +963,7 @@ function startEdit(){ document.body.classList.add('edit'); }
 function endEdit(){ document.body.classList.remove('edit'); }
 $('bDone').onclick=endEdit;
 $('bAddTile').onclick=function(){
-  var need={notes:CARNET,podcast:ONDES,wallpaper:TOILE,camera:PHOTO,scandoc:SCANP,mesure:MESURE,backup:SAUVE,video:ECRAN,sos:URG,coffre:COF,qrcode:QRP,livre:LIS,budget:BUD,dicta:DIC,meteoapp:MET,reseau:RES};
+  var need={notes:CARNET,podcast:ONDES,wallpaper:TOILE,camera:PHOTO,scandoc:SCANP,mesure:MESURE,backup:SAUVE,video:ECRAN,sos:URG,coffre:COF,qrcode:QRP,livre:LIS,budget:BUD,dicta:DIC,meteoapp:MET,reseau:RES,lecteur:LEC};
   var h='<h2>Ajouter une tuile</h2><div class="menu">'+Object.keys(TYPES).map(function(k){ var miss=need[k]&&!findApp(function(a){ return a.pkg===need[k]; }); return '<button data-add="'+k+'"'+(miss?' style="opacity:.5"':'')+'>'+ic(TYPES[k].i)+'<span style="flex:1;text-align:left">'+TYPES[k].n+(miss?'<br><small style="color:var(--tx3)">Appli non installée</small>':'')+'</span></button>'; }).join('')+'</div><div class="empty">Astuce : en mode modification, le bouton ⤢ passe une tuile de demi-largeur à pleine largeur, puis en grande hauteur pour les tuiles qui le permettent.</div>';
   openSheet(h,'add');
 };

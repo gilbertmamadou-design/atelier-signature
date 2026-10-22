@@ -380,8 +380,8 @@ public class LecteurBridge {
     }
     @JavascriptInterface public void outCancel(String token) { File f; synchronized (outs) { f = outs.remove(token); } if (f != null) f.delete(); }
 
-    /** Même chose avec le document d'origine (sans modification) */
-    @JavascriptInterface public void srcAction(final String src, final String name, final String mode) {
+    /** Même chose avec le document d'origine (sans modification). Renvoie le jeton repris par l'événement « out ». */
+    @JavascriptInterface public String srcAction(final String src, final String name, final String mode) {
         active = true;
         final String token = tok("s");
         new Thread(new Runnable() { public void run() {
@@ -394,6 +394,7 @@ public class LecteurBridge {
                 deliver(f, safeName(name), mode, token);
             } catch (Throwable t) { emitOut(token, mode, false, null, name, msg(t)); }
         } }).start();
+        return token;
     }
 
     private static String safeName(String n) {

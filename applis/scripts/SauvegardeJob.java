@@ -75,7 +75,7 @@ public class SauvegardeJob extends JobService {
         "fr.magformation13.ondes", "fr.magformation13.toile", "fr.magformation13.socle", "fr.magformation13.suite",
         "fr.magformation13.qhse", "fr.magformation13.chasse", "fr.magformation13.sentiers", "fr.magformation13.vigie",
         "fr.magformation13.petitspas", "fr.magformation13.reveil", "fr.magformation13.musique", "fr.magformation13.fichiers",
-        "fr.magformation13.ciel", "fr.magformation13.pdf", "fr.magformation13.echafaudage" };
+        "fr.magformation13.ciel", "fr.magformation13.pdf", "fr.magformation13.echafaudage", "fr.magformation13.lecteur" };
 
     static final Object LOCK = new Object();
     static volatile boolean running = false;

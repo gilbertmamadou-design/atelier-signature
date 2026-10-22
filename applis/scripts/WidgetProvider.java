@@ -65,6 +65,11 @@ public class WidgetProvider extends ContentProvider {
         try {
             if ("wp_next".equals(method)) { WallpaperJob.runSoon(c, WallpaperJob.JOB_NOW); b.putBoolean("ok", true); }
             else if ("wp_prev".equals(method)) { WallpaperJob.runSoon(c, WallpaperJob.JOB_PREV); b.putBoolean("ok", true); }
+            // Mélodie : le lecteur tourne-t-il vraiment ? (après un arrêt d'Android, la tuile garderait un état périmé)
+            else if ("music_alive".equals(method)) {
+                Class<?> k = Class.forName(c.getPackageName() + ".MusicService");
+                b.putBoolean("ok", k.getDeclaredField("alive").getBoolean(null));
+            }
             else b.putBoolean("ok", false);
         } catch (Throwable t) { b.putBoolean("ok", false); b.putString("err", String.valueOf(t.getMessage())); }
         return b;
