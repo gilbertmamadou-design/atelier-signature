@@ -267,6 +267,18 @@ public class MainActivity extends BridgeActivity {
         @JavascriptInterface
         public String homePerms() { return LauncherService.perms(getApplicationContext()); }
         @JavascriptInterface
+        public String homePlace(double lat, double lon) {
+            // Nom de la commune pour la météo « ma position » (géocodeur d'Android)
+            try {
+                if (!android.location.Geocoder.isPresent()) return "";
+                java.util.List<android.location.Address> l = new android.location.Geocoder(getApplicationContext(), java.util.Locale.FRANCE).getFromLocation(lat, lon, 1);
+                if (l == null || l.isEmpty()) return "";
+                android.location.Address a = l.get(0);
+                String n = a.getLocality(); if (n == null || n.isEmpty()) n = a.getSubLocality(); if (n == null || n.isEmpty()) n = a.getSubAdminArea();
+                return n == null ? "" : n;
+            } catch (Throwable t) { return ""; }
+        }
+        @JavascriptInterface
         public void homeAsk(final String what) { runOnUiThread(new Runnable() { public void run() { socleAsk(what); } }); }
         @JavascriptInterface
         public boolean homeLock() { return LauncherService.lock(); }

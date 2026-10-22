@@ -34,6 +34,15 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stro
 .t-clock .date{font-size:15px;color:var(--tx2);margin-top:6px}
 .t-clock .al{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--acc);margin-top:6px}
 .t-clock .al svg{width:15px;height:15px}
+.t-clock .crow{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.t-clock .cwx{display:flex;flex-direction:column;align-items:flex-end;gap:2px;padding:4px 2px 4px 8px;min-width:0;max-width:48%;text-align:right;border-radius:14px}
+.t-clock .cwx .tp{display:flex;align-items:center;gap:6px;font-size:30px;font-weight:300;line-height:1}
+.t-clock .cwx .tp svg{width:30px;height:30px}
+.t-clock .cwx .pl{display:flex;align-items:center;gap:3px;font-size:12.5px;color:var(--tx2);max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-clock .cwx .pl svg{width:12px;height:12px;flex:none}
+.t-clock .cwx .ds{font-size:12px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.t-clock .cwx.ask{font-size:13px;color:var(--acc);flex-direction:row;align-items:center;gap:5px;margin-top:10px}
+.t-clock .cwx.ask svg{width:15px;height:15px}
 .bar{height:6px;border-radius:9px;background:rgba(255,255,255,.18);margin-top:9px;overflow:hidden}
 .bar i{display:block;height:100%;border-radius:9px;background:var(--acc)}
 .ev{display:flex;gap:8px;margin-top:7px;font-size:13px;align-items:flex-start}
@@ -487,7 +496,15 @@ function clockHtml(){
   var d=new Date(), t=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
   var date=d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}); date=date.charAt(0).toUpperCase()+date.slice(1);
   var al=alarmInfo(), alh = al.at ? '<div class="al">'+ic('alarm')+'Réveil '+dayLabel(al.at)+' à '+hm(al.at)+'</div>' : '';
-  return '<div class="time">'+t+'</div><div class="date">'+date+'</div>'+alh;
+  return '<div class="crow"><div style="min-width:0"><div class="time">'+t+'</div><div class="date">'+date+'</div></div>'+clockWx()+'</div>'+alh;
+}
+/* Météo de ma position à côté de l'heure */
+function clockWx(){
+  if(!C.city) return '<button class="cwx ask" data-act="wx">'+ic('pin')+'Météo ici</button>';
+  if(!W || !W.current) return '<button class="cwx" data-act="wx"><span class="pl">'+ic('pin')+esc(C.city.name)+'</span><span class="ds">Chargement…</span></button>';
+  var c=W.current, w=wmo(c.weather_code, c.is_day), d=W.daily;
+  var mm = d && d.temperature_2m_max ? Math.round(d.temperature_2m_min[0])+'° / '+Math.round(d.temperature_2m_max[0])+'°' : w[0];
+  return '<button class="cwx" data-act="wx" aria-label="Météo : '+esc(w[0])+', '+Math.round(c.temperature_2m)+' degrés"><span class="tp">'+ic(w[1])+Math.round(c.temperature_2m)+'°</span><span class="pl">'+(C.city.auto?ic('pin'):'')+esc(C.city.name)+'</span><span class="ds">'+mm+'</span></button>';
 }
 function alarmHtml(){
   var al=alarmInfo();
@@ -515,8 +532,22 @@ function fetchWeather(force){
   weatherBusy=true;
   var u='https://api.open-meteo.com/v1/forecast?latitude='+C.city.lat+'&longitude='+C.city.lon+'&current=temperature_2m,weather_code,wind_speed_10m,wind_gusts_10m,is_day&hourly=precipitation_probability,temperature_2m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_gusts_10m_max&timezone=auto&forecast_days=4';
   fetch(u).then(function(r){ return r.json(); }).then(function(d){
-    if(d && d.current){ d.at=Date.now(); d.lat=C.city.lat; W=d; localStorage.setItem('socle-meteo', JSON.stringify(d)); refresh('weather'); if(sheetType==='weather') weatherSheet(); }
+    if(d && d.current){ d.at=Date.now(); d.lat=C.city.lat; W=d; localStorage.setItem('socle-meteo', JSON.stringify(d)); refresh('weather'); refresh('clock'); if(sheetType==='weather') weatherSheet(); }
   }).catch(function(){}).then(function(){ weatherBusy=false; });
+}
+function placeName(lat, lon){ try{ var n=A&&A.homePlace?A.homePlace(lat, lon):''; return n||'Ma position'; }catch(e){ return 'Ma position'; } }
+/* Si la météo suit « ma position » : mise à jour discrète de la position (au plus toutes les 20 min) quand on revient sur Socle */
+var lastAutoLoc=0;
+function autoLocate(){
+  if(!C.city || !C.city.auto || !navigator.geolocation || Date.now()-lastAutoLoc<20*60000) return;
+  if(A){ var p=J(A.homePerms(),{}); if(!p.location) return; }
+  lastAutoLoc=Date.now();
+  navigator.geolocation.getCurrentPosition(function(pos){
+    var lat=+pos.coords.latitude.toFixed(3), lon=+pos.coords.longitude.toFixed(3);
+    var moved=Math.abs(lat-C.city.lat)>0.01 || Math.abs(lon-C.city.lon)>0.01;
+    if(!moved && C.city.name!=='Ma position') return;
+    C.city={name:placeName(lat,lon),lat:lat,lon:lon,auto:true}; save(); if(moved) fetchWeather(true); refresh('weather'); refresh('clock');
+  }, function(){}, {timeout:20000, maximumAge:900000});
 }
 function locateMe(){
   if(A){ var p=J(A.homePerms(),{}); if(!p.location){ pendingLocate=true; A.homeAsk('location'); return; } }
@@ -524,7 +555,8 @@ function locateMe(){
   toast('Recherche de ta position…');
   navigator.geolocation.getCurrentPosition(function(pos){
     var lat=+pos.coords.latitude.toFixed(3), lon=+pos.coords.longitude.toFixed(3);
-    C.city={name:'Ma position',lat:lat,lon:lon,auto:true}; save(); fetchWeather(true); refresh('weather'); if(sheetType==='weather') weatherSheet();
+    lastAutoLoc=Date.now();
+    C.city={name:placeName(lat,lon),lat:lat,lon:lon,auto:true}; save(); fetchWeather(true); refresh('weather'); refresh('clock'); if(sheetType==='weather') weatherSheet();
   }, function(){ toast('Position introuvable : choisis une ville'); }, {timeout:15000, maximumAge:600000});
 }
 var pendingLocate=false;
@@ -860,6 +892,7 @@ $('grid').addEventListener('click', function(e){
   if(act){
     var k2=act.dataset.act;
     if(k2==='torch'){ var r=A?A.homeTorch(!A.homeTorchState()):'Disponible dans l\'application'; if(r) toast(r); setTimeout(function(){ refresh('tools'); },150); }
+    if(k2==='wx'){ if(C.city) weatherSheet(); else locateMe(); return; }
     if(k2==='compass') compassSheet();
     if(k2==='level') levelSheet();
     if(k2==='perm-cal' && A) A.homeAsk('calendar');
@@ -1183,7 +1216,7 @@ window.accueilPerms=function(){
 var lastAppsSig='';
 window.accueilResume=function(){
   if(A){ var l=A.homeApps(); if(l.length!==lastAppsSig.length || l!==lastAppsSig){ lastAppsSig=l; loadApps(); if($('drawer').classList.contains('on')) renderList(); } }
-  WCACHE={}; PHOTOS=null; theme(); render(); fetchWeather(false); medSig=''; pollMedia();
+  WCACHE={}; PHOTOS=null; theme(); render(); fetchWeather(false); autoLocate(); medSig=''; pollMedia();
 };
 
 /* ---------- Démarrage ---------- */
@@ -1191,6 +1224,9 @@ theme();
 if(A){ lastAppsSig=A.homeApps(); loadApps(); }
 render();
 if(C.city) fetchWeather(false);
+setTimeout(autoLocate, 1500);
+/* Une seule fois : la météo de l'horloge suit ma position (si la position est refusée, la ville choisie reste) */
+if(A && !C.wxPos){ C.wxPos=1; save(); if(!C.city || !C.city.auto) setTimeout(locateMe, 2500); }
 setInterval(function(){ if(!document.hidden){ refresh('clock'); } }, 15000);
 setInterval(pollMedia, 1000); setTimeout(pollMedia, 300);
 setInterval(function(){ if(!document.hidden){ refresh('battery'); refresh('alarm'); refresh('agenda'); fetchWeather(false); } }, 120000);
