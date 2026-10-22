@@ -217,6 +217,7 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
     <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
     <symbol id="i-list" viewBox="0 0 24 24"><path d="M3 6h13M3 12h13M3 18h9M19 14v7M15.5 17.5h7"/></symbol>
     <symbol id="i-queue" viewBox="0 0 24 24"><path d="M3 6h18M3 12h12M3 18h12"/><path class="icf" d="M17 14.5v7l5-3.5z"/></symbol>
+    <symbol id="i-vol" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9.5a3.5 3.5 0 0 1 0 5M19.5 7a7 7 0 0 1 0 10"/></symbol>
     <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
     <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
     <symbol id="i-next2" viewBox="0 0 24 24"><path d="M3 6h12M3 12h12M3 18h7"/><path d="m16 15 3 3 3-3M19 18V9"/></symbol>
@@ -1060,14 +1061,46 @@ function mainMenu() {
     files: () => $("#fileIn").click(), dir: () => $("#dirIn").click(),
     clear: () => { if (confirm("Retirer toute la musique importée de Mélodie ? (vos listes et favoris sont gardés)")) clearWeb(); },
     stats: () => statsSheet(),
+    vol: () => volSheet(),
     covers: () => findCovers(ALBUMS, false)
   };
   sheet(`<div class="hd"><div class="logo"><i>♪</i><span>Mélodie</span></div></div><div class="body">
     ${NATIVE ? mi("rescan", "refresh", "Actualiser la bibliothèque", pl(TR.length, "titre")) : mi("files", "upload", "Ajouter des fichiers") + mi("dir", "folder", "Ajouter un dossier")}
     ${TR.length ? mi("covers", "img", "Chercher les pochettes manquantes", "sur Internet") : ""}
+    ${NATIVE && MP.musicVolState ? mi("vol", "vol", "Volume égal", ["Désactivé", "Activé", "Activé + doux"][volMode()] || "") : ""}
     ${mi("stats", "note", "Mes statistiques")}
     ${mi("help", "help", "Aide : comment ça marche")}
     ${!NATIVE && TR.length ? mi("clear", "trash", "Tout retirer", "", "danger") : ""}</div>`);
+}
+/* ============ Volume égal entre les morceaux (mesure native de la sonie, EBU R128) ============ */
+function volSt() { try { return JSON.parse(MP.musicVolState() || "{}"); } catch (e) { return {}; } }
+function volMode() { return NATIVE && MP.musicVolState ? (volSt().mode || 0) : 0; }
+let volTimer = 0;
+function volSheet() {
+  const st = volSt(), m = st.mode || 0;
+  SH = {
+    v0: () => { MP.musicVolMode(0); toast("Volume égal désactivé"); },
+    v1: () => { MP.musicVolMode(1); toast("Volume égal activé"); },
+    v2: () => { MP.musicVolMode(2); toast("Volume égal + mode doux activés"); },
+    scan: () => { MP.musicVolScan(JSON.stringify(TR.map(t => Number(t.id)))); setTimeout(volSheet, 300); },
+    stop: () => { MP.musicVolStop(); setTimeout(volSheet, 600); }
+  };
+  const known = Math.min(st.known || 0, TR.length);
+  const prog = st.scanning ? `Mesure en cours : ${st.done || 0} / ${st.todo || "…"}` : `${known} titre${known > 1 ? "s" : ""} mesuré${known > 1 ? "s" : ""} sur ${TR.length}`;
+  sheet(`<div class="hd"><div><div class="t">Volume égal</div><div class="s">Tous les morceaux au même niveau sonore</div></div></div><div class="body">
+    ${mi("v0", "x", "Désactivé", "", m === 0 ? "sel" : "")}
+    ${mi("v1", "vol", "Égaliser les morceaux", "", m === 1 ? "sel" : "")}
+    ${mi("v2", "moon", "Égaliser + mode doux", "écoute à faible volume", m === 2 ? "sel" : "")}
+    <div style="padding:10px 20px 4px;color:var(--tx3);font-size:13px;line-height:1.5">Mélodie mesure le volume ressenti de chaque morceau (une seule fois, sans internet) et le corrige pendant l'écoute : plus de sursaut entre un titre calme et un titre fort. Le <b>mode doux</b> calme aussi les passages forts à l'intérieur d'un même morceau.${st.gain !== undefined && m ? `<br>Morceau en cours : ${st.gain > 0 ? "+" : ""}${String(st.gain).replace(".", ",")} dB` : ""}</div>
+    ${mi(st.scanning ? "stop" : "scan", st.scanning ? "x" : "refresh", st.scanning ? "Arrêter la mesure" : "Mesurer toute ma musique maintenant", `<span id="volP">${prog}</span>`)}
+    <div style="padding:0 20px 12px;color:var(--tx3);font-size:12px">Sinon chaque titre est mesuré à sa première écoute (1 à 2 s, le volume s'ajuste alors en douceur).</div></div>`);
+  clearInterval(volTimer);
+  if (st.scanning) volTimer = setInterval(() => {
+    const e = $("#volP"); if (!e || !$("#sheet").classList.contains("on")) { clearInterval(volTimer); return; }
+    const s2 = volSt();
+    if (!s2.scanning) { clearInterval(volTimer); volSheet(); if (s2.end) toast("Toute ta musique est mesurée"); return; }
+    e.textContent = `Mesure en cours : ${s2.done || 0} / ${s2.todo || "…"}`;
+  }, 1000);
 }
 function statsSheet() {
   const plays = Object.values(ST.counts).reduce((a, b) => a + b, 0);

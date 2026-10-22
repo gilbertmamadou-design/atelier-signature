@@ -142,6 +142,16 @@ public class MainActivity extends BridgeActivity {
         @JavascriptInterface
         public String musicState() { return MusicService.state(); }
         @JavascriptInterface
+        public String musicVolState() { return MelodieVolume.state(getApplicationContext()); }
+        @JavascriptInterface
+        public void musicVolMode(int m) { MelodieVolume.setMode(getApplicationContext(), m); }
+        @JavascriptInterface
+        public void musicVolScan(String ids) {
+            try { org.json.JSONArray a = new org.json.JSONArray(ids); long[] l = new long[a.length()]; for (int k = 0; k < l.length; k++) l[k] = a.getLong(k); MelodieVolume.scanAll(getApplicationContext(), l); } catch (Exception e) { }
+        }
+        @JavascriptInterface
+        public void musicVolStop() { MelodieVolume.scanStop = true; }
+        @JavascriptInterface
         public boolean fsHasAll() { return FileService.hasAll(MainActivity.this); }
         @JavascriptInterface
         public void fsAskAll() { runOnUiThread(new Runnable() { public void run() { askAllFiles(); } }); }
@@ -1293,6 +1303,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
     }
     @Override public void onPrepared(MediaPlayer m) {
         prepared = true;
+        applyVolume();
         if (pendingSeek > 0) { try { m.seekTo(pendingSeek); } catch (Exception e) { } pendingSeek = 0; }
         if (playing && focus()) m.start(); else playing = false;
         updateState(); notifyNow();
@@ -1315,8 +1326,20 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         if (mp == null) return;
         if (f == AudioManager.AUDIOFOCUS_LOSS) { resumeOnFocus = false; pause(); }
         else if (f == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) { if (playing) { resumeOnFocus = true; pause(); } }
-        else if (f == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) { if (playing) mp.setVolume(0.25f, 0.25f); }
-        else if (f == AudioManager.AUDIOFOCUS_GAIN) { mp.setVolume(1f, 1f); if (resumeOnFocus) { resumeOnFocus = false; resume(); } }
+        else if (f == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) { if (playing) mp.setVolume(0.25f * MelodieVolume.baseVol, 0.25f * MelodieVolume.baseVol); }
+        else if (f == AudioManager.AUDIOFOCUS_GAIN) { mp.setVolume(MelodieVolume.baseVol, MelodieVolume.baseVol); if (resumeOnFocus) { resumeOnFocus = false; resume(); } }
+    }
+    // Volume égal entre les morceaux (MelodieVolume) : mesure + correction du morceau prêt, mesure à l'avance des 2 suivants
+    void applyVolume() {
+        if (mp == null || !prepared) return;
+        int i = cur(); if (i < 0 || i >= Q.size()) return;
+        long[] up;
+        synchronized (MusicService.class) {
+            int n = Math.max(0, Math.min(2, ORDER.size() - pos - 1));
+            up = new long[n];
+            for (int k = 0; k < n; k++) { int j = ORDER.get(pos + 1 + k); up[k] = j < Q.size() ? Q.get(j)[0] : -1; }
+        }
+        try { MelodieVolume.apply(this, mp, Q.get(i)[0], up); } catch (Throwable t) { }
     }
     void pause() { if (mp != null && prepared && mp.isPlaying()) mp.pause(); playing = false; updateState(); notifyNow(); }
     void resume() {
@@ -1405,6 +1428,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         h.removeCallbacksAndMessages(null);
         try { unregisterReceiver(noisy); } catch (Exception e) { }
         if (mp != null) { try { mp.release(); } catch (Exception e) { } mp = null; }
+        try { MelodieVolume.release(); } catch (Throwable t) { }
         ms.setActive(false); ms.release();
         super.onDestroy();
     }
@@ -1561,7 +1585,7 @@ cp scripts/FileService.java "$FSV"
 sed -i "s/__PKG__/$PKG/" "$FSV"
 # Réveil, lever de soleil et endormissement (application Aube)
 for J in $(ls scripts/*Bridge.java 2>/dev/null | xargs -n1 basename 2>/dev/null | sed 's/\.java$//'); do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
-for J in AlarmService AlarmReceiver WallpaperJob WallpaperTile LauncherService LauncherA11y LauncherMedia WidgetProvider SauvegardeJob PhotoCamera EcranPlayer DictaService MeteoPersoJob; do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
+for J in AlarmService AlarmReceiver WallpaperJob WallpaperTile LauncherService LauncherA11y LauncherMedia WidgetProvider SauvegardeJob PhotoCamera EcranPlayer DictaService MeteoPersoJob MelodieVolume; do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
 # Bibliothèque des tâches de fond
 G=android/app/build.gradle
 grep -q "androidx.work:work-runtime" "$G" || sed -i '0,/^dependencies {/s//dependencies {\n    implementation "androidx.work:work-runtime:2.9.1"/' "$G"
