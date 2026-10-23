@@ -175,7 +175,24 @@ select.fw{appearance:auto;-webkit-appearance:menulist}
 #viewer.ann.t-main .annL .it,#viewer.ann.t-erase .annL .it{pointer-events:visiblePainted;cursor:pointer}
 #viewer.ann.t-main .annL .it.img,#viewer.ann.t-erase .annL .it.img,#viewer.ann.t-main .annL text.it,#viewer.ann.t-erase .annL text.it,#viewer.ann.t-main .annL .it.mk,#viewer.ann.t-erase .annL .it.mk{pointer-events:all}
 #viewer.ann.t-pen .annL,#viewer.ann.t-hl .annL{pointer-events:all;touch-action:none}
-#viewer.ann.t-text .annL,#viewer.ann.t-date .annL,#viewer.ann.t-sign .annL,#viewer.ann.t-mark .annL{pointer-events:all}
+#viewer.ann.t-text .annL,#viewer.ann.t-date .annL,#viewer.ann.t-sign .annL,#viewer.ann.t-mark .annL{pointer-events:all;touch-action:none}
+/* outils Texte / Date : les champs de saisie du formulaire passent au-dessus (toucher un champ = le remplir) */
+#viewer.ann.t-text .formL,#viewer.ann.t-date .formL{z-index:7}
+#viewer.ann.t-text .formL .fw:not(input):not(textarea),#viewer.ann.t-date .formL .fw:not(input):not(textarea){pointer-events:none}
+/* aperçu pendant l'appui, poignée de taille, loupe */
+.annL text{text-rendering:geometricPrecision}
+#viewer.ann .annL.grab{pointer-events:all;touch-action:none}
+/* touch-action n'agit pas sur les éléments internes d'un SVG : c'est le calque entier qui décide (outil Déplacer : seuls les ajouts captent le doigt) */
+#viewer.ann .annL{touch-action:none}
+.annL .ghost{pointer-events:none}
+.annL .ghost .gbox{fill:#ff7a0024;stroke:#ff7a00;stroke-width:2px;stroke-dasharray:5 3;vector-effect:non-scaling-stroke}
+.annL .ghost .gsnap{fill:#1d8a5512;stroke:#1d8a55;stroke-width:3px;vector-effect:non-scaling-stroke}
+.annL .ghost .gcar{stroke:#ff7a00;stroke-width:2px;vector-effect:non-scaling-stroke}
+.annL .hdl{pointer-events:all;touch-action:none;cursor:nwse-resize}
+.annL .hdl .hv{fill:#ff7a00;stroke:#fff;stroke-width:2px;vector-effect:non-scaling-stroke}
+#viewer.ann.t-main .annL .selhit{pointer-events:all;touch-action:none}
+#loupe{position:fixed;z-index:60;width:124px;height:124px;border-radius:50%;overflow:hidden;pointer-events:none;background:#fff;border:3px solid #fff;box-shadow:0 4px 18px #0008}
+#loupe canvas{width:100%;height:100%;display:block}
 .annL .sel{outline:none;stroke:#ff7a00;stroke-width:1.5;stroke-dasharray:4 3;fill:none}
 #viewer.ann .lnkL a{pointer-events:none}
 #viewer.paper-nuit .annL{filter:invert(.9) hue-rotate(180deg)}
@@ -536,19 +553,20 @@ function closeThen(fn){ if(NAV.length){ afterPop=fn; history.back(); } else fn()
 function closeAllThen(fn){ if(!NAV.length){ fn(); return; } var k=function(){ if(NAV.length){ afterPop=k; history.back(); } else fn(); }; afterPop=k; history.back(); }
 
 /* Feuille du bas générique */
-var sheetOpen=false, sheetClose=null;
+var sheetOpen=false, sheetClose=null, sheetAt=0;
 function openSheet(title, body, opt){
   opt=opt||{};
   var w=$('sheetWrap'), sh=$('sheet');
   sh.className='sheet'+(opt.tall?' tall':'');
   sh.innerHTML='<div class="grab"></div><div class="sh"><h2>'+esc(title)+'</h2><button class="x" data-close aria-label="Fermer">'+ic('x')+'</button></div>'+(opt.tabs||'')+'<div class="sb" id="sb">'+body+'</div>';
   w.hidden=false; requestAnimationFrame(function(){ requestAnimationFrame(function(){ w.classList.add('on'); }); });
-  sheetClose=opt.onClose||null;
+  sheetAt=Date.now(); sheetClose=opt.onClose||null;
   if(!sheetOpen){ sheetOpen=true; pushNav(function(){ hideSheet(); }); }
   return sh;
 }
 function hideSheet(){ sheetOpen=false; var w=$('sheetWrap'); w.classList.remove('on'); setTimeout(function(){ if(!sheetOpen) w.hidden=true; },230); if(sheetClose){ var f=sheetClose; sheetClose=null; try{ f(); }catch(e){} } }
-$('sheetWrap').addEventListener('click',function(e){ if(e.target.classList.contains('scrim')||e.target.closest('[data-close]')) back(); });
+// le « clic » qui suit un toucher sur la page arrive après l'ouverture de la feuille : il ne doit pas la refermer aussitôt
+$('sheetWrap').addEventListener('click',function(e){ if(e.target.classList.contains('scrim') && Date.now()-sheetAt<450) return; if(e.target.classList.contains('scrim')||e.target.closest('[data-close]')) back(); });
 function confirmSheet(title, text, okLabel, bad){
   return new Promise(function(res){
     var done=false;
@@ -1091,6 +1109,7 @@ function buildForm(el, p, an){
       w.style.cssText=st+';font-size:calc(var(--scale-factor)*'+fs.toFixed(1)+'px);color:'+col+';text-align:'+(['left','center','right'][a.textAlignment||0]||'left');
       if(a.comb && a.maxLen){ w.style.letterSpacing='calc(var(--scale-factor)*'+(b.w/a.maxLen-fs*0.6).toFixed(2)+'px)'; }
       w.addEventListener('input',function(){ setField(a.fieldName, w.value, w); w.classList.toggle('filled', !!w.value); });
+      w.addEventListener('focus',function(){ if(V.annot && V.tool==='date' && !w.value && !w.readOnly && !w.disabled && !(a.maxLen && today().length>a.maxLen)){ w.value=today(); setField(a.fieldName, w.value, w); w.classList.add('filled'); } });
       w.classList.toggle('filled', !!w.value);
     } else if(a.fieldType==='Btn' && (a.checkBox||a.radioButton)){
       w=document.createElement('button'); w.type='button';
@@ -1588,7 +1607,7 @@ function enterAnnot(){
   if(V.hasForm) toast('Touche un champ pour le remplir. Choisis un outil pour annoter.',false,4000);
 }
 function exitAnnot(){
-  V.annot=false; selectItem(null);
+  V.annot=false; if(G) gAbort(); ghostHide(); selectItem(null); annPad();
   viewer.classList.remove.apply(viewer.classList, ['ann'].concat(TCLS));
   $('readbar').hidden=false; $('annbar').hidden=true;
   if(V.doc) $('vName').textContent=V.doc.title;
@@ -1597,20 +1616,22 @@ function exitAnnot(){
 function setTool(t){
   if(t==='sign' && V.sel){ var sa=V.ann.filter(function(x){ return x.id===V.sel && x.t==='img'; })[0]; if(sa) V.lastSign=sa.id; }   // signature sélectionnée : cible de « Lu et approuvé »
   if(t!=='sign') V.lapArm=false;
-  V.tool=t; selectItem(null);
+  V.tool=t; ghostHide(); selectItem(null);
+  if(t==='sign'){ var o=ownSign(); if(o) signRatio(o).then(function(r){ V.sgR=r; }); }
   viewer.classList.remove.apply(viewer.classList, TCLS); viewer.classList.add('t-'+t);
   document.querySelectorAll('#annTools button').forEach(function(b){ b.classList.toggle('on', b.dataset.t===t); });
   var c=$('annCtx'), h='';
   if((t==='pen'||t==='hl') && !V.penHint){ V.penHint=true; toast('Pour faire défiler la page, choisis « Déplacer »', false, 3500); }
   if(t==='pen'){ h=PENC.map(function(x){ return '<button class="sw2'+(S.pen===x?' on':'')+'" data-c="'+x+'" style="background:'+x+'"></button>'; }).join('')+'<span class="sp"></span>'+[1.2,2,3.5].map(function(w){ return '<button class="th2'+(S.penW===w?' on':'')+'" data-w="'+w+'"><i style="height:'+(w*2)+'px"></i></button>'; }).join(''); }
   else if(t==='hl') h=HLC.map(function(x){ return '<button class="sw2'+(S.hlc===x?' on':'')+'" data-c="'+x+'" style="background:'+x+'"></button>'; }).join('')+'<span class="hint">Passe le doigt sur le texte</span>';
-  else if(t==='text'||t==='date') h=PENC.map(function(x){ return '<button class="sw2'+(S.txc===x?' on':'')+'" data-c="'+x+'" style="background:'+x+'"></button>'; }).join('')+'<span class="hint">Touche la page où placer '+(t==='date'?'la date':'le texte')+'</span>';
+  else if(t==='text'||t==='date') h=PENC.map(function(x){ return '<button class="sw2'+(S.txc===x?' on':'')+'" data-c="'+x+'" style="background:'+x+'"></button>'; }).join('')+'<span class="hint">Touche où écrire '+(t==='date'?'la date':'le texte')+' : il se cale sur la case ou la ligne touchée</span>';
   else if(t==='mark') h=MKS.map(function(m){ return '<button class="ck'+(S.ckk===m[0]?' on':'')+'" data-k="'+m[0]+'" aria-label="'+m[1]+'"><svg viewBox="0 0 24 24">'+markShape(m[0],12,12,20,'currentColor')+'</svg></button>'; }).join('')+'<span style="width:4px;flex:none"></span>'+MKZ.map(function(z){ return '<button class="ck'+(S.cks===z[0]?' on':'')+'" data-s="'+z[0]+'">'+z[1]+'</button>'; }).join('')+PENC.map(function(x){ return '<button class="sw2'+(S.ckc===x?' on':'')+'" data-c="'+x+'" style="background:'+x+'"></button>'; }).join('')+'<span class="hint">Touche une case pour la cocher, retouche pour enlever</span>';
   else if(t==='sign') h='<button class="btn sm" id="ctxLap">'+ic('text')+'Lu et approuvé</button><button class="btn sm num" id="ctxZones">Zones : …</button><button class="btn sm" id="ctxSign">'+ic('user')+'Signatures</button><span class="hint full" id="ctxSHint"></span>';
   else if(t==='erase') h='<span class="hint">Touche une annotation pour l\'effacer</span>';
   else h='<span class="hint">'+(V.hasForm?'Touche un champ pour le remplir. ':'')+'Touche un ajout pour le déplacer, l\'agrandir ou le supprimer.</span>';
   c.innerHTML=h; c.classList.toggle('wrap', t==='mark'||t==='sign');
   if(t==='sign'){ signCtxUpd(); scanZones(); }
+  annPad();
   c.onclick=function(e){
     var s=e.target.closest('[data-c]'); if(s){ if(t==='pen') S.pen=s.dataset.c; else if(t==='hl') S.hlc=s.dataset.c; else if(t==='mark') S.ckc=s.dataset.c; else S.txc=s.dataset.c; saveS(); setTool(t); return; }
     var k=e.target.closest('[data-k]'); if(k){ S.ckk=k.dataset.k; saveS(); setTool(t); return; }
@@ -1621,8 +1642,10 @@ function setTool(t){
     if(e.target.closest('#ctxLap')) lapButton();
   };
 }
+/* Fin du document : assez de marge pour que le bas de la dernière page passe au-dessus de la barre d'annotation (Signer : deux rangées) */
+function annPad(){ var ab=$('annbar'); pagesEl.style.paddingBottom=V.annot && ab && !ab.hidden && V.mode!=='page'?Math.max(140, ab.offsetHeight+24)+'px':''; }
 function pushUndo(){ V.undo.push(JSON.stringify(V.ann)); if(V.undo.length>40) V.undo.shift(); }
-function undo(){ if(!V.undo.length){ toast('Rien à annuler'); return; } V.ann=J(V.undo.pop(),[]); annChanged(); }
+function undo(){ if(!V.undo.length){ toast('Rien à annuler'); return; } V.ann=J(V.undo.pop(),[]); if(V.sel && !V.ann.some(function(a){ return a.id===V.sel; })) selectItem(null); annChanged(); }
 function annChanged(pages){ V.dirty=true; saveDraft(); updateSaveBtn(); V.els.forEach(function(el){ if(el._r && (!pages||pages.indexOf(el._p)>=0)){ buildAnn(el, el._p); if(V.sz && V.sz[el._p]) drawZones(el); } }); }
 function svgItem(a){
   var cls='it'+(V.sel===a.id?' selected':'');
@@ -1643,7 +1666,7 @@ function svgItem(a){
 }
 function itemBox(a){
   if(a.t==='ink'||a.t==='hl'){ var x0=1e9,y0=1e9,x1=-1e9,y1=-1e9; for(var i=0;i<a.pts.length;i+=2){ x0=Math.min(x0,a.pts[i]); x1=Math.max(x1,a.pts[i]); y0=Math.min(y0,a.pts[i+1]); y1=Math.max(y1,a.pts[i+1]); } var m=a.w/2; return {x:x0-m,y:y0-m,w:x1-x0+2*m,h:y1-y0+2*m}; }
-  if(a.t==='text'){ var ls=String(a.txt).split('\n'), mw=0; ls.forEach(function(l){ mw=Math.max(mw,l.length); }); return {x:a.x, y:a.y-a.s*0.8, w:Math.max(10,mw*a.s*0.52), h:a.s*(1.2*ls.length-0.2)+a.s*0.2}; }
+  if(a.t==='text'){ var ls=String(a.txt).split('\n'), mw=0; ls.forEach(function(l){ mw=Math.max(mw,txtW(l)); }); return {x:a.x, y:a.y-a.s*0.8, w:Math.max(10,mw*a.s), h:a.s*(1.2*ls.length-0.2)+a.s*0.2}; }
   if(a.t==='mark') return {x:a.x-a.s/2, y:a.y-a.s/2, w:a.s, h:a.s};
   if(a.t==='img' && a.cap){ var cp=capPos(a), x0=Math.min(a.x, cp.cx-cp.w/2), x1=Math.max(a.x+a.w, cp.cx+cp.w/2); return {x:x0, y:a.y, w:x1-x0, h:a.h+a.cs*1.35}; }
   return {x:a.x,y:a.y,w:a.w,h:a.h};
@@ -1654,15 +1677,24 @@ function buildAnn(el, p){
   var d=dims(p); s.setAttribute('viewBox','0 0 '+d.w.toFixed(2)+' '+d.h.toFixed(2)); s.setAttribute('preserveAspectRatio','none');
   var items=V.ann.filter(function(a){ return a.p===p; }), h=items.map(svgItem).join('');
   var sel=V.sel&&items.filter(function(a){ return a.id===V.sel; })[0];
-  if(sel){ var b=itemBox(sel); h+='<rect class="sel" x="'+(b.x-3)+'" y="'+(b.y-3)+'" width="'+(b.w+6)+'" height="'+(b.h+6)+'" rx="3"/>'; }
+  if(sel){
+    var b=itemBox(sel), k=1/(el._s||1), hm=selPad(b, el);
+    h+='<rect class="sel" x="'+(b.x-3)+'" y="'+(b.y-3)+'" width="'+(b.w+6)+'" height="'+(b.h+6)+'" rx="3"/>';
+    h+='<rect class="selhit" data-id="'+sel.id+'" x="'+(b.x-hm).toFixed(2)+'" y="'+(b.y-hm).toFixed(2)+'" width="'+(b.w+2*hm).toFixed(2)+'" height="'+(b.h+2*hm).toFixed(2)+'" fill="transparent"/>';
+    if(V.tool!=='erase' && !(V.tool==='sign' && sel.t==='text')) h+='<g class="hdl" data-id="'+sel.id+'"><circle cx="'+(b.x+b.w+3).toFixed(2)+'" cy="'+(b.y+b.h+3).toFixed(2)+'" r="'+(23*k).toFixed(2)+'" fill="transparent"/><circle class="hv" cx="'+(b.x+b.w+3).toFixed(2)+'" cy="'+(b.y+b.h+3).toFixed(2)+'" r="'+(9*k).toFixed(2)+'"/></g>';
+  }
   s.innerHTML=h;
+  if(V.ghost && V.ghost.p===p) ghostDraw(el);
 }
+/* Marge de prise autour de l'objet sélectionné : au moins 48 px de haut à l'écran, 12 px de chaque côté */
+function selPad(b, el){ var s=el._s||1; return Math.max(12/s, (48/s-b.h)/2, 3); }
 function ptOf(el, e){ var r=el.getBoundingClientRect(), s=el._s||1; return [(e.clientX-r.left)/s, (e.clientY-r.top)/s]; }
 function bindAnn(svg, el){
-  var cur=null, drag=null, down=null;
+  var cur=null, down=null;
   svg.addEventListener('pointerdown',function(e){
     if(!V.annot) return;
-    var p=el._p, pt=ptOf(el,e);
+    if(G){ if(e.pointerId!==G.id) gAbort(); return; }          // deuxième doigt (pincer) : on abandonne la pose
+    var p=el._p, pt=ptOf(el,e), hd=e.target.closest&&e.target.closest('.hdl');
     if(V.tool==='pen'||V.tool==='hl'){
       e.preventDefault(); svg.setPointerCapture(e.pointerId);
       cur={id:uid('a'), p:p, t:V.tool==='pen'?'ink':'hl', c:V.tool==='pen'?S.pen:S.hlc, w:V.tool==='pen'?S.penW:12, pts:[pt[0],pt[1]]};
@@ -1670,32 +1702,155 @@ function bindAnn(svg, el){
       cur.node.setAttribute('fill','none'); cur.node.setAttribute('stroke',cur.c); cur.node.setAttribute('stroke-width',cur.w); cur.node.setAttribute('stroke-linecap','round'); cur.node.setAttribute('stroke-linejoin','round'); if(cur.t==='hl'){ cur.node.setAttribute('stroke-opacity','.4'); }
       return;
     }
-    var it=e.target.closest&&e.target.closest('.it');
-    if(V.tool==='main' && it){
-      var a=V.ann.filter(function(x){ return x.id===it.dataset.id; })[0]; if(!a) return;
-      e.preventDefault(); e.stopPropagation(); svg.setPointerCapture(e.pointerId);
-      drag={a:a, pt:pt, moved:false, snap:JSON.stringify(V.ann)};
+    if(!e.isPrimary) return;
+    var it=e.target.closest&&e.target.closest('.it,.selhit');
+    if(V.tool==='main' && (it||hd)){
+      var a=V.ann.filter(function(x){ return x.id===(hd||it).dataset.id; })[0]; if(!a) return;
+      e.preventDefault(); e.stopPropagation();
       if(V.sel!==a.id) selectItem(a);
+      G=gStart(svg, el, e); gSel(G, a, !!hd);
       return;
     }
-    down={x:e.clientX,y:e.clientY,pt:pt,t:Date.now(),it:it};
+    if(PLACE[V.tool]){
+      e.preventDefault();
+      G=gStart(svg, el, e);
+      var sa=V.tool!=='mark' && selOf(p);
+      // l'objet sélectionné : le glisser / le modifier (avec Signer, une mention sélectionnée ne se prend que sur elle-même : on signe juste dessous)
+      if(sa && (hd || rIn(itemBox(sa), pt, V.tool==='sign' && sa.t==='text'?3:selPad(itemBox(sa), el)))){ gSel(G, sa, !!hd); return; }
+      G.plan=planAt(el, pt, V.tool); ghostShow(el, G.plan);
+      G.lt=setTimeout(function(){ if(G && G.mode==='wait'){ G.mode='hold'; loupeShow(G); } }, HOLD);
+      return;
+    }
+    down={x:e.clientX,y:e.clientY,pt:pt,t:Date.now(),it:it&&it.classList.contains('it')?it:null};
   });
   svg.addEventListener('pointermove',function(e){
     if(cur){ var pt=ptOf(el,e), l=cur.pts.length; if(Math.hypot(pt[0]-cur.pts[l-2],pt[1]-cur.pts[l-1])>0.8){ cur.pts.push(pt[0],pt[1]); var d=''; for(var i=0;i<cur.pts.length;i+=2) d+=(i?'L':'M')+cur.pts[i].toFixed(1)+' '+cur.pts[i+1].toFixed(1); cur.node.setAttribute('d',d); } return; }
-    if(drag){ var q=ptOf(el,e), dx=q[0]-drag.pt[0], dy=q[1]-drag.pt[1]; if(!drag.moved && Math.hypot(dx,dy)<2) return; drag.moved=true; drag.pt=q; moveItem(drag.a,dx,dy); buildAnn(el, el._p); }
+    if(G && e.pointerId===G.id) gMove(e);
   });
   var up=function(e){
     if(cur){ var c=cur; cur=null; if(c.node) c.node.remove(); delete c.node; pushUndo(); V.ann.push(c); annChanged([c.p]); return; }
-    if(drag){ var dr=drag; drag=null; if(dr.moved){ V.undo.push(dr.snap); annChanged([dr.a.p]); } return; }
+    if(G && e.pointerId===G.id){ gEnd(e); return; }
     if(!down) return; var dn=down; down=null;
-    if(e.type==='pointercancel'||Math.hypot(e.clientX-dn.x,e.clientY-dn.y)>12||Date.now()-dn.t>600) return;
+    if(e.type==='pointercancel'||Math.hypot(e.clientX-dn.x,e.clientY-dn.y)>SLOP) return;
     if(V.tool==='erase'){ if(dn.it){ pushUndo(); V.ann=V.ann.filter(function(a){ return a.id!==dn.it.dataset.id; }); annChanged([el._p]); } return; }
-    if(V.tool==='text'||V.tool==='date') textSheet(el._p, dn.pt, V.tool==='date'?today():'');
-    else if(V.tool==='sign') signTap(el, dn.pt);
-    else if(V.tool==='mark') markTap(el, dn.pt);
-    else if(V.tool==='main') selectItem(null);
+    if(V.tool==='main') selectItem(null);
   };
   svg.addEventListener('pointerup',up); svg.addEventListener('pointercancel',up);
+}
+/* ---------- Gestes des outils de pose (Texte, Date, Signer, Cocher) ----------
+   Le point est figé à l'appui (avant la feuille, le clavier ou « Qui signe ? »). Pas de limite de durée.
+   Appui puis glissé rapide : la page défile. Appui maintenu : loupe, puis glisser ajuste la position.
+   Relâcher : l'objet est posé (aimanté au cadre ou à la ligne repérés sous le doigt) et sélectionné.
+   Toucher l'objet sélectionné : le glisser le déplace, sa poignée change sa taille ; un simple toucher modifie un texte. */
+var SLOP=10, HOLD=280, PLACE={text:1, date:1, sign:1, mark:1}, G=null, FL=0;
+function selOf(p){ return V.sel ? V.ann.filter(function(a){ return a.id===V.sel && a.p===p; })[0]||null : null; }
+function gStart(svg, el, e){
+  flingStop(); svg.classList.add('grab');                           // le calque garde le doigt même hors de l'objet (outil Déplacer)
+  try{ svg.setPointerCapture(e.pointerId); }catch(x){}
+  return {el:el, svg:svg, id:e.pointerId, x0:e.clientX, y0:e.clientY, t0:Date.now(), pt:ptOf(el,e), mode:'wait', sl:sc.scrollLeft, st:sc.scrollTop, tr:[[e.clientX,e.clientY,Date.now()]]};
+}
+function gSel(g, a, hdl){ g.mode='sel'; g.a=a; g.hdl=hdl; g.snap=JSON.stringify(V.ann); g.a0=JSON.parse(JSON.stringify(a)); g.box=itemBox(a); }
+function gMove(e){
+  var g=G, dx=e.clientX-g.x0, dy=e.clientY-g.y0, d=Math.hypot(dx,dy), now=Date.now();
+  g.tr.push([e.clientX,e.clientY,now]); if(g.tr.length>6) g.tr.shift();
+  if(g.mode==='sel'){
+    if(!g.moved && d<SLOP) return;                                   // micro-mouvement du doigt : ignoré
+    g.moved=true; var k=1/(g.el._s||1);
+    if(g.hdl){ resizeFrom(g.a, g.a0, g.box, dx*k, dy*k); buildAnn(g.el, g.el._p); return; }
+    moveFrom(g.a, g.a0, dx*k, dy*k);
+    // déplacement fluide : simple translation des nœuds (le calque est reconstruit au relâchement)
+    var tr='translate('+(dx*k).toFixed(2)+' '+(dy*k).toFixed(2)+')';
+    g.svg.querySelectorAll('[data-id="'+g.a.id+'"],.sel').forEach(function(n){ n.setAttribute('transform', tr); });
+    return;
+  }
+  if(g.mode==='wait'){
+    if(d<SLOP) return;
+    if(now-g.t0<HOLD){ g.mode='pan'; clearTimeout(g.lt); ghostHide(); }
+    else { g.mode='hold'; loupeShow(g); }
+  }
+  if(g.mode==='pan'){ sc.scrollLeft=g.sl-dx; sc.scrollTop=g.st-dy; return; }
+  if(g.mode==='hold'){
+    if(g.adj || d>=SLOP){ g.adj=true; g.pt=ptOf(g.el, e); g.lx=e.clientX; g.ly=e.clientY; if(!g.raf) g.raf=requestAnimationFrame(function(){ g.raf=0; gPlan(g); }); }   // une analyse par image au plus
+    else loupeDraw(g, e.clientX, e.clientY);
+  }
+}
+function gPlan(g){ g.plan=planAt(g.el, g.pt, V.tool); ghostShow(g.el, g.plan); loupeDraw(g, g.lx, g.ly); }
+function gEnd(e){
+  if(e.type==='pointerup') gMove(e);                                 // dernière position (le dernier « move » peut être fusionné)
+  var g=G; G=null; clearTimeout(g.lt); g.svg.classList.remove('grab');
+  if(g.raf){ cancelAnimationFrame(g.raf); g.raf=0; if(e.type==='pointerup') gPlan(g); }   // position finale analysée avant la pose
+  loupeHide();
+  try{ g.svg.releasePointerCapture(g.id); }catch(x){}
+  if(g.mode==='sel'){
+    if(g.moved){ V.undo.push(g.snap); if(V.undo.length>40) V.undo.shift(); annChanged([g.a.p]); }
+    else if(e.type!=='pointercancel' && V.tool!=='main' && g.a.t==='text' && !g.hdl) textSheet(g.a.p, null, g.a.txt, g.a);
+    return;
+  }
+  if(e.type==='pointercancel'){ ghostHide(); return; }
+  if(g.mode==='pan'){ fling(g); return; }
+  var el=g.el, pt=g.pt, plan=g.plan;
+  if(V.tool==='text'||V.tool==='date') textSheet(el._p, pt, V.tool==='date'?today():'', null, plan);
+  else if(V.tool==='sign') signTap(el, pt, plan);
+  else if(V.tool==='mark'){ ghostHide(); markTap(el, pt); }
+}
+function gAbort(){
+  var g=G; G=null; if(!g) return; clearTimeout(g.lt); if(g.raf) cancelAnimationFrame(g.raf); loupeHide(); ghostHide(); g.svg.classList.remove('grab');
+  if(g.mode==='sel' && g.moved){ V.undo.push(g.snap); annChanged([g.a.p]); }
+}
+function moveFrom(a, o, dx, dy){ if(o.pts){ a.pts=o.pts.map(function(v,i){ return v+(i%2?dy:dx); }); } else { a.x=o.x+dx; a.y=o.y+dy; } }
+/* Poignée (coin bas-droit) : agrandit / réduit en gardant le coin haut-gauche */
+function resizeFrom(a, o, b, dx, dy){
+  var k=clamp(((b.w+dx)+(b.h+dy))/Math.max(1,b.w+b.h), 0.2, 6);
+  if(a.t==='text'){ a.s=clamp(o.s*k,4,72); a.y=o.y+0.8*(a.s-o.s); }
+  else if(a.t==='img'){ a.w=clamp(o.w*k,20,800); a.h=o.h*a.w/o.w; if(o.cs) a.cs=o.cs*a.w/o.w; }
+  else if(a.t==='mark'){ a.s=clamp(o.s*k,4,60); a.x=b.x+a.s/2; a.y=b.y+a.s/2; }
+  else if(o.pts){ a.pts=o.pts.map(function(v,i){ return i%2?b.y+(v-b.y)*k:b.x+(v-b.x)*k; }); }
+}
+function fling(g){
+  var t=g.tr, a=t[0], b=t[t.length-1], dt=b[2]-a[2]; if(dt<=0 || Date.now()-b[2]>90) return;
+  var vx=(b[0]-a[0])/dt, vy=(b[1]-a[1])/dt, last=performance.now(); if(Math.hypot(vx,vy)<0.3) return;
+  var step=function(now){ var d=Math.min(40,now-last); last=now; sc.scrollLeft-=vx*d; sc.scrollTop-=vy*d; var f=Math.pow(0.996,d); vx*=f; vy*=f; FL=Math.hypot(vx,vy)>0.03?requestAnimationFrame(step):0; };
+  FL=requestAnimationFrame(step);
+}
+function flingStop(){ if(FL){ cancelAnimationFrame(FL); FL=0; } }
+/* Aperçu (cadre fantôme) de l'objet à l'endroit exact où il sera posé ; reste affiché pendant la saisie */
+function ghostShow(el, plan){ V.ghost={p:el._p, plan:plan}; ghostDraw(el); }
+function ghostHide(){ V.ghost=null; document.querySelectorAll('.annL .ghost').forEach(function(n){ n.remove(); }); }
+function ghostDraw(el){
+  var s=el.querySelector('svg.annL'); if(!s) return; var o=s.querySelector('.ghost'); if(o) o.remove();
+  var gh=V.ghost; if(!gh || gh.p!==el._p || !gh.plan || !gh.plan.box) return;
+  var pl=gh.plan, b=pl.box, f=function(v){ return v.toFixed(2); }, h='';
+  if(pl.r && pl.k!=='zone') h+='<rect class="gsnap" x="'+f(pl.r.x)+'" y="'+f(pl.r.y)+'" width="'+f(pl.r.w)+'" height="'+f(pl.r.h)+'"/>';
+  if(pl.l) h+='<line class="gsnap" x1="'+f(pl.l.x0)+'" y1="'+f(pl.l.y)+'" x2="'+f(pl.l.x1)+'" y2="'+f(pl.l.y)+'"/>';
+  h+='<rect class="gbox" x="'+f(b.x)+'" y="'+f(b.y)+'" width="'+f(b.w)+'" height="'+f(b.h)+'" rx="1.5"/>';
+  if(pl.txt) h+='<line class="gcar" x1="'+f(b.x)+'" y1="'+f(b.y-1)+'" x2="'+f(b.x)+'" y2="'+f(b.y+b.h+1)+'"/>';
+  var g=document.createElementNS('http://www.w3.org/2000/svg','g'); g.setAttribute('class','ghost'); g.innerHTML=h; s.appendChild(g);
+}
+/* Loupe au-dessus du doigt (comme la sélection de texte d'Android) : rendu de la page agrandi ×2 + aperçu */
+function loupeShow(g){
+  var L=$('loupe'); if(!L){ L=document.createElement('div'); L.id='loupe'; L.innerHTML='<canvas></canvas>'; document.body.appendChild(L); }
+  L.hidden=false; loupeDraw(g, g.lx==null?g.x0:g.lx, g.ly==null?g.y0:g.ly);
+}
+function loupeHide(){ var L=$('loupe'); if(L) L.hidden=true; }
+function loupeDraw(g, fx, fy){
+  var L=$('loupe'); if(!L || L.hidden) return; g.lx=fx; g.ly=fy;
+  var el=g.el, pc=el.querySelector(':scope>canvas'); if(!pc){ L.hidden=true; return; }
+  var D=124, M=2, dpr=Math.min(window.devicePixelRatio||1,3), cv=L.firstChild, N=Math.round(D*dpr);
+  if(cv.width!==N){ cv.width=cv.height=N; }
+  var top=fy-D/2-96; if(top<8) top=fy+60;                           // au-dessus du doigt, ou dessous tout en haut de l'écran
+  L.style.left=(clamp(fx-D/2, 4, window.innerWidth-D-4))+'px'; L.style.top=top+'px';
+  var s=el._s||1, d=dims(el._p), k=pc.width/d.w, span=D/M/s, c=g.pt, x0=c[0]-span/2, y0=c[1]-span/2, q=N/span;
+  var ctx=cv.getContext('2d'); ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle='#fff'; ctx.fillRect(0,0,N,N); ctx.imageSmoothingQuality='high';
+  var sx=Math.max(0,x0), sy=Math.max(0,y0), ex=Math.min(d.w,x0+span), ey=Math.min(d.h,y0+span);
+  if(ex>sx && ey>sy) ctx.drawImage(pc, sx*k, sy*k, (ex-sx)*k, (ey-sy)*k, (sx-x0)*q, (sy-y0)*q, (ex-sx)*q, (ey-sy)*q);
+  var pl=g.plan, X=function(v){ return (v-x0)*q; }, Y=function(v){ return (v-y0)*q; };
+  ctx.lineWidth=2*dpr;
+  if(pl){
+    if(pl.r){ ctx.strokeStyle='#1d8a55'; ctx.strokeRect(X(pl.r.x), Y(pl.r.y), pl.r.w*q, pl.r.h*q); }
+    if(pl.l){ ctx.strokeStyle='#1d8a55'; ctx.beginPath(); ctx.moveTo(X(pl.l.x0), Y(pl.l.y)); ctx.lineTo(X(pl.l.x1), Y(pl.l.y)); ctx.stroke(); }
+    if(pl.box){ ctx.strokeStyle='#ff7a00'; ctx.setLineDash([5*dpr,3*dpr]); ctx.strokeRect(X(pl.box.x), Y(pl.box.y), pl.box.w*q, pl.box.h*q); ctx.setLineDash([]); }
+  }
+  ctx.strokeStyle='#d42828'; ctx.lineWidth=1.5*dpr; ctx.beginPath(); ctx.moveTo(N/2-7*dpr,N/2); ctx.lineTo(N/2+7*dpr,N/2); ctx.moveTo(N/2,N/2-7*dpr); ctx.lineTo(N/2,N/2+7*dpr); ctx.stroke();
 }
 function moveItem(a,dx,dy){ if(a.pts){ for(var i=0;i<a.pts.length;i+=2){ a.pts[i]+=dx; a.pts[i+1]+=dy; } } else { a.x+=dx; a.y+=dy; } }
 function scaleItem(a,k){
@@ -1749,8 +1904,135 @@ function snapBox(el, pt){
   }catch(e){ console.warn('aimantation', e); }
   return null;
 }
+/* ---------- Aimantation du Texte, de la Date, de « Lu et approuvé » et des signatures ----------
+   Au toucher, le rendu de la page autour du doigt est analysé : cadre vide qui contient le point,
+   ou ligne d'écriture (trait plein, tirets, « ...... », « ____ ») sous le doigt. Au moindre doute : pas d'aimantation. */
+var HELV=[278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584];
+/** Largeur d'une ligne en Helvetica (police de l'export), pour une taille de 1 pt */
+function txtW(l){ var w=0, f=String(l||''); for(var i=0;i<f.length;i++){ var c=f.charCodeAt(i); if(c>126){ if(f[i]==='…') w+=1; else if(f[i]==='€'||f[i]==='°') w+=0.556; else { c=f[i].normalize('NFD').charCodeAt(0); w+=(c>=32&&c<=126?HELV[c-32]:556)/1000; } continue; } w+=(c>=32?HELV[c-32]:278)/1000; } return w; }
+/** Rendu de la page (rectangle en points) en pixels noirs / blancs, à 3 px par point au plus */
+function pageBits(el, x0, y0, x1, y1){
+  var cv=el.querySelector(':scope>canvas'), d=dims(el._p); if(!cv||!cv.width||!d) return null;
+  x0=Math.max(0,x0); y0=Math.max(0,y0); x1=Math.min(d.w,x1); y1=Math.min(d.h,y1); if(x1-x0<4||y1-y0<4) return null;
+  var k=cv.width/d.w, q=Math.min(k,3), w=Math.max(1,Math.round((x1-x0)*q)), h=Math.max(1,Math.round((y1-y0)*q));
+  var tc=document.createElement('canvas'); tc.width=w; tc.height=h; var tx=tc.getContext('2d',{willReadFrequently:true}); tx.fillStyle='#fff'; tx.fillRect(0,0,w,h); tx.imageSmoothingQuality='high';
+  tx.drawImage(cv, x0*k, y0*k, (x1-x0)*k, (y1-y0)*k, 0, 0, w, h);
+  var px=tx.getImageData(0,0,w,h).data; tc.width=tc.height=0;
+  var D=new Uint8Array(w*h); for(var i=0,j=0;j<D.length;i+=4,j++) D[j]=(0.2126*px[i]+0.7152*px[i+1]+0.0722*px[i+2])<175?1:0;
+  q=w/(x1-x0);
+  return {D:D, w:w, h:h, q:q, dk:function(x,y){ return x>=0&&y>=0&&x<w&&y<h&&D[y*w+x]===1; },
+    X:function(v){ return Math.round((v-x0)*q); }, Y:function(v){ return Math.round((v-y0)*q); }, px:function(X){ return x0+X/q; }, py:function(Y){ return y0+Y/q; }};
+}
+/** Cadre (rectangle fermé, intérieur vide) qui contient le point ; kind 'sign' : assez grand pour une signature */
+function snapFrame(el, pt, kind, big){
+  var RX=big?320:150, RY=big?130:60;                                  // d'abord autour du doigt ; plus large seulement si un bord manque
+  var B=pageBits(el, pt[0]-RX, pt[1]-RY, pt[0]+RX, pt[1]+RY); if(!B) return null;
+  var q=B.q, LH=Math.round((RX-10)*q), LV=Math.round((RY-5)*q), far=false;
+  var cov=function(x1,y1,x2,y2,ox,oy){ var n=0,ok=0,len=Math.max(Math.abs(x2-x1),Math.abs(y2-y1)); if(len<2) return 0; for(var i=0;i<=len;i++){ var x=Math.round(x1+(x2-x1)*i/len), y=Math.round(y1+(y2-y1)*i/len); n++; if(B.dk(x,y)||B.dk(x+ox,y+oy)||B.dk(x-ox,y-oy)) ok++; } return ok/n; };
+  var at=function(cx,cy){
+    if(B.dk(cx,cy)) return null;
+    var ray=function(dx,dy,lim){ for(var i=1;i<=lim;i++) if(B.dk(cx+dx*i,cy+dy*i)) return i; return 0; };
+    var l=ray(-1,0,LH), r=ray(1,0,LH), t=ray(0,-1,LV), b=ray(0,1,LV); if(!l||!r||!t||!b){ far=true; return null; }
+    var L=cx-l, R=cx+r, T=cy-t, Bt=cy+b;                             // bords intérieurs des traits
+    if(cov(L+1,T,R-1,T,0,1)<0.9 || cov(L+1,Bt,R-1,Bt,0,1)<0.9 || cov(L,T+1,L,Bt-1,1,0)<0.9 || cov(R,T+1,R,Bt-1,1,0)<0.9) return null;
+    var n=0, dn=0; for(var y=T+2;y<=Bt-2;y++) for(var x=L+2;x<=R-2;x++){ n++; if(B.D[y*B.w+x]) dn++; }
+    if(!n || dn/n>0.012) return null;                                // pas vide : texte, tableau…
+    return {x:B.px(L+1), y:B.py(T+1), w:(R-L-1)/q, h:(Bt-T-1)/q};
+  };
+  var cx=B.X(pt[0]), cy=B.Y(pt[1]), T=[[0,0],[0,-3],[0,3],[-3,0],[3,0]];
+  for(var i=0;i<T.length;i++){
+    var f=at(cx+Math.round(T[i][0]*q), cy+Math.round(T[i][1]*q));
+    if(!f || !rIn(f, pt, 4)) continue;
+    if(kind==='sign'){ if(f.w<40 || f.h<18) return null; }
+    else if(f.w<18 || f.h<7 || f.h>110 || (f.w<22 && f.h<22)) return null;   // petite case carrée : c'est l'outil Cocher
+    return {x:+f.x.toFixed(2), y:+f.y.toFixed(2), w:+f.w.toFixed(2), h:+f.h.toFixed(2)};
+  }
+  return far && !big ? snapFrame(el, pt, kind, true) : null;
+}
+/** Ligne d'écriture sous le doigt (jusqu'à 12 pt sous le point, 6 pt au-dessus) : {x0, x1, y (haut du trait), up (bas d'un cadre), down (haut d'un cadre)} */
+function snapLine(el, pt){
+  var B=pageBits(el, pt[0]-330, pt[1]-22, pt[0]+330, pt[1]+24); if(!B) return null;
+  var q=B.q, w=B.w, h=B.h, D=B.D, P=new Int32Array(w*(h+1));
+  for(var y=0;y<h;y++) for(var x=0;x<w;x++) P[(y+1)*w+x]=P[y*w+x]+D[y*w+x];          // cumul vertical par colonne
+  var band=function(x,ya,yb){ ya=clamp(ya,0,h); yb=clamp(yb,0,h); return yb>ya?P[yb*w+x]-P[ya*w+x]:0; };   // pixels noirs de ya à yb-1
+  var g=Math.round(4.5*q), u1=Math.max(1,Math.round(1.5*q)), u2=Math.round(7*q), seed=Math.round(15*q);
+  var cx=B.X(pt[0]), yA=Math.max(1,B.Y(pt[1]-6)), yB=Math.min(h-2,B.Y(pt[1]+12)), py=B.Y(pt[1]), best=null, bs=1e9;
+  for(y=yA;y<=yB;y++){
+    var on=function(x){ return D[y*w+x]===1 && band(x,y-u2,y-u1+1)===0; };       // noir, rien juste au-dessus
+    var s0=-1; for(var e=0;e<=seed && s0<0;e++){ if(cx+e<w && cx+e>=0 && on(cx+e)) s0=cx+e; else if(cx-e>=0 && cx-e<w && on(cx-e)) s0=cx-e; }
+    if(s0<0) continue;
+    var a=s0, b=s0, x2=s0; while(x2<w && x2-b<=g){ if(on(x2)) b=x2; x2++; } x2=s0; while(x2>=0 && a-x2<=g){ if(on(x2)) a=x2; x2--; }
+    if((b-a)/q<36) continue;
+    var n=0; for(x2=a;x2<=b;x2++) if(on(x2)) n++;
+    if(n/(b-a+1)<0.25) continue;
+    var th=1; while(th<3*q && y+th<h){ var m=0; for(x2=a;x2<=b;x2+=2) if(D[(y+th)*w+x2]) m++; if(m<0.3*n/2) break; th++; }
+    if(th>=3*q) continue;                                            // bloc plein, pas un trait
+    var bl=0, cnt=0; for(x2=a;x2<=b;x2+=2){ cnt++; bl+=band(x2, y+th+u1, y+th+Math.round(4*q))>0?1:0; }
+    if(bl/cnt>0.08) continue;                                        // texte juste dessous : rangée de lettres
+    var sc2=y<py?(py-y)*2:(y-py); if(sc2<bs){ bs=sc2; best={a:a, b:b, y:y, th:th}; }
+  }
+  if(!best) return null;
+  var vert=function(x, ya, yb){ var n=0, m=0; for(var yy=ya;yy<yb;yy++){ n++; if(B.dk(x,yy)||B.dk(x-1,yy)||B.dk(x+1,yy)) m++; } return n?m/n:0; };
+  var ends=function(ya,yb){ var l=0, r=0; for(var dx=-4;dx<=4;dx++){ l=Math.max(l, vert(best.a+dx, ya, yb)); r=Math.max(r, vert(best.b+dx, ya, yb)); } return l>0.8 && r>0.8; };
+  var o={x0:+B.px(best.a).toFixed(2), x1:+B.px(best.b+1).toFixed(2), y:+B.py(best.y).toFixed(2)};
+  if(ends(best.y-Math.round(6*q), best.y-1)) o.up=true;
+  if(ends(best.y+best.th+1, best.y+best.th+Math.round(6*q))) o.down=true;
+  if(pt[0]<o.x0-12 || pt[0]>o.x1+4) return null;
+  return o;
+}
+/** Où poser : {k:'free'|'frame'|'line'|'zone'|'case', r (cadre), l (ligne), z (zone), box (aperçu)} */
+function planAt(el, pt, tool){
+  var p=el._p, pl={k:'free'};
+  try{
+    if(tool==='mark'){ var sn=snapBox(el, pt), s0=sn?sn.s:S.cks, c=sn?[sn.x,sn.y]:pt; pl.box={x:c[0]-s0/2, y:c[1]-s0/2, w:s0, h:s0}; if(sn) pl.k='case'; return pl; }
+    var lap=tool==='sign' && V.lapArm, z=tool==='sign'?zoneAt(p, pt):null;
+    if(z){ pl.k='zone'; pl.z=z; pl.r=z; }
+    else {
+      var f=snapFrame(el, pt, tool==='sign' && !lap?'sign':'text');
+      if(f){ pl.k='frame'; pl.r=f; }
+      else {
+        var l=snapLine(el, pt);
+        if(l && l.up){ var f2=snapFrame(el, [clamp(pt[0], l.x0+3, l.x1-3), l.y-3], tool==='sign' && !lap?'sign':'text'); if(f2){ pl.k='frame'; pl.r=f2; } }   // bas d'un cadre : le cadre
+        else if(l && !l.down){ pl.k='line'; pl.l=l; }
+      }
+    }
+    if(tool==='sign' && !lap){ var a={}; if(pl.k==='zone') fitIn(a, zoneFree(p, z), V.sgR||3); else laySign(a, pl, pt, V.sgR||3, p); pl.box={x:a.x, y:a.y, w:a.w, h:a.h}; }
+    else {
+      var t={t:'text', txt:lap?lapText():(tool==='date'?today():'Ton texte'), s:lap?10:S.txs};
+      if(lap && pl.k==='zone'){ lapInZone(t, z); } else { if(lap) t.s=lapSize(t.txt, dims(p).w-pt[0]-6); layText(t, pl, pt); }
+      pl.box=itemBox(t); pl.txt=1;
+    }
+  }catch(e){ console.warn('aimantation', e); pl={k:'free', box:{x:pt[0]-4, y:pt[1]-4, w:8, h:8}}; }
+  return pl;
+}
+/** Texte (Texte, Date, Lu et approuvé) : au point (ligne d'écriture passant par le doigt), dans le cadre, ou sur la ligne */
+function layText(a, pl, pt){
+  var ls=String(a.txt).split('\n'), n=ls.length, wm=Math.max.apply(null, ls.map(txtW))||0.5;
+  if(pl && pl.k==='frame'){
+    var r=pl.r, m=clamp(r.h*0.18, 2, 4), s=clamp(Math.min(r.h*0.62, (r.h-2)/(1.2*n-0.25)), 7, 14);
+    if(wm*s>r.w-2*m) s=Math.max(4, (r.w-2*m)/wm);
+    a.s=+s.toFixed(2); a.x=+(r.x+m).toFixed(2); a.y=+(r.y+r.h/2-(n-1)*0.6*a.s+0.35*a.s).toFixed(2);
+  } else if(pl && pl.k==='line'){
+    var l=pl.l, x=(pt[0]-l.x0<18)?l.x0+1.5:pt[0], av=l.x1-x, s2=a.s;
+    if(av>20 && wm*s2>av) s2=Math.max(7, av/wm);
+    a.s=+s2.toFixed(2); a.x=+x.toFixed(2); a.y=+(l.y-1.5).toFixed(2);
+  } else { a.x=pt[0]; a.y=pt[1]+0.35*a.s; }
+  return a;
+}
+/** Signature : centrée sur le point, calée dans le cadre (90 %, ratio gardé) ou posée sur la ligne */
+function laySign(a, pl, pt, ratio, p){
+  if(pl && pl.k==='frame'){ fitIn(a, pl.r, ratio); return a; }
+  var wd=Math.min(150, dims(p).w*0.4), h;
+  if(pl && pl.k==='line'){
+    var l=pl.l, L=l.x1-l.x0; wd=Math.min(wd, Math.max(60, L)); h=wd/ratio; if(h>45){ h=45; wd=h*ratio; }
+    var cx=L>=wd?clamp(pt[0], l.x0+wd/2, l.x1-wd/2):(l.x0+l.x1)/2; a.x=cx-wd/2; a.y=l.y-1-h; a.w=wd; a.h=h;
+  } else { h=wd/ratio; a.x=pt[0]-wd/2; a.y=pt[1]-h/2; a.w=wd; a.h=h; }
+  if(a.cap) a.cs=clamp(Math.min(a.h*0.22, 9, a.w*1.4/(a.cap.length*0.52)), 4, 9);
+  return a;
+}
 function selectItem(a){
   V.sel=a?a.id:null; $('selbar').hidden=!a; $('selEdit').hidden=!(a&&a.t==='text');
+  if(a){ var ab=$('annbar'), sb=$('selbar'); sb.style.bottom=''; if(ab && !ab.hidden){ var t=ab.getBoundingClientRect().top; if(t>0) sb.style.bottom=Math.max(0, window.innerHeight-t+8)+'px'; } }   // toujours au-dessus de la barre d'outils (Signer : barre sur deux rangées)
   V.els.forEach(function(el){ if(el._r) buildAnn(el, el._p); });
 }
 $('selDel').innerHTML=ic('trash'); $('selOk').innerHTML=ic('check'); $('vUndo').innerHTML=ic('undo'); $('vUndo').onclick=undo;
@@ -1760,7 +2042,7 @@ $('selMinus').onclick=function(){ var a=V.ann.filter(function(x){ return x.id===
 $('selOk').onclick=function(){ selectItem(null); };
 $('selEdit').innerHTML=ic('edit');
 $('selEdit').onclick=function(){ var a=V.ann.filter(function(x){ return x.id===V.sel && x.t==='text'; })[0]; if(a) textSheet(a.p, null, a.txt, a); };
-function textSheet(p, pt, preset, edit){
+function textSheet(p, pt, preset, edit, plan){
   var sizes=[[9,'Petit'],[12,'Moyen'],[16,'Grand'],[22,'Très grand']];
   if(edit){
     // modifier un texte déjà posé (même taille, même place) ; « Lu et approuvé » : le libellé est mémorisé
@@ -1774,13 +2056,15 @@ function textSheet(p, pt, preset, edit){
     };
     return;
   }
-  var sh=openSheet(preset?'Ajouter la date':'Ajouter du texte','<textarea class="inp" id="txv" placeholder="Ton texte">'+esc(preset||'')+'</textarea><div class="lbl">Taille</div><div class="opts" id="txs">'+sizes.map(function(s){ return '<button class="opt'+(S.txs===s[0]?' on':'')+'" data-s="'+s[0]+'">'+s[1]+'</button>'; }).join('')+'</div><div class="row"><button class="btn" data-close>Annuler</button><button class="btn main" id="txOk">'+ic('check')+'Placer</button></div>');
+  plan=plan||{k:'free'};
+  var fr=plan.k==='frame', szH=fr?'<p class="note" id="txFit" style="margin:4px 2px 0">Le texte sera calé dans le cadre touché (taille ajustée).</p>':'<div class="lbl">Taille</div><div class="opts" id="txs">'+sizes.map(function(s){ return '<button class="opt'+(S.txs===s[0]?' on':'')+'" data-s="'+s[0]+'">'+s[1]+'</button>'; }).join('')+'</div>';
+  var sh=openSheet(preset?'Ajouter la date':'Ajouter du texte','<textarea class="inp" id="txv" placeholder="Ton texte">'+esc(preset||'')+'</textarea>'+szH+'<div class="row"><button class="btn" data-close>Annuler</button><button class="btn main" id="txOk">'+ic('check')+'Placer</button></div>', {onClose:ghostHide});
   var i=sh.querySelector('#txv'); setTimeout(function(){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); },250);
-  sh.querySelector('#txs').onclick=function(e){ var b=e.target.closest('.opt'); if(!b) return; S.txs=+b.dataset.s; saveS(); sh.querySelectorAll('#txs .opt').forEach(function(x){ x.classList.toggle('on', x===b); }); };
+  if(!fr) sh.querySelector('#txs').onclick=function(e){ var b=e.target.closest('.opt'); if(!b) return; S.txs=+b.dataset.s; saveS(); sh.querySelectorAll('#txs .opt').forEach(function(x){ x.classList.toggle('on', x===b); }); };
   sh.querySelector('#txOk').onclick=function(){
     var v=i.value.replace(/\s+$/,''); if(!v){ back(); return; }
-    pushUndo(); var a={id:uid('a'), p:p, t:'text', x:pt[0], y:pt[1]+S.txs*0.35, s:S.txs, c:S.txc, txt:v}; V.ann.push(a);
-    closeThen(function(){ annChanged([p]); });
+    pushUndo(); var a={id:uid('a'), p:p, t:'text', s:S.txs, c:S.txc, txt:v}; layText(a, plan, pt); V.ann.push(a);
+    closeThen(function(){ annChanged([p]); selectItem(a); });
   };
 }
 /* =========================================================
@@ -1796,7 +2080,7 @@ function signChoice(){ setTool('sign'); }
 /* Qui signe dans cette zone ? Mention « client », « acheteur »… → une autre personne ; « entreprise », « vendeur »… → moi */
 var WHO_OTHER=/client|acheteur|acquereur|beneficiaire|stagiaire|locataire|souscripteur|maitre d'ouvrage/, WHO_ME=/entreprise|prestataire|artisan|vendeur|formateur|societe|fournisseur|bailleur/;
 function zoneRole(z){ if(!z) return ''; var t=fold(String(z.lab||'')+' '+String(z.f||'').replace(/[_.\-]+/g,' ')); return WHO_OTHER.test(t)?'other':(WHO_ME.test(t)?'me':''); }
-function signWho(p, z, pt){
+function signWho(p, z, pt, plan){
   var own=ownSign(), kept=keptSigns(), role=zoneRole(z);
   var me='<button data-w="me">'+(own?'<img class="sgv" src="'+own+'" alt="">':'<div class="sgv">'+ic('sign')+'</div>')+'<span>Moi'+(own&&S.signProt?'<span class="lk">'+ic('lock')+'</span>':'')+'<small>'+(own?esc(S.myName||'Ma signature enregistrée'):'Créer ma signature')+'</small></span></button>';
   var oth='<button data-w="other"><div class="sgv">'+ic('user')+'</div><span>Une autre personne<small>Elle signe sur ce téléphone</small></span></button>';
@@ -1806,25 +2090,25 @@ function signWho(p, z, pt){
   var lab=z&&z.lab?String(z.lab).replace(/[\s:.…_]+$/,'').trim():'';
   toastOff();
   var sh=openSheet('Qui signe ?',(lab?'<p class="note" style="margin:0 2px 8px">Zone « '+esc(lab)+' »</p>':'')+'<div class="menu" id="whoL">'+l.join('')+'</div>'+
-    '<div class="sw" id="whoCap"><span>Nom sous la signature<small>« Signé par … » quand le nom est connu</small></span><i class="tg'+(S.signCap!==false?' on':'')+'"></i></div>');
+    '<div class="sw" id="whoCap"><span>Nom sous la signature<small>« Signé par … » quand le nom est connu</small></span><i class="tg'+(S.signCap!==false?' on':'')+'"></i></div>', {onClose:ghostHide});
   sh.querySelector('#whoCap').onclick=function(){ S.signCap=S.signCap===false; saveS(); this.querySelector('.tg').classList.toggle('on', S.signCap!==false); };
   sh.querySelector('#whoL').onclick=function(e){
     var b=e.target.closest('button[data-w]'); if(!b) return; var w=b.dataset.w;
-    if(w==='me') closeThen(function(){ signAsMe(p, z, pt); });
-    else if(w==='other') closeThen(function(){ otherPad(function(r){ putSign(p, z, pt, {src:r.src, wk:'other', who:r.name}); }); });
-    else { var k=kept.filter(function(x){ return 'k:'+x.id===w; })[0]; if(k) closeThen(function(){ putSign(p, z, pt, {src:k.src, wk:'kept', who:k.name||''}); }); }
+    if(w==='me') closeThen(function(){ signAsMe(p, z, pt, plan); });
+    else if(w==='other') closeThen(function(){ otherPad(function(r){ putSign(p, z, pt, {src:r.src, wk:'other', who:r.name}, plan); }); });
+    else { var k=kept.filter(function(x){ return 'k:'+x.id===w; })[0]; if(k) closeThen(function(){ putSign(p, z, pt, {src:k.src, wk:'kept', who:k.name||''}, plan); }); }
   };
 }
-async function signAsMe(p, z, pt){
+async function signAsMe(p, z, pt, plan){
   var own=ownSign();
-  if(!own){ signPad(function(){ putSign(p, z, pt, {src:ownSign(), wk:'me', who:S.myName||''}); setTimeout(offerProtect, 900); }); return; }
+  if(!own){ signPad(function(){ putSign(p, z, pt, {src:ownSign(), wk:'me', who:S.myName||''}, plan); setTimeout(offerProtect, 900); }); return; }
   if(!(await ownerGate('Pour poser ta signature'))) return;
   if(!V.open) return;
-  putSign(p, z, pt, {src:own, wk:'me', who:S.myName||''});
+  putSign(p, z, pt, {src:own, wk:'me', who:S.myName||''}, plan);
   setTimeout(offerProtect, 900);
 }
-/* Pose : dans une zone (calée, l'outil Signer reste actif) ou au point touché (sélectionnée, outil Déplacer) */
-async function putSign(p, z, pt, w){
+/* Pose : dans une zone repérée ou un cadre (calée), sur une ligne, ou centrée au point touché ; sélectionnée, l'outil Signer reste actif */
+async function putSign(p, z, pt, w, plan){
   if(!w || !w.src || !V.open) return;
   var ratio=await signRatio(w.src);
   var a={id:uid('a'), p:p, t:'img', src:w.src, wk:w.wk, who:String(w.who||'').trim()};
@@ -1832,13 +2116,14 @@ async function putSign(p, z, pt, w){
   pushUndo();
   if(z){
     a.zr={x:z.x, y:z.y, w:z.w, h:z.h}; fitIn(a, zoneFree(p, z), ratio);
-    V.ann.push(a); V.lastSign=a.id; annChanged([p]);
-    toast('Signature placée dans la zone. « Déplacer » pour l\'ajuster.');
+    V.ann.push(a); V.lastSign=a.id; annChanged([p]); selectItem(a);
+    toast('Signature placée dans la zone. Glisse-la pour l\'ajuster.');
   } else {
-    var wd=Math.min(150, dims(p).w*0.4), h=wd/ratio; a.x=pt[0]-wd/2; a.y=pt[1]-h/2; a.w=wd; a.h=h;
-    if(a.cap) a.cs=clamp(Math.min(h*0.22, 9, wd*1.4/(a.cap.length*0.52)), 4, 9);
+    plan=plan||{k:'free'};
+    laySign(a, plan, pt, ratio, p);
+    if(plan.k==='frame') a.zr={x:plan.r.x, y:plan.r.y, w:plan.r.w, h:plan.r.h};
     V.ann.push(a); annChanged([p]);
-    V.lastSign=a.id; setTool('main'); selectItem(a); toast('Signature placée : fais-la glisser pour la déplacer');
+    V.lastSign=a.id; selectItem(a); toast(plan.k==='frame'?'Signature calée dans le cadre. Glisse-la pour l\'ajuster.':(plan.k==='line'?'Signature posée sur la ligne. Glisse-la pour l\'ajuster.':'Signature placée : fais-la glisser pour la déplacer'));
   }
 }
 
@@ -2106,11 +2391,12 @@ function nextZone(){
   toast('Zone '+(idx+1)+' sur '+l.length+' · page '+e.p, false, 1800);
 }
 /* Toucher avec l'outil Signer : dans une zone → signature calée dedans ; ailleurs → comme avant */
-function signTap(el, pt){
-  var p=el._p, z=zoneAt(p, pt);
-  if(V.lapArm){ V.lapArm=false; signCtxUpd(); placeLap(z?{zone:z, p:p}:{pt:pt, p:p}); return; }
-  if(!z){ signWho(p, null, pt); return; }
-  if(zoneUsed(p, z)){ toast('Déjà signé ici. « Déplacer » pour l\'ajuster, ou Annuler.'); return; }
+function signTap(el, pt, plan){
+  var p=el._p; plan=plan||planAt(el, pt, 'sign'); var z=plan.k==='zone'?plan.z:null;
+  if(V.lapArm){ V.lapArm=false; signCtxUpd(); ghostHide(); placeLap(z?{zone:z, p:p}:{pt:pt, p:p, plan:plan}); return; }
+  if(!z){ signWho(p, null, pt, plan); return; }
+  var u=zoneSig(p, z);
+  if(u){ ghostHide(); selectItem(u); toast('Déjà signé ici : glisse la signature pour l\'ajuster, ou Annuler.'); return; }
   signWho(p, z, null);
 }
 function signRatio(src){ return new Promise(function(res){ var im=new Image(); im.onload=function(){ res(im.width/Math.max(1,im.height)); }; im.onerror=function(){ res(3); }; im.src=src; }); }
@@ -2139,12 +2425,12 @@ function lapButton(){
 function placeLap(tg){
   var txt=lapText(), ls=txt.split('\n'), n=ls.length, mc=Math.max.apply(null, ls.map(function(l){ return l.length; })), p=tg.p;
   var a={id:uid('a'), p:p, t:'text', c:S.txc, txt:txt, lap:1};
-  var size=function(maxW, maxH){ var s=10; if(maxW) s=Math.min(s, maxW/(mc*0.52)); if(maxH) s=Math.min(s, maxH/(1.2*n)); return clamp(s,6,10); };
+  var size=function(maxW, maxH){ return lapSize(txt, maxW, maxH); };
   pushUndo();
   var z=tg.zone || (tg.sig && tg.sig.zr && rIn(tg.sig.zr, [tg.sig.x+tg.sig.w/2, tg.sig.y+tg.sig.h/2]) ? tg.sig.zr : null);
   if(z){
     // en haut de la zone ; une signature déjà dans la zone est recalée dessous
-    a.s=size(z.w-8, z.h*0.42); a.x=z.x+4; a.y=z.y+3+0.8*a.s; V.ann.push(a);
+    lapInZone(a, z); V.ann.push(a);
     var sg=tg.sig || V.ann.filter(function(x){ return x.p===p && x.t==='img' && rIn(z,[x.x+x.w/2, x.y+x.h/2]); })[0];
     if(sg){ var r=zoneFree(p, z), k=sg.w/Math.max(1,sg.h); fitIn(sg, r, k); }
   } else if(tg.sig){
@@ -2152,11 +2438,13 @@ function placeLap(tg){
     if(a.y-0.8*a.s<4) a.y=g.y+g.h+2+0.8*a.s;
     V.ann.push(a);
   } else {
-    a.s=size(dims(p).w-tg.pt[0]-6); a.x=tg.pt[0]; a.y=tg.pt[1]+a.s*0.35; V.ann.push(a);
+    a.s=size(dims(p).w-tg.pt[0]-6); layText(a, tg.plan||{k:'free'}, tg.pt); V.ann.push(a);
   }
-  annChanged([p]);
-  toast('« '+ls[0]+' » ajouté. Pour le modifier : « Déplacer », touche-le puis ✎.', false, 4000);
+  annChanged([p]); selectItem(a);
+  toast('« '+ls[0]+' » ajouté. Touche-le pour le modifier, glisse-le pour le déplacer.', false, 4000);
 }
+function lapSize(txt, maxW, maxH){ var ls=String(txt).split('\n'), n=ls.length, mc=Math.max.apply(null, ls.map(function(l){ return l.length; })), s=10; if(maxW) s=Math.min(s, maxW/(mc*0.52)); if(maxH) s=Math.min(s, maxH/(1.2*n)); return clamp(s,6,10); }
+function lapInZone(a, z){ a.s=lapSize(a.txt, z.w-8, z.h*0.42); a.x=z.x+4; a.y=z.y+3+0.8*a.s; return a; }
 /* Pavé de signature : dessin au doigt, image recadrée (PNG transparent, 600 px de large au plus) */
 function padInit(cv){
   var P={drawn:false}, dpr=Math.min(window.devicePixelRatio||1,3), ctx=null, last=null;
