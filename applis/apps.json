@@ -238,5 +238,13 @@
   "name": "Lecteur PDF",
   "icons": "android-icons-lecteur",
   "file": "Lecteur-PDF.apk"
+ },
+ {
+  "app": "solaire",
+  "web": "www-solaire",
+  "appid": "fr.magformation13.solaire",
+  "name": "Solaire",
+  "icons": "android-icons-solaire",
+  "file": "Solaire.apk"
  }
 ]
