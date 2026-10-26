@@ -20,9 +20,62 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stro
 [hidden]{display:none!important}
 
 /* Accueil */
-#home{position:fixed;inset:0;overflow-y:auto;overflow-x:hidden;padding:calc(var(--st) + 10px) 12px calc(var(--nb) + 84px);scrollbar-width:none}
-#home::-webkit-scrollbar{display:none}
-#grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+/* Pages qu'on fait glisser (défilement horizontal aimanté), chaque page défile verticalement */
+#home{position:fixed;inset:0;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior:none}
+#home::-webkit-scrollbar,.page::-webkit-scrollbar{display:none}
+#pages{display:flex;height:100%;width:100%}
+.page{flex:0 0 100%;width:100%;height:100%;overflow-y:auto;overflow-x:hidden;scroll-snap-align:start;scroll-snap-stop:always;padding:calc(var(--st) + 10px) 12px calc(var(--nb) + 96px);scrollbar-width:none}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#pages.snap{pointer-events:none}
+#dots{position:fixed;left:0;right:0;bottom:calc(var(--nb) + 74px);display:flex;justify-content:center;gap:7px;z-index:4;pointer-events:none}
+#dots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.4);box-shadow:0 1px 3px rgba(0,0,0,.4);transition:.2s}
+#dots i.on{background:#fff;width:18px;border-radius:5px}
+.phd{display:none;align-items:center;gap:8px;margin:0 2px 10px;font-size:13px;font-weight:600;color:var(--tx2)}
+body.edit .phd{display:flex}
+.phd span{flex:1}
+.phd button{padding:7px 11px;border-radius:11px;background:rgba(0,0,0,.45);font-size:12.5px;display:flex;align-items:center;gap:5px}
+.phd button svg{width:15px;height:15px}
+.pempty{grid-column:span 2;border:2px dashed rgba(255,255,255,.3);border-radius:var(--r);padding:28px 16px;text-align:center;color:var(--tx2);font-size:14px}
+body:not(.edit) .pempty{display:none}
+/* Tuiles ajoutées : appli, contact, site, rendez-vous, téléphone, météo détaillée */
+.t-app,.t-link{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;text-align:center}
+.t-app img,.t-app .ph{width:54px;height:54px;border-radius:15px;display:block}
+.t-app .ph{background:rgba(255,255,255,.15)}
+.t-app.w2,.t-link.w2{flex-direction:row;justify-content:flex-start;gap:14px;text-align:left}
+.t-app .nm,.t-link .nm{font-size:13.5px;font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t-link .dm{font-size:11.5px;color:var(--tx3);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lav{width:50px;height:50px;border-radius:15px;background:var(--acc);color:var(--acc-d);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:21px;flex:none}
+.t-contact .crow2{display:flex;align-items:center;gap:10px;margin-top:2px}
+.t-contact .av{width:44px;height:44px;border-radius:50%;object-fit:cover;background:var(--acc);color:var(--acc-d);display:flex;align-items:center;justify-content:center;font-weight:700;flex:none}
+.t-contact b{display:block;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t-contact .num{font-size:12px;color:var(--tx3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cbtns{display:flex;gap:6px;margin-top:9px}
+.cbtns button{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 4px;border-radius:12px;background:rgba(255,255,255,.12);font-size:12.5px;font-weight:600}
+.cbtns button svg{width:16px;height:16px}
+.nev .when{font-size:12.5px;color:var(--acc);font-weight:600;margin-top:6px}
+.nev .ti{font-size:16px;font-weight:600;margin-top:2px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.nev .pl{font-size:12px;color:var(--tx2);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dev .lbl{display:flex;justify-content:space-between;font-size:12.5px;color:var(--tx2);margin-top:8px}
+.dev .lbl b{color:var(--tx);font-weight:600}
+.dev .bar{margin-top:4px}
+.wxh{display:flex;justify-content:space-between;gap:2px;margin-top:9px}
+.wxh div{flex:1;text-align:center;font-size:11.5px;color:var(--tx2);min-width:0}
+.wxh b{display:block;color:var(--tx);font-size:13px}
+.wxh svg{width:19px;height:19px;margin:3px auto}
+.wxh .rp{display:block;font-size:10.5px;color:#8fd0ff}
+.wxd{display:flex;gap:6px;margin-top:9px}
+.wxd div{flex:1;background:rgba(255,255,255,.08);border-radius:11px;padding:6px 4px;text-align:center;font-size:11.5px;color:var(--tx2);min-width:0}
+.wxd b{color:var(--tx)}
+.wxd svg{width:18px;height:18px;margin:2px auto}
+.terr{font-size:12.5px;color:var(--tx3);margin-top:6px}
+/* Journal */
+.logl{font-size:12.5px;line-height:1.45}
+.logl div{padding:8px 0;border-top:1px solid rgba(255,255,255,.08);word-break:break-word}
+.logl div:first-child{border-top:0}
+.logl time{display:block;color:var(--tx3);font-size:11.5px}
+.logl .st{color:#6fd6a4}
+.picks{max-height:52vh;overflow-y:auto;margin-top:8px}
+.picks .apps4{grid-template-columns:repeat(4,minmax(0,1fr))}
 .tile{position:relative;background:var(--tile);border:1px solid var(--tile-b);border-radius:var(--r);padding:13px 14px;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);min-height:96px;overflow:hidden;transition:transform .15s}
 .tile.w2{grid-column:span 2}
 .tile:active{transform:scale(.985)}
@@ -119,7 +172,7 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stro
 .hint{text-align:center;font-size:11px;color:var(--tx3);margin-top:6px}
 
 /* Mode édition */
-body.edit .tile{animation:wig .35s ease-in-out infinite alternate;outline:2px dashed rgba(255,255,255,.35);outline-offset:-2px}
+body.edit .tile{animation:wig .35s ease-in-out infinite alternate;outline:2px dashed rgba(255,255,255,.35);outline-offset:-2px;min-height:96px}
 body.edit .tile>*:not(.ed){pointer-events:none;opacity:.55}
 @keyframes wig{from{transform:rotate(-.4deg)}to{transform:rotate(.4deg)}}
 .ed{display:none;position:absolute;inset:auto 8px 8px 8px;gap:6px;justify-content:center;z-index:2}
@@ -208,15 +261,30 @@ input[type=range]{width:100%;accent-color:var(--acc)}
 </style>
 </head>
 <body>
-<div id="home">
-  <div id="grid"></div>
-</div>
+<div id="home"><div id="pages"></div></div>
+<div id="dots"></div>
+<script>
+/* Instantané : la dernière image de l'accueil (enregistrée en quittant l'écran) s'affiche tout de suite,
+   pendant que le reste de la page se prépare. Aucune donnée n'est lue ici, seulement du HTML déjà rendu. */
+(function(){
+  try{
+    var s=JSON.parse(localStorage.getItem('socle-snap')||'null');
+    if(!s || !s.h || Math.abs((s.w||0)-window.innerWidth)>2) return;
+    if(s.css) document.documentElement.setAttribute('style', s.css);
+    var p=document.getElementById('pages'); p.innerHTML=s.h; p.classList.add('snap');
+    var d=new Date(), t=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+    var tm=p.querySelector('.t-clock .time'); if(tm) tm.textContent=t;
+    window.__snap=1;
+  }catch(e){}
+})();
+</script>
 <div id="dock">
   <button id="searchBar"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span class="sp" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Rechercher…</span><svg class="i" viewBox="0 0 24 24" id="bSet"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   <div class="hint sh">Glisser vers le haut : toutes les applis</div>
 </div>
 <div id="editBar">
-  <button class="pbtn" id="bAddTile"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Ajouter une tuile</button>
+  <button class="pbtn" id="bAddTile"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Ajouter</button>
+  <button class="pbtn" id="bAddPage"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M12 9v6M9 12h6"/></svg>Page</button>
   <button class="pbtn main" id="bDone">Terminé</button>
 </div>
 
@@ -234,10 +302,34 @@ input[type=range]{width:100%;accent-color:var(--acc)}
 (function(){
 "use strict";
 var A = window.MAGPrint && window.MAGPrint.homeApps ? window.MAGPrint : null;
+/* MAGSocle : journal, sauvegarde de la disposition, stockage, fin du démarrage (SocleBridge.java) */
+var S = window.MAGSocle && window.MAGSocle.ready ? window.MAGSocle : null;
 var $ = function(id){ return document.getElementById(id); };
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
 function J(s, d){ try{ var v = JSON.parse(s); return v==null ? d : v; }catch(e){ return d; } }
 function toast(t){ var e=$('toast'); e.textContent=t; e.classList.add('on'); clearTimeout(toast.t); toast.t=setTimeout(function(){ e.classList.remove('on'); }, 3000); }
+function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function lsSet(k, v){ try{ localStorage.setItem(k, v); return true; }catch(e){ return false; } }
+
+/* ---------- Journal d'erreurs (consultable dans les réglages) ---------- */
+var LOGK='socle-log', logN=0;
+function logErr(m){
+  m=String(m||'').slice(0,400); if(!m || ++logN>40) return;   // pas d'avalanche si une erreur se répète en boucle
+  try{ if(S && S.log){ S.log(m); return; } }catch(e){}
+  var l=J(lsGet(LOGK),[]); if(!Array.isArray(l)) l=[]; l.push({t:Date.now(),m:m}); lsSet(LOGK, JSON.stringify(l.slice(-60)));
+}
+function readLog(){ var l=null; try{ if(S && S.logRead) l=J(S.logRead(),null); }catch(e){} if(!Array.isArray(l)) l=J(lsGet(LOGK),[]); return Array.isArray(l)?l:[]; }
+window.addEventListener('error', function(e){ logErr('Erreur : '+(e.message||e)+(e.lineno?' (ligne '+e.lineno+')':'')); });
+window.addEventListener('unhandledrejection', function(e){ logErr('Erreur : '+(e.reason&&e.reason.message||e.reason)); });
+/* Une fonction qui ne doit jamais casser l'accueil (minuteries, rappels d'Android) */
+function safe(fn, what){ return function(){ try{ return fn.apply(this, arguments); }catch(e){ logErr((what||'Socle')+' : '+(e&&e.message||e)); } }; }
+
+/* Page chargée avant que le pont Android soit prêt : on recharge une fois (sinon l'accueil resterait vide) */
+var NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+if(!A && NATIVE){
+  var rl=0; try{ rl=+sessionStorage.getItem('socle-rl')||0; }catch(e){}
+  if(rl<2){ try{ sessionStorage.setItem('socle-rl', rl+1); }catch(e){} setTimeout(function(){ location.reload(); }, 150); return; }
+}
 if(!A) document.body.classList.add('nobridge');
 
 /* ---------- Icônes (traits) ---------- */
@@ -293,20 +385,12 @@ var IC = {
   pdf:'<path d="M12 21H6V3h8l5 5v4"/><path d="M14 3v5h5M9 9h3M9 13h3"/><circle cx="16" cy="16.5" r="3"/><path d="m21 21.5-2.7-2.7"/>',
   wallet:'<rect x="3" y="6" width="18" height="13" rx="3"/><path d="M16 12.5h5M7 6V5a1 1 0 0 1 1-1h9"/>',
   mplay:'<path d="M7 4v16l13-8z"/>', mpause:'<path d="M7 4v16M17 4v16"/>',
-  mprev:'<path d="M19 20 9 12l10-8zM5 4v16"/>', mnext:'<path d="m5 4 10 8-10 8zM19 4v16"/>'
+  mprev:'<path d="M19 20 9 12l10-8zM5 4v16"/>', mnext:'<path d="m5 4 10 8-10 8zM19 4v16"/>',
+  sms:'<path d="M4 5h16v11H9l-5 4z"/>', link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+  phonedev:'<rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/>', page:'<rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M12 9v6M9 12h6"/>',
+  list:'<path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/>'
 };
 function ic(n, extra){ return '<svg class="i" viewBox="0 0 24 24"'+(extra||'')+'>'+(IC[n]||'')+'</svg>'; }
-
-/* ---------- Réglages enregistrés ---------- */
-var KEY='socle-v1';
-var DEF = {
-  tiles:[{t:'clock',w:2},{t:'music',w:2},{t:'weather',w:1},{t:'battery',w:1},{t:'agenda',w:1},{t:'tools',w:1},{t:'favs',w:2}],
-  favs:null, hidden:[], city:null, accent:'auto', opacity:55, cols:4, gestures:true, seconds:false, preferMag:true, hideReplaced:false, magSeen:[]
-};
-var C = Object.assign({}, DEF, J(localStorage.getItem(KEY), {}));
-function save(){ try{ localStorage.setItem(KEY, JSON.stringify(C)); }catch(e){} }
-/* Ajout unique de la tuile Musique pour une disposition déjà enregistrée */
-if(!C.musicAdded){ if(!C.tiles.some(function(t){ return t.t==='music'; })){ var ci=C.tiles.findIndex(function(t){ return t.t==='clock'; }); C.tiles.splice(ci+1,0,{t:'music',w:2}); } C.musicAdded=true; save(); }
 
 var TYPES = {
   clock:{n:'Horloge',i:'clock',w:2}, weather:{n:'Météo',i:'sun',w:1}, battery:{n:'Batterie',i:'bat',w:1},
@@ -321,8 +405,72 @@ var TYPES = {
   sos:{n:'Urgence : bouton SOS',i:'sos',w:1}, coffre:{n:'Coffre : mots de passe',i:'lock',w:1},
   qrcode:{n:'QR : lire un code',i:'qr',w:1}, livre:{n:'Liseuse : livre en cours',i:'book',w:2},
   budget:{n:'Budget : dépenses du mois',i:'wallet',w:2,tall:1}, dicta:{n:'Dictaphone',i:'mic',w:1},
-  meteoapp:{n:'Météo : aujourd\'hui',i:'sun',w:2}, reseau:{n:'Réseau : connexion, débit et VPN',i:'web',w:1}, lecteur:{n:'Lecteur PDF : documents récents',i:'pdf',w:2}, solaire:{n:'Solaire : dernier projet',i:'solar',w:1}, mag:{n:'Mes applis MAG',i:'mag',w:2}, note:{n:'Note rapide',i:'note',w:1}
+  meteoapp:{n:'Météo : aujourd\'hui',i:'sun',w:2}, reseau:{n:'Réseau : connexion, débit et VPN',i:'web',w:1}, lecteur:{n:'Lecteur PDF : documents récents',i:'pdf',w:2}, solaire:{n:'Solaire : dernier projet',i:'solar',w:1}, mag:{n:'Mes applis MAG',i:'mag',w:2}, note:{n:'Note rapide',i:'note',w:1},
+  app:{n:'Une appli',i:'grid',w:1,pick:1}, contact:{n:'Un contact',i:'user',w:1,pick:1}, link:{n:'Un site web',i:'link',w:1,pick:1},
+  nextev:{n:'Prochain rendez-vous',i:'cal',w:1}, device:{n:'Batterie et stockage',i:'phonedev',w:1}, wxdetail:{n:'Météo détaillée',i:'cloud',w:2}
 };
+
+
+/* ---------- Réglages enregistrés (validés au chargement, copie de secours côté Android) ---------- */
+var KEY='socle-v1';
+var DEF = {
+  tiles:[{t:'clock',w:2},{t:'music',w:2},{t:'weather',w:1},{t:'battery',w:1},{t:'agenda',w:1},{t:'tools',w:1},{t:'favs',w:2}],
+  favs:null, hidden:[], city:null, accent:'auto', opacity:55, cols:4, gestures:true, seconds:false, preferMag:true, hideReplaced:false, magSeen:[]
+};
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function cleanTile(t){
+  if(!t || typeof t!=='object' || !TYPES[t.t]) return null;
+  t.w = t.w===2 ? 2 : 1; t.h = t.h===2 ? 2 : 0;
+  if(t.t==='app' && typeof t.k!=='string') return null;
+  if(t.t==='contact' && !t.uri && !t.num) return null;
+  if(t.t==='link' && !/^https?:\/\//i.test(String(t.url||''))) return null;
+  return t;
+}
+function cleanPages(c){
+  var pg = Array.isArray(c.pages) ? c.pages : (Array.isArray(c.tiles) ? [c.tiles] : null);
+  if(!pg) return null;
+  pg = pg.filter(Array.isArray).slice(0,9).map(function(p){ return p.map(cleanTile).filter(Boolean).slice(0,40); });
+  return pg.length ? pg : null;
+}
+function restoreNotes(n){ if(n && typeof n==='object') Object.keys(n).forEach(function(k){ if(/^socle-note/.test(k) && lsGet(k)==null) lsSet(k, String(n[k])); }); }
+function loadConf(){
+  var raw=lsGet(KEY), c=J(raw,null);
+  if(!c || typeof c!=='object' || Array.isArray(c) || !cleanPages(c)){
+    var b=null; try{ if(S && S.stateLoad) b=J(S.stateLoad(),null); }catch(e){}
+    confFixed=!!raw || !!b;
+    if(b && b.c && typeof b.c==='object' && cleanPages(b.c)){ c=b.c; restoreNotes(b.n); logErr(raw ? 'Disposition illisible : copie de secours restaurée' : 'Disposition restaurée depuis la copie de secours'); }
+    else { if(raw) logErr('Disposition illisible : disposition d\'origine remise'); c={}; }
+  }
+  var o=Object.assign({}, DEF, c);
+  o.pages=cleanPages(o) || [clone(DEF.tiles)];
+  if(o.favs!==null && !Array.isArray(o.favs)) o.favs=null;
+  ['hidden','magSeen'].forEach(function(k){ if(!Array.isArray(o[k])) o[k]=[]; });
+  if(o.city && (typeof o.city!=='object' || !isFinite(o.city.lat) || !isFinite(o.city.lon))) o.city=null;
+  if(typeof o.accent!=='string') o.accent='auto';
+  o.opacity=Math.max(20,Math.min(90,+o.opacity||55)); if(o.cols!==5) o.cols=4;
+  return o;
+}
+var confFixed=false;
+var C = loadConf();
+var bkT=null;
+function save(){
+  C.tiles=C.pages[0];   // compatibilité : l'ancienne version lisait « tiles »
+  if(!lsSet(KEY, JSON.stringify(C))) logErr('Enregistrement impossible (mémoire du navigateur pleine ?)');
+  clearTimeout(bkT); bkT=setTimeout(backupNow, 1500);
+}
+/* Copie de secours de la disposition et des notes rapides, gardée par Android (survit à un stockage web effacé ou abîmé) */
+function backupNow(){
+  if(!S || !S.stateSave) return;
+  try{
+    var n={}; for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(/^socle-note/.test(k)) n[k]=localStorage.getItem(k); }
+    S.stateSave(JSON.stringify({c:C, n:n, at:Date.now()}));
+  }catch(e){ logErr('Copie de secours : '+e.message); }
+}
+if(confFixed) save();   // disposition réparée : on la réenregistre tout de suite
+/* Ajout unique de la tuile Musique pour une disposition déjà enregistrée */
+if(!C.musicAdded){ var P0=C.pages[0]; if(!C.pages.some(function(p){ return p.some(function(t){ return t.t==='music'; }); })){ var ci=P0.findIndex(function(t){ return t.t==='clock'; }); P0.splice(ci+1,0,{t:'music',w:2}); } C.musicAdded=true; save(); }
+function allTiles(){ return [].concat.apply([], C.pages); }
+function hasTile(t){ return allTiles().some(function(x){ return x.t===t; }); }
 
 /* ---------- Marges du système ---------- */
 if(C.hideBar===undefined){ C.hideBar=true; save(); }
@@ -369,9 +517,13 @@ function cat(a){
   if(kw(a,['settings','réglages','paramètres','clock','horloge','calcul','files','fichiers','weather','météo','store','chrome','browser','firefox','navigateur','compass','torch','tool','outil','recorder','enregistr'])) return 'tools';
   return 'other';
 }
-function loadApps(){
+function loadApps(raw){
   if(!A) return;
-  var l = J(A.homeApps(), []);
+  if(raw==null) raw=A.homeApps();
+  lastAppsSig=raw;
+  var l = J(raw, []); if(!Array.isArray(l)) l=[];
+  l = l.filter(function(a){ return a && a.pkg && a.cls; });
+  l.forEach(function(a){ a.label=String(a.label==null?a.pkg:a.label); });
   l.forEach(function(a){ a.key=a.pkg+'/'+a.cls; a.c=cat(a); });
   l.sort(function(a,b){ return a.label.localeCompare(b.label,'fr',{sensitivity:'base'}); });
   APPS = l;
@@ -450,8 +602,9 @@ function dayLabel(t){
   return diff===0?"aujourd'hui":diff===1?'demain':diff===2?'après-demain':d.toLocaleDateString('fr-FR',{weekday:'long'});
 }
 
-function tileHtml(cfg, idx){
-  var w = (cfg.w===2 ? ' w2' : '')+(cfg.h===2 ? ' h2' : ''), body='';
+function noteKey(cfg){ return cfg.nid ? 'socle-note-'+cfg.nid : 'socle-note'; }
+function tileBody(cfg){
+  var body='';
   switch(cfg.t){
     case 'clock': body = clockHtml(); break;
     case 'weather': body = weatherHtml(cfg.w===2); break;
@@ -483,19 +636,81 @@ function tileHtml(cfg, idx){
     case 'reseau': body = reseauHtml(cfg); break;
     case 'lecteur': body = lecteurHtml(cfg); break;
     case 'solaire': body = solaireHtml(cfg); break;
-    case 'note': body = '<div class="hd">'+ic('note')+'Note rapide</div><textarea placeholder="Écris ici…">'+esc(localStorage.getItem('socle-note')||'')+'</textarea>'; break;
+    case 'note': body = '<div class="hd">'+ic('note')+'Note rapide</div><textarea data-nk="'+esc(noteKey(cfg))+'" placeholder="Écris ici…">'+esc(lsGet(noteKey(cfg))||'')+'</textarea>'; break;
+    case 'app': body = appTileHtml(cfg); break;
+    case 'contact': body = contactTileHtml(cfg); break;
+    case 'link': body = linkTileHtml(cfg); break;
+    case 'nextev': body = nextEvHtml(cfg); break;
+    case 'device': body = deviceHtml(cfg); break;
+    case 'wxdetail': body = wxDetailHtml(cfg); break;
   }
-  var ed = '<div class="ed"><button data-ed="left" aria-label="Avant">'+ic('left')+'</button><button data-ed="size" aria-label="Taille">'+ic('size')+'</button><button data-ed="right" aria-label="Après">'+ic('right')+'</button><button class="x" data-ed="del" aria-label="Retirer">'+ic('x')+'</button></div>';
-  return '<div class="tile sh t-'+cfg.t+w+'" data-i="'+idx+'" data-t="'+cfg.t+'">'+body+ed+'</div>';
+  return body;
 }
-function render(){
-  $('grid').innerHTML = C.tiles.map(tileHtml).join('');
-  document.querySelectorAll('.t-note textarea').forEach(function(ta){ ta.addEventListener('input', function(){ localStorage.setItem('socle-note', ta.value); }); });
+/* Une tuile en erreur n'empêche jamais l'affichage des autres : elle se signale et l'erreur part au journal */
+function tileHtml(cfg, p, idx){
+  var w = (cfg.w===2 ? ' w2' : '')+(cfg.h===2 ? ' h2' : ''), body='', tp=TYPES[cfg.t]||{};
+  try{ body=tileBody(cfg); }
+  catch(e){ logErr('Tuile « '+(tp.n||cfg.t)+' » : '+(e&&e.message||e)); body='<div class="hd">'+ic(tp.i||'info')+esc(tp.n||'Tuile')+'</div><div class="terr">Indisponible pour le moment</div>'; }
+  var ed = '<div class="ed"><button data-ed="left" aria-label="Avant">'+ic('left')+'</button><button data-ed="size" aria-label="Taille">'+ic('size')+'</button><button data-ed="right" aria-label="Après">'+ic('right')+'</button><button class="x" data-ed="del" aria-label="Retirer">'+ic('x')+'</button></div>';
+  return '<div class="tile sh t-'+cfg.t+w+'" data-p="'+p+'" data-i="'+idx+'" data-t="'+cfg.t+'">'+body+ed+'</div>';
+}
+/* ---------- Pages ---------- */
+var CP=0;
+var home=$('home');
+function pageEls(){ return $('pages').children; }
+function ensurePages(){
+  var pe=$('pages');
+  if(pe.classList.contains('snap')){ pe.innerHTML=''; pe.classList.remove('snap'); }
+  while(pe.children.length<C.pages.length){ var d=document.createElement('div'); d.className='page'; d.innerHTML='<div class="phd"></div><div class="grid"></div>'; pe.appendChild(d); }
+  while(pe.children.length>C.pages.length) pe.removeChild(pe.lastChild);
+  if(CP>=C.pages.length) CP=C.pages.length-1;
+  dots();
+}
+function renderPage(p){
+  var pg=pageEls()[p]; if(!pg || !C.pages[p]) return;
+  var n=C.pages.length;
+  pg.querySelector('.phd').innerHTML='<span class="sh">'+(n>1?'Page '+(p+1)+' sur '+n:'Page principale')+'</span>'+(n>1?'<button data-pg="del" data-p="'+p+'">'+ic('trash')+'Supprimer la page</button>':'');
+  pg.querySelector('.grid').innerHTML=C.pages[p].map(function(c,i){ return tileHtml(c,p,i); }).join('')+(C.pages[p].length?'':'<div class="pempty">Page vide : touche <b>Ajouter</b> pour y mettre une appli, un contact, un site ou un panneau.</div>');
+}
+function render(){ ensurePages(); for(var p=0;p<C.pages.length;p++) renderPage(p); snapSoon(); }
+/* Démarrage : la page affichée d'abord, les autres juste après (l'écran apparaît plus tôt) */
+function renderProgressive(done){
+  ensurePages(); renderPage(CP);
+  var q=[]; for(var p=0;p<C.pages.length;p++) if(p!==CP) q.push(p);
+  (function next(){ if(!q.length){ if(done) done(); return; } setTimeout(safe(function(){ renderPage(q.shift()); next(); },'Rendu'), 0); })();
 }
 function refresh(type){
   document.querySelectorAll('.tile[data-t="'+type+'"]').forEach(function(el){
-    var i=+el.dataset.i; var tmp=document.createElement('div'); tmp.innerHTML=tileHtml(C.tiles[i], i); el.replaceWith(tmp.firstChild);
+    var cfg=C.pages[+el.dataset.p]&&C.pages[+el.dataset.p][+el.dataset.i]; if(!cfg || cfg.t!==type) return;
+    var tmp=document.createElement('div'); tmp.innerHTML=tileHtml(cfg, +el.dataset.p, +el.dataset.i); el.replaceWith(tmp.firstChild);
   });
+}
+function dots(){
+  var n=C.pages.length;
+  $('dots').innerHTML = n>1 ? C.pages.map(function(_,i){ return '<i'+(i===CP?' class="on"':'')+'></i>'; }).join('') : '';
+}
+function curPage(){ return pageEls()[CP] || pageEls()[0] || home; }
+function goPage(p, smooth){ CP=Math.max(0,Math.min(C.pages.length-1,p)); home.scrollTo({left:CP*home.clientWidth, behavior:smooth?'smooth':'auto'}); dots(); }
+home.addEventListener('scroll', function(){
+  var p=Math.round(home.scrollLeft/Math.max(1,home.clientWidth));
+  if(p!==CP && p>=0 && p<C.pages.length){ CP=p; dots(); }
+}, {passive:true});
+window.addEventListener('resize', function(){ goPage(CP,false); });
+/* Notes rapides : chaque tuile a sa propre note */
+document.addEventListener('input', function(e){
+  var ta=e.target; if(!ta.dataset || !ta.dataset.nk) return;
+  lsSet(ta.dataset.nk, ta.value); clearTimeout(bkT); bkT=setTimeout(backupNow, 3000);
+});
+
+/* ---------- Instantané pour le prochain démarrage ---------- */
+var snapT=null, lastSnap='';
+function snapSoon(){ clearTimeout(snapT); snapT=setTimeout(safe(saveSnap,'Instantané'), 2500); }
+function saveSnap(){
+  var pe=$('pages'); if(!A || pe.classList.contains('snap') || document.body.classList.contains('edit') || !pe.children.length) return;
+  var h=pe.children[0].outerHTML;   // la page principale suffit : c'est elle qui s'affiche au démarrage
+  if(h.length>900000) h=h.replace(/src="data:[^"]{2000,}"/g,'src=""');   // trop lourd : on garde la mise en page, sans les grandes images
+  if(h===lastSnap) return; lastSnap=h;
+  lsSet('socle-snap', JSON.stringify({h:h, w:window.innerWidth, css:document.documentElement.getAttribute('style')||'', at:Date.now()}));
 }
 
 /* Horloge */
@@ -538,9 +753,9 @@ function fetchWeather(force){
   if(!C.city || weatherBusy) return;
   if(!force && W && W.at && Date.now()-W.at < 30*60000 && W.lat===C.city.lat) return;
   weatherBusy=true;
-  var u='https://api.open-meteo.com/v1/forecast?latitude='+C.city.lat+'&longitude='+C.city.lon+'&current=temperature_2m,weather_code,wind_speed_10m,wind_gusts_10m,is_day&hourly=precipitation_probability,temperature_2m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_gusts_10m_max&timezone=auto&forecast_days=4';
+  var u='https://api.open-meteo.com/v1/forecast?latitude='+C.city.lat+'&longitude='+C.city.lon+'&current=temperature_2m,weather_code,wind_speed_10m,wind_gusts_10m,is_day&hourly=precipitation_probability,temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_gusts_10m_max&timezone=auto&forecast_days=4';
   fetch(u).then(function(r){ return r.json(); }).then(function(d){
-    if(d && d.current){ d.at=Date.now(); d.lat=C.city.lat; W=d; localStorage.setItem('socle-meteo', JSON.stringify(d)); refresh('weather'); refresh('clock'); if(sheetType==='weather') weatherSheet(); }
+    if(d && d.current){ d.at=Date.now(); d.lat=C.city.lat; W=d; lsSet('socle-meteo', JSON.stringify(d)); refresh('weather'); refresh('clock'); refresh('wxdetail'); snapSoon(); if(sheetType==='weather') weatherSheet(); }
   }).catch(function(){}).then(function(){ weatherBusy=false; });
 }
 function placeName(lat, lon){ try{ var n=A&&A.homePlace?A.homePlace(lat, lon):''; return n||'Ma position'; }catch(e){ return 'Ma position'; } }
@@ -682,8 +897,24 @@ function mediaHelp(){
 }
 
 /* ---------- Tuiles des applis MAG ---------- */
+/* Résumés publiés par les applis MAG : gardés en cache (affichage immédiat), relus ensuite une appli à la fois */
 var WCACHE={};
-function wdata(pkg){ if(!A||!A.homeWidget) return null; var j=A.homeWidget(pkg); var o=j?J(j,null):null; WCACHE[pkg]=o; return o; }
+function wdata(pkg){ if(!A||!A.homeWidget) return null; var j=''; try{ j=A.homeWidget(pkg); }catch(e){ logErr('Tuile '+pkg+' : '+e.message); } var o=j?J(j,null):null; WCACHE[pkg]=o; return o; }
+var magQ=[], magBusy=false;
+function refreshMag(){
+  if(!A || !A.homeWidget) return;
+  var used={}; allTiles().forEach(function(t){ var p=NEED[t.t]; if(p && app(p)) used[p]=1; });
+  magQ=Object.keys(used); if(!magBusy){ magBusy=true; pumpMag(); }
+}
+function pumpMag(){
+  if(!magQ.length){ magBusy=false; persistW(); snapSoon(); return; }
+  setTimeout(safe(function(){
+    var p=magQ.shift(), old=JSON.stringify(WCACHE[p]===undefined?null:WCACHE[p]), o=wdata(p);
+    if(JSON.stringify(o)!==old && !document.body.classList.contains('edit')) Object.keys(NEED).forEach(function(t){ if(NEED[t]===p) refresh(t); });
+    pumpMag();
+  },'Tuiles des applis'), 16);
+}
+function persistW(){ try{ var j=JSON.stringify(WCACHE); if(j.length<1500000) lsSet('socle-wc', j); }catch(e){} }
 function missing(name,role){ return '<div class="empty">Installe <b>'+name+'</b> pour utiliser cette tuile</div>'; }
 function cols(cfg, small, big){ return cfg.w===2 ? big : small; }
 
@@ -910,17 +1141,91 @@ function magHtml(){
   return '<div class="hd">'+ic('mag')+'Mes applis MAG</div>'+(l.length?'<div class="apps4">'+l.map(appBtn).join('')+'</div>':'<div class="empty">Aucune appli MAG installée</div>');
 }
 
+/* ---------- Tuiles ajoutées par « Modifier l'écran » ---------- */
+function initials(n){ return String(n||'?').trim().split(/\s+/).map(function(w){ return w.charAt(0); }).join('').slice(0,2).toUpperCase() || '?'; }
+function tileCfg(el){ var t=el && el.closest && el.closest('.tile'); return t && C.pages[+t.dataset.p] ? C.pages[+t.dataset.p][+t.dataset.i] : null; }
+/* Une appli : son icône en grand */
+function appTileHtml(cfg){
+  var a=byKey(cfg.k);
+  if(!a) return '<div class="lav">'+esc(initials(cfg.label))+'</div><div class="nm">'+esc(cfg.label||'Appli')+'</div>'+(APPS.length?'<div class="terr">Appli désinstallée</div>':'');
+  return iconHtml(a)+'<div class="nm">'+esc(a.label)+'</div>';
+}
+/* Un contact : appeler ou écrire en un geste */
+function contactTileHtml(cfg){
+  var nm=cfg.name||cfg.num||'Contact', wide=cfg.w===2;
+  return '<div class="crow2"><div class="av">'+esc(initials(nm))+'</div><div style="min-width:0;flex:1"><b>'+esc(nm)+'</b><div class="num">'+esc(cfg.num||'')+'</div></div></div>'+
+    (cfg.num?'<div class="cbtns"><button data-act="c-call" aria-label="Appeler">'+ic('phone')+(wide?'Appeler':'')+'</button><button data-act="c-sms" aria-label="Message">'+ic('sms')+(wide?'Message':'')+'</button></div>':'');
+}
+/* Un site web */
+function host(u){ try{ return new URL(u).hostname.replace(/^www\./,''); }catch(e){ return u; } }
+function linkTileHtml(cfg){
+  var nm=cfg.name||host(cfg.url);
+  return '<div class="lav">'+esc(initials(nm).charAt(0))+'</div><div style="min-width:0;max-width:100%"><div class="nm">'+esc(nm)+'</div><div class="dm">'+esc(host(cfg.url))+'</div></div>';
+}
+/* Prochain rendez-vous de l'agenda (autorisation Agenda d'Android, déjà demandée pour la tuile Agenda) */
+function evWhen(e){
+  var now=Date.now(), d=new Date(e.begin);
+  if(e.all){ d=new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); var dl=dayLabel(d.getTime()); return dl.charAt(0).toUpperCase()+dl.slice(1)+' · toute la journée'; }
+  if(e.begin<=now) return 'En cours · jusqu\'à '+hm(e.end);
+  var m=Math.round((e.begin-now)/60000);
+  if(m<60) return 'Dans '+Math.max(1,m)+' min';
+  var dl2=dayLabel(e.begin); return dl2.charAt(0).toUpperCase()+dl2.slice(1)+' à '+hm(e.begin);
+}
+function nextEvHtml(cfg){
+  var hd='<div class="hd">'+ic('cal')+'Prochain rendez-vous</div>';
+  if(!A) return hd+'<div class="empty">Disponible dans l\'application</div>';
+  var l=J(A.homeAgenda(14), null);
+  if(l===null) return hd+'<button class="mini" data-act="perm-cal">Autoriser l\'agenda</button>';
+  var e=l.filter(function(x){ return !x.all; })[0] || l[0];
+  if(!e) return hd+'<div class="empty">Rien de prévu dans les 2 semaines</div>';
+  return hd+'<div class="nev" data-ev="'+esc(e.id)+'"><div class="when">'+esc(evWhen(e))+'</div><div class="ti">'+esc(e.title)+'</div>'+(e.place?'<div class="pl">'+esc(e.place)+'</div>':'')+'</div>';
+}
+/* Batterie et stockage du téléphone */
+function gb(b){ var g=b/1e9; return (g>=10?Math.round(g):g.toFixed(1).replace('.',','))+' Go'; }
+function deviceHtml(cfg){
+  var h='<div class="hd">'+ic('phonedev')+'Téléphone</div>', b=batInfo(), st=null;
+  try{ st=S&&S.storage?J(S.storage(),null):null; }catch(e){}
+  if(b.level>=0) h+='<div class="lbl"><span>Batterie</span><b>'+b.level+' %'+(b.plugged?' · en charge':'')+'</b></div><div class="bar"><i style="width:'+b.level+'%'+(b.level<=15&&!b.plugged?';background:#ff6b6b':'')+'"></i></div>';
+  if(st && st.total>0){
+    var used=Math.round((st.total-st.free)/st.total*100);
+    h+='<div class="lbl"><span>Stockage</span><b>'+gb(st.free)+' libres</b></div><div class="bar"><i style="width:'+used+'%'+(used>=90?';background:#ff6b6b':'')+'"></i></div>';
+    if(cfg.w===2 && st.ramTotal>0){ var ru=Math.round((st.ramTotal-st.ramFree)/st.ramTotal*100); h+='<div class="lbl"><span>Mémoire vive</span><b>'+gb(st.ramFree)+' libres</b></div><div class="bar"><i style="width:'+ru+'%"></i></div>'; }
+  } else if(!A) h+='<div class="empty">Disponible dans l\'application</div>';
+  return '<div class="dev">'+h+'</div>';
+}
+/* Météo détaillée : les prochaines heures et les jours suivants (même source que la météo de l'horloge) */
+function wxDetailHtml(cfg){
+  var wide=cfg.w===2, hd='<div class="hd">'+ic('pin')+esc(C.city?C.city.name:'Météo')+'</div>';
+  if(!C.city) return hd+'<div class="empty">Touche pour choisir ta ville</div>';
+  if(!W || !W.current || !W.hourly) return hd+'<div class="empty">Chargement…</div>';
+  var c=W.current, w=wmo(c.weather_code, c.is_day), H=W.hourly, now=Date.now();
+  var h=hd+'<div style="display:flex;align-items:center;gap:8px;margin-top:4px"><div class="big" style="margin:0">'+Math.round(c.temperature_2m)+'°</div>'+ic(w[1],' style="width:28px;height:28px"')+'<div class="sub" style="margin:0;min-width:0">'+w[0]+'<br>Vent '+Math.round(c.wind_speed_10m)+' km/h</div></div>';
+  var st=H.time.findIndex(function(t){ return new Date(t).getTime()>=now-1800000; });
+  if(st>=0){
+    var cells=[]; for(var i=st+1;i<H.time.length && cells.length<(wide?6:4);i+=2){
+      var rp=H.precipitation_probability?H.precipitation_probability[i]:0, code=H.weather_code?H.weather_code[i]:(rp>=50?61:2);
+      cells.push('<div>'+new Date(H.time[i]).getHours()+' h'+ic(wmo(code,1)[1])+'<b>'+Math.round(H.temperature_2m[i])+'°</b>'+(rp>=20?'<span class="rp">'+rp+' %</span>':'')+'</div>');
+    }
+    h+='<div class="wxh">'+cells.join('')+'</div>';
+  }
+  if(wide && W.daily) h+='<div class="wxd">'+[1,2,3].filter(function(i){ return W.daily.time[i]; }).map(function(i){ var d=W.daily, ww=wmo(d.weather_code[i],1); return '<div><span style="text-transform:capitalize">'+new Date(d.time[i]).toLocaleDateString('fr-FR',{weekday:'short'})+'</span>'+ic(ww[1])+'<b>'+Math.round(d.temperature_2m_max[i])+'°</b> '+Math.round(d.temperature_2m_min[i])+'°</div>'; }).join('')+'</div>';
+  return h;
+}
+
 /* ---------- Clics sur l'accueil ---------- */
-$('grid').addEventListener('click', function(e){
+$('pages').addEventListener('click', safe(function(e){
   if(document.body.classList.contains('edit')){
     longFired=false;
+    var pb=e.target.closest('[data-pg]'); if(pb){ delPage(+pb.dataset.p); return; }
     var eb=e.target.closest('[data-ed]'); if(!eb) return;
-    var i=+eb.closest('.tile').dataset.i, k=eb.dataset.ed, t=C.tiles;
-    if(k==='left' && i>0){ var x=t[i]; t[i]=t[i-1]; t[i-1]=x; }
-    if(k==='right' && i<t.length-1){ var y=t[i]; t[i]=t[i+1]; t[i+1]=y; }
+    var tl=eb.closest('.tile'), p=+tl.dataset.p, i=+tl.dataset.i, k=eb.dataset.ed, t=C.pages[p], go=-1;
+    if(!t || !t[i]) return;
+    /* Avant / après : au bord de la page, la tuile passe sur la page voisine */
+    if(k==='left'){ if(i>0){ var x=t[i]; t[i]=t[i-1]; t[i-1]=x; } else if(p>0){ C.pages[p-1].push(t.splice(i,1)[0]); go=p-1; } }
+    if(k==='right'){ if(i<t.length-1){ var y=t[i]; t[i]=t[i+1]; t[i+1]=y; } else if(p<C.pages.length-1){ C.pages[p+1].unshift(t.splice(i,1)[0]); go=p+1; } else toast('Ajoute une page pour y déplacer la tuile'); }
     if(k==='size'){ var tp=TYPES[t[i].t]||{}; if(t[i].w!==2){ t[i].w=2; t[i].h=0; } else if(tp.tall && t[i].h!==2){ t[i].h=2; } else { t[i].w=1; t[i].h=0; } }
-    if(k==='del'){ t.splice(i,1); }
-    save(); render(); return;
+    if(k==='del'){ var gone=t.splice(i,1)[0]; if(gone && gone.t==='note' && gone.nid) try{ localStorage.removeItem(noteKey(gone)); }catch(er){} }
+    save(); render(); if(go>=0) goPage(go, true); return;
   }
   if(longFired){ longFired=false; return; }
   var ap=e.target.closest('[data-app]'); if(ap){ var a=byKey(ap.dataset.app); if(a) launch(a); return; }
@@ -966,6 +1271,7 @@ $('grid').addEventListener('click', function(e){
     if(k2==='dic-open'){ var d4=app(DIC); if(d4) launch(d4); }
     if(k2==='mmel'){ var mel=magApp('music'); if(mel) launch(mel); }
     if(k2==='mopen'){ var pa=MED.pkg && findApp(function(x){ return x.pkg===MED.pkg; }); if(pa) launch(pa); }
+    if(k2==='c-call' || k2==='c-sms'){ var cf=tileCfg(act); if(cf && cf.num && A) A.homeOpen(k2==='c-call'?'dial':'smsto', cf.num); }
     return;
   }
   var ev=e.target.closest('[data-ev]'); if(ev && A){ openRole('calendar','event', ev.dataset.ev); return; }
@@ -985,14 +1291,20 @@ $('grid').addEventListener('click', function(e){
   if(tp==='notes'){ var c3=findApp(function(x){ return x.pkg===CARNET; }); if(c3) launch(c3); }
   if(tp==='podcast'){ var o2=findApp(function(x){ return x.pkg===ONDES; }); if(o2) launch(o2); }
   if(tp==='wallpaper'){ var t2=findApp(function(x){ return x.pkg===TOILE; }); if(t2) launch(t2); }
+  var cfg=tileCfg(tile);
+  if(tp==='app' && cfg){ var aa=byKey(cfg.k); if(aa) launch(aa); else toast('Cette appli n\'est plus installée'); }
+  if(tp==='contact' && cfg && A){ if(cfg.uri) openRole('contacts','contact', cfg.uri); else A.homeOpen('dial', cfg.num); }
+  if(tp==='link' && cfg && A) A.homeOpen('url', cfg.url);
+  if(tp==='nextev') openRole('calendar','calendar','');
+  if(tp==='device' && A) A.homeOpen('storage','');
+  if(tp==='wxdetail'){ if(C.city) weatherSheet(); else locateMe(); }
   var tmap={camera:PHOTO,scandoc:SCANP,mesure:MESURE,backup:SAUVE,video:ECRAN,sos:URG,coffre:COF,qrcode:QRP,livre:LIS,budget:BUD,dicta:DIC,meteoapp:MET,reseau:RES,lecteur:LEC,solaire:SOL}; if(tmap[tp]){ var ap2=app(tmap[tp]); if(ap2) launch(ap2); }
-});
+}, 'Toucher'));
 
 /* ---------- Gestes ---------- */
 var tStart=null, longT=null, longFired=false, lastTap=0;
-var home=$('home');
 home.addEventListener('touchstart', function(e){
-  var t=e.touches[0]; tStart={x:t.clientX,y:t.clientY,s:home.scrollTop,tm:Date.now(),target:e.target,moved:false};
+  var t=e.touches[0]; tStart={x:t.clientX,y:t.clientY,s:curPage().scrollTop,tm:Date.now(),target:e.target,moved:false};
   clearTimeout(longT);
   if(!document.body.classList.contains('edit')){
     longT=setTimeout(function(){
@@ -1016,8 +1328,8 @@ home.addEventListener('touchend', function(e){
   if(longFired){ setTimeout(function(){ longFired=false; }, 400); return; }
   if(document.body.classList.contains('edit')) return;
   if(Math.abs(dy)>70 && Math.abs(dx)<80 && Date.now()-s.tm<600){
-    var atBottom = home.scrollTop + home.clientHeight >= home.scrollHeight - 4;
-    if(dy<0 && atBottom && s.s===home.scrollTop){ openDrawer(); return; }
+    var pg=curPage(), atBottom = pg.scrollTop + pg.clientHeight >= pg.scrollHeight - 4;
+    if(dy<0 && atBottom && s.s===pg.scrollTop){ openDrawer(); return; }
     if(dy>0 && s.s<=0 && C.gestures){ if(A && !A.homeNotif(false)) gestureHelp(); return; }
   }
   if(!s.moved && C.gestures && !(s.target.closest && s.target.closest('.tile,button,textarea'))){
@@ -1030,15 +1342,83 @@ var dockY=null;
 $('dock').addEventListener('touchstart', function(e){ dockY=e.touches[0].clientY; }, {passive:true});
 $('dock').addEventListener('touchend', function(e){ if(dockY!=null && dockY-e.changedTouches[0].clientY>50) openDrawer(); dockY=null; }, {passive:true});
 
-/* ---------- Mode édition ---------- */
-function startEdit(){ document.body.classList.add('edit'); }
-function endEdit(){ document.body.classList.remove('edit'); }
+/* ---------- Mode « Modifier l'écran » ---------- */
+function startEdit(){ closeDrawer(); document.body.classList.add('edit'); }
+function endEdit(){ if(!document.body.classList.contains('edit')) return; document.body.classList.remove('edit'); snapSoon(); }
 $('bDone').onclick=endEdit;
-$('bAddTile').onclick=function(){
-  var need={notes:CARNET,podcast:ONDES,wallpaper:TOILE,camera:PHOTO,scandoc:SCANP,mesure:MESURE,backup:SAUVE,video:ECRAN,sos:URG,coffre:COF,qrcode:QRP,livre:LIS,budget:BUD,dicta:DIC,meteoapp:MET,reseau:RES,lecteur:LEC,solaire:SOL};
-  var h='<h2>Ajouter une tuile</h2><div class="menu">'+Object.keys(TYPES).map(function(k){ var miss=need[k]&&!findApp(function(a){ return a.pkg===need[k]; }); return '<button data-add="'+k+'"'+(miss?' style="opacity:.5"':'')+'>'+ic(TYPES[k].i)+'<span style="flex:1;text-align:left">'+TYPES[k].n+(miss?'<br><small style="color:var(--tx3)">Appli non installée</small>':'')+'</span></button>'; }).join('')+'</div><div class="empty">Astuce : en mode modification, le bouton ⤢ passe une tuile de demi-largeur à pleine largeur, puis en grande hauteur pour les tuiles qui le permettent.</div>';
+$('bAddPage').onclick=safe(function(){
+  if(C.pages.length>=9){ toast('9 pages au maximum'); return; }
+  C.pages.push([]); save(); render(); goPage(C.pages.length-1, true); toast('Page '+C.pages.length+' ajoutée : touche « Ajouter » pour la remplir');
+}, 'Ajouter une page');
+function delPage(p){
+  if(C.pages.length<2 || !C.pages[p]) return;
+  var go=function(){ C.pages.splice(p,1); save(); render(); goPage(Math.min(p, C.pages.length-1), true); closeSheet(); };
+  if(!C.pages[p].length){ go(); return; }
+  openSheet('<h2>Supprimer la page '+(p+1)+' ?</h2><div class="empty" style="font-size:14px">Ses '+C.pages[p].length+' tuile'+(C.pages[p].length>1?'s':'')+' seront retirées de l\'accueil (les applis ne sont pas désinstallées).</div><div style="display:flex;gap:8px;margin-top:16px"><button class="pbtn" id="dpN">Annuler</button><button class="pbtn main" id="dpY" style="background:#ff8a8a">Supprimer</button></div>','delpage');
+  $('dpN').onclick=closeSheet; $('dpY').onclick=go;
+}
+function newId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function addTile(cfg){
+  var p=Math.min(CP, C.pages.length-1);
+  C.pages[p].push(cfg); save(); render(); closeSheet();
+  if((cfg.t==='weather' || cfg.t==='wxdetail') && !C.city) weatherSheet();
+  if(cfg.t==='wxdetail' || cfg.t==='weather') fetchWeather(false);
+  setTimeout(function(){ var pg=pageEls()[p]; if(pg) pg.scrollTop=pg.scrollHeight; }, 50);
+  toast('Ajouté à la page '+(p+1));
+}
+var NEED={notes:CARNET,podcast:ONDES,wallpaper:TOILE,camera:PHOTO,scandoc:SCANP,mesure:MESURE,backup:SAUVE,video:ECRAN,sos:URG,coffre:COF,qrcode:QRP,livre:LIS,budget:BUD,dicta:DIC,meteoapp:MET,reseau:RES,lecteur:LEC,solaire:SOL};
+$('bAddTile').onclick=safe(function(){
+  var btn=function(k){ var miss=NEED[k]&&!app(NEED[k]); return '<button data-add="'+k+'"'+(miss?' style="opacity:.5"':'')+'>'+ic(TYPES[k].i)+'<span style="flex:1;text-align:left">'+TYPES[k].n+(miss?'<br><small style="color:var(--tx3)">Appli non installée</small>':'')+'</span></button>'; };
+  var panels=['note','nextev','device','wxdetail','clock','weather','battery','agenda','alarm','music','tools','calc','favs','mag','photos','contacts'];
+  var mine=Object.keys(TYPES).filter(function(k){ return !TYPES[k].pick && panels.indexOf(k)<0; });
+  var h='<h2>Ajouter à la page '+(Math.min(CP,C.pages.length-1)+1)+'</h2>'+
+    '<div class="sect" style="margin-left:0">Raccourcis</div><div class="menu">'+['app','contact','link'].map(btn).join('')+'</div>'+
+    '<div class="sect" style="margin-left:0">Panneaux d\'information</div><div class="menu">'+panels.map(btn).join('')+'</div>'+
+    '<div class="sect" style="margin-left:0">Tuiles de mes applis</div><div class="menu">'+mine.map(btn).join('')+'</div>'+
+    '<div class="empty">Astuce : en mode modification, ⤢ change la taille d\'une tuile, ‹ › la déplacent (et la font passer d\'une page à l\'autre).</div>';
   openSheet(h,'add');
-};
+}, 'Ajouter');
+/* Choisir une appli installée */
+function appPicker(){
+  openSheet('<h2>Choisir une appli</h2><div class="sbox" style="margin:0"><input id="apq" placeholder="Rechercher une appli" autocomplete="off"></div><div class="picks" id="apl"></div>','pick');
+  var draw=function(){ var q=norm($('apq').value.trim()); var l=APPS.filter(function(a){ return !q || norm(a.label).indexOf(q)>=0; });
+    $('apl').innerHTML = l.length ? '<div class="apps4">'+l.map(appBtn).join('')+'</div>' : '<div class="empty">'+(A?'Aucune appli trouvée':'Les applis s\'affichent dans l\'application Socle')+'</div>'; };
+  draw(); $('apq').oninput=draw;
+  $('apl').onclick=function(e){ var b=e.target.closest('[data-app]'); if(!b) return; var a=byKey(b.dataset.app); if(a) addTile({t:'app', k:a.key, label:a.label, w:1}); };
+}
+/* Choisir un contact (favoris, recherche, ou numéro tapé) */
+function contactPicker(){
+  openSheet('<h2>Choisir un contact</h2><div class="sbox" style="margin:0"><input id="ctq" placeholder="Nom ou numéro" autocomplete="off"></div><div class="picks" id="ctl"></div>','pick');
+  var found=[];
+  var draw=function(){
+    var q=$('ctq').value.trim(), l=null, h='';
+    try{ l = !A ? [] : q ? J(A.homeContacts(q),null) : J(A.homeFavContacts(12),null); }catch(e){ l=[]; }
+    if(l===null){ $('ctl').innerHTML='<div class="res"><div class="ico">'+ic('user')+'</div><div class="t"><div>Accès aux contacts</div><div>Nécessaire pour les retrouver</div></div><button class="sbtn" data-perm="contacts">Autoriser</button></div>'; return; }
+    found=l||[];
+    if(/^[+\d][\d\s.\-]{5,}$/.test(q)) h+='<div class="res" data-num="'+esc(q)+'"><div class="ico">'+ic('phone')+'</div><div class="t"><div>'+esc(q)+'</div><div>Numéro saisi</div></div></div>';
+    if(!q && found.length) h+='<div class="sect" style="margin-left:0">Favoris</div>';
+    h+=found.map(function(c,i){ return '<div class="res" data-ci="'+i+'"><div class="ico">'+esc(initials(c.name))+'</div><div class="t"><div>'+esc(c.name||c.num)+'</div><div>'+esc(c.num||'')+'</div></div></div>'; }).join('');
+    if(!h) h='<div class="empty">'+(q?'Aucun contact trouvé':'Tape un nom ou un numéro')+'</div>';
+    $('ctl').innerHTML=h;
+  };
+  var t; draw(); $('ctq').oninput=function(){ clearTimeout(t); t=setTimeout(safe(draw,'Contacts'),200); };
+  $('ctl').onclick=function(e){
+    var pm=e.target.closest('[data-perm]'); if(pm && A){ A.homeAsk('contacts'); return; }
+    var n=e.target.closest('[data-num]'); if(n){ addTile({t:'contact', name:'', num:n.dataset.num, uri:'', w:1}); return; }
+    var c=e.target.closest('[data-ci]'); if(c){ var x=found[+c.dataset.ci]; if(x) addTile({t:'contact', name:x.name||'', num:x.num||'', uri:x.uri||'', w:1}); }
+  };
+}
+/* Ajouter un site web */
+function linkForm(){
+  openSheet('<h2>Ajouter un site web</h2><div class="sect" style="margin-left:0">Adresse</div><input class="inp" id="lku" inputmode="url" placeholder="meteofrance.com" autocomplete="off"><div class="sect" style="margin-left:0">Nom affiché (facultatif)</div><input class="inp" id="lkn" placeholder="Météo-France" autocomplete="off"><div style="display:flex;gap:8px;margin-top:16px"><button class="pbtn" id="lkC">Annuler</button><button class="pbtn main" id="lkA">Ajouter</button></div>','pick');
+  $('lkC').onclick=closeSheet;
+  $('lkA').onclick=function(){
+    var u=$('lku').value.trim(); if(!u){ toast('Indique l\'adresse du site'); return; }
+    if(!/^https?:\/\//i.test(u)) u='https://'+u;
+    try{ var x=new URL(u); if(!/\./.test(x.hostname)) throw 0; u=x.href; }catch(e){ toast('Adresse invalide'); return; }
+    addTile({t:'link', url:u, name:$('lkn').value.trim().slice(0,40), w:1});
+  };
+}
 
 /* ---------- Tiroir ---------- */
 var curCat='all';
@@ -1125,7 +1505,7 @@ function appMenu(a, fromHome){
     (a.sys?'':'<button class="bad" data-m="del">'+ic('trash')+'Désinstaller</button>')+'</div>','app');
   $('sbody').onclick=function(e){
     var b=e.target.closest('[data-m]'); if(!b) return; var m=b.dataset.m;
-    if(m==='fav'){ C.favs=C.favs||[]; if(fav) C.favs.splice(C.favs.indexOf(a.key),1); else { if(C.favs.length>=12) C.favs.shift(); C.favs.push(a.key); if(!C.tiles.some(function(t){return t.t==='favs';})) C.tiles.push({t:'favs',w:2}); } save(); render(); toast(fav?'Retirée des favoris':'Ajoutée aux favoris'); }
+    if(m==='fav'){ C.favs=C.favs||[]; if(fav) C.favs.splice(C.favs.indexOf(a.key),1); else { if(C.favs.length>=12) C.favs.shift(); C.favs.push(a.key); if(!hasTile('favs')) C.pages[0].push({t:'favs',w:2}); } save(); render(); toast(fav?'Retirée des favoris':'Ajoutée aux favoris'); }
     if(m==='hide'){ if(hid) C.hidden.splice(C.hidden.indexOf(a.key),1); else C.hidden.push(a.key); save(); renderList(); }
     if(m==='info') A.homeOpen('appinfo', a.pkg);
     if(m==='del') A.homeOpen('uninstall', a.pkg);
@@ -1206,7 +1586,7 @@ function settingsSheet(){
    '<div class="sect" style="margin-left:0">Opacité des tuiles <span id="opV">'+C.opacity+' %</span></div><input type="range" min="20" max="90" step="5" id="sOp" value="'+C.opacity+'">'+
    '<div class="sect" style="margin-left:0">Colonnes dans la liste des applis</div><div class="seg" id="sCols">'+[4,5].map(function(n){ return '<button data-n="'+n+'" class="'+(C.cols===n?'on':'')+'">'+n+'</button>'; }).join('')+'</div>'+
    (C.hidden.length?'<div class="sect" style="margin-left:0">Applis masquées</div>'+C.hidden.map(byKey).filter(Boolean).map(function(a){ return '<div class="row"><div class="t"><div>'+esc(a.label)+'</div></div><button class="sbtn ghost" data-unhide="'+esc(a.key)+'">Afficher</button></div>'; }).join(''):'')+
-   '<div class="menu" style="margin-top:14px"><button data-s="edit">'+ic('grid')+'Modifier les tuiles</button><button data-s="wall">'+ic('star')+'Changer de fond d\'écran</button><button data-s="sys">'+ic('tool')+'Paramètres du téléphone</button><button data-s="reset" class="bad">'+ic('trash')+'Remettre la disposition d\'origine</button></div>';
+   '<div class="menu" style="margin-top:14px"><button data-s="edit">'+ic('grid')+'Modifier l\'écran (pages, tuiles, panneaux)</button><button data-s="log">'+ic('list')+'Journal et démarrage</button><button data-s="wall">'+ic('star')+'Changer de fond d\'écran</button><button data-s="sys">'+ic('tool')+'Paramètres du téléphone</button><button data-s="reset" class="bad">'+ic('trash')+'Remettre la disposition d\'origine</button></div>';
   openSheet(h,'settings');
   $('sGest').onchange=function(){ C.gestures=this.checked; save(); };
   $('sBar').onchange=function(){ C.hideBar=this.checked; save(); applyBar(); if(A && A.homeStatusBar) A.homeStatusBar(C.hideBar); };
@@ -1222,57 +1602,104 @@ function settingsSheet(){
     if(k==='a11y') gestureHelp();
     if(k==='calendar'||k==='contacts') A.homeAsk(k);
     if(k==='edit'){ closeSheet(); startEdit(); }
+    if(k==='log'){ logSheet(); return; }
     if(k==='wall'){ var t=findApp(function(a){ return a.pkg==='fr.magformation13.toile'; }); closeSheet(); if(t) launch(t); else A.homeOpen('wallpaper',''); }
     if(k==='sys') A.homeOpen('settings','');
-    if(k==='reset'){ C.tiles=JSON.parse(JSON.stringify(DEF.tiles)); save(); render(); closeSheet(); toast('Disposition d\'origine remise'); }
+    if(k==='reset'){ C.pages=[clone(DEF.tiles)]; save(); render(); goPage(0); closeSheet(); toast('Disposition d\'origine remise'); }
   };
+}
+/* Journal : erreurs rattrapées, redémarrages de l'affichage, temps de démarrage */
+function logSheet(){
+  var l=readLog().slice().reverse(), st=l.filter(function(x){ return x.k==='start'; })[0];
+  var h='<h2>Journal de Socle</h2>'+(st?'<div class="row"><div class="t"><div>Dernier démarrage</div><div>'+esc(st.m)+'</div></div></div>':'')+
+    '<div class="logl">'+(l.length?l.slice(0,80).map(function(x){ return '<div'+(x.k==='start'?' class="st"':'')+'><time>'+new Date(x.t).toLocaleString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',second:'2-digit'})+'</time>'+esc(x.m)+'</div>'; }).join(''):'<div>Aucune erreur enregistrée.</div>')+'</div>'+
+    '<div style="display:flex;gap:8px;margin-top:16px"><button class="pbtn" id="lgB">Retour</button><button class="pbtn" id="lgC">Effacer</button></div>';
+  openSheet(h,'log');
+  $('lgB').onclick=settingsSheet;
+  $('lgC').onclick=function(){ try{ if(S && S.logClear) S.logClear(); }catch(e){} lsSet(LOGK,'[]'); logN=0; logSheet(); };
 }
 function gestureHelp(){
   openSheet('<h2>Activer les gestes</h2><div class="empty" style="font-size:14px;color:var(--tx2);line-height:1.55">Pour verrouiller l\'écran par un double appui, Android demande d\'activer le service <b>Socle : gestes</b>. Il ne lit jamais le contenu de l\'écran.<br><br>1. Touche <b>Ouvrir l\'accessibilité</b>, puis <b>Applications installées</b> (ou Services téléchargés) › <b>Socle : gestes</b> › activer.<br><br>2. Si l\'option est grisée (« paramètre restreint ») : touche <b>Infos de l\'appli</b>, puis le menu <b>⋮</b> en haut à droite › <b>Autoriser les paramètres restreints</b>, et recommence l\'étape 1.</div><div style="display:flex;gap:8px;margin-top:16px"><button class="pbtn main" id="gA">Ouvrir l\'accessibilité</button><button class="pbtn" id="gI">Infos de l\'appli</button></div>','gest');
   $('gA').onclick=function(){ A&&A.homeOpen('a11y',''); };
   $('gI').onclick=function(){ A&&A.homeOpen('appinfo',''); };
 }
-$('sbody').addEventListener('click', function(e){
+$('sbody').addEventListener('click', safe(function(e){
   var b=e.target.closest('[data-add]'); if(!b) return;
-  var k=b.dataset.add; C.tiles.push({t:k,w:TYPES[k].w}); save(); render(); closeSheet();
-  if(k==='weather' && !C.city) weatherSheet();
-  setTimeout(function(){ home.scrollTop=home.scrollHeight; }, 50);
-});
+  var k=b.dataset.add;
+  if(k==='app'){ appPicker(); return; }
+  if(k==='contact'){ contactPicker(); return; }
+  if(k==='link'){ linkForm(); return; }
+  var cfg={t:k,w:TYPES[k].w}; if(k==='note') cfg.nid=newId();
+  addTile(cfg);
+}, 'Ajouter'));
 
 /* ---------- Événements Android ---------- */
-window.accueilBack=function(){
+window.accueilBack=safe(function(){
   if(sheetType){ closeSheet(); return; }
   if($('drawer').classList.contains('on')){ closeDrawer(); return; }
   if(document.body.classList.contains('edit')){ endEdit(); return; }
-};
-window.accueilHome=function(){ closeSheet(); closeDrawer(); endEdit(); home.scrollTo({top:0,behavior:'smooth'}); };
-window.accueilColors=function(){ theme(); };
-window.accueilPerms=function(){
+  if(CP>0) goPage(0, true);
+},'Retour');
+window.accueilHome=safe(function(){ closeSheet(); closeDrawer(); endEdit(); if(CP>0) goPage(0, true); else curPage().scrollTo({top:0,behavior:'smooth'}); },'Accueil');
+window.accueilColors=safe(function(){ theme(); },'Couleurs');
+window.accueilPerms=safe(function(){
   render(); if(sheetType==='settings') settingsSheet();
   if($('drawer').classList.contains('on')) renderList();
   if(pendingLocate){ pendingLocate=false; var p=J(A.homePerms(),{}); if(p.location) locateMe(); else toast('Choisis une ville à la place'); }
-};
-var lastAppsSig='', lastResume=0;
-window.accueilResume=function(){
-  if(Date.now()-lastResume<1000) return; lastResume=Date.now();
-  if(A){ var l=A.homeApps(); if(l.length!==lastAppsSig.length || l!==lastAppsSig){ lastAppsSig=l; loadApps(); if($('drawer').classList.contains('on')) renderList(); } }
-  WCACHE={}; PHOTOS=null; PHOTOS_N=0; theme(); render(); fetchWeather(false); autoLocate(); medSig=''; pollMedia();
-};
+},'Autorisations');
+/* Liste des applis : relue seulement si Android signale une installation / désinstallation (ou toutes les 10 min) */
+var lastAppsSig='', lastResume=0, appsVer=-2, appsAt=0, booted=false;
+function checkApps(force){
+  if(!A) return false;
+  var v=-1; try{ if(S && S.appsVersion) v=S.appsVersion(); }catch(e){}
+  if(!force && v>=0 && v===appsVer && Date.now()-appsAt<10*60000) return false;
+  appsVer=v; appsAt=Date.now();
+  var l=A.homeApps(); if(l===lastAppsSig) return false;
+  loadApps(l); lsSet('socle-apps', l);
+  if($('drawer').classList.contains('on')) renderList();
+  return true;
+}
+window.accueilApps=safe(function(){ if(checkApps(true)) render(); },'Applis');
+window.accueilResume=safe(function(){
+  if(!booted || Date.now()-lastResume<1000) return; lastResume=Date.now();
+  checkApps(false);
+  PHOTOS=null; PHOTOS_N=0; theme();
+  if(!document.body.classList.contains('edit')) renderProgressive(function(){ refreshMag(); snapSoon(); });
+  fetchWeather(false); autoLocate(); medSig=''; pollMedia();
+},'Retour sur l\'accueil');
+/* Mémoire basse : on libère ce qui se recharge facilement */
+window.accueilTrim=safe(function(){ PHOTOS=null; PHOTOS_N=0; iconCache={}; },'Mémoire');
+/* Contrôle de santé demandé par Android (page blanche ?) */
+window.socleOk=function(){ return document.querySelector('#pages .page') ? 1 : 0; };
 
 /* ---------- Démarrage ---------- */
+/* 1. l'instantané (s'il existe) est déjà à l'écran ; 2. la page principale est construite au premier moment libre ;
+   3. les autres pages, les tuiles des applis, la météo et la position viennent ensuite, sans bloquer l'affichage */
+var socleReady=false;
+function readyNative(){ if(socleReady) return; socleReady=true; try{ if(S) S.ready(); }catch(e){} }
+var WC0=J(lsGet('socle-wc'),null); if(WC0 && typeof WC0==='object' && !Array.isArray(WC0)) WCACHE=WC0;
+if(window.__snap) requestAnimationFrame(function(){ readyNative(); });
+function boot1(){
+  var cached=A ? lsGet('socle-apps') : null;
+  if(A){ if(cached && J(cached,null)) loadApps(cached); else { var l=A.homeApps(); loadApps(l); lsSet('socle-apps', l); } }
+  renderProgressive(function(){ booted=true; });
+  requestAnimationFrame(function(){ readyNative(); });
+  setTimeout(safe(function(){ if(cached && checkApps(true)) render(); refreshMag(); pollMedia(); },'Démarrage'), 350);
+  setTimeout(safe(function(){ if(C.city) fetchWeather(false); else refresh('weather'); },'Météo'), 900);
+  setTimeout(safe(autoLocate,'Position'), 4000);
+  /* Une seule fois : la météo de l'horloge suit ma position (si la position est refusée, la ville choisie reste) */
+  if(A && !C.wxPos){ C.wxPos=1; save(); if(!C.city || !C.city.auto) setTimeout(safe(locateMe,'Position'), 3000); }
+  if(A){ var pp=J(A.homePerms(),{}); if(!pp.home && !lsGet('socle-welcome')){ lsSet('socle-welcome','1'); setTimeout(function(){ openSheet('<h2>Bienvenue dans Socle</h2><div class="empty" style="font-size:14px;color:var(--tx2);line-height:1.55">Pour que Socle remplace ton écran d\'accueil, choisis-le comme <b>appli d\'accueil</b> par défaut. Tu pourras revenir à l\'ancien à tout moment depuis les mêmes réglages.<br><br>Astuces : appui long sur l\'accueil pour <b>modifier l\'écran</b> (pages, tuiles, panneaux), appui long sur une appli pour l\'ajouter aux favoris, glisser vers le haut pour toutes les applis.</div><div style="display:flex;gap:8px;margin-top:16px"><button class="pbtn main" id="wH">Choisir Socle</button><button class="pbtn" id="wL">Plus tard</button></div>','welcome'); $('wH').onclick=function(){ A.homeOpen('home',''); closeSheet(); }; $('wL').onclick=closeSheet; }, 600); } }
+}
 theme();
-if(A){ lastAppsSig=A.homeApps(); loadApps(); }
-render();
-if(C.city) fetchWeather(false);
-setTimeout(autoLocate, 1500);
-/* Une seule fois : la météo de l'horloge suit ma position (si la position est refusée, la ville choisie reste) */
-if(A && !C.wxPos){ C.wxPos=1; save(); if(!C.city || !C.city.auto) setTimeout(locateMe, 2500); }
-setInterval(function(){ if(!document.hidden){ refresh('clock'); } }, 15000);
-setInterval(function(){ pollMedia(); if(!document.hidden) document.querySelectorAll('[data-since]').forEach(function(el){ el.textContent=mt(Date.now()-el.dataset.since); }); }, 1000); setTimeout(pollMedia, 300);
-setInterval(function(){ if(!document.hidden){ refresh('battery'); refresh('alarm'); refresh('agenda'); fetchWeather(false); } }, 120000);
-document.addEventListener('visibilitychange', function(){ if(!document.hidden) window.accueilResume(); });
-if(A){ var pp=J(A.homePerms(),{}); if(!pp.home && !localStorage.getItem('socle-welcome')){ localStorage.setItem('socle-welcome','1'); setTimeout(function(){ openSheet('<h2>Bienvenue dans Socle</h2><div class="empty" style="font-size:14px;color:var(--tx2);line-height:1.55">Pour que Socle remplace ton écran d\'accueil, choisis-le comme <b>appli d\'accueil</b> par défaut. Tu pourras revenir à l\'ancien à tout moment depuis les mêmes réglages.<br><br>Astuces : appui long sur une tuile pour modifier la disposition, appui long sur une appli pour l\'ajouter aux favoris, glisser vers le haut pour toutes les applis.</div><div style="display:flex;gap:8px;margin-top:16px"><button class="pbtn main" id="wH">Choisir Socle</button><button class="pbtn" id="wL">Plus tard</button></div>','welcome'); $('wH').onclick=function(){ A.homeOpen('home',''); closeSheet(); }; $('wL').onclick=closeSheet; }, 600); } }
-if(!C.city) setTimeout(function(){ refresh('weather'); }, 0);
+requestAnimationFrame(function(){ setTimeout(safe(boot1,'Démarrage'), 0); });
+setInterval(safe(function(){ if(!document.hidden){ refresh('clock'); } },'Horloge'), 15000);
+setInterval(safe(function(){ pollMedia(); if(!document.hidden) document.querySelectorAll('[data-since]').forEach(function(el){ el.textContent=mt(Date.now()-el.dataset.since); }); },'Musique'), 1000);
+setInterval(safe(function(){ if(!document.hidden){ ['battery','alarm','agenda','nextev','device'].forEach(refresh); fetchWeather(false); } },'Mise à jour'), 120000);
+document.addEventListener('visibilitychange', safe(function(){
+  if(!document.hidden) window.accueilResume();
+  else { endEdit(); saveSnap(); persistW(); }   // on quitte l'accueil : instantané et cache pour le prochain démarrage
+},'Visibilité'));
 })();
 </script>
 </body>

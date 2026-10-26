@@ -132,6 +132,7 @@ public class LauncherService {
             Intent i;
             switch (what) {
                 case "dial": i = new Intent(Intent.ACTION_DIAL, arg == null || arg.isEmpty() ? null : Uri.parse("tel:" + Uri.encode(arg))); break;
+                case "smsto": i = new Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:" + Uri.encode(arg == null ? "" : arg))); break;
                 case "sms": i = Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_MESSAGING); break;
                 case "camera": i = new Intent(android.provider.MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA); break;
                 case "alarms": i = new Intent(android.provider.AlarmClock.ACTION_SHOW_ALARMS); break;
@@ -153,6 +154,7 @@ public class LauncherService {
                 case "appinfo": i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + (arg == null || arg.isEmpty() ? a.getPackageName() : arg))); break;
                 case "uninstall": i = new Intent(Intent.ACTION_DELETE, Uri.parse("package:" + arg)); break;
                 case "battery": i = new Intent(Intent.ACTION_POWER_USAGE_SUMMARY); break;
+                case "storage": i = new Intent(Settings.ACTION_INTERNAL_STORAGE_SETTINGS); break;
                 default: return false;
             }
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
