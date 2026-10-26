@@ -282,6 +282,7 @@ public class MainActivity extends BridgeActivity {
         public void homeAsk(final String what) { runOnUiThread(new Runnable() { public void run() { socleAsk(what); } }); }
         @JavascriptInterface
         public boolean homeLock() { return LauncherService.lock(); }
+        public boolean homePower() { return LauncherService.power(); }
         @JavascriptInterface
         public boolean homeNotif(boolean quick) { return LauncherService.notifications(getApplicationContext(), quick); }
         @JavascriptInterface
