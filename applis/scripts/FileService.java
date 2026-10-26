@@ -30,6 +30,10 @@ import java.io.RandomAccessFile;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Enumeration;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -124,6 +128,8 @@ public class FileService {
                 else if ("trash".equals(kind)) doTrash(items, touched);
                 else if ("restore".equals(kind)) doRestore(items, touched);
                 else if ("purge".equals(kind)) doPurge(items);
+                else if ("zip".equals(kind)) doZip(items, dest, touched);
+                else if ("unzip".equals(kind)) doUnzip(items, dest, touched);
                 else if ("delete".equals(kind)) { for (int i = 0; i < items.length() && !opCancel; i++) { String p = items.getString(i); opCur = name(p); File f = new File(p); opBytes += size(f); if (!delTree(f)) err("Suppression impossible : " + name(p)); else touched.add(p); opDone++; } }
                 else if ("copy".equals(kind) || "move".equals(kind)) {
                     boolean mv = "move".equals(kind);
@@ -284,6 +290,88 @@ public class FileService {
             opDone++;
         }
         writeIndex(keep);
+    }
+
+    // ---------- Archives zip ----------
+    // Compresser : crée une nouvelle archive (jamais d'écrasement, nom unique), les originaux ne sont pas touchés
+    static int countFiles(File f) { if (!f.isDirectory()) return 1; int n = 0; File[] fs = f.listFiles(); if (fs != null) for (File x : fs) n += countFiles(x); return n; }
+    static void doZip(JSONArray items, String dest, ArrayList<String> touched) throws Exception {
+        File out = unique(new File(dest));
+        if (out.getParentFile() != null) out.getParentFile().mkdirs();
+        ArrayList<File> srcs = new ArrayList<File>();
+        int tot = 0;
+        for (int i = 0; i < items.length(); i++) { File f = new File(items.getString(i)); if (f.exists()) { srcs.add(f); tot += countFiles(f); } }
+        opTotal = tot;
+        boolean ok = false;
+        byte[] buf = new byte[262144];
+        try (ZipOutputStream zo = new ZipOutputStream(new java.io.BufferedOutputStream(new FileOutputStream(out), 262144))) {
+            for (File f : srcs) { if (opCancel) break; zipAdd(zo, f, f.getName(), out, buf); }
+            ok = !opCancel;
+        } catch (Throwable e) { if (!opCancel) err("Compression impossible : " + e.getMessage()); }
+        if (!ok) { out.delete(); if (opCancel) err("Compression arrêtée"); return; }
+        JSONObject r = new JSONObject(); r.put("path", out.getAbsolutePath()); opResult = r;
+        touched.add(out.getAbsolutePath());
+    }
+    static void zipAdd(ZipOutputStream zo, File f, String name, File out, byte[] buf) throws Exception {
+        if (opCancel) throw new Exception("arrêt");
+        if (f.getAbsolutePath().equals(out.getAbsolutePath())) return;
+        if (f.isDirectory()) {
+            ZipEntry e = new ZipEntry(name + "/"); e.setTime(f.lastModified()); zo.putNextEntry(e); zo.closeEntry();
+            File[] fs = f.listFiles();
+            if (fs != null) for (File x : fs) zipAdd(zo, x, name + "/" + x.getName(), out, buf);
+            return;
+        }
+        opCur = f.getName();
+        ZipEntry e = new ZipEntry(name); e.setTime(f.lastModified()); zo.putNextEntry(e);
+        try (InputStream in = new FileInputStream(f)) { int n; while ((n = in.read(buf)) > 0) { if (opCancel) throw new Exception("arrêt"); zo.write(buf, 0, n); opBytes += n; } }
+        zo.closeEntry(); opDone++;
+    }
+    // Décompresser : toujours dans un NOUVEAU dossier (nom unique), protection contre les chemins « ../ »
+    static ZipFile openZip(File f) throws Exception {
+        try { ZipFile z = new ZipFile(f); Enumeration<? extends ZipEntry> en = z.entries(); while (en.hasMoreElements()) en.nextElement().getName(); return z; }
+        catch (IllegalArgumentException e) {
+            if (Build.VERSION.SDK_INT >= 24) return new ZipFile(f, java.nio.charset.Charset.forName("IBM437"));
+            throw e;
+        }
+    }
+    static void doUnzip(JSONArray items, String dest, ArrayList<String> touched) throws Exception {
+        File zf = new File(items.getString(0));
+        File outDir = unique(new File(dest));
+        ZipFile z;
+        try { z = openZip(zf); } catch (Throwable e) { err("Archive illisible : " + zf.getName()); return; }
+        try {
+            ArrayList<ZipEntry> list = new ArrayList<ZipEntry>();
+            Enumeration<? extends ZipEntry> en = z.entries();
+            while (en.hasMoreElements()) list.add(en.nextElement());
+            opTotal = list.size();
+            if (!outDir.mkdirs() && !outDir.isDirectory()) { err("Création du dossier impossible"); return; }
+            String base = outDir.getCanonicalPath(), canon = base + File.separator;
+            byte[] buf = new byte[262144];
+            for (ZipEntry e : list) {
+                if (opCancel) break;
+                File t = new File(outDir, e.getName());
+                String tc = t.getCanonicalPath();
+                if (tc.equals(base)) { opDone++; continue; }
+                if (!tc.startsWith(canon)) { err("Élément ignoré (chemin non sûr) : " + e.getName()); opDone++; continue; }
+                if (e.isDirectory()) { t.mkdirs(); opDone++; continue; }
+                if (t.getParentFile() != null) t.getParentFile().mkdirs();
+                t = unique(t); opCur = t.getName();
+                boolean ok = true;
+                try (InputStream in = z.getInputStream(e); OutputStream o = new FileOutputStream(t)) {
+                    int n; while ((n = in.read(buf)) > 0) { if (opCancel) { ok = false; break; } o.write(buf, 0, n); opBytes += n; }
+                } catch (Throwable x) { ok = false; err("Extraction impossible : " + e.getName()); }
+                if (!ok) t.delete(); else if (e.getTime() > 0) t.setLastModified(e.getTime());
+                opDone++;
+            }
+            if (opCancel) { delTreeForce(outDir); err("Décompression arrêtée"); return; }
+            JSONObject r = new JSONObject(); r.put("path", outDir.getAbsolutePath()); opResult = r;
+            touched.add(outDir.getAbsolutePath());
+        } finally { try { z.close(); } catch (Exception e) { } }
+    }
+    // Supprime le dossier que l'on vient de créer nous-mêmes (même après une annulation)
+    static void delTreeForce(File f) {
+        if (f.isDirectory()) { File[] fs = f.listFiles(); if (fs != null) for (File x : fs) delTreeForce(x); }
+        f.delete();
     }
 
     // ---------- Outils fichiers ----------
