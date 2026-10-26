@@ -245,6 +245,7 @@ var IC = {
   clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   alarm:'<circle cx="12" cy="13" r="7"/><path d="M12 10v3l2 1.5M5 4 2.5 6.5M19 4l2.5 2.5"/>',
   cloud:'<path d="M7 18a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 9.5a4 4 0 0 1-.5 8.5z"/>',
+  solar:'<circle cx="17.5" cy="5.5" r="2.5"/><path d="M3 20h13l3-8H6z"/><path d="M9.5 12 8 20M14.5 12 13 20M4.5 16h13"/>',
   sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   rain:'<path d="M7 15a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 6.5a4 4 0 0 1-.5 8.5z"/><path d="M8 19l-1 2M12 19l-1 2M16 19l-1 2"/>',
   snow:'<path d="M7 15a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 6.5a4 4 0 0 1-.5 8.5z"/><path d="M8 19h.01M12 20h.01M16 19h.01"/>',
@@ -320,7 +321,7 @@ var TYPES = {
   sos:{n:'Urgence : bouton SOS',i:'sos',w:1}, coffre:{n:'Coffre : mots de passe',i:'lock',w:1},
   qrcode:{n:'QR : lire un code',i:'qr',w:1}, livre:{n:'Liseuse : livre en cours',i:'book',w:2},
   budget:{n:'Budget : dépenses du mois',i:'wallet',w:2,tall:1}, dicta:{n:'Dictaphone',i:'mic',w:1},
-  meteoapp:{n:'Météo : aujourd\'hui',i:'sun',w:2}, reseau:{n:'Réseau : connexion, débit et VPN',i:'web',w:1}, lecteur:{n:'Lecteur PDF : documents récents',i:'pdf',w:2}, mag:{n:'Mes applis MAG',i:'mag',w:2}, note:{n:'Note rapide',i:'note',w:1}
+  meteoapp:{n:'Météo : aujourd\'hui',i:'sun',w:2}, reseau:{n:'Réseau : connexion, débit et VPN',i:'web',w:1}, lecteur:{n:'Lecteur PDF : documents récents',i:'pdf',w:2}, solaire:{n:'Solaire : dernier projet',i:'solar',w:1}, mag:{n:'Mes applis MAG',i:'mag',w:2}, note:{n:'Note rapide',i:'note',w:1}
 };
 
 /* ---------- Marges du système ---------- */
@@ -481,6 +482,7 @@ function tileHtml(cfg, idx){
     case 'meteoapp': body = meteoAppHtml(cfg); break;
     case 'reseau': body = reseauHtml(cfg); break;
     case 'lecteur': body = lecteurHtml(cfg); break;
+    case 'solaire': body = solaireHtml(cfg); break;
     case 'note': body = '<div class="hd">'+ic('note')+'Note rapide</div><textarea placeholder="Écris ici…">'+esc(localStorage.getItem('socle-note')||'')+'</textarea>'; break;
   }
   var ed = '<div class="ed"><button data-ed="left" aria-label="Avant">'+ic('left')+'</button><button data-ed="size" aria-label="Taille">'+ic('size')+'</button><button data-ed="right" aria-label="Après">'+ic('right')+'</button><button class="x" data-ed="del" aria-label="Retirer">'+ic('x')+'</button></div>';
@@ -865,6 +867,17 @@ function reseauHtml(cfg){
     '<button class="mini" data-act="res-speed">'+ic('bolt')+'Tester</button>'+vb;
 }
 
+/* Solaire : dernier projet (adresse, nombre de panneaux, kWc) et bouton Nouveau */
+var SOL='fr.magformation13.solaire';
+function solaireHtml(cfg){
+  var hd='<div class="hd">'+ic('solar')+'Solaire</div>'; if(!app(SOL)) return hd+missing('Solaire');
+  var d=wd(SOL)||{}, l=d.last, nb='<button class="mini" data-act="sol-new">'+ic('plus')+'Nouveau</button>';
+  if(!l) return hd+'<div class="empty">Aucun projet</div>'+nb;
+  return hd+'<button class="ld" data-solp="'+esc(l.id)+'" style="display:block;text-align:left;width:100%;padding:0;margin-top:6px"><div class="sub" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--tx);font-weight:600">'+esc(l.adr||l.nom||'Projet')+'</div>'+
+    '<div class="big" style="font-size:24px">'+(l.n||0)+' <span style="font-size:13px;color:var(--tx2)">panneau'+((l.n||0)>1?'x':'')+'</span></div>'+
+    '<div class="sub">'+String(l.kwc||0).replace('.',',')+' kWc'+(l.kwh?' · '+Math.round(l.kwh).toLocaleString('fr-FR')+' kWh/an':'')+'</div><div class="sub">'+ago2(l.date)+'</div></button>'+nb;
+}
+
 /* Lecteur PDF : documents récents (toucher un document l'ouvre à la bonne page) */
 var LEC='fr.magformation13.lecteur';
 function lecteurHtml(cfg){
@@ -943,6 +956,7 @@ $('grid').addEventListener('click', function(e){
     if(k2==='res-speed') A.homeLaunchWith(RES, JSON.stringify({speed:1}));
     if(k2==='res-vpn'){ var wg=app(WGP); if(wg) launch(wg); else A.homeLaunchWith(RES, JSON.stringify({tab:'vpn'})); }
     if(k2==='lec-pick') A.homeLaunchWith(LEC, JSON.stringify({pick:1}));
+    if(k2==='sol-new') A.homeLaunchWith(SOL, JSON.stringify({'new':1}));
     if(k2==='cof-open'){ var c4=app(COF); if(c4) launch(c4); }
     if(k2==='qr-scan') A.homeLaunchWith(QRP, JSON.stringify({scan:1}));
     if(k2==='lis-resume') A.homeLaunchWith(LIS, JSON.stringify({resume:1}));
@@ -959,6 +973,7 @@ $('grid').addEventListener('click', function(e){
   var cc=e.target.closest('[data-contact2]'); if(cc && A){ openRole('contacts','contact', cc.dataset.contact2); return; }
   var cn=e.target.closest('[data-cnote]'); if(cn && A){ A.homeLaunchWith(CARNET, JSON.stringify({open:cn.dataset.cnote})); return; }
   var ld=e.target.closest('[data-lecdoc]'); if(ld && A){ A.homeLaunchWith(LEC, JSON.stringify({open:ld.dataset.lecdoc})); return; }
+  var sp=e.target.closest('[data-solp]'); if(sp && A){ A.homeLaunchWith(SOL, JSON.stringify({open:sp.dataset.solp})); return; }
   if(e.target.closest('.calcin')) return;
   var tile=e.target.closest('.tile'); if(!tile) return;
   var tp=tile.dataset.t;
@@ -970,7 +985,7 @@ $('grid').addEventListener('click', function(e){
   if(tp==='notes'){ var c3=findApp(function(x){ return x.pkg===CARNET; }); if(c3) launch(c3); }
   if(tp==='podcast'){ var o2=findApp(function(x){ return x.pkg===ONDES; }); if(o2) launch(o2); }
   if(tp==='wallpaper'){ var t2=findApp(function(x){ return x.pkg===TOILE; }); if(t2) launch(t2); }
-  var tmap={camera:PHOTO,scandoc:SCANP,mesure:MESURE,backup:SAUVE,video:ECRAN,sos:URG,coffre:COF,qrcode:QRP,livre:LIS,budget:BUD,dicta:DIC,meteoapp:MET,reseau:RES,lecteur:LEC}; if(tmap[tp]){ var ap2=app(tmap[tp]); if(ap2) launch(ap2); }
+  var tmap={camera:PHOTO,scandoc:SCANP,mesure:MESURE,backup:SAUVE,video:ECRAN,sos:URG,coffre:COF,qrcode:QRP,livre:LIS,budget:BUD,dicta:DIC,meteoapp:MET,reseau:RES,lecteur:LEC,solaire:SOL}; if(tmap[tp]){ var ap2=app(tmap[tp]); if(ap2) launch(ap2); }
 });
 
 /* ---------- Gestes ---------- */
@@ -1020,7 +1035,7 @@ function startEdit(){ document.body.classList.add('edit'); }
 function endEdit(){ document.body.classList.remove('edit'); }
 $('bDone').onclick=endEdit;
 $('bAddTile').onclick=function(){
-  var need={notes:CARNET,podcast:ONDES,wallpaper:TOILE,camera:PHOTO,scandoc:SCANP,mesure:MESURE,backup:SAUVE,video:ECRAN,sos:URG,coffre:COF,qrcode:QRP,livre:LIS,budget:BUD,dicta:DIC,meteoapp:MET,reseau:RES,lecteur:LEC};
+  var need={notes:CARNET,podcast:ONDES,wallpaper:TOILE,camera:PHOTO,scandoc:SCANP,mesure:MESURE,backup:SAUVE,video:ECRAN,sos:URG,coffre:COF,qrcode:QRP,livre:LIS,budget:BUD,dicta:DIC,meteoapp:MET,reseau:RES,lecteur:LEC,solaire:SOL};
   var h='<h2>Ajouter une tuile</h2><div class="menu">'+Object.keys(TYPES).map(function(k){ var miss=need[k]&&!findApp(function(a){ return a.pkg===need[k]; }); return '<button data-add="'+k+'"'+(miss?' style="opacity:.5"':'')+'>'+ic(TYPES[k].i)+'<span style="flex:1;text-align:left">'+TYPES[k].n+(miss?'<br><small style="color:var(--tx3)">Appli non installée</small>':'')+'</span></button>'; }).join('')+'</div><div class="empty">Astuce : en mode modification, le bouton ⤢ passe une tuile de demi-largeur à pleine largeur, puis en grande hauteur pour les tuiles qui le permettent.</div>';
   openSheet(h,'add');
 };

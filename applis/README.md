@@ -26,6 +26,7 @@ Petites applications Android faites sur mesure pour un téléphone Oukitel WP60 
 | Météo | Prévisions, radar de pluie, qualité de l'air, alertes |
 | Réseau | Wifi et 4G/5G : état, test de débit, wifi autour, appareils, connexion aux wifi protégés |
 | Lecteur PDF | Lire les PDF (recherche, sommaire, signets, mode nuit), remplir les formulaires, annoter et signer, lecture à voix haute |
+| Solaire | Combien de panneaux solaires poser (toiture, sol, ombrière) : adresse → cadastre et règles d'urbanisme (Géoportail de l'urbanisme, secteur protégé), mesure sur photo, plan ou vue aérienne IGN, calepinage, démarches (DP, PC, ABF, Consuel…), production PVGIS, fiche client PDF |
 | Mélodie, Rangement, Aube, Ciel, Sentiers, Petits Pas, Carnet de chasse, Atelier PDF | Musique, fichiers, réveil, ciel, randonnée, enfants, chasse, PDF |
 
 ## Récupérer un APK
