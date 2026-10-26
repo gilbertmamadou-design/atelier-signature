@@ -391,7 +391,7 @@ public class MainActivity extends BridgeActivity {
     private final java.util.List<Object> extraBridges = new java.util.ArrayList<Object>();
     private void loadExtraBridges(WebView wv) {
         String pkg = MainActivity.class.getPackage().getName();
-        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge", "ReseauBridge", "LecteurBridge", "PdfBridge", "SolaireBridge" }) {
+        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge", "ReseauBridge", "LecteurBridge", "PdfBridge", "SolaireBridge", "SocleBridge" }) {
             try {
                 Class<?> k = Class.forName(pkg + "." + n);
                 Object o = k.getConstructor(android.app.Activity.class, WebView.class).newInstance(this, wv);
@@ -1695,6 +1695,44 @@ XML
     grep -q "android.permission.$P" "$MAN" || sed -i "s#</manifest>#    <uses-permission android:name=\"android.permission.$P\" />\n</manifest>#" "$MAN"
   done
   grep -n "category" "$MAN"
+fi
+# Socle : démarrage plus rapide et plus stable (SocleBridge.java, SocleBoot.java)
+#  - lanceur : singleTask (déjà), stateNotNeeded, clearTaskOnLaunch, resumeWhilePausing ; pas de recréation à la rotation
+#    ni aux changements d'affichage ; thème « fond d'écran » dès la première image (au lieu de l'écran de lancement)
+#  - récepteur LOCKED_BOOT_COMPLETED (directBootAware) : processus lancé avant le déverrouillage ; BOOT_COMPLETED : WebView préchargée
+if [ "$APP" = "accueil" ] && ! grep -q "SocleBoot" "$MAN"; then
+  cp scripts/SocleBoot.java "$(dirname "$F")/SocleBoot.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/SocleBoot.java"
+  sed -i 's#</application>#    <receiver android:name=".SocleBoot" android:exported="true" android:directBootAware="true"><intent-filter><action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" /><action android:name="android.intent.action.BOOT_COMPLETED" /></intent-filter></receiver>\n    </application>#' "$MAN"
+  grep -q "android.permission.RECEIVE_BOOT_COMPLETED" "$MAN" || sed -i "s#</manifest>#    <uses-permission android:name=\"android.permission.RECEIVE_BOOT_COMPLETED\" />\n</manifest>#" "$MAN"
+  python3 - "$MAN" android/app/src/main/res/values/styles.xml <<'PY'
+import re, sys
+man, sty = sys.argv[1], sys.argv[2]
+s = open(man, encoding='utf-8').read()
+m = re.search(r'<activity\b[^>]*android:name="\.MainActivity"[^>]*>', s, re.S)
+if not m: sys.exit('MainActivity introuvable dans le manifeste')
+tag = m.group(0)
+extra = ['density', 'fontScale', 'navigation', 'keyboard', 'keyboardHidden', 'orientation', 'screenSize', 'smallestScreenSize', 'screenLayout', 'uiMode']
+t = re.sub(r'android:configChanges="([^"]*)"', lambda k: 'android:configChanges="' + '|'.join(dict.fromkeys(k.group(1).split('|') + extra)) + '"', tag)
+for a in ('stateNotNeeded', 'clearTaskOnLaunch', 'resumeWhilePausing'):
+    if 'android:' + a not in t: t = t[:-1].rstrip() + '\n            android:' + a + '="true">'
+s = s.replace(tag, t)
+open(man, 'w', encoding='utf-8').write(s)
+y = open(sty, encoding='utf-8').read()
+launch = ('<style name="AppTheme.NoActionBarLaunch" parent="Theme.AppCompat.DayNight.NoActionBar">\n'
+          '        <item name="windowActionBar">false</item>\n'
+          '        <item name="windowNoTitle">true</item>\n'
+          '        <item name="android:windowShowWallpaper">true</item>\n'
+          '        <item name="android:windowBackground">@android:color/transparent</item>\n'
+          '        <item name="android:statusBarColor">@android:color/transparent</item>\n'
+          '        <item name="android:navigationBarColor">@android:color/transparent</item>\n'
+          '    </style>')
+y, n = re.subn(r'<style name="AppTheme\.NoActionBarLaunch".*?</style>', lambda k: launch, y, flags=re.S)
+if n != 1: sys.exit('Thème de lancement introuvable')
+y, n = re.subn(r'(<style name="AppTheme\.NoActionBar"[^>]*>)', lambda k: k.group(1) + '\n        <item name="android:windowShowWallpaper">true</item>\n        <item name="android:windowBackground">@android:color/transparent</item>', y)
+if n != 1: sys.exit('Thème principal introuvable')
+open(sty, 'w', encoding='utf-8').write(y)
+print(t)
+PY
 fi
 # Agenda, Contacts, Galerie : autorisations et « Ouvrir avec » (filtres d'intent sur MainActivity)
 addperm() { for P in "$@"; do grep -q "android.permission.$P\"" "$MAN" || sed -i "s#</manifest>#    <uses-permission android:name=\"android.permission.$P\" />\n</manifest>#" "$MAN"; done; }
