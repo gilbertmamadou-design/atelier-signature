@@ -378,6 +378,7 @@ var IC = {
   ruler:'<path d="m3 17 14-14 4 4L7 21z"/><path d="m7 13 2 2M10 10l2 2M13 7l2 2"/>',
   save:'<path d="M12 3v11M7.5 9.5 12 14l4.5-4.5"/><rect x="3" y="15" width="18" height="6" rx="2"/>',
   film:'<rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z"/>',
+  power:'<path d="M12 3v8"/><path d="M7 6.3a8 8 0 1 0 10 0"/>',
   sos:'<circle cx="12" cy="12" r="2.4"/><path d="M8.5 8.5a5 5 0 0 0 0 7M15.5 8.5a5 5 0 0 1 0 7M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8"/>',
   lock:'<rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
   qr:'<path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z"/>',
@@ -405,7 +406,7 @@ var TYPES = {
   sos:{n:'Urgence : bouton SOS',i:'sos',w:1}, coffre:{n:'Coffre : mots de passe',i:'lock',w:1},
   qrcode:{n:'QR : lire un code',i:'qr',w:1}, livre:{n:'Liseuse : livre en cours',i:'book',w:2},
   budget:{n:'Budget : dépenses du mois',i:'wallet',w:2,tall:1}, dicta:{n:'Dictaphone',i:'mic',w:1},
-  meteoapp:{n:'Météo : aujourd\'hui',i:'sun',w:2}, reseau:{n:'Réseau : connexion, débit et VPN',i:'web',w:1}, lecteur:{n:'Lecteur PDF : documents récents',i:'pdf',w:2}, solaire:{n:'Solaire : dernier projet',i:'solar',w:1}, mag:{n:'Mes applis MAG',i:'mag',w:2}, note:{n:'Note rapide',i:'note',w:1},
+  meteoapp:{n:'Météo : aujourd\'hui',i:'sun',w:2}, reseau:{n:'Réseau : connexion, débit et VPN',i:'web',w:1}, lecteur:{n:'Lecteur PDF : documents récents',i:'pdf',w:2}, solaire:{n:'Solaire : dernier projet',i:'solar',w:1}, power:{n:'Éteindre le téléphone',i:'power',w:1}, mag:{n:'Mes applis MAG',i:'mag',w:2}, note:{n:'Note rapide',i:'note',w:1},
   app:{n:'Une appli',i:'grid',w:1,pick:1}, contact:{n:'Un contact',i:'user',w:1,pick:1}, link:{n:'Un site web',i:'link',w:1,pick:1},
   nextev:{n:'Prochain rendez-vous',i:'cal',w:1}, device:{n:'Batterie et stockage',i:'phonedev',w:1}, wxdetail:{n:'Météo détaillée',i:'cloud',w:2}
 };
@@ -627,6 +628,7 @@ function tileBody(cfg){
     case 'backup': body = backupHtml(cfg); break;
     case 'video': body = videoHtml(cfg); break;
     case 'sos': body = sosHtml(cfg); break;
+    case 'power': body = '<div class="hd">'+ic('power')+'Téléphone</div><button class="mini" data-act="pw-off" style="width:100%;justify-content:center;padding:12px;font-size:15px;margin-top:10px">'+ic('power')+'Éteindre…</button><button class="mini" data-act="pw-lock" style="width:100%;justify-content:center;padding:8px;margin-top:6px">'+ic('lock')+'Verrouiller</button>'; break;
     case 'coffre': body = coffreHtml(cfg); break;
     case 'qrcode': body = qrHtml(cfg); break;
     case 'livre': body = livreHtml(cfg); break;
@@ -1258,6 +1260,8 @@ $('pages').addEventListener('click', safe(function(e){
     if(k2==='ecran-resume') A.homeLaunchWith(ECRAN, JSON.stringify({resume:1}));
     if(k2==='ecran-open'){ var e3=app(ECRAN); if(e3) launch(e3); }
     if(k2==='sos') A.homeLaunchWith(URG, JSON.stringify({sos:1}));
+    if(k2==='pw-off'){ if(!(A.homePower && A.homePower())) gestureHelp(); }
+    if(k2==='pw-lock'){ if(!A.homeLock()) gestureHelp(); }
     if(k2==='res-speed') A.homeLaunchWith(RES, JSON.stringify({speed:1}));
     if(k2==='res-vpn'){ var wg=app(WGP); if(wg) launch(wg); else A.homeLaunchWith(RES, JSON.stringify({tab:'vpn'})); }
     if(k2==='lec-pick') A.homeLaunchWith(LEC, JSON.stringify({pick:1}));
@@ -1619,7 +1623,7 @@ function logSheet(){
   $('lgC').onclick=function(){ try{ if(S && S.logClear) S.logClear(); }catch(e){} lsSet(LOGK,'[]'); logN=0; logSheet(); };
 }
 function gestureHelp(){
-  openSheet('<h2>Activer les gestes</h2><div class="empty" style="font-size:14px;color:var(--tx2);line-height:1.55">Pour verrouiller l\'écran par un double appui, Android demande d\'activer le service <b>Socle : gestes</b>. Il ne lit jamais le contenu de l\'écran.<br><br>1. Touche <b>Ouvrir l\'accessibilité</b>, puis <b>Applications installées</b> (ou Services téléchargés) › <b>Socle : gestes</b> › activer.<br><br>2. Si l\'option est grisée (« paramètre restreint ») : touche <b>Infos de l\'appli</b>, puis le menu <b>⋮</b> en haut à droite › <b>Autoriser les paramètres restreints</b>, et recommence l\'étape 1.</div><div style="display:flex;gap:8px;margin-top:16px"><button class="pbtn main" id="gA">Ouvrir l\'accessibilité</button><button class="pbtn" id="gI">Infos de l\'appli</button></div>','gest');
+  openSheet('<h2>Activer les gestes</h2><div class="empty" style="font-size:14px;color:var(--tx2);line-height:1.55">Pour verrouiller l\'écran (double appui ou tuile) et afficher le menu Éteindre, Android demande d\'activer le service <b>Socle : gestes</b>. Il ne lit jamais le contenu de l\'écran.<br><br>1. Touche <b>Ouvrir l\'accessibilité</b>, puis <b>Applications installées</b> (ou Services téléchargés) › <b>Socle : gestes</b> › activer.<br><br>2. Si l\'option est grisée (« paramètre restreint ») : touche <b>Infos de l\'appli</b>, puis le menu <b>⋮</b> en haut à droite › <b>Autoriser les paramètres restreints</b>, et recommence l\'étape 1.</div><div style="display:flex;gap:8px;margin-top:16px"><button class="pbtn main" id="gA">Ouvrir l\'accessibilité</button><button class="pbtn" id="gI">Infos de l\'appli</button></div>','gest');
   $('gA').onclick=function(){ A&&A.homeOpen('a11y',''); };
   $('gI').onclick=function(){ A&&A.homeOpen('appinfo',''); };
 }

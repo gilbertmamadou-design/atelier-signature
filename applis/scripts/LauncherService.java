@@ -327,6 +327,12 @@ public class LauncherService {
         return s.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_LOCK_SCREEN);
     }
 
+    static boolean power() {
+        LauncherA11y s = LauncherA11y.instance;
+        if (s == null) return false;
+        return s.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_POWER_DIALOG);
+    }
+
     static boolean notifications(Context c, boolean quick) {
         LauncherA11y s = LauncherA11y.instance;
         if (s != null) return s.performGlobalAction(quick ? android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_QUICK_SETTINGS : android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS);
