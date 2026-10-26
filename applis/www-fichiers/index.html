@@ -207,6 +207,46 @@ body.selecting .selhead{display:flex}
 .spin{width:16px;height:16px;border:2.5px solid var(--bg3);border-top-color:var(--acc);border-radius:50%;animation:sp 1s linear infinite;flex:none}
 .spin.lg{width:34px;height:34px;border-width:3px;margin:0 auto 12px}
 @keyframes sp{to{transform:rotate(360deg)}}
+
+/* Tri, regroupement, grille, taille d'affichage */
+body{--th:44px;--gw:112px;--pw:105px}
+body.z0{--th:36px;--gw:88px;--pw:80px}
+body.z2{--th:60px;--gw:150px;--pw:150px}
+.row .th{width:var(--th);height:var(--th)}
+.pgrid{grid-template-columns:repeat(auto-fill,minmax(var(--pw),1fr))}
+.dhd{position:sticky;top:0;z-index:3;background:var(--bg);font-size:12.5px;font-weight:700;color:var(--tx2);padding:12px 16px 6px;display:flex;gap:8px;align-items:baseline;grid-column:1/-1}
+.dhd small{margin-left:auto;font-weight:600;color:var(--tx3);font-size:12px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:0 14px 8px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chips .chip{flex:none;white-space:nowrap}
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--gw),1fr));gap:8px;padding:0 10px}
+.gc{position:relative;background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:6px 6px 8px;cursor:pointer;user-select:none;-webkit-user-select:none;min-width:0}
+.gc .th{width:100%;height:auto;aspect-ratio:1;border-radius:10px;display:grid;place-items:center;background:var(--bg3) center/cover no-repeat;color:#fff}
+.gc .th .ic{width:30%;height:30%}
+.gc .t{font-size:12.5px;font-weight:600;margin-top:5px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.gc .s{font-size:11px;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gc .chk{position:absolute;top:10px;right:10px;border-color:#fff;background:#0005}
+.gc.sel{outline:3px solid var(--acc);outline-offset:-2px}
+.gc.sel .chk{background:var(--acc);border-color:var(--acc)}
+.seg{display:flex;background:var(--bg);border-radius:12px;padding:3px;gap:3px;margin:4px 18px 8px;border:1px solid var(--line)}
+.seg button{flex:1;padding:8px 4px;border-radius:9px;font-size:13px;font-weight:650;color:var(--tx2);display:flex;align-items:center;justify-content:center;gap:5px}
+.seg button.on{background:var(--bg3);color:var(--tx)}
+.seg .ic{width:17px;height:17px}
+.shl{font-size:12px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.7px;padding:12px 20px 4px}
+.mi .ck{margin-left:auto;color:var(--acc)}
+.tg{margin-left:auto;width:40px;height:24px;border-radius:24px;background:var(--bg3);position:relative;flex:none;transition:.2s}
+.tg::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--tx3);transition:.2s}
+.tg.on{background:color-mix(in srgb,var(--acc) 55%,transparent)}
+.tg.on::after{left:19px;background:#fff}
+.field label{display:block;font-size:12.5px;color:var(--tx3);margin:0 0 4px 2px}
+.field2{display:flex;gap:10px;padding:6px 18px}
+.field2 .field{padding:0;flex:1}
+.prev{margin:6px 18px 4px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:12.5px;max-height:150px;overflow-y:auto}
+.prev div{display:flex;gap:6px;padding:2px 0;white-space:nowrap;overflow:hidden}
+.prev s{color:var(--tx3);overflow:hidden;text-overflow:ellipsis;max-width:45%}
+.prev b{overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.prev .bad{color:var(--danger)}
+.fav{color:var(--warn)}
 @media (min-width:900px){main{padding-left:max(0px,calc((100vw - 880px)/2));padding-right:max(0px,calc((100vw - 880px)/2))}}
 </style>
 </head>
@@ -253,6 +293,12 @@ body.selecting .selhead{display:flex}
 <symbol id="i-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></symbol>
 <symbol id="i-sd" viewBox="0 0 24 24"><path d="M7 2h10l4 4v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6z"/><path d="M8 6v3M11 6v3M14 6v3"/></symbol>
 <symbol id="i-phone" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></symbol>
+<symbol id="i-sort" viewBox="0 0 24 24"><path d="M3 6h13M3 12h9M3 18h5M17 8V20M14 17l3 3 3-3"/></symbol>
+<symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+<symbol id="i-filter" viewBox="0 0 24 24"><path d="M3 4h18l-7 8.5V19l-4 2v-8.5z"/></symbol>
+<symbol id="i-unzip" viewBox="0 0 24 24"><path d="M21 8v13H3V8M1 3h22v5H1zM12 11v7M9 15l3 3 3-3"/></symbol>
+<symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/></symbol>
 </defs></svg>
 
 <header>
@@ -288,6 +334,7 @@ body.selecting .selhead{display:flex}
   <button data-sa="share"><svg class="ic"><use href="#i-share"/></svg>Partager</button>
   <button data-sa="rename"><svg class="ic"><use href="#i-edit"/></svg>Renommer</button>
   <button data-sa="del" class="del"><svg class="ic"><use href="#i-trash"/></svg>Supprimer</button>
+  <button data-sa="more"><svg class="ic"><use href="#i-dots"/></svg>Plus</button>
 </div>
 
 <div class="scrim" id="scrim"></div>
@@ -342,8 +389,12 @@ const dirName = p => p.slice(0, p.lastIndexOf("/")) || "/";
 
 /* ================= Stockage local ================= */
 const LS = "rangement:v1";
-let ST = { sort: "name", hidden: false, lastScan: 0, cleaned: 0, theme: "" };
+let ST = { sort: "name", hidden: false, lastScan: 0, cleaned: 0, theme: "", dirsFirst: true, groupDate: true, view: "list", zoom: 1, fsort: {}, favs: [], opened: [] };
 try { Object.assign(ST, JSON.parse(localStorage.getItem(LS) || "{}")); } catch (e) {}
+if (!ST.fsort || typeof ST.fsort !== "object") ST.fsort = {};
+if (!Array.isArray(ST.favs)) ST.favs = [];
+if (!Array.isArray(ST.opened)) ST.opened = [];
+document.body.classList.add("z" + (ST.zoom == null ? 1 : ST.zoom));
 function save() { try { localStorage.setItem(LS, JSON.stringify(ST)); } catch (e) {} }
 if (ST.theme) document.documentElement.dataset.theme = ST.theme;
 const IDB = (() => {
@@ -584,7 +635,7 @@ async function pumpTh() {
 let curView = "home", stack = [];
 function show(v) { document.querySelectorAll(".view").forEach(s => s.classList.toggle("on", s.id === "v-" + v)); curView = v; $("#cleanbar").classList.toggle("on", v === "clean" && !!CLEAN); paintPaste(); }
 function goTab(v) {
-  exitSel(); stack = []; $("#q").value = "";
+  exitSel(); stack = []; $("#q").value = ""; if (v === "files") FFILT = "";
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.v === v));
   R[v](); show(v); $("#main").scrollTop = 0;
 }
@@ -592,6 +643,7 @@ function push(fn) { stack.push({ v: curView, y: $("#main").scrollTop, fn: CURFN 
 let CURFN = null;
 function goBack() {
   exitSel();
+  if (CURFN === searchView) $("#q").value = "";
   const s = stack.pop();
   if (!s) { goTab("home"); return true; }
   if (s.fn) s.fn(); else { R[s.v](); show(s.v); }
@@ -646,39 +698,102 @@ R.home = function () {
     <span class="btn main" style="padding:9px 14px">${cs ? "Voir" : "Analyser"}</span>
   </div>
   <div class="sect">Catégories</div>
-  <div class="cats">${tiles.map(([k, n]) => { const st = k === "dl" ? dlStats() : k === "recent" ? { n: Math.min(200, IDX ? IDX.files.length : 0), s: 0 } : S[k]; const c = k === "dl" ? "#22d3ee" : k === "recent" ? "#818cf8" : CATS[k].c; const ic = k === "dl" ? "dl" : k === "recent" ? "clock" : CATS[k].ic; return `<div class="cat" data-cat="${k}"><div class="ci" style="background:${c}">${icon(ic)}</div><div class="n">${n}</div><div class="s">${k === "recent" ? "7 derniers jours" : fsz(st.s)}</div></div>`; }).join("")}</div>
+  <div class="cats">${tiles.map(([k, n]) => { const st = k === "dl" ? dlStats() : k === "recent" ? { n: Math.min(200, IDX ? IDX.files.length : 0), s: 0 } : S[k]; const c = k === "dl" ? "#22d3ee" : k === "recent" ? "#818cf8" : CATS[k].c; const ic = k === "dl" ? "dl" : k === "recent" ? "clock" : CATS[k].ic; return `<div class="cat" data-cat="${k}"><div class="ci" style="background:${c}">${icon(ic)}</div><div class="n">${n}</div><div class="s">${k === "recent" ? "7 derniers j." : fsz(st.s)}</div></div>`; }).join("")}</div>
+  ${favsHTML()}
   <div class="sect">Raccourcis</div>
   ${roots.map((r, i) => `<div class="row" data-root="${esc(r.path)}"><div class="th" style="background-color:var(--acc2)">${icon(i ? "sd" : DRV === NativeDrv ? "phone" : "folder")}</div><div class="meta"><div class="t">${esc(r.name)}</div><div class="s">${r.total ? fsz(r.free) + " libres sur " + fsz(r.total) : esc(r.path)}</div>${r.total ? `<div class="bar" style="margin-top:6px"><i style="width:${(1 - r.free / r.total) * 100}%;background:var(--acc)"></i></div>` : ""}</div></div>`).join("")}
+  ${ST.opened.length ? `<div class="row" data-cat="opened"><div class="th" style="background-color:#818cf8">${icon("clock")}</div><div class="meta"><div class="t">Ouverts récemment</div><div class="s">${esc(ST.opened.slice(0, 3).map(x => baseName(x.p)).join(", "))}</div></div></div>` : ""}
   <div class="row" data-cat="big"><div class="th" style="background-color:#ef4444">${icon("big")}</div><div class="meta"><div class="t">Gros fichiers</div><div class="s">Les fichiers de plus de 50 Mo</div></div></div>
   ${DRV.canTrash ? `<div class="row" data-go="trash"><div class="th" style="background-color:#64748b">${icon("trash")}</div><div class="meta"><div class="t">Corbeille</div><div class="s">${tr.length ? pl(tr.length, "élément") + " · " + fsz(tr.reduce((a, x) => a + x.size, 0)) + " · vidée après 30 jours" : "Vide"}</div></div></div>` : ""}
   ${DRV === PcDrv ? `<div class="row" data-act="pick"><div class="th" style="background-color:#64748b">${icon("folder")}</div><div class="meta"><div class="t">Choisir un autre dossier</div><div class="s">Analyser un autre dossier du PC</div></div></div>` : ""}
   <div class="tiny" style="padding:14px 16px">${ST.lastScan ? "Dernière analyse : " + fdate(ST.lastScan) + " · " : ""}<a href="#" data-act="rescan" style="color:var(--acc)">Analyser à nouveau</a></div>`;
   paintScanning();
 };
+function favsHTML() {
+  if (!ST.favs.length) return "";
+  return `<div class="sect">Épinglés<span class="r" data-act="favEdit">Gérer</span></div>` + ST.favs.slice(0, 12).map(p => {
+    const isDir = !!(IDX && IDX.dirs.has(p)) || !(IDX && IDX.byPath.has(p)) && !extOf(baseName(p));
+    const f = IDX && IDX.byPath.get(p), gone = IDX && !IDX.byPath.has(p) && !IDX.dirs.has(p);
+    const sub = gone ? "Introuvable (déplacé ou supprimé ?)" : isDir ? esc(shortDir(dirName(p))) + (IDX && IDX.dsize.get(p) ? " · " + fsz(IDX.dsize.get(p)) : "") : (f ? fsz(f.s) + " · " + fdate(f.m) + " · " : "") + esc(shortDir(dirName(p)));
+    return `<div class="row" ${isDir ? `data-dir="${esc(p)}"` : `data-act="openFav" data-fp="${esc(p)}"`}>${thHTML(p, baseName(p), "", isDir)}<div class="meta"><div class="t"><span class="fav">★</span> ${esc(baseName(p) || p)}</div><div class="s">${sub}</div></div></div>`;
+  }).join("");
+}
 function dlStats() { const r = { n: 0, s: 0 }; if (IDX) for (const f of IDX.files) if (/\/Download(s)?\//i.test(f.p)) { r.n++; r.s += f.s; } return r; }
 let TRASHC = [];
 const TRASH = () => TRASHC;
 function loadTrash() { try { TRASHC = DRV.trashList() || []; } catch (e) { TRASHC = []; } }
 
-/* ================= Listes de fichiers (catégories, recherche…) ================= */
+/* ================= Tri et regroupement par date ================= */
+const SORTS = [["date", "Date : récents d'abord", "Récents d'abord"], ["old", "Date : anciens d'abord", "Anciens d'abord"], ["name", "Nom : A → Z", "Nom A→Z"], ["namez", "Nom : Z → A", "Nom Z→A"], ["size", "Taille : gros d'abord", "Gros d'abord"], ["small", "Taille : petits d'abord", "Petits d'abord"], ["type", "Type et extension", "Par type"]];
+const sortLabel = k => (SORTS.find(x => x[0] === k) || SORTS[2])[2];
+const CATORD = { img: 1, vid: 2, aud: 3, doc: 4, zip: 5, apk: 6, oth: 7 };
+const ncmp = (a, b) => a.n.localeCompare(b.n, "fr", { numeric: true, sensitivity: "base" });
+function sortItems(L, key, dirsFirst) {
+  let c;
+  switch (key) {
+    case "date": c = (a, b) => (b.m || 0) - (a.m || 0) || ncmp(a, b); break;
+    case "old": c = (a, b) => (a.m || 0) - (b.m || 0) || ncmp(a, b); break;
+    case "namez": c = (a, b) => ncmp(b, a); break;
+    case "size": c = (a, b) => (b.s || 0) - (a.s || 0) || ncmp(a, b); break;
+    case "small": c = (a, b) => (a.s || 0) - (b.s || 0) || ncmp(a, b); break;
+    case "type": { const t = f => f.dir ? "0" : (CATORD[f.k || catOf(f.n)] || 9) + extOf(f.n); c = (a, b) => t(a).localeCompare(t(b)) || ncmp(a, b); break; }
+    default: c = ncmp;
+  }
+  return L.sort(dirsFirst ? (a, b) => (!!b.dir - !!a.dir) || c(a, b) : c);
+}
+// Aujourd'hui, Hier, Cette semaine, Ce mois-ci, puis un groupe par mois
+function bucket(t) {
+  if (!t) return "Date inconnue";
+  const now = new Date(), d0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  if (t >= d0) return "Aujourd'hui";
+  if (t >= d0 - DAY) return "Hier";
+  const dow = (now.getDay() + 6) % 7;
+  if (t >= d0 - dow * DAY) return "Cette semaine";
+  if (t >= new Date(now.getFullYear(), now.getMonth(), 1).getTime()) return "Ce mois-ci";
+  const s = new Date(t).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+const isDateSort = k => k === "date" || k === "old";
+function fullDate(t) { return t ? new Date(t).toLocaleString("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) : ""; }
+
+/* ================= Listes de fichiers (catégories, recherche, explorateur) ================= */
 const LISTS = new Map();
-function fileRow(f, k) {
+function subLine(f, o) {
+  if (f.dir) return (f.c >= 0 ? pl(f.c, "élément") : "") + (f.m ? " · " + fdate(f.m) : "");
+  return fdate(f.m) + (o.noDir ? (extOf(f.n) ? " · " + extOf(f.n).toUpperCase() : "") : " · " + esc(shortDir(f.d)));
+}
+function fileRow(f, k, o) {
+  o = o || {};
   const sel = SEL.has(f.p);
-  return `<div class="row${sel ? " sel" : ""}" data-p="${esc(f.p)}" data-k="${k}"><div class="chk">${icon("check")}</div>${thHTML(f.p, f.n)}<div class="meta"><div class="t">${esc(f.n)}</div><div class="s">${fdate(f.m)} · ${esc(shortDir(f.d))}</div></div><div class="sz">${fsz(f.s)}</div><button class="more" data-more aria-label="Options">${icon("more")}</button></div>`;
+  return `<div class="row${sel ? " sel" : ""}" data-p="${esc(f.p)}" data-k="${k}"${f.dir ? ' data-isdir="1"' : ""}><div class="chk">${icon("check")}</div>${thHTML(f.p, f.n, "", f.dir)}<div class="meta"><div class="t">${ST.favs.includes(f.p) ? `<span class="fav">★</span> ` : ""}${esc(f.n)}</div><div class="s">${subLine(f, o)}</div></div><div class="sz">${f.dir ? (f.s ? fsz(f.s) : "") : fsz(f.s)}</div><button class="more" data-more aria-label="Options">${icon("more")}</button></div>`;
+}
+function gridCell(f, k) {
+  const sel = SEL.has(f.p);
+  return `<div class="gc${sel ? " sel" : ""}" data-p="${esc(f.p)}" data-k="${k}"${f.dir ? ' data-isdir="1"' : ""}><div class="chk">${icon("check")}</div>${thHTML(f.p, f.n, "", f.dir)}<div class="t">${esc(f.n)}</div><div class="s">${f.dir ? (f.c >= 0 ? pl(f.c, "élément") : "") : fsz(f.s) + " · " + fdate(f.m)}</div></div>`;
 }
 function photoCell(f, k) { const sel = SEL.has(f.p), u = TH.get(f.p); if (u === undefined && thumbable(f.n)) queueTh(f.p); return `<div class="ph${f.k === "vid" ? " vid" : ""}${sel ? " sel" : ""}" data-p="${esc(f.p)}" data-k="${k}" data-tp="${esc(f.p)}" style="${u ? `background-image:url('${u}')` : ""}"><div class="chk">${icon("check")}</div>${u ? "" : `<i class="phi">${icon(CATS[f.k].ic)}</i>`}<span class="sz">${fsz(f.s)}</span></div>`; }
 function shortDir(d) { const r = DRV && DRV.root ? DRV.root() : ""; return d.startsWith(r) ? (d.slice(r.length) || "/").replace(/^\//, "") || "Mémoire interne" : d; }
+// opts : grid (grille), photo (grille de photos), groups (en-têtes de date), dirsFirst, noDir (pas de chemin sous le nom)
 function fileList(el, list, opts) {
+  opts = opts || {};
   const id = "fl" + Math.random().toString(36).slice(2, 8);
-  const box = document.createElement("div"); box.id = id; box.className = opts && opts.grid ? "pgrid fl" : "fl";
+  const box = document.createElement("div"); box.id = id; box.className = (opts.grid ? (opts.photo ? "pgrid" : "tgrid") : "") + " fl";
   el.appendChild(box);
-  LISTS.set(id, { list, opts: opts || {}, shown: 0 });
+  const L = { list, opts, shown: 0, last: null, stats: null };
+  if (opts.groups) { L.stats = new Map(); for (const f of list) { const b = grpKey(f, opts); const x = L.stats.get(b) || { n: 0, s: 0 }; x.n++; x.s += f.s || 0; L.stats.set(b, x); } }
+  LISTS.set(id, L);
   moreRows(id); return box;
 }
+const grpKey = (f, o) => f.dir && o.dirsFirst ? "Dossiers" : bucket(f.m);
 function moreRows(id) {
   const L = LISTS.get(id), box = document.getElementById(id); if (!L || !box) return;
-  const end = Math.min(L.list.length, L.shown + (L.opts.grid ? 90 : 80));
-  let h = ""; for (let k = L.shown; k < end; k++) h += L.opts.grid ? photoCell(L.list[k], k) : fileRow(L.list[k], k);
+  const o = L.opts, end = Math.min(L.list.length, L.shown + (o.grid ? 90 : 80));
+  let h = "";
+  for (let k = L.shown; k < end; k++) {
+    const f = L.list[k];
+    if (o.groups) { const b = grpKey(f, o); if (b !== L.last) { L.last = b; const st = L.stats.get(b); h += `<div class="dhd">${esc(b)}<small>${pl(st.n, "élément")}${st.s ? " · " + fsz(st.s) : ""}</small></div>`; } }
+    h += o.grid ? (o.photo && !f.dir ? photoCell(f, k) : gridCell(f, k)) : fileRow(f, k, o);
+  }
   box.insertAdjacentHTML("beforeend", h); L.shown = end;
 }
 $("#main").addEventListener("scroll", () => {
@@ -686,29 +801,58 @@ $("#main").addEventListener("scroll", () => {
   document.querySelectorAll(".view.on .fl").forEach(b => { const L = LISTS.get(b.id); if (L && L.shown < L.list.length) moreRows(b.id); });
 }, { passive: true });
 function clearLists(el) { el.querySelectorAll(".fl").forEach(b => LISTS.delete(b.id)); }
-function sortFiles(L, by) {
-  const c = (a, b) => a.n.localeCompare(b.n, "fr", { numeric: true, sensitivity: "base" });
-  if (by === "size") L.sort((a, b) => b.s - a.s);
-  else if (by === "date") L.sort((a, b) => b.m - a.m);
-  else if (by === "old") L.sort((a, b) => a.m - b.m);
-  else L.sort(c);
-  return L;
+function sortFiles(L, by) { return sortItems(L, by, false); }
+
+/* Feuille « Tri et affichage » (explorateur et listes) */
+function sortSheet(cur, apply, ctx) {
+  ctx = ctx || {};
+  const draw = () => {
+    const k = cur();
+    SH = {};
+    SORTS.forEach(([v]) => SH["s_" + v] = () => { apply(v); draw(); });
+    SH.dirs = () => { ST.dirsFirst = !ST.dirsFirst; save(); apply(); draw(); };
+    SH.grp = () => { ST.groupDate = !ST.groupDate; save(); apply(); draw(); };
+    SH.per = () => { ctx.togglePer(); apply(); draw(); };
+    SH.v_list = () => { ST.view = "list"; save(); apply(); draw(); };
+    SH.v_grid = () => { ST.view = "grid"; save(); apply(); draw(); };
+    [0, 1, 2].forEach(z => SH["z" + z] = () => { ST.zoom = z; save(); applyZoom(); draw(); });
+    SH.close = () => {};
+    const tg = (key, label, on, sub) => `<button class="mi" data-sh="${key}" data-keep="1">${icon(key === "grp" ? "clock" : key === "dirs" ? "folder" : "star")}<span>${label}${sub ? `<div class="tiny">${sub}</div>` : ""}</span><i class="tg${on ? " on" : ""}"></i></button>`;
+    const segv = ctx.noView ? "" : `<div class="shl">Affichage</div><div class="seg"><button data-sh="v_list" data-keep="1" class="${ST.view !== "grid" ? "on" : ""}">${icon("list")}Liste</button><button data-sh="v_grid" data-keep="1" class="${ST.view === "grid" ? "on" : ""}">${icon("thumb")}Grille</button></div>`;
+    sheet(`<div class="shd"><div style="flex:1"><div class="t">Tri et affichage</div>${ctx.where ? `<div class="s">${esc(ctx.where)}</div>` : ""}</div><button class="iconbtn" data-sh="close" aria-label="Fermer">${icon("x")}</button></div><div class="sbody">
+      <div class="shl">Trier par</div>
+      ${SORTS.map(([v, l]) => `<button class="mi" data-sh="s_${v}" data-keep="1">${icon(v === "date" || v === "old" ? "clock" : v === "size" || v === "small" ? "big" : v === "type" ? "file" : "sort")}<span>${l}</span>${v === k ? `<span class="ck">${icon("check")}</span>` : ""}</button>`).join("")}
+      <div class="shl">Options</div>
+      ${tg("grp", "Grouper par date", ST.groupDate, "Aujourd'hui, Hier, Cette semaine… (tri par date)")}
+      ${ctx.dirs ? tg("dirs", "Dossiers en premier", ST.dirsFirst) : ""}
+      ${ctx.togglePer ? tg("per", "Mémoriser ce tri pour ce dossier", ctx.isPer(), ctx.isPer() ? "Ce dossier garde son propre tri" : "Sinon, le tri est le même partout") : ""}
+      ${segv}
+      <div class="shl">Taille d'affichage</div><div class="seg">${["Petite", "Moyenne", "Grande"].map((l, z) => `<button data-sh="z${z}" data-keep="1" class="${(ST.zoom | 0) === z ? "on" : ""}">${l}</button>`).join("")}</div>
+    </div>`);
+  };
+  draw();
 }
+function applyZoom() { document.body.classList.remove("z0", "z1", "z2"); document.body.classList.add("z" + (ST.zoom == null ? 1 : ST.zoom)); }
+
 function listView(title, sub, list, opts) {
   opts = opts || {};
   const build = () => {
     const el = $("#v-list"); clearLists(el);
-    const L = sortFiles(list.filter(f => IDX && IDX.byPath.has(f.p)), opts.sort || "size");
+    const key = opts.sort || "size";
+    const L = sortItems(list.filter(f => IDX && IDX.byPath.has(f.p)), key, false);
     const tot = L.reduce((a, f) => a + f.s, 0);
+    const grid = opts.photo ? opts.grid : ST.view === "grid";
     el.innerHTML = `<button class="back" data-act="back">${icon("back")}Retour</button><div class="vtitle"><h2>${esc(title)}</h2></div>
-      <div class="tools"><select class="chip" id="lsort">${[["size", "Les plus gros"], ["date", "Les plus récents"], ["old", "Les plus anciens"], ["name", "Nom A→Z"]].map(([v, l]) => `<option value="${v}"${(opts.sort || "size") === v ? " selected" : ""}>${l}</option>`).join("")}</select>
-      ${opts.gridable ? `<button class="chip${opts.grid ? " on" : ""}" id="lgrid">${icon("thumb")}Grille</button>` : ""}
+      ${opts.head || ""}
+      <div class="tools"><button class="chip" id="lsort">${icon("sort")}${sortLabel(key)}</button>
+      ${opts.photo ? `<button class="chip${opts.grid ? " on" : ""}" id="lgrid">${icon("thumb")}Grille</button>` : ""}
       <button class="chip" data-act="selmode">${icon("select")}Sélectionner</button><span class="count">${pl(L.length, "fichier")} · ${fsz(tot)}</span></div>
       ${sub ? `<div class="tiny" style="padding:0 16px 8px">${sub}</div>` : ""}`;
     if (!L.length) el.insertAdjacentHTML("beforeend", `<div class="empty"><div class="big">🗂️</div><p>Aucun fichier ici.</p></div>`);
-    else fileList(el, L, { grid: opts.grid });
-    $("#lsort").onchange = e => { opts.sort = e.target.value; build(); };
+    else fileList(el, L, { grid, photo: opts.photo, groups: ST.groupDate && isDateSort(key) });
+    $("#lsort").onclick = () => sortSheet(() => opts.sort || "size", v => { if (v) opts.sort = v; build(); }, { noView: opts.photo });
     const g = $("#lgrid"); if (g) g.onclick = () => { opts.grid = !opts.grid; build(); };
+    if (opts.bind) opts.bind(el);
     show("list");
   };
   CURFN = build; build();
@@ -716,57 +860,133 @@ function listView(title, sub, list, opts) {
 function openCat(k) {
   if (!IDX) { toast("Analyse en cours, patientez…"); return; }
   const F = IDX.files.filter(f => ST.hidden || !f.h || k === "big");
-  if (k === "dl") return push(() => listView("Téléchargements", "Les fichiers du dossier Download", F.filter(f => /\/Download(s)?\//i.test(f.p)), { sort: "date" }));
-  if (k === "recent") return push(() => listView("Récents", "Modifiés ces 7 derniers jours", F.filter(f => f.m > Date.now() - 7 * DAY), { sort: "date", gridable: true }));
+  if (k === "dl") return push(() => listView("Téléchargements", "Le dossier Download, les plus récents en premier", F.filter(f => /\/Download(s)?\//i.test(f.p)), { sort: "date" }));
+  if (k === "recent") return push(() => recentView("7"));
+  if (k === "opened") return push(() => recentView("opened"));
   if (k === "big") return push(() => listView("Gros fichiers", "Plus de 50 Mo", IDX.files.filter(f => f.s >= 50 * 1048576), { sort: "size" }));
   const img = k === "img" || k === "vid";
-  push(() => listView(CATS[k].n, "", F.filter(f => f.k === k), { sort: img ? "date" : "size", gridable: img, grid: img }));
+  push(() => listView(CATS[k].n, "", F.filter(f => f.k === k), { sort: img ? "date" : "size", photo: img, grid: img }));
 }
-function searchView(q) {
-  const w = norm(q).split(/\s+/).filter(Boolean);
-  const L = IDX ? IDX.files.filter(f => { const n = norm(f.n); return w.every(x => n.includes(x)); }).slice(0, 2000) : [];
-  const D = IDX ? [...IDX.dirs.keys()].filter(d => { const n = norm(baseName(d)); return w.every(x => n.includes(x)); }).slice(0, 30) : [];
+// Récents : modifiés ces 7 / 30 / 90 jours, ou ouverts depuis Rangement
+function recentView(mode) {
+  const F = IDX ? IDX.files.filter(f => ST.hidden || !f.h) : [];
+  let list, sub;
+  if (mode === "opened") { const t = new Map(ST.opened.map(x => [x.p, x.t])); list = F.filter(f => t.has(f.p)).map(f => Object.assign({}, f, { m: t.get(f.p) })); sub = "Fichiers que vous avez ouverts depuis Rangement (date d'ouverture)"; }
+  else { const d = +mode; list = F.filter(f => f.m > Date.now() - d * DAY && f.m <= Date.now() + DAY); sub = `Fichiers modifiés ou ajoutés ces ${d} derniers jours`; }
+  const head = `<div class="chips">${[["7", "7 jours"], ["30", "30 jours"], ["90", "3 mois"], ["opened", "Ouverts récemment"]].map(([v, l]) => `<button class="chip${v === mode ? " on" : ""}" data-rmode="${v}">${l}</button>`).join("")}</div>`;
+  listView("Récents", sub, list, { sort: "date", head, bind: el => el.querySelectorAll("[data-rmode]").forEach(b => b.onclick = () => recentView(b.dataset.rmode)) });
+}
+
+/* ================= Recherche (nom, type, date, taille, dans un dossier ou partout) ================= */
+let SR = { q: "", scope: "", cat: "", date: "", size: "", sort: "date" };
+const SR_DATE = [["", "Toutes les dates"], ["1", "Dernières 24 h"], ["7", "7 derniers jours"], ["30", "30 derniers jours"], ["365", "Cette année (12 mois)"], ["old", "Plus d'un an"]];
+const SR_SIZE = [["", "Toutes les tailles"], ["s", "Moins de 1 Mo"], ["m", "1 à 10 Mo"], ["l", "10 à 100 Mo"], ["xl", "Plus de 100 Mo"]];
+const SR_CAT = [["", "Tous les types"], ["img", "Photos"], ["vid", "Vidéos"], ["aud", "Audio"], ["doc", "Documents"], ["pdf", "PDF"], ["zip", "Archives"], ["apk", "APK"], ["oth", "Autres"]];
+function srMatch(f, w) {
+  if (SR.scope && !f.p.startsWith(SR.scope + "/")) return false;
+  if (!ST.hidden && f.h) return false;
+  if (SR.cat === "pdf" ? extOf(f.n) !== "pdf" : SR.cat && f.k !== SR.cat) return false;
+  if (SR.date) { const age = Date.now() - f.m; if (SR.date === "old" ? age < 365 * DAY : age > +SR.date * DAY) return false; }
+  if (SR.size) { const M = 1048576, s = f.s; if (SR.size === "s" ? s >= M : SR.size === "m" ? (s < M || s >= 10 * M) : SR.size === "l" ? (s < 10 * M || s >= 100 * M) : s < 100 * M) return false; }
+  if (w.length) { const n = norm(f.n); if (!w.every(x => n.includes(x))) return false; }
+  return true;
+}
+function searchView() {
+  const w = norm(SR.q).split(/\s+/).filter(Boolean);
+  const filt = SR.cat || SR.date || SR.size;
+  const can = w.join("").length >= 2 || filt;
+  const all = can && IDX ? IDX.files.filter(f => srMatch(f, w)) : [];
+  const L = sortItems(all, SR.sort, false).slice(0, 3000);
+  const D = can && IDX && w.length && !filt ? [...IDX.dirs.keys()].filter(d => (!SR.scope || d.startsWith(SR.scope + "/")) && (ST.hidden || !d.includes("/.")) && w.every(x => norm(baseName(d)).includes(x))).slice(0, 30) : [];
   const el = $("#v-list"); clearLists(el);
-  el.innerHTML = `<div class="vtitle" style="padding-top:6px"><h2>Recherche</h2><span class="count">${pl(L.length + D.length, "résultat")}</span></div>` +
+  const sel = (id, opts, v) => `<select class="chip${v ? " on" : ""}" id="${id}">${opts.map(([k, l]) => `<option value="${k}"${k === v ? " selected" : ""}>${l}</option>`).join("")}</select>`;
+  const tot = all.reduce((a, f) => a + f.s, 0);
+  el.innerHTML = `<button class="back" data-act="back">${icon("back")}Retour</button><div class="vtitle"><h2>Recherche</h2><span class="count">${can ? pl(all.length + D.length, "résultat") + (all.length ? " · " + fsz(tot) : "") : ""}</span></div>
+    <div class="chips">${SR.scopeAvail ? `<button class="chip${SR.scope ? " on" : ""}" id="sscope">${icon("folder")}${SR.scope ? "Dans « " + esc(baseName(SR.scope) || "/") + " »" : "Partout"}</button>` : ""}${sel("scat", SR_CAT, SR.cat)}${sel("sdate", SR_DATE, SR.date)}${sel("ssize", SR_SIZE, SR.size)}<button class="chip" id="ssort">${icon("sort")}${sortLabel(SR.sort)}</button>${filt ? `<button class="chip" id="sreset">${icon("x")}Effacer</button>` : ""}</div>` +
+    (!can ? `<div class="empty"><div class="big">🔍</div><p>Tapez au moins 2 lettres dans la barre du haut,<br>ou choisissez un type, une date ou une taille.</p>${SR.scope ? `<p class="tiny">La recherche se fait dans « ${esc(baseName(SR.scope))} » et tous ses sous-dossiers.</p>` : ""}</div>` :
     (D.length ? `<div class="sect">Dossiers</div>` + D.map(d => `<div class="row" data-dir="${esc(d)}">${thHTML(d, "", "", true)}<div class="meta"><div class="t">${esc(baseName(d))}</div><div class="s">${esc(shortDir(dirName(d)))}</div></div><div class="sz">${fsz(IDX.dsize.get(d) || 0)}</div></div>`).join("") : "") +
-    (L.length ? `<div class="sect">Fichiers</div>` : "") + (!L.length && !D.length ? `<div class="empty"><div class="big">🔍</div><p>Rien trouvé pour « ${esc(q)} »</p></div>` : "");
-  if (L.length) fileList(el, sortFiles(L, "date"));
-  CURFN = () => searchView(q); show("list");
+    (L.length ? (D.length ? `<div class="sect">Fichiers</div>` : "") : (!D.length ? `<div class="empty"><div class="big">🔍</div><p>Rien trouvé${SR.q ? " pour « " + esc(SR.q) + " »" : ""}.</p></div>` : "")) +
+    (all.length > L.length ? `<div class="tiny" style="padding:0 16px 6px">Les ${L.length.toLocaleString("fr-FR")} premiers résultats sont affichés : précisez la recherche.</div>` : ""));
+  if (L.length) fileList(el, L, { groups: ST.groupDate && isDateSort(SR.sort), grid: ST.view === "grid" });
+  const on = (id, f) => { const e = document.getElementById(id); if (e) e[e.tagName === "SELECT" ? "onchange" : "onclick"] = f; };
+  on("scat", e => { SR.cat = e.target.value; searchView(); });
+  on("sdate", e => { SR.date = e.target.value; searchView(); });
+  on("ssize", e => { SR.size = e.target.value; searchView(); });
+  on("sscope", () => { SR.scope = SR.scope ? "" : SR.scopeAvail; searchView(); });
+  on("sreset", () => { SR.cat = SR.date = SR.size = ""; searchView(); });
+  on("ssort", () => sortSheet(() => SR.sort, v => { if (v) SR.sort = v; searchView(); }));
+  CURFN = searchView; show("list");
+}
+function openSearch(q) {
+  if (!IDX) { toast("Analyse en cours, patientez…"); return; }
+  const inSearch = curView === "list" && CURFN === searchView;
+  if (!inSearch) {
+    const scope = curView === "files" && CWD && !DRV.roots().some(r => r.path === CWD) ? CWD : "";
+    SR = { q: "", scope, scopeAvail: scope, cat: "", date: "", size: "", sort: SR.sort || "date" };
+    stack.push({ v: curView, y: $("#main").scrollTop, fn: CURFN }); exitSel();
+  }
+  SR.q = q; searchView();
 }
 let qT;
-$("#q").addEventListener("input", e => { clearTimeout(qT); const v = e.target.value.trim(); qT = setTimeout(() => { if (v.length < 2) { if (curView === "list" && !stack.length) goTab("home"); return; } if (curView !== "list") stack.push({ v: curView, y: 0, fn: null }); searchView(v); }, 220); });
+$("#q").addEventListener("input", e => {
+  clearTimeout(qT); const v = e.target.value.trim();
+  qT = setTimeout(() => {
+    const inSearch = curView === "list" && CURFN === searchView;
+    if (v.length < 2) { if (inSearch) { SR.q = ""; searchView(); } return; }
+    openSearch(v);
+  }, 220);
+});
 
 /* ================= Explorateur ================= */
-let CWD = null;
+let CWD = null, FFILT = "";
+const FILTERS = [["", "Tout"], ["img", "Photos"], ["vid", "Vidéos"], ["aud", "Audio"], ["doc", "Documents"], ["pdf", "PDF"], ["zip", "Archives"], ["apk", "APK"], ["recent", "Récents (30 j)"]];
+const curSort = p => (ST.fsort && ST.fsort[p]) || ST.sort;
 R.files = function () {
   const el = $("#v-files"); clearLists(el);
   if (!CWD) CWD = DRV.root();
-  let items = DRV.list(CWD);
-  if (items === null) { el.innerHTML = `<div class="empty"><p>Ce dossier n'est pas accessible.</p><button class="btn" data-dir="${esc(DRV.root())}">Revenir au début</button></div>`; show("files"); return; }
-  if (!ST.hidden) items = items.filter(i => i.n[0] !== ".");
-  const c = (a, b) => a.n.localeCompare(b.n, "fr", { numeric: true, sensitivity: "base" });
-  const dsz = d => IDX ? IDX.dsize.get(CWD + "/" + d.n) || 0 : 0;
-  items.sort((a, b) => (b.d - a.d) || (ST.sort === "size" ? ((b.d ? dsz(b) : b.s) - (a.d ? dsz(a) : a.s)) : ST.sort === "date" ? b.m - a.m : c(a, b)));
+  const key = curSort(CWD);
   const roots = DRV.roots(); const rt = roots.find(r => CWD === r.path || CWD.startsWith(r.path + "/")) || { path: DRV.root(), name: "Mémoire interne" };
   const rel = CWD.slice(rt.path.length).split("/").filter(Boolean);
   let acc = rt.path;
   const crumbs = [`<button data-dir="${esc(rt.path)}">${esc(rt.name)}</button>`].concat(rel.map(s => { acc += "/" + s; return `<span class="sep">›</span><button data-dir="${esc(acc)}">${esc(s)}</button>`; }));
+  let list, note = "";
+  if (FFILT) {
+    if (!IDX) { list = []; note = `<div class="empty"><div class="spin lg"></div>Analyse du stockage en cours…</div>`; }
+    else {
+      const lim = FFILT === "recent" ? Date.now() - 30 * DAY : 0;
+      list = IDX.files.filter(f => f.p.startsWith(CWD + "/") && (ST.hidden || !f.h) && (FFILT === "recent" ? f.m >= lim : FFILT === "pdf" ? extOf(f.n) === "pdf" : f.k === FFILT));
+    }
+  } else {
+    const items = DRV.list(CWD);
+    if (items === null) { el.innerHTML = `<div class="empty"><p>Ce dossier n'est pas accessible.</p><button class="btn" data-dir="${esc(DRV.root())}">Revenir au début</button></div>`; show("files"); return; }
+    const dsz = d => IDX ? IDX.dsize.get(CWD + "/" + d.n) || 0 : 0;
+    list = items.filter(i => ST.hidden || i.n[0] !== ".").map(i => i.d ? { p: CWD + "/" + i.n, n: i.n, dir: true, c: i.c, m: i.m, s: dsz(i) } : { p: CWD + "/" + i.n, n: i.n, d: CWD, s: i.s, m: i.m, k: catOf(i.n) });
+  }
+  sortItems(list, key, ST.dirsFirst !== false);
+  const pinned = ST.favs.includes(CWD);
+  const tot = list.reduce((a, f) => a + (f.dir ? 0 : f.s || 0), 0);
   el.innerHTML = `<div class="scanbox"></div><div class="crumbs" id="crumbs">${crumbs.join("")}</div>
-    <div class="tools"><select class="chip" id="fsort">${[["name", "Nom"], ["size", "Taille"], ["date", "Date"]].map(([v, l]) => `<option value="${v}"${ST.sort === v ? " selected" : ""}>Trier : ${l}</option>`).join("")}</select>
+    <div class="tools"><button class="chip" id="fsort">${icon("sort")}${sortLabel(key)}${ST.fsort && ST.fsort[CWD] ? " •" : ""}</button>
+    <button class="chip" id="fview" aria-label="Changer d'affichage">${icon(ST.view === "grid" ? "list" : "thumb")}</button>
     <button class="chip${ST.hidden ? " on" : ""}" data-act="hidden">${icon("eye")}Cachés</button>
-    ${DRV.canEdit ? `<button class="chip" data-act="mkdir">${icon("plus")}Dossier</button>` : ""}
-    <button class="chip" data-act="selmode">${icon("select")}</button>
-    <span class="count">${pl(items.length, "élément")}</span></div>
-    ${roots.length > 1 && CWD === rt.path ? `<div class="tools">${roots.map(r => `<button class="chip${r.path === rt.path ? " on" : ""}" data-dir="${esc(r.path)}">${icon(r.name === "Carte SD" ? "sd" : "phone")}${esc(r.name)}</button>`).join("")}</div>` : ""}`;
-  if (!items.length) el.insertAdjacentHTML("beforeend", `<div class="empty"><div class="big">📂</div><p>Dossier vide</p></div>`);
-  const box = document.createElement("div"); box.className = "fl"; box.id = "fl-cwd"; el.appendChild(box);
-  const list = items.map(i => i.d ? { p: CWD + "/" + i.n, n: i.n, dir: true, c: i.c, m: i.m, s: dsz(i) } : { p: CWD + "/" + i.n, n: i.n, d: CWD, s: i.s, m: i.m, k: catOf(i.n) });
-  LISTS.set("fl-cwd", { list, opts: { explorer: true }, shown: list.length });
-  box.innerHTML = list.map((f, k) => f.dir
-    ? `<div class="row${SEL.has(f.p) ? " sel" : ""}" data-p="${esc(f.p)}" data-k="${k}" data-isdir="1"><div class="chk">${icon("check")}</div>${thHTML(f.p, f.n, "", true)}<div class="meta"><div class="t">${esc(f.n)}</div><div class="s">${f.c >= 0 ? pl(f.c, "élément") : ""}${f.m ? " · " + fdate(f.m) : ""}</div></div><div class="sz">${f.s ? fsz(f.s) : ""}</div><button class="more" data-more aria-label="Options">${icon("more")}</button></div>`
-    : `<div class="row${SEL.has(f.p) ? " sel" : ""}" data-p="${esc(f.p)}" data-k="${k}"><div class="chk">${icon("check")}</div>${thHTML(f.p, f.n)}<div class="meta"><div class="t">${esc(f.n)}</div><div class="s">${fdate(f.m)}</div></div><div class="sz">${fsz(f.s)}</div><button class="more" data-more aria-label="Options">${icon("more")}</button></div>`).join("");
-  $("#fsort").onchange = e => { ST.sort = e.target.value; save(); R.files(); };
+    ${DRV.canEdit ? `<button class="chip" data-act="mkdir" aria-label="Nouveau dossier">${icon("plus")}Dossier</button>` : ""}
+    <button class="chip${pinned ? " on" : ""}" data-act="pinCwd" aria-label="Épingler ce dossier">${icon("star")}</button>
+    <button class="chip" data-act="selmode" aria-label="Sélectionner">${icon("select")}</button>
+    <span class="count">${pl(list.length, FFILT ? "fichier" : "élément")}${tot ? " · " + fsz(tot) : ""}</span></div>
+    <div class="chips" id="ffilt">${FILTERS.map(([v, l]) => `<button class="chip${v === FFILT ? " on" : ""}" data-ff="${v}">${l}</button>`).join("")}</div>
+    ${FFILT ? `<div class="tiny" style="padding:0 16px 8px">${esc(FILTERS.find(x => x[0] === FFILT)[1])} dans « ${esc(CWD === rt.path ? rt.name : baseName(CWD))} » et ses sous-dossiers</div>` : ""}
+    ${roots.length > 1 && CWD === rt.path && !FFILT ? `<div class="tools">${roots.map(r => `<button class="chip${r.path === rt.path ? " on" : ""}" data-dir="${esc(r.path)}">${icon(r.name === "Carte SD" ? "sd" : "phone")}${esc(r.name)}</button>`).join("")}</div>` : ""}${note}`;
+  if (!list.length && !note) el.insertAdjacentHTML("beforeend", `<div class="empty"><div class="big">📂</div><p>${FFILT ? "Aucun fichier de ce type ici" : "Dossier vide"}</p></div>`);
+  if (list.length) fileList(el, list, { grid: ST.view === "grid", groups: ST.groupDate && isDateSort(key), dirsFirst: ST.dirsFirst !== false, noDir: !FFILT });
+  $("#fsort").onclick = () => sortSheet(() => curSort(CWD), v => { if (v) { if (ST.fsort[CWD]) ST.fsort[CWD] = v; else ST.sort = v; save(); } R.files(); }, {
+    dirs: true, where: "Dossier « " + (CWD === rt.path ? rt.name : baseName(CWD)) + " »",
+    isPer: () => !!ST.fsort[CWD],
+    togglePer: () => { if (ST.fsort[CWD]) delete ST.fsort[CWD]; else { ST.fsort[CWD] = curSort(CWD); const ks = Object.keys(ST.fsort); if (ks.length > 300) delete ST.fsort[ks[0]]; } save(); }
+  });
+  $("#fview").onclick = () => { ST.view = ST.view === "grid" ? "list" : "grid"; save(); R.files(); };
+  $("#ffilt").onclick = e => { const b = e.target.closest("[data-ff]"); if (!b) return; FFILT = b.dataset.ff; if (FFILT && !IDX && !scanning) fullScan(); R.files(); };
   const cr = $("#crumbs"); cr.scrollLeft = cr.scrollWidth;
+  const fb = $("#ffilt .on"); if (fb) fb.scrollIntoView({ inline: "nearest", block: "nearest" });
   paintScanning(); show("files");
 };
 function cd(p) { CWD = p; exitSel(); if (curView !== "files") { document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.v === "files")); stack = []; } R.files(); $("#main").scrollTop = 0; }
@@ -774,7 +994,7 @@ function cd(p) { CWD = p; exitSel(); if (curView !== "files") { document.querySe
 /* ================= Sélection ================= */
 const SEL = new Set(); let selMode = false;
 function enterSel() { selMode = true; document.body.classList.add("selecting"); $("#main").classList.add("selmode"); paintSel(); }
-function exitSel() { selMode = false; SEL.clear(); document.body.classList.remove("selecting"); $("#main").classList.remove("selmode"); document.querySelectorAll(".row.sel,.ph.sel").forEach(r => r.classList.remove("sel")); }
+function exitSel() { selMode = false; SEL.clear(); document.body.classList.remove("selecting"); $("#main").classList.remove("selmode"); document.querySelectorAll(".row.sel,.ph.sel,.gc.sel").forEach(r => r.classList.remove("sel")); }
 function toggleSel(el) { const p = el.dataset.p; if (SEL.has(p)) SEL.delete(p); else SEL.add(p); el.classList.toggle("sel", SEL.has(p)); if (!SEL.size) exitSel(); else paintSel(); }
 function paintSel() {
   let tot = 0; for (const p of SEL) { const f = IDX && IDX.byPath.get(p); tot += f ? f.s : (IDX ? IDX.dsize.get(p) || 0 : 0); }
@@ -782,7 +1002,7 @@ function paintSel() {
   const ed = DRV.canEdit;
   $("#selbar").querySelector('[data-sa=copy]').disabled = !ed;
   $("#selbar").querySelector('[data-sa=move]').disabled = !ed;
-  $("#selbar").querySelector('[data-sa=rename]').disabled = !ed || SEL.size !== 1;
+  $("#selbar").querySelector('[data-sa=rename]').disabled = !ed;
   $("#selbar").querySelector('[data-sa=del]').disabled = !DRV.canWrite;
 }
 $("#selClose").onclick = exitSel;
@@ -798,8 +1018,9 @@ $("#selbar").onclick = e => { const b = e.target.closest("[data-sa]"); if (b && 
 function selAction(a, paths) {
   if (a === "copy" || a === "move") { CLIP = { mode: a, paths }; exitSel(); if (curView !== "files") cd(CWD || DRV.root()); paintPaste(); toast("Ouvrez le dossier de destination puis « Coller ici »"); }
   else if (a === "share") { DRV.share(paths.filter(p => !(IDX && IDX.dirs.has(p)))); }
-  else if (a === "rename") renameAsk(paths[0]);
+  else if (a === "rename") { if (paths.length === 1) renameAsk(paths[0]); else batchRename(paths); }
   else if (a === "del") deleteAsk(paths);
+  else if (a === "more") selMore(paths);
 }
 
 // Appui long = sélection ; appui court = ouvrir
@@ -829,13 +1050,21 @@ $("#main").addEventListener("click", e => {
     openFile(r.dataset.p); return;
   }
 });
-function openFile(p) { DRV.open(p); }
+function openFile(p) { noteOpened(p); DRV.open(p); }
 
 const ACT = {
   back: () => goBack(),
   rescan: () => { CLEAN = null; fullScan(); paintScanning(); },
   hidden: () => { ST.hidden = !ST.hidden; save(); R.files(); },
   mkdir: () => askText("Nouveau dossier", "", "Nom du dossier", n => { const r = DRV.mkdir(CWD, n); if (r) toast(r); else { toast("Dossier créé"); R.files(); bgRescan(); } }),
+  openFav: d => openFile(d.fp),
+  favEdit: () => {
+    SH = {}; ST.favs.forEach((p, i) => SH["u" + i] = () => { ST.favs.splice(ST.favs.indexOf(p), 1); save(); R.home(); ACT.favEdit(); });
+    SH.all = () => confirmAsk("Retirer tous les épinglés ?", "Les fichiers et dossiers ne sont pas touchés : ils disparaissent seulement de l'accueil.", "Tout retirer", () => { ST.favs = []; save(); R.home(); }, false);
+    if (!ST.favs.length) { closeSheet(); return; }
+    sheet(`<div class="shd"><div><div class="t">Épinglés</div><div class="s">Touchez pour retirer de l'accueil (rien n'est supprimé)</div></div></div><div class="sbody">${ST.favs.map((p, i) => `<button class="mi" data-sh="u${i}" data-keep="1">${icon("star")}<span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(baseName(p) || p)}</span><span class="r">${icon("x")}</span></button>`).join("")}${mi("all", "trash", "Tout retirer")}</div>`);
+  },
+  pinCwd: () => { togglePin(CWD); R.files(); },
   selmode: () => { if (selMode) exitSel(); else { enterSel(); toast("Touchez les fichiers à sélectionner"); } },
   pick: async () => { if (await PcDrv.pick()) { DRV = PcDrv; IDX = null; CWD = null; fullScan(true); } },
   analyze: () => runClean(),
@@ -862,6 +1091,8 @@ function fileMenu(f) {
     rename: () => renameAsk(p),
     show: () => cd(dirName(p)),
     info: () => infoSheet(p, isDir, size, f),
+    pin: () => { togglePin(p); rerender(); },
+    zip: () => zipAsk([p]), unzip: () => unzipGo(p),
     sel: () => { enterSel(); const el = document.querySelector(`.view.on [data-p="${CSS.escape(p)}"]`); if (el) toggleSel(el); },
     del: () => deleteAsk([p])
   };
@@ -870,19 +1101,49 @@ function fileMenu(f) {
     ${!isDir ? mi("share", "share", "Partager") : ""}
     ${DRV.canEdit ? mi("copy", "copy", "Copier vers…") + mi("move", "move", "Déplacer vers…") + mi("rename", "edit", "Renommer") : ""}
     ${curView !== "files" ? mi("show", "folder", "Afficher dans son dossier") : ""}
+    ${mi("pin", "star", ST.favs.includes(p) ? "Retirer des épinglés" : "Épingler à l'accueil")}
+    ${canZip() ? mi("zip", "zip", "Compresser en zip") : ""}
+    ${canZip() && !isDir && /\.zip$/i.test(p) ? mi("unzip", "unzip", "Décompresser ici") : ""}
     ${mi("sel", "select", "Sélectionner")}
-    ${mi("info", "info", "Informations")}
+    ${mi("info", "info", "Propriétés")}
     ${DRV.canWrite ? mi("del", "trash", DRV.canTrash ? "Mettre à la corbeille" : "Supprimer", "", "danger") : ""}
   </div>`);
 }
 function infoSheet(p, isDir, size, f) {
-  const kv = (k, v) => v ? `<div class="kv"><span>${k}</span><span>${esc(v)}</span></div>` : "";
+  const kv = (k, v, id) => v || id ? `<div class="kv"${id ? ` id="${id}"` : ""}><span>${k}</span><span>${esc(v || "…")}</span></div>` : "";
   let extra = "";
-  if (isDir && IDX) { let n = 0; for (const x of IDX.files) if (x.p.startsWith(p + "/")) n++; extra = kv("Contenu", pl(n, "fichier")); }
-  SH = {};
-  sheet(`<div class="shd">${thHTML(p, baseName(p), "", isDir)}<div style="min-width:0"><div class="t">${esc(baseName(p))}</div><div class="s">Informations</div></div></div><div class="sbody">
-    ${kv("Type", isDir ? "Dossier" : (CATS[catOf(p)].n + (extOf(p) ? " (." + extOf(p) + ")" : "")))}${kv("Taille", fsz(size) + (size >= 1024 ? " (" + size.toLocaleString("fr-FR") + " octets)" : ""))}${extra}
-    ${kv("Modifié", f && f.m ? new Date(f.m).toLocaleString("fr-FR") : "")}${kv("Emplacement", dirName(p))}</div>`);
+  if (isDir && IDX) { let n = 0, nd = 0; for (const x of IDX.files) if (x.p.startsWith(p + "/")) n++; for (const d of IDX.dirs.keys()) if (d.startsWith(p + "/")) nd++; extra = kv("Contenu", pl(n, "fichier") + (nd ? ", " + pl(nd, "sous-dossier") : "")); }
+  const k = catOf(p), media = !isDir && (k === "img" || k === "vid" || k === "aud");
+  const m = f && f.m ? f.m : (IDX && IDX.byPath.get(p) || {}).m;
+  SH = { copy: async () => { try { await navigator.clipboard.writeText(p); toast("Chemin copié"); } catch (e) { toast(p, 5000); } }, show: () => cd(dirName(p)) };
+  sheet(`<div class="shd">${thHTML(p, baseName(p), "", isDir)}<div style="min-width:0"><div class="t">${esc(baseName(p))}</div><div class="s">Propriétés</div></div></div><div class="sbody">
+    ${kv("Type", isDir ? "Dossier" : (CATS[k].n + (extOf(p) ? " (." + extOf(p) + ")" : "")))}${kv("Taille", fsz(size) + (size >= 1024 ? " (" + size.toLocaleString("fr-FR") + " octets)" : ""))}${extra}
+    ${kv("Modifié", m ? fullDate(m) : "")}
+    ${media ? kv("Dimensions", "", "pDim") : ""}<div id="pMore"></div>
+    ${kv("Chemin", p)}
+    ${mi("copy", "copy", "Copier le chemin")}${curView !== "files" || FFILT ? mi("show", "folder", "Afficher dans son dossier") : ""}</div>`);
+  if (media) fileMeta(p).then(x => {
+    const d = $("#pDim");
+    if (d) { if (x.w) d.lastChild.textContent = `${x.w} × ${x.h} pixels` + (x.w * x.h >= 1e6 ? ` (${(x.w * x.h / 1e6).toFixed(1).replace(".", ",")} Mpx)` : ""); else d.remove(); }
+    const mo = $("#pMore"); if (!mo) return;
+    let h = "";
+    if (x.dur) { const t = Math.round(x.dur / 1000); h += kv("Durée", (t >= 3600 ? Math.floor(t / 3600) + " h " : "") + pad2(Math.floor(t % 3600 / 60)) + " min " + pad2(t % 60) + " s"); }
+    if (x.taken) { const r = /^(\d{4}):(\d\d):(\d\d) (\d\d):(\d\d)/.exec(x.taken); h += kv("Prise de vue", r ? `${+r[3]}/${r[2]}/${r[1]} à ${r[4]}h${r[5]}` : x.taken); }
+    if (x.camera) h += kv("Appareil", x.camera);
+    if (x.artist) h += kv("Artiste", x.artist);
+    if (x.title) h += kv("Titre", x.title);
+    mo.innerHTML = h;
+  });
+}
+// Dimensions, durée, date de prise de vue (pont MAGFichiers sur le téléphone, navigateur sur PC)
+async function fileMeta(p) {
+  try {
+    if (DRV === NativeDrv) { const b = window.MAGFichiers; return b && b.meta ? JSON.parse(b.meta(p) || "{}") : {}; }
+    const f = DRV.getFile ? await DRV.getFile(p) : null; if (!f) return {};
+    if (/^image\//.test(f.type)) { const bm = await createImageBitmap(f); const r = { w: bm.width, h: bm.height }; bm.close && bm.close(); return r; }
+    if (/^(video|audio)\//.test(f.type)) return await new Promise(res => { const v = document.createElement(f.type[0] === "v" ? "video" : "audio"); const u = URL.createObjectURL(f); const done = r => { URL.revokeObjectURL(u); res(r); }; v.preload = "metadata"; v.onloadedmetadata = () => done({ w: v.videoWidth || 0, h: v.videoHeight || 0, dur: isFinite(v.duration) ? v.duration * 1000 : 0 }); v.onerror = () => done({}); setTimeout(() => done({}), 4000); v.src = u; });
+  } catch (e) {}
+  return {};
 }
 function askText(title, val, ph, cb) {
   SH = { ok: () => { const v = $("#txtIn").value.trim(); if (v) cb(v); }, no: () => {} };
@@ -916,6 +1177,157 @@ async function doDelete(paths, kind) {
   loadTrash(); CLEAN = null;
   toast(`${fsz(st.bytes)} libérés${kind === "trash" ? " · dans la corbeille" : ""}`);
   rerender();
+}
+
+/* ================= Favoris (dossiers et fichiers épinglés) ================= */
+function togglePin(p) {
+  const i = ST.favs.indexOf(p);
+  if (i >= 0) { ST.favs.splice(i, 1); toast("Retiré des épinglés"); }
+  else { ST.favs.unshift(p); if (ST.favs.length > 60) ST.favs.length = 60; toast("Épinglé à l'accueil"); }
+  save();
+}
+function noteOpened(p) { ST.opened = [{ p, t: Date.now() }].concat(ST.opened.filter(x => x.p !== p)).slice(0, 50); save(); }
+function itemOf(p) {
+  const f = IDX && IDX.byPath.get(p); if (f) return f;
+  for (const L of LISTS.values()) { const x = L.list.find(y => y.p === p); if (x) return x; }
+  return { p, n: baseName(p), dir: !!(IDX && IDX.dirs.has(p)), s: IDX ? IDX.dsize.get(p) || 0 : 0, m: 0 };
+}
+const isDirPath = p => !!(IDX && IDX.dirs.has(p)) || !!itemOf(p).dir;
+// chemins sélectionnés, dans l'ordre d'affichage
+function inDisplayOrder(paths) {
+  const box = document.querySelector(".view.on .fl"), L = box && LISTS.get(box.id);
+  if (!L) return paths;
+  const pos = new Map(L.list.map((f, i) => [f.p, i]));
+  return paths.slice().sort((a, b) => (pos.has(a) ? pos.get(a) : 1e9) - (pos.has(b) ? pos.get(b) : 1e9));
+}
+
+/* ================= Renommer en lot ================= */
+const pad2 = n => String(n).padStart(2, "0");
+function batchNames(items, B) {
+  const width = Math.max(2, String((+B.start || 1) + items.length - 1).length);
+  const used = new Set(), out = [];
+  items.forEach((f, i) => {
+    const n = f.n, isDir = !!f.dir;
+    const dot = n.lastIndexOf("."), ext = !isDir && dot > 0 ? n.slice(dot) : "", stem = ext ? n.slice(0, dot) : n;
+    let s;
+    if (B.mode === "num") s = (B.base.trim() || "Fichier") + B.sep + String((+B.start || 1) + i).padStart(width, "0");
+    else if (B.mode === "date") { const d = new Date(f.m || Date.now()); s = (B.base.trim() ? B.base.trim() + " " : "") + `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}h${pad2(d.getMinutes())}`; }
+    else if (B.mode === "add") s = B.pre + stem + B.suf;
+    else s = B.find ? stem.split(B.find).join(B.rep) : stem;
+    s = s.replace(/[\/\\:*?"<>|\u0000-\u001f]/g, "_").trim();
+    if (!s || s === "." || s === "..") s = stem;
+    let full = s + ext, k = 2;
+    while (used.has(full.toLowerCase())) full = s + " (" + k++ + ")" + ext;
+    used.add(full.toLowerCase()); out.push(full);
+  });
+  return out;
+}
+function batchRename(paths) {
+  const items = inDisplayOrder(paths).map(itemOf);
+  const B = { mode: "num", base: "", sep: " ", start: 1, pre: "", suf: "", find: "", rep: "" };
+  const preview = () => {
+    const nn = batchNames(items, B), el = $("#bprev"); if (!el) return;
+    el.innerHTML = items.slice(0, 40).map((f, i) => `<div><s>${esc(f.n)}</s>→<b class="${nn[i] === f.n ? "bad" : ""}">${esc(nn[i])}</b></div>`).join("") + (items.length > 40 ? `<div class="tiny">… et ${items.length - 40} autres</div>` : "");
+  };
+  const fld = (id, label, v, ph, type) => `<div class="field"><label for="${id}">${label}</label><input id="${id}" ${type ? `type="${type}" inputmode="numeric"` : ""} value="${esc(v)}" placeholder="${esc(ph || "")}" maxlength="80"></div>`;
+  const draw = () => {
+    SH = {
+      m_num: () => { B.mode = "num"; draw(); }, m_date: () => { B.mode = "date"; draw(); }, m_add: () => { B.mode = "add"; draw(); }, m_rep: () => { B.mode = "rep"; draw(); },
+      no: () => {}, ok: () => runBatch(items, batchNames(items, B))
+    };
+    const body = B.mode === "num" ? `<div class="field2">${fld("b_base", "Nom de base", B.base, "ex. Vacances")}${fld("b_start", "Premier numéro", B.start, "1", "number").replace('class="field"', 'class="field" style="max-width:120px"')}</div><div class="tiny" style="padding:0 20px">Donne « Vacances 01.jpg », « Vacances 02.jpg »… dans l'ordre affiché.</div>`
+      : B.mode === "date" ? `${fld("b_base", "Texte avant la date (facultatif)", B.base, "ex. Chantier")}<div class="tiny" style="padding:0 20px">Utilise la date de modification de chaque fichier : « 2026-10-26 14h05.jpg ».</div>`
+      : B.mode === "add" ? `<div class="field2">${fld("b_pre", "Ajouter au début", B.pre, "ex. 2026_")}${fld("b_suf", "Ajouter à la fin", B.suf, "ex. _final")}</div>`
+      : `<div class="field2">${fld("b_find", "Chercher", B.find, "texte")}${fld("b_rep", "Remplacer par", B.rep, "(vide = effacer)")}</div>`;
+    sheet(`<div class="shd"><div style="flex:1"><div class="t">Renommer ${pl(items.length, "élément")}</div><div class="s">L'extension (.jpg, .pdf…) est conservée</div></div></div><div class="sbody">
+      <div class="seg">${[["num", "Numéroter"], ["date", "Date"], ["add", "Ajouter"], ["rep", "Remplacer"]].map(([k, l]) => `<button data-sh="m_${k}" data-keep="1" class="${B.mode === k ? "on" : ""}">${l}</button>`).join("")}</div>
+      ${body}<div class="shl">Aperçu</div><div class="prev" id="bprev"></div>
+      <div class="btns"><button class="btn" data-sh="no">Annuler</button><button class="btn main" data-sh="ok">Renommer</button></div></div>`);
+    [["b_base", "base"], ["b_start", "start"], ["b_pre", "pre"], ["b_suf", "suf"], ["b_find", "find"], ["b_rep", "rep"]].forEach(([id, k]) => { const i = document.getElementById(id); if (i) i.oninput = () => { B[k] = i.value; preview(); }; });
+    preview();
+  };
+  draw();
+}
+async function runBatch(items, names) {
+  const todo = items.map((f, i) => ({ f, to: names[i] })).filter(x => x.to !== x.f.n);
+  if (!todo.length) { toast("Aucun nom ne change"); return; }
+  const olds = new Set(items.map(f => f.n.toLowerCase()));
+  const clash = todo.some(x => olds.has(x.to.toLowerCase()));
+  let ok = 0; const errs = [];
+  OPRUN = true; SH = {};
+  sheet(`<div class="shd"><div style="flex:1"><div class="t">Renommage</div><div class="s" id="opS">…</div></div></div><div class="prog" id="opP"><i></i></div>`);
+  const step = i => { const P = $("#opP"); if (P) P.firstChild.style.width = Math.round(i / todo.length * 100) + "%"; const S = $("#opS"); if (S) S.textContent = `${i} / ${todo.length}`; };
+  // Si un nouveau nom est l'ancien nom d'un autre élément choisi : passage par un nom provisoire (rien n'est jamais écrasé)
+  if (clash) {
+    for (const x of todo) {
+      const tmp = ".rangement-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7) + "-" + x.f.n;
+      const r = DRV.rename(x.f.p, tmp);
+      if (r) { x.err = r; errs.push(x.f.n + " : " + r); } else x.tmp = dirName(x.f.p) + "/" + tmp;
+    }
+  }
+  let i = 0;
+  for (const x of todo) {
+    i++; step(i);
+    if (x.err) continue;
+    const from = x.tmp || x.f.p;
+    const r = DRV.rename(from, x.to);
+    if (r) {
+      errs.push(x.f.n + " : " + r);
+      if (x.tmp && DRV.rename(x.tmp, x.f.n)) errs.push(x.f.n + " garde un nom provisoire : " + baseName(x.tmp));
+    } else { ok++; TH.delete(x.f.p); const k = ST.favs.indexOf(x.f.p); if (k >= 0) { ST.favs[k] = dirName(x.f.p) + "/" + x.to; save(); } }
+    if (i % 20 === 0) await sleep(0);
+  }
+  OPRUN = false; closeSheet(); exitSel();
+  toast(errs.length ? `${pl(ok, "élément renommé", "éléments renommés")} · ${errs.length} impossible${errs.length > 1 ? "s" : ""} (${errs[0]})` : `${pl(ok, "élément renommé", "éléments renommés")}`, errs.length ? 5000 : 2600);
+  bgRescan(true);
+}
+
+/* ================= Compresser / décompresser (zip) ================= */
+const canZip = () => DRV === NativeDrv;
+function zipAsk(paths) {
+  const one = paths.length === 1, first = baseName(paths[0]);
+  const d = new Date(), def = one ? first.replace(/\.[^./]+$/, "") || first : `Archive ${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  const where = dirName(paths[0]);
+  askText(`Compresser ${one ? "« " + first + " »" : pl(paths.length, "élément")}`, def, "Nom de l'archive", async n => {
+    n = n.replace(/[\/\\:*?"<>|]/g, "_").replace(/\.zip$/i, "") + ".zip";
+    const st = await runOp("zip", paths, where + "/" + n, "Compression");
+    exitSel();
+    if (st && st.result && st.result.path) { toast("Archive créée : " + baseName(st.result.path) + " · les originaux sont conservés", 3500); bgRescan(true); }
+  });
+}
+async function unzipGo(p) {
+  const dest = dirName(p) + "/" + baseName(p).replace(/\.zip$/i, "");
+  const st = await runOp("unzip", [p], dest, "Décompression");
+  exitSel();
+  if (st && st.result && st.result.path) { toast("Décompressé dans « " + baseName(st.result.path) + " »", 3000); bgRescan(true); if (curView === "files") setTimeout(() => cd(st.result.path), 400); }
+}
+
+/* ================= Plus d'actions sur la sélection ================= */
+function selMore(paths) {
+  const zips = paths.filter(p => /\.zip$/i.test(p) && !isDirPath(p));
+  SH = {
+    zip: () => zipAsk(paths), unzip: () => unzipGo(zips[0]),
+    pin: () => { paths.forEach(p => { if (!ST.favs.includes(p)) ST.favs.unshift(p); }); save(); toast(pl(paths.length, "élément épinglé", "éléments épinglés")); exitSel(); rerender(); },
+    props: () => propsMulti(paths), shrename: () => batchRename(paths)
+  };
+  sheet(`<div class="shd"><div><div class="t">${pl(paths.length, "élément sélectionné", "éléments sélectionnés")}</div></div></div><div class="sbody">
+    ${DRV.canEdit && paths.length > 1 ? mi("shrename", "edit", "Renommer en lot", "numéro, date…") : ""}
+    ${canZip() ? mi("zip", "zip", "Compresser en zip", "les originaux restent") : ""}
+    ${canZip() && zips.length === 1 && paths.length === 1 ? mi("unzip", "unzip", "Décompresser ici") : ""}
+    ${mi("pin", "star", "Épingler à l'accueil")}
+    ${mi("props", "info", "Propriétés")}</div>`);
+}
+function propsMulti(paths) {
+  let n = 0, nd = 0, s = 0, mn = Infinity, mx = 0;
+  for (const p of paths) { const f = itemOf(p); if (f.dir || isDirPath(p)) { nd++; s += (IDX && IDX.dsize.get(p)) || f.s || 0; } else { n++; s += f.s || 0; } if (f.m) { mn = Math.min(mn, f.m); mx = Math.max(mx, f.m); } }
+  const kv = (k, v) => v ? `<div class="kv"><span>${k}</span><span>${esc(v)}</span></div>` : "";
+  const dirs = [...new Set(paths.map(dirName))];
+  SH = {};
+  sheet(`<div class="shd"><div><div class="t">Propriétés</div><div class="s">${pl(paths.length, "élément")}</div></div></div><div class="sbody">
+    ${kv("Contenu", [n ? pl(n, "fichier") : "", nd ? pl(nd, "dossier") : ""].filter(Boolean).join(", "))}
+    ${kv("Taille totale", fsz(s) + (s >= 1024 ? " (" + s.toLocaleString("fr-FR") + " octets)" : ""))}
+    ${mx ? kv("Dates", mn === mx ? fullDate(mx) : "du " + fullDate(mn) + " au " + fullDate(mx)) : ""}
+    ${kv("Emplacement", dirs.length === 1 ? dirs[0] : pl(dirs.length, "dossier") + " différents")}</div>`);
 }
 
 /* Opérations longues avec barre de progression */
@@ -1177,9 +1589,13 @@ $("#menuBtn").onclick = () => {
     trash: () => push(() => R.trash()),
     theme: () => { const cur = document.documentElement.dataset.theme || ""; const nx = cur === "" ? "light" : cur === "light" ? "dark" : ""; ST.theme = nx; save(); if (nx) document.documentElement.dataset.theme = nx; else delete document.documentElement.dataset.theme; toast(nx === "light" ? "Thème clair" : nx === "dark" ? "Thème sombre" : "Thème automatique"); },
     pick: () => ACT.pick(),
+    search: () => openSearch(""),
+    recent: () => openCat("recent"),
     hidden: () => { ST.hidden = !ST.hidden; save(); toast(ST.hidden ? "Fichiers cachés affichés" : "Fichiers cachés masqués"); rerender(); }
   };
   sheet(`<div class="shd"><div class="logo"><i>✦</i><span>Rangement</span></div></div><div class="sbody">
+    ${mi("search", "filter", "Recherche avancée", "type, date, taille")}
+    ${mi("recent", "clock", "Fichiers récents")}
     ${mi("rescan", "refresh", "Analyser à nouveau", ST.lastScan ? fdate(ST.lastScan) : "")}
     ${DRV.canTrash ? mi("trash", "trash", "Corbeille", TRASHC.length ? pl(TRASHC.length, "élément") : "vide") : ""}
     ${DRV === PcDrv ? mi("pick", "folder", "Choisir un dossier") : ""}
@@ -1194,14 +1610,19 @@ function helpHTML() {
   <h2 style="margin:2px 0 6px">Comment marche Rangement</h2>
   <p>Ranger vos fichiers et libérer de la place, sans risque.</p>
   <h3>🏠 Accueil</h3><p>L'anneau montre ce qui occupe votre téléphone : photos, vidéos, musique, documents… Touchez une <b>catégorie</b> pour voir ses fichiers, du plus gros au plus petit.</p>
-  <h3>📁 Fichiers</h3><ul><li>Touchez un dossier pour l'ouvrir, et le chemin en haut pour remonter.</li><li>Touchez un fichier pour l'ouvrir avec l'appli qui convient.</li><li><b>Appui long</b> sur un fichier (ou bouton ☑) : sélection de plusieurs fichiers, puis Copier, Déplacer, Partager, Renommer ou Supprimer en bas.</li><li>Pour <b>copier ou déplacer</b> : choisissez, ouvrez le dossier de destination, puis « Coller ici ».</li><li>Le bouton ⋮ d'une ligne donne toutes les actions et les informations.</li></ul>
+  <h3>📁 Fichiers</h3><ul><li>Touchez un dossier pour l'ouvrir, et le chemin en haut pour remonter.</li><li>Touchez un fichier pour l'ouvrir avec l'appli qui convient.</li><li><b>Appui long</b> sur un fichier (ou bouton ☑) : sélection de plusieurs fichiers, puis Copier, Déplacer, Partager, Renommer ou Supprimer en bas.</li><li>Pour <b>copier ou déplacer</b> : choisissez, ouvrez le dossier de destination, puis « Coller ici ».</li><li>Le bouton ⋮ d'une ligne donne toutes les actions et les <b>propriétés</b> (chemin, taille, date, dimensions des photos et vidéos).</li>
+  <li><b>Trier</b> (bouton ⇅) : par date (récents ou anciens d'abord), nom A→Z ou Z→A (2 avant 10), taille, type. Options : grouper par date (Aujourd'hui, Hier, Cette semaine…), dossiers en premier, garder un tri propre à un dossier, liste ou grille, taille d'affichage.</li>
+  <li><b>Filtres rapides</b> sous le chemin : Photos, Vidéos, Audio, Documents, PDF, Archives, APK, Récents. Ils cherchent dans le dossier ouvert <b>et ses sous-dossiers</b>.</li>
+  <li>L'étoile ☆ <b>épingle</b> le dossier à l'accueil.</li></ul>
+  <h3>☑ Sélection multiple</h3><ul><li><b>Renommer</b> plusieurs éléments à la fois : numéroter (Vacances 01, 02…), mettre la date, ajouter un texte ou en remplacer un. Un aperçu montre le résultat avant de valider ; rien n'est jamais écrasé.</li><li><b>Plus</b> : compresser en zip (les originaux restent), décompresser un zip dans un nouveau dossier, épingler, propriétés.</li></ul>
   <h3>✨ Nettoyer</h3><p>« Lancer l'analyse » cherche :</p><ul><li><b>Les doublons</b> : le même fichier en plusieurs exemplaires. Rangement garde toujours un exemplaire (de préférence celui de l'appareil photo).</li><li><b>Les APK</b> d'applis déjà installées.</li><li><b>Les fichiers temporaires, miniatures et dossiers vides.</b></li><li><b>Les statuts WhatsApp</b> déjà vus.</li><li>À vérifier vous-même (non cochés) : gros fichiers, vieux téléchargements, médias WhatsApp, vieilles captures d'écran, grosses vidéos.</li></ul>
   <p>Touchez un groupe pour voir les fichiers et cocher ou décocher ; l'œil 👁 ouvre le fichier pour le vérifier. Puis « Nettoyer ».</p>
   ${ph ? `<h3>🗑️ Corbeille de sécurité</h3><p>Ce que vous supprimez part dans la corbeille de Rangement. Vous pouvez le restaurer à sa place pendant <b>30 jours</b>, ensuite il est effacé automatiquement. Pour récupérer la place tout de suite : Corbeille → « Vider la corbeille ».</p>
   <h3>📱 Applis</h3><p>La liste de vos applis, des plus lourdes aux plus légères. Touchez-en une pour <b>vider son cache</b> (dans les réglages : Stockage → Vider le cache) ou la <b>désinstaller</b>.</p>
   <h3>🔐 Autorisation</h3><p>Rangement a besoin de « l'accès à tous les fichiers » pour voir et ranger votre stockage. Tout reste sur le téléphone : rien n'est envoyé sur Internet.</p>` :
   `<h3>💻 Sur PC</h3><p>Choisissez un dossier : Rangement l'analyse (doublons, gros fichiers…). Avec Chrome ou Edge, vous pouvez supprimer directement — attention, sur PC c'est définitif. Avec un autre navigateur, l'analyse fonctionne mais la suppression n'est pas possible.</p>`}
-  <h3>🔍 Rechercher</h3><p>Tapez une partie du nom dans la barre du haut, sans vous soucier des accents.</p></div>`;
+  <h3>🔍 Rechercher</h3><p>Tapez une partie du nom dans la barre du haut, sans vous soucier des accents. Depuis un dossier, la recherche se fait dans ce dossier et ses sous-dossiers (touchez « Dans … » pour chercher partout). Filtrez par type, date et taille. Le menu ⋮ → « Recherche avancée » permet de chercher sans taper de nom (ex. toutes les vidéos de plus de 100 Mo).</p>
+  <h3>🕘 Récents</h3><p>Accueil → Récents : les fichiers des 7 derniers jours, 30 jours, 3 mois, ou ceux que vous avez ouverts récemment.</p></div>`;
 }
 
 /* Bouton retour */
