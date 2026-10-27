@@ -14,6 +14,7 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.DocumentsContract;
 import android.provider.OpenableColumns;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
@@ -40,6 +41,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class LiseuseBridge {
     private static final int REQ_PICK = 6050;
+    private static final int REQ_TREE = 6051;
     private static final long MAX_FILE = 400L * 1024 * 1024;
     private static final String UA = "Mozilla/5.0 (Linux; Android 15) Liseuse/1.0";
     private static final String[] HOSTS = { "gutendex.com", "gutenberg.org", "gutenberg.pglaf.org", "pglaf.org",
@@ -58,6 +60,7 @@ public class LiseuseBridge {
 
     // ---------- Rappels de MainActivity ----------
     public void onResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQ_TREE) { onTree(resultCode, data); return; }
         if (requestCode != REQ_PICK) return;
         final List<Uri> l = new ArrayList<Uri>();
         if (resultCode == Activity.RESULT_OK && data != null) {
@@ -155,12 +158,110 @@ public class LiseuseBridge {
                 String kind = kindOf(f, name);
                 if (kind.isEmpty()) { f.delete(); errors.put(name + " (ni EPUB ni PDF)"); continue; }
                 JSONObject x = new JSONObject();
-                x.put("id", id); x.put("name", name); x.put("size", n); x.put("kind", kind);
+                x.put("id", id); x.put("name", name); x.put("size", n); x.put("kind", kind); x.put("uri", u.toString());
                 files.put(x);
             } catch (Throwable t) { errors.put(name); }
         }
         try { o.put("src", src); o.put("files", files); o.put("errors", errors); } catch (Exception e) { }
         return o;
+    }
+
+    // ---------- Dossiers suivis (sélecteur de dossiers d'Android : accès en lecture gardé, sans autorisation de stockage) ----------
+    /** Choisir un dossier à suivre. Réponse : événement « folder » {uri, name} ou {cancel:true} */
+    @JavascriptInterface public void pickFolder() {
+        active = true;
+        a.runOnUiThread(new Runnable() { public void run() {
+            try {
+                Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+                i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+                a.startActivityForResult(i, REQ_TREE);
+            } catch (Exception e) { toast("Sélecteur de dossiers indisponible"); emit("folder", "{\"cancel\":true}"); }
+        } });
+    }
+    private void onTree(int resultCode, Intent data) {
+        JSONObject o = new JSONObject();
+        try {
+            Uri u = resultCode == Activity.RESULT_OK && data != null ? data.getData() : null;
+            if (u == null) o.put("cancel", true);
+            else {
+                try { a.getContentResolver().takePersistableUriPermission(u, Intent.FLAG_GRANT_READ_URI_PERMISSION); } catch (Exception e) { }
+                o.put("uri", u.toString()); o.put("name", treeName(u));
+            }
+        } catch (Exception e) { }
+        emit("folder", o.toString());
+    }
+    private String treeName(Uri t) {
+        try {
+            Uri d = DocumentsContract.buildDocumentUriUsingTree(t, DocumentsContract.getTreeDocumentId(t));
+            try (Cursor c = a.getContentResolver().query(d, new String[]{ DocumentsContract.Document.COLUMN_DISPLAY_NAME }, null, null, null)) {
+                if (c != null && c.moveToFirst() && c.getString(0) != null) return c.getString(0);
+            }
+        } catch (Throwable e) { }
+        String s = t.getLastPathSegment();
+        if (s == null) return "Dossier";
+        int k = s.lastIndexOf(':'); if (k >= 0 && k < s.length() - 1) s = s.substring(k + 1);
+        int j = s.lastIndexOf('/'); return j >= 0 ? s.substring(j + 1) : s;
+    }
+    /** Oublie un dossier suivi (rend l'autorisation de lecture) */
+    @JavascriptInterface public void forgetFolder(String uri) {
+        try { a.getContentResolver().releasePersistableUriPermission(Uri.parse(uri), Intent.FLAG_GRANT_READ_URI_PERMISSION); } catch (Throwable t) { }
+    }
+    /** Cherche les EPUB et PDF des dossiers suivis (sous-dossiers compris, 6 niveaux, 5000 éléments au plus par dossier).
+     *  Réponse : événement « scan » {folders:[{uri, ok, err}], found:[{uri, name, size, mod}]} */
+    @JavascriptInterface public void scanFolders(final String json) {
+        active = true;
+        new Thread(new Runnable() { public void run() {
+            JSONObject o = new JSONObject();
+            JSONArray found = new JSONArray(), st = new JSONArray();
+            try {
+                JSONArray l = new JSONArray(json == null || json.isEmpty() ? "[]" : json);
+                for (int k = 0; k < l.length(); k++) {
+                    String s = l.optString(k, "");
+                    if (s.isEmpty()) continue;
+                    JSONObject f = new JSONObject();
+                    f.put("uri", s);
+                    try {
+                        Uri t = Uri.parse(s);
+                        walk(t, DocumentsContract.getTreeDocumentId(t), 0, new int[]{ 5000 }, found);
+                        f.put("ok", true);
+                    } catch (SecurityException se) { f.put("ok", false); f.put("err", "perm"); }
+                    catch (Throwable e) { f.put("ok", false); f.put("err", String.valueOf(e.getMessage())); }
+                    st.put(f);
+                }
+                o.put("folders", st); o.put("found", found);
+            } catch (Throwable t) { }
+            emit("scan", o.toString());
+        } }).start();
+    }
+    private void walk(Uri tree, String docId, int depth, int[] budget, JSONArray out) throws Exception {
+        if (depth > 6 || budget[0] <= 0) return;
+        Uri kids = DocumentsContract.buildChildDocumentsUriUsingTree(tree, docId);
+        List<String> dirs = new ArrayList<String>();
+        try (Cursor c = a.getContentResolver().query(kids, new String[]{ DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_SIZE, DocumentsContract.Document.COLUMN_LAST_MODIFIED }, null, null, null)) {
+            while (c != null && c.moveToNext()) {
+                if (--budget[0] <= 0) break;
+                String id = c.getString(0), name = c.getString(1), mime = c.getString(2);
+                if (id == null) continue;
+                if (DocumentsContract.Document.MIME_TYPE_DIR.equals(mime)) { if (name == null || !name.startsWith(".")) dirs.add(id); continue; }
+                String n = name == null ? "" : name.toLowerCase(Locale.ROOT);
+                if (!(n.endsWith(".epub") || n.endsWith(".pdf") || "application/epub+zip".equals(mime) || "application/pdf".equals(mime))) continue;
+                JSONObject x = new JSONObject();
+                x.put("uri", DocumentsContract.buildDocumentUriUsingTree(tree, id).toString());
+                x.put("name", name == null ? "livre" : name);
+                x.put("size", c.isNull(3) ? 0 : c.getLong(3));
+                x.put("mod", c.isNull(4) ? 0 : c.getLong(4));
+                out.put(x);
+            }
+        }
+        for (String d : dirs) walk(tree, d, depth + 1, budget, out);
+    }
+    /** Copie dans le cache des livres trouvés dans les dossiers suivis (liste JSON d'uri). Réponse : événement « files » (src « dir ») */
+    @JavascriptInterface public void importUris(final String json) {
+        active = true;
+        final List<Uri> l = new ArrayList<Uri>();
+        try { JSONArray j = new JSONArray(json); for (int k = 0; k < j.length(); k++) l.add(Uri.parse(j.getString(k))); } catch (Exception e) { }
+        new Thread(new Runnable() { public void run() { emit("files", intake(l, "dir").toString()); } }).start();
     }
 
     private String displayName(Uri u) {

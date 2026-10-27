@@ -6,6 +6,7 @@
 <uses-permission android:name="android.permission.INTERNET" />
 # Aucune autorisation de stockage : les livres sont choisis avec le sélecteur d'Android (ACTION_OPEN_DOCUMENT)
 # ou reçus par « Ouvrir avec » (autorisation de lecture temporaire accordée par l'appli qui envoie).
+# Dossiers suivis : choisis avec le sélecteur de dossiers d'Android (accès en lecture gardé, sans autorisation de stockage).
 # Déjà déclarées pour toutes les applis MAG (à garder) : POST_NOTIFICATIONS, fr.magformation13.permission.WIDGET
 
 # ---------- 2. Avant </manifest> : visibilité (Android 11+) ----------
@@ -54,4 +55,4 @@
 # - Le type du fichier est vérifié par ses premiers octets (« PK » = EPUB, « %PDF » = PDF) : un faux fichier est refusé.
 # - Le pont n'agit sur un intent que si la page Liseuse l'a déjà appelé (pending/cleanup) : présent dans toutes les applis,
 #   il reste inerte ailleurs (Atelier PDF, Rangement…).
-# - Codes de requête utilisés : 6050 (sélection des livres).
+# - Codes de requête utilisés : 6050 (sélection des livres), 6051 (dossier suivi : ACTION_OPEN_DOCUMENT_TREE, accès en lecture gardé).

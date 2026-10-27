@@ -24,6 +24,9 @@ header{position:sticky;top:0;z-index:5;background:var(--bg);padding:calc(12px + 
 .logo svg{width:30px;height:30px;flex:none}
 .hb{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--bg2);border:1px solid var(--line);flex:none}
 .hb.acc{background:linear-gradient(135deg,var(--acc),var(--acc2));color:var(--ink);border:0}
+#hRef.spinning svg{animation:sp .9s linear infinite}
+#ptr{position:fixed;left:50%;top:calc(62px + var(--safe-t));transform:translate(-50%,0);width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--bg3);border:1px solid var(--line);color:var(--tx2);opacity:0;pointer-events:none;z-index:20;transition:opacity .15s}#ptr.on{opacity:1}#ptr.ready{color:var(--acc);border-color:#efbf7866}
+.dirs .li{align-items:center}.dirs .li svg.i{color:var(--acc)}.dirs .li small{display:block;color:var(--tx3);font-size:12px;margin-top:2px}.dirs .li .x{margin-left:auto}
 main{padding:2px 16px calc(96px + var(--safe-b))}
 nav#tabs{position:fixed;left:0;right:0;bottom:0;z-index:8;display:flex;justify-content:space-around;padding:8px 6px calc(8px + var(--safe-b));background:linear-gradient(transparent,var(--bg) 30%)}
 nav#tabs button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11.5px;font-weight:600;color:var(--tx3);padding:6px 18px;border-radius:14px;min-width:96px}
@@ -232,6 +235,7 @@ textarea.inp,input.inp{width:100%;background:var(--bg3);border:1px solid var(--l
 <body>
 <header id="hdr">
   <div class="logo"><svg viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#efbf78"/><stop offset="1" stop-color="#e98f78"/></linearGradient></defs><rect x="2" y="2" width="28" height="28" rx="8" fill="url(#lg)"/><path d="M8 10.5c2.6-1 5.3-.8 8 .9 2.7-1.7 5.4-1.9 8-.9v12c-2.6-1-5.3-.8-8 .9-2.7-1.7-5.4-1.9-8-.9z" fill="none" stroke="#1d1408" stroke-width="1.8" stroke-linejoin="round"/><path d="M16 11.4v12" stroke="#1d1408" stroke-width="1.8"/></svg><span id="hTitle">Liseuse</span></div>
+  <button class="hb" id="hRef" aria-label="Actualiser" title="Actualiser"><svg class="i" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
   <button class="hb" id="hSearch" aria-label="Chercher dans la bibliothèque"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
   <button class="hb acc" id="hAdd" aria-label="Ajouter des livres"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
 </header>
@@ -443,6 +447,8 @@ window.liseuseEvent=function(type,data){
   else if(type==='progress'){ var d=DLS[o.req]; if(d&&d.prog) d.prog(o.got,o.total); }
   else if(type==='download'){ var d2=DLS[o.req]; if(!d2) return; delete DLS[o.req]; if(o.ok) d2.res({file:o.file}); else d2.rej(new Error(o.err||'Téléchargement impossible')); }
   else if(type==='files'){ onFiles(o); }
+  else if(type==='scan'){ if(scanWait){ var w=scanWait; scanWait=null; w(o); } }
+  else if(type==='folder'){ onFolder(o); }
   else if(type==='tts'){ ttsEvent(o); }
 };
 
@@ -716,8 +722,12 @@ async function importBlob(blob, name, kind, extra){
   return {book:b};
 }
 async function onFiles(o){
-  if(!o || !o.files) return;
-  if(o.cancel || (!o.files.length && !(o.errors||[]).length)) return;
+  if(o && o.src==='dir'){ var dw=dirWait; dirWait=null; var got=0; try{ got=await importFiles(o); }finally{ if(dw) dw(got); } return; }
+  await importFiles(o);
+}
+async function importFiles(o){
+  if(!o || !o.files) return 0;
+  if(o.cancel || (!o.files.length && !(o.errors||[]).length)) return 0;
   var n=o.files.length, ok=0, last=null, dups=0;
   for(var i=0;i<n;i++){
     var f=o.files[i];
@@ -732,6 +742,7 @@ async function onFiles(o){
   if(ok||dups) toast((ok?ok+' livre'+(ok>1?'s':'')+' ajouté'+(ok>1?'s':''):'')+(dups?(ok?' · ':'')+dups+' déjà dans ta bibliothèque':'')+(errs.length?' · '+errs.length+' refusé'+(errs.length>1?'s':''):''));
   else if(errs.length) toast('Fichier refusé : '+errs.join(', '), true);
   if(o.src==='view' && last && n===1) closeAllThen(function(){ openBook(last); });
+  return ok;
 }
 function pickFiles(){
   if(A && A.pick){ A.pick(); return; }
@@ -783,11 +794,11 @@ function viewLib(){
   if(libSearch) h+='<div class="search">'+I.search+'<input id="libQ" placeholder="Titre ou auteur" value="'+esc(libQ)+'" enterkeyhint="search"><button id="libQx" aria-label="Effacer">'+I.clear+'</button></div>';
   if(!BOOKS.length){
     h+='<div class="empty" style="padding-top:50px">'+I.book+'<b style="color:var(--tx);font-size:16px">Ta bibliothèque est vide</b><br>Ajoute tes livres EPUB ou PDF depuis le téléphone, ou choisis un classique gratuit dans « Livres libres ».</div>'+
-      '<div class="row" style="flex-direction:column"><button class="btn main" id="eAdd">'+I.plus+'Ajouter des livres du téléphone</button><button class="btn" id="eCat">'+I.globe+'Parcourir les livres libres</button></div>'+
+      '<div class="row" style="flex-direction:column"><button class="btn main" id="eAdd">'+I.plus+'Ajouter des livres du téléphone</button>'+(dirsOk()?'<button class="btn" id="eDirs">'+I.folder+'Suivre un dossier du téléphone</button>':'')+'<button class="btn" id="eCat">'+I.globe+'Parcourir les livres libres</button></div>'+
       '<p class="note" style="text-align:center;margin-top:14px">Astuce : dans Rangement ou après un téléchargement, choisis « Ouvrir avec Liseuse ».</p>';
     if(!libOk()) h+='<div class="warnbox">Le module de lecture EPUB (jszip.min.js) est absent : les EPUB ne pourront pas être ouverts.</div>';
     $('main').innerHTML=h;
-    $('eAdd').onclick=pickFiles; $('eCat').onclick=function(){ switchTab('cat'); };
+    $('eAdd').onclick=pickFiles; $('eCat').onclick=function(){ switchTab('cat'); }; if($('eDirs')) $('eDirs').onclick=dirsSheet;
     return;
   }
   var last=bookById(L.last);
@@ -795,7 +806,7 @@ function viewLib(){
   var fl=[['all','Tous'],['reading','En cours'],['done','Terminés']].concat(L.colls.map(function(c){ return ['c:'+c,c]; }));
   h+='<div class="chips" style="margin-top:8px">'+fl.map(function(f){ return '<button class="chip'+(L.filter===f[0]?' on':'')+'" data-f="'+esc(f[0])+'">'+(f[0].indexOf('c:')===0?I.tag:'')+esc(f[1])+'</button>'; }).join('')+'<button class="chip" id="newColl">'+I.plus+'Collection</button></div>';
   var list=sortedBooks();
-  h+='<div class="sect"><span>'+list.length+' livre'+(list.length>1?'s':'')+'</span><button class="sortb" id="sortB">'+I.sort+esc(SORTS[L.sort])+'</button></div>';
+  h+='<div class="sect"><span>'+list.length+' livre'+(list.length>1?'s':'')+'</span>'+(dirsOk()?'<button class="sortb" id="dirsB">'+I.folder+'Dossiers'+((L.dirs||[]).length?' ('+L.dirs.length+')':'')+'</button>':'')+'<button class="sortb" id="sortB">'+I.sort+esc(SORTS[L.sort])+'</button></div>';
   if(!list.length) h+='<div class="empty">Aucun livre ici.</div>';
   else h+='<div class="grid">'+list.map(function(b){
     var p=b.pct||0;
@@ -804,6 +815,7 @@ function viewLib(){
   }).join('')+'</div>';
   $('main').innerHTML=h;
   var q=$('libQ'); if(q){ q.oninput=function(){ libQ=q.value; var pos=q.selectionStart; viewLib(); var q2=$('libQ'); q2.focus(); try{ q2.setSelectionRange(pos,pos); }catch(e){} }; $('libQx').onclick=function(){ libQ=''; libSearch=false; viewLib(); }; }
+  if($('dirsB')) $('dirsB').onclick=dirsSheet;
   $('sortB').onclick=function(){ var k=Object.keys(SORTS); L.sort=k[(k.indexOf(L.sort)+1)%k.length]; saveL(); viewLib(); };
   $('newColl').onclick=function(){ newCollection(function(){ viewLib(); }); };
 }
@@ -850,6 +862,99 @@ function bookMenu(b){
     }
   };
 }
+
+/* =========================================================
+   Dossiers suivis : Liseuse y cherche les nouveaux EPUB et PDF
+   (sélecteur de dossiers d'Android, accès en lecture seulement)
+   ========================================================= */
+var scanWait=null, dirWait=null, scanP=null;
+function dirsOk(){ return !!(A && A.scanFolders && A.pickFolder); }
+function scanDirs(){
+  if(!dirsOk() || !(L.dirs||[]).length) return Promise.resolve(0);
+  if(scanP) return scanP;
+  scanP=new Promise(function(res){
+    var done=false, fin=function(n){ if(done) return; done=true; res(n||0); };
+    scanWait=function(o){
+      (o.folders||[]).forEach(function(f){ L.dirs.forEach(function(d){ if(d.uri===f.uri) d.lost=!f.ok; }); });
+      L.seen=L.seen||{};
+      var have={}; BOOKS.forEach(function(b){ have[b.key]=1; });
+      var fresh=(o.found||[]).filter(function(x){ return x.uri && !L.seen[x.uri] && !have[x.name+'|'+x.size]; });
+      fresh.forEach(function(x){ L.seen[x.uri]=1; });   // un livre supprimé de la bibliothèque ne revient pas tout seul
+      saveL();
+      if(!fresh.length){ fin(0); return; }
+      dirWait=fin; A.importUris(JSON.stringify(fresh.map(function(x){ return x.uri; })));
+    };
+    setTimeout(function(){ if(!done && dirWait!==fin){ scanWait=null; fin(0); } },90000);     // pas de réponse du téléphone
+    setTimeout(function(){ if(!done){ if(dirWait===fin) dirWait=null; scanWait=null; fin(0); } },600000);
+    try{ A.scanFolders(JSON.stringify(L.dirs.map(function(d){ return d.uri; }))); }catch(e){ scanWait=null; fin(0); }
+  }).then(function(n){ scanP=null; return n; });
+  return scanP;
+}
+function onFolder(o){
+  if(!o || o.cancel || !o.uri) return;
+  L.dirs=L.dirs||[];
+  if(!L.dirs.some(function(d){ return d.uri===o.uri; })) L.dirs.push({uri:o.uri, name:o.name||'Dossier'});
+  saveL();
+  if(sheetOpen && $('dirList')) drawDirs();
+  toast('Dossier suivi : '+(o.name||'Dossier'));
+  doRefresh();
+}
+function drawDirs(){
+  var el=$('dirList'); if(!el) return;
+  var l=L.dirs||[];
+  el.innerHTML=l.length?l.map(function(d,i){ return '<div class="li">'+I.folder+'<div class="t">'+esc(d.name)+(d.lost?'<small style="color:var(--bad)">Accès perdu : retire-le puis choisis-le de nouveau</small>':'<small>Sous-dossiers compris</small>')+'</div><button class="x" data-rmdir="'+i+'" aria-label="Ne plus suivre">'+I.x+'</button></div>'; }).join('')
+    :'<p class="note">Aucun dossier suivi pour l’instant.</p>';
+}
+function dirsSheet(){
+  var sh=openSheet('Dossiers suivis','<p class="note" style="margin-top:0">Liseuse cherche les nouveaux livres EPUB et PDF de ces dossiers à l’ouverture et quand tu actualises (bouton ⟳ ou glisser vers le bas). Elle les lit seulement : rien n’est modifié ni effacé sur le téléphone.</p>'+
+    '<div class="dirs" id="dirList"></div><div class="row"><button class="btn main" id="dirAdd">'+I.plus+'Suivre un dossier</button></div>');
+  drawDirs();
+  sh.querySelector('#dirAdd').onclick=function(){ if(A && A.pickFolder) A.pickFolder(); };
+  sh.querySelector('#dirList').onclick=function(e){
+    var b=e.target.closest('[data-rmdir]'); if(!b) return;
+    var d=L.dirs[+b.dataset.rmdir]; if(!d) return;
+    try{ A.forgetFolder(d.uri); }catch(err){}
+    L.dirs.splice(+b.dataset.rmdir,1); saveL(); drawDirs(); viewLib();
+    toast('« '+d.name+' » n’est plus suivi (les livres restent dans la bibliothèque)');
+  };
+}
+
+/* =========================================================
+   Actualiser : relit la bibliothèque (avancement compris), cherche les nouveaux livres
+   des dossiers suivis, ou relance la recherche du catalogue (bouton ⟳ ou glisser vers le bas)
+   ========================================================= */
+var refreshing=null;
+function doRefresh(){
+  if(refreshing) return refreshing;
+  var b=$('hRef'); b.classList.add('spinning');
+  var y=window.scrollY, t0=Date.now();
+  var job=(tab==='cat') ? new Promise(function(res){
+      if(CAT.q || CAT.res){ catSearch(CAT.q, CAT.title); var w=setInterval(function(){ if(!CAT.loading){ clearInterval(w); window.scrollTo(0,y); res(); } },150); setTimeout(function(){ clearInterval(w); res(); },30000); }
+      else { viewCat(); res(); }
+    })
+    : (importing ? Promise.resolve() : dbAll('books').then(function(l){ if(!importing && l) BOOKS=l; }).catch(function(){}))
+      .then(function(){ if(tab==='lib' && !R.open){ viewLib(); window.scrollTo(0,y); } return scanDirs(); })
+      .then(function(n){ schedulePublish(); if(tab==='lib' && !R.open){ viewLib(); window.scrollTo(0,y); } return n; });
+  refreshing=job.then(function(n){
+    toast(n ? 'Actualisé · '+n+' nouveau'+(n>1?'x':'')+' livre'+(n>1?'s':'') : 'Actualisé');
+  }).catch(function(){ toast('Actualisé'); }).then(function(){
+    setTimeout(function(){ b.classList.remove('spinning'); }, Math.max(0, 700-(Date.now()-t0)));
+    refreshing=null;
+  });
+  return refreshing;
+}
+$('hRef').onclick=function(){ doRefresh(); };
+(function(){
+  var y0=null, pulled=0;
+  var ind=document.createElement('div'); ind.id='ptr'; ind.innerHTML='<svg class=\"i\" viewBox=\"0 0 24 24\"><path d=\"M20 11a8 8 0 1 0-2.3 5.7\"/><path d=\"M20 4v7h-7\"/></svg>'; document.body.appendChild(ind);
+  function blocked(){ return R.open || PV.open || sheetOpen || !$('reader').hidden || !$('pdfv').hidden; }
+  function reset(){ y0=null; pulled=0; ind.classList.remove('on','ready'); ind.style.transform=''; }
+  var m=$('main');
+  m.addEventListener('touchstart',function(e){ y0=(window.scrollY<=0 && e.touches.length===1 && !blocked()) ? e.touches[0].clientY : null; pulled=0; },{passive:true});
+  m.addEventListener('touchmove',function(e){ if(y0==null) return; if(window.scrollY>0){ reset(); return; } pulled=Math.max(0,e.touches[0].clientY-y0); ind.style.transform='translate(-50%,'+Math.min(70,pulled/2)+'px) rotate('+(pulled*2)+'deg)'; ind.classList.toggle('on',pulled>12); ind.classList.toggle('ready',pulled>110); },{passive:true});
+  m.addEventListener('touchend',function(){ if(y0!=null && pulled>110) doRefresh(); reset(); },{passive:true});
+  m.addEventListener('touchcancel',reset,{passive:true});
+})();
 
 /* =========================================================
    Catalogue : livres libres de droits (Gutenberg, Wikisource)
@@ -1756,6 +1861,8 @@ async function start(){
   if(pend){ onFiles(J(pend,{})); }
   else if(L.openId){ var b=bookById(L.openId); if(b) openBook(b); }   // l'appli avait été fermée pendant la lecture
   setTimeout(function(){ publish(); try{ if(P && P.takeSocle){ var x=P.takeSocle(); if(x) window.onSocle(x); } }catch(e){} },600);
+  // nouveaux livres des dossiers suivis
+  setTimeout(function(){ if((L.dirs||[]).length) scanDirs().then(function(n){ if(n){ if(tab==='lib' && !R.open){ var y=window.scrollY; viewLib(); window.scrollTo(0,y); } } }); },1500);
 }
 start();
 })();
