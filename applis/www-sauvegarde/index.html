@@ -25,6 +25,10 @@ header{padding:calc(14px + var(--safe-t)) 18px 6px;display:flex;align-items:cent
 header .sp{flex:1}
 .pill{font-size:12px;color:var(--tx2);background:var(--bg2);border:1px solid var(--line);padding:5px 10px;border-radius:99px;display:flex;align-items:center;gap:6px;white-space:nowrap}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--tx3);flex:none}
+.rfb{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--bg2);border:1px solid var(--line);color:var(--tx2);flex:none}
+.rfb:active{background:var(--bg3)}
+.rfb.spinning .ic{animation:rot .9s linear infinite}
+#ptr{position:fixed;left:50%;top:calc(116px + var(--safe-t));transform:translate(-50%,0);width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--bg2);border:1px solid var(--line);color:var(--tx2);opacity:0;pointer-events:none;z-index:20;transition:opacity .15s}#ptr.on{opacity:1}#ptr.ready{color:var(--acc)}
 .dot.on{background:var(--ok)}
 .dot.warn{background:var(--warn)}
 .dot.bad{background:var(--bad)}
@@ -222,6 +226,7 @@ select{font:inherit;color:var(--tx);background:var(--bg3);border:1px solid var(-
   </div>
   <div class="sp"></div>
   <div class="pill"><span class="dot" id="autoDot"></span><span id="autoTxt">Manuel</span></div>
+  <button class="rfb" id="bRef" aria-label="Actualiser" title="Actualiser"><svg class="ic" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
 </header>
 <nav>
   <div class="tabs" id="tabs">
@@ -832,6 +837,39 @@ select{font:inherit;color:var(--tx);background:var(--bg3);border:1px solid var(-
     }
     else if(type==='resume'){ refresh(); if(VIEW==='data') renderPerms(); }
   };
+
+  // ---------- Actualiser : relit l'état (destination branchée ou non, dernière et prochaine sauvegarde)
+  // et l'onglet affiché en gardant la position (bouton ⟳ ou glisser vers le bas en haut de la page) ----------
+  var refreshing = false;
+  function doRefresh(){
+    if(refreshing) return; refreshing = true;
+    var b = $('bRef'), t0 = Date.now(), y = window.scrollY;
+    b.classList.add('spinning');
+    setTimeout(function(){
+      try{
+        refresh();
+        if(VIEW==='data'){ renderPerms(); if(B) B.scanApps(); renderFolders(); }
+        else if(VIEW==='hist') renderHist();
+        else if(VIEW==='rest') loadRestore();
+        window.scrollTo(0, y);
+        toast(B ? 'Actualisé' : 'Actualisé · fonctions du téléphone indisponibles');
+      } finally {
+        setTimeout(function(){ b.classList.remove('spinning'); }, Math.max(0, 700-(Date.now()-t0)));
+        refreshing = false;
+      }
+    }, 30);
+  }
+  $('bRef').onclick = doRefresh;
+  (function(){
+    var m = document.querySelector('main'), y0 = null, pulled = 0;
+    var ind = document.createElement('div'); ind.id = 'ptr'; ind.innerHTML = '<svg class="ic" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>'; document.body.appendChild(ind);
+    function blocked(){ return !$('run').hidden || !$('sheet').hidden; }
+    function reset(){ y0 = null; pulled = 0; ind.classList.remove('on','ready'); ind.style.transform = ''; }
+    m.addEventListener('touchstart', function(e){ y0 = (window.scrollY <= 0 && e.touches.length === 1 && !blocked() && !e.target.closest('input[type=range]')) ? e.touches[0].clientY : null; pulled = 0; }, {passive:true});
+    m.addEventListener('touchmove', function(e){ if(y0 == null) return; if(window.scrollY > 0){ reset(); return; } pulled = Math.max(0, e.touches[0].clientY - y0); ind.style.transform = 'translate(-50%,'+Math.min(70, pulled/2)+'px) rotate('+(pulled*2)+'deg)'; ind.classList.toggle('on', pulled > 12); ind.classList.toggle('ready', pulled > 110); }, {passive:true});
+    m.addEventListener('touchend', function(){ if(y0 != null && pulled > 110 && !blocked()) doRefresh(); reset(); }, {passive:true});
+    m.addEventListener('touchcancel', reset, {passive:true});
+  })();
 
   // ---------- Tuile Socle ----------
   window.onSocle = function(a){
