@@ -31,6 +31,8 @@ header{padding:calc(10px + var(--safe-t)) 10px 6px 16px;display:flex;align-items
 #title svg{width:16px;height:16px;color:var(--tx3)}
 .hb{width:42px;height:42px;border-radius:13px;display:flex;align-items:center;justify-content:center;color:var(--tx2);flex:none}
 .hb:active{background:var(--bg3)}
+#bRef.spinning .ic{animation:rfspin .9s linear infinite}@keyframes rfspin{to{transform:rotate(360deg)}}
+#ptr{position:fixed;left:50%;top:calc(110px + var(--safe-t));transform:translate(-50%,0);width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--bg2);border:1px solid var(--line);color:var(--tx2);opacity:0;pointer-events:none;z-index:20;transition:opacity .15s}#ptr.on{opacity:1}#ptr.ready{color:var(--acc)}
 .today{position:relative}
 .today b{position:absolute;left:0;right:0;top:15px;text-align:center;font-size:10.5px;font-weight:800;color:var(--tx2)}
 .tabs{display:flex;background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:3px;gap:3px;margin:2px 12px 8px;flex:none}
@@ -251,6 +253,7 @@ header{padding:calc(10px + var(--safe-t)) 10px 6px 16px;display:flex;align-items
     <input type="date" id="jump" tabindex="-1" aria-hidden="true">
     <button class="hb" id="bSearch" aria-label="Rechercher"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
     <button class="hb today" id="bToday" aria-label="Aujourd'hui"><svg class="ic" viewBox="0 0 24 24" style="width:24px;height:24px"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 9.5h17M8 3v3.5M16 3v3.5"/></svg><b id="tdn"></b></button>
+    <button class="hb" id="bRef" aria-label="Actualiser" title="Actualiser"><svg class="ic" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
     <button class="hb" id="bSet" aria-label="Réglages"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg></button>
   </header>
   <div class="warn" id="noBridge" hidden>Cette page fonctionne dans l'application Android <b>Agenda</b> : c'est elle qui lit et enregistre tes rendez-vous.</div>
@@ -1303,6 +1306,44 @@ function handleIntent(j){
     else openDetail(x);
   }
 }
+
+/* ---------- Actualiser : demande la synchronisation des comptes (Google…), relit les agendas et les événements
+   de la vue affichée en gardant la position (bouton ⟳ ou glisser vers le bas en haut de la liste) ---------- */
+var refreshing = false, rfT, touching = false;
+function redrawKeep(){
+  var dl = document.querySelector('#main .daylist'), y = dl ? dl.scrollTop : 0;
+  cache = {}; render();
+  var dl2 = document.querySelector('#main .daylist'); if (dl2) dl2.scrollTop = y;
+}
+function doRefresh(){
+  if (refreshing) return; refreshing = true;
+  var b = $('bRef'), t0 = Date.now();
+  b.classList.add('spinning');
+  setTimeout(function(){
+    try {
+      if (A) { hasPerm = A.perm(); if (hasPerm) { try { A.sync(); } catch(e){} } }
+      loadCals(); redrawKeep();
+      toast(A && !hasPerm ? 'Actualisé · autorisation non accordée' : 'Actualisé');
+      // les nouveautés de la synchronisation arrivent quelques secondes plus tard
+      clearTimeout(rfT); rfT = setTimeout(function late(){ if (touching) { rfT = setTimeout(late, 800); return; } if (A && hasPerm) { loadCals(); if (!layers.length) redrawKeep(); else cache = {}; } }, 4000);
+    } finally {
+      setTimeout(function(){ b.classList.remove('spinning'); }, Math.max(0, 700 - (Date.now() - t0)));
+      refreshing = false;
+    }
+  }, 30);
+}
+$('bRef').onclick = doRefresh;
+(function(){
+  var m = $('main'), y0 = null, pulled = 0, sc = null;
+  var ind = document.createElement('div'); ind.id = 'ptr'; ind.innerHTML = '<svg class="ic" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>'; document.body.appendChild(ind);
+  function top(){ return !sc || !sc.isConnected || sc.scrollTop <= 0; }
+  function reset(){ y0 = null; pulled = 0; sc = null; ind.classList.remove('on', 'ready'); ind.style.transform = ''; }
+  // écouté sur le document : la vue peut être redessinée pendant le geste (synchronisation qui arrive)
+  document.addEventListener('touchstart', function(e){ reset(); touching = true; if (e.touches.length !== 1 || layers.length || !m.contains(e.target)) return; sc = e.target.closest('.daylist,.wbody,.plist,.wall'); if (top()) y0 = e.touches[0].clientY; }, { passive:true });
+  document.addEventListener('touchmove', function(e){ if (y0 == null) return; if (!top()) { reset(); return; } var t = e.touches[0]; pulled = Math.max(0, t.clientY - y0); ind.style.transform = 'translate(-50%,' + Math.min(70, pulled / 2) + 'px) rotate(' + (pulled * 2) + 'deg)'; ind.classList.toggle('on', pulled > 12); ind.classList.toggle('ready', pulled > 110); }, { passive:true });
+  document.addEventListener('touchend', function(e){ if (y0 != null && pulled > 110 && !layers.length) doRefresh(); reset(); touching = e.touches.length > 0; }, { passive:true });
+  document.addEventListener('touchcancel', function(){ reset(); touching = false; }, { passive:true });
+})();
 
 /* ---------- Événements venant d'Android ---------- */
 var rT;
