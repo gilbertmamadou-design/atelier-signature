@@ -28,6 +28,8 @@ header{padding:calc(10px + var(--safe-t)) 14px 8px;display:flex;align-items:cent
 .search{flex:1;display:flex;align-items:center;gap:6px;background:var(--bg2);border-radius:999px;padding:7px 12px;min-width:0;border:1px solid var(--line)}
 .search input{flex:1;background:none;border:0;outline:0;min-width:0}
 .search .ic{width:18px;height:18px;color:var(--tx3)}
+#refreshBtn.spinning svg{animation:rfspin .9s linear}@keyframes rfspin{to{transform:rotate(360deg)}}
+#ptr{position:fixed;left:50%;top:calc(58px + var(--safe-t));transform:translate(-50%,0);width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--bg3, #222);color:var(--tx2);opacity:0;pointer-events:none;z-index:20;transition:opacity .15s}#ptr.on{opacity:1}#ptr.ready{color:var(--acc)}
 .iconbtn{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:var(--tx2);flex:none}
 .iconbtn:active{background:var(--bg3)}
 main{flex:1;overflow-y:auto;padding:2px 0 calc(90px + var(--safe-b))}
@@ -304,6 +306,7 @@ body.z2{--th:60px;--gw:150px;--pw:150px}
 <header>
   <div class="logo" id="logo"><i>✦</i><span>Rangement</span></div>
   <label class="search"><svg class="ic"><use href="#i-search"/></svg><input id="q" type="search" placeholder="Rechercher" autocomplete="off"></label>
+  <button class="iconbtn" id="refreshBtn" aria-label="Actualiser" title="Actualiser"><svg class="ic"><use href="#i-refresh"/></svg></button>
   <button class="iconbtn" id="menuBtn" aria-label="Menu"><svg class="ic"><use href="#i-more"/></svg></button>
 </header>
 <div class="selhead"><button class="iconbtn" id="selClose" aria-label="Annuler"><svg class="ic"><use href="#i-x"/></svg></button><b id="selCount">0</b><button class="chip" id="selAll">Tout</button></div>
@@ -1583,6 +1586,22 @@ $("#v-apps").addEventListener("click", e => {
 });
 
 /* ================= Menu & aide ================= */
+/* Actualiser : relit le dossier ou la vue affichée et relance l'analyse du stockage (bouton ⟳ ou glisser vers le bas en haut de liste) */
+function doRefresh() {
+  const b = $("#refreshBtn"); b.classList.add("spinning"); setTimeout(() => b.classList.remove("spinning"), 900);
+  const y = $("#main").scrollTop;
+  try { CLEAN = null; if (curView === "trash") loadTrash && loadTrash(); } catch (e) {}
+  rerender(); requestAnimationFrame(() => $("#main").scrollTop = y);
+  bgRescan(true); paintScanning(); toast("Actualisé");
+}
+$("#refreshBtn").onclick = doRefresh;
+(() => {
+  const m = $("#main"); let y0 = null, pulled = 0;
+  const ind = document.createElement("div"); ind.id = "ptr"; ind.innerHTML = '<svg class="ic"><use href="#i-refresh"/></svg>'; document.body.appendChild(ind);
+  m.addEventListener("touchstart", e => { y0 = m.scrollTop <= 0 && e.touches.length === 1 && !document.querySelector(".sheet.on") ? e.touches[0].clientY : null; pulled = 0; }, { passive: true });
+  m.addEventListener("touchmove", e => { if (y0 == null) return; pulled = Math.max(0, e.touches[0].clientY - y0); if (m.scrollTop > 0) { y0 = null; pulled = 0; } ind.style.transform = `translate(-50%, ${Math.min(70, pulled / 2)}px) rotate(${pulled * 2}deg)`; ind.classList.toggle("on", pulled > 12); ind.classList.toggle("ready", pulled > 110); }, { passive: true });
+  m.addEventListener("touchend", () => { if (y0 != null && pulled > 110) doRefresh(); y0 = null; pulled = 0; ind.classList.remove("on", "ready"); ind.style.transform = ""; }, { passive: true });
+})();
 $("#menuBtn").onclick = () => {
   SH = {
     rescan: () => ACT.rescan(), help: () => push(() => { $("#v-help").innerHTML = helpHTML(); CURFN = null; show("help"); }),
