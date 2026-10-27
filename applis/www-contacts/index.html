@@ -28,6 +28,8 @@ header{padding:calc(10px + var(--safe-t)) 10px 4px 16px;display:flex;align-items
 .logo small{font-size:13px;color:var(--tx3);font-weight:600}
 .hb{width:42px;height:42px;border-radius:13px;display:flex;align-items:center;justify-content:center;color:var(--tx2);flex:none;position:relative}
 .hb:active{background:var(--bg3)}
+#bRef.spinning .ic{animation:rfspin .9s linear infinite}@keyframes rfspin{to{transform:rotate(360deg)}}
+#ptr{position:fixed;left:50%;top:calc(118px + var(--safe-t));transform:translate(-50%,0);width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--bg2);border:1px solid var(--line);color:var(--tx2);opacity:0;pointer-events:none;z-index:20;transition:opacity .15s}#ptr.on{opacity:1}#ptr.ready{color:var(--acc)}
 .hb .pip{position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%;background:#ffb35c}
 .search{margin:4px 12px 8px;display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--line);border-radius:15px;padding:0 6px 0 14px;height:46px;flex:none}
 .search svg{color:var(--tx3)}
@@ -177,6 +179,7 @@ header{padding:calc(10px + var(--safe-t)) 10px 4px 16px;display:flex;align-items
   <header>
     <div class="logo">Contacts <small id="cnt"></small></div>
     <button class="hb" id="bDup" aria-label="Doublons" hidden><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/></svg><span class="pip"></span></button>
+    <button class="hb" id="bRef" aria-label="Actualiser" title="Actualiser"><svg class="ic" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
     <button class="hb" id="bMenu" aria-label="Plus"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/></svg></button>
   </header>
   <div class="warn" id="noBridge" hidden>Cette page fonctionne dans l'application Android <b>Contacts</b> : c'est elle qui lit et enregistre ton carnet d'adresses.</div>
@@ -950,6 +953,35 @@ function pickExisting(cb){
     closeLayer(L); setTimeout(function(){ cb(+t.dataset.id); }, 60);
   });
 }
+
+/* ---------- Actualiser : relit le carnet d'adresses du téléphone (synchronisations, autres applis) en gardant la position
+   (bouton ⟳ ou glisser vers le bas en haut de la liste) ---------- */
+var refreshing = false;
+function doRefresh(){
+  if (refreshing) return; refreshing = true;
+  var b = $('bRef'), t0 = Date.now(), l = $('list'), st = l.scrollTop;
+  b.classList.add('spinning');
+  setTimeout(function(){
+    try {
+      if (A) { hasPerm = A.perm(); accounts = []; loadAccounts(); }
+      load(); renderList(); l.scrollTop = st;
+      toast(A && !hasPerm ? 'Actualisé · autorisation non accordée' : 'Actualisé · ' + all.length + ' contact' + (all.length > 1 ? 's' : ''));
+    } finally {
+      setTimeout(function(){ b.classList.remove('spinning'); }, Math.max(0, 700 - (Date.now() - t0)));
+      refreshing = false;
+    }
+  }, 30);
+}
+$('bRef').onclick = doRefresh;
+(function(){
+  var l = $('list'), y0 = null, pulled = 0;
+  var ind = document.createElement('div'); ind.id = 'ptr'; ind.innerHTML = '<svg class="ic" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>'; document.body.appendChild(ind);
+  function reset(){ y0 = null; pulled = 0; ind.classList.remove('on', 'ready'); ind.style.transform = ''; }
+  l.addEventListener('touchstart', function(e){ y0 = (l.scrollTop <= 0 && e.touches.length === 1 && !layers.length) ? e.touches[0].clientY : null; pulled = 0; }, { passive:true });
+  l.addEventListener('touchmove', function(e){ if (y0 == null) return; if (l.scrollTop > 0) { reset(); return; } pulled = Math.max(0, e.touches[0].clientY - y0); ind.style.transform = 'translate(-50%,' + Math.min(70, pulled / 2) + 'px) rotate(' + (pulled * 2) + 'deg)'; ind.classList.toggle('on', pulled > 12); ind.classList.toggle('ready', pulled > 110); }, { passive:true });
+  l.addEventListener('touchend', function(){ if (y0 != null && pulled > 110 && !layers.length) doRefresh(); reset(); }, { passive:true });
+  l.addEventListener('touchcancel', reset, { passive:true });
+})();
 
 /* ---------- Événements venant d'Android ---------- */
 var rT;
