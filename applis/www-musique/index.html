@@ -29,6 +29,8 @@ header{padding:calc(10px + var(--safe-t)) 16px 8px;display:flex;align-items:cent
 .search .ic{width:18px;height:18px;color:var(--tx3)}
 .iconbtn{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:var(--tx2);flex:none}
 .iconbtn:active{background:var(--bg3)}
+#refreshBtn.spinning svg{animation:rfspin .9s linear infinite}@keyframes rfspin{to{transform:rotate(360deg)}}
+#ptr{position:fixed;left:50%;top:calc(58px + var(--safe-t));transform:translate(-50%,0);width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--bg3);color:var(--tx2);opacity:0;pointer-events:none;z-index:20;transition:opacity .15s}#ptr.on{opacity:1}#ptr.ready{color:var(--acc)}
 
 main{flex:1;overflow-y:auto;padding:4px 0 calc(150px + var(--safe-b))}
 .view{display:none}.view.on{display:block}
@@ -235,6 +237,7 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
 <header>
   <div class="logo" id="logo"><i>♪</i><span>Mélodie</span></div>
   <label class="search"><svg class="ic"><use href="#i-search"/></svg><input id="q" type="search" placeholder="Rechercher" autocomplete="off"></label>
+  <button class="iconbtn" id="refreshBtn" aria-label="Actualiser" title="Actualiser"><svg class="ic"><use href="#i-refresh"/></svg></button>
   <button class="iconbtn" id="menuBtn" aria-label="Menu"><svg class="ic"><use href="#i-more"/></svg></button>
 </header>
 
@@ -1054,6 +1057,43 @@ async function findCovers(list, force) {
   }
   finish();
 }
+/* Actualiser : relit la bibliothèque du téléphone et redessine la vue affichée en gardant la position (bouton ⟳ ou glisser vers le bas en haut de liste) */
+let refreshing = false;
+async function doRefresh() {
+  if (refreshing) return; refreshing = true;
+  const b = $("#refreshBtn"), t0 = Date.now(); b.classList.add("spinning");
+  try {
+    if (NATIVE && !MP.musicHasPerm()) { await loadLibrary(); return; }
+    const m = $("#main"), y = m.scrollTop;
+    await new Promise(r => setTimeout(r, 30));
+    if (NATIVE) { try { TR = JSON.parse(MP.musicScan() || "[]"); } catch (e) { TR = []; } TR.forEach(t => { t.id = String(t.id); }); }
+    else TR = (await IDB.get("meta")) || [];
+    index();
+    const q = $("#q").value.trim();
+    if (curView === "gate") goTab("titres");
+    else if (q && curView !== "detail") $("#q").dispatchEvent(new Event("input"));
+    else if (curView === "detail" && DL.fn) DL.fn();
+    else if (render[curView]) render[curView]();
+    paintNow();
+    m.scrollTop = y;
+    ALBUMS.slice(0, 40).forEach(A => queueArt(A.rep));
+    toast("Actualisé · " + pl(TR.length, "titre"));
+  } finally {
+    setTimeout(() => b.classList.remove("spinning"), Math.max(0, 700 - (Date.now() - t0)));
+    refreshing = false;
+  }
+}
+$("#refreshBtn").onclick = doRefresh;
+(() => {
+  const m = $("#main"); let y0 = null, pulled = 0;
+  const ind = document.createElement("div"); ind.id = "ptr"; ind.innerHTML = '<svg class="ic"><use href="#i-refresh"/></svg>'; document.body.appendChild(ind);
+  const blocked = () => $("#sheet").classList.contains("on") || $("#player").classList.contains("on");
+  const reset = () => { y0 = null; pulled = 0; ind.classList.remove("on", "ready"); ind.style.transform = ""; };
+  m.addEventListener("touchstart", e => { y0 = m.scrollTop <= 0 && e.touches.length === 1 && !blocked() ? e.touches[0].clientY : null; pulled = 0; }, { passive: true });
+  m.addEventListener("touchmove", e => { if (y0 == null) return; if (m.scrollTop > 0) { reset(); return; } pulled = Math.max(0, e.touches[0].clientY - y0); ind.style.transform = `translate(-50%, ${Math.min(70, pulled / 2)}px) rotate(${pulled * 2}deg)`; ind.classList.toggle("on", pulled > 12); ind.classList.toggle("ready", pulled > 110); }, { passive: true });
+  m.addEventListener("touchend", () => { if (y0 != null && pulled > 110) doRefresh(); reset(); }, { passive: true });
+  m.addEventListener("touchcancel", reset, { passive: true });
+})();
 function mainMenu() {
   SH = {
     help: () => { $("#q").value = ""; render.aide(); showView("aide", true); },
@@ -1188,7 +1228,7 @@ function helpHTML() {
   <h2 style="margin:4px 0 6px">Comment marche Mélodie</h2>
   <p>Un lecteur simple pour écouter la musique qui se trouve sur votre téléphone (ou sur votre PC).</p>
   <h3>📂 Trouver sa musique</h3>
-  ${NATIVE ? `<p>Au premier lancement, autorisez <b>l'accès à la musique</b> : Mélodie retrouve alors tous vos MP3, FLAC, M4A… rangés sur le téléphone. Vous en avez ajouté d'autres ? Menu <b>⋮ → Actualiser</b>.</p>` : `<p>Menu <b>⋮ → Ajouter des fichiers</b> ou <b>Ajouter un dossier</b>, ou glissez vos morceaux dans la fenêtre. Ils restent sur cet appareil.</p>`}
+  ${NATIVE ? `<p>Au premier lancement, autorisez <b>l'accès à la musique</b> : Mélodie retrouve alors tous vos MP3, FLAC, M4A… rangés sur le téléphone. Vous en avez ajouté d'autres ? Touchez <b>⟳</b> en haut, ou glissez la liste vers le bas.</p>` : `<p>Menu <b>⋮ → Ajouter des fichiers</b> ou <b>Ajouter un dossier</b>, ou glissez vos morceaux dans la fenêtre. Ils restent sur cet appareil.</p>`}
   <h3>🖼 Pochettes d'album</h3>
   <p>Les pochettes enregistrées dans vos morceaux s'affichent partout : listes, albums, lecteur, écran verrouillé. Des pochettes manquent ? Onglet <b>Albums → Pochettes manquantes</b> : Mélodie les cherche sur Internet et les garde sur le téléphone (il faut une connexion). Pour un seul album : ouvrez-le, <b>⋮ → Chercher la pochette sur Internet</b>, ou choisissez une photo du téléphone.</p>
   <h3>▶ Écouter</h3>
