@@ -67,7 +67,7 @@ main{padding:4px 16px calc(28px + var(--safe-b))}
 .sw input:checked+span:after{transform:translateX(18px);background:#fff}
 .seg{display:flex;background:var(--bg3);border-radius:12px;padding:3px;gap:3px;margin-top:8px}
 .seg button{flex:1;padding:8px 4px;border-radius:9px;font-size:13px;font-weight:600;color:var(--tx2);text-align:center;line-height:1.2}
-.seg[data-k="fit"]{flex-wrap:wrap}.seg[data-k="fit"] button{flex:1 1 45%}
+.seg[data-k="fit"]{flex-wrap:wrap}.seg[data-k="fit"] button{flex:1 1 45%}.seg[data-k="fit"] button[data-v="auto"]{flex-basis:100%}
 .seg button.on{background:var(--bg4);color:var(--tx);box-shadow:0 0 0 1px #ffffff1c inset}
 .seg.wrap{flex-wrap:wrap}
 .seg.wrap button{flex:1 0 22%}
@@ -181,7 +181,7 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
     </div>
     <div class="block">
       <div class="lab">Adapter à l'écran</div>
-      <div class="seg" data-k="fit"><button data-v="smart">Recadrage intelligent</button><button data-v="width">Pleine largeur</button><button data-v="center">Centré</button><button data-v="blur">Entière, fond flou</button></div>
+      <div class="seg" data-k="fit"><button data-v="auto">Recadrer si besoin</button><button data-v="smart">Recadrage intelligent</button><button data-v="width">Pleine largeur</button><button data-v="center">Centré</button><button data-v="blur">Entière, fond flou</button></div>
       <div class="hint" id="fitHint" style="margin-top:8px"></div>
     </div>
   </section>
@@ -209,7 +209,7 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
 (function(){
   var A = window.MAGPrint, $ = function(i){return document.getElementById(i)};
   var S = {}, cur = '', busy = {};
-  var FIT = {smart:"Garde la partie la plus détaillée de l'image.", center:"Garde le centre de l'image.", width:"Garde toute la largeur de l'image : si elle est plus large que l'écran, le haut et le bas sont complétés par une version floutée ; si elle est plus haute, seul le haut ou le bas est recadré.", blur:"Montre toute l'image, le vide est rempli par une version floutée."};
+  var FIT = {smart:"Garde la partie la plus détaillée de l'image.", center:"Garde le centre de l'image.", auto:"Ne recadre que si une bordure, un bandeau, un logo ou une écriture est détecté ; sinon l'image est gardée en pleine largeur.", width:"Garde toute la largeur de l'image : si elle est plus large que l'écran, le haut et le bas sont complétés par une version floutée ; si elle est plus haute, seul le haut ou le bas est recadré.", blur:"Montre toute l'image, le vide est rempli par une version floutée."};
 
   function toast(t, bad){ var e=$('toast'); e.textContent=t; e.className='on'+(bad?' bad':''); clearTimeout(toast.t); toast.t=setTimeout(function(){e.className=''},3200); }
   function setBusy(id, on){ var b=$(id); if(!b) return; b.classList.toggle('busy', on); b.disabled = on || (id==='bApply' && !cur); }

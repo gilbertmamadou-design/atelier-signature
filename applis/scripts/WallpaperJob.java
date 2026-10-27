@@ -369,8 +369,16 @@ public class WallpaperJob extends JobService {
         Rect r = new Rect(full);
         List<String> info = new ArrayList<>();
         int tol = Math.max(4, Math.min(80, o.optInt("tol", 24)));
-        if (o.optBoolean("borders", true)) { Rect b = borders(src, r, tol); if (!b.equals(r)) info.add("bordures retirées"); r = b; }
-        if (o.optBoolean("text", false)) {
+        boolean autoFit = "auto".equals(o.optString("fit", "smart"));
+        if (autoFit || o.optBoolean("borders", true)) { Rect b = borders(src, r, tol); if (!b.equals(r)) info.add("bordures retirées"); r = b; }
+        if (autoFit) {
+            Rect t = textBands(src, r);
+            if (!t.equals(r)) { info.add("bandeau de texte coupé"); r = borders(src, t, tol); }
+            Rect g = logoBands(src, r);
+            if (!g.equals(r)) { info.add(g.top > r.top && g.bottom < r.bottom ? "logo ou texte retiré en haut et en bas" : g.top > r.top ? "logo ou texte retiré en haut" : "logo ou texte retiré en bas"); r = g; }
+            if (info.isEmpty()) info.add("rien à retirer, image gardée");
+        }
+        if (!autoFit && o.optBoolean("text", false)) {
             Rect t = textBands(src, r);
             if (!t.equals(r)) { info.add("bandeau de texte coupé"); r = t; if (o.optBoolean("borders", true)) r = borders(src, r, tol); }
         }
@@ -380,6 +388,7 @@ public class WallpaperJob extends JobService {
         Res res = new Res();
         res.src = src;
         String fit = o.optString("fit", "smart");
+        if (autoFit) fit = "width"; // recadrage automatique : seuls bordures, bandeaux, logos et écritures détectés sont retirés, le reste en pleine largeur
         res.keep = new Rect(r);
         res.out = fit(src, r, sw, sh, fit, res);
         if (("blur".equals(fit) || ("width".equals(fit) && r.width() / (float) r.height() > sw / (float) sh)) && !aspectClose(r, sw, sh)) info.add("width".equals(fit) ? "pleine largeur, bandes floues" : "image entière sur fond flou");
@@ -500,6 +509,50 @@ public class WallpaperJob extends JobService {
         int margin = r.height() / 200;
         Rect n = new Rect(r.left, r.top + (top > 0 ? top + margin : 0), r.right, r.bottom - (bot > 0 ? bot + margin : 0));
         return n.height() < r.height() / 2 ? new Rect(r) : n;
+    }
+
+    // Logo, signature ou écriture incrustés près du haut ou du bas (filigrane sur la photo) :
+    // rangées où les contrastes forts sont bien plus denses qu'au cœur de l'image, regroupées contre le bord.
+    static Rect logoBands(Bitmap b, Rect r) {
+        int W = 640, H = Math.max(40, Math.round(640f * r.height() / Math.max(1, r.width())));
+        Bitmap sm = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888);
+        new Canvas(sm).drawBitmap(b, r, new Rect(0, 0, W, H), new Paint(Paint.FILTER_BITMAP_FLAG));
+        int[] px = new int[W * H];
+        sm.getPixels(px, 0, W, 0, 0, W, H);
+        sm.recycle();
+        int nSeg = 6;
+        int[] d = new int[H];
+        int[] seg = new int[nSeg];
+        for (int y = 0; y < H; y++) {
+            Arrays.fill(seg, 0);
+            int prev = -1;
+            for (int x = 0; x < W; x++) {
+                int p = px[y * W + x];
+                int l = (((p >> 16) & 255) * 3 + ((p >> 8) & 255) * 6 + (p & 255)) / 10;
+                if (prev >= 0 && Math.abs(l - prev) > 40) seg[Math.min(nSeg - 1, x * nSeg / W)]++;
+                prev = l;
+            }
+            int m = 0; for (int v : seg) m = Math.max(m, v);
+            d[y] = m; // densité d'écriture : la portion de rangée (1/6 de largeur) la plus chargée en contrastes
+        }
+        int[] mid = Arrays.copyOfRange(d, H / 4, Math.max(H / 4 + 1, H * 3 / 4));
+        Arrays.sort(mid);
+        double thr = Math.max(7, mid[mid.length / 2] * 2.5 + 3);
+        int zone = Math.max(3, H * 18 / 100);
+        int top = logoCut(d, zone, thr, true), bot = logoCut(d, zone, thr, false);
+        float k = r.height() / (float) H;
+        Rect n = new Rect(r.left, r.top + Math.round(top * k), r.right, r.bottom - Math.round(bot * k));
+        return n.height() < r.height() * 0.65f ? new Rect(r) : n;
+    }
+
+    private static int logoCut(int[] d, int zone, double thr, boolean fromTop) {
+        int H = d.length, hot = 0, last = -1;
+        for (int k = 0; k < zone; k++) { int y = fromTop ? k : H - 1 - k; if (d[y] > thr) { hot++; last = k; } }
+        if (hot < 3 || last < 0) return 0;
+        // l'écriture doit être isolée contre le bord : juste après, l'image redevient calme
+        int look = Math.max(3, zone / 2);
+        for (int k = last + 1; k <= last + look && k < H; k++) { int y = fromTop ? k : H - 1 - k; if (d[y] > thr) return 0; }
+        return last + 2;
     }
 
     private static int textBand(Bitmap b, Rect r, boolean fromTop, int zone, int minLen, int[] buf, int[] hist) {
