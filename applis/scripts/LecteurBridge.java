@@ -309,6 +309,20 @@ public class LecteurBridge {
         return o.toString();
     }
 
+    /** Le document est-il toujours lisible ? "ok", "missing" ou "perm" (rien n'est copié ni gardé ouvert). Sert à Actualiser. */
+    @JavascriptInterface public String check(String src) {
+        active = true;
+        try {
+            if (src != null && src.startsWith("local:")) { File f = localFile(src.substring(6)); return f != null && f.exists() ? "ok" : "missing"; }
+            ParcelFileDescriptor p = a.getContentResolver().openFileDescriptor(Uri.parse(src), "r");
+            if (p == null) return "missing";
+            try { p.close(); } catch (Throwable t) { }
+            return "ok";
+        } catch (SecurityException e) { return "perm"; }
+        catch (java.io.FileNotFoundException e) { return "missing"; }
+        catch (Throwable t) { return "ok"; }   // dans le doute, le document n'est pas marqué introuvable
+    }
+
     /** Morceau d'un document ouvert, en base64 ("" à la fin ou en cas d'erreur) */
     @JavascriptInterface public String read(String hid, double offset, int len) {
         H h; synchronized (handles) { h = handles.get(hid); }
