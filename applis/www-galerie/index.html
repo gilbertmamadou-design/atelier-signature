@@ -32,6 +32,8 @@ svg{display:block}
 .ib{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;color:var(--tx)}
 .ib:active{background:#ffffff14}
 .ib[disabled]{opacity:.35}
+.ib.spinning .ic{animation:rfspin .9s linear infinite}@keyframes rfspin{to{transform:rotate(360deg)}}
+#ptr{position:fixed;left:50%;top:calc(var(--head) + var(--safe-t) + 4px);transform:translate(-50%,0);width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--bg2);border:1px solid #ffffff1c;color:var(--tx2);opacity:0;pointer-events:none;z-index:20;transition:opacity .15s}#ptr.on{opacity:1}#ptr.ready{color:var(--acc)}
 .vbody{flex:1;position:relative;min-height:0}
 .nav{position:fixed;left:0;right:0;bottom:0;height:calc(var(--nav) + var(--safe-b));padding-bottom:var(--safe-b);display:flex;background:#12141bf0;border-top:1px solid var(--line);z-index:10;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 .nav button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11.5px;font-weight:600;color:var(--tx3)}
@@ -286,6 +288,7 @@ input[type=range]{width:100%;margin:6px 0 8px;accent-color:var(--acc)}
 <section class="view" id="v-photos">
   <div class="vhead">
     <div class="logo"><svg viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8fb4ff"/><stop offset="1" stop-color="#b79bff"/></linearGradient></defs><rect x="2" y="2" width="28" height="28" rx="8" fill="url(#lg)"/><rect x="7.5" y="9" width="12" height="12" rx="2.5" fill="none" stroke="#10131c" stroke-width="2.2"/><path d="M12.5 6.5h10a3 3 0 0 1 3 3v10" fill="none" stroke="#10131c" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="13.2" r="1.5" fill="#10131c"/><path d="m8.5 19.5 4-3.5 2.5 2 3.5-3" fill="none" stroke="#10131c" stroke-width="2" stroke-linejoin="round"/></svg>Galerie</div>
+    <button class="ib rfb" id="bRefresh" aria-label="Actualiser" title="Actualiser"><svg class="ic"><use href="#i-refresh"/></svg></button>
     <button class="ib" id="bSelect" aria-label="Sélectionner"><svg class="ic"><use href="#i-select"/></svg></button>
     <button class="ib" id="bCols" aria-label="Taille de la grille"><svg class="ic"><use href="#i-grid"/></svg></button>
   </div>
@@ -295,7 +298,7 @@ input[type=range]{width:100%;margin:6px 0 8px;accent-color:var(--acc)}
 
 <!-- ======== Albums ======== -->
 <section class="view" id="v-albums" hidden>
-  <div class="vhead"><h1>Albums</h1></div>
+  <div class="vhead"><h1>Albums</h1><button class="ib rfb" id="bRefresh2" aria-label="Actualiser" title="Actualiser"><svg class="ic"><use href="#i-refresh"/></svg></button></div>
   <div class="vbody"><div class="scroll" id="albScroll">
     <div class="coll" id="coll"></div>
     <div class="sect">Dossiers sur le téléphone</div>
@@ -495,6 +498,7 @@ H.perm = H.resume = function(d){
 
 function onItems(){
   loaded = true;
+  if (RF.wait){ var w = RF.wait; RF.wait = null; setTimeout(w, 0); }
   BYK = new Map();
   for (var i = 0; i < ITEMS.length; i++) BYK.set(ITEMS[i].k, ITEMS[i]);
   MAIN.setItems(ITEMS, true);
@@ -1981,6 +1985,50 @@ function gateArt(){
     '<rect x="64" y="18" width="104" height="104" rx="18" fill="#181b23" stroke="url(#gg)" stroke-width="3"/>' +
     '<circle cx="96" cy="52" r="9" stroke="url(#gg)" stroke-width="3"/><path d="m70 106 28-28 18 18 12-12 34 30" stroke="url(#gg)" stroke-width="3"/></svg></div>';
 }
+
+/* ---------- Actualiser : relit les photos et vidéos du téléphone (et la corbeille affichée) en gardant la position
+   (bouton ⟳ ou glisser vers le bas en haut de la grille) ---------- */
+var RF = { busy: false, wait: null };
+function doRefresh(){
+  if (RF.busy || !G) { if (!G) toast("Actualisé"); return; }
+  RF.busy = true;
+  var btns = document.querySelectorAll(".rfb"), t0 = Date.now();
+  btns.forEach(function(b){ b.classList.add("spinning"); });
+  var end = function(msg){
+    RF.wait = null;
+    setTimeout(function(){ btns.forEach(function(b){ b.classList.remove("spinning"); }); RF.busy = false; }, Math.max(0, 700 - (Date.now() - t0)));
+    toast(msg);
+  };
+  var p; try { p = JSON.parse(call("permState") || "{}"); } catch (e) { p = PERM; }
+  if (p && typeof p.any === "boolean" && p.any !== PERM.any){ PERM = p; applyPerm(); }
+  if (!PERM.any){ end("Actualisé"); return; }
+  var to = setTimeout(function(){ if (RF.wait) end("Actualisé"); }, 20000);
+  RF.wait = function(){ clearTimeout(to); end("Actualisé · " + plural(ITEMS.length, "élément")); };
+  loadAll();
+  if (PG.kind === "trash") loadTrash();
+}
+$("bRefresh").onclick = doRefresh; $("bRefresh2").onclick = doRefresh;
+(function(){
+  var y0 = null, pulled = 0, sc = null;
+  var ind = document.createElement("div"); ind.id = "ptr"; ind.innerHTML = ico("refresh"); document.body.appendChild(ind);
+  function blocked(){ return SEL.on || SELDRAG || V.on || ED.on || !$("sheet").hidden || !$("gate").hidden; }
+  function reset(){ y0 = null; pulled = 0; sc = null; ind.classList.remove("on", "ready"); ind.style.transform = ""; }
+  document.addEventListener("touchstart", function(e){
+    reset();
+    if (e.touches.length !== 1 || blocked()) return;
+    sc = e.target.closest && e.target.closest(".view:not([hidden]) .gs, #albScroll");
+    if (sc && sc.scrollTop <= 0) y0 = e.touches[0].clientY; else sc = null;
+  }, { passive: true });
+  document.addEventListener("touchmove", function(e){
+    if (y0 == null) return;
+    if (sc.scrollTop > 0 || e.touches.length !== 1 || SELDRAG){ reset(); return; }
+    pulled = Math.max(0, e.touches[0].clientY - y0);
+    ind.style.transform = "translate(-50%," + Math.min(70, pulled / 2) + "px) rotate(" + (pulled * 2) + "deg)";
+    ind.classList.toggle("on", pulled > 12); ind.classList.toggle("ready", pulled > 110);
+  }, { passive: true });
+  document.addEventListener("touchend", function(){ if (y0 != null && pulled > 110 && !blocked()) doRefresh(); reset(); }, { passive: true });
+  document.addEventListener("touchcancel", reset, { passive: true });
+})();
 
 /* ---------- Démarrage ---------- */
 function start(){
