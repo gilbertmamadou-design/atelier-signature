@@ -22,6 +22,8 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stro
 header{position:sticky;top:0;z-index:5;background:var(--bg);padding:calc(12px + var(--safe-t)) 16px 8px;display:flex;align-items:center;gap:10px}
 header h1{font-size:21px;margin:0;font-weight:800;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .back{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--bg2);flex:none}
+#bRef.spinning svg{animation:sp .9s linear infinite}
+#ptr{position:fixed;left:50%;top:calc(60px + var(--safe-t));transform:translate(-50%,0);width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--bg2);border:1px solid #ffffff1f;color:var(--tx2);opacity:0;pointer-events:none;z-index:20;transition:opacity .15s}#ptr.on{opacity:1}#ptr.ready{color:var(--acc)}
 main{padding:2px 16px calc(150px + var(--safe-b))}
 nav{position:fixed;left:0;right:0;bottom:0;z-index:8;display:flex;justify-content:space-around;padding:8px 6px calc(8px + var(--safe-b));background:linear-gradient(transparent,var(--bg) 30%)}
 nav button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11.5px;font-weight:600;color:var(--tx3);padding:6px 10px;border-radius:14px;min-width:70px}
@@ -95,7 +97,7 @@ nav button.on{color:var(--acc);background:#6fd6c414}
 </style>
 </head>
 <body>
-<header><button class="back" id="bBack" hidden aria-label="Retour"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg></button><h1 id="title">Ondes</h1></header>
+<header><button class="back" id="bBack" hidden aria-label="Retour"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg></button><h1 id="title">Ondes</h1><button class="back" id="bRef" aria-label="Actualiser" title="Actualiser"><svg class="i" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button></header>
 <main id="main"></main>
 <div id="player" hidden>
   <div class="top"><img id="pArt" alt=""><div class="t"><b id="pTitle"></b><span id="pSub"></span></div>
@@ -334,19 +336,21 @@ function drawPodcast(f, a){
   };
 }
 function ep2art(x,art){ return x.art||art||''; }
-var checking=false;
-function checkNew(){
-  if(checking || !D.subs.length) return; checking=true;
-  var now=Date.now(), todo=D.subs.filter(function(s){ return !D.seen[s.feed] || now-D.seen[s.feed]>3*3600000; });
+var checking=null;
+function checkNew(force){
+  if(checking) return checking;
+  if(!D.subs.length) return Promise.resolve();
+  var now=Date.now(), todo=D.subs.filter(function(s){ return force || !D.seen[s.feed] || now-D.seen[s.feed]>3*3600000; });
+  if(!todo.length) return Promise.resolve();
   var n=0;
-  todo.forEach(function(s){
+  checking=new Promise(function(done){ todo.forEach(function(s){
     loadFeed(s.feed).then(function(f){
       var c=f.items.filter(function(e){ return e.date>(s.last||0); }).length;
       if(!s.last && f.items.length){ s.last=f.items[0].date; c=0; }
       s.newCount=c; if(f.art && !s.art) s.art=f.art; D.seen[s.feed]=Date.now(); save();
-    }).catch(function(){}).then(function(){ if(++n===todo.length){ checking=false; publish(); if(tab==='pods'&&!stack.length){ var el=$('subs'); if(el) el.innerHTML=D.subs.map(subItem).join(''); } } });
-  });
-  if(!todo.length) checking=false;
+    }).catch(function(){}).then(function(){ if(++n===todo.length){ checking=null; done(); publish(); if(tab==='pods'&&!stack.length){ var el=$('subs'); if(el) el.innerHTML=D.subs.map(subItem).join(''); } } });
+  }); });
+  return checking;
 }
 
 /* =========================================================
@@ -374,7 +378,7 @@ function viewMusic(){
 function musSearch(q){
   if(!q) return; lastMus.q=q; $('musRes').innerHTML=spin();
   var p = D.src==='ccmixter' ? ccmSearch(q) : iaSearch(q);
-  p.then(function(l){ lastMus.res=l; drawMus(l); }).catch(function(e){ $('musRes').innerHTML=errBox(e,true); var b=$('retry'); if(b) b.onclick=function(){ musSearch(q); }; });
+  return p.then(function(l){ lastMus.res=l; drawMus(l); }).catch(function(e){ $('musRes').innerHTML=errBox(e,true); var b=$('retry'); if(b) b.onclick=function(){ musSearch(q); }; });
 }
 function iaSearch(q){
   var term=q.replace(/[^\p{L}\p{N} '-]/gu,' ').trim();
@@ -402,7 +406,7 @@ function drawMus(l){
 }
 function viewAlbum(a){
   setHead(a.title||'Album', true); $('main').innerHTML=spin();
-  get('https://archive.org/metadata/'+encodeURIComponent(a.id)).then(function(t){
+  return get('https://archive.org/metadata/'+encodeURIComponent(a.id)).then(function(t){
     var m=J(t,{}), md=m.metadata||{}, files=m.files||[];
     var mp3=files.filter(function(f){ return /mp3/i.test(f.format||'') && !/64Kbps/i.test(f.format||''); });
     var best=mp3.filter(function(f){ return /VBR/i.test(f.format); }); if(best.length) mp3=best;
@@ -475,6 +479,41 @@ function openShared(t){
    FICHIERS TÉLÉCHARGÉS
    ========================================================= */
 function viewDl(){ setHead('Fichiers', false); drawDl(refreshDl()); }
+
+/* =========================================================
+   ACTUALISER : relit la vue affichée en gardant la position (nouveaux épisodes des abonnements,
+   flux du podcast ouvert, recherche, album, fichiers téléchargés) — bouton ⟳ ou glisser vers le bas
+   ========================================================= */
+var refreshing=null;
+function doRefresh(){
+  if(refreshing) return refreshing;
+  var b=$('bRef'), t0=Date.now(), y=window.scrollY, top=stack[stack.length-1], v=top?top.view:tab, a=top?top.args:{};
+  b.classList.add('spinning');
+  var job;
+  refreshDl();
+  if(v==='pods') job=checkNew(true).then(function(){ if(tab==='pods' && !stack.length){ viewPods(); window.scrollTo(0,y); } });
+  else if(v==='podcast'){ delete FEEDS[a.feed]; job=loadFeed(a.feed).then(function(f){ var t2=stack[stack.length-1]; if(t2 && t2.view==='podcast' && t2.args.feed===a.feed){ drawPodcast(f,a); window.scrollTo(0,y); } }); }
+  else if(v==='music') job=lastMus.q && lastMus.res ? (musSearch(lastMus.q)||Promise.resolve()).then(function(){ window.scrollTo(0,y); }) : Promise.resolve();
+  else if(v==='album') job=(viewAlbum(a)||Promise.resolve()).then(function(){ window.scrollTo(0,y); });
+  else if(v==='link'){ viewLink(); job=Promise.resolve(); }
+  else { drawDl(refreshDl()); window.scrollTo(0,y); job=Promise.resolve(); }
+  refreshing=job.then(function(){ toast('Actualisé'); }, function(e){ toast((e&&e.message)||'Actualisation impossible', true); }).then(function(){
+    setTimeout(function(){ b.classList.remove('spinning'); }, Math.max(0, 700-(Date.now()-t0)));
+    refreshing=null;
+  });
+  return refreshing;
+}
+$('bRef').onclick=function(){ doRefresh(); };
+(function(){
+  var y0=null, pulled=0;
+  var ind=document.createElement('div'); ind.id='ptr'; ind.innerHTML='<svg class=\"i\" viewBox=\"0 0 24 24\"><path d=\"M20 11a8 8 0 1 0-2.3 5.7\"/><path d=\"M20 4v7h-7\"/></svg>'; document.body.appendChild(ind);
+  function reset(){ y0=null; pulled=0; ind.classList.remove('on','ready'); ind.style.transform=''; }
+  var m=$('main');
+  m.addEventListener('touchstart',function(e){ y0=(window.scrollY<=0 && e.touches.length===1) ? e.touches[0].clientY : null; pulled=0; },{passive:true});
+  m.addEventListener('touchmove',function(e){ if(y0==null) return; if(window.scrollY>0){ reset(); return; } pulled=Math.max(0,e.touches[0].clientY-y0); ind.style.transform='translate(-50%,'+Math.min(70,pulled/2)+'px) rotate('+(pulled*2)+'deg)'; ind.classList.toggle('on',pulled>12); ind.classList.toggle('ready',pulled>110); },{passive:true});
+  m.addEventListener('touchend',function(){ if(y0!=null && pulled>110) doRefresh(); reset(); },{passive:true});
+  m.addEventListener('touchcancel',reset,{passive:true});
+})();
 function drawDl(l){
   if(!A){ $('main').innerHTML='<div class="empty">Disponible dans l\'application</div>'; return; }
   var h='<div class="card note">Les morceaux et podcasts vont dans <b>Musique/Ondes</b> et <b>Podcasts/Ondes</b> (Mélodie les retrouve), les vidéos dans <b>Films/Ondes</b> (Galerie).</div>';
