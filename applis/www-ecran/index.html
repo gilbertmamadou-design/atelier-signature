@@ -24,6 +24,8 @@ header{position:sticky;top:0;z-index:5;background:var(--bg);padding:calc(12px + 
 header h1{font-size:21px;margin:0;font-weight:800;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:9px}
 header h1 svg.logo{width:28px;height:28px;flex:none}
 .back,.hb{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--bg2);flex:none}
+#bRef.spinning svg{animation:sp .9s linear infinite}
+#ptr{position:fixed;left:50%;top:calc(60px + var(--safe-t));transform:translate(-50%,0);width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--bg2);border:1px solid #ffffff1f;color:var(--tx2);opacity:0;pointer-events:none;z-index:20;transition:opacity .15s}#ptr.on{opacity:1}#ptr.ready{color:var(--acc)}
 main{padding:2px 16px calc(96px + var(--safe-b))}
 nav{position:fixed;left:0;right:0;bottom:0;z-index:8;display:flex;justify-content:space-around;padding:8px 4px calc(8px + var(--safe-b));background:linear-gradient(transparent,var(--bg) 30%)}
 nav button{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--tx3);padding:6px 4px;border-radius:14px;flex:1;max-width:76px}
@@ -177,6 +179,7 @@ nav button.on{color:var(--acc);background:#ff8f7014}
 <header>
   <button class="back" id="bBack" hidden aria-label="Retour"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg></button>
   <h1 id="title"></h1>
+  <button class="hb" id="bRef" aria-label="Actualiser" title="Actualiser"><svg class="i" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
   <button class="hb" id="bTv" aria-label="TV gratuite"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="m8 2 4 4 4-4"/></svg></button>
 </header>
 <main id="main"></main>
@@ -1242,6 +1245,45 @@ function aniOpenPf(x, inst){
 /* ---------- Démarrage ---------- */
 var _render=render;
 render=function(v,a,r){ if(cur.view==='subs' && v!=='subs') markAllSeen(); _render(v,a,r); };
+/* ---------- Actualiser : relit la vue affichée en gardant la position (vidéos du téléphone, chaînes suivies,
+   recherches PeerTube et vidéos libres, avancement) — bouton ⟳ ou glisser vers le bas en haut de la page ---------- */
+var refreshingAll=null;
+function doRefresh(){
+  if(refreshingAll) return refreshingAll;
+  var b=$('bRef'), t0=Date.now(), v=cur.view, a=cur.args, job;
+  b.classList.add('spinning');
+  loadPos();
+  if(v==='mine'||v==='folder'){
+    // la liste reste affichée pendant la relecture : onScan la redessine à la même position
+    job=new Promise(function(res){ if(LOCAL===null || !A || !A.scan){ render(v,a,true); } else scanLocal(); var k=0, w=setInterval(function(){ if((LOCAL!==null && !scanning) || ++k>200){ clearInterval(w); res(); } },100); });
+  } else if(v==='home'||v==='subs'||v==='chan'){
+    if(A && A.scan && A.perm && A.perm()!=='none' && !scanning) scanLocal();
+    if(v==='home') HOME={};
+    job=refreshSubs(true).then(function(){ if(cur.view===v) render(v,a,true); });
+  } else {
+    if(v==='pt') PTR=null;
+    else if(v==='lib') LIBR={};
+    else if(v==='anime') ANIPT={};
+    render(v,a,true); job=Promise.resolve();
+  }
+  refreshingAll=job.then(function(){ refreshProgress(); updBadge(); publish(); toast('Actualisé'); }).catch(function(){ toast('Actualisé'); }).then(function(){
+    setTimeout(function(){ b.classList.remove('spinning'); }, Math.max(0, 700-(Date.now()-t0)));
+    refreshingAll=null;
+  });
+  return refreshingAll;
+}
+$('bRef').onclick=function(){ doRefresh(); };
+(function(){
+  var y0=null, pulled=0;
+  var ind=document.createElement('div'); ind.id='ptr'; ind.innerHTML='<svg class=\"i\" viewBox=\"0 0 24 24\"><path d=\"M20 11a8 8 0 1 0-2.3 5.7\"/><path d=\"M20 4v7h-7\"/></svg>'; document.body.appendChild(ind);
+  function reset(){ y0=null; pulled=0; ind.classList.remove('on','ready'); ind.style.transform=''; }
+  var m=$('main');
+  m.addEventListener('touchstart',function(e){ y0=(window.scrollY<=0 && e.touches.length===1) ? e.touches[0].clientY : null; pulled=0; },{passive:true});
+  m.addEventListener('touchmove',function(e){ if(y0==null) return; if(window.scrollY>0){ reset(); return; } pulled=Math.max(0,e.touches[0].clientY-y0); ind.style.transform='translate(-50%,'+Math.min(70,pulled/2)+'px) rotate('+(pulled*2)+'deg)'; ind.classList.toggle('on',pulled>12); ind.classList.toggle('ready',pulled>110); },{passive:true});
+  m.addEventListener('touchend',function(){ if(y0!=null && pulled>110) doRefresh(); reset(); },{passive:true});
+  m.addEventListener('touchcancel',reset,{passive:true});
+})();
+
 updBadge();
 render('home');
 if(A && A.scan && A.perm && A.perm()!=='none') scanLocal();
