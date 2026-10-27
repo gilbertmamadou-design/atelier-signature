@@ -382,7 +382,7 @@ public class WallpaperJob extends JobService {
         String fit = o.optString("fit", "smart");
         res.keep = new Rect(r);
         res.out = fit(src, r, sw, sh, fit, res);
-        if ("blur".equals(fit) && !aspectClose(r, sw, sh)) info.add("image entière sur fond flou");
+        if (("blur".equals(fit) || ("width".equals(fit) && r.width() / (float) r.height() > sw / (float) sh)) && !aspectClose(r, sw, sh)) info.add("width".equals(fit) ? "pleine largeur, bandes floues" : "image entière sur fond flou");
         else info.add("ajustée à l'écran " + sw + "×" + sh);
         res.info = String.join(", ", info);
         if (!keepSrc) { src.recycle(); res.src = null; }
@@ -545,6 +545,8 @@ public class WallpaperJob extends JobService {
     static Bitmap fit(Bitmap src, Rect r, int sw, int sh, String mode, Res res) {
         float tr = sw / (float) sh, ir = r.width() / (float) r.height();
         if ("blur".equals(mode) && !aspectClose(r, sw, sh)) return blurFit(src, r, sw, sh);
+        // Pleine largeur : toute la largeur de l'image est gardée ; image plus large que l'écran → bandes floues en haut et en bas, plus haute → recadrage vertical intelligent
+        if ("width".equals(mode) && ir > tr && !aspectClose(r, sw, sh)) return blurFit(src, r, sw, sh);
         Rect crop = new Rect(r);
         boolean center = "center".equals(mode);
         if (ir > tr) {
