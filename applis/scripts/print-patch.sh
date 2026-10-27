@@ -7,6 +7,7 @@
 #  - MAGPrint.home…() : Socle, écran d'accueil (LauncherService.java, LauncherA11y.java)
 #  - MAGPrint.wp…() : Toile, fonds d'écran automatiques recadrés (WallpaperJob.java, WallpaperTile.java)
 #  - MAGPrint.weatherWatch(lat, lng, lieu, actif) : surveillance du vent et des orages, même application fermée (toutes les 30 min)
+#  - MAGActualites (ActualitesBridge.java) : flux d'actualités en liste blanche, alertes infos et vigilance météo
 set -e
 F=$(find android/app/src/main/java -name MainActivity.java | head -1)
 PKG=$(sed -n 's/^package \(.*\);/\1/p' "$F")
@@ -392,7 +393,7 @@ public class MainActivity extends BridgeActivity {
     private final java.util.List<Object> extraBridges = new java.util.ArrayList<Object>();
     private void loadExtraBridges(WebView wv) {
         String pkg = MainActivity.class.getPackage().getName();
-        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge", "ReseauBridge", "LecteurBridge", "PdfBridge", "SolaireBridge", "SocleBridge", "FichiersBridge" }) {
+        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge", "ReseauBridge", "LecteurBridge", "PdfBridge", "SolaireBridge", "SocleBridge", "FichiersBridge", "ActualitesBridge" }) {
             try {
                 Class<?> k = Class.forName(pkg + "." + n);
                 Object o = k.getConstructor(android.app.Activity.class, WebView.class).newInstance(this, wv);
@@ -1861,6 +1862,12 @@ if [ "$APP" = "solaire" ]; then
   addperm INTERNET ACCESS_NETWORK_STATE CAMERA READ_MEDIA_IMAGES
   grep -q 'READ_EXTERNAL_STORAGE' "$MAN" || addraw '<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />'
   addraw '<uses-feature android:name="android.hardware.camera.any" android:required="false" /><uses-feature android:name="android.hardware.location" android:required="false" /><queries><intent><action android:name="android.media.action.IMAGE_CAPTURE" /></intent><intent><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="https" /></intent></queries>'
+fi
+# Actualités : flux RSS des médias et vigilance MeteoAlarm lus par ActualitesBridge.java (liste blanche d'hôtes),
+# alertes en arrière-plan (WorkManager, classe ActualitesBridge$Veille), articles ouverts dans le navigateur, partage, lecture à voix haute
+if [ "$APP" = "actualites" ]; then
+  addperm INTERNET ACCESS_NETWORK_STATE POST_NOTIFICATIONS RECEIVE_BOOT_COMPLETED
+  addraw '<queries><intent><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="https" /></intent><intent><action android:name="android.intent.action.SEND" /><data android:mimeType="text/plain" /></intent><intent><action android:name="android.intent.action.TTS_SERVICE" /></intent></queries>'
 fi
 if [ "$APP" = "meteo" ]; then
   addperm ACCESS_NETWORK_STATE RECEIVE_BOOT_COMPLETED INTERNET

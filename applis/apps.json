@@ -246,5 +246,13 @@
   "name": "Solaire",
   "icons": "android-icons-solaire",
   "file": "Solaire.apk"
+ },
+ {
+  "app": "actualites",
+  "web": "www-actualites",
+  "appid": "fr.magformation13.actualites",
+  "name": "Actualités",
+  "icons": "android-icons-actualites",
+  "file": "Actualites.apk"
  }
 ]
