@@ -27,6 +27,10 @@ header{padding:calc(14px + var(--safe-t)) 16px 8px;display:flex;align-items:cent
 .logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:22px}
 .logo svg{width:32px;height:32px}
 header .sp{flex:1}
+.rfb{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--bg2);border:1px solid var(--line);color:var(--tx2);flex:none}
+.rfb:active{background:var(--bg3)}
+.rfb.spinning .ic{animation:rfspin .9s linear infinite}@keyframes rfspin{to{transform:rotate(360deg)}}
+#ptr{position:fixed;left:50%;top:calc(68px + var(--safe-t));transform:translate(-50%,0);width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--bg2);border:1px solid var(--line);color:var(--tx2);opacity:0;pointer-events:none;z-index:20;transition:opacity .15s}#ptr.on{opacity:1}#ptr.ready{color:var(--acc)}
 .pill{font-size:13px;color:var(--tx2);background:var(--bg2);border:1px solid var(--line);padding:8px 12px;border-radius:99px;display:flex;align-items:center;gap:7px;font-weight:600;min-height:40px}
 main{padding:4px 16px calc(96px + var(--safe-b))}
 .card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px}
@@ -228,6 +232,7 @@ main{padding:4px 16px calc(96px + var(--safe-b))}
   </div>
   <div class="sp"></div>
   <div class="pill" id="pill"><svg class="ic" style="width:17px;height:17px"><use href="#i-note"/></svg><span id="pillTxt">0 note</span></div>
+  <button class="rfb" id="bRef" aria-label="Actualiser" title="Actualiser"><svg class="ic" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
 </header>
 
 <main>
@@ -444,6 +449,34 @@ function refresh(){
   INFO = J(D.info(), INFO);
   renderList(); renderQ(); publish();
 }
+/* Actualiser : relit les enregistrements du téléphone (ajoutés, renommés ou effacés ailleurs) et la place libre,
+   en gardant la position (bouton ⟳ ou glisser vers le bas en haut de la liste) */
+var refreshing = false;
+function doRefresh(){
+  if(refreshing) return; refreshing = true;
+  var b = $('bRef'), t0 = Date.now(), y = window.scrollY;
+  b.classList.add('spinning');
+  setTimeout(function(){
+    try{
+      refresh(); window.scrollTo(0, y);
+      toast(D ? 'Actualisé · ' + LIST.length + ' note' + (LIST.length > 1 ? 's' : '') : 'Actualisé');
+    } finally {
+      setTimeout(function(){ b.classList.remove('spinning'); }, Math.max(0, 700 - (Date.now() - t0)));
+      refreshing = false;
+    }
+  }, 30);
+}
+$('bRef').onclick = doRefresh;
+(function(){
+  var m = document.querySelector('main'), y0 = null, pulled = 0;
+  var ind = document.createElement('div'); ind.id = 'ptr'; ind.innerHTML = '<svg class="ic" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>'; document.body.appendChild(ind);
+  function blocked(){ return stack.length > 0 || sheetOpen; }
+  function reset(){ y0 = null; pulled = 0; ind.classList.remove('on', 'ready'); ind.style.transform = ''; }
+  m.addEventListener('touchstart', function(e){ y0 = (window.scrollY <= 0 && e.touches.length === 1 && !blocked()) ? e.touches[0].clientY : null; pulled = 0; }, { passive: true });
+  m.addEventListener('touchmove', function(e){ if(y0 == null) return; if(window.scrollY > 0){ reset(); return; } pulled = Math.max(0, e.touches[0].clientY - y0); ind.style.transform = 'translate(-50%,' + Math.min(70, pulled / 2) + 'px) rotate(' + (pulled * 2) + 'deg)'; ind.classList.toggle('on', pulled > 12); ind.classList.toggle('ready', pulled > 110); }, { passive: true });
+  m.addEventListener('touchend', function(){ if(y0 != null && pulled > 110 && !blocked()) doRefresh(); reset(); }, { passive: true });
+  m.addEventListener('touchcancel', reset, { passive: true });
+})();
 function allChantiers(){ var m = {}; LIST.forEach(function(r){ if(r.chantier) m[r.chantier] = 1; }); if(S.chantier) m[S.chantier] = 1; return Object.keys(m).sort(); }
 function allTags(){ var m = {}; PRESETS.forEach(function(t){ m[t] = 1; }); LIST.forEach(function(r){ (r.tags || []).forEach(function(t){ m[t] = 1; }); }); return Object.keys(m); }
 function dayLabel(t){
