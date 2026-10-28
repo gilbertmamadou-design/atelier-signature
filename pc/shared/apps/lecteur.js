@@ -166,6 +166,26 @@
     intake(pdf, o.via === 'launch' ? 'view' : 'pick').then(deliver);
   });
 
+  /* ---------- PDF envoyés par l'Atelier PDF (« Lire dans le Lecteur PDF ») : boîte « mag-pc/inbox » ---------- */
+  var myId = 'fr.magformation13.lecteur', inboxBusy = false;
+  function takeInbox() {
+    if (inboxBusy) return; inboxBusy = true;
+    M.db.all('inbox').then(function (l) {
+      l = (l || []).filter(function (x) { return x.to === myId; });
+      return Promise.all(l.map(function (x) {
+        return M.db.del('inbox', x.id).then(function () {
+          if (Date.now() - (x.at || 0) > 30 * 60000 || !x.blob) return null;
+          return { file: new File([x.blob], x.name || 'document.pdf', { type: 'application/pdf' }), handle: null };
+        });
+      }));
+    }).then(function (items) {
+      items = items.filter(Boolean);
+      if (items.length) return intake(items, 'view').then(deliver);
+    }).catch(function (e) { console.warn('boîte de réception', e); }).then(function () { inboxBusy = false; });
+  }
+  if (document.readyState === 'complete') takeInbox(); else window.addEventListener('load', takeInbox);
+  window.addEventListener('focus', takeInbox);
+
   /* ---------- Clavier et molette ---------- */
   function inViewer() { var v = V(); return !!(v && v.open && v.n); }
   function sc() { return document.getElementById('scroller'); }

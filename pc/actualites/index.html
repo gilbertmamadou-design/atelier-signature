@@ -1,0 +1,1280 @@
+<!-- FICHIER GÉNÉRÉ par pc/build-pc.py depuis applis/www-actualites/index.html : ne pas modifier ici. -->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<!-- Suite MAG sur PC : ajouté par pc/build-pc.py (source : applis/www-actualites/index.html) -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="../shared/pc.css">
+<link rel="stylesheet" href="../shared/apps/actualites.css">
+<script>window.MAGPC_CONF={"app": "actualites", "name": "Actualités", "vendor": "../shared/vendor/", "ocrWorker": "ocr-worker.js", "sw": "sw.js", "apps": {"fr.magformation13.lecteur": "../lecteur/", "fr.magformation13.pdf": "../pdf/", "fr.magformation13.budget": "../budget/", "fr.magformation13.liseuse": "../liseuse/", "fr.magformation13.fichiers": "../fichiers/", "fr.magformation13.actualites": "../actualites/", "fr.magformation13.carnet": "../notes/", "fr.magformation13.agenda": "../agenda/", "fr.magformation13.contacts": "../contacts/", "fr.magformation13.calcul": "../calcul/", "fr.magformation13.qr": "../qr/", "fr.magformation13.meteo": "../meteo/", "fr.magformation13.ciel": "../ciel/", "fr.magformation13.sentiers": "../sentiers/", "fr.magformation13.solaire": "../solaire/", "fr.magformation13.musique": "../musique/", "fr.magformation13.ondes": "../ondes/", "fr.magformation13.ecran": "../ecran/", "fr.magformation13.galerie": "../galerie/", "fr.magformation13.scan": "../scan/", "fr.magformation13.dicta": "../dicta/", "fr.magformation13.coffre": "../coffre/", "fr.magformation13.petitspas": "../petitspas/", "fr.magformation13.chasse": "../chasse/"}};</script>
+<script src="../shared/pc-shim.js"></script>
+<script src="../shared/apps/actualites.js"></script>
+
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Actualités</title>
+<meta name="theme-color" content="#0e1117">
+<meta name="referrer" content="no-referrer">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#0e1117;--bg2:#171b24;--bg3:#212634;--bg4:#2c3243;--line:#ffffff16;
+  --tx:#f1f3f8;--tx2:#b3b9c9;--tx3:#80879a;
+  --acc:#5aa2ff;--acc2:#2f7cf0;--onacc:#06142b;--red:#ff5d5d;--ok:#6fd6a4;
+  --v2:#ffd84d;--v3:#ff9f1a;--v4:#e5383b;--v2t:#3a2f00;--v3t:#3b1d00;--v4t:#fff;
+  --r:18px;--fs:1;--safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);
+}
+:root[data-theme="light"]{
+  color-scheme:light;
+  --bg:#f3f4f7;--bg2:#ffffff;--bg3:#eaecf1;--bg4:#dde1e9;--line:#0000001a;
+  --tx:#141821;--tx2:#454c5c;--tx3:#6c7385;--acc:#1f6fe0;--acc2:#1559c0;--onacc:#fff;--red:#d42c2c;--ok:#178a55;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:calc(16px * var(--fs))}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);overscroll-behavior:none}
+body{font:1rem/1.42 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{-webkit-user-select:none;user-select:none;overflow:hidden}
+input,select,textarea{font:inherit;color:inherit;-webkit-user-select:text;user-select:text}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0;text-align:inherit}
+a{color:var(--acc)}
+svg{display:block}
+.ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+[hidden]{display:none!important}
+/* Barre du haut */
+.top{position:fixed;left:0;right:0;top:0;z-index:20;display:flex;align-items:center;gap:4px;padding:calc(6px + var(--safe-t)) 8px 6px 14px;background:var(--bg);border-bottom:1px solid var(--line)}
+.top h1{flex:1;margin:0;font-size:1.3rem;font-weight:800;display:flex;align-items:center;gap:9px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top h1 img{width:30px;height:30px;border-radius:9px;flex:none}
+.ib{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex:none;position:relative}
+.ib:active{background:var(--bg3)}
+.ib .dot{position:absolute;top:8px;right:8px;min-width:17px;height:17px;border-radius:9px;background:var(--acc);color:var(--onacc);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.spin .ic{animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* Zone principale */
+#main{position:fixed;left:0;right:0;top:calc(61px + var(--safe-t));bottom:calc(66px + var(--safe-b));overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.view{padding:10px 14px 24px}
+#ptr{position:fixed;left:50%;top:calc(66px + var(--safe-t));z-index:15;width:42px;height:42px;margin-left:-21px;border-radius:50%;background:var(--bg2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px #0005;transform:translateY(-70px);opacity:0;transition:opacity .15s}
+#ptr.on{opacity:1}
+#ptr.go .ic{animation:sp .9s linear infinite}
+#prog{position:fixed;left:0;top:calc(60px + var(--safe-t));height:3px;background:var(--acc);z-index:21;width:0;transition:width .25s}
+/* Barre d'onglets */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;background:var(--bg2);border-top:1px solid var(--line);padding:4px 4px calc(4px + var(--safe-b))}
+nav.tabs button{flex:1;min-height:58px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:.72rem;font-weight:700;color:var(--tx3);position:relative}
+nav.tabs button.on{color:var(--acc)}
+nav.tabs button.on .ic{stroke-width:2.3}
+nav.tabs .bdg{position:absolute;top:5px;left:calc(50% + 6px);width:11px;height:11px;border-radius:50%;border:2px solid var(--bg2)}
+/* Éléments communs */
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.card h3,.sect{margin:0 0 8px;font-size:.78rem;letter-spacing:.6px;text-transform:uppercase;color:var(--tx3);font-weight:800}
+.sect{margin:18px 2px 8px;display:flex;align-items:center;gap:8px}
+.sect span{flex:1}
+.muted{color:var(--tx3)}
+.note{font-size:.82rem;color:var(--tx3);line-height:1.45;margin:8px 2px 0}
+.empty{color:var(--tx3);text-align:center;padding:30px 12px;font-size:.95rem;line-height:1.5}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:50px;padding:8px 14px;border-radius:15px;background:var(--bg3);border:1px solid var(--line);font-weight:700;font-size:.95rem;text-align:center;line-height:1.2}
+.btn:active{transform:scale(.97)}
+.btn.main{background:var(--acc);color:var(--onacc);border:0}
+.btn.sm{min-height:42px;font-size:.88rem;padding:6px 12px;border-radius:13px}
+.btn.wide{width:100%}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.row>.btn{flex:1 1 0;min-width:0}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none;position:sticky;top:-10px;z-index:3;background:var(--bg);margin:-10px -14px 4px;padding:10px 14px 8px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;min-height:42px;padding:6px 14px;border-radius:99px;background:var(--bg2);border:1px solid var(--line);font-weight:700;font-size:.88rem;color:var(--tx2);white-space:nowrap}
+.chip.on{background:var(--acc);color:var(--onacc);border-color:transparent}
+.src{display:inline-flex;align-items:center;gap:5px;font-size:.78rem;font-weight:800;color:var(--tx2);white-space:nowrap}
+.src i{width:9px;height:9px;border-radius:3px;flex:none}
+.meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:.78rem;color:var(--tx3)}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:.75rem;font-weight:800;padding:2px 8px;border-radius:99px;background:var(--bg3);color:var(--tx2)}
+.badge.n{background:color-mix(in srgb,var(--acc) 20%,transparent);color:var(--acc)}
+.badge.alert{background:color-mix(in srgb,var(--red) 22%,transparent);color:var(--red)}
+/* Sujets (L'essentiel) */
+.topic{display:block;width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-bottom:10px;text-align:left}
+.topic:active{background:var(--bg3)}
+.topic .im{width:100%;aspect-ratio:16/9;object-fit:cover;background:var(--bg3);display:block}
+.topic .in{padding:11px 13px 12px}
+.topic h2{margin:5px 0 6px;font-size:1.12rem;line-height:1.28;font-weight:800}
+.topic.small{display:flex;gap:11px;padding:10px;align-items:flex-start}
+.topic.small .in{padding:0;flex:1;min-width:0}
+.topic.small h2{font-size:1rem;margin:3px 0 5px}
+.topic.small .th{width:92px;height:70px;border-radius:12px;object-fit:cover;background:var(--bg3);flex:none}
+.cov{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.cov .names{font-size:.78rem;color:var(--tx3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
+.rank{font-size:.78rem;font-weight:900;color:var(--acc)}
+/* Articles */
+.art{display:flex;gap:11px;width:100%;padding:11px 2px;border-top:1px solid var(--line);text-align:left;align-items:flex-start}
+.art:first-child{border-top:0}
+.art:active{background:var(--bg2)}
+.art .t{flex:1;min-width:0}
+.art b{display:block;font-size:.98rem;line-height:1.3;margin-top:3px;font-weight:700;overflow-wrap:anywhere}
+.art .d{font-size:.84rem;color:var(--tx2);margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.art .th{width:88px;height:66px;border-radius:11px;object-fit:cover;background:var(--bg3);flex:none}
+.art.read b{color:var(--tx2);font-weight:600}
+.list{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:2px 12px;margin-bottom:12px}
+.more{display:block;width:100%;margin:6px 0 14px}
+/* Bandeaux */
+.banner{display:flex;gap:10px;align-items:center;border-radius:16px;padding:11px 13px;margin-bottom:12px;font-size:.9rem;width:100%;text-align:left}
+.banner b{display:block;font-size:.98rem}
+.banner.off{background:var(--bg3);color:var(--tx2)}
+.vb2{background:var(--v2);color:var(--v2t)}.vb3{background:var(--v3);color:var(--v3t)}.vb4{background:var(--v4);color:var(--v4t)}
+/* Images */
+.seg{display:flex;background:var(--bg3);border-radius:14px;padding:4px;gap:4px;margin-bottom:12px}
+.seg button{flex:1;min-height:44px;border-radius:11px;font-weight:800;color:var(--tx2);text-align:center;font-size:.92rem}
+.seg button.on{background:var(--bg2);color:var(--tx);box-shadow:0 0 0 1px var(--line) inset}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gi{position:relative;border-radius:14px;overflow:hidden;background:var(--bg3);aspect-ratio:4/3;display:block;width:100%}
+.gi img{width:100%;height:100%;object-fit:cover;display:block}
+.gi span{position:absolute;left:0;right:0;bottom:0;padding:18px 8px 6px;font-size:.74rem;font-weight:700;color:#fff;background:linear-gradient(transparent,#000b);text-align:left;line-height:1.25;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.gi .play{position:absolute;left:50%;top:42%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:#000a;color:#fff;display:flex;align-items:center;justify-content:center}
+.gi .play .ic{fill:#fff;stroke:none;width:20px;height:20px;margin-left:3px}
+/* Météo */
+.vig{border-radius:var(--r);padding:16px;margin-bottom:12px}
+.vig .lvl{font-size:1.45rem;font-weight:900;line-height:1.15}
+.vig.v0,.vig.v1{background:var(--bg2);border:1px solid var(--line)}
+.vig.v2{background:var(--v2);color:var(--v2t)}.vig.v3{background:var(--v3);color:var(--v3t)}.vig.v4{background:var(--v4);color:var(--v4t)}
+.ph{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid #0000001f}
+.vig.v0 .ph,.vig.v1 .ph{border-color:var(--line)}
+.ph i{width:14px;height:14px;border-radius:4px;flex:none;border:1px solid #0003}
+.ph b{flex:1;font-size:1rem}
+.ph small{font-size:.8rem;opacity:.85}
+.c2{background:var(--v2)}.c3{background:var(--v3)}.c4{background:var(--v4)}
+.vig a{color:inherit;font-weight:800}
+/* Réglages */
+.set{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);min-height:56px}
+.set:first-of-type{border-top:0}
+.set>label,.set>.lb{flex:1;font-weight:650;font-size:.95rem}
+.set small{display:block;color:var(--tx3);font-weight:500;font-size:.8rem}
+.set select,.set input[type=text],.set input[type=number]{min-height:46px;background:var(--bg3);border:1px solid var(--line);border-radius:12px;padding:6px 10px;font-size:.95rem;max-width:150px}
+.sw{position:relative;width:54px;height:32px;flex:none}
+.sw input{opacity:0;position:absolute;inset:0;margin:0;z-index:1;cursor:pointer}
+.sw span{position:absolute;inset:0;border-radius:99px;background:var(--bg4);transition:.15s}
+.sw span::after{content:"";position:absolute;left:4px;top:4px;width:24px;height:24px;border-radius:50%;background:#fff;transition:.15s;box-shadow:0 1px 3px #0005}
+.sw input:checked+span{background:var(--acc)}
+.sw input:checked+span::after{left:26px}
+.menu button{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:8px 2px;border-top:1px solid var(--line);font-weight:700;text-align:left}
+.menu button:first-child{border-top:0}
+.menu button span{flex:1}
+.menu button small{display:block;font-weight:500;color:var(--tx3);font-size:.8rem}
+.txt{width:100%;min-height:52px;background:var(--bg3);border:1px solid var(--line);border-radius:14px;padding:10px 14px;font-size:1rem}
+/* Feuilles */
+.sheet{position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;justify-content:flex-end;background:#0008}
+.sheet .pn{background:var(--bg);border-radius:22px 22px 0 0;max-height:94vh;display:flex;flex-direction:column;overflow:hidden;animation:up .18s ease-out}
+.sheet.full .pn{height:94vh}
+@keyframes up{from{transform:translateY(40px);opacity:.4}}
+.sheet .hd{display:flex;align-items:center;gap:6px;padding:8px 6px 6px 16px;border-bottom:1px solid var(--line);flex:none}
+.sheet .hd h2{flex:1;margin:0;font-size:1.05rem;font-weight:800;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sheet .bd{overflow-y:auto;padding:12px 16px calc(22px + var(--safe-b));flex:1}
+.hero{width:100%;max-height:260px;object-fit:cover;border-radius:16px;background:var(--bg3);display:block;margin-bottom:10px}
+.sheet h1{font-size:1.32rem;line-height:1.25;margin:6px 0 8px;font-weight:850;-webkit-user-select:text;user-select:text}
+.chapo{font-size:1.02rem;line-height:1.5;color:var(--tx2);margin:0 0 6px;-webkit-user-select:text;user-select:text}
+video{width:100%;border-radius:14px;background:#000;max-height:280px}
+.srcs{display:flex;flex-direction:column;gap:2px}
+.srcrow{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.srcrow:first-child{border-top:0}
+.srcrow .t{flex:1;min-width:0}
+.srcrow b{font-size:.98rem}
+.srcrow small{display:block;color:var(--tx3);font-size:.78rem;overflow-wrap:anywhere}
+.ok{color:var(--ok)}.ko{color:var(--red)}
+.stat{display:inline-block;font-size:.72rem;font-weight:800;padding:1px 7px;border-radius:99px;background:var(--bg3);color:var(--tx2);margin-left:4px}
+.stat.v{background:color-mix(in srgb,var(--ok) 20%,transparent);color:var(--ok)}
+.feedrow{display:flex;align-items:center;gap:8px;padding:7px 0 7px 18px;font-size:.85rem;color:var(--tx2)}
+.feedrow span{flex:1;min-width:0;overflow-wrap:anywhere}
+#toast{position:fixed;left:16px;right:16px;bottom:calc(82px + var(--safe-b));z-index:60;background:#20242ff2;color:#fff;border-radius:14px;padding:12px 14px;font-size:.92rem;text-align:center;transform:translateY(20px);opacity:0;pointer-events:none;transition:.2s}
+#toast.on{transform:none;opacity:1}
+.rng{width:100%;accent-color:var(--acc)}
+p.lead{margin:0 0 8px;line-height:1.5;color:var(--tx2);font-size:.93rem}
+.hl{background:color-mix(in srgb,var(--acc) 30%,transparent);border-radius:3px;color:inherit}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1 id="ttl"><img src="icon-512.png" alt="">Actualités</h1>
+  <button class="ib" id="bSearch" aria-label="Rechercher"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+  <button class="ib" id="bFav" aria-label="À lire plus tard"><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg><span class="dot" id="favN" hidden></span></button>
+  <button class="ib" id="bRef" aria-label="Rafraîchir"><svg class="ic" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/></svg></button>
+</header>
+<div id="prog"></div>
+<div id="ptr"><svg class="ic" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/></svg></div>
+<main id="main">
+  <section class="view" id="v-ess"></section>
+  <section class="view" id="v-fil" hidden></section>
+  <section class="view" id="v-img" hidden></section>
+  <section class="view" id="v-met" hidden></section>
+  <section class="view" id="v-plus" hidden></section>
+</main>
+<nav class="tabs" id="tabs">
+  <button data-tab="ess" class="on"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.5 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/></svg>L'essentiel</button>
+  <button data-tab="fil"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>Fil</button>
+  <button data-tab="img"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>Images</button>
+  <button data-tab="met"><svg class="ic" viewBox="0 0 24 24"><path d="M7 17a4 4 0 0 1-.5-8A6 6 0 0 1 18 8a4.5 4.5 0 0 1-.5 9z"/><path d="M12 12v3M12 18v.5"/></svg>Météo<i class="bdg" id="metBdg" hidden></i></button>
+  <button data-tab="plus"><svg class="ic" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>Plus</button>
+</nav>
+<div id="sheets"></div>
+<div id="toast"></div>
+
+<script>
+/* =====================================================================
+   Actualités : sources, analyse des flux, sujets (fonctions sans interface)
+   ===================================================================== */
+(function(){
+'use strict';
+
+/* ---------- Médias et flux ----------
+   v:1 = adresse confirmée le 27/10/2026 dans des annuaires publics de flux (feeder.co, feedspot, page « flux RSS » du média) ;
+   v:0 = adresse construite sur le même modèle que les flux confirmés du média, à confirmer (l'écran Sources montre si elle répond). */
+var MEDIA = {
+  fi:  { n: 'franceinfo', c: '#f5c400', pays: 'France', site: 'https://www.francetvinfo.fr', grand: 1 },
+  lm:  { n: 'Le Monde', c: '#8f8f8f', pays: 'France', site: 'https://www.lemonde.fr', grand: 1 },
+  lf:  { n: 'Le Figaro', c: '#2f6fb5', pays: 'France', site: 'https://www.lefigaro.fr', grand: 1 },
+  li:  { n: 'Libération', c: '#e2001a', pays: 'France', site: 'https://www.liberation.fr', grand: 1 },
+  rfi: { n: 'RFI', c: '#d0021b', pays: 'France (international)', site: 'https://www.rfi.fr', grand: 1 },
+  f24: { n: 'France 24', c: '#00a3e0', pays: 'France (international)', site: 'https://www.france24.com', grand: 1 },
+  m20: { n: '20 Minutes', c: '#0088cc', pays: 'France', site: 'https://www.20minutes.fr', grand: 1 },
+  of:  { n: 'Ouest-France', c: '#d9271c', pays: 'France (Ouest)', site: 'https://www.ouest-france.fr', grand: 1 },
+  lp:  { n: 'Le Parisien', c: '#1b6bb3', pays: 'France', site: 'https://www.leparisien.fr', grand: 1 },
+  lc:  { n: 'La Croix', c: '#c8102e', pays: 'France', site: 'https://www.la-croix.com', grand: 0 },
+  eu:  { n: 'Euronews', c: '#2ba3d6', pays: 'Europe', site: 'https://fr.euronews.com', grand: 1 },
+  bbc: { n: 'BBC News', c: '#bb1919', pays: 'Royaume-Uni (anglais)', site: 'https://www.bbc.com/news', grand: 1 },
+  gu:  { n: 'The Guardian', c: '#052962', pays: 'Royaume-Uni (anglais)', site: 'https://www.theguardian.com', grand: 1 },
+  brut:{ n: 'Brut', c: '#111111', pays: 'France (vidéo)', site: 'https://www.brut.media/fr', grand: 0, perso: 1 },
+  so:  { n: 'Sud Ouest', c: '#e30613', pays: 'Nouvelle-Aquitaine', site: 'https://www.sudouest.fr', grand: 0, reg: 1 },
+  ld:  { n: 'La Dépêche', c: '#e2001a', pays: 'Occitanie', site: 'https://www.ladepeche.fr', grand: 0, reg: 1 },
+  nm:  { n: 'Nice-Matin', c: '#0071b9', pays: 'Côte d\'Azur', site: 'https://www.nicematin.com', grand: 0, reg: 1 },
+  dna: { n: 'DNA', c: '#e2001a', pays: 'Alsace', site: 'https://www.dna.fr', grand: 0, reg: 1 },
+  actu:{ n: 'actu.fr', c: '#e94e1b', pays: 'France (local)', site: 'https://actu.fr', grand: 0, reg: 1 }
+};
+var RUBS = [
+  { id: 'une', n: 'À la une' }, { id: 'france', n: 'France' }, { id: 'inter', n: 'International' }, { id: 'eco', n: 'Économie' },
+  { id: 'sci', n: 'Sciences/Tech' }, { id: 'sport', n: 'Sport' }, { id: 'culture', n: 'Culture' }, { id: 'sante', n: 'Santé' }, { id: 'region', n: 'Régions' }
+];
+var FI = 'https://www.francetvinfo.fr/', LM = 'https://www.lemonde.fr/', LF = 'https://www.lefigaro.fr/rss/', BBC = 'https://feeds.bbci.co.uk/', GU = 'https://www.theguardian.com/', BR = 'https://www.brut.media/rss/fr/';
+var FEEDS = [
+  ['fi', 'une', FI + 'titres.rss', 1], ['fi', 'france', FI + 'france.rss', 1], ['fi', 'france', FI + 'politique.rss', 1], ['fi', 'france', FI + 'societe.rss', 1],
+  ['fi', 'inter', FI + 'monde.rss', 1], ['fi', 'eco', FI + 'economie.rss', 0], ['fi', 'sci', FI + 'sciences.rss', 1], ['fi', 'sci', FI + 'internet.rss', 1],
+  ['fi', 'sport', FI + 'sports.rss', 0], ['fi', 'culture', FI + 'culture.rss', 1], ['fi', 'sante', FI + 'sante.rss', 0],
+  ['lm', 'une', LM + 'rss/une.xml', 1], ['lm', 'france', LM + 'politique/rss_full.xml', 1], ['lm', 'france', LM + 'societe/rss_full.xml', 1],
+  ['lm', 'inter', LM + 'international/rss_full.xml', 1], ['lm', 'eco', LM + 'economie/rss_full.xml', 1], ['lm', 'sci', LM + 'sciences/rss_full.xml', 1],
+  ['lm', 'sci', LM + 'pixels/rss_full.xml', 1], ['lm', 'sci', LM + 'planete/rss_full.xml', 1], ['lm', 'sport', LM + 'sport/rss_full.xml', 0],
+  ['lm', 'culture', LM + 'culture/rss_full.xml', 0], ['lm', 'sante', LM + 'sante/rss_full.xml', 0],
+  ['lf', 'une', LF + 'figaro_actualites.xml', 1], ['lf', 'une', LF + 'figaro_flash-actu.xml', 1], ['lf', 'france', LF + 'figaro_politique.xml', 1],
+  ['lf', 'inter', LF + 'figaro_international.xml', 1], ['lf', 'eco', LF + 'figaro_economie.xml', 1], ['lf', 'sci', LF + 'figaro_sciences.xml', 1],
+  ['lf', 'culture', LF + 'figaro_culture.xml', 1], ['lf', 'sport', LF + 'figaro_sport.xml', 0], ['lf', 'sante', LF + 'figaro_sante.xml', 0],
+  ['li', 'une', 'https://www.liberation.fr/arc/outboundfeeds/rss-all/?outputType=xml', 1],
+  ['rfi', 'une', 'https://www.rfi.fr/fr/rss', 1], ['rfi', 'france', 'https://www.rfi.fr/fr/france/rss', 1], ['rfi', 'inter', 'https://www.rfi.fr/fr/afrique/rss', 1],
+  ['f24', 'une', 'https://www.france24.com/fr/rss', 1], ['f24', 'france', 'https://www.france24.com/fr/france/rss', 1],
+  ['f24', 'inter', 'https://www.france24.com/fr/europe/rss', 1], ['f24', 'inter', 'https://www.france24.com/fr/afrique/rss', 1],
+  ['m20', 'une', 'https://www.20minutes.fr/feeds/rss-une.xml', 1],
+  ['of', 'une', 'https://www.ouest-france.fr/rss/une', 1],
+  ['lp', 'une', 'https://feeds.leparisien.fr/leparisien/rss', 1],
+  ['lc', 'une', 'https://www.la-croix.com/feeds/rss/site.xml', 1],
+  ['eu', 'une', 'https://fr.euronews.com/rss?format=mrss&level=theme&name=news', 0], ['eu', 'inter', 'https://www.euronews.com/rss?format=mrss&level=theme&name=news', 1, 'en', 1],
+  ['bbc', 'une', BBC + 'news/rss.xml', 1, 'en'], ['bbc', 'inter', BBC + 'news/world/rss.xml', 1, 'en'], ['bbc', 'eco', BBC + 'news/business/rss.xml', 1, 'en'],
+  ['bbc', 'sci', BBC + 'news/technology/rss.xml', 1, 'en'], ['bbc', 'sci', BBC + 'news/science_and_environment/rss.xml', 1, 'en'],
+  ['bbc', 'sante', BBC + 'news/health/rss.xml', 1, 'en'], ['bbc', 'culture', BBC + 'news/entertainment_and_arts/rss.xml', 1, 'en'], ['bbc', 'sport', BBC + 'sport/rss.xml', 1, 'en'],
+  ['gu', 'une', GU + 'international/rss', 1, 'en'], ['gu', 'inter', GU + 'world/rss', 1, 'en'], ['gu', 'eco', GU + 'uk/business/rss', 1, 'en'],
+  ['gu', 'sci', GU + 'science/rss', 1, 'en'], ['gu', 'sci', GU + 'uk/technology/rss', 1, 'en'], ['gu', 'sport', GU + 'uk/sport/rss', 1, 'en'], ['gu', 'culture', GU + 'uk/culture/rss', 1, 'en'],
+  ['brut', 'france', BR + 'france.xml', 1], ['brut', 'inter', BR + 'international.xml', 1], ['brut', 'sci', BR + 'environnement.xml', 1], ['brut', 'sci', BR + 'sciences-technologies.xml', 1],
+  ['brut', 'eco', BR + 'economie.xml', 1], ['brut', 'sport', BR + 'sport.xml', 1], ['brut', 'sante', BR + 'sante.xml', 1],
+  ['so', 'region', 'https://www.sudouest.fr/essentiel/rss.xml', 1], ['ld', 'region', 'https://www.ladepeche.fr/rss.xml', 1], ['nm', 'region', 'https://www.nicematin.com/rss', 1],
+  ['dna', 'region', 'https://www.dna.fr/rss', 1], ['actu', 'region', 'https://actu.fr/rss.xml', 1], ['of', 'region', 'https://www.ouest-france.fr/rss/une', 1]
+].map(function(a, i){ return { id: a[0] + '-' + a[1] + '-' + i, m: a[0], r: a[1], u: a[2], v: a[3], lang: a[4] || 'fr', off: a[5] || 0 }; });
+/* Journaux régionaux suivis selon la région du département choisi (actu.fr partout) */
+var REGMEDIA = { BRE: ['of'], PDL: ['of'], NOR: ['of'], NAQ: ['so'], OCC: ['ld'], PAC: ['nm'], COR: ['nm'], GES: ['dna'] };
+var ALSACE = { '67': 1, '68': 1 };
+
+/* Départements : code, nom, préfecture, région, position de la préfecture (repli si l'API de l'État ne répond pas) */
+var DEPTS = ('01|Ain|Bourg-en-Bresse|ARA|46.205|5.226;02|Aisne|Laon|HDF|49.564|3.620;03|Allier|Moulins|ARA|46.566|3.333;04|Alpes-de-Haute-Provence|Digne-les-Bains|PAC|44.092|6.236;' +
+  '05|Hautes-Alpes|Gap|PAC|44.559|6.079;06|Alpes-Maritimes|Nice|PAC|43.710|7.262;07|Ardèche|Privas|ARA|44.735|4.599;08|Ardennes|Charleville-Mézières|GES|49.773|4.720;' +
+  '09|Ariège|Foix|OCC|42.965|1.607;10|Aube|Troyes|GES|48.297|4.074;11|Aude|Carcassonne|OCC|43.213|2.351;12|Aveyron|Rodez|OCC|44.350|2.575;13|Bouches-du-Rhône|Marseille|PAC|43.296|5.370;' +
+  '14|Calvados|Caen|NOR|49.182|-0.370;15|Cantal|Aurillac|ARA|44.926|2.440;16|Charente|Angoulême|NAQ|45.648|0.156;17|Charente-Maritime|La Rochelle|NAQ|46.160|-1.151;18|Cher|Bourges|CVL|47.081|2.399;' +
+  '19|Corrèze|Tulle|NAQ|45.267|1.772;2A|Corse-du-Sud|Ajaccio|COR|41.919|8.738;2B|Haute-Corse|Bastia|COR|42.697|9.451;21|Côte-d\'Or|Dijon|BFC|47.322|5.041;22|Côtes-d\'Armor|Saint-Brieuc|BRE|48.514|-2.765;' +
+  '23|Creuse|Guéret|NAQ|46.171|1.871;24|Dordogne|Périgueux|NAQ|45.184|0.721;25|Doubs|Besançon|BFC|47.238|6.024;26|Drôme|Valence|ARA|44.933|4.892;27|Eure|Évreux|NOR|49.024|1.151;' +
+  '28|Eure-et-Loir|Chartres|CVL|48.446|1.489;29|Finistère|Quimper|BRE|47.996|-4.102;30|Gard|Nîmes|OCC|43.837|4.360;31|Haute-Garonne|Toulouse|OCC|43.605|1.444;32|Gers|Auch|OCC|43.646|0.586;' +
+  '33|Gironde|Bordeaux|NAQ|44.838|-0.579;34|Hérault|Montpellier|OCC|43.611|3.877;35|Ille-et-Vilaine|Rennes|BRE|48.117|-1.678;36|Indre|Châteauroux|CVL|46.811|1.691;37|Indre-et-Loire|Tours|CVL|47.394|0.685;' +
+  '38|Isère|Grenoble|ARA|45.188|5.725;39|Jura|Lons-le-Saunier|BFC|46.675|5.555;40|Landes|Mont-de-Marsan|NAQ|43.890|-0.500;41|Loir-et-Cher|Blois|CVL|47.586|1.335;42|Loire|Saint-Étienne|ARA|45.440|4.387;' +
+  '43|Haute-Loire|Le Puy-en-Velay|ARA|45.043|3.885;44|Loire-Atlantique|Nantes|PDL|47.218|-1.554;45|Loiret|Orléans|CVL|47.902|1.909;46|Lot|Cahors|OCC|44.448|1.441;47|Lot-et-Garonne|Agen|NAQ|44.203|0.616;' +
+  '48|Lozère|Mende|OCC|44.518|3.500;49|Maine-et-Loire|Angers|PDL|47.478|-0.563;50|Manche|Saint-Lô|NOR|49.116|-1.091;51|Marne|Châlons-en-Champagne|GES|48.957|4.363;52|Haute-Marne|Chaumont|GES|48.111|5.139;' +
+  '53|Mayenne|Laval|PDL|48.073|-0.770;54|Meurthe-et-Moselle|Nancy|GES|48.692|6.184;55|Meuse|Bar-le-Duc|GES|48.772|5.160;56|Morbihan|Vannes|BRE|47.658|-2.760;57|Moselle|Metz|GES|49.120|6.176;' +
+  '58|Nièvre|Nevers|BFC|46.990|3.159;59|Nord|Lille|HDF|50.629|3.057;60|Oise|Beauvais|HDF|49.430|2.081;61|Orne|Alençon|NOR|48.432|0.091;62|Pas-de-Calais|Arras|HDF|50.291|2.777;' +
+  '63|Puy-de-Dôme|Clermont-Ferrand|ARA|45.778|3.087;64|Pyrénées-Atlantiques|Pau|NAQ|43.296|-0.370;65|Hautes-Pyrénées|Tarbes|OCC|43.233|0.078;66|Pyrénées-Orientales|Perpignan|OCC|42.699|2.895;' +
+  '67|Bas-Rhin|Strasbourg|GES|48.573|7.752;68|Haut-Rhin|Colmar|GES|48.079|7.358;69|Rhône|Lyon|ARA|45.764|4.836;70|Haute-Saône|Vesoul|BFC|47.622|6.156;71|Saône-et-Loire|Mâcon|BFC|46.307|4.828;' +
+  '72|Sarthe|Le Mans|PDL|48.006|0.199;73|Savoie|Chambéry|ARA|45.564|5.918;74|Haute-Savoie|Annecy|ARA|45.899|6.129;75|Paris|Paris|IDF|48.857|2.352;76|Seine-Maritime|Rouen|NOR|49.443|1.100;' +
+  '77|Seine-et-Marne|Melun|IDF|48.540|2.660;78|Yvelines|Versailles|IDF|48.805|2.135;79|Deux-Sèvres|Niort|NAQ|46.323|-0.464;80|Somme|Amiens|HDF|49.894|2.296;81|Tarn|Albi|OCC|43.929|2.148;' +
+  '82|Tarn-et-Garonne|Montauban|OCC|44.018|1.355;83|Var|Toulon|PAC|43.124|5.928;84|Vaucluse|Avignon|PAC|43.949|4.806;85|Vendée|La Roche-sur-Yon|PDL|46.670|-1.426;86|Vienne|Poitiers|NAQ|46.580|0.340;' +
+  '87|Haute-Vienne|Limoges|NAQ|45.834|1.261;88|Vosges|Épinal|GES|48.173|6.450;89|Yonne|Auxerre|BFC|47.798|3.567;90|Territoire de Belfort|Belfort|BFC|47.640|6.863;91|Essonne|Évry-Courcouronnes|IDF|48.629|2.441;' +
+  '92|Hauts-de-Seine|Nanterre|IDF|48.892|2.207;93|Seine-Saint-Denis|Bobigny|IDF|48.909|2.439;94|Val-de-Marne|Créteil|IDF|48.790|2.455;95|Val-d\'Oise|Cergy|IDF|49.036|2.076;' +
+  '971|Guadeloupe|Basse-Terre|DOM|15.997|-61.726;972|Martinique|Fort-de-France|DOM|14.616|-61.059;973|Guyane|Cayenne|DOM|4.922|-52.313;974|La Réunion|Saint-Denis|DOM|-20.882|55.450;976|Mayotte|Mamoudzou|DOM|-12.781|45.228')
+  .split(';').map(function(s){ var p = s.split('|'); return { code: p[0], name: p[1], pref: p[2], reg: p[3], lat: +p[4], lon: +p[5] }; });
+
+/* ---------- Texte ---------- */
+function norm(s){ return String(s == null ? '' : s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+var STOP = {};
+('les des une un le la du de au aux et ou en dans sur sous par pour pas plus moins avec sans chez entre vers apres avant depuis pendant contre selon ' +
+ 'est sont ete etre avoir fait faire font dit dire va vont peut doit cette ces ses son sa leur leurs nos notre votre vos qui que quoi dont quand comme mais donc car ' +
+ 'tout tous toute toutes tres aussi encore deja ici elle elles ils lui eux nous vous on se ce cela ca quel quelle quels quelles ' +
+ 'the and for with from that this are was were has have had will would into over after about than they their there what when where who why how not but its his her ' +
+ 'new says said say video photos photo direct live alerte urgent breaking info infos actu actualite actualites france24 franceinfo lemonde figaro ' +
+ 'nouveau nouvelle nouveaux nouvelles premier premiere deux trois ans annee jour jours mois semaine heure heures hier demain aujourd aujourdhui ' +
+ 'veut veulent face ainsi enfin bien fois autre autres meme memes faut fin pourquoi comment voici quoi pres lors').split(/\s+/).forEach(function(w){ STOP[w] = 1; });
+/* Quelques mots anglais courants de l'actualité ramenés au français, pour rapprocher BBC, Guardian… des médias français */
+var SYN = {japan: 'japon', earthquake: 'seisme', quake: 'seisme', china: 'chine', russia: 'russie', russian: 'russe', germany: 'allemagne', german: 'allemand', spain: 'espagne', italy: 'italie', mexico: 'mexique', brazil: 'bresil', india: 'inde', turkey: 'turquie', egypt: 'egypte', syria: 'syrie', lebanon: 'liban', jordan: 'jordanie', morocco: 'maroc', algeria: 'algerie', tunisia: 'tunisie', belgium: 'belgique', switzerland: 'suisse', greece: 'grece', poland: 'pologne', american: 'americain', america: 'amerique', african: 'africain', africa: 'afrique', europe: 'europe', european: 'europeen', flood: 'inondation', storm: 'tempete', hurricane: 'ouragan', typhoon: 'typhon', wildfire: 'incendie', war: 'guerre', ceasefire: 'cessez', attack: 'attaque', hostage: 'otage', minister: 'ministre', government: 'gouvernement', pope: 'pape', election: 'election', vote: 'vote', president: 'president', parliament: 'parlement', police: 'police', eruption: 'eruption', volcano: 'volcan', crash: 'accident', plane: 'avion', missile: 'missile', drone: 'drone', nuclear: 'nucleaire', climate: 'climat', summit: 'sommet', trade: 'commerce', tariff: 'droit', tariffs: 'droit'};
+/* Mots-clés d'un titre : minuscules sans accents, mots vides retirés, pluriel simple, équivalents anglais (même méthode que la tâche de fond Android) */
+function tokens(s){
+  var r = [], seen = {};
+  norm(s).split(/[^a-z0-9]+/).forEach(function(t){
+    if(t.length < 3 || STOP[t]) return;
+    if(t.length > 4 && /[sx]$/.test(t)) t = t.slice(0, -1);
+    if(SYN[t]) t = SYN[t];
+    if(/^\d+$/.test(t) && t.length < 4) return;
+    if(!seen[t]){ seen[t] = 1; r.push(t); }
+  });
+  return r;
+}
+function wgt(df, N, t){ return Math.log(1 + N / (df[t] || 1)); }
+/* Même sujet ? au moins 2 mots-clés communs, et assez de poids en commun (les mots rares comptent plus) */
+function same(a, b, df, N){
+  var inter = 0, wi = 0, wa = 0, wb = 0, bs = {};
+  b.forEach(function(t){ bs[t] = 1; wb += df ? wgt(df, N, t) : 1; });
+  a.forEach(function(t){ var x = df ? wgt(df, N, t) : 1; wa += x; if(bs[t]){ inter++; wi += x; } });
+  if(inter < 2) return false;
+  if(inter >= 3 && inter / Math.min(a.length, b.length) >= 0.5) return true;
+  var m = Math.min(wa, wb);
+  return m > 0 && wi / m >= 0.45;
+}
+function overlap(a, b){ var bs = {}, i = 0; b.forEach(function(t){ bs[t] = 1; }); a.forEach(function(t){ if(bs[t]) i++; }); var m = Math.min(a.length, b.length); return m ? i / m : 0; }
+
+/* ---------- Dates : RFC 822 (RSS), ISO 8601 (Atom), sans fuseau = heure de Paris ---------- */
+var MON = { jan: 0, feb: 1, fev: 1, mar: 2, apr: 3, avr: 3, may: 4, mai: 4, jun: 5, jui: 5, jul: 6, aug: 7, aou: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+var TZ = { GMT: 0, UT: 0, UTC: 0, Z: 0, EST: -5, EDT: -4, CST: -6, CDT: -5, MST: -7, MDT: -6, PST: -8, PDT: -7, CET: 1, CEST: 2, BST: 1, MET: 1, MEST: 2 };
+function parisOffset(t){ // minutes d'avance de Paris sur UTC à l'instant t (heure d'été : dernier dimanche de mars → dernier dimanche d'octobre, 1 h UTC)
+  var d = new Date(t), y = d.getUTCFullYear();
+  function lastSun(m){ var x = new Date(Date.UTC(y, m + 1, 0, 1)); x.setUTCDate(x.getUTCDate() - x.getUTCDay()); return x.getTime(); }
+  return (t >= lastSun(2) && t < lastSun(9)) ? 120 : 60;
+}
+function pdate(s){
+  if(!s) return 0;
+  s = String(s).trim();
+  var m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?)?\s*(Z|[+-]\d{2}:?\d{2})?/);
+  if(m){
+    var t = Date.UTC(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)), z = m[7];
+    if(!z) t -= parisOffset(t) * 60000;
+    else if(z !== 'Z'){ var zz = z.replace(':', ''), sg = zz[0] === '-' ? -1 : 1; t -= sg * (+zz.slice(1, 3) * 60 + +zz.slice(3, 5)) * 60000; }
+    return t;
+  }
+  m = norm(s).match(/(\d{1,2})\s+([a-z]{3,})\.?\s+(\d{2,4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([a-z]{1,5}|[+-]\d{4})?/i);
+  if(m){
+    var mo = MON[m[2].slice(0, 3)]; if(mo == null) return 0;
+    var y = +m[3]; if(y < 100) y += 2000;
+    var t2 = Date.UTC(y, mo, +m[1], +m[4], +m[5], +(m[6] || 0)), z2 = m[7];
+    if(z2 && /^[+-]/.test(z2)){ var sg2 = z2[0] === '-' ? -1 : 1; t2 -= sg2 * (+z2.slice(1, 3) * 60 + +z2.slice(3, 5)) * 60000; }
+    else if(z2 && TZ[z2.toUpperCase()] != null) t2 -= TZ[z2.toUpperCase()] * 3600000;
+    else t2 -= parisOffset(t2) * 60000;
+    return t2;
+  }
+  var p = Date.parse(s); return isNaN(p) ? 0 : p;
+}
+
+/* ---------- Analyse RSS / Atom (DOMParser, réparations, repli par expressions) ---------- */
+var XMLENT = { amp: 1, lt: 1, gt: 1, quot: 1, apos: 1 };
+var HTMLENT = { nbsp: 160, eacute: 233, egrave: 232, ecirc: 234, agrave: 224, acirc: 226, ccedil: 231, ocirc: 244, icirc: 238, ucirc: 251, ugrave: 249, euml: 235, iuml: 239,
+  Eacute: 201, Egrave: 200, Agrave: 192, Ccedil: 199, laquo: 171, raquo: 187, rsquo: 8217, lsquo: 8216, ldquo: 8220, rdquo: 8221, hellip: 8230, ndash: 8211, mdash: 8212, euro: 8364, deg: 176, oelig: 339, copy: 169 };
+var txtEl = null;
+/* HTML (résumé du flux) → texte simple : balises retirées, entités décodées, scripts jamais exécutés */
+function htmlText(s){
+  if(!s) return '';
+  s = String(s);
+  if(s.indexOf('<') < 0 && s.indexOf('&') < 0) return s.replace(/\s+/g, ' ').trim();
+  try{
+    var d = new DOMParser().parseFromString('<!doctype html><body>' + s.replace(/<(script|style|iframe)[\s\S]*?<\/\1>/gi, ' ') + '</body>', 'text/html');
+    d.querySelectorAll('br,p,div,li').forEach(function(e){ e.insertAdjacentText('afterend', ' '); });
+    s = d.body ? d.body.textContent : s;
+  }catch(e){ s = s.replace(/<[^>]+>/g, ' '); }
+  return s.replace(/\s+/g, ' ').trim();
+}
+function cut(s, n){ if(!s || s.length <= n) return s || ''; var c = s.slice(0, n), i = c.lastIndexOf(' '); return (i > n * 0.6 ? c.slice(0, i) : c).replace(/[\s,;:.]+$/, '') + '…'; }
+function fixXml(t){
+  return t.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
+    .replace(/&([a-zA-Z][a-zA-Z0-9]*);/g, function(m, n){ return XMLENT[n] ? m : HTMLENT[n] != null ? '&#' + HTMLENT[n] + ';' : '&amp;' + n + ';'; })
+    .replace(/&(?!(?:[a-zA-Z][a-zA-Z0-9]*|#\d+|#x[0-9a-fA-F]+);)/g, '&amp;');
+}
+function xmlDoc(text){
+  var t = String(text || '').replace(/^﻿/, '').trim(), p = new DOMParser(), d;
+  try{ d = p.parseFromString(t, 'application/xml'); if(!d.getElementsByTagName('parsererror').length) return d; }catch(e){}
+  try{ d = p.parseFromString(fixXml(t), 'application/xml'); if(!d.getElementsByTagName('parsererror').length) return d; }catch(e){}
+  return null;
+}
+function httpsUrl(u){ u = String(u || '').trim(); if(/^\/\//.test(u)) u = 'https:' + u; if(/^http:\/\//i.test(u)) u = 'https://' + u.slice(7); return /^https:\/\/[^\s"'<>]+$/i.test(u) ? u : ''; }
+function isTube(u){ return /(^|\.)(youtube\.com|youtu\.be|youtube-nocookie\.com)\//i.test(String(u || '').replace(/^https?:\/\//, '')); }
+var VIDEXT = /\.(mp4|m4v|webm|m3u8)(\?|$)/i, IMGEXT = /\.(jpe?g|png|webp|gif|avif)(\?|$)/i;
+/* Un élément du flux, champs repérés par nom qualifié (media:content…), sans dépendre des espaces de noms déclarés */
+function readEntry(el){
+  var o = { _media: [] };
+  var all = el.getElementsByTagName('*');
+  for(var i = 0; i < all.length; i++){
+    var c = all[i], n = (c.tagName || '').toLowerCase(), ln = (c.localName || n).toLowerCase();
+    if(n === 'media:content' || n === 'media:thumbnail' || n === 'enclosure' || ln === 'enclosure' || n === 'itunes:image' || ln === 'thumbnail' && /media/.test(n)){
+      o._media.push({ tag: n, url: c.getAttribute('url') || c.getAttribute('href') || '', type: (c.getAttribute('type') || '').toLowerCase(), medium: (c.getAttribute('medium') || '').toLowerCase(), w: +(c.getAttribute('width') || 0) });
+      continue;
+    }
+    if(n === 'link' || ln === 'link'){
+      var href = c.getAttribute('href'), rel = c.getAttribute('rel');
+      if(href){ if((!rel || rel === 'alternate') && !o.link) o.link = href; if(rel === 'enclosure') o._media.push({ tag: 'enclosure', url: href, type: (c.getAttribute('type') || '').toLowerCase() }); continue; }
+    }
+    if(o[n] == null && c.parentNode === el) o[n] = c.textContent;
+    else if(o['~' + ln] == null) o['~' + ln] = c.textContent;
+  }
+  return o;
+}
+function pick(o, names){ for(var i = 0; i < names.length; i++){ var v = o[names[i]]; if(v != null && String(v).trim()) return String(v).trim(); } return ''; }
+function firstImg(html){ var m = String(html || '').match(/<img[^>]+src=["']([^"']+)["']/i); return m ? m[1] : ''; }
+function regexEntries(text){
+  var out = [], re = /<(item|entry)[\s>][\s\S]*?<\/\1>/gi, m;
+  while((m = re.exec(text))){
+    var b = m[0], o = { _media: [] };
+    ['title', 'link', 'pubdate', 'published', 'updated', 'dc:date', 'description', 'summary', 'guid'].forEach(function(k){
+      var x = b.match(new RegExp('<' + k + '[^>]*>([\\s\\S]*?)</' + k + '>', 'i'));
+      if(x) o[k] = x[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1');
+    });
+    var l = b.match(/<link[^>]*href=["']([^"']+)/i); if(l && !o.link) o.link = l[1];
+    var mc = b.match(/<(media:content|media:thumbnail|enclosure)[^>]*url=["']([^"']+)["'][^>]*>/i);
+    if(mc){ var ty = (mc[0].match(/type=["']([^"']+)/i) || [])[1] || ''; o._media.push({ tag: mc[1].toLowerCase(), url: mc[2], type: ty.toLowerCase() }); }
+    out.push(o);
+  }
+  return out;
+}
+/* Flux → articles {t, d, l, img, vid, ts, isVid}. Le résumé est coupé : jamais le texte complet d'un article. */
+function parseFeed(text, now){
+  now = now || Date.now();
+  var d = xmlDoc(text), raw = [];
+  if(d){ var els = d.querySelectorAll('item, entry'); for(var i = 0; i < els.length; i++) raw.push(readEntry(els[i])); }
+  else raw = regexEntries(String(text || ''));
+  var out = [];
+  raw.forEach(function(o){
+    var t = htmlText(pick(o, ['title', '~title']));
+    if(!t) return;
+    var link = httpsUrl(pick(o, ['link', 'feedburner:origlink', '~origlink'])) || (/^https?:/.test(pick(o, ['guid'])) ? httpsUrl(pick(o, ['guid'])) : '');
+    if(!link || isTube(link)) return;
+    var ts = pdate(pick(o, ['pubdate', 'published', 'dc:date', 'updated', 'a10:updated', '~date', '~updated', '~published']));
+    if(ts > now + 10 * 60000) ts = now;
+    var descHtml = pick(o, ['description', 'summary', 'content', '~description', '~summary']);
+    var full = pick(o, ['content:encoded', '~encoded']);
+    var img = '', vid = '', best = -1;
+    o._media.forEach(function(md){
+      var u = httpsUrl(md.url); if(!u || isTube(u)) return;
+      var isV = /^video\//.test(md.type) || md.medium === 'video' || /mpegurl/.test(md.type) || VIDEXT.test(u);
+      var isI = /^image\//.test(md.type) || md.medium === 'image' || md.tag === 'media:thumbnail' || md.tag === 'itunes:image' || (!md.type && !md.medium && IMGEXT.test(u)) || (!md.type && !md.medium && md.tag === 'media:content' && !isV);
+      if(isV && !vid) vid = u;
+      else if(isI){ var w = md.w || (md.tag === 'media:thumbnail' ? 1 : 2); if(w > best){ best = w; img = u; } }
+    });
+    if(!img) img = httpsUrl(firstImg(descHtml) || firstImg(full));
+    var desc = cut(htmlText(descHtml), 320);
+    if(norm(desc) === norm(t)) desc = '';
+    var isVid = !!vid || /\/(videos?|vid%c3%a9os?|replay|emissions?)[\/\-_]/i.test(link) || /^\s*(\[?vid[ée]o\]?|en vid[ée]o)\s*[:.\-–]/i.test(t);
+    out.push({ t: t, d: desc, l: link, img: img, vid: vid, ts: ts, isVid: isVid });
+  });
+  return out;
+}
+
+/* ---------- Vigilance MeteoAlarm (Atom ; repère le département par son nom ou son code EMMA_ID) ---------- */
+function vigLevel(o){
+  var s = norm([pick(o, ['awareness_level', '~awareness_level']), pick(o, ['title']), pick(o, ['cap:event'])].join(' '));
+  var m = s.match(/(\d)\s*;\s*(green|yellow|orange|red)/); if(m) return +m[1];
+  var sev = norm(pick(o, ['cap:severity']));
+  if(/extreme/.test(sev)) return 4; if(/severe/.test(sev)) return 3; if(/moderate/.test(sev)) return 2;
+  if(/rouge|\bred\b/.test(s)) return 4; if(/orange/.test(s)) return 3; if(/jaune|yellow/.test(s)) return 2;
+  return 1;
+}
+function vigPhen(e){
+  var s = norm(e);
+  if(/thunder|orage/.test(s)) return 'orages'; if(/avalanch/.test(s)) return 'avalanches';
+  if(/rain|pluie/.test(s)) return 'pluie-inondation'; if(/flood|crue/.test(s)) return 'crues';
+  if(/snow|ice|neige|verglas/.test(s)) return 'neige-verglas'; if(/coast|wave|vague|submersion/.test(s)) return 'vagues-submersion';
+  if(/wind|vent/.test(s)) return 'vent violent'; if(/high.?temp|heat|canicule|chaleur/.test(s)) return 'canicule';
+  if(/low.?temp|cold|froid/.test(s)) return 'grand froid'; if(/fire|feu/.test(s)) return 'feux de forêt'; if(/fog|brouillard/.test(s)) return 'brouillard';
+  return e || 'phénomène';
+}
+function deptGeo(code){ return 'FR' + ('000' + code).slice(-3); }
+function parseVig(text, dept, now){
+  now = now || Date.now();
+  var d = xmlDoc(text), res = { lvl: 0, ph: [], from: 0, to: 0, ok: !!d, n: 0 };
+  if(!d || !dept) return res;
+  var dn = norm(dept.name).replace(/[^a-z0-9]+/g, ' ').trim(), geo = deptGeo(dept.code), ph = {};
+  var els = d.querySelectorAll('entry, item');
+  res.n = els.length;
+  for(var i = 0; i < els.length; i++){
+    var o = readEntry(els[i]);
+    var area = norm(pick(o, ['cap:areadesc', '~areadesc'])).replace(/[^a-z0-9]+/g, ' ').trim();
+    var codes = [], vals = els[i].getElementsByTagName('*');
+    for(var j = 0; j < vals.length; j++) if((vals[j].localName || '').toLowerCase() === 'value') codes.push(vals[j].textContent.trim());
+    if(area !== dn && codes.indexOf(geo) < 0) continue;
+    if(/cancel/i.test(pick(o, ['cap:message_type', 'cap:msgtype', '~message_type', '~msgtype']))) continue;
+    var ex = pdate(pick(o, ['cap:expires', '~expires'])); if(ex && ex < now) continue;
+    var lv = vigLevel(o); if(lv < 2) continue;
+    var p = vigPhen(pick(o, ['cap:event', '~event']) || pick(o, ['title']));
+    var on = pdate(pick(o, ['cap:onset', 'cap:effective', '~onset', '~effective']));
+    if(!ph[p] || ph[p].lvl < lv) ph[p] = { p: p, lvl: lv, from: on, to: ex };
+    else { if(on && (!ph[p].from || on < ph[p].from)) ph[p].from = on; if(ex > ph[p].to) ph[p].to = ex; }
+    res.lvl = Math.max(res.lvl, lv);
+    if(on && (!res.from || on < res.from)) res.from = on;
+    if(ex > res.to) res.to = ex;
+  }
+  res.ph = Object.keys(ph).map(function(k){ return ph[k]; }).sort(function(a, b){ return b.lvl - a.lvl || a.p.localeCompare(b.p); });
+  return res;
+}
+
+/* ---------- Sujets : regroupement des articles qui parlent de la même chose ---------- */
+function cluster(items, now){
+  now = now || Date.now();
+  var df = {}, N = Math.max(1, items.length);
+  items.forEach(function(it){ if(!it.tk) it.tk = tokens(it.t); it.tk.forEach(function(t){ df[t] = (df[t] || 0) + 1; }); });
+  var order = items.slice().sort(function(a, b){ return b.ts - a.ts; });
+  var cl = [], idx = {};
+  order.forEach(function(it){
+    var best = null, bestS = 0;
+    if(it.tk.length >= 2){
+      var cand = {};
+      it.tk.forEach(function(t){ (idx[t] || []).forEach(function(ci){ cand[ci] = (cand[ci] || 0) + 1; }); });
+      Object.keys(cand).forEach(function(ci){
+        if(cand[ci] < 2) return;
+        var c = cl[ci], s = 0;
+        for(var k = 0; k < c.items.length && k < 40; k++){ var o = c.items[k]; if(same(it.tk, o.tk, df, N)){ s = overlap(it.tk, o.tk) + 0.01 * cand[ci]; break; } }
+        if(s > bestS){ bestS = s; best = c; }
+      });
+    }
+    if(!best){ best = { items: [], i: cl.length }; cl.push(best); }
+    best.items.push(it);
+    it.tk.forEach(function(t){ var a = idx[t] || (idx[t] = []); if(a[a.length - 1] !== best.i) a.push(best.i); });
+  });
+  return cl.map(function(c){
+    var srcs = {}, newest = 0;
+    c.items.forEach(function(o){ srcs[o.m] = 1; if(o.ts > newest) newest = o.ts; });
+    var ms = Object.keys(srcs), age = newest ? Math.max(0, (now - newest) / 3600000) : 12;
+    // Titre du sujet : l'article le plus « central » (le plus de mots-clés partagés), en français de préférence
+    var lead = c.items[0], bestC = -1;
+    c.items.forEach(function(o){ var sc = 0; c.items.forEach(function(p){ if(p !== o) sc += overlap(o.tk, p.tk); }); if(o.lang === 'fr') sc += 0.3; if(sc > bestC){ bestC = sc; lead = o; } });
+    var img = lead.img || ''; if(!img) c.items.some(function(o){ return (img = o.img || '') && true; });
+    c.items.sort(function(a, b){ return b.ts - a.ts; });
+    return { id: 's' + hash(lead.l || lead.t), items: c.items, n: ms.length, media: ms, newest: newest, title: lead.t, lead: lead, img: img,
+      score: Math.pow(ms.length, 1.6) * Math.exp(-age / 10) + (c.items.some(function(o){ return o.une; }) ? 0.2 : 0) };
+  }).sort(function(a, b){ return b.score - a.score; });
+}
+function hash(s){ var h = 5381; s = String(s); for(var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
+
+/* ---------- Alertes : mêmes règles que la tâche de fond Android (aperçu dans l'appli, tests) ---------- */
+function quietAt(cfg, hour){
+  if(!cfg.quietOn || cfg.qFrom === cfg.qTo) return false;
+  return cfg.qFrom < cfg.qTo ? (hour >= cfg.qFrom && hour < cfg.qTo) : (hour >= cfg.qFrom || hour < cfg.qTo);
+}
+function markerRe(m){ return new RegExp('(^|[^\\p{L}])' + m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '($|[^\\p{L}])', 'iu'); }
+function decide(topics, cfg, seen, links, countToday, now, quiet){
+  var out = []; if(!cfg.on || quiet) return out;
+  var marks = (cfg.markers || []).filter(function(m){ return m.trim().length >= 3; }).map(function(m){ return markerRe(m.trim()); });
+  var count = countToday;
+  for(var i = 0; i < topics.length && count < cfg.maxDay; i++){
+    var tp = topics[i], srcs = {}, names = [], lead = null, mark = null;
+    tp.items.forEach(function(o){
+      if(o.ts > 0 && now - o.ts <= cfg.winH * 3600000 && now - o.ts >= -600000){ if(!srcs[o.m]){ srcs[o.m] = 1; names.push(MEDIA[o.m] ? MEDIA[o.m].n : o.m); } if(!lead) lead = o; }
+      if(!mark && marks.length && o.ts > 0 && now - o.ts <= 90 * 60000 && marks.some(function(r){ return r.test(o.t); })) mark = o;
+    });
+    var n = Object.keys(srcs).length, multi = n >= Math.max(2, cfg.minSrc);
+    if(!multi && !mark) continue;
+    var it = multi ? lead : mark, all = [];
+    tp.items.forEach(function(o){ o.tk.forEach(function(t){ if(all.indexOf(t) < 0) all.push(t); }); });
+    var dup = links.indexOf(it.l) >= 0 || seen.some(function(s){ return same(it.tk, s.tok, null, 0) || (same(all, s.tok, null, 0) && overlap(all, s.tok) >= 0.6); });
+    if(dup) continue;
+    out.push({ multi: multi, title: (multi ? '📰 ' : '🔴 ') + it.t, text: multi ? 'Repris par ' + n + ' médias : ' + names.slice(0, 5).join(', ') : (MEDIA[it.m] ? MEDIA[it.m].n : it.m) + ' · titre marqué comme alerte', sujet: it.t, topic: tp.id });
+    seen.push({ tok: it.tk.slice(), at: now, t: it.t }); links.push(it.l); count++;
+  }
+  return out;
+}
+
+window.ActuCore = { MEDIA: MEDIA, RUBS: RUBS, FEEDS: FEEDS, DEPTS: DEPTS, REGMEDIA: REGMEDIA, ALSACE: ALSACE, norm: norm, tokens: tokens, same: same, overlap: overlap, pdate: pdate,
+  parseFeed: parseFeed, parseVig: parseVig, vigPhen: vigPhen, cluster: cluster, decide: decide, quietAt: quietAt, htmlText: htmlText, cut: cut, hash: hash, httpsUrl: httpsUrl, isTube: isTube };
+})();
+</script>
+<script>
+/* =====================================================================
+   Actualités : interface
+   ===================================================================== */
+(function(){
+'use strict';
+var K = window.ActuCore, MEDIA = K.MEDIA, RUBS = K.RUBS, FEEDS = K.FEEDS, DEPTS = K.DEPTS;
+var P = window.MAGPrint || null, B = window.MAGActualites || null;
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function lsGet(k, d){ try{ var v = localStorage.getItem('actu-' + k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
+function lsSet(k, v){ try{ localStorage.setItem('actu-' + k, JSON.stringify(v)); return true; }catch(e){ return false; } }
+var toastT = null;
+function toast(m){ var t = $('toast'); t.textContent = m; t.className = 'on'; clearTimeout(toastT); toastT = setTimeout(function(){ t.className = ''; }, 2800); }
+var IC = {
+  ext: '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+  share: '<circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="m8.2 10.8 7.6-3.6M8.2 13.2l7.6 3.6"/>',
+  mark: '<path d="M6 3h12v18l-6-4-6 4z"/>', marked: '<path d="M6 3h12v18l-6-4-6 4z" fill="currentColor"/>',
+  x: '<path d="M6 6l12 12M18 6 6 18"/>', back: '<path d="M15 5l-7 7 7 7"/>',
+  play: '<path d="M7 4v16l13-8z"/>', stop: '<rect x="6" y="6" width="12" height="12" rx="2"/>',
+  speak: '<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>',
+  pin: '<path d="M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/>',
+  bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
+  list: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>', info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>', chev: '<path d="m9 5 7 7-7 7"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>', text: '<path d="M4 7V5h16v2M9 19h6M12 5v14"/>', off: '<path d="M2 8.5a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 15.5a5 5 0 0 1 7 0M12 19h.01M3 3l18 18"/>'
+};
+function ic(n, st){ return '<svg class="ic" viewBox="0 0 24 24"' + (st ? ' style="' + st + '"' : '') + '>' + (IC[n] || '') + '</svg>'; }
+function mname(m){ return MEDIA[m] ? MEDIA[m].n : m; }
+function srcTag(m){ return '<span class="src"><i style="background:' + (MEDIA[m] ? MEDIA[m].c : '#888') + '"></i>' + esc(mname(m)) + '</span>'; }
+function ago(t){
+  if(!t) return '';
+  var d = Date.now() - t, m = Math.round(d / 60000);
+  if(m < 1) return 'à l\'instant'; if(m < 60) return 'il y a ' + m + ' min';
+  var h = Math.floor(m / 60); if(h < 6) return 'il y a ' + h + ' h' + (m % 60 >= 10 ? ' ' + ('0' + (m % 60)).slice(-2) : '');
+  var dt = new Date(t), now = new Date(), hm = dt.getHours() + ' h ' + ('0' + dt.getMinutes()).slice(-2);
+  if(dt.toDateString() === now.toDateString()) return 'aujourd\'hui ' + hm;
+  var y = new Date(now); y.setDate(y.getDate() - 1); if(dt.toDateString() === y.toDateString()) return 'hier ' + hm;
+  return dt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' ' + hm;
+}
+function hhmm(t){ var d = new Date(t); return d.getHours() + ' h ' + ('0' + d.getMinutes()).slice(-2); }
+function when(t){ if(!t) return ''; var d = new Date(t); return d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' }) + ' à ' + d.getHours() + ' h' + (d.getMinutes() ? ' ' + ('0' + d.getMinutes()).slice(-2) : ''); }
+
+/* ---------- Réglages ---------- */
+var DEFS = {
+  media: {}, rubs: {}, feedsOff: {}, theme: 'auto', fs: 100, dept: null, kw: '', imgs: true,
+  al: { on: true, every: 30, quietOn: true, qFrom: 22, qTo: 7, maxDay: 5, minSrc: 3, winH: 2, markers: 'ALERTE, URGENT, EN DIRECT, DERNIÈRE MINUTE, BREAKING', vigOn: true, vigYellow: false, vigNight: true }
+};
+Object.keys(MEDIA).forEach(function(m){ DEFS.media[m] = true; });
+RUBS.forEach(function(r){ DEFS.rubs[r.id] = true; });
+FEEDS.forEach(function(f){ if(f.off) DEFS.feedsOff[f.id] = true; });
+var S = (function(){
+  var s = lsGet('set', null), d = JSON.parse(JSON.stringify(DEFS));
+  if(!s || typeof s !== 'object') return d;
+  Object.keys(d).forEach(function(k){
+    if(s[k] === undefined) return;
+    if(d[k] && typeof d[k] === 'object' && !Array.isArray(d[k]) && k !== 'dept'){ Object.keys(s[k] || {}).forEach(function(x){ d[k][x] = s[k][x]; }); }
+    else d[k] = s[k];
+  });
+  return d;
+})();
+function save(){ lsSet('set', S); }
+function theme(){
+  var t = S.theme === 'auto' ? (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : S.theme;
+  document.documentElement.setAttribute('data-theme', t);
+  document.documentElement.style.setProperty('--fs', (S.fs || 100) / 100);
+  var m = document.querySelector('meta[name=theme-color]'); if(m) m.content = t === 'light' ? '#f3f4f7' : '#0e1117';
+}
+theme();
+try{ matchMedia('(prefers-color-scheme: light)').addEventListener('change', function(){ if(S.theme === 'auto') theme(); }); }catch(e){}
+
+/* ---------- Réseau : pont Android (liste blanche), sinon fetch ---------- */
+var pend = {}, seq = 0;
+window.actuHttp = function(key, code, body, err){ var p = pend[key]; if(!p) return; delete pend[key]; clearTimeout(p.t); p.ok({ status: code, body: body, err: err }); };
+function nativeGet(url){
+  return new Promise(function(ok){
+    var k = 'h' + (++seq);
+    pend[k] = { ok: ok, t: setTimeout(function(){ if(pend[k]){ delete pend[k]; ok({ status: 0, body: '', err: 'délai dépassé' }); } }, 40000) };
+    try{ B.http(k, url); }catch(e){ delete pend[k]; ok({ status: 0, body: '', err: String(e) }); }
+  });
+}
+function webGet(url){
+  var ctl = window.AbortController ? new AbortController() : null, t = setTimeout(function(){ if(ctl) ctl.abort(); }, 25000);
+  return fetch(url, { credentials: 'omit', signal: ctl ? ctl.signal : undefined }).then(function(r){ clearTimeout(t); return r.text().then(function(x){ return { status: r.status, body: x }; }); },
+    function(e){ clearTimeout(t); return { status: 0, body: '', err: String(e && e.message || e) }; });
+}
+function getText(url){ return (B && B.http) ? nativeGet(url) : webGet(url); }
+function pool(list, n, fn, each){
+  var i = 0, done = 0;
+  return new Promise(function(res){
+    if(!list.length){ res(); return; }
+    function next(){
+      if(i >= list.length) return;
+      var x = list[i++];
+      fn(x).then(function(){ done++; if(each) each(done, list.length); if(done >= list.length) res(); else next(); });
+    }
+    for(var k = 0; k < Math.min(n, list.length); k++) next();
+  });
+}
+
+/* ---------- Articles en mémoire et hors ligne ---------- */
+var ITEMS = {}, FS = lsGet('fs', {}), TOPICS = [], lastAt = 0, offline = false, loading = false;
+var FAV = lsGet('fav', []), READ = lsGet('read', {});
+function deptObj(){ return S.dept ? DEPTS.filter(function(d){ return d.code === S.dept.code; })[0] || null : null; }
+function regMedia(){
+  var d = deptObj(); if(!d) return [];
+  var l = (K.REGMEDIA[d.reg] || []).slice();
+  if(d.reg === 'GES' && !K.ALSACE[d.code]) l = l.filter(function(m){ return m !== 'dna'; });
+  l.push('actu');
+  return l;
+}
+/* Flux à lire : média activé, rubrique activée, flux non désactivé ; journaux régionaux selon « Mon département » */
+function activeFeeds(){
+  var rm = regMedia();
+  return FEEDS.filter(function(f){
+    if(!S.media[f.m] || S.feedsOff[f.id]) return false;
+    if(f.r === 'region') return S.rubs.region && rm.indexOf(f.m) >= 0;
+    if(MEDIA[f.m].reg) return false;
+    return !!S.rubs[f.r];
+  });
+}
+function normLink(u){ try{ var x = new URL(u); x.hash = ''; ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'xtor', 'at_medium', 'at_campaign', 'xtref'].forEach(function(p){ x.searchParams.delete(p); }); return (x.host.replace(/^www\./, '') + x.pathname + x.search).toLowerCase(); }catch(e){ return String(u).toLowerCase(); } }
+function addItems(feed, list, now){
+  var n = 0;
+  list.forEach(function(a, i){
+    if(!a.ts) a.ts = now - i * 60000;     // sans date : ordre du flux
+    if(now - a.ts > 4 * 86400000) return;
+    var id = K.hash(normLink(a.l)), alt = K.hash(feed.m + '|' + K.norm(a.t));
+    var ex = ITEMS[id] || ITEMS[alt];
+    if(ex){
+      if(ex.rubs.indexOf(feed.r) < 0) ex.rubs.push(feed.r);
+      if(feed.r === 'une') ex.une = 1;
+      if(!ex.img && a.img) ex.img = a.img;
+      if(!ex.vid && a.vid) ex.vid = a.vid;
+      return;
+    }
+    ITEMS[id] = { id: id, m: feed.m, rubs: [feed.r], une: feed.r === 'une' ? 1 : 0, lang: feed.lang, t: a.t, d: a.d, l: a.l, img: a.img, vid: a.vid, isVid: a.isVid, ts: a.ts };
+    ITEMS[alt] = ITEMS[id]; n++;
+  });
+  return n;
+}
+function uniqItems(){ var seen = {}, out = []; Object.keys(ITEMS).forEach(function(k){ var it = ITEMS[k]; if(!seen[it.id]){ seen[it.id] = 1; out.push(it); } }); return out; }
+function prune(now){ uniqItems().forEach(function(it){ if(now - it.ts > 3 * 86400000){ Object.keys(ITEMS).forEach(function(k){ if(ITEMS[k] === it) delete ITEMS[k]; }); } }); }
+function saveCache(){
+  var l = uniqItems().sort(function(a, b){ return b.ts - a.ts; }).slice(0, 700).map(function(it){ return { id: it.id, m: it.m, rubs: it.rubs, une: it.une, lang: it.lang, t: it.t, d: it.d, l: it.l, img: it.img, vid: it.vid, isVid: it.isVid, ts: it.ts }; });
+  if(!lsSet('cache', { at: lastAt, items: l })) lsSet('cache', { at: lastAt, items: l.slice(0, 250) });
+  lsSet('fs', FS);
+}
+function loadCache(){
+  var c = lsGet('cache', null); if(!c || !c.items) return false;
+  c.items.forEach(function(it){ ITEMS[it.id] = it; ITEMS[K.hash(it.m + '|' + K.norm(it.t))] = it; });
+  lastAt = c.at || 0;
+  return c.items.length > 0;
+}
+function retopic(){
+  var now = Date.now(), list = uniqItems().filter(function(it){ return now - it.ts < 36 * 3600000; });
+  TOPICS = K.cluster(list, now);
+  var byId = {}; TOPICS.forEach(function(t){ t.items.forEach(function(o){ byId[o.id] = t; }); });
+  uniqItems().forEach(function(it){ it.tp = byId[it.id] || null; });
+}
+
+/* Rafraîchir : tous les flux actifs en parallèle (6 à la fois), puis sujets, vigilance, tuile Socle */
+function refresh(manual){
+  if(loading) return Promise.resolve();
+  loading = true; $('bRef').classList.add('spin'); prog(0.04);
+  var feeds = activeFeeds(), now = Date.now(), okN = 0, byUrl = {}, urls = [];
+  feeds.forEach(function(f){ if(!byUrl[f.u]){ byUrl[f.u] = []; urls.push(f.u); } byUrl[f.u].push(f); });   // une adresse n'est lue qu'une fois
+  var p = pool(urls, 6, function(u){
+    return getText(u).then(function(r){
+      var st = { at: Date.now(), code: r.status }, l = [];
+      if(r.status >= 200 && r.status < 300 && r.body){
+        try{ l = K.parseFeed(r.body, now); st.n = l.length; st.ok = l.length > 0; if(!l.length) st.err = 'flux vide ou illisible'; if(l.length) okN++; }
+        catch(e){ st.ok = false; st.err = 'flux illisible'; }
+      } else { st.ok = false; st.err = r.err || ('erreur ' + r.status); }
+      byUrl[u].forEach(function(f){ FS[f.id] = st; if(l.length) addItems(f, l, now); });
+    });
+  }, function(d, n){ prog(0.04 + 0.9 * d / n); });
+  return Promise.all([p, fetchVig(false)]).then(function(){
+    offline = urls.length > 0 && okN === 0;
+    if(!offline){ lastAt = Date.now(); prune(lastAt); }
+    retopic(); saveCache(); render(); publish();
+    if(manual) toast(offline ? 'Pas de connexion : articles enregistrés affichés' : okN + ' flux lus sur ' + urls.length);
+  }).catch(function(e){ console.warn('Rafraîchissement : ' + (e && e.message || e)); }).then(function(){
+    loading = false; $('bRef').classList.remove('spin'); prog(1); setTimeout(function(){ prog(0); }, 350);
+  });
+}
+function prog(x){ var p = $('prog'); p.style.width = x ? Math.round(x * 100) + '%' : '0'; p.style.opacity = x && x < 1 ? 1 : 0; }
+
+/* ---------- Vigilance météo ---------- */
+var VIG = lsGet('vig', null), VIGURL = 'https://feeds.meteoalarm.org/feeds/meteoalarm-legacy-atom-france';
+function fetchVig(force){
+  if(!S.dept) return Promise.resolve();
+  if(!force && VIG && VIG.code === S.dept.code && Date.now() - VIG.at < 10 * 60000) return Promise.resolve();
+  return getText(VIGURL).then(function(r){
+    if(r.status === 200 && r.body){
+      var v = K.parseVig(r.body, S.dept, Date.now());
+      if(v.ok){ VIG = { code: S.dept.code, dept: S.dept.name, lvl: v.lvl, ph: v.ph, from: v.from, to: v.to, at: Date.now(), n: v.n }; lsSet('vig', VIG); }
+      else if(VIG) VIG.err = 'données illisibles';
+    } else if(VIG) VIG.err = r.err || ('erreur ' + r.status);
+    else VIG = { code: S.dept.code, dept: S.dept.name, lvl: 0, ph: [], at: 0, err: r.err || ('erreur ' + r.status) };
+    badge();
+  });
+}
+var VCOL = { 2: 'jaune', 3: 'orange', 4: 'rouge' };
+function vigOk(){ return VIG && S.dept && VIG.code === S.dept.code; }
+/* Niveau en cours : une vigilance dont la fin est passée (cache hors ligne) ne s'affiche plus */
+function vigLvl(){ return vigOk() && !(VIG.to && VIG.to < Date.now()) ? VIG.lvl : 0; }
+function badge(){ var b = $('metBdg'); if(vigLvl() >= 2){ b.hidden = false; b.style.background = 'var(--v' + VIG.lvl + ')'; } else b.hidden = true; }
+
+/* ---------- Navigation ---------- */
+var TAB = 'ess', RUB = 'une', IMGMODE = 'photo', SHOWN = { fil: 40, img: 40 };
+var TITLES = { ess: 'L\'essentiel', fil: 'Le fil', img: 'En images', met: 'Vigilance météo', plus: 'Plus' };
+function go(t){
+  TAB = t;
+  document.querySelectorAll('nav.tabs button').forEach(function(b){ b.classList.toggle('on', b.dataset.tab === t); });
+  ['ess', 'fil', 'img', 'met', 'plus'].forEach(function(v){ $('v-' + v).hidden = v !== t; });
+  $('ttl').innerHTML = '<img src="icon-512.png" alt="">' + esc(t === 'ess' ? 'Actualités' : TITLES[t]);
+  render(); $('main').scrollTop = 0;
+}
+$('tabs').onclick = function(e){ var b = e.target.closest('button[data-tab]'); if(b) go(b.dataset.tab); };
+
+/* ---------- Rendu ---------- */
+function thumb(it, cls){ return it.img && S.imgs ? '<img class="' + cls + '" src="' + esc(it.img) + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">' : ''; }
+function artRow(it){
+  var tp = it.tp && it.tp.n > 1 ? '<span class="badge n">' + it.tp.n + ' médias</span>' : '';
+  return '<button class="art' + (READ[it.id] ? ' read' : '') + '" data-art="' + it.id + '"><span class="t"><span class="meta">' + srcTag(it.m) + '<span>' + esc(ago(it.ts)) + '</span>' + (it.isVid ? '<span class="badge">vidéo</span>' : '') + tp + '</span><b>' + esc(it.t) + '</b>' + (it.d ? '<span class="d">' + esc(it.d) + '</span>' : '') + '</span>' + thumb(it, 'th') + '</button>';
+}
+function covNames(tp){ return tp.media.map(mname).join(', '); }
+function topicCard(tp, i, big){
+  var cov = '<div class="cov"><span class="badge n">Couvert par ' + tp.n + ' média' + (tp.n > 1 ? 's' : '') + '</span><span class="names">' + esc(covNames(tp)) + '</span></div>';
+  var meta = '<div class="meta"><span class="rank">' + (i + 1) + '</span><span>' + esc(ago(tp.newest)) + '</span>' + (tp.items.some(function(o){ return o.isVid; }) ? '<span class="badge">vidéo</span>' : '') + '</div>';
+  if(big) return '<button class="topic" data-topic="' + tp.id + '">' + (tp.img && S.imgs ? '<img class="im" src="' + esc(tp.img) + '" alt="" referrerpolicy="no-referrer" onerror="this.remove()">' : '') + '<div class="in">' + meta + '<h2>' + esc(tp.title) + '</h2>' + cov + '</div></button>';
+  return '<button class="topic small" data-topic="' + tp.id + '"><div class="in">' + meta + '<h2>' + esc(tp.title) + '</h2>' + cov + '</div>' + (tp.img && S.imgs ? '<img class="th" src="' + esc(tp.img) + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">' : '') + '</button>';
+}
+function vigBanner(){
+  if(vigLvl() < 2) return '';
+  return '<button class="banner vb' + VIG.lvl + '" data-go="met">' + ic('bell') + '<span><b>Vigilance ' + VCOL[VIG.lvl] + ' · ' + esc(VIG.dept) + '</b>' + esc(VIG.ph.map(function(p){ return p.p; }).join(', ')) + (VIG.to ? ' · jusqu\'au ' + esc(when(VIG.to)) : '') + '</span></button>';
+}
+function offBanner(){
+  if(!offline && navigator.onLine !== false) return '';
+  return '<div class="banner off">' + ic('off') + '<span><b>Hors ligne</b>Articles enregistrés' + (lastAt ? ' (' + esc(ago(lastAt)) + ')' : '') + '. Clique sur ↻ (ou F5) pour réessayer.</span></div>';
+}
+function essentials(){ var l = TOPICS.filter(function(t){ return t.n >= 2; }); return l.length ? l : []; }
+function renderEss(){
+  var el = $('v-ess'), ess = essentials().slice(0, 15), h = vigBanner() + offBanner();
+  h += '<div class="sect"><span>L\'essentiel' + (lastAt ? ' · ' + esc(hhmm(lastAt)) : '') + '</span>' + (ess.length ? '<button class="btn sm" id="bSpeak">' + ic(speaking ? 'stop' : 'speak') + (speaking ? 'Arrêter' : 'Écouter') + '</button>' : '') + '</div>';
+  if(!ess.length && !uniqItems().length) h += '<div class="empty">' + (loading ? 'Chargement des flux des médias…' : 'Aucun article pour le moment.<br>Clique sur ↻ (ou F5) pour charger les actualités.') + '</div>';
+  else if(!ess.length) h += '<div class="empty">Pas encore de sujet repris par plusieurs médias.<br>Les derniers titres sont dans le fil.</div>';
+  ess.forEach(function(tp, i){ h += topicCard(tp, i, i === 0); });
+  var une = uniqItems().filter(function(it){ return it.une && !(it.tp && it.tp.n >= 2); }).sort(function(a, b){ return b.ts - a.ts; }).slice(0, 12);
+  if(une.length) h += '<div class="sect"><span>Autres titres à la une</span></div><div class="list">' + une.map(artRow).join('') + '</div>';
+  h += '<p class="note">Les faits sont classés selon le nombre de médias qui en parlent et leur fraîcheur. Titres et résumés viennent des flux publics des médias ; l\'article complet s\'ouvre sur leur site.</p>';
+  el.innerHTML = h;
+}
+function deptKw(){
+  var d = deptObj(); if(!d) return [];
+  var l = [d.name, d.pref].concat(String(S.kw || '').split(',')).map(function(s){ return K.norm(s).trim(); }).filter(function(s){ return s.length >= 3; });
+  return l.filter(function(s, i){ return l.indexOf(s) === i; });
+}
+function filItems(){
+  var all = uniqItems();
+  if(RUB === 'dept'){
+    var kw = deptKw(), rm = regMedia();
+    return all.filter(function(it){
+      var tx = ' ' + K.norm(it.t + ' ' + (it.d || '')).replace(/[^a-z0-9]+/g, ' ') + ' ';
+      // Mots du département (nom, préfecture, communes choisies) ; les journaux régionaux (hors Ouest-France et actu.fr, trop larges) entrent d'office
+      return kw.some(function(k){ return tx.indexOf(' ' + k.replace(/[^a-z0-9]+/g, ' ') + ' ') >= 0; }) || (rm.indexOf(it.m) >= 0 && it.m !== 'of' && it.m !== 'actu' && it.rubs.indexOf('region') >= 0);
+    });
+  }
+  return all.filter(function(it){ return it.rubs.indexOf(RUB) >= 0; });
+}
+function renderFil(){
+  var el = $('v-fil'), rubs = RUBS.filter(function(r){ return S.rubs[r.id] && r.id !== 'region'; });
+  var chips = rubs.map(function(r){ return '<button class="chip' + (RUB === r.id ? ' on' : '') + '" data-rub="' + r.id + '">' + esc(r.n) + '</button>'; }).join('');
+  if(S.rubs.region) chips += '<button class="chip' + (RUB === 'region' ? ' on' : '') + '" data-rub="region">Régions</button>';
+  chips += '<button class="chip' + (RUB === 'dept' ? ' on' : '') + '" data-rub="dept">' + ic('pin', 'width:16px;height:16px;display:inline-block;vertical-align:-3px;margin-right:4px') + (S.dept ? esc(S.dept.name) : 'Mon département') + '</button>';
+  var h = '<div class="chips">' + chips + '</div>' + offBanner();
+  if(RUB === 'dept' && !S.dept) h += '<div class="empty">Choisissez votre département pour voir les infos locales et la vigilance météo.<br><br><button class="btn main" data-act="dept">' + ic('pin') + 'Choisir mon département</button></div>';
+  else {
+    var l = filItems().sort(function(a, b){ return b.ts - a.ts; });
+    if(RUB === 'region' && !regMedia().length) h += '<div class="empty">Choisissez votre département : l\'appli suivra le journal régional correspondant (Ouest-France, Sud Ouest, La Dépêche, Nice-Matin, DNA) et actu.fr.</div>';
+    else if(!l.length) h += '<div class="empty">' + (loading ? 'Chargement…' : 'Aucun article dans cette rubrique.' + (RUB === 'dept' ? '<br>Ajoutez des communes dans Plus › Mon département.' : '')) + '</div>';
+    else {
+      if(RUB === 'dept') h += '<p class="note" style="margin:0 2px 8px">Articles qui citent ' + esc(deptKw().map(function(s){ return s; }).slice(0, 4).join(', ')) + (regMedia().length ? ', et journaux régionaux : ' + esc(regMedia().map(mname).join(', ')) : '') + '.</p>';
+      h += '<div class="list">' + l.slice(0, SHOWN.fil).map(artRow).join('') + '</div>';
+      if(l.length > SHOWN.fil) h += '<button class="btn more" data-act="morefil">Afficher plus (' + (l.length - SHOWN.fil) + ')</button>';
+    }
+  }
+  el.innerHTML = h;
+}
+function renderImg(){
+  var el = $('v-img'), all = uniqItems().sort(function(a, b){ return b.ts - a.ts; }), h = '<div class="seg"><button data-im="photo" class="' + (IMGMODE === 'photo' ? 'on' : '') + '">Photos</button><button data-im="video" class="' + (IMGMODE === 'video' ? 'on' : '') + '">Vidéos</button></div>';
+  if(IMGMODE === 'photo'){
+    var seen = {}, l = all.filter(function(it){ if(!it.img || seen[it.img]) return false; seen[it.img] = 1; return true; });
+    if(!S.imgs) h += '<div class="empty">Les images sont masquées (Plus › Apparence).</div>';
+    else if(!l.length) h += '<div class="empty">Aucune image dans les flux chargés.</div>';
+    else {
+      h += '<div class="grid">' + l.slice(0, SHOWN.img).map(function(it){ return '<button class="gi" data-art="' + it.id + '"><img src="' + esc(it.img) + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.remove()"><span>' + esc(mname(it.m)) + ' · ' + esc(it.t) + '</span></button>'; }).join('') + '</div>';
+      if(l.length > SHOWN.img) h += '<button class="btn more" data-act="moreimg">Afficher plus</button>';
+    }
+    h += '<p class="note">Photos fournies par les flux des médias (droits réservés à leurs auteurs). Clique sur une image pour l\'article.</p>';
+  } else {
+    var v = all.filter(function(it){ return it.vid || it.isVid; });
+    if(!v.length) h += '<div class="empty">Aucune vidéo dans les flux chargés pour le moment.</div>';
+    else h += '<div class="grid">' + v.slice(0, 60).map(function(it){ return '<button class="gi" data-art="' + it.id + '">' + (it.img && S.imgs ? '<img src="' + esc(it.img) + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">' : '') + '<i class="play">' + ic('play') + '</i><span>' + esc(mname(it.m)) + (it.vid ? '' : ' ↗') + ' · ' + esc(it.t) + '</span></button>'; }).join('') + '</div>';
+    h += '<p class="note">Seulement les vidéos des flux officiels des médias : lues ici quand le flux fournit un fichier vidéo, sinon ouvertes sur le site du média (↗). Pas de YouTube.</p>';
+  }
+  el.innerHTML = h;
+}
+function renderMet(){
+  var el = $('v-met'), h = '';
+  h += '<div class="card"><h3>Mon département</h3>' + (S.dept ? '<div style="font-size:1.25rem;font-weight:850">' + esc(S.dept.name) + ' <span class="muted" style="font-weight:600">(' + esc(S.dept.code) + ')</span></div>' : '<p class="lead">Choisissez un département pour suivre sa vigilance météo et ses infos locales.</p>') +
+    '<div class="row"><button class="btn" data-act="gps">' + ic('pin') + 'Ma position</button><button class="btn" data-act="dept">' + ic('list') + (S.dept ? 'Changer' : 'Choisir') + '</button></div></div>';
+  if(S.dept){
+    if(!vigOk()) h += '<div class="vig v0"><div class="lvl">Vigilance : chargement…</div><p class="note">Clique sur ↻ (ou F5) pour réessayer.</p></div>';
+    else {
+      var lv = vigLvl();
+      h += '<div class="vig v' + lv + '"><div class="lvl">' + (lv >= 2 ? 'Vigilance ' + VCOL[lv] : 'Pas de vigilance particulière') + '</div><div style="margin:4px 0 6px;font-weight:650">' + esc(VIG.dept) + (VIG.to && lv >= 2 ? ' · jusqu\'au ' + esc(when(VIG.to)) : '') + '</div>';
+      if(lv < 2) h += '<p style="margin:2px 0 6px;font-size:.92rem">Vert : pas de vigilance particulière signalée par Météo-France pour ce département.</p>';
+      if(lv >= 2) VIG.ph.forEach(function(p){ h += '<div class="ph"><i class="c' + p.lvl + '"></i><b>' + esc(p.p.charAt(0).toUpperCase() + p.p.slice(1)) + '</b><small>' + esc(VCOL[p.lvl]) + (p.from || p.to ? '<br>' + (p.from ? 'du ' + esc(when(p.from)) + ' ' : '') + (p.to ? 'au ' + esc(when(p.to)) : '') : '') + '</small></div>'; });
+      h += '<div style="margin-top:8px;font-size:.9rem"><a href="#" data-url="https://vigilance.meteofrance.fr/fr">Carte et consignes sur vigilance.meteofrance.fr ↗</a></div></div>';
+      h += '<p class="note">' + (VIG.at ? 'Mise à jour ' + esc(ago(VIG.at)) + '. ' : '') + (VIG.err ? '<span class="ko">Dernière lecture impossible (' + esc(VIG.err) + ').</span> ' : '') + 'Source : MeteoAlarm (EUMETNET), qui reprend la vigilance de Météo-France. En cas de doute, la référence est vigilance.meteofrance.fr.</p>';
+    }
+    var a = S.al;
+    h += '<div class="card" style="margin-top:12px"><h3>Notifications de vigilance</h3>' +
+      sw('al.vigOn', 'Prévenir pour l\'orange et le rouge', 'Vérifié avec les alertes infos, toutes les ' + a.every + ' min') +
+      sw('al.vigYellow', 'Prévenir aussi pour le jaune', '') + sw('al.vigNight', 'Rouge : prévenir même la nuit', 'Malgré les heures calmes') + '</div>';
+  }
+  el.innerHTML = h;
+}
+function sw(key, label, sub){
+  var v = key.split('.').reduce(function(o, k){ return o ? o[k] : undefined; }, S);
+  return '<div class="set"><label for="sw-' + key + '">' + esc(label) + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</label><span class="sw"><input type="checkbox" id="sw-' + key + '" data-set="' + key + '"' + (v ? ' checked' : '') + '><span></span></span></div>';
+}
+function sel(key, label, opts, sub){
+  var v = key.split('.').reduce(function(o, k){ return o ? o[k] : undefined; }, S);
+  return '<div class="set"><label for="se-' + key + '">' + esc(label) + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</label><select id="se-' + key + '" data-set="' + key + '">' + opts.map(function(o){ return '<option value="' + o[0] + '"' + (String(o[0]) === String(v) ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select></div>';
+}
+function hours(){ var l = []; for(var i = 0; i < 24; i++) l.push([i, i + ' h']); return l; }
+function workerState(){ try{ return B && B.state ? JSON.parse(B.state() || '{}') : {}; }catch(e){ return {}; } }
+function renderPlus(){
+  var el = $('v-plus'), a = S.al, st = workerState(), nOn = Object.keys(MEDIA).filter(function(m){ return S.media[m]; }).length;
+  var perm = B && B.notifAllowed ? B.notifAllowed() : null;
+  var h = '<div class="card menu" style="padding:4px 14px">' +
+    '<button data-act="favs">' + ic('mark') + '<span>À lire plus tard<small>' + FAV.length + ' article' + (FAV.length > 1 ? 's' : '') + ' enregistré' + (FAV.length > 1 ? 's' : '') + ', lisibles hors ligne</small></span>' + ic('chev') + '</button>' +
+    '<button data-act="search">' + ic('search') + '<span>Rechercher<small>Dans les articles chargés et enregistrés</small></span>' + ic('chev') + '</button>' +
+    '<button data-act="sources">' + ic('list') + '<span>Sources et rubriques<small>' + nOn + ' médias actifs · ' + activeFeeds().length + ' flux</small></span>' + ic('chev') + '</button>' +
+    '<button data-act="about">' + ic('info') + '<span>D\'où viennent les infos ?<small>Médias, droits, vigilance, vie privée</small></span>' + ic('chev') + '</button></div>';
+  h += '<div class="sect"><span>Alertes infos importantes</span></div><div class="card">' +
+    (perm === false ? '<div class="banner off" style="margin:0 0 6px">' + ic('bell') + '<span><b>Notifications non autorisées</b><button class="btn sm" data-act="perm" style="margin-top:6px">Autoriser</button></span></div>' : '') +
+    sw('al.on', 'Prévenir des nouvelles importantes', 'Sujet repris par plusieurs grands médias, ou titre marqué alerte') +
+    sel('al.every', 'Vérifier toutes les', [[15, '15 min'], [20, '20 min'], [30, '30 min'], [45, '45 min'], [60, '1 h'], [120, '2 h']]) +
+    sel('al.minSrc', 'Repris par au moins', [[2, '2 médias'], [3, '3 médias'], [4, '4 médias'], [5, '5 médias'], [6, '6 médias']]) +
+    sel('al.winH', 'En moins de', [[1, '1 heure'], [2, '2 heures'], [3, '3 heures'], [6, '6 heures']]) +
+    sel('al.maxDay', 'Au plus, par jour', [[1, '1 alerte'], [2, '2 alertes'], [3, '3 alertes'], [5, '5 alertes'], [8, '8 alertes'], [12, '12 alertes'], [20, '20 alertes']]) +
+    '<div class="set" style="flex-wrap:wrap"><label for="mk">Mots d\'alerte dans le titre<small>Séparés par des virgules ; vide = règle désactivée</small></label><input type="text" id="mk" data-set="al.markers" value="' + esc(a.markers) + '" style="max-width:none;width:100%"></div>' +
+    sw('al.quietOn', 'Heures calmes', 'Aucune alerte infos pendant ces heures') +
+    (a.quietOn ? sel('al.qFrom', 'De', hours()) + sel('al.qTo', 'À', hours()) : '') +
+    '<div class="row"><button class="btn sm" data-act="test">' + ic('bell') + 'Essai</button><button class="btn sm" data-act="now">Vérifier maintenant</button></div>' +
+    '<p class="note">Un même sujet n\'est jamais signalé deux fois (72 h). ' + (st.at ? 'Dernière vérification ' + esc(ago(st.at)) + ' : ' + (st.ok || 0) + '/' + (st.feeds || 0) + ' flux, ' + (st.count || 0) + ' alerte' + ((st.count || 0) > 1 ? 's' : '') + ' aujourd\'hui' + (st.quiet ? ' (heures calmes)' : '') + '.' : (B ? 'Première vérification dans quelques minutes.' : 'Les alertes fonctionnent dans l\'appli Android.')) + '</p>' +
+    '<button class="btn sm wide" data-act="preview" style="margin-top:8px">Ce qui déclencherait une alerte maintenant</button><div id="pv"></div>' +
+    (B && B.notifSettings ? '<button class="btn sm wide" data-act="osnotif" style="margin-top:8px">Réglages Android des notifications</button>' : '') + '</div>';
+  h += '<div class="sect"><span>Mon département</span></div><div class="card">' +
+    '<div class="set"><div class="lb">' + (S.dept ? esc(S.dept.name) + ' (' + esc(S.dept.code) + ')' : 'Non choisi') + '<small>Vigilance météo et infos locales</small></div><button class="btn sm" data-act="dept">Changer</button></div>' +
+    '<div class="set" style="flex-wrap:wrap"><label for="kw">Communes ou mots à suivre<small>Séparés par des virgules (ex. Aubagne, La Ciotat)</small></label><input type="text" id="kw" data-set="kw" value="' + esc(S.kw) + '" style="max-width:none;width:100%"></div></div>';
+  h += '<div class="sect"><span>Apparence</span></div><div class="card">' +
+    sel('theme', 'Thème', [['auto', 'Comme Windows'], ['dark', 'Sombre'], ['light', 'Clair']]) +
+    '<div class="set" style="flex-wrap:wrap"><label for="fs">Taille du texte<small>' + S.fs + ' %</small></label><input class="rng" type="range" id="fs" min="85" max="140" step="5" value="' + S.fs + '" data-set="fs"></div>' +
+    sw('imgs', 'Afficher les images', 'Désactiver pour économiser les données') + '</div>';
+  h += '<div class="sect"><span>Hors ligne</span></div><div class="card"><p class="lead">' + uniqItems().length + ' articles enregistrés dans ce navigateur' + (lastAt ? ', mis à jour ' + esc(ago(lastAt)) : '') + '. Ils restent lisibles sans réseau (titres et résumés).</p><button class="btn sm" data-act="clear">' + ic('trash') + 'Vider le cache</button></div>';
+  el.innerHTML = h;
+}
+function render(){
+  try{
+    if(TAB === 'ess') renderEss(); else if(TAB === 'fil') renderFil(); else if(TAB === 'img') renderImg(); else if(TAB === 'met') renderMet(); else renderPlus();
+  }catch(e){ console.warn('Affichage : ' + (e && e.message || e)); }
+  badge(); favBadge();
+}
+function favBadge(){ var n = $('favN'); n.hidden = !FAV.length; n.textContent = FAV.length > 99 ? '99' : FAV.length; }
+
+/* ---------- Feuilles (article, sujet, recherche, sources…) ---------- */
+var SHEETS = [];
+function openSheet(title, html, opt){
+  opt = opt || {};
+  var d = document.createElement('div'); d.className = 'sheet' + (opt.full ? ' full' : '');
+  d.innerHTML = '<div class="pn" role="dialog" aria-label="' + esc(title) + '"><div class="hd">' + (SHEETS.length ? '<button class="ib" data-close="1" aria-label="Retour">' + ic('back') + '</button>' : '') + '<h2>' + esc(title) + '</h2><button class="ib" data-close="1" aria-label="Fermer">' + ic('x') + '</button></div><div class="bd">' + html + '</div></div>';
+  d.addEventListener('click', function(e){ if(e.target === d || e.target.closest('[data-close]')) history.back(); });
+  $('sheets').appendChild(d); SHEETS.push({ el: d, kind: opt.kind || '' });
+  try{ history.pushState({ sheet: SHEETS.length }, ''); }catch(e){}
+  return d;
+}
+function closeSheet(){ var s = SHEETS.pop(); if(!s) return false; var v = s.el.querySelector('video'); if(v) try{ v.pause(); }catch(e){} s.el.remove(); return true; }
+window.addEventListener('popstate', function(){ closeSheet(); });
+function closeAll(){ var n = SHEETS.length; while(SHEETS.length) closeSheet(); if(n) try{ history.go(-n); }catch(e){} }
+function findItem(id){ var it = ITEMS[id]; if(it) return it; for(var i = 0; i < FAV.length; i++) if(FAV[i].id === id) return FAV[i]; return null; }
+function isFav(id){ return FAV.some(function(f){ return f.id === id; }); }
+function openArt(it){
+  READ[it.id] = Date.now(); var rk = Object.keys(READ); if(rk.length > 1500) rk.sort(function(a, b){ return READ[a] - READ[b]; }).slice(0, 500).forEach(function(k){ delete READ[k]; }); lsSet('read', READ);
+  var h = '';
+  if(it.vid) h += '<video controls playsinline preload="metadata"' + (it.img ? ' poster="' + esc(it.img) + '"' : '') + ' src="' + esc(it.vid) + '"></video><p class="note" id="vErr" hidden>Cette vidéo ne peut pas être lue ici : ouvrez-la sur le site du média.</p>';
+  else if(it.img && S.imgs) h += '<img class="hero" src="' + esc(it.img) + '" alt="" referrerpolicy="no-referrer" onerror="this.remove()">';
+  h += '<div class="meta">' + srcTag(it.m) + '<span>' + esc(ago(it.ts)) + '</span>' + (it.rubs || []).map(function(r){ var x = RUBS.filter(function(y){ return y.id === r; })[0]; return x ? '<span class="badge">' + esc(x.n) + '</span>' : ''; }).join('') + '</div>';
+  h += '<h1>' + esc(it.t) + '</h1>' + (it.d ? '<p class="chapo">' + esc(it.d) + '</p>' : '');
+  h += '<button class="btn main wide" data-url="' + esc(it.l) + '" style="margin-top:8px">' + ic('ext') + (it.isVid && !it.vid ? 'Voir la vidéo sur ' : 'Lire l\'article sur ') + esc(mname(it.m)) + '</button>';
+  h += '<div class="row"><button class="btn" data-share="' + esc(it.id) + '">' + ic('share') + 'Partager</button><button class="btn" data-fav="' + esc(it.id) + '">' + ic(isFav(it.id) ? 'marked' : 'mark') + (isFav(it.id) ? 'Enregistré' : 'Plus tard') + '</button></div>';
+  var tp = it.tp || (ITEMS[it.id] && ITEMS[it.id].tp);
+  if(tp && tp.n > 1) h += '<button class="btn wide" data-topic="' + tp.id + '" style="margin-top:8px">Voir le sujet : couvert par ' + tp.n + ' médias</button>';
+  h += '<p class="note">Résumé fourni par le flux public de ' + esc(mname(it.m)) + '. Le texte complet de l\'article est sur le site du média.</p>';
+  var d = openSheet(mname(it.m), h, { kind: 'art' });
+  var v = d.querySelector('video'); if(v) v.addEventListener('error', function(){ var n = d.querySelector('#vErr'); if(n) n.hidden = false; v.remove(); });
+  if(TAB === 'fil' || TAB === 'ess') setTimeout(function(){ document.querySelectorAll('[data-art="' + it.id + '"]').forEach(function(b){ b.classList.add('read'); }); }, 300);
+}
+function openTopic(tp){
+  var h = '<h1 style="margin-top:0">' + esc(tp.title) + '</h1><div class="cov" style="margin-bottom:6px"><span class="badge n">Couvert par ' + tp.n + ' média' + (tp.n > 1 ? 's' : '') + '</span></div><p class="note" style="margin:0 0 6px">' + esc(covNames(tp)) + '</p>';
+  if(tp.img && S.imgs) h += '<img class="hero" src="' + esc(tp.img) + '" alt="" referrerpolicy="no-referrer" onerror="this.remove()">';
+  h += '<div class="list">' + tp.items.map(artRow).join('') + '</div>';
+  h += '<p class="note">Articles regroupés automatiquement d\'après les mots de leurs titres. Clique sur l\'un d\'eux pour le résumé et le lien vers le média.</p>';
+  openSheet('Le sujet', h, { kind: 'topic', full: true });
+}
+function topicById(id){ return TOPICS.filter(function(t){ return t.id === id; })[0] || null; }
+/* Sujet le plus proche d'un titre (notification, tuile Socle) */
+function topicByTitle(t){
+  var tk = K.tokens(t), best = null, bs = 0;
+  TOPICS.forEach(function(tp){ tp.items.forEach(function(o){ var s = o.t === t ? 2 : (K.same(tk, o.tk || K.tokens(o.t), null, 0) ? K.overlap(tk, o.tk || K.tokens(o.t)) : 0); if(s > bs){ bs = s; best = tp; } }); });
+  return best;
+}
+function share(it){
+  if(B && B.share){ B.share(it.t, it.l); return; }
+  if(navigator.share){ navigator.share({ title: it.t, url: it.l }).catch(function(){}); return; }
+  try{ navigator.clipboard.writeText(it.t + '\n' + it.l); toast('Lien copié'); }catch(e){ toast(it.l); }
+}
+function toggleFav(id){
+  var it = findItem(id); if(!it) return;
+  if(isFav(id)){ FAV = FAV.filter(function(f){ return f.id !== id; }); toast('Retiré de « À lire plus tard »'); }
+  else { FAV.unshift({ id: it.id, m: it.m, rubs: it.rubs, t: it.t, d: it.d, l: it.l, img: it.img, vid: it.vid, isVid: it.isVid, ts: it.ts, saved: Date.now() }); toast('Enregistré pour plus tard'); }
+  lsSet('fav', FAV); favBadge();
+  document.querySelectorAll('[data-fav="' + id + '"]').forEach(function(b){ b.innerHTML = ic(isFav(id) ? 'marked' : 'mark') + (isFav(id) ? 'Enregistré' : 'Plus tard'); });
+  var fs = $('favList'); if(fs) fs.innerHTML = favHtml();
+}
+function favHtml(){
+  if(!FAV.length) return '<div class="empty">Rien d\'enregistré.<br>Clique sur « Plus tard » sur un article pour le garder ici, même hors ligne.</div>';
+  return '<div class="list">' + FAV.map(function(f){ return '<div style="display:flex;align-items:center;gap:4px">' + artRow(f).replace('class="art', 'style="flex:1" class="art') + '<button class="ib" data-fav="' + f.id + '" aria-label="Retirer">' + ic('trash') + '</button></div>'; }).join('') + '</div>';
+}
+function openFavs(){ openSheet('À lire plus tard', '<div id="favList">' + favHtml() + '</div>', { kind: 'favs', full: true }); }
+function openSearch(){
+  var d = openSheet('Rechercher', '<input class="txt" id="q" type="search" placeholder="Mot, personne, lieu…" autocomplete="off"><div id="qr" style="margin-top:10px"></div>', { kind: 'search', full: true });
+  var q = d.querySelector('#q'), T = null;
+  q.addEventListener('input', function(){ clearTimeout(T); T = setTimeout(function(){ runSearch(q.value, d.querySelector('#qr')); }, 150); });
+  setTimeout(function(){ try{ q.focus(); }catch(e){} }, 120);
+}
+function searchItems(q){
+  var w = K.norm(q).split(/[^a-z0-9]+/).filter(function(x){ return x.length >= 2; });
+  if(!w.length) return [];
+  var pool = uniqItems().concat(FAV.filter(function(f){ return !ITEMS[f.id]; })), out = [];
+  pool.forEach(function(it){ var tx = K.norm(it.t + ' ' + (it.d || '') + ' ' + mname(it.m)); if(w.every(function(x){ return tx.indexOf(x) >= 0; })) out.push(it); });
+  return out.sort(function(a, b){ var at = w.every(function(x){ return K.norm(a.t).indexOf(x) >= 0; }) ? 1 : 0, bt = w.every(function(x){ return K.norm(b.t).indexOf(x) >= 0; }) ? 1 : 0; return bt - at || b.ts - a.ts; });
+}
+function runSearch(q, el){
+  var r = searchItems(q);
+  if(!q.trim()) el.innerHTML = '<p class="note">La recherche porte sur les titres et résumés des articles chargés (' + uniqItems().length + ') et enregistrés.</p>';
+  else if(!r.length) el.innerHTML = '<div class="empty">Aucun article ne correspond à « ' + esc(q) + ' ».</div>';
+  else el.innerHTML = '<p class="note" style="margin:0 2px 6px">' + r.length + ' résultat' + (r.length > 1 ? 's' : '') + '</p><div class="list">' + r.slice(0, 80).map(artRow).join('') + '</div>';
+}
+function openSources(){
+  var h = '<p class="lead">Activez ou désactivez les médias, les rubriques et chaque flux. <span class="stat v">confirmé</span> : adresse vérifiée dans des annuaires publics de flux ; <span class="stat">à confirmer</span> : adresse sur le modèle des autres flux du média.</p>';
+  h += '<div class="sect"><span>Rubriques</span></div><div class="card">' + RUBS.map(function(r){ return sw('rubs.' + r.id, r.n, r.id === 'region' ? 'Journal régional de votre département et actu.fr' : ''); }).join('') + '</div>';
+  h += '<div class="sect"><span>Médias</span></div><div class="card">';
+  Object.keys(MEDIA).forEach(function(m){
+    var md = MEDIA[m], fl = FEEDS.filter(function(f){ return f.m === m; });
+    h += '<div class="set"><label for="sw-media.' + m + '">' + srcTag(m) + '<small>' + esc(md.pays) + ' · ' + fl.length + ' flux' + (md.perso ? ' · usage personnel seulement' : '') + '</small></label><span class="sw"><input type="checkbox" id="sw-media.' + m + '" data-set="media.' + m + '"' + (S.media[m] ? ' checked' : '') + '><span></span></span></div>';
+    fl.forEach(function(f){
+      var st = FS[f.id], r = RUBS.filter(function(x){ return x.id === f.r; })[0];
+      h += '<div class="feedrow"><span><b>' + esc(r ? r.n : f.r) + '</b> <span class="stat' + (f.v ? ' v' : '') + '">' + (f.v ? 'confirmé' : 'à confirmer') + '</span>' + (f.lang === 'en' ? ' <span class="stat">anglais</span>' : '') +
+        '<br><small class="muted">' + esc(f.u) + '</small><br><small class="' + (st ? (st.ok ? 'ok' : 'ko') : 'muted') + '">' + (st ? (st.ok ? '✓ ' + st.n + ' articles · ' + esc(ago(st.at)) : '✗ ' + esc(st.err || 'erreur') + ' · ' + esc(ago(st.at))) : 'pas encore lu') + '</small></span>' +
+        '<span class="sw"><input type="checkbox" aria-label="Flux ' + esc(md.n + ' ' + (r ? r.n : '')) + '" data-feed="' + f.id + '"' + (!S.feedsOff[f.id] ? ' checked' : '') + '><span></span></span></div>';
+    });
+  });
+  h += '</div><p class="note">Reuters et l\'AFP n\'ont pas de flux RSS public gratuit ; AP non plus. France 3 Régions : pas de flux confirmé, remplacé par les journaux régionaux.</p>';
+  openSheet('Sources et rubriques', h, { kind: 'sources', full: true });
+}
+function openAbout(){
+  var ms = Object.keys(MEDIA).map(function(m){ return '<div class="srcrow"><span class="t">' + srcTag(m) + '<small>' + esc(MEDIA[m].pays) + ' · <a href="#" data-url="' + esc(MEDIA[m].site) + '">' + esc(MEDIA[m].site.replace('https://', '')) + '</a></small></span></div>'; }).join('');
+  var h = '<p class="lead"><b>Uniquement des sources publiques et officielles.</b> L\'appli lit les flux RSS/Atom que les médias publient eux-mêmes pour les lecteurs de flux. Aucune clé d\'API, aucun compte, aucune publicité, aucun suivi.</p>' +
+    '<p class="lead"><b>Droits des médias respectés.</b> Pour chaque article : titre, résumé du flux (coupé à 320 caractères), image du flux, source et heure. Le bouton « Lire l\'article » ouvre la page du média : le texte complet n\'est jamais recopié.</p>' +
+    '<p class="lead"><b>L\'essentiel</b> regroupe les articles de plusieurs médias qui parlent du même sujet (mots communs des titres) et les classe selon le nombre de médias et la fraîcheur.</p>' +
+    '<p class="lead"><b>Vidéos</b> : uniquement celles des flux officiels des médias. Pas de YouTube, aucun site de diffusion non autorisé.</p>' +
+    '<p class="lead"><b>Vigilance météo</b> : flux public MeteoAlarm (réseau européen des services météo, EUMETNET), alimenté par Météo-France. La référence officielle reste <a href="#" data-url="https://vigilance.meteofrance.fr/fr">vigilance.meteofrance.fr</a>. Les départements d\'outre-mer peuvent ne pas y figurer.</p>' +
+    '<p class="lead"><b>Vie privée</b> : la position sert une seule fois à trouver le département (service public geo.api.gouv.fr, coordonnées arrondies ; sinon calcul sur le téléphone). Favoris, réglages et cache restent dans ce navigateur, sur cet ordinateur.</p>' +
+    '<p class="lead"><b>Réseau</b> : sur PC, le navigateur lit directement les flux des médias qui l\'autorisent (franceinfo, La Dépêche, DNA). Les autres passent par ton relais personnel s\'il est installé (lanceur › Relais réseau), sans cookies.</p>' +
+    '<div class="sect"><span>Médias suivis</span></div><div class="card srcs">' + ms + '</div>';
+  openSheet('D\'où viennent les infos ?', h, { kind: 'about', full: true });
+}
+function openDept(){
+  var h = '<button class="btn main wide" data-act="gps">' + ic('pin') + 'Utiliser ma position</button><input class="txt" id="dq" type="search" placeholder="Nom ou numéro du département" style="margin-top:10px"><div class="card menu" id="dl" style="padding:2px 14px;margin-top:10px"></div>';
+  var d = openSheet('Mon département', h, { kind: 'dept', full: true });
+  function list(q){
+    var n = K.norm(q).trim();
+    d.querySelector('#dl').innerHTML = DEPTS.filter(function(x){ return !n || K.norm(x.name + ' ' + x.code + ' ' + x.pref).indexOf(n) >= 0; }).map(function(x){ return '<button data-dept="' + x.code + '"><span>' + esc(x.name) + '<small>' + esc(x.code + ' · ' + x.pref) + '</small></span>' + (S.dept && S.dept.code === x.code ? ic('chev') : '') + '</button>'; }).join('') || '<div class="empty">Aucun département</div>';
+  }
+  list(''); d.querySelector('#dq').addEventListener('input', function(e){ list(e.target.value); });
+}
+function setDept(code, how){
+  var d = DEPTS.filter(function(x){ return x.code === code; })[0]; if(!d) return;
+  S.dept = { code: d.code, name: d.name }; save();
+  VIG = null; fetchVig(true).then(function(){ render(); publish(); });
+  syncWorker(); toast((how ? how + ' : ' : 'Département : ') + d.name);
+  if(SHEETS.length && SHEETS[SHEETS.length - 1].kind === 'dept') history.back();
+  render();
+  if(regMedia().length) refresh(false);
+}
+function nearest(lat, lon){
+  var best = null, bd = 1e9;
+  DEPTS.forEach(function(d){ var dx = (d.lon - lon) * Math.cos(lat * Math.PI / 180), dy = d.lat - lat, x = dx * dx + dy * dy; if(x < bd){ bd = x; best = d; } });
+  return best;
+}
+function locate(){
+  if(!navigator.geolocation){ toast('Position indisponible'); return; }
+  toast('Recherche de la position…');
+  navigator.geolocation.getCurrentPosition(function(p){
+    var lat = +p.coords.latitude.toFixed(2), lon = +p.coords.longitude.toFixed(2);
+    getText('https://geo.api.gouv.fr/communes?lat=' + lat + '&lon=' + lon + '&fields=codeDepartement,nom&limit=1').then(function(r){
+      var code = null; try{ var j = JSON.parse(r.body); if(j && j[0] && j[0].codeDepartement) code = j[0].codeDepartement; }catch(e){}
+      if(!code){ var n = nearest(lat, lon); code = n && n.code; }
+      if(code) setDept(code, 'Position'); else toast('Département introuvable');
+    });
+  }, function(){ toast('Position refusée ou indisponible : choisissez dans la liste'); }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 });
+}
+
+/* ---------- Alertes : réglages envoyés à la tâche de fond Android ---------- */
+function markers(){ return String(S.al.markers || '').split(',').map(function(s){ return s.trim(); }).filter(function(s){ return s.length >= 3; }); }
+function uneFeeds(){
+  return FEEDS.filter(function(f){ return f.r === 'une' && S.media[f.m] && !S.feedsOff[f.id] && MEDIA[f.m].grand; })
+    .filter(function(f, i, a){ return a.findIndex(function(x){ return x.m === f.m; }) === i; }).slice(0, 16)
+    .map(function(f){ return { u: f.u, m: f.m, n: MEDIA[f.m].n }; });
+}
+function alCfg(){ var a = S.al; return { on: !!a.on, every: +a.every, quietOn: !!a.quietOn, qFrom: +a.qFrom, qTo: +a.qTo, maxDay: +a.maxDay, minSrc: +a.minSrc, winH: +a.winH, markers: markers(), vigOn: !!a.vigOn, vigYellow: !!a.vigYellow, vigNight: !!a.vigNight }; }
+function syncWorker(){
+  if(!B || !B.setup) return;
+  var c = alCfg(); c.feeds = uneFeeds(); c.dept = S.dept ? { code: S.dept.code, name: S.dept.name } : null;
+  try{ B.setup(JSON.stringify(c)); }catch(e){ console.warn('Alertes : ' + e.message); }
+}
+window.actuPerm = function(){ if(TAB === 'plus') render(); };
+/* Aperçu : ce que la tâche de fond signalerait avec les articles chargés (sans tenir compte du plafond déjà atteint) */
+function preview(){
+  var c = alCfg(), seen = [], links = [], now = Date.now();
+  try{ JSON.parse(B && B.notified ? B.notified() : '[]').forEach(function(s){ if(s && s.tok) seen.push({ tok: s.tok, at: s.at, t: s.t }); }); }catch(e){}
+  var une = TOPICS.filter(function(tp){ return tp.items.some(function(o){ return o.une; }); });
+  var l = K.decide(une, c, seen, links, 0, now, K.quietAt(c, new Date().getHours()));
+  var el = $('pv'); if(!el) return l;
+  el.innerHTML = l.length ? '<div class="list" style="margin-top:8px">' + l.map(function(n){ return '<button class="art" data-topic="' + n.topic + '"><span class="t"><b>' + esc(n.title) + '</b><span class="d">' + esc(n.text) + '</span></span></button>'; }).join('') + '</div>'
+    : '<p class="note">Aucune alerte ne partirait maintenant' + (K.quietAt(c, new Date().getHours()) ? ' (heures calmes)' : '') + '.</p>';
+  return l;
+}
+
+/* ---------- Tuile Socle : 3 sujets et la vigilance ---------- */
+function publish(){
+  if(!P || !P.widgetPut) return;
+  var top = essentials().slice(0, 3);
+  if(top.length < 3) top = top.concat(TOPICS.filter(function(t){ return t.n < 2 && t.items.some(function(o){ return o.une; }); }).slice(0, 3 - top.length));
+  var o = { top: top.map(function(t){ return { t: t.title, n: t.n, src: mname(t.lead.m), at: t.newest }; }), t: Date.now(), by: 'appli' };
+  if(vigOk()) o.vig = { lvl: VIG.lvl, dept: VIG.dept, code: VIG.code, ph: VIG.ph.map(function(p){ return { p: p.p, lvl: p.lvl }; }), to: VIG.to };
+  try{ P.widgetPut(JSON.stringify(o)); }catch(e){}
+}
+var pendingSocle = null;
+window.onSocle = function(a){
+  var o = a; if(typeof a === 'string'){ try{ o = JSON.parse(a); }catch(e){ o = {}; } } if(!o) return;
+  closeAll();
+  if(o.tab === 'meteo') go('met');
+  else if(o.tab === 'essentiel') go('ess');
+  if(o.sujet){
+    go('ess');
+    var tp = topicByTitle(o.sujet);
+    if(tp) openTopic(tp);
+    else if(loading || !TOPICS.length) pendingSocle = o.sujet;
+    else { openSearch(); var q = document.getElementById('q'); if(q){ q.value = o.sujet.split(/\s+/).slice(0, 4).join(' '); q.dispatchEvent(new Event('input')); } }
+  }
+};
+
+/* ---------- Lecture à voix haute des titres de L'essentiel ---------- */
+var speaking = false, spT = null;
+function speakEss(){
+  if(speaking){ stopSpeak(); return; }
+  var l = essentials().slice(0, 8); if(!l.length) return;
+  var ord = ['Premier sujet', 'Deuxième sujet', 'Troisième sujet', 'Quatrième sujet', 'Cinquième sujet', 'Sixième sujet', 'Septième sujet', 'Huitième sujet'];
+  var txt = 'L\'essentiel de l\'actualité, ' + new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) + ', ' + hhmm(Date.now()) + '. ' +
+    l.map(function(t, i){ return ord[i] + ' : ' + t.title.replace(/[«»"]/g, '') + '. Couvert par ' + t.n + ' médias.'; }).join(' ');
+  if(vigLvl() >= 2) txt += ' Météo : vigilance ' + VCOL[VIG.lvl] + ' en ' + VIG.dept + ' pour ' + VIG.ph.map(function(p){ return p.p; }).join(', ') + '.';
+  speaking = true; renderEss();
+  if(P && P.speak){ P.speak(txt); clearTimeout(spT); spT = setTimeout(function(){ speaking = false; if(TAB === 'ess') renderEss(); }, Math.min(240000, txt.length * 75)); }
+  else if(window.speechSynthesis){ var u = new SpeechSynthesisUtterance(txt); u.lang = 'fr-FR'; u.onend = function(){ speaking = false; if(TAB === 'ess') renderEss(); }; speechSynthesis.cancel(); speechSynthesis.speak(u); }
+  else { speaking = false; toast('Lecture à voix haute indisponible'); }
+}
+function stopSpeak(){ speaking = false; clearTimeout(spT); try{ if(P && P.speak) P.speak(' '); if(window.speechSynthesis) speechSynthesis.cancel(); }catch(e){} if(TAB === 'ess') renderEss(); }
+
+/* ---------- Clics ---------- */
+document.addEventListener('click', function(e){
+  var t = e.target;
+  var u = t.closest('[data-url]'); if(u){ e.preventDefault(); var url = u.dataset.url; if(B && B.openUrl) B.openUrl(url); else window.open(url, '_blank', 'noopener'); return; }
+  var a = t.closest('[data-art]'); if(a){ var it = findItem(a.dataset.art); if(it) openArt(it); return; }
+  var tp = t.closest('[data-topic]'); if(tp){ var x = topicById(tp.dataset.topic); if(x) openTopic(x); return; }
+  var sh = t.closest('[data-share]'); if(sh){ var i2 = findItem(sh.dataset.share); if(i2) share(i2); return; }
+  var fv = t.closest('[data-fav]'); if(fv){ toggleFav(fv.dataset.fav); return; }
+  var rb = t.closest('[data-rub]'); if(rb){ RUB = rb.dataset.rub; SHOWN.fil = 40; renderFil(); $('main').scrollTop = 0; return; }
+  var im = t.closest('[data-im]'); if(im){ IMGMODE = im.dataset.im; renderImg(); return; }
+  var dp = t.closest('[data-dept]'); if(dp){ setDept(dp.dataset.dept); return; }
+  var g = t.closest('[data-go]'); if(g){ go(g.dataset.go); return; }
+  if(t.closest('#bSpeak')){ speakEss(); return; }
+  var ac = t.closest('[data-act]'); if(!ac) return;
+  var k = ac.dataset.act;
+  if(k === 'morefil'){ SHOWN.fil += 40; renderFil(); }
+  else if(k === 'moreimg'){ SHOWN.img += 40; renderImg(); }
+  else if(k === 'dept') openDept();
+  else if(k === 'gps') locate();
+  else if(k === 'favs') openFavs();
+  else if(k === 'search') openSearch();
+  else if(k === 'sources') openSources();
+  else if(k === 'about') openAbout();
+  else if(k === 'perm'){ if(B && B.askNotif) B.askNotif(); }
+  else if(k === 'osnotif'){ if(B && B.notifSettings) B.notifSettings(); }
+  else if(k === 'test'){ if(B && B.testNotif){ if(B.askNotif) B.askNotif(); B.testNotif(); toast('Notification d\'essai envoyée'); } else toast('Disponible dans l\'appli Android'); }
+  else if(k === 'now'){ if(B && B.runNow){ syncWorker(); B.runNow(); toast('Vérification lancée en arrière-plan'); } else toast('Disponible dans l\'appli Android'); }
+  else if(k === 'preview') preview();
+  else if(k === 'clear'){ ITEMS = {}; TOPICS = []; FS = {}; lastAt = 0; lsSet('cache', null); lsSet('fs', {}); toast('Cache vidé'); render(); }
+});
+$('bSearch').onclick = openSearch;
+$('bFav').onclick = openFavs;
+$('bRef').onclick = function(){ refresh(true); };
+/* Réglages (interrupteurs, listes, champs) */
+function setPath(path, v){ var p = path.split('.'), o = S; for(var i = 0; i < p.length - 1; i++) o = o[p[i]]; o[p[p.length - 1]] = v; }
+document.addEventListener('change', function(e){
+  var t = e.target;
+  if(t.dataset.feed){ if(t.checked) delete S.feedsOff[t.dataset.feed]; else S.feedsOff[t.dataset.feed] = true; save(); syncWorker(); needRefresh = true; return; }
+  var k = t.dataset.set; if(!k) return;
+  var v = t.type === 'checkbox' ? t.checked : t.type === 'range' ? +t.value : t.tagName === 'SELECT' && /^\d+$/.test(t.value) ? +t.value : t.value;
+  setPath(k, v); save();
+  if(k === 'theme' || k === 'fs') theme();
+  if(/^al\./.test(k)) syncWorker();
+  if(/^(media|rubs)\./.test(k)){ needRefresh = true; syncWorker(); if(k.indexOf('rubs.') === 0 && !S.rubs[RUB] && RUB !== 'dept') RUB = 'une'; }
+  if(k === 'al.on' && v && B && B.askNotif) B.askNotif();
+  if(k === 'al.vigOn' && v && B && B.askNotif) B.askNotif();
+  if(k === 'imgs' || k === 'kw') render();
+  if(k === 'al.quietOn' || k === 'fs') renderPlus();
+});
+document.addEventListener('input', function(e){ if(e.target.id === 'fs'){ S.fs = +e.target.value; theme(); var s = e.target.parentNode.querySelector('small'); if(s) s.textContent = S.fs + ' %'; } });
+var needRefresh = false;
+/* Fermeture d'une feuille Sources : relire si des flux ont changé */
+window.addEventListener('popstate', function(){ if(needRefresh && !SHEETS.some(function(s){ return s.kind === 'sources'; })){ needRefresh = false; refresh(false); } });
+
+/* ---------- Tirer pour rafraîchir ---------- */
+(function(){
+  var main = $('main'), ptr = $('ptr'), y0 = null, dy = 0;
+  main.addEventListener('touchstart', function(e){ y0 = main.scrollTop <= 0 && !SHEETS.length ? e.touches[0].clientY : null; dy = 0; }, { passive: true });
+  main.addEventListener('touchmove', function(e){
+    if(y0 == null) return;
+    dy = e.touches[0].clientY - y0;
+    if(dy <= 0){ ptr.classList.remove('on'); return; }
+    if(dy > 8 && e.cancelable) e.preventDefault();
+    var d = Math.min(dy * 0.5, 80); ptr.classList.add('on'); ptr.style.transform = 'translateY(' + (d - 30) + 'px) rotate(' + dy * 2 + 'deg)';
+  }, { passive: false });
+  main.addEventListener('touchend', function(){
+    if(y0 == null) return; y0 = null;
+    if(dy > 120){ ptr.classList.add('go'); ptr.style.transform = 'translateY(20px)'; refresh(true).then(function(){ ptr.classList.remove('on', 'go'); ptr.style.transform = ''; }); }
+    else { ptr.classList.remove('on'); ptr.style.transform = ''; }
+    dy = 0;
+  });
+})();
+
+/* ---------- Démarrage ---------- */
+window.addEventListener('online', function(){ if(offline) refresh(false); });
+window.addEventListener('offline', function(){ offline = true; render(); });
+document.addEventListener('visibilitychange', function(){ if(!document.hidden && Date.now() - lastAt > 10 * 60000) refresh(false); if(document.hidden && speaking && !(P && P.speak)) stopSpeak(); });
+var had = loadCache();
+retopic(); go(TAB);
+syncWorker();
+refresh(false).then(function(){
+  if(pendingSocle){ var tp = topicByTitle(pendingSocle); pendingSocle = null; if(tp) openTopic(tp); }
+});
+setTimeout(function(){ try{ if(P && P.takeSocle){ var x = P.takeSocle(); if(x) window.onSocle(x); } }catch(e){} }, 300);
+setInterval(function(){ if(!document.hidden && !loading && Date.now() - lastAt > 15 * 60000) refresh(false); }, 60000);
+window.ActuApp = { refresh: refresh, go: go, topics: function(){ return TOPICS; }, items: uniqItems, S: S, preview: preview, openTopic: openTopic, topicByTitle: topicByTitle, searchItems: searchItems, vig: function(){ return VIG; }, setDept: setDept, publish: publish, activeFeeds: activeFeeds, uneFeeds: uneFeeds, syncWorker: syncWorker, fs: function(){ return FS; }, offline: function(){ return offline; } };
+})();
+</script>
+</body>
+</html>

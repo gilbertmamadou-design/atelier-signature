@@ -27,6 +27,8 @@
   // Fonctions natives gardées avant le code des pages : certaines pages Android les remplacent quand MAGPrint existe
   // (impression, ouverture des liens blob:), ce qui ferait boucler le shim.
   var NATIVE = { click: HTMLAnchorElement.prototype.click, open: window.open, print: window.print };
+  /** window.open d'origine (certaines pages le remplacent) */
+  M.nativeOpen = function (u, t, f) { return NATIVE.open.call(window, u, t || '_blank', f); };
   /** Lien temporaire NON inséré dans la page : les écouteurs de clic de la page ne le voient pas */
   function anchorGo(href, o) { var a = document.createElement('a'); a.href = href; if (o.download != null) a.download = o.download; if (o.target) { a.target = o.target; a.rel = 'noopener'; } NATIVE.click.call(a); }
 
@@ -66,43 +68,85 @@
     set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
     del: function (k) { try { localStorage.removeItem(k); } catch (e) { } }
   };
-  var dbp = null;
-  function idb() {
-    if (dbp) return dbp;
-    dbp = new Promise(function (res, rej) {
-      var r = indexedDB.open('mag-pc', 1);
-      r.onupgradeneeded = function () {
-        var d = r.result;
-        if (!d.objectStoreNames.contains('kv')) d.createObjectStore('kv');
-        if (!d.objectStoreNames.contains('files')) d.createObjectStore('files', { keyPath: 'id' });
-        if (!d.objectStoreNames.contains('inbox')) d.createObjectStore('inbox', { keyPath: 'id' });
-      };
-      r.onsuccess = function () { res(r.result); };
-      r.onerror = function () { rej(r.error); };
-    });
-    return dbp;
-  }
-  function dbReq(store, mode, fn) {
-    return idb().then(function (d) {
-      return new Promise(function (res, rej) {
-        var t = d.transaction(store, mode), q = fn(t.objectStore(store)), out;
-        if (q) q.onsuccess = function () { out = q.result; };
-        t.oncomplete = function () { res(out); };
-        t.onerror = function () { rej(t.error); };
-        t.onabort = function () { rej(t.error || new Error('Stockage plein')); };
+  /** Petite base IndexedDB propre à une appli : M.openDb('agenda-pc', ['photos', {name:'x', keyPath:'id'}], 1)
+      → {get(store, clé), put(store, valeur, clé?), del(store, clé), all(store), keys(store), clear(store)} (promesses) */
+  M.openDb = function (name, stores, version) {
+    var p = null;
+    function open() {
+      if (p) return p;
+      p = new Promise(function (res, rej) {
+        var r = indexedDB.open(name, version || 1);
+        r.onupgradeneeded = function () {
+          var d = r.result;
+          (stores || []).forEach(function (st) { var o = typeof st === 'string' ? { name: st } : st; if (!d.objectStoreNames.contains(o.name)) d.createObjectStore(o.name, o.keyPath ? { keyPath: o.keyPath } : undefined); });
+        };
+        r.onsuccess = function () { res(r.result); };
+        r.onerror = function () { p = null; rej(r.error); };
+        r.onblocked = function () { p = null; rej(new Error('Base occupée : ferme les autres fenêtres de l\'appli')); };
       });
-    });
-  }
-  M.db = {
-    get: function (st, k) { return dbReq(st, 'readonly', function (s) { return s.get(k); }); },
-    put: function (st, v, k) { return dbReq(st, 'readwrite', function (s) { return k === undefined ? s.put(v) : s.put(v, k); }); },
-    del: function (st, k) { return dbReq(st, 'readwrite', function (s) { return s.delete(k); }); },
-    all: function (st) { return dbReq(st, 'readonly', function (s) { return s.getAll(); }); }
+      return p;
+    }
+    function req(store, mode, fn) {
+      return open().then(function (d) {
+        return new Promise(function (res, rej) {
+          var t = d.transaction(store, mode), q = fn(t.objectStore(store)), out;
+          if (q) q.onsuccess = function () { out = q.result; };
+          t.oncomplete = function () { res(out); };
+          t.onerror = function () { rej(t.error); };
+          t.onabort = function () { rej(t.error || new Error('Stockage plein')); };
+        });
+      });
+    }
+    return {
+      get: function (st, k) { return req(st, 'readonly', function (s) { return s.get(k); }); },
+      put: function (st, v, k) { return req(st, 'readwrite', function (s) { return k === undefined ? s.put(v) : s.put(v, k); }); },
+      del: function (st, k) { return req(st, 'readwrite', function (s) { return s.delete(k); }); },
+      all: function (st) { return req(st, 'readonly', function (s) { return s.getAll(); }); },
+      keys: function (st) { return req(st, 'readonly', function (s) { return s.getAllKeys(); }); },
+      clear: function (st) { return req(st, 'readwrite', function (s) { return s.clear(); }); },
+      open: open
+    };
   };
+  M.db = M.openDb('mag-pc', ['kv', { name: 'files', keyPath: 'id' }, { name: 'inbox', keyPath: 'id' }], 1);
   M.kv = {
     get: function (k) { return M.db.get('kv', k); },
     set: function (k, v) { return M.db.put('kv', v, k); },
     del: function (k) { return M.db.del('kv', k); }
+  };
+
+  /* ---------------- Réseau : relais facultatif pour les sites sans CORS ----------------
+     Un navigateur ne lit un flux d'un autre site que si ce site l'autorise (CORS). Sur Android, les applis lisent
+     elles-mêmes ; sur PC, Le Monde, la BBC, Gutenberg, PVGIS… bloquent. Si l'utilisateur a installé son relais
+     personnel (pc/relais/worker.js, adresse saisie dans le lanceur), les lectures (GET) vers ces sites passent par
+     lui ; pour les autres sites (flux de podcasts…), le relais n'est essayé qu'après un échec direct.
+     Sans relais : rien ne change, la page affiche son message d'erreur habituel. */
+  M.net = {
+    HOSTS: ['lemonde.fr', 'lefigaro.fr', 'liberation.fr', 'rfi.fr', 'france24.com', '20minutes.fr', 'ouest-france.fr', 'leparisien.fr',
+      'la-croix.com', 'euronews.com', 'bbci.co.uk', 'theguardian.com', 'brut.media', 'sudouest.fr', 'nicematin.com', 'actu.fr', 'meteoalarm.org',
+      'ccmixter.org', 'youtube.com', 'legifrss.org', 'service-public.gouv.fr', 're.jrc.ec.europa.eu', 'gutenberg.org', 'gutendex.com', 'ws-export.wmcloud.org'],
+    proxy: function () { var p = M.store.get('mag-pc-relais', ''); return /^(https:\/\/|http:\/\/localhost[:/])[^\s]+$/.test(p || '') ? p : ''; },
+    listed: function (h) { h = String(h || '').toLowerCase(); return M.net.HOSTS.some(function (d) { return h === d || h.slice(-d.length - 1) === '.' + d; }); },
+    // sites vérifiés sans CORS (sonde du 28/10/2026) : sans relais, la lecture est refusée tout de suite, sans requête
+    // (évite une erreur CORS dans la console et une attente inutile) ; gutendex.com n'a pas pu être vérifié
+    blocked: function (h) { return M.net.listed(h) && !/(^|\.)gutendex\.com$/i.test(h); },
+    via: function (url) { var p = M.net.proxy(); return p ? p + (p.indexOf('?') < 0 ? '?' : '&') + 'url=' + encodeURIComponent(url) : ''; }
+  };
+  var nativeFetch = window.fetch;
+  if (nativeFetch) window.fetch = function (input, init) {
+    var args = arguments, url;
+    try { url = new URL(typeof input === 'string' ? input : (input && input.url) || String(input), location.href); } catch (e) { return nativeFetch.apply(window, args); }
+    var method = String((init && init.method) || (input && input.method) || 'GET').toUpperCase(), px = M.net.proxy();
+    if (!px && method === 'GET' && url.origin !== location.origin && M.net.blocked(url.hostname)) {
+      M.net.refused = (M.net.refused || 0) + 1;
+      return Promise.reject(new TypeError('« ' + url.hostname + ' » refuse la lecture depuis une page web (CORS) : relais réseau non configuré'));
+    }
+    if (!px || method !== 'GET' || url.protocol !== 'https:' || url.origin === location.origin || url.href.indexOf(px) === 0) return nativeFetch.apply(window, args);
+    var opt = Object.assign({}, init || {}, { credentials: 'omit' });
+    if (M.net.listed(url.hostname)) return nativeFetch.call(window, M.net.via(url.href), opt);
+    return nativeFetch.apply(window, args).catch(function (e) {
+      if (e && e.name === 'AbortError') throw e;
+      return nativeFetch.call(window, M.net.via(url.href), opt).catch(function () { throw e; });
+    });
   };
 
   /* ---------------- Interface : toasts, dialogues ---------------- */
@@ -401,6 +445,23 @@
     return M.printHtml('<style>img{display:block;max-width:100%;max-height:98vh;margin:auto}</style><img src="' + u + '">', name).then(function (r) { URL.revokeObjectURL(u); return r; });
   };
 
+  /* ---------------- Images ---------------- */
+  /** Réduit une image (File/Blob) : {max: 720, square: false, type: 'image/jpeg', quality: .86} → data: URL (orientation EXIF respectée) */
+  M.scaleImage = function (blob, opt) {
+    opt = opt || {};
+    var max = opt.max || 720;
+    return createImageBitmap(blob, { imageOrientation: 'from-image' }).then(function (bm) {
+      var sx = 0, sy = 0, sw = bm.width, sh = bm.height;
+      if (opt.square) { var sq = Math.min(sw, sh); sx = (sw - sq) / 2; sy = (sh - sq) / 2; sw = sh = sq; }
+      var k = Math.min(1, max / Math.max(sw, sh)), c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(sw * k)); c.height = Math.max(1, Math.round(sh * k));
+      var x = c.getContext('2d'); if ((opt.type || 'image/jpeg') === 'image/jpeg') { x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); }
+      x.drawImage(bm, sx, sy, sw, sh, 0, 0, c.width, c.height);
+      if (bm.close) bm.close();
+      return c.toDataURL(opt.type || 'image/jpeg', opt.quality || 0.86);
+    });
+  };
+
   /* ---------------- Presse-papier ---------------- */
   M.clip = {
     write: function (t) { return navigator.clipboard.writeText(String(t)).then(function () { return true; }, function () { return false; }); },
@@ -419,7 +480,14 @@
   };
   var timers = {};
   /** Notification différée : seulement tant que la fenêtre de l'appli reste ouverte (pas de service en arrière-plan sur PC) */
-  M.schedule = function (id, delay, title, body) { M.cancel(id); timers[id] = setTimeout(function () { delete timers[id]; M.notify(title, body, { tag: String(id) }); }, Math.max(0, delay)); };
+  M.schedule = function (id, delay, title, body) {
+    M.cancel(id);
+    var at = Date.now() + Math.max(0, delay);
+    (function arm() {   // setTimeout ne dépasse pas ~24 jours : on réarme par étapes
+      var left = at - Date.now();
+      timers[id] = setTimeout(function () { if (at - Date.now() > 1000) { arm(); return; } delete timers[id]; M.notify(title, body, { tag: String(id) }); }, Math.min(Math.max(0, left), 2e9));
+    })();
+  };
   M.cancel = function (id) { if (timers[id]) { clearTimeout(timers[id]); delete timers[id]; } };
 
   /* ---------------- Écran allumé, voix ---------------- */
@@ -544,7 +612,8 @@
     }, { passive: false });
   };
   var fileHandler = null, fileQueue = [];
-  /** Fichiers déposés sur la fenêtre ou reçus par « Ouvrir avec » (appli installée) : fn({items:[{file, handle}], via:'drop'|'launch'}) */
+  /** Fichiers déposés sur la fenêtre ou reçus par « Ouvrir avec » (appli installée) : fn({items:[{file, handle}], via:'drop'|'launch'})
+      (un dossier déposé : {file:null, handle: poignée du dossier, dir:true}) */
   M.onFiles = function (fn) { fileHandler = fn; var q = fileQueue; fileQueue = []; q.forEach(function (x) { fn(x); }); };
   function deliverFiles(o) { if (!o.items.length) return; if (fileHandler) fileHandler(o); else fileQueue.push(o); }
   var dropUi = null, dragN = 0;
@@ -565,7 +634,7 @@
     // les poignées doivent être demandées pendant l'événement
     var ps = its.map(function (i) {
       var f = i.getAsFile(), hp = i.getAsFileSystemHandle ? i.getAsFileSystemHandle().catch(function () { return null; }) : Promise.resolve(null);
-      return hp.then(function (h) { return h && h.kind === 'file' ? { file: f, handle: h } : (f ? { file: f, handle: null } : null); });
+      return hp.then(function (h) { return h && h.kind === 'directory' ? { file: null, handle: h, dir: true } : h && h.kind === 'file' ? { file: f, handle: h } : (f ? { file: f, handle: null } : null); });
     });
     if (!ps.length) ps = Array.prototype.map.call(dt.files || [], function (f) { return Promise.resolve({ file: f, handle: null }); });
     Promise.all(ps).then(function (l) { deliverFiles({ items: l.filter(Boolean), via: 'drop' }); });
@@ -708,7 +777,6 @@
       cancelNotif: function (id) { M.cancel(id); },
       speak: function (text) { M.speak(text); },
       keepScreen: function (on) { M.keepScreen(on); },
-      backupPut: function (json) { M.store.set('mag-pc-backup-' + M.app, { at: Date.now(), data: String(json || '') }); },
       takeSocle: function () { var s = socle; socle = null; return s || ''; },
       appBack: function () { history.back(); }
     };

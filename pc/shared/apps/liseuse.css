@@ -1,0 +1,19 @@
+/* Liseuse sur PC : bibliothèque centrée et plus large, page du livre de largeur lisible, fenêtres centrées */
+html.mag-pc button,html.mag-pc .book,html.mag-pc .li{cursor:pointer}
+html.mag-pc ::-webkit-scrollbar{width:12px;height:12px}
+html.mag-pc ::-webkit-scrollbar-thumb{background:#8884;border-radius:8px;border:3px solid transparent;background-clip:content-box}
+@media (min-width:900px){
+  html.mag-pc #hdr,html.mag-pc #main{max-width:1180px;margin-left:auto;margin-right:auto}
+  html.mag-pc #tabs{left:50%;right:auto;transform:translateX(-50%);width:min(520px,100%);border-radius:18px 18px 0 0;border:1px solid var(--line);border-bottom:0}
+  /* lecteur : texte sur une largeur confortable, au centre */
+  html.mag-pc #frame{left:max(0px,calc(50% - 430px))!important;right:auto!important;width:min(860px,100%)!important}
+  html.mag-pc .rbar{max-width:900px;margin:0 auto;left:0;right:0}
+  html.mag-pc .grid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+  html.mag-pc .shelves{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+  html.mag-pc #toast{left:50%;right:auto;width:min(520px,90vw);margin-left:calc(min(520px,90vw)/-2)}
+  html.mag-pc #sheetWrap{justify-content:center;align-items:center}
+  html.mag-pc .sheet{width:min(580px,94vw);max-height:84vh;border-radius:20px;border:1px solid #ffffff1c;transform:translateY(16px);opacity:0;transition:transform .18s ease-out,opacity .18s}
+  html.mag-pc .sheet.tall{height:84vh}
+  html.mag-pc #sheetWrap.on .sheet{transform:none;opacity:1}
+  html.mag-pc .sheet .grab{display:none}
+}

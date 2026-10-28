@@ -1,0 +1,13 @@
+/* QR sur PC : lecture et création côte à côte, fenêtres centrées */
+html.mag-pc button,html.mag-pc label.btn,html.mag-pc .chip{cursor:pointer}
+html.mag-pc ::-webkit-scrollbar{width:12px;height:12px}
+html.mag-pc ::-webkit-scrollbar-thumb{background:#8884;border-radius:8px;border:3px solid transparent;background-clip:content-box}
+@media (min-width:900px){
+  html.mag-pc .top{max-width:1120px;margin:0 auto}
+  html.mag-pc main{max-width:1120px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 16px;align-items:start}
+  html.mag-pc main>*:nth-child(n+3){grid-column:1/-1}
+  html.mag-pc .sheet{left:50%;right:auto;bottom:auto;top:50%;width:min(560px,94vw);border-radius:20px;border:1px solid var(--line);transform:translate(-50%,-50%)}
+  html.mag-pc .sheet .grab{display:none}
+  html.mag-pc .layer{left:max(0px,calc(50% - 440px));right:auto;width:min(880px,100%);box-shadow:0 0 0 100vmax #0008}
+  html.mag-pc #toast{left:50%;right:auto;width:min(520px,90vw);margin-left:calc(min(520px,90vw)/-2);bottom:24px}
+}

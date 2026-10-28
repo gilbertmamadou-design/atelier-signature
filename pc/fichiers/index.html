@@ -1,0 +1,1716 @@
+<!-- FICHIER GÉNÉRÉ par pc/build-pc.py depuis applis/www-fichiers/index.html : ne pas modifier ici. -->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<!-- Suite MAG sur PC : ajouté par pc/build-pc.py (source : applis/www-fichiers/index.html) -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="../shared/pc.css">
+<link rel="stylesheet" href="../shared/apps/fichiers.css">
+<script>window.MAGPC_CONF={"app": "fichiers", "name": "Rangement", "vendor": "../shared/vendor/", "ocrWorker": "ocr-worker.js", "sw": "sw.js", "apps": {"fr.magformation13.lecteur": "../lecteur/", "fr.magformation13.pdf": "../pdf/", "fr.magformation13.budget": "../budget/", "fr.magformation13.liseuse": "../liseuse/", "fr.magformation13.fichiers": "../fichiers/", "fr.magformation13.actualites": "../actualites/", "fr.magformation13.carnet": "../notes/", "fr.magformation13.agenda": "../agenda/", "fr.magformation13.contacts": "../contacts/", "fr.magformation13.calcul": "../calcul/", "fr.magformation13.qr": "../qr/", "fr.magformation13.meteo": "../meteo/", "fr.magformation13.ciel": "../ciel/", "fr.magformation13.sentiers": "../sentiers/", "fr.magformation13.solaire": "../solaire/", "fr.magformation13.musique": "../musique/", "fr.magformation13.ondes": "../ondes/", "fr.magformation13.ecran": "../ecran/", "fr.magformation13.galerie": "../galerie/", "fr.magformation13.scan": "../scan/", "fr.magformation13.dicta": "../dicta/", "fr.magformation13.coffre": "../coffre/", "fr.magformation13.petitspas": "../petitspas/", "fr.magformation13.chasse": "../chasse/"}};</script>
+<script src="../shared/pc-shim.js"></script>
+<script src="../shared/apps/fichiers.js"></script>
+
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Rangement</title>
+<style>
+:root{
+  --bg:#0d1417;--bg2:#152024;--bg3:#1e2d32;--line:#ffffff12;--tx:#eef6f5;--tx2:#a9bcbc;--tx3:#6f8686;
+  --acc:#2dd4bf;--acc2:#0e7490;--danger:#f87171;--warn:#fbbf24;--ok:#4ade80;
+  --c-img:#38bdf8;--c-vid:#a78bfa;--c-aud:#f472b6;--c-doc:#fbbf24;--c-apk:#34d399;--c-zip:#fb923c;--c-oth:#94a3b8;--c-sys:#475569;--c-free:#ffffff14;
+  --safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);
+}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
+  --bg:#f3f7f7;--bg2:#ffffff;--bg3:#e5eeee;--line:#0000000f;--tx:#0f1f22;--tx2:#4d6365;--tx3:#839698;--acc:#0d9488;--acc2:#0e7490;--c-free:#0000000d;--c-sys:#94a3b8;
+}}
+:root[data-theme="light"]{--bg:#f3f7f7;--bg2:#ffffff;--bg3:#e5eeee;--line:#0000000f;--tx:#0f1f22;--tx2:#4d6365;--tx3:#839698;--acc:#0d9488;--acc2:#0e7490;--c-free:#0000000d;--c-sys:#94a3b8}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none}
+body{display:flex;flex-direction:column;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+input,select{font:inherit;color:inherit}
+svg{display:block}
+.ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+header{padding:calc(10px + var(--safe-t)) 14px 8px;display:flex;align-items:center;gap:10px;z-index:5;background:var(--bg)}
+.logo{display:flex;align-items:center;gap:8px;font-weight:800;font-size:20px;letter-spacing:-.3px;white-space:nowrap}
+.logo i{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--acc),var(--acc2));display:grid;place-items:center;font-style:normal;color:#fff;font-size:16px}
+.search{flex:1;display:flex;align-items:center;gap:6px;background:var(--bg2);border-radius:999px;padding:7px 12px;min-width:0;border:1px solid var(--line)}
+.search input{flex:1;background:none;border:0;outline:0;min-width:0}
+.search .ic{width:18px;height:18px;color:var(--tx3)}
+#refreshBtn.spinning svg{animation:rfspin .9s linear}@keyframes rfspin{to{transform:rotate(360deg)}}
+#ptr{position:fixed;left:50%;top:calc(58px + var(--safe-t));transform:translate(-50%,0);width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--bg3, #222);color:var(--tx2);opacity:0;pointer-events:none;z-index:20;transition:opacity .15s}#ptr.on{opacity:1}#ptr.ready{color:var(--acc)}
+.iconbtn{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:var(--tx2);flex:none}
+.iconbtn:active{background:var(--bg3)}
+main{flex:1;overflow-y:auto;padding:2px 0 calc(90px + var(--safe-b))}
+.view{display:none}.view.on{display:block}
+.pad{padding:0 14px}
+
+/* Cartes */
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:18px;padding:16px;margin:0 14px 12px}
+.card h3{margin:0 0 10px;font-size:15px;display:flex;align-items:center;gap:8px}
+.muted{color:var(--tx2)}.small{font-size:13px}.tiny{font-size:12px;color:var(--tx3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 18px;border-radius:999px;background:var(--bg3);font-weight:650;font-size:14.5px}
+.btn.main{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff}
+.btn.danger{background:#f8717122;color:var(--danger)}
+.btn.block{width:100%}
+.btn .ic{width:19px;height:19px}
+.btn:disabled{opacity:.45}
+
+/* Stockage */
+.stor{display:flex;gap:16px;align-items:center}
+.donut{width:132px;height:132px;flex:none;position:relative}
+.donut .mid{position:absolute;inset:0;display:grid;place-items:center;text-align:center;line-height:1.15}
+.donut .mid b{font-size:22px}
+.legend{flex:1;display:grid;gap:5px;font-size:13px;min-width:0}
+.legend div{display:flex;align-items:center;gap:7px}
+.legend i{width:10px;height:10px;border-radius:3px;flex:none}
+.legend span{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--tx2)}
+.legend b{font-weight:600;font-variant-numeric:tabular-nums}
+.bar{height:8px;border-radius:8px;background:var(--c-free);overflow:hidden;display:flex}
+.bar i{display:block;height:100%}
+
+/* Nettoyage carte accueil */
+.cleanhero{background:linear-gradient(135deg,color-mix(in srgb,var(--acc) 22%,var(--bg2)),var(--bg2));display:flex;align-items:center;gap:14px}
+.cleanhero .big{font-size:26px;font-weight:800;letter-spacing:-.5px}
+.spark{width:54px;height:54px;border-radius:16px;background:linear-gradient(135deg,var(--acc),var(--acc2));display:grid;place-items:center;flex:none;color:#fff}
+.spark .ic{width:28px;height:28px}
+
+/* Catégories */
+.cats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:0 14px 12px}
+@media (max-width:360px){.cats{grid-template-columns:repeat(3,1fr)}}
+.cat{background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:12px 6px 10px;text-align:center;cursor:pointer;min-width:0}
+.cat:active{transform:scale(.97)}
+.cat .ci{width:42px;height:42px;border-radius:13px;margin:0 auto 6px;display:grid;place-items:center;color:#fff}
+.cat .n{font-weight:650;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cat .s{font-size:11.5px;color:var(--tx3)}
+.sect{font-size:12.5px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.8px;padding:14px 16px 8px;display:flex;align-items:center;gap:8px}
+.sect .r{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:600;color:var(--acc);cursor:pointer}
+
+/* Lignes */
+.row{display:flex;align-items:center;gap:12px;padding:8px 14px;cursor:pointer;position:relative;user-select:none;-webkit-user-select:none}
+.row:active{background:var(--bg2)}
+.row .th{width:44px;height:44px;border-radius:10px;flex:none;display:grid;place-items:center;background:var(--bg3) center/cover no-repeat;color:#fff;overflow:hidden}
+.row .th .ic{width:22px;height:22px}
+.row .meta{flex:1;min-width:0}
+.row .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .s{color:var(--tx2);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .sz{color:var(--tx2);font-size:12.5px;flex:none;text-align:right;font-variant-numeric:tabular-nums}
+.row .more{width:34px;height:34px;display:grid;place-items:center;color:var(--tx3);flex:none;border-radius:50%}
+.chk{width:24px;height:24px;border-radius:7px;border:2px solid var(--tx3);flex:none;display:none;place-items:center;color:#fff}
+.selmode .chk{display:grid}
+.selmode .row .more{display:none}
+.row.sel{background:color-mix(in srgb,var(--acc) 14%,transparent)}
+.row.sel .chk,.chk.on{background:var(--acc);border-color:var(--acc)}
+.chk .ic{width:16px;height:16px;stroke-width:3;opacity:0}
+.row.sel .chk .ic,.chk.on .ic{opacity:1}
+
+/* Grille de photos */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:3px;padding:0 3px}
+.ph{aspect-ratio:1;background:var(--bg3) center/cover no-repeat;position:relative;cursor:pointer;user-select:none;-webkit-user-select:none;display:grid;place-items:center;color:var(--tx3)}
+.ph .sz{position:absolute;left:4px;bottom:4px;font-size:10.5px;background:#000a;color:#fff;padding:1px 5px;border-radius:5px}
+.ph .chk{position:absolute;top:6px;right:6px;border-color:#fff;background:#0005}
+.ph.sel{outline:3px solid var(--acc);outline-offset:-3px}
+.ph.sel .chk{background:var(--acc);border-color:var(--acc)}
+.ph.vid::after{content:"▶";position:absolute;right:6px;bottom:4px;color:#fff;font-size:12px;text-shadow:0 1px 3px #000}
+
+/* Chemin */
+.crumbs{display:flex;gap:2px;align-items:center;overflow-x:auto;padding:0 14px 6px;scrollbar-width:none;white-space:nowrap}
+.crumbs button{padding:6px 8px;border-radius:8px;color:var(--tx2);font-size:13.5px;font-weight:600}
+.crumbs button:last-child{color:var(--tx)}
+.crumbs .sep{color:var(--tx3)}
+.tools{display:flex;gap:6px;padding:2px 14px 8px;align-items:center;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:999px;background:var(--bg2);border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--tx2)}
+.chip.on{background:color-mix(in srgb,var(--acc) 20%,var(--bg2));color:var(--tx);border-color:color-mix(in srgb,var(--acc) 50%,transparent)}
+.chip .ic{width:16px;height:16px}
+select.chip{appearance:none;-webkit-appearance:none;padding-right:12px}
+.count{margin-left:auto;font-size:12.5px;color:var(--tx3)}
+
+/* Nettoyage */
+.grp{background:var(--bg2);border:1px solid var(--line);border-radius:16px;margin:0 14px 10px;overflow:hidden}
+.grp .gh{display:flex;align-items:center;gap:12px;padding:13px 14px;cursor:pointer}
+.grp .gi{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none;color:#fff}
+.grp .gt{font-weight:650}
+.grp .gd{font-size:12.5px;color:var(--tx2)}
+.grp .gs{text-align:right;flex:none}
+.grp .gs b{display:block;font-variant-numeric:tabular-nums}
+.grp .gs small{font-size:11.5px;color:var(--tx3)}
+.grp .gb{border-top:1px solid var(--line);display:none;max-height:420px;overflow-y:auto}
+.grp.open .gb{display:block}
+.grp .gtools{display:flex;gap:8px;padding:8px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.grp .gtools button{font-size:12.5px;color:var(--acc);font-weight:650;padding:4px 0}
+.grp .hd2{font-size:12px;color:var(--tx3);padding:8px 14px 2px;font-weight:700}
+.badge{display:inline-block;font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:6px;background:var(--bg3);color:var(--tx2);margin-left:4px;vertical-align:1px}
+.badge.keep{background:#4ade8026;color:var(--ok)}
+.cleanbar{position:fixed;left:0;right:0;bottom:calc(58px + var(--safe-b));padding:10px 14px;z-index:19;display:none}
+.cleanbar.on{display:block}
+.cleanbar .btn{box-shadow:0 10px 30px #0008}
+
+/* Onglets & barre de sélection */
+nav.tabs,.selbar{position:fixed;left:0;right:0;bottom:0;display:flex;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(14px);border-top:1px solid var(--line);padding:4px 4px calc(4px + var(--safe-b));z-index:20}
+nav.tabs button,.selbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;font-size:11px;color:var(--tx3);font-weight:600}
+nav.tabs button.on{color:var(--tx)}
+nav.tabs button.on .ic{color:var(--acc)}
+.selbar{display:none;background:var(--bg2)}
+body.selecting .selbar{display:flex}
+body.selecting nav.tabs{display:none}
+.selbar button{color:var(--tx)}
+.selbar button:disabled{opacity:.35}
+.selbar .del{color:var(--danger)}
+.selhead{display:none;position:fixed;top:0;left:0;right:0;z-index:30;background:var(--bg2);padding:calc(10px + var(--safe-t)) 10px 10px;align-items:center;gap:8px;border-bottom:1px solid var(--line)}
+body.selecting .selhead{display:flex}
+.selhead b{flex:1;font-size:16px}
+.pastebar{position:fixed;left:10px;right:10px;bottom:calc(66px + var(--safe-b));z-index:21;background:var(--bg3);border-radius:14px;padding:10px 12px;display:none;align-items:center;gap:10px;box-shadow:0 10px 30px #0009}
+.pastebar.on{display:flex}
+.pastebar .t{flex:1;font-size:13.5px;min-width:0}
+
+/* Feuilles */
+.scrim{position:fixed;inset:0;background:#0009;z-index:60;opacity:0;pointer-events:none;transition:opacity .2s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:61;background:var(--bg2);border-radius:20px 20px 0 0;padding:8px 0 calc(12px + var(--safe-b));transform:translateY(105%);transition:transform .25s cubic-bezier(.2,.8,.2,1);max-height:85vh;display:flex;flex-direction:column;max-width:640px;margin:0 auto}
+.sheet.on{transform:none}
+.grab{width:40px;height:4px;border-radius:4px;background:var(--tx3);opacity:.4;margin:2px auto 8px}
+.shd{display:flex;gap:12px;align-items:center;padding:4px 18px 12px;border-bottom:1px solid var(--line)}
+.shd .th{width:46px;height:46px;border-radius:10px;flex:none;display:grid;place-items:center;background:var(--bg3) center/cover no-repeat;color:#fff}
+.shd .t{font-weight:700;word-break:break-word}
+.shd .s{color:var(--tx2);font-size:13px;word-break:break-all}
+.sbody{overflow-y:auto;padding:4px 0}
+.mi{display:flex;align-items:center;gap:14px;padding:13px 20px;width:100%;text-align:left;font-size:15px}
+.mi:active{background:var(--bg3)}
+.mi .ic{color:var(--tx2)}
+.mi.danger,.mi.danger .ic{color:var(--danger)}
+.mi .r{margin-left:auto;color:var(--tx3);font-size:13px;text-align:right}
+.kv{display:flex;gap:12px;padding:9px 20px;font-size:14px}
+.kv span:first-child{width:95px;flex:none;color:var(--tx3)}
+.kv span:last-child{word-break:break-all}
+.field{padding:10px 18px}
+.field input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);outline:0}
+.field input:focus{border-color:var(--acc)}
+.btns{display:flex;gap:10px;padding:10px 18px 4px;justify-content:flex-end}
+.prog{height:8px;border-radius:8px;background:var(--bg3);overflow:hidden;margin:14px 18px 8px}
+.prog i{display:block;height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));width:0;transition:width .3s}
+.prog.ind i{width:35%!important;animation:ind 1.2s ease-in-out infinite}
+@keyframes ind{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}
+
+/* Divers */
+.empty{padding:44px 26px;text-align:center;color:var(--tx2)}
+.empty .big{font-size:50px;margin-bottom:8px}
+.empty h3{color:var(--tx);margin:0 0 6px}
+.gate{padding:34px 24px;text-align:center}
+.gate .big{width:92px;height:92px;margin:6px auto 18px;border-radius:26px;background:linear-gradient(135deg,var(--acc),var(--acc2));display:grid;place-items:center;color:#fff}
+.gate .big .ic{width:46px;height:46px}
+.gate p{color:var(--tx2);max-width:400px;margin:0 auto 16px}
+.steps{text-align:left;max-width:380px;margin:0 auto 18px;color:var(--tx2);font-size:14px;padding-left:22px}
+.steps li{margin:5px 0}
+.help{padding:0 18px 24px}
+.help h3{margin:20px 0 6px;font-size:16px}
+.help p,.help li{color:var(--tx2);margin:4px 0}
+.help ul{padding-left:20px;margin:4px 0}
+.help b{color:var(--tx)}
+.back{display:flex;align-items:center;gap:4px;color:var(--tx2);padding:4px 10px 8px;font-weight:600}
+.vtitle{display:flex;align-items:center;gap:10px;padding:0 14px 10px}
+.vtitle h2{margin:0;font-size:21px}
+#toast{position:fixed;left:50%;bottom:calc(140px + var(--safe-b));transform:translateX(-50%) translateY(20px);background:var(--bg3);color:var(--tx);padding:10px 16px;border-radius:12px;font-size:14px;z-index:90;opacity:0;transition:.25s;pointer-events:none;max-width:90vw;text-align:center;box-shadow:0 8px 24px #0008}
+#toast.on{opacity:1;transform:translateX(-50%)}
+.hidden{display:none!important}
+.note{display:flex;gap:10px;align-items:flex-start;background:color-mix(in srgb,var(--warn) 12%,var(--bg2));border:1px solid color-mix(in srgb,var(--warn) 30%,transparent);border-radius:14px;padding:12px 14px;margin:0 14px 12px;font-size:13.5px;color:var(--tx2)}
+.note b{color:var(--tx)}
+.scanning{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--tx2);padding:0 16px 10px}
+.spin{width:16px;height:16px;border:2.5px solid var(--bg3);border-top-color:var(--acc);border-radius:50%;animation:sp 1s linear infinite;flex:none}
+.spin.lg{width:34px;height:34px;border-width:3px;margin:0 auto 12px}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* Tri, regroupement, grille, taille d'affichage */
+body{--th:44px;--gw:112px;--pw:105px}
+body.z0{--th:36px;--gw:88px;--pw:80px}
+body.z2{--th:60px;--gw:150px;--pw:150px}
+.row .th{width:var(--th);height:var(--th)}
+.pgrid{grid-template-columns:repeat(auto-fill,minmax(var(--pw),1fr))}
+.dhd{position:sticky;top:0;z-index:3;background:var(--bg);font-size:12.5px;font-weight:700;color:var(--tx2);padding:12px 16px 6px;display:flex;gap:8px;align-items:baseline;grid-column:1/-1}
+.dhd small{margin-left:auto;font-weight:600;color:var(--tx3);font-size:12px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:0 14px 8px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chips .chip{flex:none;white-space:nowrap}
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--gw),1fr));gap:8px;padding:0 10px}
+.gc{position:relative;background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:6px 6px 8px;cursor:pointer;user-select:none;-webkit-user-select:none;min-width:0}
+.gc .th{width:100%;height:auto;aspect-ratio:1;border-radius:10px;display:grid;place-items:center;background:var(--bg3) center/cover no-repeat;color:#fff}
+.gc .th .ic{width:30%;height:30%}
+.gc .t{font-size:12.5px;font-weight:600;margin-top:5px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.gc .s{font-size:11px;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gc .chk{position:absolute;top:10px;right:10px;border-color:#fff;background:#0005}
+.gc.sel{outline:3px solid var(--acc);outline-offset:-2px}
+.gc.sel .chk{background:var(--acc);border-color:var(--acc)}
+.seg{display:flex;background:var(--bg);border-radius:12px;padding:3px;gap:3px;margin:4px 18px 8px;border:1px solid var(--line)}
+.seg button{flex:1;padding:8px 4px;border-radius:9px;font-size:13px;font-weight:650;color:var(--tx2);display:flex;align-items:center;justify-content:center;gap:5px}
+.seg button.on{background:var(--bg3);color:var(--tx)}
+.seg .ic{width:17px;height:17px}
+.shl{font-size:12px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.7px;padding:12px 20px 4px}
+.mi .ck{margin-left:auto;color:var(--acc)}
+.tg{margin-left:auto;width:40px;height:24px;border-radius:24px;background:var(--bg3);position:relative;flex:none;transition:.2s}
+.tg::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--tx3);transition:.2s}
+.tg.on{background:color-mix(in srgb,var(--acc) 55%,transparent)}
+.tg.on::after{left:19px;background:#fff}
+.field label{display:block;font-size:12.5px;color:var(--tx3);margin:0 0 4px 2px}
+.field2{display:flex;gap:10px;padding:6px 18px}
+.field2 .field{padding:0;flex:1}
+.prev{margin:6px 18px 4px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:12.5px;max-height:150px;overflow-y:auto}
+.prev div{display:flex;gap:6px;padding:2px 0;white-space:nowrap;overflow:hidden}
+.prev s{color:var(--tx3);overflow:hidden;text-overflow:ellipsis;max-width:45%}
+.prev b{overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.prev .bad{color:var(--danger)}
+.fav{color:var(--warn)}
+@media (min-width:900px){main{padding-left:max(0px,calc((100vw - 880px)/2));padding-right:max(0px,calc((100vw - 880px)/2))}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+<symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></symbol>
+<symbol id="i-apps" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></symbol>
+<symbol id="i-img" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></symbol>
+<symbol id="i-vid" viewBox="0 0 24 24"><rect x="2" y="5" width="15" height="14" rx="2"/><path d="m17 10 5-3v10l-5-3z"/></symbol>
+<symbol id="i-aud" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
+<symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></symbol>
+<symbol id="i-dl" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+<symbol id="i-apk" viewBox="0 0 24 24"><path d="M5 10h14v8a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2zM8 10V8a4 4 0 0 1 8 0v2M7 4l1.5 2M17 4l-1.5 2"/></symbol>
+<symbol id="i-zip" viewBox="0 0 24 24"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="19" r="1.6" fill="currentColor"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+<symbol id="i-move" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M10 13h6M13 10l3 3-3 3"/></symbol>
+<symbol id="i-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></symbol>
+<symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+<symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-open" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3"/></symbol>
+<symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/></symbol>
+<symbol id="i-restore" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></symbol>
+<symbol id="i-dup" viewBox="0 0 24 24"><rect x="8" y="8" width="13" height="13" rx="2"/><rect x="3" y="3" width="13" height="13" rx="2"/></symbol>
+<symbol id="i-big" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></symbol>
+<symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-12.3 7.4L3 21l2.1-5.6A8.4 8.4 0 1 1 21 11.5z"/></symbol>
+<symbol id="i-shot" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 7h6M9 11h6"/></symbol>
+<symbol id="i-temp" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13h12l1-13M9 7V4h6v3"/></symbol>
+<symbol id="i-empty" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke-dasharray="3 3"/></symbol>
+<symbol id="i-thumb" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></symbol>
+<symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+<symbol id="i-select" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m8 12 3 3 5-6"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-sd" viewBox="0 0 24 24"><path d="M7 2h10l4 4v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6z"/><path d="M8 6v3M11 6v3M14 6v3"/></symbol>
+<symbol id="i-phone" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></symbol>
+<symbol id="i-sort" viewBox="0 0 24 24"><path d="M3 6h13M3 12h9M3 18h5M17 8V20M14 17l3 3 3-3"/></symbol>
+<symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+<symbol id="i-filter" viewBox="0 0 24 24"><path d="M3 4h18l-7 8.5V19l-4 2v-8.5z"/></symbol>
+<symbol id="i-unzip" viewBox="0 0 24 24"><path d="M21 8v13H3V8M1 3h22v5H1zM12 11v7M9 15l3 3 3-3"/></symbol>
+<symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/></symbol>
+</defs></svg>
+
+<header>
+  <div class="logo" id="logo"><i>✦</i><span>Rangement</span></div>
+  <label class="search"><svg class="ic"><use href="#i-search"/></svg><input id="q" type="search" placeholder="Rechercher" autocomplete="off"></label>
+  <button class="iconbtn" id="refreshBtn" aria-label="Actualiser" title="Actualiser"><svg class="ic"><use href="#i-refresh"/></svg></button>
+  <button class="iconbtn" id="menuBtn" aria-label="Menu"><svg class="ic"><use href="#i-more"/></svg></button>
+</header>
+<div class="selhead"><button class="iconbtn" id="selClose" aria-label="Annuler"><svg class="ic"><use href="#i-x"/></svg></button><b id="selCount">0</b><button class="chip" id="selAll">Tout</button></div>
+
+<main id="main">
+  <section class="view" id="v-gate"></section>
+  <section class="view on" id="v-home"></section>
+  <section class="view" id="v-files"></section>
+  <section class="view" id="v-clean"></section>
+  <section class="view" id="v-apps"></section>
+  <section class="view" id="v-list"></section>
+  <section class="view" id="v-trash"></section>
+  <section class="view" id="v-help"></section>
+</main>
+
+<div class="cleanbar" id="cleanbar"><button class="btn main block" id="cleanGo"></button></div>
+<div class="pastebar" id="pastebar"><svg class="ic"><use href="#i-copy"/></svg><div class="t" id="pasteT"></div><button class="chip" id="pasteCancel">Annuler</button><button class="btn main" id="pasteGo" style="padding:8px 14px">Coller ici</button></div>
+
+<nav class="tabs" id="tabs">
+  <button data-v="home" class="on"><svg class="ic"><use href="#i-home"/></svg>Accueil</button>
+  <button data-v="files"><svg class="ic"><use href="#i-folder"/></svg>Fichiers</button>
+  <button data-v="clean"><svg class="ic"><use href="#i-spark"/></svg>Nettoyer</button>
+  <button data-v="apps"><svg class="ic"><use href="#i-apps"/></svg>Applis</button>
+</nav>
+<div class="selbar" id="selbar">
+  <button data-sa="copy"><svg class="ic"><use href="#i-copy"/></svg>Copier</button>
+  <button data-sa="move"><svg class="ic"><use href="#i-move"/></svg>Déplacer</button>
+  <button data-sa="share"><svg class="ic"><use href="#i-share"/></svg>Partager</button>
+  <button data-sa="rename"><svg class="ic"><use href="#i-edit"/></svg>Renommer</button>
+  <button data-sa="del" class="del"><svg class="ic"><use href="#i-trash"/></svg>Supprimer</button>
+  <button data-sa="more"><svg class="ic"><use href="#i-dots"/></svg>Plus</button>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet"><div class="grab"></div><div id="sheetIn" style="display:flex;flex-direction:column;min-height:0"></div></div>
+<div id="toast"></div>
+<input type="file" id="dirIn" webkitdirectory multiple class="hidden">
+
+<script>
+"use strict";
+/* ================= Outils ================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const icon = n => `<svg class="ic"><use href="#i-${n}"/></svg>`;
+const norm = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const pl = (n, w, ws) => n.toLocaleString("fr-FR") + " " + (n > 1 ? (ws || w + "s") : w);
+function fsz(b) {
+  b = +b || 0;
+  if (b < 1024) return b + " o";
+  const u = ["Ko", "Mo", "Go", "To"]; let i = -1;
+  do { b /= 1024; i++; } while (b >= 1024 && i < 3);
+  return (b >= 100 ? Math.round(b) : b >= 10 ? b.toFixed(1) : b.toFixed(2)).toString().replace(".", ",").replace(/,0+$/, "") + " " + u[i];
+}
+const DAY = 86400000;
+function fdate(t) {
+  if (!t) return "";
+  const d = new Date(t), now = new Date(), diff = (now - d) / DAY;
+  if (diff < 1 && d.getDate() === now.getDate()) return "aujourd'hui " + d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  if (diff < 2) return "hier";
+  if (diff < 7) return "il y a " + Math.floor(diff) + " jours";
+  return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: d.getFullYear() === now.getFullYear() ? undefined : "numeric" });
+}
+let toastT;
+function toast(t, ms) { const e = $("#toast"); e.textContent = t; e.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => e.classList.remove("on"), ms || 2600); }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/* ================= Types de fichiers ================= */
+const CATS = {
+  img: { n: "Images", ic: "img", c: "var(--c-img)", ext: "jpg jpeg png gif webp heic heif bmp dng raw svg tif tiff" },
+  vid: { n: "Vidéos", ic: "vid", c: "var(--c-vid)", ext: "mp4 mkv avi mov 3gp webm m4v wmv flv ts" },
+  aud: { n: "Audio", ic: "aud", c: "var(--c-aud)", ext: "mp3 m4a aac flac ogg oga opus wav amr wma mid midi 3ga" },
+  doc: { n: "Documents", ic: "doc", c: "var(--c-doc)", ext: "pdf doc docx odt xls xlsx ods ppt pptx odp txt rtf csv epub md html htm json xml vcf ics" },
+  apk: { n: "Applis (APK)", ic: "apk", c: "var(--c-apk)", ext: "apk xapk apks apkm" },
+  zip: { n: "Archives", ic: "zip", c: "var(--c-zip)", ext: "zip rar 7z tar gz bz2 xz tgz" },
+  oth: { n: "Autres", ic: "file", c: "var(--c-oth)", ext: "" }
+};
+const EXT = {};
+for (const k in CATS) for (const e of CATS[k].ext.split(" ")) if (e) EXT[e] = k;
+const extOf = n => { const i = n.lastIndexOf("."); return i > 0 ? n.slice(i + 1).toLowerCase() : ""; };
+const catOf = n => EXT[extOf(n)] || "oth";
+const baseName = p => p.slice(p.lastIndexOf("/") + 1);
+const dirName = p => p.slice(0, p.lastIndexOf("/")) || "/";
+
+/* ================= Stockage local ================= */
+const LS = "rangement:v1";
+let ST = { sort: "name", hidden: false, lastScan: 0, cleaned: 0, theme: "", dirsFirst: true, groupDate: true, view: "list", zoom: 1, fsort: {}, favs: [], opened: [] };
+try { Object.assign(ST, JSON.parse(localStorage.getItem(LS) || "{}")); } catch (e) {}
+if (!ST.fsort || typeof ST.fsort !== "object") ST.fsort = {};
+if (!Array.isArray(ST.favs)) ST.favs = [];
+if (!Array.isArray(ST.opened)) ST.opened = [];
+document.body.classList.add("z" + (ST.zoom == null ? 1 : ST.zoom));
+function save() { try { localStorage.setItem(LS, JSON.stringify(ST)); } catch (e) {} }
+if (ST.theme) document.documentElement.dataset.theme = ST.theme;
+const IDB = (() => {
+  let dbp;
+  const open = () => dbp || (dbp = new Promise((res, rej) => { try { const r = indexedDB.open("rangement", 1); r.onupgradeneeded = () => r.result.createObjectStore("kv"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch (e) { rej(e); } }));
+  const tx = (m, f) => open().then(db => new Promise((res, rej) => { const t = db.transaction("kv", m), r = f(t.objectStore("kv")); t.oncomplete = () => res(r && r.result); t.onerror = () => rej(t.error); }));
+  return { get: k => tx("readonly", s => s.get(k)).catch(() => undefined), set: (k, v) => tx("readwrite", s => s.put(v, k)).catch(() => {}) };
+})();
+
+/* ================= Pilotes : téléphone (Android) ou PC (navigateur) ================= */
+let MP = window.MAGPrint;
+const isNative = () => !!(MP && MP.fsList);
+let DRV = null;
+
+const NativeDrv = {
+  kind: "phone", canWrite: true, canTrash: true, canEdit: true, hasApps: true,
+  root: () => MP.fsRoot(),
+  roots: () => JSON.parse(MP.fsRoots() || "[]"),
+  list(path) { const r = MP.fsList(path); return r === "null" ? null : JSON.parse(r); },
+  async op(kind, items, dest, ui) {
+    if (!MP.fsOp(kind, JSON.stringify(items), dest || "")) { await waitIdle(); if (!MP.fsOp(kind, JSON.stringify(items), dest || "")) throw new Error("Une opération est déjà en cours"); }
+    let st;
+    for (;;) {
+      await sleep(kind === "scan" ? 250 : 200);
+      try { st = JSON.parse(MP.fsOpState()); } catch (e) { continue; }
+      if (ui) ui(st);
+      if (!st.running) break;
+    }
+    return st;
+  },
+  cancel: () => MP.fsOpCancel(),
+  async scan(ui) {
+    const roots = this.roots().map(r => r.path);
+    await this.op("scan", roots.length ? roots : [this.root()], "", ui);
+    let txt = "", i = 0, c;
+    while ((c = MP.fsScanChunk(i++))) txt += c;
+    MP.fsScanFree();
+    return txt;
+  },
+  async hash(paths, ui) { return (await this.op("hash", paths, "", ui)).result || {}; },
+  async apkInfo(paths, ui) { return (await this.op("apk", paths, "", ui)).result || {}; },
+  thumb: (p, s) => { try { return MP.fsThumb(p, s) || ""; } catch (e) { return ""; } },
+  trashList: () => JSON.parse(MP.fsTrashList() || "[]"),
+  rename: (p, n) => MP.fsRename(p, n),
+  mkdir: (p, n) => MP.fsMkdir(p, n),
+  open: p => MP.fsOpen(p),
+  share: ps => MP.fsShare(JSON.stringify(ps)),
+  apps: () => JSON.parse(MP.fsApps() || "[]"),
+  appIcon: (pkg, s) => { try { return MP.fsAppIcon(pkg, s) || ""; } catch (e) { return ""; } }
+};
+async function waitIdle() { for (let i = 0; i < 300; i++) { try { if (!JSON.parse(MP.fsOpState()).running) return; } catch (e) {} await sleep(200); } }
+
+// PC : dossier choisi avec le navigateur (Chrome / Edge) ; sinon analyse seule
+const PcDrv = {
+  kind: "pc", canWrite: false, canTrash: false, canEdit: false, hasApps: false,
+  rootH: null, rootName: "", H: new Map(), files: null,
+  root() { return "/" + (this.rootName || "Dossier"); },
+  roots() { return this.rootName ? [{ path: this.root(), name: this.rootName, total: 0, free: 0 }] : []; },
+  list(path) {
+    if (!IDX) return [];
+    const out = [];
+    for (const d of IDX.sub.get(path) || []) out.push({ n: baseName(d), d: true, m: 0, c: (IDX.sub.get(d) || []).length + (IDX.inDir.get(d) || []).length });
+    for (const f of IDX.inDir.get(path) || []) out.push({ n: f.n, d: false, s: f.s, m: f.m });
+    return out;
+  },
+  async pick() {
+    if (window.showDirectoryPicker) {
+      try { this.rootH = await window.showDirectoryPicker({ mode: "readwrite" }); this.rootName = this.rootH.name; this.canWrite = true; this.files = null; return true; }
+      catch (e) { if (e && e.name === "AbortError") return false; }
+    }
+    $("#dirIn").click(); return false;
+  },
+  async scan(ui) {
+    let lines = [], n = 0, bytes = 0;
+    if (this.files) {
+      const dirs = new Map();
+      for (const f of this.files) {
+        const p = "/" + f.webkitRelativePath; this.H.set(p, { file: f });
+        lines.push(`F\t${p}\t${f.size}\t${f.lastModified}`); n++; bytes += f.size;
+        let d = dirName(p); while (d.length > 1 && !dirs.has(d)) { dirs.set(d, 1); d = dirName(d); }
+      }
+      for (const d of dirs.keys()) lines.push(`D\t${d}\t1`);
+      return lines.join("\n");
+    }
+    const walk = async (dh, path, depth) => {
+      if (depth > 30) return;
+      let cnt = 0;
+      for await (const [name, h] of dh.entries()) {
+        cnt++;
+        const p = path + "/" + name;
+        if (h.kind === "directory") { if (name === ".Corbeille-Rangement") continue; this.H.set(p, { h, parent: dh }); await walk(h, p, depth + 1); }
+        else { try { const f = await h.getFile(); this.H.set(p, { h, parent: dh, file: f }); lines.push(`F\t${p}\t${f.size}\t${f.lastModified}`); n++; bytes += f.size; if (n % 200 === 0 && ui) ui({ done: n, bytes, cur: name, running: true }); } catch (e) {} }
+      }
+      lines.push(`D\t${path}\t${cnt}`);
+    };
+    this.H.clear();
+    await walk(this.rootH, this.root(), 0);
+    return lines.join("\n");
+  },
+  async getFile(p) { const e = this.H.get(p); if (!e) return null; return e.file || (e.h && e.h.getFile ? await e.h.getFile() : null); },
+  async hash(paths, ui) {
+    const r = {}; let i = 0;
+    for (const p of paths) {
+      i++; if (ui && i % 5 === 0) ui({ done: i, total: paths.length, cur: baseName(p), running: true });
+      try {
+        const f = await this.getFile(p); if (!f) continue;
+        let buf;
+        if (f.size <= 16 * 1048576) buf = await f.arrayBuffer();
+        else { const parts = [0, f.size / 3, 2 * f.size / 3, f.size - 65536].map(a => f.slice(Math.max(0, Math.floor(a)), Math.floor(a) + 65536)); buf = await new Blob([...parts, String(f.size)]).arrayBuffer(); }
+        const h = await crypto.subtle.digest("SHA-1", buf);
+        r[p] = [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, "0")).join("");
+      } catch (e) {}
+    }
+    return r;
+  },
+  async apkInfo() { return {}; },
+  thumbAsync: async function (p, s) {
+    const f = await this.getFile(p); if (!f || !/^image\//.test(f.type) || f.size > 30e6) return "";
+    try { const bm = await createImageBitmap(f); const r = s / Math.min(bm.width, bm.height); const c = document.createElement("canvas"); c.width = Math.max(1, bm.width * r); c.height = Math.max(1, bm.height * r); c.getContext("2d").drawImage(bm, 0, 0, c.width, c.height); return c.toDataURL("image/jpeg", .75); } catch (e) { return ""; }
+  },
+  async op(kind, items, dest, ui) {
+    const res = { done: 0, total: items.length, err: "", bytes: 0, result: {} };
+    if (kind === "delete") {
+      for (const p of items) {
+        const e = this.H.get(p);
+        try { await e.parent.removeEntry(baseName(p), { recursive: true }); res.bytes += (IDX.byPath.get(p) || {}).s || 0; }
+        catch (err) { res.err += (res.err ? "\n" : "") + "Suppression impossible : " + baseName(p); }
+        res.done++; if (ui) ui(Object.assign({ running: true, cur: baseName(p) }, res));
+      }
+    }
+    return res;
+  },
+  async open(p) { const f = await this.getFile(p); if (!f) return; const u = URL.createObjectURL(f); const w = window.open(u, "_blank"); if (!w) { const a = document.createElement("a"); a.href = u; a.download = f.name; a.click(); } },
+  share: async function (ps) { const fs = []; for (const p of ps) { const f = await this.getFile(p); if (f) fs.push(f); } if (navigator.canShare && navigator.canShare({ files: fs })) navigator.share({ files: fs }).catch(() => {}); else toast("Partage non disponible ici"); },
+  trashList: () => [], cancel() {}
+};
+$("#dirIn").addEventListener("change", e => {
+  const fs = [...e.target.files]; e.target.value = ""; if (!fs.length) return;
+  PcDrv.files = fs; PcDrv.rootName = (fs[0].webkitRelativePath || "Dossier").split("/")[0]; PcDrv.canWrite = false; PcDrv.rootH = null;
+  DRV = PcDrv; fullScan(true);
+});
+
+/* ================= Index de tous les fichiers ================= */
+let IDX = null;       // { files, byPath, inDir, sub, dirs, empty, size(dir) }
+function buildIndex(txt) {
+  const files = [], byPath = new Map(), inDir = new Map(), sub = new Map(), dirs = new Map();
+  const lines = txt.split("\n");
+  for (const L of lines) {
+    if (!L) continue;
+    const a = L.split("\t");
+    if (a[0] === "F") {
+      const p = a[1], n = baseName(p), d = dirName(p);
+      const f = { p, n, d, s: +a[2], m: +a[3], k: catOf(n), h: n[0] === "." || p.includes("/.") };
+      files.push(f); byPath.set(p, f);
+      let L2 = inDir.get(d); if (!L2) inDir.set(d, L2 = []); L2.push(f);
+    } else if (a[0] === "D") dirs.set(a[1], +a[2]);
+  }
+  for (const d of dirs.keys()) { const pd = dirName(d); if (pd !== d && dirs.has(pd)) { let L2 = sub.get(pd); if (!L2) sub.set(pd, L2 = []); L2.push(d); } }
+  // tailles des dossiers
+  const dsize = new Map();
+  for (const f of files) { let d = f.d; while (true) { dsize.set(d, (dsize.get(d) || 0) + f.s); if (!dirs.has(dirName(d)) || dirName(d) === d) break; d = dirName(d); } }
+  return { files, byPath, inDir, sub, dirs, dsize };
+}
+function indexRemove(paths) {
+  if (!IDX) return;
+  const set = new Set(paths);
+  const isGone = p => { if (set.has(p)) return true; for (const q of set) if (p.startsWith(q + "/")) return true; return false; };
+  const big = set.size > 50;
+  IDX.files = IDX.files.filter(f => !(set.has(f.p) || (!big && [...set].some(q => f.p.startsWith(q + "/")))) );
+  const txt = IDX.files.map(f => `F\t${f.p}\t${f.s}\t${f.m}`).concat([...IDX.dirs].filter(([d]) => !isGone(d)).map(([d, c]) => `D\t${d}\t${c}`)).join("\n");
+  IDX = buildIndex(txt);
+  // compter à nouveau les enfants des dossiers parents
+  for (const p of set) { const d = dirName(p); if (IDX.dirs.has(d)) IDX.dirs.set(d, Math.max(0, IDX.dirs.get(d) - 1)); }
+  persistIndex();
+}
+function persistIndex() {
+  if (!IDX || DRV !== NativeDrv) return;
+  IDB.set("index", IDX.files.map(f => `F\t${f.p}\t${f.s}\t${f.m}`).concat([...IDX.dirs].map(([d, c]) => `D\t${d}\t${c}`)).join("\n"));
+}
+function catStats() {
+  const S = {}; for (const k in CATS) S[k] = { n: 0, s: 0 };
+  if (!IDX) return S;
+  for (const f of IDX.files) { S[f.k].n++; S[f.k].s += f.s; }
+  return S;
+}
+
+/* ================= Analyse ================= */
+let scanning = false, scanPromise = null;
+async function fullScan(showView) {
+  if (scanning) return scanPromise;
+  scanning = true; paintScanning();
+  scanPromise = (async () => {
+    try {
+      const txt = await DRV.scan(st => { SCANST = st; paintScanning(); });
+      IDX = buildIndex(txt);
+      ST.lastScan = Date.now(); save(); persistIndex();
+      CLEAN = null;
+    } catch (e) { toast("Analyse impossible : " + e.message); }
+    scanning = false; SCANST = null;
+    if (showView) goTab("home"); else rerender();
+  })();
+  return scanPromise;
+}
+let SCANST = null;
+function paintScanning() {
+  document.querySelectorAll(".scanbox").forEach(b => {
+    b.innerHTML = scanning ? `<div class="scanning"><div class="spin"></div>Analyse du stockage… ${SCANST ? pl(SCANST.done || 0, "fichier") + (SCANST.cur ? " · " + esc(SCANST.cur) : "") : ""}</div>` : "";
+  });
+}
+
+/* ================= Miniatures ================= */
+const TH = new Map(); const thQ = []; let thBusy = false;
+function thumbable(n) { const k = catOf(n); return k === "img" || k === "vid" || k === "apk" || (k === "aud" && DRV === NativeDrv); }
+function thHTML(p, n, cls, isDir) {
+  if (isDir) return `<div class="th ${cls || ""}" style="background-color:color-mix(in srgb,var(--acc) 18%,var(--bg3));color:var(--acc)">${icon("folder")}</div>`;
+  const k = catOf(n), u = TH.get(p);
+  if (u) return `<div class="th ${cls || ""}" data-tp="${esc(p)}" style="background-image:url('${u}')"></div>`;
+  if (thumbable(n) && u !== "") queueTh(p);
+  return `<div class="th ${cls || ""}" data-tp="${esc(p)}" style="background-color:${CATS[k].c}">${icon(CATS[k].ic)}</div>`;
+}
+function queueTh(p) { if (TH.has(p) || thQ.includes(p)) return; thQ.push(p); pumpTh(); }
+async function pumpTh() {
+  if (thBusy) return; thBusy = true;
+  await sleep(0);   // laisser la page afficher les lignes d'abord
+  while (thQ.length) {
+    const p = thQ.pop();   // les derniers affichés d'abord
+    if (TH.has(p)) continue;
+    if (!document.querySelector(`[data-tp="${CSS.escape(p)}"]`)) continue;
+    const u = DRV.thumbAsync ? await DRV.thumbAsync(p, 160) : DRV.thumb(p, 160);
+    TH.set(p, u || "");
+    if (u) document.querySelectorAll(`[data-tp="${CSS.escape(p)}"]`).forEach(e => { e.style.backgroundImage = `url('${u}')`; e.style.backgroundColor = ""; if (e.classList.contains("ph")) { const i = e.querySelector(".phi"); if (i) i.remove(); } else e.innerHTML = ""; });
+    await sleep(0);
+  }
+  thBusy = false;
+}
+
+/* ================= Navigation ================= */
+let curView = "home", stack = [];
+function show(v) { document.querySelectorAll(".view").forEach(s => s.classList.toggle("on", s.id === "v-" + v)); curView = v; $("#cleanbar").classList.toggle("on", v === "clean" && !!CLEAN); paintPaste(); }
+function goTab(v) {
+  exitSel(); stack = []; $("#q").value = ""; if (v === "files") FFILT = "";
+  document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.v === v));
+  R[v](); show(v); $("#main").scrollTop = 0;
+}
+function push(fn) { stack.push({ v: curView, y: $("#main").scrollTop, fn: CURFN }); exitSel(); fn(); $("#main").scrollTop = 0; }
+let CURFN = null;
+function goBack() {
+  exitSel();
+  if (CURFN === searchView) $("#q").value = "";
+  const s = stack.pop();
+  if (!s) { goTab("home"); return true; }
+  if (s.fn) s.fn(); else { R[s.v](); show(s.v); }
+  requestAnimationFrame(() => $("#main").scrollTop = s.y);
+  return true;
+}
+function rerender() {
+  if (curView === "home") R.home();
+  else if (curView === "files") R.files();
+  else if (curView === "clean") R.clean();
+  else if (curView === "list" && CURFN) CURFN();
+  else if (curView === "trash") R.trash();
+}
+$("#tabs").onclick = e => { const b = e.target.closest("button"); if (b) goTab(b.dataset.v); };
+$("#logo").onclick = () => goTab("home");
+
+/* ================= Accueil ================= */
+const R = {};
+R.home = function () {
+  const el = $("#v-home");
+  if (!IDX && !scanning) { el.innerHTML = `<div class="scanbox"></div>`; fullScan(); paintScanning(); return; }
+  const S = catStats();
+  const roots = DRV.roots();
+  const main = roots[0] || { total: 0, free: 0 };
+  const total = main.total || 0, free = main.free || 0, used = total ? total - free : IDX ? IDX.files.reduce((a, f) => a + f.s, 0) : 0;
+  const indexed = Object.values(S).reduce((a, x) => a + x.s, 0);
+  const sys = total ? Math.max(0, used - indexed) : 0;
+  const segs = ["img", "vid", "aud", "doc", "apk", "zip", "oth"].map(k => ({ k, v: S[k].s, c: CATS[k].c, n: CATS[k].n })).filter(x => x.v > 0);
+  if (sys) segs.push({ k: "sys", v: sys, c: "var(--c-sys)", n: "Système et applis" });
+  const T = total || used || 1;
+  // anneau
+  let acc = 0, arcs = "";
+  const R0 = 52, C = 2 * Math.PI * R0;
+  for (const s of segs) { const len = s.v / T * C; if (len > .5) arcs += `<circle r="${R0}" cx="66" cy="66" fill="none" stroke="${s.c}" stroke-width="16" stroke-dasharray="${Math.max(0, len - 1.2)} ${C}" stroke-dashoffset="${-acc}" transform="rotate(-90 66 66)"/>`; acc += len; }
+  const pct = total ? Math.round(used / total * 100) : 0;
+  const tr = TRASH();
+  const cs = CLEAN ? cleanSummary() : null;
+  const tiles = [["img", "Images"], ["vid", "Vidéos"], ["aud", "Audio"], ["doc", "Documents"], ["dl", "Téléchargés"], ["apk", "APK"], ["zip", "Archives"], ["recent", "Récents"]];
+  el.innerHTML = `<div class="scanbox"></div>
+  <div class="card">
+    <div class="stor">
+      <div class="donut"><svg viewBox="0 0 132 132" width="132" height="132"><circle r="${R0}" cx="66" cy="66" fill="none" stroke="var(--c-free)" stroke-width="16"/>${arcs}</svg>
+        <div class="mid"><div>${total ? `<b>${pct}%</b><div class="tiny">utilisé</div>` : `<b>${fsz(used)}</b><div class="tiny">analysés</div>`}</div></div></div>
+      <div class="legend">${segs.slice().sort((a, b) => b.v - a.v).slice(0, 6).map(s => `<div><i style="background:${s.c}"></i><span>${s.n}</span><b>${fsz(s.v)}</b></div>`).join("")}
+        ${total ? `<div><i style="background:var(--c-free);outline:1px solid var(--line)"></i><span>Libre</span><b>${fsz(free)}</b></div>` : ""}</div>
+    </div>
+    ${total ? `<div class="tiny" style="margin-top:10px">${esc(main.name)} : ${fsz(used)} utilisés sur ${fsz(total)}</div>` : `<div class="tiny" style="margin-top:10px">Dossier « ${esc(PcDrv.rootName)} » · ${pl(IDX ? IDX.files.length : 0, "fichier")}</div>`}
+  </div>
+  <div class="card cleanhero" data-go="clean" style="cursor:pointer">
+    <div class="spark">${icon("spark")}</div>
+    <div style="flex:1;min-width:0">${cs ? `<div class="big">${fsz(cs.auto)}</div><div class="small muted">à libérer sans risque · ${fsz(cs.all)} à vérifier</div>` : `<div style="font-weight:700;font-size:17px">${DRV === NativeDrv ? "Nettoyer le téléphone" : "Faire le ménage"}</div><div class="small muted">Doublons, gros fichiers, APK inutiles, fichiers temporaires…</div>`}</div>
+    <span class="btn main" style="padding:9px 14px">${cs ? "Voir" : "Analyser"}</span>
+  </div>
+  <div class="sect">Catégories</div>
+  <div class="cats">${tiles.map(([k, n]) => { const st = k === "dl" ? dlStats() : k === "recent" ? { n: Math.min(200, IDX ? IDX.files.length : 0), s: 0 } : S[k]; const c = k === "dl" ? "#22d3ee" : k === "recent" ? "#818cf8" : CATS[k].c; const ic = k === "dl" ? "dl" : k === "recent" ? "clock" : CATS[k].ic; return `<div class="cat" data-cat="${k}"><div class="ci" style="background:${c}">${icon(ic)}</div><div class="n">${n}</div><div class="s">${k === "recent" ? "7 derniers j." : fsz(st.s)}</div></div>`; }).join("")}</div>
+  ${favsHTML()}
+  <div class="sect">Raccourcis</div>
+  ${roots.map((r, i) => `<div class="row" data-root="${esc(r.path)}"><div class="th" style="background-color:var(--acc2)">${icon(i ? "sd" : DRV === NativeDrv ? "phone" : "folder")}</div><div class="meta"><div class="t">${esc(r.name)}</div><div class="s">${r.total ? fsz(r.free) + " libres sur " + fsz(r.total) : esc(r.path)}</div>${r.total ? `<div class="bar" style="margin-top:6px"><i style="width:${(1 - r.free / r.total) * 100}%;background:var(--acc)"></i></div>` : ""}</div></div>`).join("")}
+  ${ST.opened.length ? `<div class="row" data-cat="opened"><div class="th" style="background-color:#818cf8">${icon("clock")}</div><div class="meta"><div class="t">Ouverts récemment</div><div class="s">${esc(ST.opened.slice(0, 3).map(x => baseName(x.p)).join(", "))}</div></div></div>` : ""}
+  <div class="row" data-cat="big"><div class="th" style="background-color:#ef4444">${icon("big")}</div><div class="meta"><div class="t">Gros fichiers</div><div class="s">Les fichiers de plus de 50 Mo</div></div></div>
+  ${DRV.canTrash ? `<div class="row" data-go="trash"><div class="th" style="background-color:#64748b">${icon("trash")}</div><div class="meta"><div class="t">Corbeille</div><div class="s">${tr.length ? pl(tr.length, "élément") + " · " + fsz(tr.reduce((a, x) => a + x.size, 0)) + " · vidée après 30 jours" : "Vide"}</div></div></div>` : ""}
+  ${DRV === PcDrv ? `<div class="row" data-act="pick"><div class="th" style="background-color:#64748b">${icon("folder")}</div><div class="meta"><div class="t">Choisir un autre dossier</div><div class="s">Analyser un autre dossier du PC</div></div></div>` : ""}
+  <div class="tiny" style="padding:14px 16px">${ST.lastScan ? "Dernière analyse : " + fdate(ST.lastScan) + " · " : ""}<a href="#" data-act="rescan" style="color:var(--acc)">Analyser à nouveau</a></div>`;
+  paintScanning();
+};
+function favsHTML() {
+  if (!ST.favs.length) return "";
+  return `<div class="sect">Épinglés<span class="r" data-act="favEdit">Gérer</span></div>` + ST.favs.slice(0, 12).map(p => {
+    const isDir = !!(IDX && IDX.dirs.has(p)) || !(IDX && IDX.byPath.has(p)) && !extOf(baseName(p));
+    const f = IDX && IDX.byPath.get(p), gone = IDX && !IDX.byPath.has(p) && !IDX.dirs.has(p);
+    const sub = gone ? "Introuvable (déplacé ou supprimé ?)" : isDir ? esc(shortDir(dirName(p))) + (IDX && IDX.dsize.get(p) ? " · " + fsz(IDX.dsize.get(p)) : "") : (f ? fsz(f.s) + " · " + fdate(f.m) + " · " : "") + esc(shortDir(dirName(p)));
+    return `<div class="row" ${isDir ? `data-dir="${esc(p)}"` : `data-act="openFav" data-fp="${esc(p)}"`}>${thHTML(p, baseName(p), "", isDir)}<div class="meta"><div class="t"><span class="fav">★</span> ${esc(baseName(p) || p)}</div><div class="s">${sub}</div></div></div>`;
+  }).join("");
+}
+function dlStats() { const r = { n: 0, s: 0 }; if (IDX) for (const f of IDX.files) if (/\/Download(s)?\//i.test(f.p)) { r.n++; r.s += f.s; } return r; }
+let TRASHC = [];
+const TRASH = () => TRASHC;
+function loadTrash() { try { TRASHC = DRV.trashList() || []; } catch (e) { TRASHC = []; } }
+
+/* ================= Tri et regroupement par date ================= */
+const SORTS = [["date", "Date : récents d'abord", "Récents d'abord"], ["old", "Date : anciens d'abord", "Anciens d'abord"], ["name", "Nom : A → Z", "Nom A→Z"], ["namez", "Nom : Z → A", "Nom Z→A"], ["size", "Taille : gros d'abord", "Gros d'abord"], ["small", "Taille : petits d'abord", "Petits d'abord"], ["type", "Type et extension", "Par type"]];
+const sortLabel = k => (SORTS.find(x => x[0] === k) || SORTS[2])[2];
+const CATORD = { img: 1, vid: 2, aud: 3, doc: 4, zip: 5, apk: 6, oth: 7 };
+const ncmp = (a, b) => a.n.localeCompare(b.n, "fr", { numeric: true, sensitivity: "base" });
+function sortItems(L, key, dirsFirst) {
+  let c;
+  switch (key) {
+    case "date": c = (a, b) => (b.m || 0) - (a.m || 0) || ncmp(a, b); break;
+    case "old": c = (a, b) => (a.m || 0) - (b.m || 0) || ncmp(a, b); break;
+    case "namez": c = (a, b) => ncmp(b, a); break;
+    case "size": c = (a, b) => (b.s || 0) - (a.s || 0) || ncmp(a, b); break;
+    case "small": c = (a, b) => (a.s || 0) - (b.s || 0) || ncmp(a, b); break;
+    case "type": { const t = f => f.dir ? "0" : (CATORD[f.k || catOf(f.n)] || 9) + extOf(f.n); c = (a, b) => t(a).localeCompare(t(b)) || ncmp(a, b); break; }
+    default: c = ncmp;
+  }
+  return L.sort(dirsFirst ? (a, b) => (!!b.dir - !!a.dir) || c(a, b) : c);
+}
+// Aujourd'hui, Hier, Cette semaine, Ce mois-ci, puis un groupe par mois
+function bucket(t) {
+  if (!t) return "Date inconnue";
+  const now = new Date(), d0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  if (t >= d0) return "Aujourd'hui";
+  if (t >= d0 - DAY) return "Hier";
+  const dow = (now.getDay() + 6) % 7;
+  if (t >= d0 - dow * DAY) return "Cette semaine";
+  if (t >= new Date(now.getFullYear(), now.getMonth(), 1).getTime()) return "Ce mois-ci";
+  const s = new Date(t).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+const isDateSort = k => k === "date" || k === "old";
+function fullDate(t) { return t ? new Date(t).toLocaleString("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) : ""; }
+
+/* ================= Listes de fichiers (catégories, recherche, explorateur) ================= */
+const LISTS = new Map();
+function subLine(f, o) {
+  if (f.dir) return (f.c >= 0 ? pl(f.c, "élément") : "") + (f.m ? " · " + fdate(f.m) : "");
+  return fdate(f.m) + (o.noDir ? (extOf(f.n) ? " · " + extOf(f.n).toUpperCase() : "") : " · " + esc(shortDir(f.d)));
+}
+function fileRow(f, k, o) {
+  o = o || {};
+  const sel = SEL.has(f.p);
+  return `<div class="row${sel ? " sel" : ""}" data-p="${esc(f.p)}" data-k="${k}"${f.dir ? ' data-isdir="1"' : ""}><div class="chk">${icon("check")}</div>${thHTML(f.p, f.n, "", f.dir)}<div class="meta"><div class="t">${ST.favs.includes(f.p) ? `<span class="fav">★</span> ` : ""}${esc(f.n)}</div><div class="s">${subLine(f, o)}</div></div><div class="sz">${f.dir ? (f.s ? fsz(f.s) : "") : fsz(f.s)}</div><button class="more" data-more aria-label="Options">${icon("more")}</button></div>`;
+}
+function gridCell(f, k) {
+  const sel = SEL.has(f.p);
+  return `<div class="gc${sel ? " sel" : ""}" data-p="${esc(f.p)}" data-k="${k}"${f.dir ? ' data-isdir="1"' : ""}><div class="chk">${icon("check")}</div>${thHTML(f.p, f.n, "", f.dir)}<div class="t">${esc(f.n)}</div><div class="s">${f.dir ? (f.c >= 0 ? pl(f.c, "élément") : "") : fsz(f.s) + " · " + fdate(f.m)}</div></div>`;
+}
+function photoCell(f, k) { const sel = SEL.has(f.p), u = TH.get(f.p); if (u === undefined && thumbable(f.n)) queueTh(f.p); return `<div class="ph${f.k === "vid" ? " vid" : ""}${sel ? " sel" : ""}" data-p="${esc(f.p)}" data-k="${k}" data-tp="${esc(f.p)}" style="${u ? `background-image:url('${u}')` : ""}"><div class="chk">${icon("check")}</div>${u ? "" : `<i class="phi">${icon(CATS[f.k].ic)}</i>`}<span class="sz">${fsz(f.s)}</span></div>`; }
+function shortDir(d) { const r = DRV && DRV.root ? DRV.root() : ""; return d.startsWith(r) ? (d.slice(r.length) || "/").replace(/^\//, "") || "Mémoire interne" : d; }
+// opts : grid (grille), photo (grille de photos), groups (en-têtes de date), dirsFirst, noDir (pas de chemin sous le nom)
+function fileList(el, list, opts) {
+  opts = opts || {};
+  const id = "fl" + Math.random().toString(36).slice(2, 8);
+  const box = document.createElement("div"); box.id = id; box.className = (opts.grid ? (opts.photo ? "pgrid" : "tgrid") : "") + " fl";
+  el.appendChild(box);
+  const L = { list, opts, shown: 0, last: null, stats: null };
+  if (opts.groups) { L.stats = new Map(); for (const f of list) { const b = grpKey(f, opts); const x = L.stats.get(b) || { n: 0, s: 0 }; x.n++; x.s += f.s || 0; L.stats.set(b, x); } }
+  LISTS.set(id, L);
+  moreRows(id); return box;
+}
+const grpKey = (f, o) => f.dir && o.dirsFirst ? "Dossiers" : bucket(f.m);
+function moreRows(id) {
+  const L = LISTS.get(id), box = document.getElementById(id); if (!L || !box) return;
+  const o = L.opts, end = Math.min(L.list.length, L.shown + (o.grid ? 90 : 80));
+  let h = "";
+  for (let k = L.shown; k < end; k++) {
+    const f = L.list[k];
+    if (o.groups) { const b = grpKey(f, o); if (b !== L.last) { L.last = b; const st = L.stats.get(b); h += `<div class="dhd">${esc(b)}<small>${pl(st.n, "élément")}${st.s ? " · " + fsz(st.s) : ""}</small></div>`; } }
+    h += o.grid ? (o.photo && !f.dir ? photoCell(f, k) : gridCell(f, k)) : fileRow(f, k, o);
+  }
+  box.insertAdjacentHTML("beforeend", h); L.shown = end;
+}
+$("#main").addEventListener("scroll", () => {
+  const m = $("#main"); if (m.scrollTop + m.clientHeight < m.scrollHeight - 800) return;
+  document.querySelectorAll(".view.on .fl").forEach(b => { const L = LISTS.get(b.id); if (L && L.shown < L.list.length) moreRows(b.id); });
+}, { passive: true });
+function clearLists(el) { el.querySelectorAll(".fl").forEach(b => LISTS.delete(b.id)); }
+function sortFiles(L, by) { return sortItems(L, by, false); }
+
+/* Feuille « Tri et affichage » (explorateur et listes) */
+function sortSheet(cur, apply, ctx) {
+  ctx = ctx || {};
+  const draw = () => {
+    const k = cur();
+    SH = {};
+    SORTS.forEach(([v]) => SH["s_" + v] = () => { apply(v); draw(); });
+    SH.dirs = () => { ST.dirsFirst = !ST.dirsFirst; save(); apply(); draw(); };
+    SH.grp = () => { ST.groupDate = !ST.groupDate; save(); apply(); draw(); };
+    SH.per = () => { ctx.togglePer(); apply(); draw(); };
+    SH.v_list = () => { ST.view = "list"; save(); apply(); draw(); };
+    SH.v_grid = () => { ST.view = "grid"; save(); apply(); draw(); };
+    [0, 1, 2].forEach(z => SH["z" + z] = () => { ST.zoom = z; save(); applyZoom(); draw(); });
+    SH.close = () => {};
+    const tg = (key, label, on, sub) => `<button class="mi" data-sh="${key}" data-keep="1">${icon(key === "grp" ? "clock" : key === "dirs" ? "folder" : "star")}<span>${label}${sub ? `<div class="tiny">${sub}</div>` : ""}</span><i class="tg${on ? " on" : ""}"></i></button>`;
+    const segv = ctx.noView ? "" : `<div class="shl">Affichage</div><div class="seg"><button data-sh="v_list" data-keep="1" class="${ST.view !== "grid" ? "on" : ""}">${icon("list")}Liste</button><button data-sh="v_grid" data-keep="1" class="${ST.view === "grid" ? "on" : ""}">${icon("thumb")}Grille</button></div>`;
+    sheet(`<div class="shd"><div style="flex:1"><div class="t">Tri et affichage</div>${ctx.where ? `<div class="s">${esc(ctx.where)}</div>` : ""}</div><button class="iconbtn" data-sh="close" aria-label="Fermer">${icon("x")}</button></div><div class="sbody">
+      <div class="shl">Trier par</div>
+      ${SORTS.map(([v, l]) => `<button class="mi" data-sh="s_${v}" data-keep="1">${icon(v === "date" || v === "old" ? "clock" : v === "size" || v === "small" ? "big" : v === "type" ? "file" : "sort")}<span>${l}</span>${v === k ? `<span class="ck">${icon("check")}</span>` : ""}</button>`).join("")}
+      <div class="shl">Options</div>
+      ${tg("grp", "Grouper par date", ST.groupDate, "Aujourd'hui, Hier, Cette semaine… (tri par date)")}
+      ${ctx.dirs ? tg("dirs", "Dossiers en premier", ST.dirsFirst) : ""}
+      ${ctx.togglePer ? tg("per", "Mémoriser ce tri pour ce dossier", ctx.isPer(), ctx.isPer() ? "Ce dossier garde son propre tri" : "Sinon, le tri est le même partout") : ""}
+      ${segv}
+      <div class="shl">Taille d'affichage</div><div class="seg">${["Petite", "Moyenne", "Grande"].map((l, z) => `<button data-sh="z${z}" data-keep="1" class="${(ST.zoom | 0) === z ? "on" : ""}">${l}</button>`).join("")}</div>
+    </div>`);
+  };
+  draw();
+}
+function applyZoom() { document.body.classList.remove("z0", "z1", "z2"); document.body.classList.add("z" + (ST.zoom == null ? 1 : ST.zoom)); }
+
+function listView(title, sub, list, opts) {
+  opts = opts || {};
+  const build = () => {
+    const el = $("#v-list"); clearLists(el);
+    const key = opts.sort || "size";
+    const L = sortItems(list.filter(f => IDX && IDX.byPath.has(f.p)), key, false);
+    const tot = L.reduce((a, f) => a + f.s, 0);
+    const grid = opts.photo ? opts.grid : ST.view === "grid";
+    el.innerHTML = `<button class="back" data-act="back">${icon("back")}Retour</button><div class="vtitle"><h2>${esc(title)}</h2></div>
+      ${opts.head || ""}
+      <div class="tools"><button class="chip" id="lsort">${icon("sort")}${sortLabel(key)}</button>
+      ${opts.photo ? `<button class="chip${opts.grid ? " on" : ""}" id="lgrid">${icon("thumb")}Grille</button>` : ""}
+      <button class="chip" data-act="selmode">${icon("select")}Sélectionner</button><span class="count">${pl(L.length, "fichier")} · ${fsz(tot)}</span></div>
+      ${sub ? `<div class="tiny" style="padding:0 16px 8px">${sub}</div>` : ""}`;
+    if (!L.length) el.insertAdjacentHTML("beforeend", `<div class="empty"><div class="big">🗂️</div><p>Aucun fichier ici.</p></div>`);
+    else fileList(el, L, { grid, photo: opts.photo, groups: ST.groupDate && isDateSort(key) });
+    $("#lsort").onclick = () => sortSheet(() => opts.sort || "size", v => { if (v) opts.sort = v; build(); }, { noView: opts.photo });
+    const g = $("#lgrid"); if (g) g.onclick = () => { opts.grid = !opts.grid; build(); };
+    if (opts.bind) opts.bind(el);
+    show("list");
+  };
+  CURFN = build; build();
+}
+function openCat(k) {
+  if (!IDX) { toast("Analyse en cours, patientez…"); return; }
+  const F = IDX.files.filter(f => ST.hidden || !f.h || k === "big");
+  if (k === "dl") return push(() => listView("Téléchargements", "Le dossier Download, les plus récents en premier", F.filter(f => /\/Download(s)?\//i.test(f.p)), { sort: "date" }));
+  if (k === "recent") return push(() => recentView("7"));
+  if (k === "opened") return push(() => recentView("opened"));
+  if (k === "big") return push(() => listView("Gros fichiers", "Plus de 50 Mo", IDX.files.filter(f => f.s >= 50 * 1048576), { sort: "size" }));
+  const img = k === "img" || k === "vid";
+  push(() => listView(CATS[k].n, "", F.filter(f => f.k === k), { sort: img ? "date" : "size", photo: img, grid: img }));
+}
+// Récents : modifiés ces 7 / 30 / 90 jours, ou ouverts depuis Rangement
+function recentView(mode) {
+  const F = IDX ? IDX.files.filter(f => ST.hidden || !f.h) : [];
+  let list, sub;
+  if (mode === "opened") { const t = new Map(ST.opened.map(x => [x.p, x.t])); list = F.filter(f => t.has(f.p)).map(f => Object.assign({}, f, { m: t.get(f.p) })); sub = "Fichiers que vous avez ouverts depuis Rangement (date d'ouverture)"; }
+  else { const d = +mode; list = F.filter(f => f.m > Date.now() - d * DAY && f.m <= Date.now() + DAY); sub = `Fichiers modifiés ou ajoutés ces ${d} derniers jours`; }
+  const head = `<div class="chips">${[["7", "7 jours"], ["30", "30 jours"], ["90", "3 mois"], ["opened", "Ouverts récemment"]].map(([v, l]) => `<button class="chip${v === mode ? " on" : ""}" data-rmode="${v}">${l}</button>`).join("")}</div>`;
+  listView("Récents", sub, list, { sort: "date", head, bind: el => el.querySelectorAll("[data-rmode]").forEach(b => b.onclick = () => recentView(b.dataset.rmode)) });
+}
+
+/* ================= Recherche (nom, type, date, taille, dans un dossier ou partout) ================= */
+let SR = { q: "", scope: "", cat: "", date: "", size: "", sort: "date" };
+const SR_DATE = [["", "Toutes les dates"], ["1", "Dernières 24 h"], ["7", "7 derniers jours"], ["30", "30 derniers jours"], ["365", "Cette année (12 mois)"], ["old", "Plus d'un an"]];
+const SR_SIZE = [["", "Toutes les tailles"], ["s", "Moins de 1 Mo"], ["m", "1 à 10 Mo"], ["l", "10 à 100 Mo"], ["xl", "Plus de 100 Mo"]];
+const SR_CAT = [["", "Tous les types"], ["img", "Photos"], ["vid", "Vidéos"], ["aud", "Audio"], ["doc", "Documents"], ["pdf", "PDF"], ["zip", "Archives"], ["apk", "APK"], ["oth", "Autres"]];
+function srMatch(f, w) {
+  if (SR.scope && !f.p.startsWith(SR.scope + "/")) return false;
+  if (!ST.hidden && f.h) return false;
+  if (SR.cat === "pdf" ? extOf(f.n) !== "pdf" : SR.cat && f.k !== SR.cat) return false;
+  if (SR.date) { const age = Date.now() - f.m; if (SR.date === "old" ? age < 365 * DAY : age > +SR.date * DAY) return false; }
+  if (SR.size) { const M = 1048576, s = f.s; if (SR.size === "s" ? s >= M : SR.size === "m" ? (s < M || s >= 10 * M) : SR.size === "l" ? (s < 10 * M || s >= 100 * M) : s < 100 * M) return false; }
+  if (w.length) { const n = norm(f.n); if (!w.every(x => n.includes(x))) return false; }
+  return true;
+}
+function searchView() {
+  const w = norm(SR.q).split(/\s+/).filter(Boolean);
+  const filt = SR.cat || SR.date || SR.size;
+  const can = w.join("").length >= 2 || filt;
+  const all = can && IDX ? IDX.files.filter(f => srMatch(f, w)) : [];
+  const L = sortItems(all, SR.sort, false).slice(0, 3000);
+  const D = can && IDX && w.length && !filt ? [...IDX.dirs.keys()].filter(d => (!SR.scope || d.startsWith(SR.scope + "/")) && (ST.hidden || !d.includes("/.")) && w.every(x => norm(baseName(d)).includes(x))).slice(0, 30) : [];
+  const el = $("#v-list"); clearLists(el);
+  const sel = (id, opts, v) => `<select class="chip${v ? " on" : ""}" id="${id}">${opts.map(([k, l]) => `<option value="${k}"${k === v ? " selected" : ""}>${l}</option>`).join("")}</select>`;
+  const tot = all.reduce((a, f) => a + f.s, 0);
+  el.innerHTML = `<button class="back" data-act="back">${icon("back")}Retour</button><div class="vtitle"><h2>Recherche</h2><span class="count">${can ? pl(all.length + D.length, "résultat") + (all.length ? " · " + fsz(tot) : "") : ""}</span></div>
+    <div class="chips">${SR.scopeAvail ? `<button class="chip${SR.scope ? " on" : ""}" id="sscope">${icon("folder")}${SR.scope ? "Dans « " + esc(baseName(SR.scope) || "/") + " »" : "Partout"}</button>` : ""}${sel("scat", SR_CAT, SR.cat)}${sel("sdate", SR_DATE, SR.date)}${sel("ssize", SR_SIZE, SR.size)}<button class="chip" id="ssort">${icon("sort")}${sortLabel(SR.sort)}</button>${filt ? `<button class="chip" id="sreset">${icon("x")}Effacer</button>` : ""}</div>` +
+    (!can ? `<div class="empty"><div class="big">🔍</div><p>Tapez au moins 2 lettres dans la barre du haut,<br>ou choisissez un type, une date ou une taille.</p>${SR.scope ? `<p class="tiny">La recherche se fait dans « ${esc(baseName(SR.scope))} » et tous ses sous-dossiers.</p>` : ""}</div>` :
+    (D.length ? `<div class="sect">Dossiers</div>` + D.map(d => `<div class="row" data-dir="${esc(d)}">${thHTML(d, "", "", true)}<div class="meta"><div class="t">${esc(baseName(d))}</div><div class="s">${esc(shortDir(dirName(d)))}</div></div><div class="sz">${fsz(IDX.dsize.get(d) || 0)}</div></div>`).join("") : "") +
+    (L.length ? (D.length ? `<div class="sect">Fichiers</div>` : "") : (!D.length ? `<div class="empty"><div class="big">🔍</div><p>Rien trouvé${SR.q ? " pour « " + esc(SR.q) + " »" : ""}.</p></div>` : "")) +
+    (all.length > L.length ? `<div class="tiny" style="padding:0 16px 6px">Les ${L.length.toLocaleString("fr-FR")} premiers résultats sont affichés : précisez la recherche.</div>` : ""));
+  if (L.length) fileList(el, L, { groups: ST.groupDate && isDateSort(SR.sort), grid: ST.view === "grid" });
+  const on = (id, f) => { const e = document.getElementById(id); if (e) e[e.tagName === "SELECT" ? "onchange" : "onclick"] = f; };
+  on("scat", e => { SR.cat = e.target.value; searchView(); });
+  on("sdate", e => { SR.date = e.target.value; searchView(); });
+  on("ssize", e => { SR.size = e.target.value; searchView(); });
+  on("sscope", () => { SR.scope = SR.scope ? "" : SR.scopeAvail; searchView(); });
+  on("sreset", () => { SR.cat = SR.date = SR.size = ""; searchView(); });
+  on("ssort", () => sortSheet(() => SR.sort, v => { if (v) SR.sort = v; searchView(); }));
+  CURFN = searchView; show("list");
+}
+function openSearch(q) {
+  if (!IDX) { toast("Analyse en cours, patientez…"); return; }
+  const inSearch = curView === "list" && CURFN === searchView;
+  if (!inSearch) {
+    const scope = curView === "files" && CWD && !DRV.roots().some(r => r.path === CWD) ? CWD : "";
+    SR = { q: "", scope, scopeAvail: scope, cat: "", date: "", size: "", sort: SR.sort || "date" };
+    stack.push({ v: curView, y: $("#main").scrollTop, fn: CURFN }); exitSel();
+  }
+  SR.q = q; searchView();
+}
+let qT;
+$("#q").addEventListener("input", e => {
+  clearTimeout(qT); const v = e.target.value.trim();
+  qT = setTimeout(() => {
+    const inSearch = curView === "list" && CURFN === searchView;
+    if (v.length < 2) { if (inSearch) { SR.q = ""; searchView(); } return; }
+    openSearch(v);
+  }, 220);
+});
+
+/* ================= Explorateur ================= */
+let CWD = null, FFILT = "";
+const FILTERS = [["", "Tout"], ["img", "Photos"], ["vid", "Vidéos"], ["aud", "Audio"], ["doc", "Documents"], ["pdf", "PDF"], ["zip", "Archives"], ["apk", "APK"], ["recent", "Récents (30 j)"]];
+const curSort = p => (ST.fsort && ST.fsort[p]) || ST.sort;
+R.files = function () {
+  const el = $("#v-files"); clearLists(el);
+  if (!CWD) CWD = DRV.root();
+  const key = curSort(CWD);
+  const roots = DRV.roots(); const rt = roots.find(r => CWD === r.path || CWD.startsWith(r.path + "/")) || { path: DRV.root(), name: "Mémoire interne" };
+  const rel = CWD.slice(rt.path.length).split("/").filter(Boolean);
+  let acc = rt.path;
+  const crumbs = [`<button data-dir="${esc(rt.path)}">${esc(rt.name)}</button>`].concat(rel.map(s => { acc += "/" + s; return `<span class="sep">›</span><button data-dir="${esc(acc)}">${esc(s)}</button>`; }));
+  let list, note = "";
+  if (FFILT) {
+    if (!IDX) { list = []; note = `<div class="empty"><div class="spin lg"></div>Analyse du stockage en cours…</div>`; }
+    else {
+      const lim = FFILT === "recent" ? Date.now() - 30 * DAY : 0;
+      list = IDX.files.filter(f => f.p.startsWith(CWD + "/") && (ST.hidden || !f.h) && (FFILT === "recent" ? f.m >= lim : FFILT === "pdf" ? extOf(f.n) === "pdf" : f.k === FFILT));
+    }
+  } else {
+    const items = DRV.list(CWD);
+    if (items === null) { el.innerHTML = `<div class="empty"><p>Ce dossier n'est pas accessible.</p><button class="btn" data-dir="${esc(DRV.root())}">Revenir au début</button></div>`; show("files"); return; }
+    const dsz = d => IDX ? IDX.dsize.get(CWD + "/" + d.n) || 0 : 0;
+    list = items.filter(i => ST.hidden || i.n[0] !== ".").map(i => i.d ? { p: CWD + "/" + i.n, n: i.n, dir: true, c: i.c, m: i.m, s: dsz(i) } : { p: CWD + "/" + i.n, n: i.n, d: CWD, s: i.s, m: i.m, k: catOf(i.n) });
+  }
+  sortItems(list, key, ST.dirsFirst !== false);
+  const pinned = ST.favs.includes(CWD);
+  const tot = list.reduce((a, f) => a + (f.dir ? 0 : f.s || 0), 0);
+  el.innerHTML = `<div class="scanbox"></div><div class="crumbs" id="crumbs">${crumbs.join("")}</div>
+    <div class="tools"><button class="chip" id="fsort">${icon("sort")}${sortLabel(key)}${ST.fsort && ST.fsort[CWD] ? " •" : ""}</button>
+    <button class="chip" id="fview" aria-label="Changer d'affichage">${icon(ST.view === "grid" ? "list" : "thumb")}</button>
+    <button class="chip${ST.hidden ? " on" : ""}" data-act="hidden">${icon("eye")}Cachés</button>
+    ${DRV.canEdit ? `<button class="chip" data-act="mkdir" aria-label="Nouveau dossier">${icon("plus")}Dossier</button>` : ""}
+    <button class="chip${pinned ? " on" : ""}" data-act="pinCwd" aria-label="Épingler ce dossier">${icon("star")}</button>
+    <button class="chip" data-act="selmode" aria-label="Sélectionner">${icon("select")}</button>
+    <span class="count">${pl(list.length, FFILT ? "fichier" : "élément")}${tot ? " · " + fsz(tot) : ""}</span></div>
+    <div class="chips" id="ffilt">${FILTERS.map(([v, l]) => `<button class="chip${v === FFILT ? " on" : ""}" data-ff="${v}">${l}</button>`).join("")}</div>
+    ${FFILT ? `<div class="tiny" style="padding:0 16px 8px">${esc(FILTERS.find(x => x[0] === FFILT)[1])} dans « ${esc(CWD === rt.path ? rt.name : baseName(CWD))} » et ses sous-dossiers</div>` : ""}
+    ${roots.length > 1 && CWD === rt.path && !FFILT ? `<div class="tools">${roots.map(r => `<button class="chip${r.path === rt.path ? " on" : ""}" data-dir="${esc(r.path)}">${icon(r.name === "Carte SD" ? "sd" : "phone")}${esc(r.name)}</button>`).join("")}</div>` : ""}${note}`;
+  if (!list.length && !note) el.insertAdjacentHTML("beforeend", `<div class="empty"><div class="big">📂</div><p>${FFILT ? "Aucun fichier de ce type ici" : "Dossier vide"}</p></div>`);
+  if (list.length) fileList(el, list, { grid: ST.view === "grid", groups: ST.groupDate && isDateSort(key), dirsFirst: ST.dirsFirst !== false, noDir: !FFILT });
+  $("#fsort").onclick = () => sortSheet(() => curSort(CWD), v => { if (v) { if (ST.fsort[CWD]) ST.fsort[CWD] = v; else ST.sort = v; save(); } R.files(); }, {
+    dirs: true, where: "Dossier « " + (CWD === rt.path ? rt.name : baseName(CWD)) + " »",
+    isPer: () => !!ST.fsort[CWD],
+    togglePer: () => { if (ST.fsort[CWD]) delete ST.fsort[CWD]; else { ST.fsort[CWD] = curSort(CWD); const ks = Object.keys(ST.fsort); if (ks.length > 300) delete ST.fsort[ks[0]]; } save(); }
+  });
+  $("#fview").onclick = () => { ST.view = ST.view === "grid" ? "list" : "grid"; save(); R.files(); };
+  $("#ffilt").onclick = e => { const b = e.target.closest("[data-ff]"); if (!b) return; FFILT = b.dataset.ff; if (FFILT && !IDX && !scanning) fullScan(); R.files(); };
+  const cr = $("#crumbs"); cr.scrollLeft = cr.scrollWidth;
+  const fb = $("#ffilt .on"); if (fb) fb.scrollIntoView({ inline: "nearest", block: "nearest" });
+  paintScanning(); show("files");
+};
+function cd(p) { CWD = p; exitSel(); if (curView !== "files") { document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.v === "files")); stack = []; } R.files(); $("#main").scrollTop = 0; }
+
+/* ================= Sélection ================= */
+const SEL = new Set(); let selMode = false;
+function enterSel() { selMode = true; document.body.classList.add("selecting"); $("#main").classList.add("selmode"); paintSel(); }
+function exitSel() { selMode = false; SEL.clear(); document.body.classList.remove("selecting"); $("#main").classList.remove("selmode"); document.querySelectorAll(".row.sel,.ph.sel,.gc.sel").forEach(r => r.classList.remove("sel")); }
+function toggleSel(el) { const p = el.dataset.p; if (SEL.has(p)) SEL.delete(p); else SEL.add(p); el.classList.toggle("sel", SEL.has(p)); if (!SEL.size) exitSel(); else paintSel(); }
+function paintSel() {
+  let tot = 0; for (const p of SEL) { const f = IDX && IDX.byPath.get(p); tot += f ? f.s : (IDX ? IDX.dsize.get(p) || 0 : 0); }
+  $("#selCount").textContent = `${SEL.size} sélectionné${SEL.size > 1 ? "s" : ""}${tot ? " · " + fsz(tot) : ""}`;
+  const ed = DRV.canEdit;
+  $("#selbar").querySelector('[data-sa=copy]').disabled = !ed;
+  $("#selbar").querySelector('[data-sa=move]').disabled = !ed;
+  $("#selbar").querySelector('[data-sa=rename]').disabled = !ed;
+  $("#selbar").querySelector('[data-sa=del]').disabled = !DRV.canWrite;
+}
+$("#selClose").onclick = exitSel;
+$("#selAll").onclick = () => {
+  const box = document.querySelector(".view.on .fl"); if (!box) return;
+  const L = LISTS.get(box.id); if (!L) return;
+  const all = L.list.every(f => SEL.has(f.p));
+  if (all) { exitSel(); return; }
+  L.list.forEach(f => SEL.add(f.p)); while (L.shown < L.list.length) moreRows(box.id);
+  box.querySelectorAll("[data-p]").forEach(e => e.classList.add("sel")); paintSel();
+};
+$("#selbar").onclick = e => { const b = e.target.closest("[data-sa]"); if (b && !b.disabled) selAction(b.dataset.sa, [...SEL]); };
+function selAction(a, paths) {
+  if (a === "copy" || a === "move") { CLIP = { mode: a, paths }; exitSel(); if (curView !== "files") cd(CWD || DRV.root()); paintPaste(); toast("Ouvrez le dossier de destination puis « Coller ici »"); }
+  else if (a === "share") { DRV.share(paths.filter(p => !(IDX && IDX.dirs.has(p)))); }
+  else if (a === "rename") { if (paths.length === 1) renameAsk(paths[0]); else batchRename(paths); }
+  else if (a === "del") deleteAsk(paths);
+  else if (a === "more") selMore(paths);
+}
+
+// Appui long = sélection ; appui court = ouvrir
+let lpT = null, lpFired = false, lpX = 0, lpY = 0;
+$("#main").addEventListener("pointerdown", e => {
+  const r = e.target.closest("[data-p]"); if (!r || e.target.closest("[data-more]")) return;
+  lpFired = false; lpX = e.clientX; lpY = e.clientY;
+  lpT = setTimeout(() => { lpFired = true; if (!selMode) enterSel(); toggleSel(r); if (navigator.vibrate) navigator.vibrate(20); }, 450);
+});
+["pointerup", "pointercancel", "pointerleave"].forEach(ev => $("#main").addEventListener(ev, () => clearTimeout(lpT)));
+$("#main").addEventListener("pointermove", e => { if (Math.abs(e.clientX - lpX) + Math.abs(e.clientY - lpY) > 12) clearTimeout(lpT); });
+$("#main").addEventListener("contextmenu", e => { if (e.target.closest("[data-p]")) e.preventDefault(); });
+
+$("#main").addEventListener("click", e => {
+  if (lpFired) { lpFired = false; return; }
+  const go = e.target.closest("[data-go]"); if (go) { if (go.dataset.go === "trash") push(() => R.trash()); else goTab(go.dataset.go); return; }
+  const cat = e.target.closest("[data-cat]"); if (cat) { openCat(cat.dataset.cat); return; }
+  const root = e.target.closest("[data-root]"); if (root) { cd(root.dataset.root); return; }
+  const dir = e.target.closest("[data-dir]"); if (dir) { cd(dir.dataset.dir); return; }
+  const act = e.target.closest("[data-act]"); if (act) { e.preventDefault(); ACT[act.dataset.act] && ACT[act.dataset.act](act.dataset, act); return; }
+  const r = e.target.closest("[data-p]");
+  if (r) {
+    const box = r.closest(".fl"); const L = box && LISTS.get(box.id); const f = L ? L.list[+r.dataset.k] : null;
+    if (e.target.closest("[data-more]")) { fileMenu(f || { p: r.dataset.p, n: baseName(r.dataset.p) }); return; }
+    if (selMode) { toggleSel(r); return; }
+    if (r.dataset.isdir || (f && f.dir)) { cd(r.dataset.p); return; }
+    openFile(r.dataset.p); return;
+  }
+});
+function openFile(p) { noteOpened(p); DRV.open(p); }
+
+const ACT = {
+  back: () => goBack(),
+  rescan: () => { CLEAN = null; fullScan(); paintScanning(); },
+  hidden: () => { ST.hidden = !ST.hidden; save(); R.files(); },
+  mkdir: () => askText("Nouveau dossier", "", "Nom du dossier", n => { const r = DRV.mkdir(CWD, n); if (r) toast(r); else { toast("Dossier créé"); R.files(); bgRescan(); } }),
+  openFav: d => openFile(d.fp),
+  favEdit: () => {
+    SH = {}; ST.favs.forEach((p, i) => SH["u" + i] = () => { ST.favs.splice(ST.favs.indexOf(p), 1); save(); R.home(); ACT.favEdit(); });
+    SH.all = () => confirmAsk("Retirer tous les épinglés ?", "Les fichiers et dossiers ne sont pas touchés : ils disparaissent seulement de l'accueil.", "Tout retirer", () => { ST.favs = []; save(); R.home(); }, false);
+    if (!ST.favs.length) { closeSheet(); return; }
+    sheet(`<div class="shd"><div><div class="t">Épinglés</div><div class="s">Touchez pour retirer de l'accueil (rien n'est supprimé)</div></div></div><div class="sbody">${ST.favs.map((p, i) => `<button class="mi" data-sh="u${i}" data-keep="1">${icon("star")}<span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(baseName(p) || p)}</span><span class="r">${icon("x")}</span></button>`).join("")}${mi("all", "trash", "Tout retirer")}</div>`);
+  },
+  pinCwd: () => { togglePin(CWD); R.files(); },
+  selmode: () => { if (selMode) exitSel(); else { enterSel(); toast("Touchez les fichiers à sélectionner"); } },
+  pick: async () => { if (await PcDrv.pick()) { DRV = PcDrv; IDX = null; CWD = null; fullScan(true); } },
+  analyze: () => runClean(),
+  grant: () => { MP.fsAskAll(); waitGrant(); },
+  openStorage: () => MP.fsStorageSettings && MP.fsStorageSettings(),
+  emptyTrash: () => confirmAsk("Vider la corbeille ?", `${pl(TRASHC.length, "élément")} seront effacés définitivement (${fsz(TRASHC.reduce((a, x) => a + x.size, 0))}).`, "Vider", async () => { await runOp("purge", ["*"], "", "Vidage de la corbeille"); loadTrash(); R.trash(); }),
+};
+
+/* ================= Menus (feuilles) ================= */
+let SH = {};
+function sheet(html) { $("#sheetIn").innerHTML = html; $("#scrim").classList.add("on"); $("#sheet").classList.add("on"); }
+function closeSheet() { $("#scrim").classList.remove("on"); $("#sheet").classList.remove("on"); }
+$("#scrim").onclick = () => { if (!OPRUN) closeSheet(); };
+$("#sheet").addEventListener("click", e => { const b = e.target.closest("[data-sh]"); if (b && SH[b.dataset.sh]) { const f = SH[b.dataset.sh]; if (!b.dataset.keep) closeSheet(); f(b.dataset); } });
+const mi = (k, ic, l, r, cls) => `<button class="mi ${cls || ""}" data-sh="${k}">${icon(ic)}<span>${l}</span>${r ? `<span class="r">${r}</span>` : ""}</button>`;
+function fileMenu(f) {
+  const p = f.p, isDir = !!(f.dir || (IDX && IDX.dirs.has(p)));
+  const info = IDX && IDX.byPath.get(p);
+  const size = info ? info.s : (IDX ? IDX.dsize.get(p) || 0 : f.s || 0);
+  SH = {
+    open: () => isDir ? cd(p) : openFile(p),
+    share: () => DRV.share([p]),
+    copy: () => selAction("copy", [p]), move: () => selAction("move", [p]),
+    rename: () => renameAsk(p),
+    show: () => cd(dirName(p)),
+    info: () => infoSheet(p, isDir, size, f),
+    pin: () => { togglePin(p); rerender(); },
+    zip: () => zipAsk([p]), unzip: () => unzipGo(p),
+    sel: () => { enterSel(); const el = document.querySelector(`.view.on [data-p="${CSS.escape(p)}"]`); if (el) toggleSel(el); },
+    del: () => deleteAsk([p])
+  };
+  sheet(`<div class="shd">${thHTML(p, f.n || baseName(p), "", isDir)}<div style="min-width:0"><div class="t">${esc(baseName(p))}</div><div class="s">${fsz(size)}${f.m ? " · " + fdate(f.m) : ""}</div></div></div><div class="sbody">
+    ${mi("open", "open", isDir ? "Ouvrir le dossier" : "Ouvrir")}
+    ${!isDir ? mi("share", "share", "Partager") : ""}
+    ${DRV.canEdit ? mi("copy", "copy", "Copier vers…") + mi("move", "move", "Déplacer vers…") + mi("rename", "edit", "Renommer") : ""}
+    ${curView !== "files" ? mi("show", "folder", "Afficher dans son dossier") : ""}
+    ${mi("pin", "star", ST.favs.includes(p) ? "Retirer des épinglés" : "Épingler à l'accueil")}
+    ${canZip() ? mi("zip", "zip", "Compresser en zip") : ""}
+    ${canZip() && !isDir && /\.zip$/i.test(p) ? mi("unzip", "unzip", "Décompresser ici") : ""}
+    ${mi("sel", "select", "Sélectionner")}
+    ${mi("info", "info", "Propriétés")}
+    ${DRV.canWrite ? mi("del", "trash", DRV.canTrash ? "Mettre à la corbeille" : "Supprimer", "", "danger") : ""}
+  </div>`);
+}
+function infoSheet(p, isDir, size, f) {
+  const kv = (k, v, id) => v || id ? `<div class="kv"${id ? ` id="${id}"` : ""}><span>${k}</span><span>${esc(v || "…")}</span></div>` : "";
+  let extra = "";
+  if (isDir && IDX) { let n = 0, nd = 0; for (const x of IDX.files) if (x.p.startsWith(p + "/")) n++; for (const d of IDX.dirs.keys()) if (d.startsWith(p + "/")) nd++; extra = kv("Contenu", pl(n, "fichier") + (nd ? ", " + pl(nd, "sous-dossier") : "")); }
+  const k = catOf(p), media = !isDir && (k === "img" || k === "vid" || k === "aud");
+  const m = f && f.m ? f.m : (IDX && IDX.byPath.get(p) || {}).m;
+  SH = { copy: async () => { try { await navigator.clipboard.writeText(p); toast("Chemin copié"); } catch (e) { toast(p, 5000); } }, show: () => cd(dirName(p)) };
+  sheet(`<div class="shd">${thHTML(p, baseName(p), "", isDir)}<div style="min-width:0"><div class="t">${esc(baseName(p))}</div><div class="s">Propriétés</div></div></div><div class="sbody">
+    ${kv("Type", isDir ? "Dossier" : (CATS[k].n + (extOf(p) ? " (." + extOf(p) + ")" : "")))}${kv("Taille", fsz(size) + (size >= 1024 ? " (" + size.toLocaleString("fr-FR") + " octets)" : ""))}${extra}
+    ${kv("Modifié", m ? fullDate(m) : "")}
+    ${media ? kv("Dimensions", "", "pDim") : ""}<div id="pMore"></div>
+    ${kv("Chemin", p)}
+    ${mi("copy", "copy", "Copier le chemin")}${curView !== "files" || FFILT ? mi("show", "folder", "Afficher dans son dossier") : ""}</div>`);
+  if (media) fileMeta(p).then(x => {
+    const d = $("#pDim");
+    if (d) { if (x.w) d.lastChild.textContent = `${x.w} × ${x.h} pixels` + (x.w * x.h >= 1e6 ? ` (${(x.w * x.h / 1e6).toFixed(1).replace(".", ",")} Mpx)` : ""); else d.remove(); }
+    const mo = $("#pMore"); if (!mo) return;
+    let h = "";
+    if (x.dur) { const t = Math.round(x.dur / 1000); h += kv("Durée", (t >= 3600 ? Math.floor(t / 3600) + " h " : "") + pad2(Math.floor(t % 3600 / 60)) + " min " + pad2(t % 60) + " s"); }
+    if (x.taken) { const r = /^(\d{4}):(\d\d):(\d\d) (\d\d):(\d\d)/.exec(x.taken); h += kv("Prise de vue", r ? `${+r[3]}/${r[2]}/${r[1]} à ${r[4]}h${r[5]}` : x.taken); }
+    if (x.camera) h += kv("Appareil", x.camera);
+    if (x.artist) h += kv("Artiste", x.artist);
+    if (x.title) h += kv("Titre", x.title);
+    mo.innerHTML = h;
+  });
+}
+// Dimensions, durée, date de prise de vue (pont MAGFichiers sur le téléphone, navigateur sur PC)
+async function fileMeta(p) {
+  try {
+    if (DRV === NativeDrv) { const b = window.MAGFichiers; return b && b.meta ? JSON.parse(b.meta(p) || "{}") : {}; }
+    const f = DRV.getFile ? await DRV.getFile(p) : null; if (!f) return {};
+    if (/^image\//.test(f.type)) { const bm = await createImageBitmap(f); const r = { w: bm.width, h: bm.height }; bm.close && bm.close(); return r; }
+    if (/^(video|audio)\//.test(f.type)) return await new Promise(res => { const v = document.createElement(f.type[0] === "v" ? "video" : "audio"); const u = URL.createObjectURL(f); const done = r => { URL.revokeObjectURL(u); res(r); }; v.preload = "metadata"; v.onloadedmetadata = () => done({ w: v.videoWidth || 0, h: v.videoHeight || 0, dur: isFinite(v.duration) ? v.duration * 1000 : 0 }); v.onerror = () => done({}); setTimeout(() => done({}), 4000); v.src = u; });
+  } catch (e) {}
+  return {};
+}
+function askText(title, val, ph, cb) {
+  SH = { ok: () => { const v = $("#txtIn").value.trim(); if (v) cb(v); }, no: () => {} };
+  sheet(`<div class="shd"><div class="t">${esc(title)}</div></div><div class="field"><input id="txtIn" maxlength="120" value="${esc(val)}" placeholder="${esc(ph)}"></div><div class="btns"><button class="btn" data-sh="no">Annuler</button><button class="btn main" data-sh="ok">Valider</button></div>`);
+  setTimeout(() => { const i = $("#txtIn"); i.focus(); const d = val.lastIndexOf("."); i.setSelectionRange(0, d > 0 ? d : val.length); i.onkeydown = e => { if (e.key === "Enter") { closeSheet(); SH.ok(); } }; }, 260);
+}
+function confirmAsk(title, text, yes, cb, danger) {
+  SH = { ok: cb, no: () => {} };
+  sheet(`<div class="shd"><div><div class="t">${esc(title)}</div></div></div><div style="padding:14px 20px;color:var(--tx2)">${text}</div><div class="btns"><button class="btn" data-sh="no">Annuler</button><button class="btn ${danger === false ? "main" : "danger"}" data-sh="ok">${esc(yes)}</button></div>`);
+}
+function renameAsk(p) {
+  askText("Renommer", baseName(p), "Nouveau nom", n => {
+    const r = DRV.rename(p, n);
+    if (r) { toast(r); return; }
+    toast("Renommé"); exitSel(); TH.delete(p); bgRescan(true);
+  });
+}
+function deleteAsk(paths) {
+  let tot = 0; for (const p of paths) { const f = IDX && IDX.byPath.get(p); tot += f ? f.s : (IDX ? IDX.dsize.get(p) || 0 : 0); }
+  const what = paths.length === 1 ? `« ${esc(baseName(paths[0]))} »` : pl(paths.length, "élément");
+  if (DRV.canTrash) confirmAsk("Mettre à la corbeille ?", `${what} (${fsz(tot)}) ${paths.length > 1 ? "iront" : "ira"} dans la corbeille de Rangement. Vous pourrez ${paths.length > 1 ? "les" : "le"} récupérer pendant 30 jours.`, "Mettre à la corbeille", () => doDelete(paths, "trash"));
+  else confirmAsk("Supprimer définitivement ?", `${what} (${fsz(tot)}) ${paths.length > 1 ? "seront effacés" : "sera effacé"} du PC. Il n'y a pas de corbeille dans ce mode : c'est définitif.`, "Supprimer", () => doDelete(paths, "delete"));
+}
+async function doDelete(paths, kind) {
+  const st = await runOp(kind, paths, "", kind === "trash" ? "Mise à la corbeille" : "Suppression");
+  if (!st) return;
+  exitSel();
+  const failed = new Set((st.err || "").split("\n").map(l => l.split(" : ").pop()));
+  const ok = paths.filter(p => !failed.has(baseName(p)));
+  indexRemove(ok); ok.forEach(p => TH.delete(p));
+  loadTrash(); CLEAN = null;
+  toast(`${fsz(st.bytes)} libérés${kind === "trash" ? " · dans la corbeille" : ""}`);
+  rerender();
+}
+
+/* ================= Favoris (dossiers et fichiers épinglés) ================= */
+function togglePin(p) {
+  const i = ST.favs.indexOf(p);
+  if (i >= 0) { ST.favs.splice(i, 1); toast("Retiré des épinglés"); }
+  else { ST.favs.unshift(p); if (ST.favs.length > 60) ST.favs.length = 60; toast("Épinglé à l'accueil"); }
+  save();
+}
+function noteOpened(p) { ST.opened = [{ p, t: Date.now() }].concat(ST.opened.filter(x => x.p !== p)).slice(0, 50); save(); }
+function itemOf(p) {
+  const f = IDX && IDX.byPath.get(p); if (f) return f;
+  for (const L of LISTS.values()) { const x = L.list.find(y => y.p === p); if (x) return x; }
+  return { p, n: baseName(p), dir: !!(IDX && IDX.dirs.has(p)), s: IDX ? IDX.dsize.get(p) || 0 : 0, m: 0 };
+}
+const isDirPath = p => !!(IDX && IDX.dirs.has(p)) || !!itemOf(p).dir;
+// chemins sélectionnés, dans l'ordre d'affichage
+function inDisplayOrder(paths) {
+  const box = document.querySelector(".view.on .fl"), L = box && LISTS.get(box.id);
+  if (!L) return paths;
+  const pos = new Map(L.list.map((f, i) => [f.p, i]));
+  return paths.slice().sort((a, b) => (pos.has(a) ? pos.get(a) : 1e9) - (pos.has(b) ? pos.get(b) : 1e9));
+}
+
+/* ================= Renommer en lot ================= */
+const pad2 = n => String(n).padStart(2, "0");
+function batchNames(items, B) {
+  const width = Math.max(2, String((+B.start || 1) + items.length - 1).length);
+  const used = new Set(), out = [];
+  items.forEach((f, i) => {
+    const n = f.n, isDir = !!f.dir;
+    const dot = n.lastIndexOf("."), ext = !isDir && dot > 0 ? n.slice(dot) : "", stem = ext ? n.slice(0, dot) : n;
+    let s;
+    if (B.mode === "num") s = (B.base.trim() || "Fichier") + B.sep + String((+B.start || 1) + i).padStart(width, "0");
+    else if (B.mode === "date") { const d = new Date(f.m || Date.now()); s = (B.base.trim() ? B.base.trim() + " " : "") + `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}h${pad2(d.getMinutes())}`; }
+    else if (B.mode === "add") s = B.pre + stem + B.suf;
+    else s = B.find ? stem.split(B.find).join(B.rep) : stem;
+    s = s.replace(/[\/\\:*?"<>|\u0000-\u001f]/g, "_").trim();
+    if (!s || s === "." || s === "..") s = stem;
+    let full = s + ext, k = 2;
+    while (used.has(full.toLowerCase())) full = s + " (" + k++ + ")" + ext;
+    used.add(full.toLowerCase()); out.push(full);
+  });
+  return out;
+}
+function batchRename(paths) {
+  const items = inDisplayOrder(paths).map(itemOf);
+  const B = { mode: "num", base: "", sep: " ", start: 1, pre: "", suf: "", find: "", rep: "" };
+  const preview = () => {
+    const nn = batchNames(items, B), el = $("#bprev"); if (!el) return;
+    el.innerHTML = items.slice(0, 40).map((f, i) => `<div><s>${esc(f.n)}</s>→<b class="${nn[i] === f.n ? "bad" : ""}">${esc(nn[i])}</b></div>`).join("") + (items.length > 40 ? `<div class="tiny">… et ${items.length - 40} autres</div>` : "");
+  };
+  const fld = (id, label, v, ph, type) => `<div class="field"><label for="${id}">${label}</label><input id="${id}" ${type ? `type="${type}" inputmode="numeric"` : ""} value="${esc(v)}" placeholder="${esc(ph || "")}" maxlength="80"></div>`;
+  const draw = () => {
+    SH = {
+      m_num: () => { B.mode = "num"; draw(); }, m_date: () => { B.mode = "date"; draw(); }, m_add: () => { B.mode = "add"; draw(); }, m_rep: () => { B.mode = "rep"; draw(); },
+      no: () => {}, ok: () => runBatch(items, batchNames(items, B))
+    };
+    const body = B.mode === "num" ? `<div class="field2">${fld("b_base", "Nom de base", B.base, "ex. Vacances")}${fld("b_start", "Premier numéro", B.start, "1", "number").replace('class="field"', 'class="field" style="max-width:120px"')}</div><div class="tiny" style="padding:0 20px">Donne « Vacances 01.jpg », « Vacances 02.jpg »… dans l'ordre affiché.</div>`
+      : B.mode === "date" ? `${fld("b_base", "Texte avant la date (facultatif)", B.base, "ex. Chantier")}<div class="tiny" style="padding:0 20px">Utilise la date de modification de chaque fichier : « 2026-10-26 14h05.jpg ».</div>`
+      : B.mode === "add" ? `<div class="field2">${fld("b_pre", "Ajouter au début", B.pre, "ex. 2026_")}${fld("b_suf", "Ajouter à la fin", B.suf, "ex. _final")}</div>`
+      : `<div class="field2">${fld("b_find", "Chercher", B.find, "texte")}${fld("b_rep", "Remplacer par", B.rep, "(vide = effacer)")}</div>`;
+    sheet(`<div class="shd"><div style="flex:1"><div class="t">Renommer ${pl(items.length, "élément")}</div><div class="s">L'extension (.jpg, .pdf…) est conservée</div></div></div><div class="sbody">
+      <div class="seg">${[["num", "Numéroter"], ["date", "Date"], ["add", "Ajouter"], ["rep", "Remplacer"]].map(([k, l]) => `<button data-sh="m_${k}" data-keep="1" class="${B.mode === k ? "on" : ""}">${l}</button>`).join("")}</div>
+      ${body}<div class="shl">Aperçu</div><div class="prev" id="bprev"></div>
+      <div class="btns"><button class="btn" data-sh="no">Annuler</button><button class="btn main" data-sh="ok">Renommer</button></div></div>`);
+    [["b_base", "base"], ["b_start", "start"], ["b_pre", "pre"], ["b_suf", "suf"], ["b_find", "find"], ["b_rep", "rep"]].forEach(([id, k]) => { const i = document.getElementById(id); if (i) i.oninput = () => { B[k] = i.value; preview(); }; });
+    preview();
+  };
+  draw();
+}
+async function runBatch(items, names) {
+  const todo = items.map((f, i) => ({ f, to: names[i] })).filter(x => x.to !== x.f.n);
+  if (!todo.length) { toast("Aucun nom ne change"); return; }
+  const olds = new Set(items.map(f => f.n.toLowerCase()));
+  const clash = todo.some(x => olds.has(x.to.toLowerCase()));
+  let ok = 0; const errs = [];
+  OPRUN = true; SH = {};
+  sheet(`<div class="shd"><div style="flex:1"><div class="t">Renommage</div><div class="s" id="opS">…</div></div></div><div class="prog" id="opP"><i></i></div>`);
+  const step = i => { const P = $("#opP"); if (P) P.firstChild.style.width = Math.round(i / todo.length * 100) + "%"; const S = $("#opS"); if (S) S.textContent = `${i} / ${todo.length}`; };
+  // Si un nouveau nom est l'ancien nom d'un autre élément choisi : passage par un nom provisoire (rien n'est jamais écrasé)
+  if (clash) {
+    for (const x of todo) {
+      const tmp = ".rangement-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7) + "-" + x.f.n;
+      const r = DRV.rename(x.f.p, tmp);
+      if (r) { x.err = r; errs.push(x.f.n + " : " + r); } else x.tmp = dirName(x.f.p) + "/" + tmp;
+    }
+  }
+  let i = 0;
+  for (const x of todo) {
+    i++; step(i);
+    if (x.err) continue;
+    const from = x.tmp || x.f.p;
+    const r = DRV.rename(from, x.to);
+    if (r) {
+      errs.push(x.f.n + " : " + r);
+      if (x.tmp && DRV.rename(x.tmp, x.f.n)) errs.push(x.f.n + " garde un nom provisoire : " + baseName(x.tmp));
+    } else { ok++; TH.delete(x.f.p); const k = ST.favs.indexOf(x.f.p); if (k >= 0) { ST.favs[k] = dirName(x.f.p) + "/" + x.to; save(); } }
+    if (i % 20 === 0) await sleep(0);
+  }
+  OPRUN = false; closeSheet(); exitSel();
+  toast(errs.length ? `${pl(ok, "élément renommé", "éléments renommés")} · ${errs.length} impossible${errs.length > 1 ? "s" : ""} (${errs[0]})` : `${pl(ok, "élément renommé", "éléments renommés")}`, errs.length ? 5000 : 2600);
+  bgRescan(true);
+}
+
+/* ================= Compresser / décompresser (zip) ================= */
+const canZip = () => DRV === NativeDrv;
+function zipAsk(paths) {
+  const one = paths.length === 1, first = baseName(paths[0]);
+  const d = new Date(), def = one ? first.replace(/\.[^./]+$/, "") || first : `Archive ${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  const where = dirName(paths[0]);
+  askText(`Compresser ${one ? "« " + first + " »" : pl(paths.length, "élément")}`, def, "Nom de l'archive", async n => {
+    n = n.replace(/[\/\\:*?"<>|]/g, "_").replace(/\.zip$/i, "") + ".zip";
+    const st = await runOp("zip", paths, where + "/" + n, "Compression");
+    exitSel();
+    if (st && st.result && st.result.path) { toast("Archive créée : " + baseName(st.result.path) + " · les originaux sont conservés", 3500); bgRescan(true); }
+  });
+}
+async function unzipGo(p) {
+  const dest = dirName(p) + "/" + baseName(p).replace(/\.zip$/i, "");
+  const st = await runOp("unzip", [p], dest, "Décompression");
+  exitSel();
+  if (st && st.result && st.result.path) { toast("Décompressé dans « " + baseName(st.result.path) + " »", 3000); bgRescan(true); if (curView === "files") setTimeout(() => cd(st.result.path), 400); }
+}
+
+/* ================= Plus d'actions sur la sélection ================= */
+function selMore(paths) {
+  const zips = paths.filter(p => /\.zip$/i.test(p) && !isDirPath(p));
+  SH = {
+    zip: () => zipAsk(paths), unzip: () => unzipGo(zips[0]),
+    pin: () => { paths.forEach(p => { if (!ST.favs.includes(p)) ST.favs.unshift(p); }); save(); toast(pl(paths.length, "élément épinglé", "éléments épinglés")); exitSel(); rerender(); },
+    props: () => propsMulti(paths), shrename: () => batchRename(paths)
+  };
+  sheet(`<div class="shd"><div><div class="t">${pl(paths.length, "élément sélectionné", "éléments sélectionnés")}</div></div></div><div class="sbody">
+    ${DRV.canEdit && paths.length > 1 ? mi("shrename", "edit", "Renommer en lot", "numéro, date…") : ""}
+    ${canZip() ? mi("zip", "zip", "Compresser en zip", "les originaux restent") : ""}
+    ${canZip() && zips.length === 1 && paths.length === 1 ? mi("unzip", "unzip", "Décompresser ici") : ""}
+    ${mi("pin", "star", "Épingler à l'accueil")}
+    ${mi("props", "info", "Propriétés")}</div>`);
+}
+function propsMulti(paths) {
+  let n = 0, nd = 0, s = 0, mn = Infinity, mx = 0;
+  for (const p of paths) { const f = itemOf(p); if (f.dir || isDirPath(p)) { nd++; s += (IDX && IDX.dsize.get(p)) || f.s || 0; } else { n++; s += f.s || 0; } if (f.m) { mn = Math.min(mn, f.m); mx = Math.max(mx, f.m); } }
+  const kv = (k, v) => v ? `<div class="kv"><span>${k}</span><span>${esc(v)}</span></div>` : "";
+  const dirs = [...new Set(paths.map(dirName))];
+  SH = {};
+  sheet(`<div class="shd"><div><div class="t">Propriétés</div><div class="s">${pl(paths.length, "élément")}</div></div></div><div class="sbody">
+    ${kv("Contenu", [n ? pl(n, "fichier") : "", nd ? pl(nd, "dossier") : ""].filter(Boolean).join(", "))}
+    ${kv("Taille totale", fsz(s) + (s >= 1024 ? " (" + s.toLocaleString("fr-FR") + " octets)" : ""))}
+    ${mx ? kv("Dates", mn === mx ? fullDate(mx) : "du " + fullDate(mn) + " au " + fullDate(mx)) : ""}
+    ${kv("Emplacement", dirs.length === 1 ? dirs[0] : pl(dirs.length, "dossier") + " différents")}</div>`);
+}
+
+/* Opérations longues avec barre de progression */
+let OPRUN = false;
+async function runOp(kind, items, dest, title) {
+  OPRUN = true; SH = { cancel: () => { DRV.cancel(); } };
+  sheet(`<div class="shd"><div style="flex:1"><div class="t">${esc(title)}</div><div class="s" id="opS">Préparation…</div></div></div><div class="prog" id="opP"><i></i></div><div class="btns"><button class="btn" data-sh="cancel" data-keep="1">Arrêter</button></div>`);
+  let st = null;
+  try {
+    st = await DRV.op(kind, items, dest, s => {
+      const P = $("#opP"); if (!P) return;
+      const tot = s.total || items.length;
+      P.classList.toggle("ind", !tot);
+      P.firstChild.style.width = tot ? Math.round((s.done || 0) / tot * 100) + "%" : "";
+      $("#opS").textContent = `${s.done || 0}${tot ? " / " + tot : ""}${s.cur ? " · " + s.cur : ""}${s.bytes ? " · " + fsz(s.bytes) : ""}`;
+    });
+  } catch (e) { toast(e.message); }
+  OPRUN = false; closeSheet();
+  if (st && st.err) setTimeout(() => toast(st.err.split("\n")[0] + (st.err.includes("\n") ? " (et d'autres)" : ""), 4500), 300);
+  return st;
+}
+let rescanT;
+function bgRescan(now) { clearTimeout(rescanT); rescanT = setTimeout(() => { fullScan(); }, now ? 50 : 600); if (curView === "files") R.files(); }
+
+/* Copier / déplacer */
+let CLIP = null;
+function paintPaste() {
+  const on = !!CLIP && curView === "files";
+  $("#pastebar").classList.toggle("on", on);
+  if (on) $("#pasteT").textContent = `${CLIP.mode === "copy" ? "Copier" : "Déplacer"} ${pl(CLIP.paths.length, "élément")}`;
+}
+$("#pasteCancel").onclick = () => { CLIP = null; paintPaste(); };
+$("#pasteGo").onclick = async () => {
+  const c = CLIP; CLIP = null; paintPaste();
+  const st = await runOp(c.mode, c.paths, CWD, c.mode === "copy" ? "Copie" : "Déplacement");
+  if (st) { toast(c.mode === "copy" ? "Copié" : "Déplacé"); bgRescan(true); }
+};
+
+/* ================= Corbeille ================= */
+R.trash = function () {
+  loadTrash();
+  const el = $("#v-trash"); clearLists(el);
+  const L = TRASHC.slice().sort((a, b) => b.t - a.t);
+  el.innerHTML = `<button class="back" data-act="back">${icon("back")}Retour</button><div class="vtitle"><h2>Corbeille</h2><span class="count">${pl(L.length, "élément")} · ${fsz(L.reduce((a, x) => a + x.size, 0))}</span></div>
+    <div class="tiny" style="padding:0 16px 10px">Les éléments supprimés restent ici 30 jours, puis sont effacés automatiquement. Ils occupent encore de la place tant qu'ils sont dans la corbeille.</div>
+    ${L.length ? `<div class="tools"><button class="chip" data-act="trashRestoreAll">${icon("restore")}Tout restaurer</button><button class="chip" data-act="emptyTrash" style="color:var(--danger)">${icon("trash")}Vider la corbeille</button></div>` : `<div class="empty"><div class="big">🗑️</div><p>La corbeille est vide.</p></div>`}
+    ${L.map(x => { const left = Math.max(0, 30 - Math.floor((Date.now() - x.t) / DAY)); return `<div class="row" data-tid="${esc(x.id)}">${thHTML("", baseName(x.path), "", x.dir)}<div class="meta"><div class="t">${esc(baseName(x.path))}</div><div class="s">${esc(shortDir(dirName(x.path)))} · supprimé ${fdate(x.t)} · ${left} j restants</div></div><div class="sz">${fsz(x.size)}</div><button class="more" data-tmore="${esc(x.id)}">${icon("more")}</button></div>`; }).join("")}`;
+  show("trash");
+};
+ACT.trashRestoreAll = async () => { const st = await runOp("restore", TRASHC.map(x => x.id), "", "Restauration"); if (st) { toast("Fichiers restaurés"); loadTrash(); R.trash(); bgRescan(true); } };
+$("#v-trash").addEventListener("click", e => {
+  const r = e.target.closest("[data-tid]"); if (!r || e.target.closest("[data-act]")) return;
+  const x = TRASHC.find(t => t.id === r.dataset.tid); if (!x) return;
+  SH = {
+    restore: async () => { const st = await runOp("restore", [x.id], "", "Restauration"); if (st) { toast("Restauré dans " + shortDir(dirName(x.path))); loadTrash(); R.trash(); bgRescan(true); } },
+    purge: () => confirmAsk("Effacer définitivement ?", `« ${esc(baseName(x.path))} » sera effacé pour toujours.`, "Effacer", async () => { await runOp("purge", [x.id], "", "Effacement"); loadTrash(); R.trash(); })
+  };
+  sheet(`<div class="shd">${thHTML("", baseName(x.path), "", x.dir)}<div style="min-width:0"><div class="t">${esc(baseName(x.path))}</div><div class="s">${fsz(x.size)} · venait de ${esc(dirName(x.path))}</div></div></div><div class="sbody">${mi("restore", "restore", "Restaurer à sa place")}${mi("purge", "trash", "Effacer définitivement", "", "danger")}</div>`);
+});
+
+/* ================= Nettoyage ================= */
+let CLEAN = null;    // { groups:[{key,title,desc,ic,color,items:[{p,s,why,keep}],sel:Set, dup:bool}] }
+const STD = /^(DCIM|Download|Pictures|Music|Movies|Documents|Alarms|Notifications|Ringtones|Podcasts|Android|Recordings|Audiobooks|Snapchat)$/;
+async function runClean() {
+  if (!IDX) { await fullScan(); }
+  if (!IDX) return;
+  SH = { cancel: () => DRV.cancel() }; OPRUN = true;
+  sheet(`<div class="shd"><div style="flex:1"><div class="t">Recherche de fichiers inutiles</div><div class="s" id="opS">Étape 1 / 3 : tri des fichiers…</div></div></div><div class="prog ind" id="opP"><i></i></div><div class="btns"><button class="btn" data-sh="cancel" data-keep="1">Arrêter</button></div>`);
+  const step = (t, s) => { const e = $("#opS"); if (e) e.textContent = t; const P = $("#opP"); if (P && s) { P.classList.toggle("ind", !s.total); P.firstChild.style.width = s.total ? Math.round(s.done / s.total * 100) + "%" : ""; } };
+  await sleep(30);
+  const now = Date.now(), F = IDX.files, G = [];
+  const g = (key, title, desc, ic, color, auto, items, note) => { if (items.length) G.push({ key, title, desc, ic, color, items, sel: new Set(auto ? items.map(i => i.p) : []), note }); };
+  const isTrashy = f => /\/\.thumbnails\//i.test(f.p);
+  // fichiers temporaires
+  g("temp", "Fichiers temporaires", "Journaux, fichiers .tmp, caches laissés par les applis", "temp", "#64748b", true,
+    F.filter(f => /\.(tmp|temp|log|chk|dmp|part|crdownload)$/i.test(f.n) || /~$/.test(f.n) || /\/(\.?cache|\.?temp|\.?tmp)\//i.test(f.p) && !/\/Android\/media\//.test(f.p)).map(f => ({ p: f.p, s: f.s, why: shortDir(f.d) })));
+  g("thumbs", "Miniatures de la galerie", "Recréées automatiquement par le téléphone si besoin", "thumb", "#0ea5e9", true,
+    F.filter(isTrashy).map(f => ({ p: f.p, s: f.s, why: shortDir(f.d) })));
+  // dossiers vides
+  const empt = [...IDX.dirs].filter(([d, c]) => c === 0 && !STD.test(baseName(d)) && !DRV.roots().some(r => r.path === d) && !/\/Android(\/|$)/.test(d)).map(([d]) => ({ p: d, s: 0, why: shortDir(dirName(d)), dir: true }));
+  g("empty", "Dossiers vides", "Des dossiers qui ne contiennent rien", "empty", "#94a3b8", true, empt);
+  // statuts WhatsApp
+  g("status", "Statuts WhatsApp déjà vus", "Copies des statuts regardés, inutiles", "chat", "#22c55e", true,
+    F.filter(f => /\/WhatsApp( Business)?\/Media\/\.Statuses\//.test(f.p)).map(f => ({ p: f.p, s: f.s, why: fdate(f.m) })));
+  // APK
+  const apks = F.filter(f => f.k === "apk" && /\.apk$/i.test(f.n));
+  let apkInfo = {};
+  if (apks.length && DRV === NativeDrv) { step("Étape 2 / 3 : vérification des APK…"); apkInfo = await DRV.apkInfo(apks.map(f => f.p), s => step(`Étape 2 / 3 : vérification des APK… ${s.done}/${s.total}`, s)); }
+  const apkItems = apks.map(f => { const i = apkInfo[f.p] || {}; return { p: f.p, s: f.s, why: i.installed ? `${i.label || ""} — déjà installée${i.older ? "" : " (version plus récente ici)"}` : i.bad ? "Fichier abîmé" : i.label ? i.label + " — pas installée" : shortDir(f.d), auto: !!(i.installed && i.older) || !!i.bad }; });
+  if (apkItems.length) G.push({ key: "apk", title: "Fichiers d'installation (APK)", desc: "Une fois l'appli installée, le fichier ne sert plus", ic: "apk", color: "#10b981", items: apkItems, sel: new Set(apkItems.filter(i => i.auto).map(i => i.p)) });
+  // doublons
+  step("Étape 3 / 3 : recherche des doublons…");
+  const bySize = new Map();
+  for (const f of F) { if (f.s < 10240 || isTrashy(f) || f.h && !/\/WhatsApp/.test(f.p)) continue; let L = bySize.get(f.s); if (!L) bySize.set(f.s, L = []); L.push(f); }
+  let cand = []; for (const L of bySize.values()) if (L.length > 1) cand.push(...L);
+  cand.sort((a, b) => b.s - a.s); cand = cand.slice(0, 20000);
+  let dupGroups = [];
+  if (cand.length) {
+    const H = await DRV.hash(cand.map(f => f.p), s => step(`Étape 3 / 3 : comparaison des fichiers… ${s.done || 0}/${s.total || cand.length}`, s));
+    const byH = new Map();
+    for (const f of cand) { const h = H[f.p]; if (!h) continue; const k = h + ":" + f.s; let L = byH.get(k); if (!L) byH.set(k, L = []); L.push(f); }
+    for (const L of byH.values()) if (L.length > 1) {
+      const score = f => (/\/DCIM\//.test(f.p) ? 8 : 0) + (/\/Pictures\//.test(f.p) ? 3 : 0) + (/WhatsApp|Telegram|\/Sent\//.test(f.p) ? -3 : 0) + (/\/Download/i.test(f.p) ? -2 : 0) + (/\(\d+\)\.\w+$|copie|copy/i.test(f.n) ? -4 : 0) - f.p.split("/").length * .1;
+      L.sort((a, b) => score(b) - score(a) || a.m - b.m);
+      dupGroups.push(L);
+    }
+  }
+  if (dupGroups.length) {
+    dupGroups.sort((a, b) => b[0].s * (b.length - 1) - a[0].s * (a.length - 1));
+    const items = []; dupGroups.forEach((L, gi) => L.forEach((f, j) => items.push({ p: f.p, s: f.s, why: shortDir(f.d), g: gi, keep: j === 0 })));
+    G.unshift({ key: "dup", title: "Fichiers en double", desc: `${pl(dupGroups.length, "fichier")} présent${dupGroups.length > 1 ? "s" : ""} plusieurs fois — on garde un exemplaire de chaque`, ic: "dup", color: "#8b5cf6", items, sel: new Set(items.filter(i => !i.keep).map(i => i.p)), dup: true });
+  }
+  // à vérifier (non cochés)
+  g("big", "Gros fichiers", "Plus de 100 Mo — à vérifier vous-même", "big", "#ef4444", false, F.filter(f => f.s >= 100 * 1048576).sort((a, b) => b.s - a.s).map(f => ({ p: f.p, s: f.s, why: shortDir(f.d) + " · " + fdate(f.m) })));
+  g("olddl", "Vieux téléchargements", "Téléchargés il y a plus de 3 mois", "dl", "#06b6d4", false, F.filter(f => /\/Download(s)?\//i.test(f.p) && f.m < now - 90 * DAY && f.k !== "apk").sort((a, b) => b.s - a.s).map(f => ({ p: f.p, s: f.s, why: fdate(f.m) })));
+  g("wasent", "WhatsApp : médias envoyés", "Copies des photos et vidéos que vous avez envoyées", "chat", "#16a34a", false, F.filter(f => /\/WhatsApp( Business)?\/Media\/[^/]+\/Sent\//.test(f.p)).sort((a, b) => b.s - a.s).map(f => ({ p: f.p, s: f.s, why: fdate(f.m) })));
+  g("wamedia", "WhatsApp : vieux médias reçus", "Photos, vidéos et notes vocales de plus de 6 mois", "chat", "#15803d", false, F.filter(f => /\/WhatsApp( Business)?\/Media\//.test(f.p) && !/\/(Sent|\.Statuses)\//.test(f.p) && !f.h && f.m < now - 180 * DAY && f.k !== "oth").sort((a, b) => b.s - a.s).map(f => ({ p: f.p, s: f.s, why: fdate(f.m) })));
+  g("shots", "Vieilles captures d'écran", "Plus de 2 mois", "shot", "#f59e0b", false, F.filter(f => /\/Screenshots\//i.test(f.p) && f.m < now - 60 * DAY).sort((a, b) => a.m - b.m).map(f => ({ p: f.p, s: f.s, why: fdate(f.m) })));
+  g("vids", "Grosses vidéos", "Vidéos de plus de 200 Mo", "vid", "#7c3aed", false, F.filter(f => f.k === "vid" && f.s >= 200 * 1048576).sort((a, b) => b.s - a.s).map(f => ({ p: f.p, s: f.s, why: shortDir(f.d) + " · " + fdate(f.m) })));
+  OPRUN = false; closeSheet();
+  CLEAN = { groups: G, at: Date.now() };
+  R.clean(); if (curView !== "clean") goTab("clean");
+}
+function cleanSummary() {
+  const sel = new Map(), all = new Map();
+  for (const g of CLEAN.groups) for (const i of g.items) { all.set(i.p, i.s); if (g.sel.has(i.p)) sel.set(i.p, i.s); }
+  let a = 0, b = 0; for (const v of sel.values()) a += v; for (const v of all.values()) b += v;
+  return { auto: a, all: b, n: sel.size };
+}
+R.clean = function () {
+  const el = $("#v-clean"); clearLists(el);
+  if (!CLEAN) {
+    el.innerHTML = `<div class="scanbox"></div><div class="gate"><div class="big">${icon("spark")}</div><h2 style="margin:0 0 8px">Faire le ménage</h2>
+      <p>Rangement cherche les doublons, les fichiers d'installation inutiles, les fichiers temporaires, les dossiers vides, les gros fichiers oubliés et les médias WhatsApp encombrants.</p>
+      <p class="small">Rien n'est supprimé sans votre accord.${DRV.canTrash ? " Tout passe par la corbeille : vous pouvez récupérer un fichier pendant 30 jours." : ""}</p>
+      <button class="btn main" data-act="analyze" style="padding:13px 26px;font-size:16px">${icon("search")}Lancer l'analyse</button></div>
+      ${DRV === NativeDrv ? cacheNote() : ""}`;
+    paintScanning(); show("clean"); return;
+  }
+  const S = cleanSummary();
+  el.innerHTML = `<div class="card cleanhero"><div class="spark">${icon("spark")}</div><div style="flex:1"><div class="big" id="cleanTot">${fsz(S.auto)}</div><div class="small muted" id="cleanSub">sélectionnés · ${pl(S.n, "fichier")}</div></div><button class="iconbtn" data-act="analyze" aria-label="Relancer">${icon("refresh")}</button></div>
+  <div class="tiny" style="padding:0 16px 10px">Les groupes « sans risque » sont déjà cochés. Touchez un groupe pour voir le détail et cocher ou décocher.</div>
+  ${CLEAN.groups.length ? CLEAN.groups.map((g, gi) => grpHTML(g, gi)).join("") : `<div class="empty"><div class="big">✨</div><h3>Tout est propre !</h3><p>Aucun fichier inutile trouvé.</p></div>`}
+  ${DRV === NativeDrv ? cacheNote() : ""}<div style="height:70px"></div>`;
+  paintCleanBar(); show("clean");
+};
+function cacheNote() { return `<div class="note">${icon("info")}<div><b>Cache des applications</b><br>Android ne permet pas à une appli de vider le cache des autres. Ouvrez l'onglet <b>Applis</b>, touchez une appli puis « Vider le cache », ou passez par les réglages du stockage.<br><a href="#" data-act="openStorage" style="color:var(--acc);font-weight:600">Ouvrir les réglages du stockage</a></div></div>`; }
+function grpHTML(g, gi) {
+  const tot = g.items.reduce((a, i) => a + i.s, 0);
+  let st = 0; for (const i of g.items) if (g.sel.has(i.p)) st += i.s;
+  const allSel = g.sel.size === g.items.length, noneSel = !g.sel.size;
+  return `<div class="grp" data-g="${gi}"><div class="gh"><div class="chk ${allSel ? "on" : ""}" data-gchk="${gi}" style="display:grid;${!allSel && !noneSel ? "background:color-mix(in srgb,var(--acc) 45%,transparent);border-color:var(--acc)" : ""}">${icon("check")}</div><div class="gi" style="background:${g.color}">${icon(g.ic)}</div><div style="flex:1;min-width:0"><div class="gt">${esc(g.title)}</div><div class="gd">${esc(g.desc)}</div></div><div class="gs"><b>${fsz(st || tot)}</b><small>${st ? `${g.sel.size}/${g.items.length} cochés` : pl(g.items.length, g.dup ? "fichier" : (g.key === "empty" ? "dossier" : "fichier"))}</small></div></div><div class="gb"></div></div>`;
+}
+function grpBody(gi) {
+  const g = CLEAN.groups[gi], el = document.querySelector(`.grp[data-g="${gi}"] .gb`);
+  const MAX = 400, items = g.items.slice(0, MAX);
+  let h = `<div class="gtools"><button data-gall="${gi}">Tout cocher</button><button data-gnone="${gi}">Tout décocher</button>${g.dup ? `<button data-gdup="${gi}">Garder un seul exemplaire</button>` : ""}</div>`;
+  let lastG = -1;
+  items.forEach((it, k) => {
+    if (g.dup && it.g !== lastG) { lastG = it.g; h += `<div class="hd2">${esc(baseName(it.p))} · ${fsz(it.s)} chacun</div>`; }
+    h += `<div class="row${g.sel.has(it.p) ? " sel" : ""}" data-ci="${k}" style="padding:7px 14px"><div class="chk" style="display:grid">${icon("check")}</div>${thHTML(it.p, baseName(it.p), "", it.dir)}<div class="meta"><div class="t">${esc(baseName(it.p))}${it.keep ? `<span class="badge keep">à garder</span>` : ""}</div><div class="s">${esc(it.why || "")}</div></div><div class="sz">${it.dir ? "" : fsz(it.s)}</div><button class="more" data-cview="${k}" aria-label="Voir">${icon("eye")}</button></div>`;
+  });
+  if (g.items.length > MAX) h += `<div class="tiny" style="padding:10px 14px">… et ${pl(g.items.length - MAX, "autre")} (cochés ou non selon le groupe).</div>`;
+  el.innerHTML = h;
+}
+$("#v-clean").addEventListener("click", e => {
+  if (!CLEAN) return;
+  const grp = e.target.closest(".grp"); if (!grp) return;
+  const gi = +grp.dataset.g, g = CLEAN.groups[gi];
+  const refresh = () => { const open = grp.classList.contains("open"); grp.outerHTML = grpHTML(g, gi); const n = document.querySelector(`.grp[data-g="${gi}"]`); if (open) { n.classList.add("open"); grpBody(gi); } paintCleanBar(); };
+  if (e.target.closest("[data-gchk]")) { if (g.sel.size === g.items.length) g.sel.clear(); else g.items.forEach(i => { if (!i.keep) g.sel.add(i.p); }); if (g.dup && g.sel.size === 0) {} refresh(); return; }
+  if (e.target.closest("[data-gall]")) { g.items.forEach(i => g.sel.add(i.p)); if (g.dup) warnDup(g); refresh(); return; }
+  if (e.target.closest("[data-gnone]")) { g.sel.clear(); refresh(); return; }
+  if (e.target.closest("[data-gdup]")) { g.sel = new Set(g.items.filter(i => !i.keep).map(i => i.p)); refresh(); return; }
+  const v = e.target.closest("[data-cview]"); if (v) { openFile(g.items.slice(0, 400)[+v.dataset.cview].p); return; }
+  const row = e.target.closest("[data-ci]");
+  if (row) {
+    const it = g.items[+row.dataset.ci];
+    if (g.sel.has(it.p)) g.sel.delete(it.p); else g.sel.add(it.p);
+    if (g.dup && g.sel.has(it.p)) { const same = g.items.filter(x => x.g === it.g); if (same.every(x => g.sel.has(x.p))) { g.sel.delete(it.p); toast("Il faut garder au moins un exemplaire"); } }
+    row.classList.toggle("sel", g.sel.has(it.p));
+    const head = grp.querySelector(".gh"); const tmp = document.createElement("div"); tmp.innerHTML = grpHTML(g, gi); head.replaceWith(tmp.querySelector(".gh"));
+    paintCleanBar(); return;
+  }
+  if (e.target.closest(".gh")) { grp.classList.toggle("open"); if (grp.classList.contains("open")) grpBody(gi); }
+});
+function warnDup(g) { const groups = new Map(); g.items.forEach(i => { if (!groups.has(i.g)) groups.set(i.g, []); groups.get(i.g).push(i); }); for (const L of groups.values()) if (L.every(x => g.sel.has(x.p))) g.sel.delete(L.find(x => x.keep).p); toast("Un exemplaire de chaque fichier est toujours gardé"); }
+function paintCleanBar() {
+  if (!CLEAN) { $("#cleanbar").classList.remove("on"); return; }
+  const S = cleanSummary();
+  const b = $("#cleanGo"); b.innerHTML = `${icon("spark")}${S.n ? `Nettoyer ${fsz(S.auto)}` : "Rien de coché"}`; b.disabled = !S.n || !DRV.canWrite;
+  if (!DRV.canWrite) b.innerHTML = `${icon("info")}Suppression impossible dans ce mode`;
+  const t = $("#cleanTot"); if (t) { t.textContent = fsz(S.auto); $("#cleanSub").textContent = `sélectionnés · ${pl(S.n, "fichier")}`; }
+  $("#cleanbar").classList.toggle("on", curView === "clean");
+}
+$("#cleanGo").onclick = () => {
+  const S = cleanSummary(); if (!S.n) return;
+  const paths = []; const seen = new Set();
+  for (const g of CLEAN.groups) for (const i of g.items) if (g.sel.has(i.p) && !seen.has(i.p)) { seen.add(i.p); paths.push(i.p); }
+  // ne pas envoyer un fichier et son dossier parent
+  const dirs = paths.filter(p => IDX.dirs.has(p));
+  const final = paths.filter(p => !dirs.some(d => p !== d && p.startsWith(d + "/")));
+  const go = async kind => {
+    const st = await runOp(kind, final, "", kind === "trash" ? "Nettoyage (vers la corbeille)" : "Nettoyage");
+    if (!st) return;
+    const failed = new Set((st.err || "").split("\n").map(l => l.split(" : ").pop()));
+    const ok = final.filter(p => !failed.has(baseName(p)));
+    ST.cleaned = (ST.cleaned || 0) + (st.bytes || 0); save();
+    indexRemove(ok); ok.forEach(p => TH.delete(p));
+    for (const g of CLEAN.groups) { g.items = g.items.filter(i => !ok.includes(i.p)); for (const p of ok) g.sel.delete(p); }
+    CLEAN.groups = CLEAN.groups.filter(g => g.items.length && !(g.dup && new Set(g.items.map(i => i.g)).size === g.items.length));
+    loadTrash();
+    R.clean();
+    sheet(`<div style="padding:26px 22px;text-align:center"><div style="font-size:52px">✨</div><h2 style="margin:6px 0">${fsz(st.bytes)} libérés</h2><p class="muted">${kind === "trash" ? "Les fichiers sont dans la corbeille pendant 30 jours. Pour récupérer la place tout de suite, videz la corbeille." : "C'est fait !"}</p><div class="btns" style="justify-content:center">${kind === "trash" ? `<button class="btn" data-sh="empty">Vider la corbeille</button>` : ""}<button class="btn main" data-sh="ok">Parfait</button></div></div>`);
+    SH = { ok: () => {}, empty: () => ACT.emptyTrash() };
+  };
+  SH = { trash: () => go("trash"), del: () => confirmAsk("Effacer définitivement ?", `${pl(final.length, "élément")} (${fsz(S.auto)}) seront effacés tout de suite, sans passer par la corbeille.`, "Effacer", () => go("delete")) };
+  if (!DRV.canTrash) { confirmAsk("Supprimer définitivement ?", `${pl(final.length, "élément")} (${fsz(S.auto)}) seront effacés. Pas de corbeille dans ce mode.`, "Supprimer", () => go("delete")); return; }
+  sheet(`<div class="shd"><div><div class="t">Nettoyer ${fsz(S.auto)} ?</div><div class="s">${pl(final.length, "élément")}</div></div></div><div class="sbody">
+    ${mi("trash", "trash", "Mettre à la corbeille (conseillé)", "récupérable 30 j")}
+    ${mi("del", "x", "Effacer définitivement", "place libérée tout de suite", "danger")}</div>`);
+};
+
+/* ================= Applications ================= */
+let APPS = null, appSort = "size";
+const AICON = new Map();
+R.apps = function () {
+  const el = $("#v-apps");
+  if (!DRV.hasApps) { el.innerHTML = `<div class="empty"><div class="big">📱</div><h3>Sur le téléphone seulement</h3><p>La liste des applications est disponible dans l'application Rangement installée sur le téléphone.</p></div>`; show("apps"); return; }
+  if (!APPS) { el.innerHTML = `<div class="empty"><div class="spin lg"></div>Lecture des applications…</div>`; show("apps"); setTimeout(() => { try { APPS = DRV.apps(); } catch (e) { APPS = []; } R.apps(); }, 30); return; }
+  const L = APPS.slice();
+  if (appSort === "size") L.sort((a, b) => b.size - a.size);
+  else if (appSort === "old") L.sort((a, b) => a.upd - b.upd);
+  else if (appSort === "new") L.sort((a, b) => b.inst - a.inst);
+  else L.sort((a, b) => a.label.localeCompare(b.label, "fr", { sensitivity: "base" }));
+  el.innerHTML = `<div class="vtitle" style="padding-top:4px"><h2>Applications</h2><span class="count">${pl(L.length, "appli")} · ${fsz(L.reduce((a, x) => a + x.size, 0))}</span></div>
+  <div class="tools"><select class="chip" id="asort">${[["size", "Les plus lourdes"], ["old", "Pas mises à jour depuis longtemps"], ["new", "Installées récemment"], ["name", "Nom A→Z"]].map(([v, l]) => `<option value="${v}"${appSort === v ? " selected" : ""}>${l}</option>`).join("")}</select></div>
+  <div class="tiny" style="padding:0 16px 8px">Touchez une appli pour vider son cache ou la désinstaller. La taille indiquée est celle de l'appli elle-même (sans ses données).</div>
+  ${L.map(a => `<div class="row" data-pkg="${esc(a.pkg)}"><div class="th" data-ai="${esc(a.pkg)}" style="background-color:transparent;${AICON.get(a.pkg) ? `background-image:url('${AICON.get(a.pkg)}')` : ""}">${AICON.get(a.pkg) ? "" : icon("apps")}</div><div class="meta"><div class="t">${esc(a.label)}</div><div class="s">${a.ver ? "v" + esc(a.ver) + " · " : ""}installée ${fdate(a.inst)}</div></div><div class="sz">${fsz(a.size)}</div></div>`).join("")}`;
+  $("#asort").onchange = e => { appSort = e.target.value; R.apps(); };
+  show("apps");
+  (async () => { for (const a of L) { if (AICON.has(a.pkg)) continue; const u = DRV.appIcon(a.pkg, 96); AICON.set(a.pkg, u); const e = document.querySelector(`[data-ai="${CSS.escape(a.pkg)}"]`); if (e && u) { e.style.backgroundImage = `url('${u}')`; e.innerHTML = ""; } await sleep(0); if (curView !== "apps") break; } })();
+};
+$("#v-apps").addEventListener("click", e => {
+  const r = e.target.closest("[data-pkg]"); if (!r) return;
+  const a = APPS.find(x => x.pkg === r.dataset.pkg); if (!a) return;
+  SH = { set: () => MP.fsAppSettings(a.pkg), un: () => { MP.fsUninstall(a.pkg); setTimeout(() => { APPS = null; }, 1500); } };
+  sheet(`<div class="shd"><div class="th" style="background-image:url('${AICON.get(a.pkg) || ""}');background-color:transparent"></div><div style="min-width:0"><div class="t">${esc(a.label)}</div><div class="s">${esc(a.pkg)} · ${fsz(a.size)}</div></div></div><div class="sbody">
+    ${mi("set", "gear", "Vider le cache / les données", "ouvre les réglages")}
+    ${mi("un", "trash", "Désinstaller", "", "danger")}
+    <div class="kv"><span>Version</span><span>${esc(a.ver || "")}</span></div><div class="kv"><span>Installée</span><span>${new Date(a.inst).toLocaleDateString("fr-FR")}</span></div><div class="kv"><span>Mise à jour</span><span>${new Date(a.upd).toLocaleDateString("fr-FR")}</span></div>
+    <div class="tiny" style="padding:8px 20px">Dans les réglages : Stockage → « Vider le cache » (sans risque) ou « Effacer les données » (l'appli repart de zéro).</div></div>`);
+});
+
+/* ================= Menu & aide ================= */
+/* Actualiser : relit le dossier ou la vue affichée et relance l'analyse du stockage (bouton ⟳ ou glisser vers le bas en haut de liste) */
+function doRefresh() {
+  const b = $("#refreshBtn"); b.classList.add("spinning"); setTimeout(() => b.classList.remove("spinning"), 900);
+  const y = $("#main").scrollTop;
+  try { CLEAN = null; if (curView === "trash") loadTrash && loadTrash(); } catch (e) {}
+  rerender(); requestAnimationFrame(() => $("#main").scrollTop = y);
+  bgRescan(true); paintScanning(); toast("Actualisé");
+}
+$("#refreshBtn").onclick = doRefresh;
+(() => {
+  const m = $("#main"); let y0 = null, pulled = 0;
+  const ind = document.createElement("div"); ind.id = "ptr"; ind.innerHTML = '<svg class="ic"><use href="#i-refresh"/></svg>'; document.body.appendChild(ind);
+  m.addEventListener("touchstart", e => { y0 = m.scrollTop <= 0 && e.touches.length === 1 && !document.querySelector(".sheet.on") ? e.touches[0].clientY : null; pulled = 0; }, { passive: true });
+  m.addEventListener("touchmove", e => { if (y0 == null) return; pulled = Math.max(0, e.touches[0].clientY - y0); if (m.scrollTop > 0) { y0 = null; pulled = 0; } ind.style.transform = `translate(-50%, ${Math.min(70, pulled / 2)}px) rotate(${pulled * 2}deg)`; ind.classList.toggle("on", pulled > 12); ind.classList.toggle("ready", pulled > 110); }, { passive: true });
+  m.addEventListener("touchend", () => { if (y0 != null && pulled > 110) doRefresh(); y0 = null; pulled = 0; ind.classList.remove("on", "ready"); ind.style.transform = ""; }, { passive: true });
+})();
+$("#menuBtn").onclick = () => {
+  SH = {
+    rescan: () => ACT.rescan(), help: () => push(() => { $("#v-help").innerHTML = helpHTML(); CURFN = null; show("help"); }),
+    trash: () => push(() => R.trash()),
+    theme: () => { const cur = document.documentElement.dataset.theme || ""; const nx = cur === "" ? "light" : cur === "light" ? "dark" : ""; ST.theme = nx; save(); if (nx) document.documentElement.dataset.theme = nx; else delete document.documentElement.dataset.theme; toast(nx === "light" ? "Thème clair" : nx === "dark" ? "Thème sombre" : "Thème automatique"); },
+    pick: () => ACT.pick(),
+    search: () => openSearch(""),
+    recent: () => openCat("recent"),
+    hidden: () => { ST.hidden = !ST.hidden; save(); toast(ST.hidden ? "Fichiers cachés affichés" : "Fichiers cachés masqués"); rerender(); }
+  };
+  sheet(`<div class="shd"><div class="logo"><i>✦</i><span>Rangement</span></div></div><div class="sbody">
+    ${mi("search", "filter", "Recherche avancée", "type, date, taille")}
+    ${mi("recent", "clock", "Fichiers récents")}
+    ${mi("rescan", "refresh", "Analyser à nouveau", ST.lastScan ? fdate(ST.lastScan) : "")}
+    ${DRV.canTrash ? mi("trash", "trash", "Corbeille", TRASHC.length ? pl(TRASHC.length, "élément") : "vide") : ""}
+    ${DRV === PcDrv ? mi("pick", "folder", "Choisir un dossier") : ""}
+    ${mi("hidden", "eye", ST.hidden ? "Masquer les fichiers cachés" : "Afficher les fichiers cachés")}
+    ${mi("theme", "gear", "Thème", { "": "automatique", light: "clair", dark: "sombre" }[ST.theme || ""])}
+    ${mi("help", "help", "Aide : comment ça marche")}
+    ${ST.cleaned ? `<div class="tiny" style="padding:10px 20px">Depuis le début, Rangement vous a fait gagner ${fsz(ST.cleaned)} ✨</div>` : ""}</div>`);
+};
+function helpHTML() {
+  const ph = DRV === NativeDrv;
+  return `<button class="back" data-act="back">${icon("back")}Retour</button><div class="help">
+  <h2 style="margin:2px 0 6px">Comment marche Rangement</h2>
+  <p>Ranger vos fichiers et libérer de la place, sans risque.</p>
+  <h3>🏠 Accueil</h3><p>L'anneau montre ce qui occupe votre téléphone : photos, vidéos, musique, documents… Touchez une <b>catégorie</b> pour voir ses fichiers, du plus gros au plus petit.</p>
+  <h3>📁 Fichiers</h3><ul><li>Touchez un dossier pour l'ouvrir, et le chemin en haut pour remonter.</li><li>Touchez un fichier pour l'ouvrir avec l'appli qui convient.</li><li><b>Appui long</b> sur un fichier (ou bouton ☑) : sélection de plusieurs fichiers, puis Copier, Déplacer, Partager, Renommer ou Supprimer en bas.</li><li>Pour <b>copier ou déplacer</b> : choisissez, ouvrez le dossier de destination, puis « Coller ici ».</li><li>Le bouton ⋮ d'une ligne donne toutes les actions et les <b>propriétés</b> (chemin, taille, date, dimensions des photos et vidéos).</li>
+  <li><b>Trier</b> (bouton ⇅) : par date (récents ou anciens d'abord), nom A→Z ou Z→A (2 avant 10), taille, type. Options : grouper par date (Aujourd'hui, Hier, Cette semaine…), dossiers en premier, garder un tri propre à un dossier, liste ou grille, taille d'affichage.</li>
+  <li><b>Filtres rapides</b> sous le chemin : Photos, Vidéos, Audio, Documents, PDF, Archives, APK, Récents. Ils cherchent dans le dossier ouvert <b>et ses sous-dossiers</b>.</li>
+  <li>L'étoile ☆ <b>épingle</b> le dossier à l'accueil.</li></ul>
+  <h3>☑ Sélection multiple</h3><ul><li><b>Renommer</b> plusieurs éléments à la fois : numéroter (Vacances 01, 02…), mettre la date, ajouter un texte ou en remplacer un. Un aperçu montre le résultat avant de valider ; rien n'est jamais écrasé.</li><li><b>Plus</b> : compresser en zip (les originaux restent), décompresser un zip dans un nouveau dossier, épingler, propriétés.</li></ul>
+  <h3>✨ Nettoyer</h3><p>« Lancer l'analyse » cherche :</p><ul><li><b>Les doublons</b> : le même fichier en plusieurs exemplaires. Rangement garde toujours un exemplaire (de préférence celui de l'appareil photo).</li><li><b>Les APK</b> d'applis déjà installées.</li><li><b>Les fichiers temporaires, miniatures et dossiers vides.</b></li><li><b>Les statuts WhatsApp</b> déjà vus.</li><li>À vérifier vous-même (non cochés) : gros fichiers, vieux téléchargements, médias WhatsApp, vieilles captures d'écran, grosses vidéos.</li></ul>
+  <p>Touchez un groupe pour voir les fichiers et cocher ou décocher ; l'œil 👁 ouvre le fichier pour le vérifier. Puis « Nettoyer ».</p>
+  ${ph ? `<h3>🗑️ Corbeille de sécurité</h3><p>Ce que vous supprimez part dans la corbeille de Rangement. Vous pouvez le restaurer à sa place pendant <b>30 jours</b>, ensuite il est effacé automatiquement. Pour récupérer la place tout de suite : Corbeille → « Vider la corbeille ».</p>
+  <h3>📱 Applis</h3><p>La liste de vos applis, des plus lourdes aux plus légères. Touchez-en une pour <b>vider son cache</b> (dans les réglages : Stockage → Vider le cache) ou la <b>désinstaller</b>.</p>
+  <h3>🔐 Autorisation</h3><p>Rangement a besoin de « l'accès à tous les fichiers » pour voir et ranger votre stockage. Tout reste sur le téléphone : rien n'est envoyé sur Internet.</p>` :
+  `<h3>💻 Sur PC</h3><p>Choisissez un dossier : Rangement l'analyse (doublons, gros fichiers…). Avec Chrome ou Edge, vous pouvez supprimer directement — attention, sur PC c'est définitif. Avec un autre navigateur, l'analyse fonctionne mais la suppression n'est pas possible.</p>`}
+  <h3>🔍 Rechercher</h3><p>Tapez une partie du nom dans la barre du haut, sans vous soucier des accents. Depuis un dossier, la recherche se fait dans ce dossier et ses sous-dossiers (touchez « Dans … » pour chercher partout). Filtrez par type, date et taille. Le menu ⋮ → « Recherche avancée » permet de chercher sans taper de nom (ex. toutes les vidéos de plus de 100 Mo).</p>
+  <h3>🕘 Récents</h3><p>Accueil → Récents : les fichiers des 7 derniers jours, 30 jours, 3 mois, ou ceux que vous avez ouverts récemment.</p></div>`;
+}
+
+/* Bouton retour */
+window.addEventListener("popstate", () => {
+  let h = true;
+  if ($("#sheet").classList.contains("on")) { if (!OPRUN) closeSheet(); }
+  else if (selMode) exitSel();
+  else if (CLIP && curView === "files" && false) {}
+  else if (curView === "files" && CWD && !DRV.roots().some(r => r.path === CWD)) cd(dirName(CWD));
+  else if (stack.length || curView === "list" || curView === "trash" || curView === "help") goBack();
+  else if (curView !== "home") goTab("home");
+  else h = false;
+  if (h) history.pushState({}, "");
+});
+history.pushState({}, "");
+
+/* ================= Démarrage ================= */
+function gate(html) { $("#v-gate").innerHTML = html; show("gate"); $("#tabs").classList.add("hidden"); }
+function ungate() { $("#tabs").classList.remove("hidden"); }
+function waitGrant() {
+  let n = 0; const iv = setInterval(() => { n++; if (MP.fsHasAll()) { clearInterval(iv); startPhone(); } else if (n > 400) clearInterval(iv); }, 600);
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden && isNative() && curView === "gate" && MP.fsHasAll()) startPhone(); });
+let started = false;
+async function startPhone() {
+  if (started) return; started = true;
+  DRV = NativeDrv; ungate();
+  loadTrash();
+  const cached = await IDB.get("index");
+  if (cached) { IDX = buildIndex(cached); }
+  goTab("home");
+  // nouvelle analyse en arrière-plan à chaque ouverture
+  fullScan().then(() => {
+    // vider la corbeille des éléments de plus de 30 jours
+    const old = TRASHC.filter(x => x.t < Date.now() - 30 * DAY);
+    if (old.length) DRV.op("purge", ["older:" + (Date.now() - 30 * DAY)], "").then(loadTrash);
+  });
+}
+function startPc() {
+  DRV = PcDrv;
+  gate(`<div class="gate"><div class="big">${icon("folder")}</div><h2 style="margin:0 0 8px">Rangement sur ordinateur</h2>
+    <p>Choisissez un dossier de votre PC (Téléchargements, Documents, Images…) : Rangement montre ce qui prend de la place, trouve les doublons et les gros fichiers.</p>
+    <button class="btn main" id="pickBtn" style="padding:13px 26px;font-size:16px">${icon("folder")}Choisir un dossier</button>
+    <p class="tiny" style="margin-top:16px">Rien n'est envoyé sur Internet. Sur le téléphone, installez l'application Rangement : elle voit tout le stockage et a une corbeille de sécurité.</p></div>`);
+  $("#pickBtn").onclick = async () => { const ok = await PcDrv.pick(); if (ok) { ungate(); fullScan(true); } };
+  const orig = fullScan;
+}
+$("#dirIn").addEventListener("change", () => ungate());
+(async function boot() {
+  if (!isNative()) { await sleep(250); MP = window.MAGPrint; }
+  if (isNative()) {
+    if (MP.fsHasAll()) startPhone();
+    else gate(`<div class="gate"><div class="big">${icon("folder")}</div><h2 style="margin:0 0 8px">Bienvenue dans Rangement</h2>
+      <p>Pour ranger vos fichiers et faire le ménage, Rangement doit pouvoir voir le stockage du téléphone. Tout reste sur le téléphone.</p>
+      <ol class="steps"><li>Touchez le bouton ci-dessous.</li><li>Dans la page qui s'ouvre, activez <b>« Autoriser l'accès pour gérer tous les fichiers »</b>.</li><li>Revenez avec la flèche retour.</li></ol>
+      <button class="btn main" data-act="grant" style="padding:13px 26px;font-size:16px">Autoriser l'accès aux fichiers</button></div>`);
+  } else startPc();
+})();
+</script>
+</body>
+</html>

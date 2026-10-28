@@ -8,7 +8,11 @@
     "jszip.min.js": { "package": "jszip", "version": "3.10.1", "from": "dist/jszip.min.js", "license": "MIT (ou GPL-3.0, au choix)", "licenseFile": "LICENSES/jszip-MIT-ou-GPLv3.md" },
     "tesseract/tesseract-core-simd-lstm.js": { "package": "tesseract.js-core", "version": "7.0.0", "from": "tesseract-core-simd-lstm.js", "license": "Apache-2.0", "licenseFile": "LICENSES/tesseract.js-core-Apache-2.0.txt" },
     "tesseract/tesseract-core-simd-lstm.wasm": { "package": "tesseract.js-core", "version": "7.0.0", "from": "tesseract-core-simd-lstm.wasm", "license": "Apache-2.0", "licenseFile": "LICENSES/tesseract.js-core-Apache-2.0.txt" },
-    "tesseract/fra.traineddata": { "package": "tessdata_fast (github.com/tesseract-ocr/tessdata_fast, commit 8741641)", "version": "4.1.0", "from": null, "license": "Apache-2.0", "licenseFile": "LICENSES/tessdata_fast-Apache-2.0.txt" }
+    "tesseract/fra.traineddata": { "package": "tessdata_fast (github.com/tesseract-ocr/tessdata_fast, commit 8741641)", "version": "4.1.0", "from": null, "license": "Apache-2.0", "licenseFile": "LICENSES/tessdata_fast-Apache-2.0.txt" },
+    "leaflet.js": { "package": "leaflet", "version": "1.9.4", "from": "dist/leaflet.js", "license": "BSD-2-Clause", "licenseFile": "LICENSES/leaflet-BSD-2-Clause.txt" },
+    "leaflet.css": { "package": "leaflet", "version": "1.9.4", "from": "dist/leaflet.css", "license": "BSD-2-Clause", "licenseFile": "LICENSES/leaflet-BSD-2-Clause.txt" },
+    "jspdf.umd.min.js": { "package": "jspdf", "version": "2.5.1", "from": "dist/jspdf.umd.min.js", "license": "MIT", "licenseFile": "LICENSES/jspdf-MIT.txt" },
+    "xlsx.full.min.js": { "package": "xlsx", "version": "0.18.5", "from": "dist/xlsx.full.min.js", "license": "Apache-2.0", "licenseFile": "LICENSES/xlsx-Apache-2.0.txt" }
   },
   "apps": [
     {
@@ -22,22 +26,20 @@
       "vendor": ["pdf.min.js", "pdf.worker.min.js", "pdf-lib.min.js"],
       "file_handlers": [{ "accept": { "application/pdf": [".pdf"] } }],
       "patches": [
-        { "from": "Touche « Ouvrir un PDF » pour choisir un fichier du téléphone.<br>Tu peux aussi ouvrir un PDF depuis une autre appli (e-mail, Rangement…) avec « Ouvrir avec Lecteur PDF ».",
-          "to": "Clique sur « Ouvrir un PDF » (Ctrl+O) ou glisse un PDF sur cette fenêtre.<br>Une fois l\\'appli installée, « Ouvrir avec › Lecteur PDF » marche aussi depuis l\\'Explorateur de fichiers." },
+        { "from": "Touche « Ouvrir un PDF » pour choisir un fichier du téléphone.<br>Tu peux aussi ouvrir un PDF depuis une autre appli (e-mail, Rangement…) avec « Ouvrir avec Lecteur PDF ».", "to": "Clique sur « Ouvrir un PDF » (Ctrl+O) ou glisse un PDF sur cette fenêtre.<br>Une fois l\\'appli installée, « Ouvrir avec › Lecteur PDF » marche aussi depuis l\\'Explorateur de fichiers." },
         { "from": "'Le fichier reste sur le téléphone.'", "to": "'Le fichier reste sur l\\'ordinateur.'" },
-        { "from": "Tout reste sur le téléphone : aucune connexion internet, aucun envoi de données. Les fichiers ne sont jamais modifiés : chaque enregistrement crée une nouvelle copie.",
-          "to": "Tout reste sur cet ordinateur : aucun envoi de données. Le fichier d\\'origine n\\'est modifié que si tu choisis « Enregistrer dans le fichier d\\'origine ».</p><div class=\"lbl\">Raccourcis clavier</div><p class=\"note\">Ctrl+O ouvrir · Ctrl+S enregistrer · Ctrl+Maj+S enregistrer sous · Ctrl+P imprimer · Ctrl+F chercher · Ctrl+molette ou Ctrl +/− zoom · Ctrl+0 taille normale · Ctrl+Z annuler (annotation) · Échap fermer · Pg préc./Pg suiv. pages" },
+        { "from": "Tout reste sur le téléphone : aucune connexion internet, aucun envoi de données. Les fichiers ne sont jamais modifiés : chaque enregistrement crée une nouvelle copie.", "to": "Tout reste sur cet ordinateur : aucun envoi de données. Le fichier d\\'origine n\\'est modifié que si tu choisis « Enregistrer dans le fichier d\\'origine ».</p><div class=\"lbl\">Raccourcis clavier</div><p class=\"note\">Ctrl+O ouvrir · Ctrl+S enregistrer · Ctrl+Maj+S enregistrer sous · Ctrl+P imprimer · Ctrl+F chercher · Ctrl+molette ou Ctrl +/− zoom · Ctrl+0 taille normale · Ctrl+Z annuler (annotation) · Échap fermer · Pg préc./Pg suiv. pages" },
         { "from": "'Fichier du téléphone'", "to": "'Fichier de l\\'ordinateur'" },
         { "from": "Elle signe sur ce téléphone", "to": "Elle signe sur cet ordinateur" },
-        { "from": "Avant de poser ta signature, le téléphone demande ton empreinte, ton visage ou ton code. Une validation reste valable 2 minutes pour signer plusieurs fois le même document. Cela protège contre l\\'usage par quelqu\\'un qui tient ton téléphone déverrouillé. La signature reste enregistrée dans l\\'appli sans chiffrement : ce n\\'est pas une signature électronique certifiée.",
-          "to": "Sur PC, avant de poser ta signature, l\\'appli demande ton code PIN : il remplace l\\'empreinte, le visage ou le code du téléphone, et il est propre à cet ordinateur (ce n\\'est pas Windows Hello). Une validation reste valable 2 minutes pour signer plusieurs fois le même document. Cela protège contre l\\'usage par quelqu\\'un qui utilise ta session Windows. La signature reste enregistrée dans le navigateur sans chiffrement : ce n\\'est pas une signature électronique certifiée." },
+        { "from": "Avant de poser ta signature, le téléphone demande ton empreinte, ton visage ou ton code. Une validation reste valable 2 minutes pour signer plusieurs fois le même document. Cela protège contre l\\'usage par quelqu\\'un qui tient ton téléphone déverrouillé. La signature reste enregistrée dans l\\'appli sans chiffrement : ce n\\'est pas une signature électronique certifiée.", "to": "Sur PC, avant de poser ta signature, l\\'appli demande ton code PIN : il remplace l\\'empreinte, le visage ou le code du téléphone, et il est propre à cet ordinateur (ce n\\'est pas Windows Hello). Une validation reste valable 2 minutes pour signer plusieurs fois le même document. Cela protège contre l\\'usage par quelqu\\'un qui utilise ta session Windows. La signature reste enregistrée dans le navigateur sans chiffrement : ce n\\'est pas une signature électronique certifiée." },
         { "from": "'Empreinte, visage ou code du téléphone avant de la poser'", "to": "'Code PIN demandé avant de la poser (remplace l\\'empreinte du téléphone)'" },
         { "from": "Garder cette signature sur le téléphone", "to": "Garder cette signature sur cet ordinateur", "count": 2 },
         { "from": "Elle sera gardée sur ce téléphone comme « ma signature ».", "to": "Elle sera gardée sur cet ordinateur comme « ma signature »." },
         { "from": "Signe avec le doigt dans le cadre blanc", "to": "Signe à la souris ou au stylet dans le cadre blanc", "count": 2 },
         { "from": "<span>Ouvrir avec une autre appli</span>", "to": "<span>Ouvrir dans le navigateur<small>Visionneuse PDF d\\'Edge ou de Chrome</small></span>" },
         { "from": "<span>Dans Téléchargements<small>Dossier « Lecteur PDF »</small></span>", "to": "<span>Télécharger<small>Dossier Téléchargements de Windows</small></span>" }
-      ]
+      ],
+      "data": { "ls": ["lecteur-"], "idb": ["lecteur"], "note": "Le code PIN qui protège la signature n'est pas exporté : il se recrée au premier usage." }
     },
     {
       "id": "pdf",
@@ -52,15 +54,449 @@
       "file_handlers": [{ "accept": { "application/pdf": [".pdf"] } }],
       "patches": [
         { "from": "Il n'est pas disponible dans un navigateur.</div>", "to": "Il n'est pas disponible dans la version PC : pdf-lib, la bibliothèque PDF du navigateur, ne sait pas chiffrer ni déchiffrer, et aucune autre bibliothèque fiable n'est intégrée. Utilisez l'appli Android.</div>", "count": 2 },
-        { "from": "🔤 La reconnaissance de texte utilise le moteur hors ligne de l'application Android <b>Atelier PDF</b>. Elle n'est pas disponible dans un navigateur : ouvrez ce PDF dans l'application sur votre téléphone.",
-          "to": "🔤 Sur PC, la reconnaissance de texte utilise Tesseract (WebAssembly), que ce navigateur ne sait pas faire tourner. Utilisez Edge ou Chrome à jour, ou l'application Android <b>Atelier PDF</b>." },
+        { "from": "🔤 La reconnaissance de texte utilise le moteur hors ligne de l'application Android <b>Atelier PDF</b>. Elle n'est pas disponible dans un navigateur : ouvrez ce PDF dans l'application sur votre téléphone.", "to": "🔤 Sur PC, la reconnaissance de texte utilise Tesseract (WebAssembly), que ce navigateur ne sait pas faire tourner. Utilisez Edge ou Chrome à jour, ou l'application Android <b>Atelier PDF</b>." },
         { "from": "Chaque page est lue sur le téléphone (rien ne part sur internet).", "to": "Chaque page est lue sur cet ordinateur par Tesseract, en français (rien ne part sur internet)." },
         { "from": "Tout se passe sur le téléphone, sans internet, dans l'application Android.", "to": "Sur PC, la lecture se fait sur l'ordinateur avec Tesseract (français), sans internet." },
         { "from": "Mot de passe et retrait fonctionnent dans l'application Android.", "to": "Mot de passe et retrait fonctionnent seulement dans l'application Android (pas sur PC)." },
         { "from": "Les documents sont gardés dans ce téléphone (ou ce navigateur).", "to": "Les documents sont gardés dans ce navigateur, sur cet ordinateur." },
         { "from": "mémoire du téléphone pleine ?", "to": "stockage plein ?", "count": 2 },
-        { "from": "« Télécharger » sur ordinateur, « Enregistrer, envoyer… » sur téléphone (dossier, Google Drive, e-mail, WhatsApp…).", "to": "« Enregistrer, envoyer… » propose Enregistrer sous, Télécharger, Partager et Imprimer. Raccourcis : Ctrl+O choisir un fichier, Ctrl+S enregistrer le résultat, Ctrl+P l'imprimer, Échap retour à l'accueil." }
-      ]
+        { "from": "« Télécharger » sur ordinateur, « Enregistrer, envoyer… » sur téléphone (dossier, Google Drive, e-mail, WhatsApp…).", "to": "« Enregistrer, envoyer… » propose Enregistrer sous, Télécharger, Partager et Imprimer. Raccourcis : Ctrl+O choisir un fichier, Ctrl+S enregistrer le résultat, Ctrl+P l'imprimer, Échap retour à l'accueil." },
+        { "from": "<button class=\"btn small\" data-rm=\"${i}\" aria-label=\"Retirer\">✕</button></div>`).join(\"\")}</div>`; }", "to": "${window.MAGPC&&!o.f.type.startsWith(\"image/\")?`<button class=\"btn small\" data-lect=\"${i}\" aria-label=\"Lire dans le Lecteur PDF\" title=\"Lire dans le Lecteur PDF\">📖</button>`:\"\"}<button class=\"btn small\" data-rm=\"${i}\" aria-label=\"Retirer\">✕</button></div>`).join(\"\")}</div>`; }" },
+        { "from": "function bindList(){ ", "to": "function bindList(){ app.querySelectorAll(\"[data-lect]\").forEach(b=>b.onclick=()=>{ const o=S.files[+b.dataset.lect]; if(o&&window.MAGPdf&&MAGPdf.toLecteur) MAGPdf.toLecteur(o.f,o.name); });\n  " },
+        { "from": "<button class=\"btn small\" data-keep=\"${i}\">📁 Garder</button>", "to": "${window.MAGPC&&/pdf/.test(f.blob.type)?`<button class=\"btn small\" data-lect=\"${i}\">📖 Lire dans le Lecteur PDF</button>`:\"\"}<button class=\"btn small\" data-keep=\"${i}\">📁 Garder</button>" },
+        { "from": "  out.querySelectorAll(\"[data-pr]\").forEach(b=>b.onclick=()=>printBlob(files[+b.dataset.pr].blob,files[+b.dataset.pr].name));", "to": "  out.querySelectorAll(\"[data-pr]\").forEach(b=>b.onclick=()=>printBlob(files[+b.dataset.pr].blob,files[+b.dataset.pr].name));\n  out.querySelectorAll(\"[data-lect]\").forEach(b=>b.onclick=()=>{ if(window.MAGPdf&&MAGPdf.toLecteur) MAGPdf.toLecteur(files[+b.dataset.lect].blob,files[+b.dataset.lect].name); });" },
+        { "from": "<button class=\"btn small\" data-r=\"${d.id}\" aria-label=\"Renommer\">✏️</button>", "to": "${window.MAGPC&&/pdf/.test(d.type)?`<button class=\"btn small\" data-lv=\"${d.id}\">📖 Lire dans le Lecteur PDF</button>`:\"\"}<button class=\"btn small\" data-r=\"${d.id}\" aria-label=\"Renommer\">✏️</button>" },
+        { "from": "  app.querySelectorAll(\"[data-p]\").forEach(b=>b.onclick=async()=>{ const d=by(b.dataset.p), bl=await blobOf(d); if(bl) printBlob(bl,d.name); });", "to": "  app.querySelectorAll(\"[data-p]\").forEach(b=>b.onclick=async()=>{ const d=by(b.dataset.p), bl=await blobOf(d); if(bl) printBlob(bl,d.name); });\n  app.querySelectorAll(\"[data-lv]\").forEach(b=>b.onclick=async()=>{ const d=by(b.dataset.lv), bl=await blobOf(d); if(bl&&window.MAGPdf&&MAGPdf.toLecteur) MAGPdf.toLecteur(bl,d.name); });" }
+      ],
+      "data": { "ls": ["apdf-"], "idb": ["atelier-pdf"] }
+    },
+    {
+      "id": "budget",
+      "android": "budget",
+      "name": "Budget",
+      "short_name": "Budget",
+      "description": "Dépenses et revenus, comptes, budgets, relevés bancaires (CSV, OFX)",
+      "theme_color": "#0f1116",
+      "background_color": "#0f1116",
+      "vendor": ["jspdf.umd.min.js", "xlsx.full.min.js"],
+      "patches": [
+        { "from": "Touche ", "to": "Clique sur ", "count": 0 },
+        { "from": "Tes données restent sur ce téléphone. Une copie est transmise à l\\'appli Sauvegarde.", "to": "Tes données restent dans ce navigateur, sur cet ordinateur : elles ne se synchronisent pas avec le téléphone. Exporte une copie de temps en temps." }
+      ],
+      "data": { "ls": ["budget."], "note": "Plus › Sauvegarde et données › Exporter une copie : même fichier que sur le téléphone (Restaurer une copie pour l'importer)." }
+    },
+    {
+      "id": "liseuse",
+      "android": "liseuse",
+      "name": "Liseuse",
+      "short_name": "Liseuse",
+      "description": "Livres EPUB et PDF, dossiers suivis, livres libres de droits",
+      "theme_color": "#0f1116",
+      "background_color": "#0f1116",
+      "vendor": ["jszip.min.js", "pdf.min.js", "pdf.worker.min.js"],
+      "patches": [
+        { "from": "Ajoute tes livres EPUB ou PDF depuis le téléphone", "to": "Ajoute tes livres EPUB ou PDF de l’ordinateur (bouton +, Ctrl+O ou glisser-déposer sur la fenêtre)" },
+        { "from": "Ajouter des livres du téléphone", "to": "Ajouter des livres de l’ordinateur" },
+        { "from": "Suivre un dossier du téléphone", "to": "Suivre un dossier de l’ordinateur" },
+        { "from": "Astuce : dans Rangement ou après un téléchargement, choisis « Ouvrir avec Liseuse ».", "to": "Astuce : une fois l’appli installée, clic droit sur un fichier EPUB › Ouvrir avec › Liseuse." },
+        { "from": "rien n’est modifié ni effacé sur le téléphone", "to": "rien n’est modifié ni effacé sur l’ordinateur. Windows peut redemander l’accès à chaque session" },
+        { "from": "Toucher encore pour supprimer définitivement", "to": "Cliquer encore pour supprimer définitivement" },
+        { "from": "Touche le marque-page en haut pour en poser un.", "to": "Clique sur le marque-page en haut pour en poser un." }
+      ],
+      "file_handlers": [{ "accept": { "application/epub+zip": [".epub"] } }],
+      "data": { "ls": ["liseuse-"], "idb": ["liseuse"] }
+    },
+    {
+      "id": "fichiers",
+      "android": "fichiers",
+      "name": "Rangement",
+      "short_name": "Rangement",
+      "description": "Ce qui prend de la place dans un dossier du PC, doublons, gros fichiers",
+      "theme_color": "#1f5fbf",
+      "background_color": "#1f5fbf",
+      "vendor": [],
+      "patches": [],
+      "data": { "ls": ["rangement:"], "idb": ["rangement"] }
+    },
+    {
+      "id": "actualites",
+      "android": "actualites",
+      "name": "Actualités",
+      "short_name": "Actualités",
+      "description": "L'essentiel de l'actu (franceinfo ; tous les médias avec le relais réseau)",
+      "theme_color": "#0e1117",
+      "background_color": "#0e1117",
+      "vendor": [],
+      "patches": [
+        { "from": "Tirez vers le bas pour réessayer.", "to": "Clique sur ↻ (ou F5) pour réessayer.", "count": 0 },
+        { "from": "Tirez vers le bas ou touchez ↻ pour charger les actualités.", "to": "Clique sur ↻ (ou F5) pour charger les actualités." },
+        { "from": "Touchez une image pour l\\'article.", "to": "Clique sur une image pour l\\'article." },
+        { "from": "Touchez-en un pour le résumé", "to": "Clique sur l\\'un d\\'eux pour le résumé" },
+        { "from": "Touchez « Plus tard » sur un article", "to": "Clique sur « Plus tard » sur un article" },
+        { "from": "'Comme le téléphone'", "to": "'Comme Windows'" },
+        { "from": "articles enregistrés sur le téléphone", "to": "articles enregistrés dans ce navigateur" },
+        { "from": "Favoris, réglages et cache restent sur le téléphone.", "to": "Favoris, réglages et cache restent dans ce navigateur, sur cet ordinateur." },
+        { "from": "<p class=\"lead\"><b>Réseau</b> : les flux passent par Android, limité à la liste des serveurs des médias ci-dessous, sans cookies, avec délai d\\'attente et taille maximale.</p>", "to": "<p class=\"lead\"><b>Réseau</b> : sur PC, le navigateur lit directement les flux des médias qui l\\'autorisent (franceinfo, La Dépêche, DNA). Les autres passent par ton relais personnel s\\'il est installé (lanceur › Relais réseau), sans cookies.</p>" }
+      ],
+      "data": { "ls": ["actu-"] }
+    },
+    {
+      "id": "notes",
+      "android": "notes",
+      "name": "Carnet",
+      "short_name": "Carnet",
+      "description": "Notes, listes, dessins et photos, rappels",
+      "theme_color": "#0f1116",
+      "background_color": "#0f1116",
+      "vendor": [],
+      "patches": [
+        { "from": "function render(){", "to": "window.__carnetRender = function(){ render(); };\nfunction render(){" },
+        { "from": "var c1 = document.createElement('div'), c2 = document.createElement('div'); wrap.appendChild(c1); wrap.appendChild(c2); M.appendChild(wrap);\n      g[1].forEach(function(n){\n        var col = c1.offsetHeight <= c2.offsetHeight ? c1 : c2;", "to": "var nc = Math.max(2, Math.min(5, Math.floor((M.clientWidth || innerWidth) / 250))), cs = []; for (var ci = 0; ci < nc; ci++){ var cc = document.createElement('div'); wrap.appendChild(cc); cs.push(cc); } M.appendChild(wrap);\n      g[1].forEach(function(n){\n        var col = cs.reduce(function(a, b){ return b.offsetHeight < a.offsetHeight ? b : a; });" },
+        { "from": "if(!has('scheduleNotif')) h += '<p class=\"hint\">Hors de l\\'application Android, le rappel ne s\\'affiche que si cette page reste ouverte.</p>';", "to": "h += '<p class=\"hint\">Sur ordinateur, le rappel ne s\\'affiche que si Carnet est ouvert (même réduit dans la barre des tâches).</p>';" },
+        { "from": "Appuie sur + pour écrire une note, ou sur les icônes en bas pour", "to": "Clique sur + (ou touche N) pour écrire une note, ou sur les icônes en bas pour" }
+      ],
+      "data": { "ls": ["carnet."], "idb": ["carnet"], "note": "Menu ☰ › Sauvegarder (export .json) : même fichier que sur le téléphone (Restaurer une sauvegarde pour l'importer)." }
+    },
+    {
+      "id": "agenda",
+      "android": "agenda",
+      "name": "Agenda",
+      "short_name": "Agenda",
+      "description": "Rendez-vous, rappels, import et export .ics",
+      "theme_color": "#0f1116",
+      "background_color": "#0f1116",
+      "vendor": [],
+      "patches": [
+        { "from": "window.agendaBack = function(){ if (layers.length)", "to": "window.__agendaStep = step; window.agendaBack = function(){ if (layers.length)" },
+        { "from": "ce téléphone", "to": "cet ordinateur", "count": 0 },
+        { "from": "+ '<button class=\"btn\" data-a=\"sync\" style=\"flex:1 1 100%\">' + ic('sync') + 'Synchroniser maintenant</button></div>'", "to": "+ '</div>'" },
+        { "from": "if (A) h += '<div class=\"ch3\">Système</div>", "to": "if (A && !window.MAGPC) h += '<div class=\"ch3\">Système</div>" },
+        { "from": "'<div class=\"set\"><div class=\"t\"><div>Rappel par défaut</div><div>' +", "to": "'<div class=\"set\"><div class=\"t\"><div>Rappel par défaut</div><div>Sur PC, les rappels sonnent si Agenda est ouvert (même réduit) · ' +" },
+        { "from": "'Tu ne veux rien sur Google ? Crée un agenda qui reste uniquement sur cet ordinateur.'", "to": "'Sur PC, l\\'agenda reste dans ce navigateur : il ne se synchronise pas avec le téléphone. Utilise l\\'export et l\\'import .ics pour échanger.'" }
+      ],
+      "file_handlers": [{ "accept": { "text/calendar": [".ics"] } }],
+      "data": { "ls": ["agenda-"], "note": "Réglages › Exporter en .ics : même format que sur le téléphone." },
+      "styles": ["fenetres"]
+    },
+    {
+      "id": "contacts",
+      "android": "contacts",
+      "name": "Contacts",
+      "short_name": "Contacts",
+      "description": "Carnet d'adresses, doublons, import et export vCard (.vcf)",
+      "theme_color": "#0f1116",
+      "background_color": "#0f1116",
+      "vendor": [],
+      "patches": [
+        { "from": "window.contactsEvent = function(kind, data){", "to": "window.contactsEvent = function(kind, data){\n  if (kind === 'pcphotos') { photos = {}; if (!layers.length) { load(); renderList(); } return; }" },
+        { "from": "'Téléphone (pas de synchronisation)'", "to": "'Cet ordinateur (pas de synchronisation)'", "count": 0 },
+        { "from": "label:x.type ? x.label : 'Téléphone'", "to": "label:x.type ? x.label : 'Cet ordinateur'", "count": 0 },
+        { "from": "if (!type) return 'Téléphone';", "to": "if (!type) return 'Cet ordinateur';" },
+        { "from": "|| 'Téléphone') + '</div>'", "to": "|| 'Cet ordinateur') + '</div>'" },
+        { "from": "'Google : le contact est sauvegardé et visible sur tes autres appareils. Téléphone : il reste uniquement ici.'", "to": "'Sur PC, le contact reste dans ce navigateur : il ne se synchronise pas avec le téléphone (échange par fichier .vcf).'" },
+        { "from": "Sauvegarde, envoi vers un autre téléphone", "to": "Sauvegarde, envoi vers le téléphone ou un autre carnet" },
+        { "from": "ce téléphone", "to": "cet ordinateur", "count": 0 }
+      ],
+      "styles": ["fenetres"],
+      "file_handlers": [{ "accept": { "text/vcard": [".vcf"] } }],
+      "data": { "ls": ["contacts-"], "idb": ["contacts-pc"], "note": "Menu ⋮ › Exporter tous les contacts (.vcf) : même format que sur le téléphone." }
+    },
+    {
+      "id": "calcul",
+      "android": "calcul",
+      "name": "Calcul",
+      "short_name": "Calcul",
+      "description": "Calculatrice standard, scientifique et chantier",
+      "theme_color": "#0f1116",
+      "background_color": "#0f1116",
+      "vendor": [],
+      "patches": [
+        { "from": "<div>Petit retour au toucher, pratique avec des gants</div>", "to": "<div>Sans effet sur ordinateur</div>" }
+      ],
+      "data": { "ls": ["calc."] }
+    },
+    {
+      "id": "qr",
+      "android": "qr",
+      "name": "QR",
+      "short_name": "QR",
+      "description": "Lire un QR code (webcam, image, capture collée) et en créer",
+      "theme_color": "#0f1116",
+      "background_color": "#0f1116",
+      "vendor": [],
+      "patches": [
+        { "from": "<div>Le téléphone vibre brièvement</div>", "to": "<div>Sans effet sur ordinateur</div>" },
+        { "from": "Autorise la caméra pour QR dans les réglages d’Android", "to": "Autorise la webcam pour ce site (icône à gauche de l’adresse), et dans Windows › Paramètres › Confidentialité › Caméra" },
+        { "from": "Touche l’écran pour revenir", "to": "Clique pour revenir" }
+      ],
+      "data": { "ls": ["qr."] }
+    },
+    {
+      "id": "meteo",
+      "android": "meteo",
+      "name": "Météo",
+      "short_name": "Météo",
+      "description": "Prévisions, pluie dans l'heure, radar, qualité de l'air",
+      "theme_color": "#0f1116",
+      "background_color": "#0f1116",
+      "vendor": ["leaflet.js", "leaflet.css"],
+      "patches": [
+        { "from": "Autorise-la dans les réglages du téléphone, ou choisis une ville.", "to": "Autorise la position pour ce site (icône à gauche de l’adresse) et dans Windows › Paramètres › Confidentialité › Localisation, ou choisis une ville." },
+        { "from": "Active la localisation du téléphone, ou choisis une ville.", "to": "Active la localisation de Windows, ou choisis une ville." },
+        { "from": "'Position approximative du téléphone'", "to": "'Position approximative de l’ordinateur'" },
+        { "from": "Les notifications arrivent avec l\\'application Android <b>Météo</b> : ici,", "to": "Sur PC, pas de notification en arrière-plan : elles arrivent avec l\\'application Android <b>Météo</b>. Ici," }
+      ],
+      "data": { "ls": ["meteo-"] }
+    },
+    {
+      "id": "ciel",
+      "android": "ciel",
+      "name": "Ciel",
+      "short_name": "Ciel",
+      "description": "Météo en clair : pluie, radar, pollens, conseils du jour",
+      "theme_color": "#1f5fbf",
+      "background_color": "#1f5fbf",
+      "vendor": ["leaflet.js", "leaflet.css"],
+      "patches": [
+        { "from": "Installez l'application Android pour votre météo réelle.", "to": "Vérifiez la connexion internet de l'ordinateur." }
+      ],
+      "data": { "ls": ["ciel"] },
+      "styles": ["souris"]
+    },
+    {
+      "id": "sentiers",
+      "android": "sentiers",
+      "name": "Sentiers",
+      "short_name": "Sentiers",
+      "description": "Randonnée : carte topo, itinéraires, traces GPX, sorties (préparation sur PC)",
+      "theme_color": "#1f5fbf",
+      "background_color": "#1f5fbf",
+      "vendor": ["leaflet.js", "leaflet.css"],
+      "patches": [
+        { "from": "Localisation refusée : autorisez-la dans les réglages du téléphone", "to": "Localisation refusée : autorisez-la pour ce site (icône à gauche de l’adresse) et dans Windows › Confidentialité › Localisation" },
+        { "from": "Ajouter en touchant la carte", "to": "Ajouter en cliquant sur la carte", "count": 2 },
+        { "from": "Touchez la carte…", "to": "Cliquez sur la carte…" },
+        { "from": "La boussole s'anime si le téléphone a un capteur d'orientation.", "to": "Pas de boussole sur ordinateur." },
+        { "from": "Touchez 📍 sur la carte, ou faites un appui long sur un endroit.", "to": "Cliquez sur 📍 sur la carte, ou faites un clic droit sur un endroit." },
+        { "from": "Chaque morceau de carte affiché est gardé sur le téléphone", "to": "Chaque morceau de carte affiché est gardé dans ce navigateur" }
+      ],
+      "file_handlers": [{ "accept": { "application/gpx+xml": [".gpx"] } }],
+      "data": { "ls": ["sentiers-"], "idb": ["sentiers"], "note": "Plus › Sauvegarde : même fichier que sur le téléphone (« Restaurer » pour l'importer)." },
+      "styles": ["souris"]
+    },
+    {
+      "id": "solaire",
+      "android": "solaire",
+      "name": "Solaire",
+      "short_name": "Solaire",
+      "description": "Combien de panneaux solaires : cadastre, urbanisme, plan, calepinage, fiche client",
+      "theme_color": "#0f1116",
+      "background_color": "#0f1116",
+      "vendor": ["leaflet.js", "leaflet.css", "jspdf.umd.min.js", "pdf.min.js", "pdf.worker.min.js"],
+      "patches": [
+        { "from": "Appuie sur « Nouveau projet » pour commencer.", "to": "Clique sur « Nouveau projet » pour commencer." },
+        { "from": "seront effacés de ce téléphone.", "to": "seront effacés de cet ordinateur." },
+        { "from": "Il sera effacé de ce téléphone.", "to": "Il sera effacé de cet ordinateur." },
+        { "from": "<b>Photo du téléphone</b><span>Choisir dans la galerie</span>", "to": "<b>Photo de l’ordinateur</b><span>Choisir un fichier image</span>" },
+        { "from": "Pose le téléphone <b>à plat sur la couverture</b> (ou sur un chevron, une volige), dans le sens de la pente, puis valide.", "to": "Sur PC, pas de capteur d’inclinaison : saisis la pente à la main, ou mesure-la avec l’appli Solaire du téléphone." },
+        { "from": "Tiens le téléphone <b>à plat</b>, le haut pointé vers le bas de la pente (là où regarde le pan, vers la gouttière). Éloigne-toi des masses métalliques.", "to": "Sur PC, pas de boussole : choisis l’orientation à la main (ou sur la vue aérienne)." },
+        { "from": "Touche les ", "to": "Clique sur les ", "count": 0 },
+        { "from": "Touche le centre", "to": "Clique au centre" },
+        { "from": "Touche le côté", "to": "Clique sur le côté" },
+        { "from": "Touche chaque angle", "to": "Clique sur chaque angle" },
+        { "from": "Ces informations restent sur ce téléphone", "to": "Ces informations restent sur cet ordinateur" },
+        { "from": "« Imprimer / PDF » ouvre l\\'impression d\\'Android : choisis « Enregistrer au format PDF » ou une imprimante.", "to": "« Imprimer / PDF » ouvre l\\'impression de Windows : choisis « Enregistrer au format PDF » (Microsoft Print to PDF) ou une imprimante." }
+      ],
+      "styles": ["souris"],
+      "data": { "ls": ["solaire-"], "idb": ["solaire"], "note": "Un projet s'exporte et s'importe en fichier (« Importer un projet »), comme sur le téléphone." }
+    },
+    {
+      "id": "musique",
+      "android": "musique",
+      "name": "Mélodie",
+      "short_name": "Mélodie",
+      "description": "Écouter la musique du PC (dossier gardé à sa place), listes, pochettes",
+      "theme_color": "#121016",
+      "background_color": "#121016",
+      "vendor": [],
+      "patches": [
+        { "from": "await IDB.set(\"blob:\" + id, new Blob([await f.arrayBuffer()], { type: f.type || \"audio/mpeg\" }));", "to": "await IDB.set(\"blob:\" + id, f.__mpcHandle ? { mpcHandle: f.__mpcHandle, mpcRoot: f.__mpcRoot, type: f.type || \"audio/mpeg\" } : new Blob([await f.arrayBuffer()], { type: f.type || \"audio/mpeg\" }));   /* PC : fichier laissé à sa place */" },
+        { "from": "(photo du téléphone)", "to": "(image de l’ordinateur)", "count": 2 },
+        { "from": "Touchez ♥ dans le lecteur", "to": "Cliquez sur ♥ dans le lecteur" }
+      ],
+      "file_handlers": [
+        {
+          "accept": { "audio/mpeg": [".mp3"], "audio/flac": [".flac"], "audio/mp4": [".m4a"], "audio/ogg": [".ogg", ".opus"] }
+        }
+      ],
+      "data": { "ls": ["melodie:"], "idb": ["melodie"], "note": "Les morceaux d'un dossier du PC ne sont pas exportés (seulement leur liste) : rechoisir le dossier après import." }
+    },
+    {
+      "id": "ondes",
+      "android": "ondes",
+      "name": "Ondes",
+      "short_name": "Ondes",
+      "description": "Podcasts et musique libre, en écoute en ligne",
+      "theme_color": "#0f1116",
+      "background_color": "#0f1116",
+      "vendor": [],
+      "patches": [
+        { "from": "function startDl(url, name, kind, title, meta){\n  if(!A){ toast('Disponible dans l\\'application', true); return false; }", "to": "function startDl(url, name, kind, title, meta){\n  if(!A){ toast(window.MAGPC ? 'Téléchargement pour l\\'écoute hors ligne : seulement dans l\\'application Android. Sur PC, l\\'écoute se fait en ligne.' : 'Disponible dans l\\'application', true); return false; }" },
+        { "from": "toast('Touche lecture pour reprendre')", "to": "toast('Clique sur lecture pour reprendre')" },
+        { "from": "if(!A){ fetch(url).then(function(r){ return r.text(); }).then(res, function(){ rej(new Error('Pas de connexion')); }); return; }", "to": "if(!A){ fetch(url).then(function(r){ return r.text(); }).then(res, function(){ rej(new Error(window.MAGPC && navigator.onLine ? (MAGPC.net.proxy() ? 'Flux injoignable, même par le relais réseau' : 'Ce site refuse la lecture de son flux depuis une page web (CORS). Pour l’écouter sur PC, installe le relais réseau (lanceur Suite MAG › Relais réseau).') : 'Pas de connexion')); }); return; }" }
+      ],
+      "data": { "ls": ["ondes-"] }
+    },
+    {
+      "id": "ecran",
+      "android": "ecran",
+      "name": "Écran",
+      "short_name": "Écran",
+      "description": "Vidéos du PC, PeerTube, films libres, NASA, chaînes suivies",
+      "theme_color": "#0f1116",
+      "background_color": "#0f1116",
+      "vendor": [],
+      "patches": [
+        { "from": "<b>Mes vidéos</b><span>Sur le téléphone</span>", "to": "<b>Mes vidéos</b><span>Dossier du PC</span>" },
+        { "from": "Autorise l\\'accès à tes vidéos</b><br>Écran affiche les vidéos de l\\'appareil photo, des téléchargements, de WhatsApp et celles enregistrées par Ondes. Rien ne quitte ton téléphone.<br><br><button class=\"btn main\" id=\"bPerm\">Autoriser</button>", "to": "Choisis ton dossier de vidéos</b><br>Écran affiche les vidéos de ce dossier et de ses sous-dossiers (MP4, WebM…), sans rien copier ni envoyer. Tu peux aussi glisser une vidéo sur la fenêtre.<br><br><button class=\"btn main\" id=\"bPerm\">Choisir le dossier…</button>" },
+        { "from": "'Aucune vidéo sur ce téléphone pour le moment.'", "to": "'Aucune vidéo dans ce dossier.'" },
+        { "from": "toast('S\\'ouvre dans l\\'appli YouTube')", "to": "toast('S\\'ouvre sur YouTube')" },
+        { "from": "Touche une appli pour l\\'ouvrir, ou pour l\\'installer depuis le Pla", "to": "Sur PC, clique pour ouvrir le site officiel du diffuseur (l\\'appli Android s\\'installe depuis le Pla" },
+        { "from": "Touche Entrée pour chercher", "to": "Appuie sur Entrée pour chercher", "count": 2 },
+        { "from": "Écran lit son flux officiel et ouvre les vidéos dans l\\'appli YouTube.", "to": "Écran lit son flux officiel (sur PC : avec le relais réseau) et ouvre les vidéos sur YouTube." }
+      ],
+      "file_handlers": [{ "accept": { "video/mp4": [".mp4", ".m4v"], "video/webm": [".webm"] } }],
+      "data": { "ls": ["ecran-"] }
+    },
+    {
+      "id": "galerie",
+      "android": "galerie",
+      "name": "Galerie",
+      "short_name": "Galerie",
+      "description": "Photos et vidéos d'un dossier du PC : dates, albums, carte, éditeur",
+      "theme_color": "#0f1116",
+      "background_color": "#0f1116",
+      "vendor": ["leaflet.js", "leaflet.css"],
+      "patches": [
+        { "from": "  var cols = this.o.cols || COLS;", "to": "  var cols = this.o.cols || (window.MAGPC && W > 700 ? Math.round(COLS * W / 560) : COLS);   /* PC : plus de colonnes sur grand écran */" },
+        { "from": "var src = it.ext ? (CFS ? CFS(it.p) : \"\") : (CFS && it.p ? CFS(it.p) : \"\");", "to": "var src = it.__pcSrc || (it.ext ? (CFS ? CFS(it.p) : \"\") : (CFS && it.p ? CFS(it.p) : \"\"));" },
+        { "from": "if (!src){ fail(); return; }", "to": "if (!src && window.MAGPC && G && G.pcVideo && !s._pcTried){ s._pcTried = 1; G.pcVideo(it.tok).then(function(u){ if (u){ it.__pcSrc = u; V.playVideo(s); } else fail(); }); return; }\n  if (!src){ fail(); return; }" },
+        { "from": "<div class=\"sect\">Dossiers sur le téléphone</div>", "to": "<div class=\"sect\">Dossiers</div>" },
+        { "from": "\"<ul><li>\" + ico(\"lock\") + \"<div>Tout reste sur ton téléphone : rien n'est envoyé sur Internet.</div></li>\" +", "to": "\"<ul><li>\" + ico(\"lock\") + \"<div>Choisis le dossier de tes photos (Images, un disque, une clé USB…) : tout reste sur cet ordinateur, rien n'est envoyé sur Internet.</div></li>\" +" },
+        { "from": "\"<div>Les suppressions passent par la corbeille d'Android et te sont toujours demandées.</div></li>\" +", "to": "\"<div>Les suppressions passent par une corbeille (dossier « .corbeille-galerie », 30 jours) et te sont toujours demandées.</div></li>\" +" },
+        { "from": "\"<h2>Tes photos, ici</h2><p>Pour afficher tes photos et tes vidéos, Galerie a besoin de l'accès à tes fichiers multimédias.</p>\" +", "to": "\"<h2>Tes photos, ici</h2><p>Pour afficher tes photos et tes vidéos, Galerie a besoin de l'accès à un dossier de cet ordinateur.</p>\" +" },
+        { "from": ": \"<button class=\\\"btn main big\\\" id=\\\"gAsk\\\">Autoriser l'accès</button>\");", "to": ": \"<button class=\\\"btn main big\\\" id=\\\"gAsk\\\">Choisir le dossier de photos…</button>\");" },
+        { "from": "Les éléments restent 30 jours dans la corbeille, puis Android les efface.", "to": "Les éléments restent 30 jours dans la corbeille (dossier « .corbeille-galerie »), puis Galerie les efface." },
+        { "from": "Touche le cœur sur une photo", "to": "Clique sur le cœur d'une photo" },
+        { "from": "toast(\"Copie enregistrée dans Pictures/Galerie\"", "to": "toast(\"Copie enregistrée dans le sous-dossier « Galerie »\"" }
+      ],
+      "file_handlers": [{ "accept": { "image/jpeg": [".jpg", ".jpeg"], "image/png": [".png"], "image/webp": [".webp"] } }],
+      "data": { "ls": ["galerie-"], "idb": ["galerie-pc"], "note": "Les photos restent dans leur dossier du PC : seuls les favoris et les réglages sont exportés." }
+    },
+    {
+      "id": "scan",
+      "android": "scan",
+      "name": "Scan",
+      "short_name": "Scan",
+      "description": "Documents en PDF à partir d'images, de PDF ou de la webcam",
+      "theme_color": "#0f1116",
+      "background_color": "#0f1116",
+      "vendor": ["jspdf.umd.min.js", "jszip.min.js", "pdf.min.js", "pdf.worker.min.js"],
+      "patches": [
+        { "from": "['cam', 'Numériser', 'Aperçu en direct, prise automatique', 'cam']", "to": "['cam', 'Numériser avec la webcam', 'Aperçu en direct, prise automatique', 'cam']", "count": 0 },
+        { "from": "['phone', 'Appareil photo du téléphone', 'Photo en pleine résolution puis cadrage', 'phone']", "to": "['phone', 'Une image à cadrer', 'Photo du document copiée sur le PC, puis cadrage', 'phone']", "count": 0 },
+        { "from": "['gal', 'Photos de la galerie', 'Plusieurs à la fois', 'img']", "to": "['gal', 'Images de l’ordinateur', 'Plusieurs à la fois (ou glisser-déposer)', 'img']", "count": 0 },
+        { "from": "seront effacés de ce téléphone.", "to": "seront effacés de cet ordinateur." },
+        { "from": "Signe avec le doigt dans le cadre. Elle est gardée sur ce téléphone pour tes prochains documents.", "to": "Signe à la souris dans le cadre. Elle est gardée sur cet ordinateur pour tes prochains documents." },
+        { "from": "aria-label=\"Appareil photo du téléphone\"", "to": "aria-label=\"Choisir une image\"" },
+        { "from": "Prends la photo avec l’appareil photo du téléphone, tu cadreras ensuite la page.</div><label class=\"btn main big\">${ic('phone')}Prendre une photo", "to": "Choisis plutôt une image du document, tu cadreras ensuite la page.</div><label class=\"btn main big\">${ic('phone')}Choisir une image" }
+      ],
+      "styles": [],
+      "data": { "ls": ["scan."], "idb": ["mag-scan"] }
+    },
+    {
+      "id": "dicta",
+      "android": "dicta",
+      "name": "Dictaphone",
+      "short_name": "Dictaphone",
+      "description": "Enregistrer avec le micro du PC, marqueurs, extraits, dictée",
+      "theme_color": "#0f1116",
+      "background_color": "#0f1116",
+      "vendor": [],
+      "patches": [
+        { "from": "Continue écran éteint. Pause, marqueurs et arrêt aussi dans la notification.", "to": "Sur PC : garde la fenêtre ouverte pendant l’enregistrement (réduite, ça marche). Touche R pour enregistrer ou arrêter, M pour un marqueur." },
+        { "from": "Les notes sont rangées dans le dossier Recordings/Dictaphone du téléphone.", "to": "Les notes sont gardées dans ce navigateur, sur cet ordinateur : partage-les ou enregistre-les pour les garder ailleurs." },
+        { "from": "'Les notes sont rangées dans le dossier ' + INFO.folder + ' du téléphone. Elles restent si tu désinstalles l\\'appli.'", "to": "'Les notes sont gardées dans ce navigateur, sur cet ordinateur. Elles ne passent pas sur le téléphone : partage-les ou enregistre-les (menu de la note).'" },
+        { "from": "<div>Utilise la reconnaissance du téléphone si le français est installé</div>", "to": "<div>Sans effet sur PC : la dictée du navigateur passe par internet</div>" },
+        { "from": ") sera effacée du téléphone.</p>", "to": ") sera effacée de cet ordinateur.</p>" },
+        { "from": "'Aucun service de reconnaissance vocale sur ce téléphone'", "to": "'Ce navigateur ne propose pas la dictée : utilise Edge ou Chrome'" },
+        { "from": "Appuie sur le gros bouton rouge pour commencer.", "to": "Clique sur le gros bouton rouge (ou touche R) pour commencer." },
+        { "from": "Appuie pour enregistrer", "to": "Clique pour enregistrer" },
+        { "from": "Appuie sur « Marqueur »", "to": "Clique sur « Marqueur » (touche M)" },
+        { "from": "Appuie sur le micro et parle", "to": "Clique sur le micro et parle", "count": 0 }
+      ],
+      "styles": ["fenetres"],
+      "data": { "ls": ["dicta."], "idb": ["dicta-pc"] }
+    },
+    {
+      "id": "coffre",
+      "android": "coffre",
+      "name": "Coffre",
+      "short_name": "Coffre",
+      "description": "Mots de passe et codes 2FA, chiffrés sur le PC (AES-256)",
+      "theme_color": "#0f1116",
+      "background_color": "#0f1116",
+      "vendor": [],
+      "patches": [
+        { "from": "ce téléphone", "to": "cet ordinateur", "count": 0 },
+        { "from": "rien ne quitte le téléphone", "to": "rien ne quitte l\\'ordinateur" },
+        { "from": "rien ne quitte ton téléphone", "to": "rien ne quitte ton ordinateur" },
+        { "from": "Jamais : si le téléphone casse, le coffre est perdu.", "to": "Jamais : si l\\'ordinateur casse ou si les données du navigateur sont effacées, le coffre est perdu." },
+        { "from": "\"Disponible dans l'appli Android\"", "to": "\"Sur PC : seulement le mot de passe maître (pas d'empreinte)\"" },
+        { "from": "style-src 'unsafe-inline'; img-src 'self' data: blob:;", "to": "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; manifest-src 'self'; worker-src 'self';" }
+      ],
+      "styles": ["souris"],
+      "data": { "ls": ["coffre."], "idb": ["coffre"], "note": "Réglages › Exporter le coffre : fichier .coffre chiffré, le même que sur le téléphone (« Restaurer un fichier .coffre » pour l'importer)." }
+    },
+    {
+      "id": "petitspas",
+      "android": "petitspas",
+      "name": "Petits Pas",
+      "short_name": "Petits Pas",
+      "description": "Veille petite enfance et RPE : textes officiels, fiches, check-list",
+      "theme_color": "#1f5fbf",
+      "background_color": "#1f5fbf",
+      "vendor": ["jspdf.umd.min.js", "xlsx.full.min.js"],
+      "patches": [
+        { "from": "${!MP?`<div class=\"notice\">ℹ️ Cette version ne peut pas lire les sources officielles (sécurité du navigateur).", "to": "${(!MP||(window.MAGPC&&!MAGPC.net.proxy()))?`<div class=\"notice\">ℹ️ Cette version ne peut pas lire les sources officielles (sécurité du navigateur). Sur PC, le relais réseau personnel lève cette limite (lanceur Suite MAG › Relais réseau)." },
+        { "from": "(MP?\"Pas de connexion : réessayez plus tard\":", "to": "(MP&&!(window.MAGPC&&!MAGPC.net.proxy())?\"Pas de connexion : réessayez plus tard\":" },
+        { "from": "la version en ligne ne peut pas lire les sources officielles.\"", "to": "la version en ligne ne peut pas lire les sources officielles (sur PC : relais réseau, voir le lanceur Suite MAG).\"" },
+        { "from": "if(MP&&MP.httpFetch&&(!D.last||Date.now()-D.last>6*3600e3)) refresh(false);", "to": "if(((MP&&MP.httpFetch)||(window.MAGPC&&MAGPC.net.proxy()))&&(!D.last||Date.now()-D.last>6*3600e3)) refresh(false);" },
+        { "from": "Tout est enregistré dans ce téléphone. Faites une sauvegarde avant de changer d'appareil.", "to": "Tout est enregistré dans ce navigateur, sur cet ordinateur : rien ne se synchronise avec le téléphone. « Sauvegarder » ici, « Restaurer » là-bas (et inversement)." },
+        { "from": "Touchez « Actualiser »", "to": "Cliquez sur « Actualiser »", "count": 0 }
+      ],
+      "data": { "ls": ["petitspas:"], "note": "Réglages › Sauvegarde : même fichier que sur le téléphone (« Restaurer » pour l'importer)." },
+      "styles": ["souris"]
+    },
+    {
+      "id": "chasse",
+      "android": "chasse",
+      "name": "Carnet de chasse",
+      "short_name": "Carnet de chasse",
+      "description": "Carnet de prélèvements, statistiques, exports PDF et Excel (consultation sur PC)",
+      "theme_color": "#1f5fbf",
+      "background_color": "#1f5fbf",
+      "vendor": ["jspdf.umd.min.js", "xlsx.full.min.js", "leaflet.js", "leaflet.css"],
+      "patches": [
+        { "from": "Mémoire du téléphone pleine", "to": "Stockage du navigateur plein" },
+        { "from": "(position du téléphone)", "to": "(position de l’ordinateur, approximative)" },
+        { "from": "Position : en attente du GPS du téléphone", "to": "Position : en attente de la localisation (approximative sur PC)" },
+        { "from": "Touchez le bouton orange", "to": "Cliquez sur le bouton orange", "count": 2 },
+        { "from": "<br>Touchez <b>＋ Prise</b>", "to": "<br>Cliquez sur <b>＋ Prise</b>" },
+        { "from": "Touchez un point pour l'ouvrir dans Google Maps.", "to": "Cliquez sur un point pour l'ouvrir dans Google Maps." }
+      ],
+      "data": { "ls": ["chasse-"], "idb": ["chasse-photos"], "note": "☰ › Exporter et sauvegarder : même fichier que sur le téléphone (« Restaurer une sauvegarde » pour l'importer)." },
+      "styles": ["souris"]
     }
   ]
 }

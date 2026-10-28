@@ -1,0 +1,9 @@
+/* Coffre sur grand écran : colonne centrale lisible, fiches en panneau central, feuilles en fenêtres centrées. */
+@media (min-width:900px){
+  html.mag-pc #vApp main, html.mag-pc #top{max-width:860px;margin-left:auto;margin-right:auto}
+  html.mag-pc #nav{justify-content:center}
+  html.mag-pc #nav button{flex:0 1 200px}
+  html.mag-pc #fab{right:max(16px,calc(50% - 430px - 80px))}
+  html.mag-pc .page{left:max(0px,calc(50% - 430px));right:auto;width:min(860px,100%);border-left:1px solid var(--line);border-right:1px solid var(--line);box-shadow:0 0 0 100vmax #0008}
+  html.mag-pc .sheet{left:50%;right:auto;bottom:auto;top:50%;width:min(560px,94vw);max-height:84vh;border-radius:20px;border:1px solid var(--line);transform:translate(-50%,-50%);animation:none}
+}

@@ -2,11 +2,14 @@
   "name": "suite-mag-pc",
   "version": "1.0.0",
   "private": true,
-  "description": "Bibliothèques de la Suite MAG sur PC. Elles sont vendorisées dans pc/shared/vendor/ (versionnées dans le dépôt) : après « npm ci » ici, « python3 pc/build-pc.py --vendor » les recopie. Les données françaises de Tesseract (fra.traineddata) viennent de github.com/tesseract-ocr/tessdata_fast.",
+  "description": "Bibliothèques de la Suite MAG sur PC. Elles sont vendorisées dans pc/shared/vendor/ (versionnées dans le dépôt) : après « npm ci » ici, « python3 pc/build-pc.py --vendor » les recopie. SheetJS (xlsx 0.18.5) est la dernière version publiée sur npm. Les données françaises de Tesseract (fra.traineddata) viennent de github.com/tesseract-ocr/tessdata_fast.",
   "dependencies": {
+    "jspdf": "2.5.1",
     "jszip": "3.10.1",
+    "leaflet": "1.9.4",
     "pdf-lib": "1.17.1",
     "pdfjs-dist": "3.11.174",
-    "tesseract.js-core": "7.0.0"
+    "tesseract.js-core": "7.0.0",
+    "xlsx": "0.18.5"
   }
 }

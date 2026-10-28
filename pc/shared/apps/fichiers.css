@@ -1,0 +1,3 @@
+/* Rangement sur PC : la page a déjà une mise en page « ordinateur » ; l'onglet Applis (applis Android) est masqué */
+html.mag-pc nav.tabs button[data-v="apps"]{display:none}
+html.mag-pc button,html.mag-pc .row,html.mag-pc [data-act]{cursor:pointer}

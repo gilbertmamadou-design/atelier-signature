@@ -1,0 +1,1406 @@
+<!-- FICHIER GÉNÉRÉ par pc/build-pc.py depuis applis/www-scan/index.html : ne pas modifier ici. -->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<!-- Suite MAG sur PC : ajouté par pc/build-pc.py (source : applis/www-scan/index.html) -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="../shared/pc.css">
+<link rel="stylesheet" href="../shared/apps/scan.css">
+<script>window.MAGPC_CONF={"app": "scan", "name": "Scan", "vendor": "../shared/vendor/", "ocrWorker": "ocr-worker.js", "sw": "sw.js", "apps": {"fr.magformation13.lecteur": "../lecteur/", "fr.magformation13.pdf": "../pdf/", "fr.magformation13.budget": "../budget/", "fr.magformation13.liseuse": "../liseuse/", "fr.magformation13.fichiers": "../fichiers/", "fr.magformation13.actualites": "../actualites/", "fr.magformation13.carnet": "../notes/", "fr.magformation13.agenda": "../agenda/", "fr.magformation13.contacts": "../contacts/", "fr.magformation13.calcul": "../calcul/", "fr.magformation13.qr": "../qr/", "fr.magformation13.meteo": "../meteo/", "fr.magformation13.ciel": "../ciel/", "fr.magformation13.sentiers": "../sentiers/", "fr.magformation13.solaire": "../solaire/", "fr.magformation13.musique": "../musique/", "fr.magformation13.ondes": "../ondes/", "fr.magformation13.ecran": "../ecran/", "fr.magformation13.galerie": "../galerie/", "fr.magformation13.scan": "../scan/", "fr.magformation13.dicta": "../dicta/", "fr.magformation13.coffre": "../coffre/", "fr.magformation13.petitspas": "../petitspas/", "fr.magformation13.chasse": "../chasse/"}};</script>
+<script src="../shared/pc-shim.js"></script>
+<script src="../shared/apps/scan.js"></script>
+
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Scan</title>
+<meta name="theme-color" content="#0f1116">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#0f1116;--bg2:#181b23;--bg3:#222632;--bg4:#2c3140;--line:#ffffff14;
+  --tx:#f2f3f7;--tx2:#b4b8c7;--tx3:#7d8294;
+  --acc:#8fb4ff;--acc2:#b79bff;--ok:#6fd6a4;--bad:#ff7b7b;--warn:#ffb35c;
+  --r:18px;--sb:env(safe-area-inset-bottom,0px);--st:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none}
+body{min-height:100vh}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+input{font:inherit;color:inherit}
+svg{display:block}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic.dots{fill:currentColor;stroke:none}
+[hidden]{display:none!important}
+
+/* Accueil */
+.top{padding:calc(14px + var(--st)) 16px 6px;display:flex;align-items:center;gap:10px}
+.logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:21px}
+.logo svg{width:30px;height:30px}
+.top .sp{flex:1}
+.pill{font-size:12px;color:var(--tx2);background:var(--bg2);border:1px solid var(--line);padding:5px 10px;border-radius:99px;white-space:nowrap}
+main{padding:4px 16px calc(28px + var(--sb))}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.card h3{margin:0 0 12px;font-size:12.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--tx3);font-weight:700}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 14px;border-radius:13px;background:var(--bg3);border:1px solid var(--line);font-weight:600;font-size:14px;flex:1;min-width:0;white-space:nowrap}
+.btn:active{transform:scale(.98)}
+.btn.main{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#10131c;border:0}
+.btn.big{padding:15px 14px;font-size:16px}
+.btn.danger{color:var(--bad)}
+.btn[disabled]{opacity:.5}
+.chips{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;margin:12px -16px 0;padding:0 16px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;padding:7px 12px;border-radius:99px;background:var(--bg3);border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--tx2);white-space:nowrap}
+.chip.on{background:#8fb4ff26;border-color:#8fb4ff80;color:var(--tx)}
+.hint{font-size:12.5px;color:var(--tx3);margin-top:10px;line-height:1.45}
+.search{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:0 12px;margin-bottom:12px}
+.search .ic{color:var(--tx3)}
+.search input{flex:1;min-width:0;background:none;border:0;outline:0;padding:12px 0;font-size:15px}
+.list{display:flex;flex-direction:column;gap:2px}
+.item{display:flex;align-items:center;gap:12px;padding:9px 4px 9px 0;border-top:1px solid var(--line)}
+.item:first-child{border-top:0}
+.item .th{width:46px;height:60px;border-radius:7px;background:var(--bg3);flex:none;overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--tx3)}
+.item .th img{width:100%;height:100%;object-fit:cover;display:block}
+.item .t{flex:1;min-width:0;text-align:left}
+.item .t b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .t span{display:block;font-size:12.5px;color:var(--tx3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .open{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
+.ib{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:none;color:var(--tx2)}
+.ib:active{background:var(--bg3)}
+.empty{color:var(--tx3);font-size:14px;text-align:center;padding:26px 10px}
+.empty svg{width:40px;height:40px;margin:0 auto 10px;opacity:.6}
+
+/* Écrans superposés */
+.layer{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;z-index:10}
+.bar{display:flex;align-items:center;gap:4px;padding:calc(8px + var(--st)) 8px 6px;min-height:56px;flex:none}
+.bar .ttl{flex:1;min-width:0;font-weight:700;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 4px}
+.bar .ttl small{display:block;font-weight:500;font-size:12px;color:var(--tx3)}
+.bar .name{flex:1;min-width:0;display:flex;align-items:center;gap:6px;padding:6px 6px;border-radius:10px;text-align:left}
+.bar .name b{font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar .name .ic{width:16px;height:16px;color:var(--tx3)}
+.scroll{flex:1;overflow-y:auto;overflow-x:hidden;padding:0 16px 16px}
+.opts{display:flex;gap:6px;padding:2px 16px 10px;flex:none}
+.opt{flex:1;min-width:0;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:6px 9px;text-align:left}
+.opt small{display:block;font-size:11px;color:var(--tx3);font-weight:600;letter-spacing:.3px}
+.opt b{display:block;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 10px;padding-top:4px}
+.pg{position:relative;min-width:0}
+.pg .pimg{display:block;width:100%;aspect-ratio:1/1.32;border-radius:10px;overflow:hidden;background:var(--bg3);border:1px solid var(--line)}
+.pg .pimg img{width:100%;height:100%;object-fit:contain;display:block;background:#2a2e3a}
+.pg .num{position:absolute;left:6px;bottom:6px;background:#0f1116d9;font-size:11.5px;font-weight:700;padding:2px 7px;border-radius:99px}
+.pg .grip{position:absolute;right:2px;top:2px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;touch-action:none;color:#fff}
+.pg .grip span{width:24px;height:24px;border-radius:8px;background:#0f1116c0;display:flex;align-items:center;justify-content:center}
+.pg .grip .ic{width:16px;height:16px;stroke-width:3}
+.pg.drop .pimg{outline:2px solid var(--acc);outline-offset:2px}
+.pg.lift{opacity:.35}
+.ghost{position:fixed;z-index:60;pointer-events:none;width:90px;border-radius:10px;box-shadow:0 12px 30px #000a;transform:translate(-50%,-60%) rotate(-3deg);opacity:.92}
+.addt{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;aspect-ratio:1/1.32;border-radius:10px;border:1.5px dashed #ffffff30;color:var(--tx2);font-size:13px;font-weight:600;width:100%}
+.addt .ic{width:26px;height:26px}
+.dock{display:flex;gap:8px;padding:10px 16px calc(12px + var(--sb));border-top:1px solid var(--line);background:var(--bg);flex:none}
+.dock .btn{flex-direction:column;gap:3px;padding:9px 6px;font-size:12.5px}
+.dock .btn.main{flex:1.3;flex-direction:row;font-size:15px}
+
+/* Page */
+.stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:6px 12px;position:relative}
+.pv{position:relative;box-shadow:0 8px 28px #0009;background:#fff}
+.pv canvas,.pv img.pimg{display:block;width:100%;height:100%}
+.sig{position:absolute;touch-action:none;outline:1.5px dashed var(--acc);outline-offset:2px;cursor:move}
+.sig img{display:block;width:100%;pointer-events:none}
+.sig i{position:absolute;right:-13px;bottom:-13px;width:26px;height:26px;border-radius:50%;background:var(--acc);border:3px solid #10131c;touch-action:none}
+.panel{flex:none;padding:6px 16px calc(10px + var(--sb));border-top:1px solid var(--line);background:var(--bg)}
+.seg{display:flex;background:var(--bg3);border-radius:12px;padding:3px;gap:3px}
+.seg button{flex:1;padding:8px 4px;border-radius:9px;font-size:13px;font-weight:600;color:var(--tx2);text-align:center;line-height:1.2}
+.seg button.on{background:var(--bg4);color:var(--tx);box-shadow:0 0 0 1px #ffffff1c inset}
+.tools{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.tools button{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:var(--tx2);padding:8px 0;border-radius:12px;background:var(--bg2);border:1px solid var(--line)}
+.tools button .ic{color:var(--tx)}
+.tools button.on{background:#8fb4ff26;border-color:#8fb4ff80;color:var(--tx)}
+.adj{margin-top:8px}
+.adj label{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--tx2)}
+.adj label span{width:84px;flex:none}
+.adj label output{width:34px;text-align:right;font-variant-numeric:tabular-nums;color:var(--acc)}
+input[type=range]{flex:1;min-width:0;accent-color:var(--acc);margin:7px 0}
+.link{color:var(--acc);font-weight:600;font-size:13px;padding:6px 0}
+
+/* Cadrage */
+.crop-h{font-size:13px;color:var(--tx2);padding:0 16px 6px;flex:none}
+.crop-stage{flex:1;min-height:0;position:relative}
+.crop-stage canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.cbar{display:flex;gap:8px;padding:8px 16px 0;flex:none}
+.cbar .btn{font-size:13px;padding:9px 6px}
+.cbar.last{padding-bottom:calc(12px + var(--sb))}
+
+/* Caméra */
+.cam{background:#000}
+.cam .bar{position:absolute;left:0;right:0;top:0;z-index:3;background:linear-gradient(#000c,#0000)}
+.cam .ib{color:#fff}
+.cam .ib.on{color:#ffd76a}
+.autop{padding:6px 11px;border-radius:99px;border:1.5px solid #ffffff60;font-size:12.5px;font-weight:700;color:#fff}
+.autop.on{background:var(--acc);border-color:var(--acc);color:#10131c}
+.cview{flex:1;min-height:0;position:relative;overflow:hidden}
+.cview video,.cview canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.cmsg{position:absolute;left:16px;right:16px;bottom:14px;text-align:center;z-index:2}
+.cmsg span{display:inline-block;background:#000a;color:#fff;font-size:13.5px;font-weight:600;padding:7px 13px;border-radius:99px}
+.cfall{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:30px;text-align:center;color:var(--tx2);font-size:14px;z-index:2}
+.cfall .ic{width:44px;height:44px;color:var(--tx3)}
+.cfall .btn{flex:none}
+.flashfx{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:4;transition:opacity .35s}
+.flashfx.on{opacity:.75;transition:none}
+.cbot{flex:none;display:flex;align-items:center;justify-content:space-between;padding:16px 26px calc(22px + var(--sb));background:#000}
+.cbot .side{width:58px;height:58px;display:flex;align-items:center;justify-content:center}
+.cbot .gal{width:48px;height:48px;border-radius:14px;background:#ffffff1f;color:#fff;display:flex;align-items:center;justify-content:center}
+.shut{width:76px;height:76px;position:relative;border-radius:50%}
+.shut svg{position:absolute;inset:0;width:76px;height:76px}
+.shut i{position:absolute;inset:10px;border-radius:50%;background:#fff;transition:transform .12s}
+.shut:active i{transform:scale(.9)}
+.shut[disabled] i{background:#999}
+.done{position:relative;width:52px;height:64px;border-radius:9px;overflow:hidden;background:#ffffff1f;border:2px solid #fff;display:flex;align-items:center;justify-content:center;color:#fff}
+.done img{width:100%;height:100%;object-fit:cover;display:block}
+.done b{position:absolute;right:-1px;top:-1px;background:var(--acc);color:#10131c;font-size:12px;min-width:21px;height:21px;border-radius:0 0 0 9px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+
+/* Signature */
+.padw{margin:6px 16px;flex:1;min-height:0;max-height:300px;position:relative;background:#fbfbf7;border-radius:16px;overflow:hidden}
+.padw canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.padw .base{position:absolute;left:22px;right:22px;bottom:30%;border-bottom:1.5px dashed #9aa0b4;pointer-events:none}
+.padw .base:before{content:"Signe ici";position:absolute;left:0;bottom:6px;font-size:12px;color:#9aa0b4}
+
+/* Feuilles */
+.shade{position:fixed;inset:0;background:#0009;z-index:40;animation:fi .2s}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;background:#171a22;border-radius:22px 22px 0 0;border-top:1px solid var(--line);padding:8px 16px calc(18px + var(--sb));max-height:88vh;overflow-y:auto;animation:su .22s ease-out}
+.sheet .grab{width:38px;height:4px;border-radius:9px;background:#ffffff30;margin:2px auto 12px}
+.sheet h4{margin:0 0 12px;font-size:17px}
+.sheet .lab{font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--tx3);margin:14px 0 7px}
+.sheet .menu button{display:flex;align-items:center;gap:14px;width:100%;padding:13px 4px;font-size:15px;font-weight:500;border-top:1px solid var(--line);text-align:left}
+.sheet .menu button:first-child{border-top:0}
+.sheet .menu button .ic{color:var(--tx2)}
+.sheet .menu button.danger,.sheet .menu button.danger .ic{color:var(--bad)}
+.sheet .menu button small{display:block;font-size:12.5px;color:var(--tx3);font-weight:400}
+.sheet .menu button.on{color:var(--acc)}
+.sheet .menu button.on .ic{color:var(--acc)}
+.field{width:100%;background:var(--bg3);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:16px;outline:0}
+.field:focus{border-color:#8fb4ff80}
+.info{font-size:13px;color:var(--tx2);margin-top:12px;min-height:18px}
+@keyframes su{from{transform:translateY(100%)}}
+@keyframes fi{from{opacity:0}}
+
+#busy{position:fixed;inset:0;z-index:70;background:#0f1116b0;display:flex;align-items:center;justify-content:center}
+#busy div{background:#2b3042;border:1px solid #ffffff1f;border-radius:16px;padding:16px 20px;display:flex;align-items:center;gap:12px;font-weight:600;max-width:80vw}
+.spin{width:20px;height:20px;border:2.5px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .8s linear infinite;flex:none}
+@keyframes sp{to{transform:rotate(360deg)}}
+#toast{position:fixed;left:16px;right:16px;top:calc(62px + var(--st));background:#2b3042f2;border:1px solid #ffffff1f;color:var(--tx);padding:11px 14px;border-radius:14px;font-size:14px;box-shadow:0 10px 30px #0008;opacity:0;visibility:hidden;transform:translateY(-12px);transition:opacity .2s,transform .2s,visibility 0s .2s;z-index:80;pointer-events:none}
+#toast.on{opacity:1;visibility:visible;transform:none;transition:opacity .2s,transform .2s}
+#toast.bad{border-color:#ff7b7b66}
+.focusfx{position:absolute;width:64px;height:64px;margin:-32px 0 0 -32px;border:2px solid #fff;border-radius:50%;pointer-events:none;animation:ff .9s ease forwards}
+@keyframes ff{from{transform:scale(1.4);opacity:1}to{transform:scale(1);opacity:0}}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="logo">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8fb4ff"/><stop offset="1" stop-color="#b79bff"/></linearGradient></defs><rect x="2" y="2" width="28" height="28" rx="8" fill="url(#lg)"/><path d="M11 8.5h7l3.5 3.5v11.5h-10.5z" fill="#10131c"/><path d="M14 15.5h5M14 18.5h5" stroke="#b9c8ff" stroke-width="1.4" stroke-linecap="round"/><path d="M6.5 11V7.5a1 1 0 0 1 1-1H11M21 6.5h3.5a1 1 0 0 1 1 1V11M25.5 21v3.5a1 1 0 0 1-1 1H21M11 25.5H7.5a1 1 0 0 1-1-1V21" stroke="#10131c" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
+    Scan
+  </div>
+  <div class="sp"></div>
+  <div class="pill" id="count">0 document</div>
+</div>
+<main>
+  <section class="card">
+    <h3>Nouveau document</h3>
+    <button class="btn main big" style="width:100%" data-h="scan" id="bScan"></button>
+    <div class="row" style="margin-top:8px">
+      <button class="btn" data-h="gal" id="bGal"></button>
+      <button class="btn" data-h="file" id="bFile"></button>
+    </div>
+    <div class="chips" id="types"></div>
+    <div class="hint" id="typeHint"></div>
+  </section>
+  <div class="search"><span id="sIc"></span><input id="q" type="search" placeholder="Rechercher un document" autocomplete="off" enterkeyhint="search"></div>
+  <section class="card" style="padding:6px 12px 6px 14px">
+    <div class="list" id="list"></div>
+  </section>
+</main>
+<input type="file" id="inCam" accept="image/*" capture="environment" hidden>
+<input type="file" id="inGal" accept="image/*" multiple hidden>
+<input type="file" id="inFile" accept="application/pdf,.pdf,image/*" multiple hidden>
+<div id="busy" hidden><div><span class="spin"></span><span id="busyT">Un instant</span></div></div>
+<div id="toast" role="status"></div>
+<script src="../shared/vendor/jspdf.umd.min.js"></script>
+<script>
+'use strict';
+/* =====================================================================
+   Scan : numérisation de documents vers PDF
+   ===================================================================== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const MP = () => window.MAGPrint || null;
+const MS = () => window.MAGScan || null;
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const frame = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
+function lsGet(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }
+function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }
+
+/* ---------- Icônes ---------- */
+const IC = {
+  cam: '<path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h2l1.5-2h6l1.5 2h2A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="3.5"/>',
+  img: '<rect x="3" y="4" width="18" height="16" rx="3"/><path d="m3 16 5-5 4 4 3-3 6 6"/><circle cx="15.5" cy="8.5" r="1.5"/>',
+  file: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',
+  back: '<path d="M15 5l-7 7 7 7"/>',
+  left: '<path d="M14 6l-6 6 6 6"/>', right: '<path d="M10 6l6 6-6 6"/>',
+  x: '<path d="M6 6l12 12M18 6 6 18"/>',
+  search: '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>',
+  rot: '<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>',
+  crop: '<path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M2 6h14a2 2 0 0 1 2 2v14"/>',
+  sign: '<path d="M3 16c3-1 4-9 6-9s-1 9 1 9 3-5 4-5 0 4 2 4 3-2 5-2"/><path d="M3 20.5h18"/>',
+  trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>',
+  share: '<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.4M8.2 13.2l7.6 4.4"/>',
+  save: '<path d="M12 3v12m-5-5 5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>',
+  edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>',
+  grip: '<path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01"/>',
+  flash: '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
+  check: '<path d="M5 12l5 5L20 7"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  phone: '<rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M11 18.5h2"/>',
+  tune: '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
+  frame: '<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/>',
+  full: '<rect x="4" y="4" width="16" height="16" rx="2"/>',
+  pdf: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M8.5 16.5v-4h1.2a1.2 1.2 0 0 1 0 2.4H8.5M13 12.5v4h.8a1.6 1.6 0 0 0 1.6-1.6v-.8a1.6 1.6 0 0 0-1.6-1.6z"/>',
+  redo: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+};
+const ic = (n, cls) => n === 'more' ? '<svg class="ic dots" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>' : `<svg class="ic${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" aria-hidden="true">${IC[n] || ''}</svg>`;
+
+/* ---------- Types de documents, rendus, formats ---------- */
+const TYPES = {
+  doc: { label: 'Document', name: 'Scan', filter: 'doc', format: 'a4', quality: 'norm', snap: Math.SQRT2, hint: 'Page A4 en noir et blanc net.' },
+  fact: { label: 'Facture / bon', name: 'Facture', filter: 'doc', format: 'a4', quality: 'norm', snap: Math.SQRT2, hint: 'Facture, bon de commande, devis : A4, texte bien noir.' },
+  carte: { label: 'Carte de visite', name: 'Carte', filter: 'coul', format: 'reel', quality: 'norm', snap: 85.6 / 54, mm: { long: 85.6 }, hint: 'Recto puis verso, en couleur, au format carte.' },
+  attest: { label: 'Attestation', name: 'Attestation', filter: 'doc', format: 'a4', quality: 'norm', snap: Math.SQRT2, hint: 'Attestation, certificat : A4, prêt à signer et envoyer.' },
+  plan: { label: 'Plan', name: 'Plan', filter: 'coul', format: 'reel', quality: 'hd', snap: 0, mm: { long: 420 }, hint: 'Couleur et haute définition pour lire les cotes.' },
+  ticket: { label: 'Ticket de caisse', name: 'Ticket', filter: 'gris', format: 'reel', quality: 'norm', snap: 0, mm: { short: 80 }, hint: 'Ticket long : pose-le à plat sur un fond sombre.' },
+};
+const FILTERS = [['doc', 'Document'], ['gris', 'Gris'], ['coul', 'Couleur'], ['orig', 'Original']];
+const FORMATS = { a4: 'A4', letter: 'Lettre', reel: 'Taille réelle' };
+const QUALS = { low: { label: 'Légère', px: 1500, q: 0.55, sub: 'Pour l’e-mail, fichier très petit' }, norm: { label: 'Normale', px: 2100, q: 0.72, sub: 'Bon compromis, texte bien lisible' }, hd: { label: 'Haute', px: 3200, q: 0.86, sub: 'Plans et détails fins, fichier plus lourd' } };
+const workPx = t => (t === 'plan' || t === 'ticket') ? 3200 : 2400;
+
+/* ---------- Base locale (IndexedDB) ---------- */
+let dbP = null;
+function idb() {
+  if (dbP) return dbP;
+  dbP = new Promise((ok, ko) => {
+    try {
+      const r = indexedDB.open('mag-scan', 1);
+      r.onupgradeneeded = () => { const d = r.result; d.createObjectStore('docs', { keyPath: 'id' }); d.createObjectStore('pages', { keyPath: 'id' }); };
+      r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error);
+    } catch (e) { ko(e); }
+  });
+  dbP.catch(() => { dbP = null; });
+  return dbP;
+}
+const tx = (store, mode, fn) => idb().then(d => new Promise((ok, ko) => { const t = d.transaction(store, mode), r = fn(t.objectStore(store)); t.oncomplete = () => ok(r && r.result); t.onerror = () => ko(t.error); t.onabort = () => ko(t.error || new Error('Stockage plein')); }));
+const dbAll = s => tx(s, 'readonly', o => o.getAll());
+const dbGet = (s, id) => tx(s, 'readonly', o => o.get(id));
+const dbPut = (s, v) => tx(s, 'readwrite', o => o.put(v));
+const dbDel = (s, id) => tx(s, 'readwrite', o => o.delete(id));
+
+/* ---------- État ---------- */
+const S = { docs: [], type: lsGet('scan.type', 'doc'), q: '', doc: null, pages: [], pickDoc: null };
+if (!TYPES[S.type]) S.type = 'doc';
+
+/* ---------- Petits outils d'interface ---------- */
+function toast(t, bad) { const e = $('#toast'); e.textContent = t; e.className = 'on' + (bad ? ' bad' : ''); clearTimeout(toast.t); toast.t = setTimeout(() => { e.className = ''; }, 3200); }
+function busy(t) { const b = $('#busy'); if (t === false) { b.hidden = true; return; } $('#busyT').textContent = t || 'Un instant'; b.hidden = false; }
+const pad2 = n => String(n).padStart(2, '0');
+function autoName(type, d = new Date()) { return `${TYPES[type].name} ${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}h${pad2(d.getMinutes())}`; }
+function when(t) {
+  const d = new Date(t), n = new Date(), hm = `${pad2(d.getHours())}h${pad2(d.getMinutes())}`;
+  if (d.toDateString() === n.toDateString()) return 'Aujourd’hui ' + hm;
+  const y = new Date(n); y.setDate(n.getDate() - 1); if (d.toDateString() === y.toDateString()) return 'Hier ' + hm;
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: d.getFullYear() === n.getFullYear() ? undefined : 'numeric' }) + ' ' + hm;
+}
+const plural = (n, w) => `${n} ${w}${n > 1 ? 's' : ''}`;
+const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+const kb = n => n < 1048576 ? Math.max(1, Math.round(n / 1024)) + ' Ko' : (n / 1048576).toFixed(1).replace('.', ',') + ' Mo';
+const fileSafe = s => String(s || 'Scan').replace(/[\\/:*?"<>|]+/g, ' ').trim() || 'Scan';
+
+/* ---------- Écrans superposés et bouton retour ---------- */
+const LAYERS = [];
+function pushLayer(el, onClose) { if (el) document.body.appendChild(el); LAYERS.push({ el, onClose }); try { history.pushState({ l: LAYERS.length }, ''); } catch (e) { } }
+function back() { if (LAYERS.length) history.back(); }
+addEventListener('popstate', e => {
+  const t = (e.state && e.state.l) || 0;
+  while (LAYERS.length > t) { const L = LAYERS.pop(); try { L.onClose && L.onClose(); } catch (err) { console.error(err); } if (L.el) L.el.remove(); }
+});
+try { history.replaceState({ l: 0 }, ''); } catch (e) { }
+const topLayer = () => LAYERS[LAYERS.length - 1];
+function layer(cls, html) { const el = document.createElement('div'); el.className = 'layer ' + (cls || ''); el.setAttribute('role', 'dialog'); el.innerHTML = html; return el; }
+
+function sheet(html, bind, onClose) {
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `<div class="shade"></div><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>${html}</div>`;
+  wrap.querySelector('.shade').onclick = back;
+  pushLayer(wrap, onClose);
+  if (bind) bind(wrap.querySelector('.sheet'));
+  return wrap;
+}
+function choose(title, items, cur) {
+  return new Promise(res => {
+    let v = null;
+    sheet(`<h4>${esc(title)}</h4><div class="menu">${items.map(([k, l, sub, icn, cls]) => `<button data-k="${esc(k)}" class="${k === cur ? 'on ' : ''}${cls || ''}">${icn ? ic(icn) : ''}<span>${esc(l)}${sub ? `<small>${esc(sub)}</small>` : ''}</span></button>`).join('')}</div>`,
+      el => el.addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (!b) return; v = b.dataset.k; back(); }),
+      () => setTimeout(() => res(v), 0));
+  });
+}
+function confirmBox(title, text, okLabel) {
+  return new Promise(res => {
+    let v = false;
+    sheet(`<h4>${esc(title)}</h4><p style="color:var(--tx2);margin:0 0 16px">${esc(text)}</p><div class="row"><button class="btn" data-k="no">Annuler</button><button class="btn main" data-k="ok" style="background:var(--bad)">${esc(okLabel)}</button></div>`,
+      el => el.addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (!b) return; v = b.dataset.k === 'ok'; back(); }),
+      () => setTimeout(() => res(v), 0));
+  });
+}
+function askText(title, val, okLabel) {
+  return new Promise(res => {
+    let v = null;
+    sheet(`<h4>${esc(title)}</h4><input class="field" id="askIn" value="${esc(val)}" maxlength="90" autocomplete="off"><div class="row" style="margin-top:14px"><button class="btn" data-k="no">Annuler</button><button class="btn main" data-k="ok">${esc(okLabel || 'Valider')}</button></div>`,
+      el => {
+        const i = el.querySelector('#askIn'); setTimeout(() => { i.focus(); i.select(); }, 250);
+        const ok = () => { v = i.value.trim(); back(); };
+        i.addEventListener('keydown', e => { if (e.key === 'Enter') ok(); });
+        el.addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (!b) return; if (b.dataset.k === 'ok') ok(); else back(); });
+      }, () => setTimeout(() => res(v), 0));
+  });
+}
+
+/* =====================================================================
+   Images
+   ===================================================================== */
+function mk(w, h) { const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; }
+function loadImg(url) { return new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ko(new Error('Image illisible')); i.src = url; }); }
+async function blobToCanvas(b, max) {
+  const url = URL.createObjectURL(b);
+  try {
+    const img = await loadImg(url), W = img.naturalWidth, H = img.naturalHeight, k = max ? Math.min(1, max / Math.max(W, H)) : 1;
+    const c = mk(W * k, H * k), g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height); return c;
+  } finally { URL.revokeObjectURL(url); }
+}
+function toBlob(cv, q) {
+  return new Promise(ok => {
+    if (cv.toBlob) cv.toBlob(b => ok(b || dataToBlob(cv.toDataURL('image/jpeg', q))), 'image/jpeg', q);
+    else ok(dataToBlob(cv.toDataURL('image/jpeg', q)));
+  });
+}
+function dataToBlob(url) {
+  const i = url.indexOf(','), meta = url.slice(5, i), bin = atob(url.slice(i + 1)), a = new Uint8Array(bin.length);
+  for (let k = 0; k < bin.length; k++) a[k] = bin.charCodeAt(k);
+  return new Blob([a], { type: meta.split(';')[0] || 'application/octet-stream' });
+}
+function blobToB64(b) { return new Promise((ok, ko) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = () => ko(r.error); r.readAsDataURL(b); }); }
+function fitCv(c, max) { const k = Math.min(1, max / Math.max(c.width, c.height)); if (k >= 1) return c; const n = mk(c.width * k, c.height * k), g = n.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(c, 0, 0, n.width, n.height); return n; }
+function rotCv(c, turns) {
+  turns = ((turns % 4) + 4) % 4; if (!turns) return c;
+  const n = turns % 2 ? mk(c.height, c.width) : mk(c.width, c.height), g = n.getContext('2d');
+  g.translate(n.width / 2, n.height / 2); g.rotate(turns * Math.PI / 2); g.drawImage(c, -c.width / 2, -c.height / 2); return n;
+}
+function copyCv(c) { const n = mk(c.width, c.height); n.getContext('2d').drawImage(c, 0, 0); return n; }
+
+/* ---------- Géométrie ---------- */
+function solve(A, b) {
+  const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++) {
+    let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+    [M[c], M[p]] = [M[p], M[c]]; const d = M[c][c]; if (Math.abs(d) < 1e-12) return null;
+    for (let r = 0; r < n; r++) if (r !== c) { const k = M[r][c] / d; for (let j = c; j <= n; j++) M[r][j] -= k * M[c][j]; }
+  }
+  return M.map((r, i) => r[n] / r[i]);
+}
+function homog(q, W, H) {
+  const d = [[0, 0], [W, 0], [W, H], [0, H]], A = [], b = [];
+  for (let i = 0; i < 4; i++) { const [u, v] = d[i], [x, y] = q[i]; A.push([u, v, 1, 0, 0, 0, -u * x, -v * x]); b.push(x); A.push([0, 0, 0, u, v, 1, -u * y, -v * y]); b.push(y); }
+  return solve(A, b);
+}
+const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+const area = q => Math.abs(q.reduce((s, p, i) => { const n = q[(i + 1) % 4]; return s + p[0] * n[1] - n[0] * p[1]; }, 0)) / 2;
+function order(pts) {
+  const cx = pts.reduce((s, p) => s + p[0], 0) / 4, cy = pts.reduce((s, p) => s + p[1], 0) / 4;
+  const q = [...pts].sort((a, b) => Math.atan2(a[1] - cy, a[0] - cx) - Math.atan2(b[1] - cy, b[0] - cx));
+  let k = 0; q.forEach((p, i) => { if (p[0] + p[1] < q[k][0] + q[k][1]) k = i; });
+  return [...q.slice(k), ...q.slice(0, k)];
+}
+const inset = (w, h, m = 0.04) => [[w * m, h * m], [w * (1 - m), h * m], [w * (1 - m), h * (1 - m)], [w * m, h * (1 - m)]];
+function convex(q) { let s = 0; for (let i = 0; i < 4; i++) { const a = q[i], b = q[(i + 1) % 4], c = q[(i + 2) % 4], z = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]); if (!z) return false; if (!s) s = Math.sign(z); else if (Math.sign(z) !== s) return false; } return true; }
+function lineFit(p) {
+  const n = p.length / 2; let mx = 0, my = 0; for (let i = 0; i < p.length; i += 2) { mx += p[i]; my += p[i + 1]; } mx /= n; my /= n;
+  let sxx = 0, syy = 0, sxy = 0; for (let i = 0; i < p.length; i += 2) { const dx = p[i] - mx, dy = p[i + 1] - my; sxx += dx * dx; syy += dy * dy; sxy += dx * dy; }
+  const t = 0.5 * Math.atan2(2 * sxy, sxx - syy); return { x: mx, y: my, dx: Math.cos(t), dy: Math.sin(t) };
+}
+function cross(a, b) { const det = b.dx * a.dy - a.dx * b.dy; if (Math.abs(det) < 1e-6) return null; const rx = b.x - a.x, ry = b.y - a.y, t = (b.dx * ry - b.dy * rx) / -det; return [a.x + t * a.dx, a.y + t * a.dy]; }
+/* Coins affinés : une droite ajustée sur chaque bord de la feuille (précision sous le pixel, coins cornés ignorés) */
+function refine(q, lab, id, w, h) {
+  const diag = Math.hypot(w, h), tol = Math.max(2.5, diag * 0.02), sides = [[], [], [], []];
+  const L = q.map((a, i) => { const b = q[(i + 1) % 4], dx = b[0] - a[0], dy = b[1] - a[1], n = Math.hypot(dx, dy) || 1; return { a, ux: dx / n, uy: dy / n, n }; });
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const p = y * w + x; if (lab[p] !== id) continue;
+    if (x > 0 && x < w - 1 && y > 0 && y < h - 1 && lab[p - 1] === id && lab[p + 1] === id && lab[p - w] === id && lab[p + w] === id) continue;
+    const px = x + 0.5, py = y + 0.5;
+    for (let s = 0; s < 4; s++) { const l = L[s], rx = px - l.a[0], ry = py - l.a[1], t = (rx * l.ux + ry * l.uy) / l.n; if (t < 0.12 || t > 0.88) continue; if (Math.abs(rx * l.uy - ry * l.ux) < tol) sides[s].push(px, py); }
+  }
+  const cx = q.reduce((s, p) => s + p[0], 0) / 4, cy = q.reduce((s, p) => s + p[1], 0) / 4, lines = [];
+  for (let s = 0; s < 4; s++) {
+    const pts = sides[s]; if (pts.length < 24) return null;
+    let ln = lineFit(pts); const keep = [];
+    for (let i = 0; i < pts.length; i += 2) if (Math.abs((pts[i] - ln.x) * ln.dy - (pts[i + 1] - ln.y) * ln.dx) < 1.5) keep.push(pts[i], pts[i + 1]);
+    if (keep.length >= 24) ln = lineFit(keep);
+    let nx = -ln.dy, ny = ln.dx; if ((cx - ln.x) * nx + (cy - ln.y) * ny > 0) { nx = -nx; ny = -ny; }
+    ln.x += nx * 0.5; ln.y += ny * 0.5; lines.push(ln);
+  }
+  return q.map((c, i) => { const p = cross(lines[(i + 3) % 4], lines[i]); return p && dist(p, c) < diag * 0.06 ? p : c; });
+}
+/* Détection de la feuille : plus grande zone claire, coins extrêmes puis affinés */
+const DET = { c: null };
+function detect(src, size, sw, sh) {
+  const W = sw || src.width, H = sh || src.height, k = size / Math.max(W, H), w = Math.max(8, Math.round(W * k)), h = Math.max(8, Math.round(H * k));
+  const fb = { q: inset(W, H), ok: false };
+  const c = DET.c || (DET.c = document.createElement('canvas')); if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+  const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(src, 0, 0, w, h);
+  const d = g.getImageData(0, 0, w, h).data, N = w * h, g0 = new Uint8Array(N), gr = new Uint8Array(N), hist = new Uint32Array(256);
+  for (let i = 0; i < N; i++) g0[i] = (d[i * 4] * 299 + d[i * 4 + 1] * 587 + d[i * 4 + 2] * 114) / 1000 | 0;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    let s = 0, n = 0;
+    for (let yy = Math.max(0, y - 1); yy <= Math.min(h - 1, y + 1); yy++) for (let xx = Math.max(0, x - 1); xx <= Math.min(w - 1, x + 1); xx++) { s += g0[yy * w + xx]; n++; }
+    const v = s / n | 0; gr[y * w + x] = v; hist[v]++;
+  }
+  let sum = 0; for (let i = 0; i < 256; i++) sum += i * hist[i];
+  let sB = 0, wB = 0, best = 0, T = 128;
+  for (let i = 0; i < 256; i++) { wB += hist[i]; if (!wB) continue; const wF = N - wB; if (!wF) break; sB += i * hist[i]; const mB = sB / wB, mF = (sum - sB) / wF, v = wB * wF * (mB - mF) ** 2; if (v > best) { best = v; T = i; } }
+  const lab = new Int32Array(N).fill(-1), stack = new Int32Array(N); let B = null;
+  for (let i = 0; i < N; i++) {
+    if (lab[i] !== -1 || gr[i] <= T) continue;
+    let sp = 0, n = 0; stack[sp++] = i; lab[i] = i;
+    const P = { t: [0, 1e9], r: [-1e9, 0], b: [0, -1e9], l: [1e9, 0] }, e = { mxs: [-1e9], mns: [1e9], mxd: [-1e9], mnd: [1e9] };
+    while (sp) {
+      const p = stack[--sp], x = p % w, y = (p / w) | 0; n++;
+      const s1 = x + y, s2 = x - y;
+      if (s1 > e.mxs[0]) e.mxs = [s1, x, y]; if (s1 < e.mns[0]) e.mns = [s1, x, y]; if (s2 > e.mxd[0]) e.mxd = [s2, x, y]; if (s2 < e.mnd[0]) e.mnd = [s2, x, y];
+      if (y < P.t[1]) P.t = [x, y]; if (x > P.r[0]) P.r = [x, y]; if (y > P.b[1]) P.b = [x, y]; if (x < P.l[0]) P.l = [x, y];
+      if (x > 0 && lab[p - 1] === -1 && gr[p - 1] > T) { lab[p - 1] = i; stack[sp++] = p - 1; }
+      if (x < w - 1 && lab[p + 1] === -1 && gr[p + 1] > T) { lab[p + 1] = i; stack[sp++] = p + 1; }
+      if (y > 0 && lab[p - w] === -1 && gr[p - w] > T) { lab[p - w] = i; stack[sp++] = p - w; }
+      if (y < h - 1 && lab[p + w] === -1 && gr[p + w] > T) { lab[p + w] = i; stack[sp++] = p + w; }
+    }
+    if (!B || n > B.n) B = { n, e, P, id: i };
+  }
+  if (!B || B.n < N * 0.08 || B.n > N * 0.97) return fb;
+  const e = B.e, qa = [[e.mns[1], e.mns[2]], [e.mxd[1], e.mxd[2]], [e.mxs[1], e.mxs[2]], [e.mnd[1], e.mnd[2]]];
+  const qb = order([B.P.t, B.P.r, B.P.b, B.P.l].map(p => [p[0], p[1]]));
+  let q = order(area(qa) >= area(qb) ? qa : qb); const A = area(q);
+  if (A < B.n * 0.8 || A < N * 0.08) return fb;
+  const fill = B.n / A, r = refine(q, lab, B.id, w, h); if (r && convex(r)) q = r;
+  const edge = q.filter(p => p[0] < 1.5 || p[1] < 1.5 || p[0] > w - 1.5 || p[1] > h - 1.5).length;
+  const ok = fill > 0.7 && convex(q) && edge < 3 && Math.min(dist(q[0], q[1]), dist(q[1], q[2])) > Math.min(w, h) * 0.12;
+  return { q: q.map(([x, y]) => [Math.min(W, Math.max(0, x / k)), Math.min(H, Math.max(0, y / k))]), ok, fill };
+}
+/* Redressement (homographie, interpolation bilinéaire) */
+/* Vrai rapport largeur / hauteur de la feuille d'après la perspective (Zhang et He, centre optique au milieu de la photo) */
+function trueRatio(q, sw, sh) {
+  const c = [sw / 2, sh / 2], m = [q[0], q[1], q[3], q[2]].map(p => [p[0] - c[0], p[1] - c[1], 1]);
+  const X = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], D = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const k2 = D(X(m[0], m[3]), m[2]) / D(X(m[1], m[3]), m[2]), k3 = D(X(m[0], m[3]), m[1]) / D(X(m[2], m[3]), m[1]);
+  const n2 = m[1].map((v, i) => k2 * v - m[0][i]), n3 = m[2].map((v, i) => k3 * v - m[0][i]);
+  if (!isFinite(k2) || !isFinite(k3)) return 0;
+  const f2 = -(n2[0] * n3[0] + n2[1] * n3[1]) / (n2[2] * n3[2]), diag = Math.hypot(sw, sh);
+  let r;
+  if (isFinite(f2) && f2 > (diag * 0.35) ** 2 && f2 < (diag * 5) ** 2) r = Math.sqrt((n2[0] ** 2 + n2[1] ** 2) / f2 + n2[2] ** 2) / Math.sqrt((n3[0] ** 2 + n3[1] ** 2) / f2 + n3[2] ** 2);
+  else r = Math.hypot(n2[0], n2[1]) / Math.hypot(n3[0], n3[1]);
+  return isFinite(r) && r > 0.05 && r < 20 ? r : 0;
+}
+function warp(src, q, maxSide, snap) {
+  const wT = dist(q[0], q[1]), wB = dist(q[3], q[2]), hL = dist(q[0], q[3]), hR = dist(q[1], q[2]);
+  let W = Math.max(wT, wB), H = Math.max(hL, hR);
+  const persp = Math.abs(wT - wB) / Math.max(wT, wB) > 0.015 || Math.abs(hL - hR) / Math.max(hL, hR) > 0.015;
+  if (persp) { const r = trueRatio(q, src.width, src.height), r0 = W / H; if (r && r / r0 < 1.6 && r0 / r < 1.6) { if (r > r0) W = H * r; else H = W / r; } }
+  if (snap) { const r = Math.max(W, H) / Math.min(W, H); if (Math.abs(r - snap) / snap < 0.08) { if (H >= W) H = W * snap; else W = H * snap; } }
+  const k = Math.min(1, maxSide / Math.max(W, H)); W = Math.max(40, Math.round(W * k)); H = Math.max(40, Math.round(H * k));
+  /* on rogne un liseré de 0,4 % : le bord flou de la feuille ne laisse pas de trait sombre */
+  const e = Math.max(W, H) * 0.004, hm0 = homog(q, W + 2 * e, H + 2 * e); if (!hm0) return null;
+  const hm = [hm0[0], hm0[1], hm0[0] * e + hm0[1] * e + hm0[2], hm0[3], hm0[4], hm0[3] * e + hm0[4] * e + hm0[5], hm0[6], hm0[7], hm0[6] * e + hm0[7] * e + 1];
+  for (let i = 0; i < 8; i++) hm[i] /= hm[8];
+  const sw = src.width, sh = src.height, sd = src.getContext('2d').getImageData(0, 0, sw, sh).data;
+  const out = mk(W, H), og = out.getContext('2d'), od = og.createImageData(W, H), o = od.data;
+  for (let v = 0; v < H; v++) {
+    for (let u = 0; u < W; u++) {
+      const z = hm[6] * u + hm[7] * v + 1, x = (hm[0] * u + hm[1] * v + hm[2]) / z, y = (hm[3] * u + hm[4] * v + hm[5]) / z;
+      const x0 = Math.max(0, Math.min(sw - 2, x | 0)), y0 = Math.max(0, Math.min(sh - 2, y | 0)), fx = Math.max(0, Math.min(1, x - x0)), fy = Math.max(0, Math.min(1, y - y0));
+      const i00 = (y0 * sw + x0) * 4, i10 = i00 + 4, i01 = i00 + sw * 4, i11 = i01 + 4, j = (v * W + u) * 4;
+      const a = (1 - fx) * (1 - fy), b = fx * (1 - fy), c = (1 - fx) * fy, dd = fx * fy;
+      o[j] = sd[i00] * a + sd[i10] * b + sd[i01] * c + sd[i11] * dd;
+      o[j + 1] = sd[i00 + 1] * a + sd[i10 + 1] * b + sd[i01 + 1] * c + sd[i11 + 1] * dd;
+      o[j + 2] = sd[i00 + 2] * a + sd[i10 + 2] * b + sd[i01 + 2] * c + sd[i11 + 2] * dd;
+      o[j + 3] = 255;
+    }
+  }
+  og.putImageData(od, 0, 0); return out;
+}
+/* Rendus : document (fond blanc, texte net), gris, couleur équilibrée, original */
+function filterCv(cv, mode) {
+  const W = cv.width, H = cv.height, out = mk(W, H), og = out.getContext('2d');
+  og.drawImage(cv, 0, 0); if (mode === 'orig') return out;
+  const im = og.getImageData(0, 0, W, H), d = im.data;
+  const bs = Math.max(8, Math.round(Math.max(W, H) / 40)), gw = Math.ceil(W / bs), gh = Math.ceil(H / bs), bg = [new Float32Array(gw * gh), new Float32Array(gw * gh), new Float32Array(gw * gh)];
+  const hs = [new Uint32Array(256), new Uint32Array(256), new Uint32Array(256)];
+  for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) {
+    hs[0].fill(0); hs[1].fill(0); hs[2].fill(0); let n = 0;
+    for (let y = gy * bs; y < Math.min(H, (gy + 1) * bs); y += 2) for (let x = gx * bs; x < Math.min(W, (gx + 1) * bs); x += 2) { const i = (y * W + x) * 4; hs[0][d[i]]++; hs[1][d[i + 1]]++; hs[2][d[i + 2]]++; n++; }
+    const lim = Math.floor(n * 0.9);
+    for (let c = 0; c < 3; c++) { let a = 0, v = 0; for (; v < 256; v++) { a += hs[c][v]; if (a > lim) break; } bg[c][gy * gw + gx] = n ? Math.min(255, v) : 255; }
+  }
+  for (let pass = 0; pass < 2; pass++) for (let c = 0; c < 3; c++) { const b = bg[c], n = new Float32Array(b.length); for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) { let m = 0, s = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const yy = gy + dy, xx = gx + dx; if (yy < 0 || xx < 0 || yy >= gh || xx >= gw) continue; s += b[yy * gw + xx]; m++; } n[gy * gw + gx] = Math.max(b[gy * gw + gx], s / m); } bg[c] = n; }
+  const bgAt = (c, x, y) => { const fx = Math.min(gw - 1.001, Math.max(0, x / bs - 0.5)), fy = Math.min(gh - 1.001, Math.max(0, y / bs - 0.5)), x0 = fx | 0, y0 = fy | 0, ax = fx - x0, ay = fy - y0, b = bg[c], x1 = Math.min(gw - 1, x0 + 1), y1 = Math.min(gh - 1, y0 + 1); return (b[y0 * gw + x0] * (1 - ax) + b[y0 * gw + x1] * ax) * (1 - ay) + (b[y1 * gw + x0] * (1 - ax) + b[y1 * gw + x1] * ax) * ay; };
+  const curve = (n, lo, hi, g) => 255 * Math.pow(Math.min(1, Math.max(0, (n - lo) / (hi - lo))), g);
+  const rb0 = new Float32Array(Math.ceil(W / 4) + 1), rb1 = new Float32Array(rb0.length), rb2 = new Float32Array(rb0.length);
+  for (let y = 0; y < H; y++) {
+    for (let x = 0, j = 0; x < W; x += 4, j++) { rb0[j] = bgAt(0, x, y); rb1[j] = bgAt(1, x, y); rb2[j] = bgAt(2, x, y); }
+    for (let x = 0; x < W; x++) {
+      const i = (y * W + x) * 4, j = x >> 2;
+      if (mode === 'coul') { d[i] = curve(d[i] / Math.max(30, rb0[j]), 0.1, 0.94, 1.1); d[i + 1] = curve(d[i + 1] / Math.max(30, rb1[j]), 0.1, 0.94, 1.1); d[i + 2] = curve(d[i + 2] / Math.max(30, rb2[j]), 0.1, 0.94, 1.1); continue; }
+      const gv = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114, gb = Math.max(30, rb0[j] * 0.299 + rb1[j] * 0.587 + rb2[j] * 0.114), n = gv / gb;
+      const v = mode === 'doc' ? curve(n, 0.42, 0.9, 1.6) : curve(n, 0.12, 0.95, 1.15);
+      d[i] = d[i + 1] = d[i + 2] = v;
+    }
+  }
+  og.putImageData(im, 0, 0); return out;
+}
+/* Luminosité et contraste (-50 à +50) */
+function adjust(cv, b, c) {
+  if (!b && !c) return cv;
+  const g = cv.getContext('2d'), im = g.getImageData(0, 0, cv.width, cv.height), d = im.data, lut = new Uint8ClampedArray(256);
+  const k = c >= 0 ? 1 + c / 50 * 1.2 : 1 + c / 50 * 0.7, off = b * 2.4;
+  for (let i = 0; i < 256; i++) lut[i] = (i - 128) * k + 128 + off;
+  for (let i = 0; i < d.length; i += 4) { d[i] = lut[d[i]]; d[i + 1] = lut[d[i + 1]]; d[i + 2] = lut[d[i + 2]]; }
+  g.putImageData(im, 0, 0); return cv;
+}
+
+/* ---------- Signature ---------- */
+const SIG = { url: lsGet('scan.sig', ''), img: null };
+function sigLoad() { SIG.img = null; if (!SIG.url) return Promise.resolve(null); return loadImg(SIG.url).then(i => (SIG.img = i)).catch(() => null); }
+function drawSig(g, W, H, s) { if (!s || !SIG.img) return; const w = s.w * W, h = w * SIG.img.naturalHeight / SIG.img.naturalWidth; g.drawImage(SIG.img, s.x * W, s.y * H, w, h); }
+function thumbOf(cv, sig, tw = 240) { const th = Math.round(cv.height * tw / cv.width), t = mk(tw, th), g = t.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, tw, th); g.drawImage(cv, 0, 0, tw, th); drawSig(g, tw, th, sig); return t.toDataURL('image/jpeg', 0.7); }
+
+/* =====================================================================
+   Pages et documents
+   ===================================================================== */
+async function renderBase(p, wcv) {
+  const f = adjust(filterCv(wcv, p.filter), p.bright || 0, p.contrast || 0);
+  p.base = await toBlob(f, 0.9); p.w = f.width; p.h = f.height; p.thumb = thumbOf(f, p.sig); return f;
+}
+function newDoc(type) { const t = TYPES[type] || TYPES.doc; return { id: uid(), name: autoName(type), type, created: Date.now(), updated: Date.now(), format: t.format, quality: t.quality, pages: [], n: 0, thumb: '', fresh: true }; }
+async function addPage(doc, src, q, opt = {}) {
+  const t = TYPES[doc.type] || TYPES.doc;
+  const p = { id: uid(), doc: doc.id, q: q.map(a => [a[0], a[1]]), rot: 0, filter: opt.filter || t.filter, bright: 0, contrast: 0, sig: null, at: Date.now(), raw: !!opt.raw };
+  await frame();
+  const wcv = opt.raw ? copyCv(src) : warp(src, q, workPx(doc.type), t.snap);
+  if (!wcv) throw new Error('Cadrage impossible');
+  p.src = await toBlob(src, 0.9); p.warp = await toBlob(wcv, 0.92);
+  await renderBase(p, wcv);
+  await dbPut('pages', p);
+  doc.pages.push(p.id);
+  if (S.doc && S.doc.id === doc.id) S.pages.push(p);
+  await saveDoc(doc);
+  return p;
+}
+async function saveDoc(doc) {
+  doc.updated = Date.now(); doc.n = doc.pages.length; delete doc.fresh;
+  const first = doc.pages[0] && (S.doc && S.doc.id === doc.id ? S.pages.find(x => x.id === doc.pages[0]) : await dbGet('pages', doc.pages[0]));
+  if (first && first.thumb) { try { const im = await loadImg(first.thumb), c = mk(160, 160 * im.naturalHeight / im.naturalWidth); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); doc.thumb = c.toDataURL('image/jpeg', 0.7); } catch (e) { } } else if (!first) doc.thumb = '';
+  const rec = { ...doc }; await dbPut('docs', rec);
+  const i = S.docs.findIndex(d => d.id === doc.id); if (i >= 0) S.docs[i] = rec; else S.docs.push(rec);
+  renderHome(); publish();
+}
+async function deleteDoc(doc) {
+  for (const id of doc.pages) await dbDel('pages', id).catch(() => { });
+  await dbDel('docs', doc.id).catch(() => { });
+  S.docs = S.docs.filter(d => d.id !== doc.id); renderHome(); publish();
+}
+async function loadDocs() { try { S.docs = await dbAll('docs'); } catch (e) { S.docs = []; toast('Stockage indisponible sur cet appareil', true); } renderHome(); publish(); }
+function publish() {
+  const mp = MP(); if (!mp) return;
+  const docs = [...S.docs].sort((a, b) => b.updated - a.updated), l = docs[0];
+  try { if (mp.widgetPut) mp.widgetPut(JSON.stringify({ docs: docs.length, last: l ? { name: l.name, thumb: l.thumb || '', pages: l.n, at: l.updated } : null })); } catch (e) { }
+  try { if (mp.backupPut) mp.backupPut(JSON.stringify({ docs: docs.map(d => ({ nom: d.name, date: new Date(d.created).toISOString(), pages: d.n, type: TYPES[d.type] ? TYPES[d.type].label : '' })) })); } catch (e) { }
+}
+
+/* =====================================================================
+   Accueil
+   ===================================================================== */
+function renderHome() {
+  $('#count').textContent = plural(S.docs.length, 'document');
+  $('#types').innerHTML = Object.entries(TYPES).map(([k, t]) => `<button class="chip${k === S.type ? ' on' : ''}" data-type="${k}">${esc(t.label)}</button>`).join('');
+  $('#typeHint').textContent = TYPES[S.type].hint;
+  const q = norm(S.q), L = S.docs.filter(d => !q || norm(d.name).includes(q)).sort((a, b) => b.updated - a.updated);
+  $('#list').innerHTML = L.length ? L.map(d => `<div class="item"><button class="open" data-open="${d.id}"><span class="th">${d.thumb ? `<img src="${d.thumb}" alt="">` : ic('file')}</span><span class="t"><b>${esc(d.name)}</b><span>${esc(when(d.updated))} · ${plural(d.n || 0, 'page')} · ${esc((TYPES[d.type] || TYPES.doc).label)}</span></span></button><button class="ib" data-more="${d.id}" aria-label="Actions">${ic('more')}</button></div>`).join('')
+    : `<div class="empty">${S.docs.length ? 'Aucun document ne correspond' : ic('file') + 'Tes documents numérisés apparaîtront ici.<br>Pose la feuille sur un fond sombre et touche « Numériser ».'}</div>`;
+}
+function initHome() {
+  $('#bScan').innerHTML = ic('cam') + 'Numériser';
+  $('#bGal').innerHTML = ic('img') + 'Galerie';
+  $('#bFile').innerHTML = ic('file') + 'PDF ou fichier';
+  $('#sIc').innerHTML = ic('search');
+  document.querySelector('main').addEventListener('click', async e => {
+    const t = e.target.closest('[data-type]'); if (t) { S.type = t.dataset.type; lsSet('scan.type', S.type); renderHome(); return; }
+    const h = e.target.closest('[data-h]');
+    if (h) { const doc = newDoc(S.type); if (h.dataset.h === 'scan') { openEditor(doc); openCamera(); } else if (h.dataset.h === 'gal') pickGallery(doc, true); else pickFile(doc, true); return; }
+    const o = e.target.closest('[data-open]'); if (o) { const d = S.docs.find(x => x.id === o.dataset.open); if (d) openEditor({ ...d, pages: [...d.pages] }); return; }
+    const m = e.target.closest('[data-more]'); if (m) { const d = S.docs.find(x => x.id === m.dataset.more); if (d) docMenu({ ...d, pages: [...d.pages] }, false); }
+  });
+  $('#q').addEventListener('input', e => { S.q = e.target.value; renderHome(); });
+}
+async function docMenu(doc, inEditor) {
+  const k = await choose(doc.name, [
+    ...(inEditor ? [] : [['open', 'Ouvrir', '', 'file']]),
+    ['pdf', 'Exporter, partager, envoyer', 'PDF ou JPEG', 'share'],
+    ['ren', 'Renommer', '', 'edit'],
+    ...(inEditor ? [['add', 'Ajouter un PDF ou une image', '', 'pdf']] : []),
+    ['del', 'Supprimer le document', '', 'trash', 'danger'],
+  ]);
+  if (k === 'open') openEditor(doc);
+  else if (k === 'pdf') { if (inEditor) exportSheet(doc); else { const pages = await loadPages(doc); exportSheet(doc, pages); } }
+  else if (k === 'ren') renameDoc(doc);
+  else if (k === 'add') pickFile(doc, false);
+  else if (k === 'del') {
+    if (await confirmBox('Supprimer « ' + doc.name + ' » ?', `Le document et ses ${plural(doc.n || doc.pages.length, 'page')} seront effacés de cet ordinateur. Les PDF déjà enregistrés ou envoyés ne sont pas touchés.`, 'Supprimer')) {
+      await deleteDoc(doc); toast('Document supprimé'); if (inEditor) back();
+    }
+  }
+}
+async function renameDoc(doc) {
+  const v = await askText('Renommer le document', doc.name, 'Renommer'); if (!v || v === doc.name) return;
+  doc.name = v; await saveDoc(doc); if (S.doc && S.doc.id === doc.id) { S.doc.name = v; renderEditor(); }
+}
+async function loadPages(doc) { return (await Promise.all(doc.pages.map(id => dbGet('pages', id).catch(() => null)))).filter(Boolean); }
+
+/* =====================================================================
+   Import : galerie, PDF, fichiers reçus
+   ===================================================================== */
+function pickGallery(doc, fresh) {
+  const ms = MS();
+  if (ms && ms.pickImages) { S.pickDoc = { doc, fresh }; ms.pickImages(); return; }
+  pickInput('#inGal', files => importInto(doc, files, fresh));
+}
+function pickFile(doc, fresh) { pickInput('#inFile', files => importInto(doc, files, fresh)); }
+function pickCamInput(doc, fresh, after) { pickInput('#inCam', files => importInto(doc, files, fresh, true).then(after)); }
+function pickInput(sel, cb) {
+  const i = $(sel), old = i.cloneNode(); i.replaceWith(old);
+  old.addEventListener('change', () => { const f = [...old.files]; if (f.length) cb(f); });
+  old.click();
+}
+let libsP = {};
+function loadScript(src) { return new Promise((ok, ko) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = ko; document.head.appendChild(s); }); }
+async function pdfLib() {
+  if (!window.pdfjsLib) { try { await loadScript('../shared/vendor/pdf.min.js'); } catch (e) { } }
+  if (!window.pdfjsLib) throw new Error('Lecteur PDF indisponible');
+  const L = window.pdfjsLib; if (!L.GlobalWorkerOptions.workerSrc) L.GlobalWorkerOptions.workerSrc = '../shared/vendor/pdf.worker.min.js'; return L;
+}
+async function pdfPages(blob) {
+  const L = await pdfLib(), doc = await L.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) }).promise, out = [];
+  for (let p = 1; p <= Math.min(doc.numPages, 40); p++) {
+    busy(`Lecture du PDF : page ${p} sur ${doc.numPages}`);
+    const pg = await doc.getPage(p), v1 = pg.getViewport({ scale: 1 }), sc = Math.min(4, 2200 / Math.max(v1.width, v1.height)), vp = pg.getViewport({ scale: sc });
+    const cv = mk(vp.width, vp.height), g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, cv.width, cv.height);
+    await pg.render({ canvasContext: g, viewport: vp }).promise; out.push(cv);
+  }
+  return out;
+}
+const isPdf = f => /pdf/i.test(f.type || '') || /\.pdf$/i.test(f.name || '');
+/* Ajoute des fichiers (images ou PDF) à un document : la feuille est détectée et redressée, sinon on demande le cadrage */
+async function importInto(doc, files, fresh, confirmCrop) {
+  if (fresh && !(S.doc && S.doc.id === doc.id)) openEditor(doc);
+  let added = 0, skipped = 0;
+  for (let n = 0; n < files.length; n++) {
+    const f = files[n];
+    try {
+      if (isPdf(f)) {
+        const cvs = await pdfPages(f);
+        for (let i = 0; i < cvs.length; i++) { busy(`Ajout de la page ${i + 1} sur ${cvs.length}`); await addPage(doc, cvs[i], inset(cvs[i].width, cvs[i].height, 0), { raw: true, filter: 'orig' }); added++; }
+        busy(false); continue;
+      }
+      busy(files.length > 1 ? `Photo ${n + 1} sur ${files.length}` : 'Lecture de la photo'); await frame();
+      const cv = await blobToCanvas(f, workPx(doc.type) + 400), r = detect(cv, 480);
+      busy(false);
+      if (r.ok && !confirmCrop) { busy('Redressement'); await addPage(doc, cv, r.q); added++; }
+      else {
+        const res = await openCrop(cv, r.q, { title: files.length > 1 ? `Cadrer la photo ${n + 1} sur ${files.length}` : 'Cadrer la page', found: r.ok });
+        if (res) { busy('Redressement'); await addPage(doc, res.src, res.q, res.full ? { raw: true } : {}); added++; } else skipped++;
+      }
+    } catch (e) { console.error(e); skipped++; toast(isPdf(f) ? 'Ce PDF n’a pas pu être lu' : 'Cette image n’a pas pu être lue', true); }
+    busy(false);
+  }
+  busy(false);
+  if (S.doc && S.doc.id === doc.id) renderEditor();
+  if (added) toast(plural(added, 'page') + ' ajoutée' + (added > 1 ? 's' : ''));
+  if (fresh && !doc.pages.length && S.doc && S.doc.id === doc.id && topLayer() && topLayer().editor) back();
+  return added;
+}
+/* Fichiers envoyés par le pont natif (galerie multiple, « Partager vers Scan ») */
+function bridgeItems() { const ms = MS(); if (!ms || !ms.pending) return []; try { return JSON.parse(ms.pending() || '[]'); } catch (e) { return []; } }
+const itemToBlob = it => { const b = dataToBlob(it.data); try { return new File([b], it.name || 'fichier', { type: it.mime || b.type }); } catch (e) { b.name = it.name; return b; } };
+window.scanEvent = function (type, json) {
+  let d = {}; try { d = json ? JSON.parse(json) : {}; } catch (e) { }
+  if (type === 'files') {
+    const items = bridgeItems().map(itemToBlob);
+    if (d.error) toast(d.error, true);
+    if (!items.length) { if (d.failed) toast('Fichier illisible', true); S.pickDoc = null; return; }
+    if (d.src === 'pick' && S.pickDoc) { const { doc, fresh } = S.pickDoc; S.pickDoc = null; importInto(doc, items, fresh); return; }
+    receiveShared(items);
+  } else if (type === 'saved') {
+    if (d.ok) toast(`Enregistré dans ${d.folder || 'Documents/Scan'} : ${d.name}`); else toast('Enregistrement impossible : ' + (d.error || ''), true);
+  }
+};
+async function receiveShared(files) {
+  if (!files.length) return;
+  if (CAM.open) { closeCameraIfOpen(); await wait(350); }
+  const doc = S.doc || newDoc(S.type);
+  toast(`${plural(files.length, 'fichier')} reçu${files.length > 1 ? 's' : ''}`);
+  await importInto(doc, files, !S.doc);
+}
+async function checkShared() {
+  const ms = MS(); if (!ms || !ms.count) return;
+  for (let k = 0; k < 40; k++) { let n = 0; try { n = ms.count(); } catch (e) { return; } if (n > 0) break; if (n === 0) return; await wait(250); }
+  const items = bridgeItems().map(itemToBlob); if (items.length) receiveShared(items);
+}
+
+/* =====================================================================
+   Cadrage manuel (4 coins avec loupe)
+   ===================================================================== */
+const CR = { src: null, q: null, drag: -1, el: null, res: null };
+function openCrop(src, q, opt = {}) {
+  return new Promise(res => {
+    CR.src = src; CR.q = q.map(p => [p[0], p[1]]); CR.drag = -1; CR.res = null; CR.rotated = false;
+    const el = layer('crop', `<div class="bar"><button class="ib" data-c="cancel" aria-label="Retour">${ic('back')}</button><div class="ttl">${esc(opt.title || 'Cadrer la page')}</div></div>
+      <div class="crop-h">${opt.found === false ? 'Feuille non trouvée automatiquement : place les 4 coins sur ses angles.' : 'Fais glisser les 4 coins sur les angles du document, la loupe t’aide à viser.'}</div>
+      <div class="crop-stage"><canvas aria-label="Photo à cadrer"></canvas></div>
+      <div class="cbar"><button class="btn" data-c="rot">${ic('rot')}Pivoter</button><button class="btn" data-c="auto">${ic('frame')}Détecter</button><button class="btn" data-c="all">${ic('full')}Tout</button></div>
+      <div class="cbar last"><button class="btn" data-c="cancel">Annuler</button><button class="btn main" data-c="ok">${ic('check')}Valider</button></div>`);
+    CR.el = el;
+    pushLayer(el, () => { removeEventListener('resize', cropDraw); const r = CR.res; CR.src = null; CR.el = null; setTimeout(() => res(r), 0); });
+    addEventListener('resize', cropDraw);
+    cropBind(el.querySelector('canvas'));
+    el.addEventListener('click', e => {
+      const b = e.target.closest('[data-c]'); if (!b) return; const k = b.dataset.c;
+      if (k === 'cancel') back();
+      else if (k === 'rot') { CR.src = rotCv(CR.src, 1); CR.rotated = true; CR.q = detect(CR.src, 480).q; cropDraw(); }
+      else if (k === 'auto') { const r = detect(CR.src, 480); CR.q = r.q; cropDraw(); toast(r.ok ? 'Feuille détectée : ajuste les coins si besoin' : 'Feuille non trouvée : place les coins à la main'); }
+      else if (k === 'all') { CR.q = inset(CR.src.width, CR.src.height, 0); cropDraw(); }
+      else if (k === 'ok') {
+        const q = order(CR.q); if (!convex(q) || area(q) < CR.src.width * CR.src.height * 0.02) { toast('Les coins se croisent : replace-les sur les 4 angles du document.', true); return; }
+        const W = CR.src.width, H = CR.src.height, full = q.every(p => Math.min(p[0], W - p[0]) < 2 && Math.min(p[1], H - p[1]) < 2);
+        CR.res = { src: CR.src, q, rotated: CR.rotated, full }; back();
+      }
+    });
+    requestAnimationFrame(cropDraw);
+  });
+}
+function cropGeom(cv) {
+  const r = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1), W = Math.max(50, r.width), H = Math.max(50, r.height);
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  const k = Math.min((W - 40) / CR.src.width, (H - 40) / CR.src.height), ox = (W - CR.src.width * k) / 2, oy = (H - CR.src.height * k) / 2;
+  return { r, dpr, W, H, k, ox, oy, to: p => [ox + p[0] * k, oy + p[1] * k], from: (x, y) => [(x - ox) / k, (y - oy) / k] };
+}
+function cropDraw() {
+  const cv = CR.el && CR.el.querySelector('canvas'); if (!cv || !CR.src) return;
+  const G = cropGeom(cv), g = cv.getContext('2d'); g.setTransform(G.dpr, 0, 0, G.dpr, 0, 0);
+  g.fillStyle = '#0f1116'; g.fillRect(0, 0, G.W, G.H);
+  g.drawImage(CR.src, G.ox, G.oy, CR.src.width * G.k, CR.src.height * G.k);
+  const P = CR.q.map(G.to);
+  g.save(); g.fillStyle = 'rgba(0,0,0,.5)'; g.beginPath(); g.rect(0, 0, G.W, G.H); g.moveTo(P[0][0], P[0][1]); for (let i = 3; i >= 0; i--) g.lineTo(P[i][0], P[i][1]); g.closePath(); g.fill('evenodd'); g.restore();
+  g.strokeStyle = '#8fb4ff'; g.lineWidth = 2.5; g.beginPath(); P.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.closePath(); g.stroke();
+  P.forEach((p, i) => { g.beginPath(); g.arc(p[0], p[1], CR.drag === i ? 15 : 12, 0, 7); g.fillStyle = CR.drag === i ? '#b79bff' : 'rgba(255,255,255,.95)'; g.fill(); g.lineWidth = 3; g.strokeStyle = '#5b7fd6'; g.stroke(); });
+  if (CR.drag >= 0) {
+    const p = CR.q[CR.drag], R = 62, Z = 3, cx = P[CR.drag][0] < G.W / 2 ? G.W - R - 12 : R + 12, cy = R + 12, s = R / (G.k * Z);
+    g.save(); g.beginPath(); g.arc(cx, cy, R, 0, 7); g.clip(); g.fillStyle = '#000'; g.fillRect(cx - R, cy - R, 2 * R, 2 * R);
+    g.drawImage(CR.src, p[0] - s, p[1] - s, 2 * s, 2 * s, cx - R, cy - R, 2 * R, 2 * R);
+    const toL = q => [cx + (q[0] - p[0]) * G.k * Z, cy + (q[1] - p[1]) * G.k * Z];
+    g.strokeStyle = '#8fb4ff'; g.lineWidth = 2; g.beginPath(); const a = toL(CR.q[(CR.drag + 3) % 4]), b = toL(CR.q[(CR.drag + 1) % 4]); g.moveTo(a[0], a[1]); g.lineTo(cx, cy); g.lineTo(b[0], b[1]); g.stroke();
+    g.strokeStyle = '#b79bff'; g.beginPath(); g.moveTo(cx - 10, cy); g.lineTo(cx + 10, cy); g.moveTo(cx, cy - 10); g.lineTo(cx, cy + 10); g.stroke(); g.restore();
+    g.beginPath(); g.arc(cx, cy, R, 0, 7); g.lineWidth = 3; g.strokeStyle = '#fff'; g.stroke();
+  }
+}
+function cropBind(cv) {
+  let off = null;
+  cv.addEventListener('pointerdown', e => {
+    const G = cropGeom(cv), x = e.clientX - G.r.left, y = e.clientY - G.r.top; let best = -1, bd = 48;
+    CR.q.forEach((p, i) => { const [px, py] = G.to(p), d = Math.hypot(px - x, py - y); if (d < bd) { bd = d; best = i; } });
+    if (best < 0) return; CR.drag = best; const [px, py] = G.to(CR.q[best]); off = [px - x, py - y];
+    try { cv.setPointerCapture(e.pointerId); } catch (_) { } e.preventDefault(); cropDraw();
+  });
+  cv.addEventListener('pointermove', e => {
+    if (CR.drag < 0) return; const G = cropGeom(cv), [x, y] = G.from(e.clientX - G.r.left + off[0], e.clientY - G.r.top + off[1]);
+    CR.q[CR.drag] = [Math.min(CR.src.width, Math.max(0, x)), Math.min(CR.src.height, Math.max(0, y))]; cropDraw();
+  });
+  const up = () => { if (CR.drag < 0) return; CR.drag = -1; cropDraw(); };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+}
+
+/* =====================================================================
+   Document : pages, réorganisation
+   ===================================================================== */
+function openEditor(doc) {
+  S.doc = doc; S.pages = [];
+  const el = layer('editor', '');
+  pushLayer(el, () => { S.doc = null; S.pages = []; renderHome(); });
+  topLayer().editor = true;
+  el.addEventListener('click', editorClick);
+  el.addEventListener('pointerdown', gripDown);
+  renderEditor(!doc.fresh);
+}
+async function renderEditor(load) {
+  const doc = S.doc; if (!doc) return; const L = LAYERS.find(l => l.editor); if (!L) return; const el = L.el;
+  if (load) S.pages = await loadPages(doc);
+  const t = TYPES[doc.type] || TYPES.doc;
+  el.innerHTML = `<div class="bar"><button class="ib" data-e="back" aria-label="Retour">${ic('back')}</button><button class="name" data-e="ren"><b>${esc(doc.name)}</b>${ic('edit')}</button><button class="ib" data-e="menu" aria-label="Actions">${ic('more')}</button></div>
+    <div class="opts"><button class="opt" data-e="type"><small>Type</small><b>${esc(t.label)}</b></button><button class="opt" data-e="format"><small>Page</small><b>${esc(FORMATS[doc.format] || 'A4')}</b></button><button class="opt" data-e="quality"><small>Qualité</small><b>${esc(QUALS[doc.quality] ? QUALS[doc.quality].label : 'Normale')}</b></button></div>
+    <div class="scroll"><div class="grid">${S.pages.map((p, i) => `<div class="pg" data-i="${i}"><button class="pimg" data-e="page" data-i="${i}" aria-label="Page ${i + 1}"><img src="${p.thumb}" alt=""></button><span class="num">${i + 1}</span>${S.pages.length > 1 ? `<span class="grip" data-grip="${i}" aria-label="Déplacer"><span>${ic('grip')}</span></span>` : ''}</div>`).join('')}
+      <div class="pg"><button class="addt" data-e="add">${ic('plus')}Ajouter</button></div></div>
+      ${S.pages.length > 1 ? '<div class="hint">Pour changer l’ordre, fais glisser une page par sa poignée.</div>' : ''}</div>
+    <div class="dock"><button class="btn" data-e="cam">${ic('cam')}Numériser</button><button class="btn" data-e="gal">${ic('img')}Galerie</button><button class="btn main" data-e="export"${S.pages.length ? '' : ' disabled'}>${ic('share')}Exporter</button></div>`;
+}
+async function editorClick(e) {
+  const b = e.target.closest('[data-e]'); if (!b || !S.doc) return; const k = b.dataset.e, doc = S.doc;
+  if (k === 'back') back();
+  else if (k === 'ren') renameDoc(doc);
+  else if (k === 'menu') docMenu(doc, true);
+  else if (k === 'page') openPage(+b.dataset.i);
+  else if (k === 'cam') openCamera();
+  else if (k === 'gal') pickGallery(doc, false);
+  else if (k === 'export') exportSheet(doc);
+  else if (k === 'add') {
+    const c = await choose('Ajouter des pages', [['cam', 'Numériser avec la webcam', 'Aperçu en direct, prise automatique', 'cam'], ['phone', 'Une image à cadrer', 'Photo du document copiée sur le PC, puis cadrage', 'phone'], ['gal', 'Images de l’ordinateur', 'Plusieurs à la fois (ou glisser-déposer)', 'img'], ['file', 'PDF ou image', 'Les pages d’un PDF sont ajoutées telles quelles', 'pdf']]);
+    if (c === 'cam') openCamera(); else if (c === 'phone') pickCamInput(doc, false); else if (c === 'gal') pickGallery(doc, false); else if (c === 'file') pickFile(doc, false);
+  }
+  else if (k === 'type') {
+    const v = await choose('Type de document', Object.entries(TYPES).map(([k2, t]) => [k2, t.label, t.hint]), doc.type);
+    if (v && v !== doc.type) { const old = TYPES[doc.type]; doc.type = v; doc.format = TYPES[v].format; doc.quality = TYPES[v].quality; if (doc.name.startsWith(old.name + ' ')) doc.name = TYPES[v].name + doc.name.slice(old.name.length); if (doc.pages.length) await saveDoc(doc); renderEditor(); toast('Rendu par défaut des prochaines pages : ' + FILTERS.find(f => f[0] === TYPES[v].filter)[1]); }
+  }
+  else if (k === 'format') {
+    const v = await choose('Taille des pages du PDF', [['a4', 'A4', '21 × 29,7 cm, la page est centrée'], ['letter', 'Lettre', '21,6 × 27,9 cm (format américain)'], ['reel', 'Taille réelle', 'La page prend la forme du document : carte, ticket, plan']], doc.format);
+    if (v) { doc.format = v; if (doc.pages.length) await saveDoc(doc); renderEditor(); }
+  }
+  else if (k === 'quality') {
+    const v = await choose('Qualité du fichier', Object.entries(QUALS).map(([k2, q]) => [k2, q.label, q.sub]), doc.quality);
+    if (v) { doc.quality = v; if (doc.pages.length) await saveDoc(doc); renderEditor(); }
+  }
+}
+/* Réorganisation : glisser une page par sa poignée */
+let DRG = null;
+function gripDown(e) {
+  const gp = e.target.closest('[data-grip]'); if (!gp) return;
+  e.preventDefault(); const i = +gp.dataset.grip, pg = gp.closest('.pg'), img = pg.querySelector('img');
+  const gh = document.createElement('img'); gh.className = 'ghost'; gh.src = img.src; document.body.appendChild(gh);
+  pg.classList.add('lift'); DRG = { i, to: i, gh, pg };
+  const mv = ev => {
+    gh.style.left = ev.clientX + 'px'; gh.style.top = ev.clientY + 'px';
+    const el = document.elementFromPoint(ev.clientX, ev.clientY), t = el && el.closest('.pg[data-i]');
+    document.querySelectorAll('.pg.drop').forEach(x => x.classList.remove('drop'));
+    if (t) { DRG.to = +t.dataset.i; if (DRG.to !== DRG.i) t.classList.add('drop'); }
+    const sc = pg.closest('.scroll'); if (sc) { const r = sc.getBoundingClientRect(); if (ev.clientY < r.top + 40) sc.scrollTop -= 12; else if (ev.clientY > r.bottom - 40) sc.scrollTop += 12; }
+  };
+  const up = async () => {
+    removeEventListener('pointermove', mv); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
+    gh.remove(); const { i: a, to: b } = DRG; DRG = null;
+    if (a !== b && S.doc) { const doc = S.doc, [id] = doc.pages.splice(a, 1); doc.pages.splice(b, 0, id); const [p] = S.pages.splice(a, 1); S.pages.splice(b, 0, p); await saveDoc(doc); }
+    renderEditor();
+  };
+  mv(e); addEventListener('pointermove', mv); addEventListener('pointerup', up); addEventListener('pointercancel', up);
+}
+
+/* =====================================================================
+   Page : rendu, luminosité, rotation, recadrage, signature
+   ===================================================================== */
+const PG = { i: 0, p: null, full: null, pw: null, view: null, dirty: false, wdirty: false, sdirty: false, el: null, adj: false, t: 0 };
+function openPage(i) {
+  const el = layer('page', '');
+  PG.el = el; PG.adj = false;
+  pushLayer(el, async () => { const was = PG.el; PG.el = null; await pageCommit(); if (!was) return; renderEditor(); });
+  el.addEventListener('click', pageClick);
+  el.addEventListener('input', pageInput);
+  addEventListener('resize', pageLayout);
+  pageLoad(i);
+}
+async function pageLoad(i) {
+  await pageCommit();
+  const p = S.pages[i]; if (!p) return;
+  PG.i = i; PG.p = p; PG.full = null; PG.dirty = PG.wdirty = PG.sdirty = false;
+  pageRender();
+  try {
+    PG.full = await blobToCanvas(p.warp); PG.pw = fitCv(PG.full, 1100);
+    if (PG.p !== p) return; pagePreview();
+  } catch (e) { toast('Page illisible', true); }
+}
+function pageRender() {
+  const el = PG.el, p = PG.p; if (!el || !p) return; const n = S.pages.length;
+  el.innerHTML = `<div class="bar"><button class="ib" data-p="back" aria-label="Retour">${ic('back')}</button><div class="ttl">Page ${PG.i + 1} sur ${n}<small>${esc(S.doc ? S.doc.name : '')}</small></div>
+      <button class="ib" data-p="prev" ${PG.i ? '' : 'disabled style="opacity:.3"'} aria-label="Page précédente">${ic('left')}</button><button class="ib" data-p="next" ${PG.i < n - 1 ? '' : 'disabled style="opacity:.3"'} aria-label="Page suivante">${ic('right')}</button><button class="ib" data-p="del" aria-label="Supprimer la page">${ic('trash')}</button></div>
+    <div class="stage"><div class="pv"><img class="pimg" src="${p.thumb}" alt="Page ${PG.i + 1}"><div class="sig" hidden><img alt="Signature"><i></i></div></div></div>
+    <div class="panel">
+      <div class="seg">${FILTERS.map(([k, l]) => `<button data-p="f-${k}" class="${p.filter === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+      <div class="adj"${PG.adj ? '' : ' hidden'}>
+        <label><span>Luminosité</span><input type="range" min="-50" max="50" step="1" value="${p.bright || 0}" data-r="bright"><output>${p.bright || 0}</output></label>
+        <label><span>Contraste</span><input type="range" min="-50" max="50" step="1" value="${p.contrast || 0}" data-r="contrast"><output>${p.contrast || 0}</output></label>
+        <div class="row" style="justify-content:space-between"><button class="link" data-p="reset">Réinitialiser</button><button class="link" data-p="all">Même rendu pour toutes les pages</button></div>
+      </div>
+      <div class="tools"><button data-p="rot">${ic('rot')}Pivoter</button><button data-p="crop">${ic('crop')}Recadrer</button><button data-p="adj" class="${PG.adj ? 'on' : ''}">${ic('tune')}Réglages</button><button data-p="sign" class="${p.sig ? 'on' : ''}">${ic('sign')}Signer</button></div>
+    </div>`;
+  const pv = el.querySelector('.pv'); PG.view = null;
+  if (PG.pw) { const c = document.createElement('canvas'); pv.replaceChild(c, pv.querySelector('img.pimg')); PG.view = c; pagePreview(); }
+  sigBind(); pageLayout();
+}
+function pageLayout() {
+  const el = PG.el; if (!el || !PG.p) return; const st = el.querySelector('.stage'), pv = el.querySelector('.pv'); if (!st || !pv) return;
+  const w = PG.pw ? PG.pw.width : PG.p.w, h = PG.pw ? PG.pw.height : PG.p.h, W = st.clientWidth - 24, H = st.clientHeight - 12, k = Math.min(W / w, H / h);
+  pv.style.width = Math.round(w * k) + 'px'; pv.style.height = Math.round(h * k) + 'px'; sigPlace();
+}
+function pagePreview() {
+  if (!PG.el || !PG.pw) return; const p = PG.p;
+  if (!PG.view) { const pv = PG.el.querySelector('.pv'), im = pv && pv.querySelector('img.pimg'); if (!im) return; const c = document.createElement('canvas'); pv.replaceChild(c, im); PG.view = c; }
+  const f = adjust(filterCv(PG.pw, p.filter), p.bright || 0, p.contrast || 0); PG.view.width = f.width; PG.view.height = f.height; PG.view.getContext('2d').drawImage(f, 0, 0); pageLayout();
+}
+async function pageCommit() {
+  const p = PG.p; if (!p || !(PG.dirty || PG.wdirty || PG.sdirty)) return;
+  const full = PG.full, d = PG.dirty, wd = PG.wdirty; PG.dirty = PG.wdirty = PG.sdirty = false;
+  busy('Enregistrement de la page');
+  try {
+    if (wd && full) p.warp = await toBlob(full, 0.92);
+    if ((d || wd) && full) await renderBase(p, full);
+    else { const b = await blobToCanvas(p.base); p.thumb = thumbOf(b, p.sig); }
+    await dbPut('pages', p); if (S.doc) await saveDoc(S.doc);
+  } catch (e) { toast('La page n’a pas pu être enregistrée', true); }
+  busy(false);
+}
+function pageInput(e) {
+  const r = e.target.closest('[data-r]'); if (!r || !PG.p) return;
+  PG.p[r.dataset.r] = +r.value; r.nextElementSibling.textContent = r.value; PG.dirty = true;
+  clearTimeout(PG.t); PG.t = setTimeout(pagePreview, 90);
+}
+async function pageClick(e) {
+  const b = e.target.closest('[data-p]'); if (!b || !PG.p) return; const k = b.dataset.p, p = PG.p;
+  if (k === 'back') back();
+  else if (k === 'prev' && PG.i > 0) pageLoad(PG.i - 1);
+  else if (k === 'next' && PG.i < S.pages.length - 1) pageLoad(PG.i + 1);
+  else if (k.startsWith('f-')) { p.filter = k.slice(2); PG.dirty = true; PG.el.querySelectorAll('[data-p^="f-"]').forEach(x => x.classList.toggle('on', x === b)); pagePreview(); }
+  else if (k === 'adj') { PG.adj = !PG.adj; PG.el.querySelector('.adj').hidden = !PG.adj; b.classList.toggle('on', PG.adj); pageLayout(); }
+  else if (k === 'reset') { p.bright = p.contrast = 0; PG.dirty = true; pageRender(); }
+  else if (k === 'rot') {
+    if (!PG.full) return; PG.full = rotCv(PG.full, 1); PG.pw = rotCv(PG.pw, 1); p.rot = ((p.rot || 0) + 1) % 4; PG.wdirty = true;
+    if (p.sig) p.sig = { x: Math.max(0, Math.min(0.9, p.sig.x)), y: Math.max(0, Math.min(0.9, p.sig.y)), w: p.sig.w };
+    PG.view = null; pageRender();
+  }
+  else if (k === 'crop') {
+    const src = await blobToCanvas(p.src); const res = await openCrop(src, p.q, { title: 'Recadrer la page ' + (PG.i + 1) }); if (!res || !PG.el) return;
+    busy('Redressement'); await frame();
+    try {
+      const t = TYPES[S.doc.type] || TYPES.doc, w0 = res.full ? copyCv(res.src) : warp(res.src, res.q, workPx(S.doc.type), t.snap); if (!w0) throw new Error();
+      if (res.rotated) p.src = await toBlob(res.src, 0.9);
+      p.q = res.q; PG.full = rotCv(w0, p.rot || 0); PG.pw = fitCv(PG.full, 1100); PG.wdirty = true; PG.view = null; pageRender();
+    } catch (err) { toast('Cadrage impossible', true); }
+    busy(false);
+  }
+  else if (k === 'sign') {
+    if (p.sig) {
+      const c = await choose('Signature', [['move', 'La déplacer', 'Fais-la glisser, agrandis-la avec le rond bleu', 'sign'], ['redo', 'Redessiner ma signature', '', 'edit'], ['rm', 'La retirer de cette page', '', 'trash', 'danger']]);
+      if (c === 'rm') { p.sig = null; PG.sdirty = true; pageRender(); }
+      else if (c === 'redo') { if (await openSigPad()) { PG.sdirty = true; sigPlace(); } }
+      return;
+    }
+    if (!SIG.img && !(await openSigPad())) return;
+    const ar = SIG.img.naturalHeight / SIG.img.naturalWidth, w = 0.34, h = w * ar * (p.w / p.h);
+    p.sig = { x: 0.6, y: Math.max(0.02, 0.86 - h), w }; PG.sdirty = true; pageRender(); toast('Place la signature, puis agrandis-la avec le rond bleu');
+  }
+  else if (k === 'del') {
+    if (!(await confirmBox('Supprimer la page ' + (PG.i + 1) + ' ?', 'Elle sera retirée du document.', 'Supprimer'))) return;
+    const doc = S.doc; PG.dirty = PG.wdirty = PG.sdirty = false; const id = p.id;
+    doc.pages = doc.pages.filter(x => x !== id); S.pages = S.pages.filter(x => x.id !== id); await dbDel('pages', id).catch(() => { }); await saveDoc(doc);
+    toast('Page supprimée');
+    if (!S.pages.length) { PG.p = null; back(); } else pageLoad(Math.min(PG.i, S.pages.length - 1));
+  }
+  else if (k === 'all') {
+    const src = PG.p, list = S.pages.filter(x => x !== src); if (!list.length) { toast('Il n’y a qu’une page'); return; }
+    await pageCommit();
+    for (let n = 0; n < list.length; n++) {
+      busy(`Page ${n + 1} sur ${list.length}`); await frame();
+      const q = list[n]; q.filter = src.filter; q.bright = src.bright || 0; q.contrast = src.contrast || 0;
+      try { await renderBase(q, await blobToCanvas(q.warp)); await dbPut('pages', q); } catch (err) { }
+    }
+    await saveDoc(S.doc); busy(false); toast('Rendu appliqué à toutes les pages');
+  }
+}
+function sigPlace() {
+  const el = PG.el, p = PG.p; if (!el || !p) return; const s = el.querySelector('.sig'); if (!s) return;
+  if (!p.sig || !SIG.img) { s.hidden = true; return; }
+  s.hidden = false; s.querySelector('img').src = SIG.url;
+  s.style.left = (p.sig.x * 100) + '%'; s.style.top = (p.sig.y * 100) + '%'; s.style.width = (p.sig.w * 100) + '%';
+}
+function sigBind() {
+  const el = PG.el, s = el && el.querySelector('.sig'); if (!s) return; sigPlace();
+  s.addEventListener('pointerdown', e => {
+    const p = PG.p; if (!p || !p.sig) return; e.preventDefault(); e.stopPropagation();
+    const pv = el.querySelector('.pv').getBoundingClientRect(), resize = e.target.tagName === 'I', st = { ...p.sig }, x0 = e.clientX, y0 = e.clientY;
+    try { s.setPointerCapture(e.pointerId); } catch (_) { }
+    const mv = ev => {
+      const dx = (ev.clientX - x0) / pv.width, dy = (ev.clientY - y0) / pv.height;
+      if (resize) p.sig.w = Math.max(0.08, Math.min(0.95 - st.x, st.w + dx));
+      else { p.sig.x = Math.max(0, Math.min(1 - st.w, st.x + dx)); p.sig.y = Math.max(0, Math.min(0.97, st.y + dy)); }
+      PG.sdirty = true; sigPlace();
+    };
+    const up = () => { s.removeEventListener('pointermove', mv); s.removeEventListener('pointerup', up); s.removeEventListener('pointercancel', up); };
+    s.addEventListener('pointermove', mv); s.addEventListener('pointerup', up); s.addEventListener('pointercancel', up);
+  });
+}
+/* Tracé de la signature (une fois, gardée sur le téléphone) */
+function openSigPad() {
+  return new Promise(res => {
+    let saved = false; const strokes = [];
+    const el = layer('sigpad', `<div class="bar"><button class="ib" data-s="x" aria-label="Retour">${ic('back')}</button><div class="ttl">Ma signature</div></div>
+      <div class="crop-h">Signe à la souris dans le cadre. Elle est gardée sur cet ordinateur pour tes prochains documents.</div>
+      <div class="padw"><div class="base"></div><canvas></canvas></div>
+      <div class="cbar last" style="margin-top:auto"><button class="btn" data-s="clr">Effacer</button><button class="btn main" data-s="ok">${ic('check')}Garder</button></div>`);
+    pushLayer(el, () => setTimeout(() => res(saved), 0));
+    const cv = el.querySelector('canvas'); let g, dpr, cur = null;
+    const size = () => { const r = cv.getBoundingClientRect(); dpr = Math.min(3, devicePixelRatio || 1); cv.width = r.width * dpr; cv.height = r.height * dpr; g = cv.getContext('2d'); redraw(); };
+    const seg = (a, b, c) => { g.lineWidth = Math.max(1.6, Math.min(4.2, 4.6 - (b.v || 0) * 1.6)) * dpr; g.beginPath(); g.moveTo(a.x * dpr, a.y * dpr); g.quadraticCurveTo(b.x * dpr, b.y * dpr, c.x * dpr, c.y * dpr); g.stroke(); };
+    const mid = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, v: b.v });
+    function drawStroke(s) { g.strokeStyle = '#14246b'; g.lineCap = 'round'; g.lineJoin = 'round'; if (s.length === 1) { g.fillStyle = '#14246b'; g.beginPath(); g.arc(s[0].x * dpr, s[0].y * dpr, 1.8 * dpr, 0, 7); g.fill(); return; } for (let i = 1; i < s.length; i++) seg(i === 1 ? s[0] : mid(s[i - 2], s[i - 1]), s[i - 1], mid(s[i - 1], s[i])); }
+    function redraw() { g.clearRect(0, 0, cv.width, cv.height); strokes.forEach(drawStroke); }
+    cv.addEventListener('pointerdown', e => { e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (_) { } const r = cv.getBoundingClientRect(); cur = [{ x: e.clientX - r.left, y: e.clientY - r.top, t: e.timeStamp, v: 0 }]; strokes.push(cur); redraw(); });
+    cv.addEventListener('pointermove', e => {
+      if (!cur) return; const r = cv.getBoundingClientRect(), l = cur[cur.length - 1], p = { x: e.clientX - r.left, y: e.clientY - r.top, t: e.timeStamp };
+      const dd = Math.hypot(p.x - l.x, p.y - l.y); if (dd < 1.5) return; p.v = 0.7 * (l.v || 0) + 0.3 * Math.min(2, dd / Math.max(1, p.t - l.t)); cur.push(p); redraw();
+    });
+    const up = () => { cur = null; }; cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+    requestAnimationFrame(size);
+    el.addEventListener('click', async e => {
+      const b = e.target.closest('[data-s]'); if (!b) return; const k = b.dataset.s;
+      if (k === 'x') back();
+      else if (k === 'clr') { strokes.length = 0; redraw(); }
+      else if (k === 'ok') {
+        if (!strokes.length) { toast('Signe d’abord dans le cadre'); return; }
+        let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; strokes.flat().forEach(p => { x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y); });
+        const m = 6, sx = Math.max(0, (x0 - m) * dpr), sy = Math.max(0, (y0 - m) * dpr), sw = Math.min(cv.width - sx, (x1 - x0 + 2 * m) * dpr), sh = Math.min(cv.height - sy, (y1 - y0 + 2 * m) * dpr);
+        const k2 = Math.min(1, 900 / sw), o = mk(sw * k2, sh * k2); o.getContext('2d').drawImage(cv, sx, sy, sw, sh, 0, 0, o.width, o.height);
+        SIG.url = o.toDataURL('image/png'); lsSet('scan.sig', SIG.url); await sigLoad(); saved = true; toast('Signature gardée'); back();
+      }
+    });
+  });
+}
+
+/* =====================================================================
+   Prise de vue en direct (aperçu caméra, détection, déclenchement auto)
+   ===================================================================== */
+const CAM = { el: null, stream: null, track: null, icap: null, raf: 0, last: 0, hist: [], armed: true, lostAt: 0, shotQ: null, auto: lsGet('scan.auto', true), torch: false, busy: false, q: null, ok: false, open: false, paused: false, noPhoto: false };
+function openCamera() {
+  if (CAM.open || !S.doc) return;
+  const doc = S.doc;
+  const el = layer('cam', `<div class="bar"><button class="ib" data-k="x" aria-label="Fermer">${ic('x')}</button><div class="ttl" style="color:#fff" id="camT"></div>
+      <label class="ib" aria-label="Choisir une image">${ic('phone')}<input type="file" accept="image/*" capture="environment" hidden data-k="native"></label>
+      <button class="ib" data-k="lens" aria-label="Changer d'objectif" hidden>${ic('cam')}</button><button class="ib" data-k="torch" aria-label="Lampe" hidden>${ic('flash')}</button><button class="autop" data-k="auto">Auto</button></div>
+    <div class="cview"><video playsinline muted autoplay></video><canvas></canvas><div class="cmsg"><span id="camMsg">Ouverture de la caméra…</span></div><div class="flashfx"></div></div>
+    <div class="cbot"><div class="side"><button class="gal" data-k="gal" aria-label="Galerie">${ic('img')}</button></div>
+      <button class="shut" data-k="shoot" aria-label="Prendre la photo"><svg viewBox="0 0 76 76"><circle cx="38" cy="38" r="35" fill="none" stroke="#ffffff70" stroke-width="4"/><circle id="camRing" cx="38" cy="38" r="35" fill="none" stroke="#8fb4ff" stroke-width="4.5" stroke-dasharray="220" stroke-dashoffset="220" transform="rotate(-90 38 38)" stroke-linecap="round"/></svg><i></i></button>
+      <div class="side"><button class="done" data-k="done" aria-label="Terminer"></button></div></div>`);
+  CAM.el = el; CAM.open = true; CAM.doc = doc; CAM.hist = []; CAM.armed = true; CAM.busy = false;
+  pushLayer(el, closeCamera);
+  el.addEventListener('click', camClick);
+  el.querySelector('[data-k="native"]').addEventListener('change', async ev => {
+    const f = [...ev.target.files]; ev.target.value = ''; if (!f.length) return;
+    stopStream(); await importInto(doc, f, false, true); camInfo(); if (CAM.open && topLayer() && topLayer().el === CAM.el) startStream();
+  });
+  camInfo(); startStream();
+}
+function camInfo() {
+  if (!CAM.el) return; const n = CAM.doc.pages.length, last = S.pages[S.pages.length - 1];
+  CAM.el.querySelector('#camT').textContent = `Page ${n + 1}`;
+  CAM.el.querySelector('.autop').classList.toggle('on', CAM.auto);
+  const d = CAM.el.querySelector('.done'); d.innerHTML = n ? `${last && last.thumb ? `<img src="${last.thumb}" alt="">` : ''}<b>${n}</b>` : ic('check');
+}
+function camMsg(t) { const m = CAM.el && CAM.el.querySelector('#camMsg'); if (m && m.textContent !== t) m.textContent = t; if (m) m.parentElement.hidden = !t; }
+async function startStream() {
+  if (!CAM.open) return; stopStream(); CAM.paused = false;
+  const v = CAM.el.querySelector('video'), fb = CAM.el.querySelector('.cfall'); if (fb) fb.remove();
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('none');
+    // Caméra arrière principale : sur ce téléphone, la macro et la vision de nuit ont une mise au point fixe
+    const want = await pickBackCamera();
+    const vc = want ? { deviceId: { exact: want }, width: { ideal: 2592 }, height: { ideal: 1944 } } : { facingMode: { ideal: 'environment' }, width: { ideal: 2592 }, height: { ideal: 1944 } };
+    let s;
+    try { s = await navigator.mediaDevices.getUserMedia({ audio: false, video: vc }); }
+    catch (e1) { if (!want) throw e1; lsSet('scan.cam', ''); s = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: 'environment' } } }); }
+    if (!CAM.open) { s.getTracks().forEach(t => t.stop()); return; }
+    if (!want && !CAM.retried) {
+      // Premier lancement : l'autorisation vient d'être donnée, les noms des caméras sont maintenant lisibles
+      const again = await pickBackCamera(true);
+      const curId = (s.getVideoTracks()[0].getSettings() || {}).deviceId;
+      if (again && again !== curId) { CAM.retried = true; s.getTracks().forEach(t => t.stop()); return startStream(); }
+    }
+    CAM.stream = s; CAM.track = s.getVideoTracks()[0]; v.srcObject = s; await v.play().catch(() => { });
+    let caps = {}; try { caps = CAM.track.getCapabilities ? CAM.track.getCapabilities() : {}; } catch (e) { }
+    CAM.el.querySelector('[data-k="torch"]').hidden = !caps.torch;
+    if (caps.focusMode && caps.focusMode.includes && caps.focusMode.includes('continuous')) CAM.track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => { });
+    CAM.caps = caps;
+    CAM.el.querySelector('[data-k="lens"]').hidden = (CAM.backs || []).length < 2;
+    if (!CAM.tapBound) { CAM.tapBound = true; CAM.el.querySelector('.cview').addEventListener('click', tapFocus); }
+    CAM.icap = null; try { if ('ImageCapture' in window && !CAM.noPhoto) CAM.icap = new ImageCapture(CAM.track); } catch (e) { }
+    camMsg('Vise la feuille, posée sur un fond sombre');
+    CAM.last = 0; cancelAnimationFrame(CAM.raf); CAM.raf = requestAnimationFrame(camLoop);
+  } catch (e) {
+    camMsg('');
+    const d = document.createElement('div'); d.className = 'cfall';
+    d.innerHTML = `${ic('cam')}<div>L’aperçu de la caméra n’est pas disponible${e && e.name === 'NotAllowedError' ? ' : l’accès à la caméra a été refusé' : ''}.<br>Choisis plutôt une image du document, tu cadreras ensuite la page.</div><label class="btn main big">${ic('phone')}Choisir une image<input type="file" accept="image/*" capture="environment" hidden></label>`;
+    d.querySelector('input').addEventListener('change', async ev => { const f = [...ev.target.files]; ev.target.value = ''; if (f.length) { await importInto(CAM.doc, f, false, true); camInfo(); } });
+    CAM.el.querySelector('.cview').appendChild(d);
+  }
+}
+async function listBackCameras() {
+  try {
+    const all = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+    const named = all.filter(d => d.label);
+    if (!named.length) return [];
+    const back = named.filter(d => /back|arri|environment|rear/i.test(d.label) || !/front|avant|user/i.test(d.label));
+    const num = d => { const m = /camera2?\s*(\d+)/i.exec(d.label); return m ? +m[1] : 99; };
+    back.sort((a, b) => num(a) - num(b));
+    return back;
+  } catch (e) { return []; }
+}
+async function pickBackCamera(force) {
+  const saved = lsGet('scan.cam', '');
+  const backs = await listBackCameras();
+  CAM.backs = backs;
+  if (saved && backs.some(d => d.deviceId === saved)) return saved;
+  if (!backs.length) return '';
+  const main = backs[0].deviceId;   // la plus petite numérotation = caméra principale (autofocus)
+  if (force || !saved) lsSet('scan.cam', main);
+  return main;
+}
+function tapFocus(ev) {
+  if (!CAM.track || ev.target.closest('button,label,.cfall')) return;
+  const v = CAM.el.querySelector('video'), r = v.getBoundingClientRect();
+  const x = Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width)), y = Math.min(1, Math.max(0, (ev.clientY - r.top) / r.height));
+  const c = CAM.caps || {}, adv = {};
+  if (c.focusMode && c.focusMode.includes && c.focusMode.includes('single-shot')) adv.focusMode = 'single-shot';
+  adv.pointsOfInterest = [{ x, y }];
+  CAM.track.applyConstraints({ advanced: [adv] }).catch(() => { });
+  camMsg('Mise au point…'); setTimeout(() => { camMsg(''); if (CAM.track && c.focusMode && c.focusMode.includes && c.focusMode.includes('continuous')) CAM.track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => { }); }, 1600);
+  const fx = document.createElement('div'); fx.className = 'focusfx'; fx.style.left = (ev.clientX - r.left) + 'px'; fx.style.top = (ev.clientY - r.top) + 'px';
+  CAM.el.querySelector('.cview').appendChild(fx); setTimeout(() => fx.remove(), 900);
+}
+function stopStream() {
+  cancelAnimationFrame(CAM.raf); CAM.raf = 0;
+  if (CAM.stream) { CAM.stream.getTracks().forEach(t => { try { t.stop(); } catch (e) { } }); CAM.stream = null; }
+  CAM.track = null; CAM.icap = null; CAM.torch = false; CAM.hist = []; CAM.ok = false; CAM.paused = true;
+  const c = CAM.el && CAM.el.querySelector('.cview canvas'); if (c) c.getContext('2d').clearRect(0, 0, c.width, c.height);
+  ring(0);
+}
+function closeCamera() {
+  stopStream(); CAM.open = false; CAM.el = null;
+  const doc = CAM.doc, keep = CAM.keep; CAM.doc = null; CAM.keep = false;
+  setTimeout(() => { if (!keep && doc && !doc.pages.length && topLayer() && topLayer().editor && S.doc === doc) back(); else renderEditor(); }, 0);
+}
+function closeCameraIfOpen() { if (CAM.open) { const i = LAYERS.findIndex(l => l.el && l.el === CAM.el); if (i >= 0) history.go(-(LAYERS.length - i)); } }
+function ring(f) { const r = CAM.el && CAM.el.querySelector('#camRing'); if (r) r.setAttribute('stroke-dashoffset', String(220 * (1 - Math.max(0, Math.min(1, f))))); }
+function camLoop(now) {
+  CAM.raf = requestAnimationFrame(camLoop);
+  const v = CAM.el && CAM.el.querySelector('video'); if (!v || !v.videoWidth || CAM.busy || now - CAM.last < 130) return;
+  CAM.last = now;
+  const vw = v.videoWidth, vh = v.videoHeight, r = detect(v, 300, vw, vh), diag = Math.hypot(vw, vh);
+  CAM.q = r.q; CAM.ok = r.ok;
+  if (r.ok) {
+    const h = CAM.hist; h.push({ t: now, q: r.q }); while (h.length && now - h[0].t > 1500) h.shift();
+    const steady = h.filter(x => x.q.every((p, i) => dist(p, r.q[i]) < diag * 0.022));
+    let k = h.length - 1; while (k >= 0 && h[k].q.every((p, i) => dist(p, r.q[i]) < diag * 0.022)) k--;
+    const span = now - (k + 1 < h.length ? h[k + 1].t : now);
+    CAM.stable = steady.length >= 4 ? span / 1000 : 0; CAM.lostAt = 0;
+    if (!CAM.armed && CAM.shotQ && r.q.some((p, i) => dist(p, CAM.shotQ[i]) > diag * 0.12)) CAM.armed = true;
+  } else { CAM.hist = []; CAM.stable = 0; if (!CAM.lostAt) CAM.lostAt = now; if (now - CAM.lostAt > 700) CAM.armed = true; }
+  camOverlay(v);
+  const f = CAM.ok && CAM.armed ? Math.min(1, CAM.stable / 0.9) : 0; ring(CAM.auto ? f : 0);
+  if (!CAM.ok) camMsg(CAM.doc.pages.length ? 'Page suivante : vise la feuille' : 'Vise la feuille, posée sur un fond sombre');
+  else if (!CAM.armed) camMsg('Page prise : place la feuille suivante');
+  else if (CAM.auto) camMsg(f < 1 ? 'Ne bouge plus…' : 'Prise de vue');
+  else camMsg('Feuille trouvée : touche le déclencheur');
+  if (CAM.auto && CAM.ok && CAM.armed && f >= 1) shoot();
+}
+function camOverlay(v) {
+  const c = CAM.el.querySelector('.cview canvas'), r = c.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+  if (c.width !== Math.round(r.width * dpr) || c.height !== Math.round(r.height * dpr)) { c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr); }
+  const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, r.width, r.height);
+  if (!CAM.ok) return;
+  const s = Math.min(r.width / v.videoWidth, r.height / v.videoHeight), ox = (r.width - v.videoWidth * s) / 2, oy = (r.height - v.videoHeight * s) / 2, P = CAM.q.map(p => [ox + p[0] * s, oy + p[1] * s]);
+  const ready = CAM.armed && CAM.stable > 0.5;
+  g.beginPath(); P.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.closePath();
+  g.fillStyle = CAM.armed ? (ready ? 'rgba(111,214,164,.22)' : 'rgba(143,180,255,.2)') : 'rgba(255,255,255,.08)'; g.fill();
+  g.lineWidth = 3; g.strokeStyle = CAM.armed ? (ready ? '#6fd6a4' : '#8fb4ff') : '#ffffff80'; g.stroke();
+  P.forEach(p => { g.beginPath(); g.arc(p[0], p[1], 5, 0, 7); g.fillStyle = '#fff'; g.fill(); });
+}
+async function grabPhoto(v) {
+  const max = workPx(CAM.doc.type) + 400;
+  if (CAM.icap && !CAM.noPhoto) {
+    try {
+      const b = await Promise.race([CAM.icap.takePhoto(), wait(6000).then(() => { throw new Error('délai'); })]);
+      let cv = await blobToCanvas(b, max);
+      if ((v.videoHeight > v.videoWidth) !== (cv.height > cv.width)) cv = rotCv(cv, 1);
+      return cv;
+    } catch (e) { CAM.noPhoto = true; }
+  }
+  const k = Math.min(1, max / Math.max(v.videoWidth, v.videoHeight)), cv = mk(v.videoWidth * k, v.videoHeight * k);
+  cv.getContext('2d').drawImage(v, 0, 0, cv.width, cv.height); return cv;
+}
+async function shoot() {
+  if (CAM.busy || !CAM.open) return;
+  const v = CAM.el.querySelector('video'); if (!v || !v.videoWidth) return;
+  CAM.busy = true; const fx = CAM.el.querySelector('.flashfx'); fx.classList.add('on'); setTimeout(() => fx.classList.remove('on'), 60);
+  const vw = v.videoWidth, vh = v.videoHeight, liveQ = CAM.ok ? CAM.q.map(p => [p[0], p[1]]) : null, doc = CAM.doc;
+  CAM.shotQ = liveQ; CAM.armed = false; CAM.hist = []; CAM.stable = 0; ring(0);
+  camMsg('Traitement…');
+  try {
+    const cv = await grabPhoto(v); await frame();
+    const r = detect(cv, 480); let q = r.ok ? r.q : liveQ ? liveQ.map(p => [p[0] * cv.width / vw, p[1] * cv.height / vh]) : null;
+    if (!q) {
+      stopStream(); const res = await openCrop(cv, r.q, { title: 'Cadrer la page ' + (doc.pages.length + 1), found: false });
+      if (res) { busy('Redressement'); await addPage(doc, res.src, res.q, res.full ? { raw: true } : {}); busy(false); }
+      if (CAM.open && topLayer() && topLayer().el === CAM.el) startStream();
+    } else { await addPage(doc, cv, q); toast(`Page ${doc.pages.length} ajoutée`); }
+  } catch (e) { console.error(e); toast('La photo n’a pas pu être prise', true); busy(false); }
+  CAM.busy = false; camInfo();
+}
+function camClick(e) {
+  const b = e.target.closest('[data-k]'); if (!b || b.tagName === 'INPUT') return; const k = b.dataset.k;
+  if (k === 'x' || k === 'done') back();
+  else if (k === 'shoot') { if (CAM.stream) { CAM.armed = true; shoot(); } else { const i = CAM.el.querySelector('.cfall input'); if (i) i.click(); } }
+  else if (k === 'lens') {
+    const b = CAM.backs || []; if (b.length < 2) return;
+    const cur = lsGet('scan.cam', ''); let i = b.findIndex(d => d.deviceId === cur); i = (i + 1) % b.length;
+    lsSet('scan.cam', b[i].deviceId); toast(i === 0 ? 'Objectif principal (mise au point automatique)' : 'Autre objectif : si l\u2019image reste floue, reviens au principal'); startStream();
+  }
+  else if (k === 'auto') { CAM.auto = !CAM.auto; lsSet('scan.auto', CAM.auto); camInfo(); toast(CAM.auto ? 'Prise automatique : la photo part quand la feuille est stable' : 'Prise manuelle : touche le déclencheur'); }
+  else if (k === 'torch' && CAM.track) { CAM.torch = !CAM.torch; CAM.track.applyConstraints({ advanced: [{ torch: CAM.torch }] }).catch(() => { CAM.torch = false; }); b.classList.toggle('on', CAM.torch); }
+  else if (k === 'gal') { const doc = CAM.doc; CAM.keep = true; back(); setTimeout(() => pickGallery(doc, false), 60); }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { if (CAM.open && CAM.stream) stopStream(); }
+  else if (CAM.open && CAM.paused && topLayer() && topLayer().el === CAM.el) startStream();
+});
+
+/* =====================================================================
+   Export : PDF (jsPDF) ou JPEG ; enregistrer, partager, envoyer
+   ===================================================================== */
+async function composePage(p, maxPx) {
+  const b = await blobToCanvas(p.base), c = fitCv(b, maxPx);
+  const out = c === b ? copyCv(b) : c; drawSig(out.getContext('2d'), out.width, out.height, p.sig); return out;
+}
+function pageMm(doc, w, h) {
+  const land = w > h;
+  if (doc.format === 'a4') return land ? [297, 210] : [210, 297];
+  if (doc.format === 'letter') return land ? [279.4, 215.9] : [215.9, 279.4];
+  const t = TYPES[doc.type] || TYPES.doc, r = Math.max(w, h) / Math.min(w, h);
+  let short, long;
+  if (t.mm && t.mm.long) { long = t.mm.long; short = long / r; }
+  else if (t.mm && t.mm.short) { short = t.mm.short; long = short * r; }
+  else { short = 210; long = 210 * r; }
+  long = Math.min(long, 5000);
+  return land ? [long, short] : [short, long];
+}
+async function buildPdf(doc, pages) {
+  if (!window.jspdf || !window.jspdf.jsPDF) throw new Error('Module PDF absent');
+  const Q = QUALS[doc.quality] || QUALS.norm, { jsPDF } = window.jspdf; let pdf = null;
+  for (let i = 0; i < pages.length; i++) {
+    busy(`Création du PDF : page ${i + 1} sur ${pages.length}`); await frame();
+    const cv = await composePage(pages[i], Q.px), url = cv.toDataURL('image/jpeg', Q.q), [pw, ph] = pageMm(doc, cv.width, cv.height), o = pw > ph ? 'l' : 'p';
+    if (!pdf) pdf = new jsPDF({ orientation: o, unit: 'mm', format: [pw, ph], compress: true }); else pdf.addPage([pw, ph], o);
+    const k = Math.min(pw / cv.width, ph / cv.height), w = cv.width * k, h = cv.height * k;
+    pdf.addImage(url, 'JPEG', (pw - w) / 2, (ph - h) / 2, w, h, undefined, 'FAST');
+  }
+  try { pdf.setProperties({ title: doc.name, creator: 'Scan' }); } catch (e) { }
+  const b64 = pdf.output('datauristring').split(',')[1];
+  return { b64, name: fileSafe(doc.name) + '.pdf', mime: 'application/pdf', size: Math.round(b64.length * 0.75) };
+}
+async function buildJpegs(doc, pages) {
+  const Q = QUALS[doc.quality] || QUALS.norm, out = [];
+  for (let i = 0; i < pages.length; i++) {
+    busy(`Image ${i + 1} sur ${pages.length}`); await frame();
+    const cv = await composePage(pages[i], Q.px), b64 = cv.toDataURL('image/jpeg', Math.max(Q.q, 0.7)).split(',')[1];
+    out.push({ b64, name: fileSafe(doc.name) + (pages.length > 1 ? ` - page ${i + 1}` : '') + '.jpg', mime: 'image/jpeg', size: Math.round(b64.length * 0.75) });
+  }
+  return out;
+}
+async function zipOf(files, name) {
+  if (!window.JSZip) { try { await loadScript('../shared/vendor/jszip.min.js'); } catch (e) { } }
+  if (!window.JSZip) return null;
+  const z = new window.JSZip(); files.forEach(f => z.file(f.name, f.b64, { base64: true }));
+  const b64 = await z.generateAsync({ type: 'base64' }); return { b64, name: fileSafe(name) + '.zip', mime: 'application/zip', size: Math.round(b64.length * 0.75) };
+}
+function download(f) { const a = document.createElement('a'); a.href = 'data:' + f.mime + ';base64,' + f.b64; a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); }
+function exportSheet(doc, pagesArg) {
+  const kind = lsGet('scan.kind', 'pdf'), ms = MS(), canSave = !!(ms && ms.saveFile);
+  let K = kind;
+  sheet(`<h4>Exporter « ${esc(doc.name)} »</h4>
+    <div class="lab">Fichier</div><div class="seg" data-g="kind"><button data-v="pdf">PDF</button><button data-v="jpg">Images JPEG</button></div>
+    <div data-pdfonly><div class="lab">Taille des pages</div><div class="seg" data-g="format">${Object.entries(FORMATS).map(([k, l]) => `<button data-v="${k}">${l}</button>`).join('')}</div></div>
+    <div class="lab">Qualité</div><div class="seg" data-g="quality">${Object.entries(QUALS).map(([k, q]) => `<button data-v="${k}">${q.label}</button>`).join('')}</div>
+    <div class="info" id="exInfo"></div>
+    <div class="menu" style="margin-top:6px">
+      ${canSave ? `<button data-x="save">${ic('save')}<span>Enregistrer dans Documents/Scan<small>Directement sur le téléphone</small></span></button>` : ''}
+      <button data-x="send">${ic('share')}<span>${MP() ? 'Envoyer, partager, imprimer' : 'Télécharger'}<small>${MP() ? 'E-mail, WhatsApp, Drive, imprimante, ou enregistrer ailleurs' : 'Fichier sur cet appareil'}</small></span></button>
+    </div>`, el => {
+    const upd = () => {
+      el.querySelectorAll('[data-g]').forEach(g => { const v = g.dataset.g === 'kind' ? K : doc[g.dataset.g]; g.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === v)); });
+      el.querySelector('[data-pdfonly]').hidden = K !== 'pdf';
+      const n = doc.pages.length, Q = QUALS[doc.quality] || QUALS.norm;
+      el.querySelector('#exInfo').textContent = `${plural(n, 'page')} · ${K === 'pdf' ? 'PDF ' + FORMATS[doc.format] : n > 1 ? plural(n, 'image') + (MP() ? ' (envoyées en .zip)' : '') : 'image JPEG'} · ${Q.sub.toLowerCase()}`;
+    };
+    upd();
+    el.addEventListener('click', async e => {
+      const b = e.target.closest('[data-g] button');
+      if (b) { const g = b.parentElement.dataset.g; if (g === 'kind') { K = b.dataset.v; lsSet('scan.kind', K); } else { doc[g] = b.dataset.v; if (doc.pages.length) saveDoc(doc); } upd(); return; }
+      const x = e.target.closest('[data-x]'); if (!x) return;
+      await pageCommit();
+      const pages = S.doc && S.doc.id === doc.id ? S.pages : (pagesArg || await loadPages(doc));
+      if (!pages.length) { toast('Ce document n’a aucune page'); return; }
+      try {
+        if (x.dataset.x === 'save') {
+          if (K === 'pdf') { const f = await buildPdf(doc, pages); busy('Enregistrement'); ms.saveFile(f.b64, f.name, f.mime); }
+          else { const L = await buildJpegs(doc, pages); busy('Enregistrement'); L.forEach(f => ms.saveFile(f.b64, f.name, f.mime)); }
+        } else {
+          let f;
+          if (K === 'pdf') f = await buildPdf(doc, pages);
+          else { const L = await buildJpegs(doc, pages); f = L.length === 1 ? L[0] : await zipOf(L, doc.name); if (!f) { f = L[0]; toast('Envoi de la première image seulement (module ZIP absent)'); } }
+          busy(false);
+          const mp = MP();
+          if (mp && mp.fileMenu) mp.fileMenu(f.b64, f.name, f.mime, '', doc.name, `Bonjour,\n\nVeuillez trouver ci-joint « ${doc.name} ».\n\nCordialement`);
+          else download(f);
+          window.__lastExport = { name: f.name, size: f.size };
+        }
+        busy(false); back();
+      } catch (err) { console.error(err); busy(false); toast(err && err.message === 'Module PDF absent' ? 'Le module PDF n’est pas chargé' : 'L’export a échoué', true); }
+    });
+  });
+}
+
+/* =====================================================================
+   Socle et démarrage
+   ===================================================================== */
+window.onSocle = function (a) {
+  try { a = typeof a === 'string' ? JSON.parse(a) : a; } catch (e) { return; }
+  if (!a || !a.scan || CAM.open) return;
+  const ei = LAYERS.findIndex(l => l.editor), n = ei >= 0 ? LAYERS.length - ei - 1 : LAYERS.length;
+  const go = () => { if (!S.doc) openEditor(newDoc(S.type)); openCamera(); };
+  if (n > 0) { addEventListener('popstate', () => setTimeout(go, 0), { once: true }); history.go(-n); } else go();
+};
+initHome();
+sigLoad();
+loadDocs().then(() => {
+  checkShared();
+  setTimeout(() => { try { const mp = MP(); if (mp && mp.takeSocle) { const a = mp.takeSocle(); if (a) window.onSocle(a); } } catch (e) { } }, 400);
+});
+window.__scan = { S, detect, warp, filterCv, addPage, newDoc, importInto, openEditor, buildPdf, LAYERS, CAM, PG };
+</script>
+</body>
+</html>

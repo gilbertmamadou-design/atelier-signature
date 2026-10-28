@@ -1,0 +1,8 @@
+/* Ondes sur PC : podcasts et musique libre en écoute en ligne ; « Lien » et « Fichiers » (téléchargements sur le téléphone) masqués */
+html.mag-pc nav button[data-tab="link"],html.mag-pc nav button[data-tab="dl"]{display:none}
+@media (min-width:900px){
+  html.mag-pc header,html.mag-pc main{max-width:980px;margin-left:auto;margin-right:auto}
+  html.mag-pc nav{left:50%;right:auto;transform:translateX(-50%);width:min(420px,100%)}
+  html.mag-pc #player{left:50%;right:auto;transform:translateX(-50%);width:min(760px,96vw)}
+  html.mag-pc #toast{left:50%;right:auto;width:min(520px,90vw);margin-left:calc(min(520px,90vw)/-2)}
+}

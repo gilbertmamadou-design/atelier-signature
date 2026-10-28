@@ -1,0 +1,17 @@
+/* Commun aux applis « Suite » (Agenda, Contacts, Dictaphone…) qui ont des feuilles du bas (.sheet + .scrim),
+   des pages pleines (.full) et un message #toast : sur grand écran, feuilles en fenêtres centrées,
+   pages en panneau central, curseurs et barres de défilement pour la souris. */
+html.mag-pc button,html.mag-pc [role=button],html.mag-pc label.sw,html.mag-pc .it,html.mag-pc .hb{cursor:pointer}
+html.mag-pc .hb:hover,html.mag-pc .it:hover{background:var(--bg3,#ffffff10)}
+html.mag-pc ::-webkit-scrollbar{width:12px;height:12px}
+html.mag-pc ::-webkit-scrollbar-thumb{background:#8884;border-radius:8px;border:3px solid transparent;background-clip:content-box}
+html.mag-pc ::-webkit-scrollbar-thumb:hover{background-color:#8888}
+html.mag-pc ::-webkit-scrollbar-track{background:transparent}
+@media (min-width:900px){
+  html.mag-pc .sheet{left:50%;right:auto;bottom:auto;top:50%;width:min(560px,94vw);max-height:84vh;border-radius:20px;border:1px solid var(--line);transform:translate(-50%,-44%);opacity:0;transition:transform .18s ease-out,opacity .18s}
+  html.mag-pc .sheet.on{transform:translate(-50%,-50%);opacity:1}
+  html.mag-pc .sheet .grab{display:none}
+  html.mag-pc .full{left:max(0px,calc(50% - 430px));right:auto;width:min(860px,100%);border-left:1px solid var(--line);border-right:1px solid var(--line)}
+  html.mag-pc .full.on{box-shadow:0 0 0 100vmax #0007}
+  html.mag-pc #toast{left:50%;right:auto;width:min(520px,90vw);margin-left:calc(min(520px,90vw)/-2);bottom:28px}
+}

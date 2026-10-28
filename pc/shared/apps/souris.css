@@ -1,0 +1,6 @@
+/* Commun : curseurs et barres de défilement pour la souris (applis déjà prévues pour un écran large) */
+html.mag-pc button,html.mag-pc [role=button],html.mag-pc label.btn,html.mag-pc .btn,html.mag-pc .item,html.mag-pc select,html.mag-pc summary{cursor:pointer}
+html.mag-pc ::-webkit-scrollbar{width:12px;height:12px}
+html.mag-pc ::-webkit-scrollbar-thumb{background:#8885;border-radius:8px;border:3px solid transparent;background-clip:content-box}
+html.mag-pc ::-webkit-scrollbar-thumb:hover{background-color:#8889}
+html.mag-pc ::-webkit-scrollbar-track{background:transparent}

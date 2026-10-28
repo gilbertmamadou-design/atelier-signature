@@ -1,0 +1,10 @@
+/* Contacts sur PC : liste centrée et plus large, lettres A-Z cliquables. Fenêtres et curseurs : fenetres.css */
+html.mag-pc #az b{cursor:pointer}
+html.mag-pc #list{scrollbar-width:auto}
+html.mag-pc #list::-webkit-scrollbar{display:block}
+html.mag-pc .it .q:hover{background:var(--bg4,#ffffff14)}
+@media (min-width:900px){
+  html.mag-pc header,html.mag-pc .search,html.mag-pc #main{width:min(900px,calc(100% - 24px));margin-left:auto;margin-right:auto;box-sizing:border-box}
+  html.mag-pc .search{max-width:900px}
+  html.mag-pc #fab{right:max(24px,calc((100% - 900px)/2 - 80px));bottom:28px}
+}

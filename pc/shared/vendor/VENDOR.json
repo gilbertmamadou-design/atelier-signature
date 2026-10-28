@@ -1,4 +1,13 @@
 {
+  "jspdf.umd.min.js": {
+    "package": "jspdf",
+    "version": "2.5.1",
+    "from": "dist/jspdf.umd.min.js",
+    "license": "MIT",
+    "licenseFile": "LICENSES/jspdf-MIT.txt",
+    "size": 364463,
+    "sha256": "98ccf17aa10c20bb1301762618fcc9b6ab3a4e7f26b6071d64d0b41154df3875"
+  },
   "jszip.min.js": {
     "package": "jszip",
     "version": "3.10.1",
@@ -7,6 +16,24 @@
     "licenseFile": "LICENSES/jszip-MIT-ou-GPLv3.md",
     "size": 97630,
     "sha256": "acc7e41455a80765b5fd9c7ee1b8078a6d160bbbca455aeae854de65c947d59e"
+  },
+  "leaflet.css": {
+    "package": "leaflet",
+    "version": "1.9.4",
+    "from": "dist/leaflet.css",
+    "license": "BSD-2-Clause",
+    "licenseFile": "LICENSES/leaflet-BSD-2-Clause.txt",
+    "size": 14806,
+    "sha256": "a7837102824184820dfa198d1ebcd109ff6d0ff9a2672a074b9a1b4d147d04c6"
+  },
+  "leaflet.js": {
+    "package": "leaflet",
+    "version": "1.9.4",
+    "from": "dist/leaflet.js",
+    "license": "BSD-2-Clause",
+    "licenseFile": "LICENSES/leaflet-BSD-2-Clause.txt",
+    "size": 147552,
+    "sha256": "db49d009c841f5ca34a888c96511ae936fd9f5533e90d8b2c4d57596f4e5641a"
   },
   "pdf-lib.min.js": {
     "package": "pdf-lib",
@@ -61,5 +88,14 @@
     "licenseFile": "LICENSES/tesseract.js-core-Apache-2.0.txt",
     "size": 2857601,
     "sha256": "34e8d50cac216427d86bf397d610fdd9f49492539bbcdfbfccc4eda20c810bea"
+  },
+  "xlsx.full.min.js": {
+    "package": "xlsx",
+    "version": "0.18.5",
+    "from": "dist/xlsx.full.min.js",
+    "license": "Apache-2.0",
+    "licenseFile": "LICENSES/xlsx-Apache-2.0.txt",
+    "size": 881727,
+    "sha256": "c9506197caf809a075b6dee1da0d36fb19da7158ffe8a88e7b0c96c5d8623c99"
   }
 }

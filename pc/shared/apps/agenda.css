@@ -1,0 +1,16 @@
+/* Agenda sur PC : grand écran (mois + journée côte à côte). Fenêtres et curseurs : fenetres.css */
+html.mag-pc .cell,html.mag-pc .tabs button,html.mag-pc #fab,html.mag-pc .wcol,html.mag-pc [data-k],html.mag-pc [data-open]{cursor:pointer}
+html.mag-pc .cell:hover:not(.sel){background:var(--bg2)}
+html.mag-pc .wcol:hover{background:#ffffff05}
+@media (max-width:899px){html.mag-pc .mpc-step{display:none}}
+@media (min-width:900px){
+  html.mag-pc header,html.mag-pc .tabs{max-width:1240px;width:calc(100% - 24px);margin-left:auto;margin-right:auto;box-sizing:border-box}
+  html.mag-pc .tabs{max-width:640px}
+  html.mag-pc #main{max-width:1240px;width:100%;margin:0 auto}
+  html.mag-pc .pane:has(> .mgrid){flex-direction:row}
+  html.mag-pc .pane > .mgrid{flex:1 1 auto;border-bottom:0;border-right:1px solid var(--line);display:flex;flex-direction:column;padding-bottom:8px}
+  html.mag-pc .pane > .mgrid .mrow{flex:1}
+  html.mag-pc .pane > .mgrid .cell{height:auto;min-height:56px;flex:1}
+  html.mag-pc .pane > .daylist{flex:0 0 380px;padding-bottom:110px}
+  html.mag-pc #fab{right:max(24px,calc((100% - 1240px)/2 + 24px));bottom:28px}
+}

@@ -1,0 +1,1780 @@
+<!-- FICHIER GÉNÉRÉ par pc/build-pc.py depuis applis/www-solaire/index.html : ne pas modifier ici. -->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<!-- Suite MAG sur PC : ajouté par pc/build-pc.py (source : applis/www-solaire/index.html) -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="../shared/pc.css">
+<link rel="stylesheet" href="../shared/apps/souris.css">
+<link rel="stylesheet" href="../shared/apps/solaire.css">
+<script>window.MAGPC_CONF={"app": "solaire", "name": "Solaire", "vendor": "../shared/vendor/", "ocrWorker": "ocr-worker.js", "sw": "sw.js", "apps": {"fr.magformation13.lecteur": "../lecteur/", "fr.magformation13.pdf": "../pdf/", "fr.magformation13.budget": "../budget/", "fr.magformation13.liseuse": "../liseuse/", "fr.magformation13.fichiers": "../fichiers/", "fr.magformation13.actualites": "../actualites/", "fr.magformation13.carnet": "../notes/", "fr.magformation13.agenda": "../agenda/", "fr.magformation13.contacts": "../contacts/", "fr.magformation13.calcul": "../calcul/", "fr.magformation13.qr": "../qr/", "fr.magformation13.meteo": "../meteo/", "fr.magformation13.ciel": "../ciel/", "fr.magformation13.sentiers": "../sentiers/", "fr.magformation13.solaire": "../solaire/", "fr.magformation13.musique": "../musique/", "fr.magformation13.ondes": "../ondes/", "fr.magformation13.ecran": "../ecran/", "fr.magformation13.galerie": "../galerie/", "fr.magformation13.scan": "../scan/", "fr.magformation13.dicta": "../dicta/", "fr.magformation13.coffre": "../coffre/", "fr.magformation13.petitspas": "../petitspas/", "fr.magformation13.chasse": "../chasse/"}};</script>
+<script src="../shared/pc-shim.js"></script>
+<script src="../shared/apps/solaire.js"></script>
+
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Solaire</title>
+<meta name="theme-color" content="#0f1116">
+<link rel="stylesheet" href="../shared/vendor/leaflet.css" id="lfCss">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#0f1116;--bg2:#181b23;--bg3:#222632;--bg4:#2c3140;--line:#ffffff14;
+  --tx:#f2f3f7;--tx2:#b4b8c7;--tx3:#7d8294;
+  --acc:#ffc94a;--acc2:#ff9a3c;--blue:#6fb4ff;--ok:#6fd6a4;--bad:#ff7b7b;--warn:#ffb35c;
+  --r:18px;--safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:15.5px/1.42 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none}
+body{-webkit-user-select:none;user-select:none}
+input,textarea,select{font:inherit;color:inherit;-webkit-user-select:text;user-select:text}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+a{color:var(--blue)}
+svg{display:block}
+.ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+[hidden]{display:none!important}
+.num{font-variant-numeric:tabular-nums}
+header{padding:calc(14px + var(--safe-t)) 16px 8px;display:flex;align-items:center;gap:10px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:23px}
+.logo img{width:36px;height:36px;border-radius:10px}
+header .sp{flex:1}
+main{padding:4px 16px calc(28px + var(--safe-b))}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.card h3{margin:0 0 10px;font-size:12.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--tx3);font-weight:700}
+.card h4{margin:12px 0 6px;font-size:15px}
+.warn{background:#ffb35c14;border-color:#ffb35c40}
+.bad{background:#ff7b7b14;border-color:#ff7b7b40}
+.okc{background:#6fd6a414;border-color:#6fd6a440}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:56px;padding:10px 14px;border-radius:16px;background:var(--bg3);border:1px solid var(--line);font-weight:700;font-size:16px;flex:1;min-width:0;text-align:center;line-height:1.2}
+.btn:active{transform:scale(.97)}
+.btn.main{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#1a1206;border:0}
+.btn.sm{min-height:46px;font-size:14.5px;padding:8px 12px}
+.btn.on{background:var(--acc);color:#1a1206;border-color:transparent}
+.btn[disabled]{opacity:.45}
+.row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.row>.btn{flex:1 1 0}
+.big3{display:grid;grid-template-columns:1fr;gap:10px}
+.choice{display:flex;align-items:center;gap:14px;background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:16px;text-align:left;min-height:84px;width:100%}
+.choice:active{background:var(--bg3)}
+.choice .ico{width:52px;height:52px;border-radius:15px;background:#ffc94a1f;color:var(--acc);display:flex;align-items:center;justify-content:center;flex:none}
+.choice .ico .ic{width:30px;height:30px}
+.choice b{font-size:17.5px;display:block}
+.choice span{font-size:13.5px;color:var(--tx2)}
+.seg{display:flex;background:var(--bg3);border-radius:14px;padding:4px;gap:4px;flex-wrap:wrap}
+.seg button{flex:1;min-height:48px;padding:6px 6px;border-radius:11px;font-size:14.5px;font-weight:700;color:var(--tx2);text-align:center;line-height:1.15}
+.seg button.on{background:var(--bg4);color:var(--tx);box-shadow:0 0 0 1px #ffffff2a inset}
+.fld{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.fld:first-child{border-top:0}
+.fld>label{flex:1;font-weight:600;font-size:15px}
+.fld>label small{display:block;color:var(--tx3);font-weight:500;font-size:12.5px}
+.fld input,.fld select{width:118px;min-height:50px;background:var(--bg3);border:1px solid var(--line);border-radius:12px;padding:8px 10px;text-align:right;font-size:18px;font-weight:700}
+.fld select{text-align:left;font-size:15px;width:170px}
+.fld .u{min-width:30px;color:var(--tx3);font-size:13px}
+.txt{width:100%;min-height:54px;background:var(--bg3);border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:16.5px}
+textarea.txt{min-height:90px;resize:vertical}
+.note{font-size:13px;color:var(--tx3);line-height:1.45;margin:8px 2px 0}
+.tag{display:inline-block;font-size:12.5px;font-weight:700;padding:3px 9px;border-radius:99px;background:var(--bg3);color:var(--tx2);margin:2px 4px 2px 0}
+.tag.ok{background:#6fd6a426;color:var(--ok)}
+.tag.warn{background:#ffb35c26;color:var(--warn)}
+.tag.bad{background:#ff7b7b26;color:var(--bad)}
+.tag.sim{background:#b79bff26;color:#cdb8ff}
+.kv{width:100%;border-collapse:collapse;font-size:14.5px}
+.kv td{padding:7px 4px;border-top:1px solid var(--line);vertical-align:top}
+.kv tr:first-child td{border-top:0}
+.kv td:first-child{color:var(--tx2);width:42%}
+.kv td:last-child{font-weight:600}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:4px 0 8px}
+.stat{background:var(--bg3);border-radius:14px;padding:10px 6px;text-align:center}
+.stat div:first-child{font-size:11.5px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.stat div+div{font-size:23px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}
+.pj{display:flex;gap:12px;align-items:center;background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:10px;margin-bottom:10px;width:100%;text-align:left}
+.pj img,.pj .ph{width:74px;height:74px;border-radius:12px;object-fit:cover;background:var(--bg3);flex:none;display:flex;align-items:center;justify-content:center;color:var(--tx3)}
+.pj .t{flex:1;min-width:0}
+.pj b{display:block;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pj span{display:block;font-size:13.5px;color:var(--tx2)}
+.empty{color:var(--tx3);text-align:center;padding:26px 10px;font-size:15px}
+/* Écrans */
+.scr{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;z-index:10}
+.tb{display:flex;align-items:center;gap:6px;padding:calc(8px + var(--safe-t)) 8px 6px;flex:none;position:relative;z-index:3;background:var(--bg)}
+.tb h2{flex:1;margin:0;font-size:18.5px;font-weight:700;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{width:52px;height:52px;border-radius:15px;display:flex;align-items:center;justify-content:center;flex:none}
+.ib:active{background:var(--bg3)}
+.ib.on{background:var(--acc);color:#1a1206}
+.bd{flex:1;overflow-y:auto;overflow-x:hidden;padding:4px 16px calc(20px + var(--safe-b));position:relative}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:4px 10px 8px;flex:none;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:none;min-height:46px;padding:6px 14px;border-radius:99px;background:var(--bg2);border:1px solid var(--line);font-weight:700;font-size:14.5px;color:var(--tx2);display:flex;align-items:center;gap:7px}
+.tabs button i{font-style:normal;width:22px;height:22px;border-radius:50%;background:var(--bg4);display:inline-flex;align-items:center;justify-content:center;font-size:12px}
+.tabs button.on{background:var(--acc);color:#1a1206;border-color:transparent}
+.tabs button.on i{background:#0002}
+.tabs button.done i{background:var(--ok);color:#06210f}
+.sugg button{display:block;width:100%;text-align:left;padding:12px 10px;border-top:1px solid var(--line);font-size:15px;min-height:52px}
+.sugg button:first-child{border-top:0}
+.sugg small{color:var(--tx3)}
+.need{border-left:4px solid var(--acc);padding:10px 12px;background:var(--bg3);border-radius:0 14px 14px 0;margin:10px 0}
+.need.ok{border-color:var(--ok)}.need.bad{border-color:var(--bad)}.need.info{border-color:var(--blue)}
+.need>b{font-size:16.5px;display:block}
+.need p{margin:4px 0 0;font-size:14px;color:var(--tx2)}
+.need .src{font-size:12.5px;color:var(--tx3);margin-top:6px}
+.need .src a{color:var(--blue)}
+ul.pl{margin:6px 0 0;padding-left:20px;font-size:14.5px}
+ul.pl li{margin:3px 0}
+.pan{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);margin-bottom:12px;overflow:hidden}
+.pan .thumb{width:100%;aspect-ratio:16/10;background:#000;display:block;object-fit:contain}
+.pan .in{padding:12px 14px}
+.pan .hd{display:flex;align-items:center;gap:8px}
+.pan .hd b{flex:1;font-size:17px}
+.bars{display:flex;align-items:flex-end;gap:4px;height:130px;margin:10px 0 2px}
+.bars div{flex:1;background:linear-gradient(var(--acc),var(--acc2));border-radius:5px 5px 2px 2px;min-height:2px;position:relative}
+.bars-l{display:flex;gap:4px;font-size:11px;color:var(--tx3)}
+.bars-l span{flex:1;text-align:center}
+/* Éditeur */
+#s-edit{background:#000}
+#cv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+#edWrap{flex:1;position:relative;overflow:hidden}
+#edInfo{position:absolute;left:8px;right:8px;top:8px;background:#0f1116d9;border:1px solid var(--line);border-radius:14px;padding:8px 12px;font-size:14px;z-index:2;pointer-events:none}
+#edInfo b{font-size:16px}
+#edHelp{position:absolute;left:8px;right:8px;bottom:8px;background:#0f1116e6;border:1px solid var(--line);border-radius:14px;padding:8px 12px;font-size:13.5px;color:var(--tx2);z-index:2;pointer-events:none}
+.edbar{flex:none;background:var(--bg);padding:8px 8px calc(8px + var(--safe-b));display:flex;flex-direction:column;gap:8px}
+.edbar .seg button{min-height:50px}
+.edopts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.edopts .btn{min-height:48px;font-size:14.5px;flex:1 1 auto}
+.edopts input{width:96px;min-height:48px;background:var(--bg3);border:1px solid var(--line);border-radius:12px;padding:6px 8px;text-align:right;font-size:17px;font-weight:700}
+.edopts label{font-size:14px;font-weight:600;color:var(--tx2)}
+/* Carte */
+#map{flex:1;background:#223}
+#mapFrame{position:absolute;left:50%;top:50%;width:260px;height:260px;margin:-130px 0 0 -130px;border:3px dashed #ffc94acc;border-radius:8px;pointer-events:none;z-index:500}
+.leaflet-container{background:#1b1f28}
+/* Feuilles */
+#sheetBg{position:fixed;inset:0;background:#0009;z-index:40;opacity:0;transition:opacity .2s}
+#sheetBg.on{opacity:1}
+#sheet{position:fixed;left:0;right:0;bottom:0;background:var(--bg2);border-radius:22px 22px 0 0;padding:18px 16px calc(18px + var(--safe-b));z-index:41;max-height:88vh;overflow-y:auto;transform:translateY(100%);transition:transform .22s}
+#sheet.on{transform:none}
+#sheet h3{margin:0 0 8px;font-size:19px}
+#sheet p{margin:6px 0;color:var(--tx2)}
+.menu button{display:flex;align-items:center;gap:12px;width:100%;min-height:58px;padding:8px 6px;border-top:1px solid var(--line);font-size:16px;font-weight:600;text-align:left}
+.menu button:first-child{border-top:0}
+#toast{position:fixed;left:50%;bottom:calc(24px + var(--safe-b));transform:translateX(-50%) translateY(30px);background:#eef0f6;color:#111;padding:12px 18px;border-radius:14px;font-weight:600;font-size:15px;opacity:0;transition:.25s;z-index:60;max-width:90vw;text-align:center;pointer-events:none}
+#toast.on{opacity:1;transform:translateX(-50%)}
+#toast.err{background:#ffb0a8}
+.live{font-size:56px;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;margin:6px 0}
+.spin{display:inline-block;width:18px;height:18px;border:3px solid #fff4;border-top-color:var(--acc);border-radius:50%;animation:sp 1s linear infinite;vertical-align:-3px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (min-width:900px){
+  main,.bd{max-width:860px;margin:0 auto;width:100%}
+  .big3{grid-template-columns:repeat(3,1fr)}
+}
+</style>
+</head>
+<body>
+<!-- Accueil -->
+<header>
+  <div class="logo"><img src="icon-512.png" alt="">Solaire</div><div class="sp"></div>
+  <button class="ib" id="bImport" aria-label="Importer un projet"><svg class="ic" viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg></button>
+</header>
+<main id="home">
+  <button class="btn main" id="bNew" style="width:100%;min-height:68px;font-size:19px;margin-bottom:14px"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Nouveau projet</button>
+  <div id="pList"></div>
+  <p class="note">Solaire estime combien de panneaux tu peux poser (toiture, sol, ombrière), les démarches d'urbanisme et la production. C'est une <b>estimation</b> : à confirmer par un relevé sur site et auprès de la mairie.</p>
+</main>
+<input type="file" id="fCam" accept="image/*" capture="environment" hidden>
+<input type="file" id="fGal" accept="image/*" hidden>
+<input type="file" id="fPlan" accept="image/*,application/pdf,.pdf" hidden>
+<input type="file" id="fJson" accept="application/json,.json,.solaire" hidden>
+
+<!-- Projet -->
+<section class="scr" id="s-proj" hidden>
+  <div class="tb"><button class="ib" data-back aria-label="Retour"><svg class="ic" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><h2 id="pTitle">Projet</h2><button class="ib" id="pMenu" aria-label="Menu du projet"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/></svg></button></div>
+  <nav class="tabs" id="tabs">
+    <button data-tab="lieu"><i>1</i>Lieu</button>
+    <button data-tab="mesure"><i>2</i>Surfaces</button>
+    <button data-tab="pose"><i>3</i>Panneaux</button>
+    <button data-tab="regles"><i>4</i>Démarches</button>
+    <button data-tab="prod"><i>5</i>Production</button>
+    <button data-tab="fiche"><i>6</i>Fiche</button>
+  </nav>
+  <div class="bd" id="pBody"></div>
+</section>
+
+<!-- Éditeur de surface -->
+<section class="scr" id="s-edit" hidden>
+  <div class="tb"><button class="ib" id="edBack" aria-label="Terminer"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></button><h2 id="edTitle">Surface</h2>
+    <button class="ib" id="edUndo" aria-label="Annuler le dernier point"><svg class="ic" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button>
+    <button class="ib" id="edFit" aria-label="Recentrer"><svg class="ic" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>
+  <div id="edWrap"><canvas id="cv"></canvas><div id="edInfo"></div><div id="edHelp"></div></div>
+  <div class="edbar">
+    <div class="seg" id="edMode">
+      <button data-m="cal">Échelle</button><button data-m="poly">Contour</button><button data-m="obs">Obstacles</button><button data-m="eave">Bas du pan</button>
+    </div>
+    <div class="edopts" id="edOpts"></div>
+  </div>
+</section>
+
+<!-- Vue aérienne -->
+<section class="scr" id="s-map" hidden>
+  <div class="tb"><button class="ib" data-back aria-label="Retour"><svg class="ic" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><h2>Vue aérienne IGN</h2></div>
+  <div style="flex:1;position:relative;display:flex"><div id="map"></div><div id="mapFrame"></div></div>
+  <div class="edbar"><div class="note" style="margin:0 4px">Place la toiture ou le terrain dans le cadre (zoom maximum conseillé), puis valide. L'échelle est connue (orthophoto IGN).</div>
+    <div class="row" style="margin:0"><button class="btn" id="mapLoc">Recentrer sur l'adresse</button><button class="btn main" id="mapOk">Utiliser cette vue</button></div></div>
+</section>
+
+<div id="sheetBg" hidden></div><div id="sheet" hidden></div>
+<div id="toast"></div>
+<script>
+/* =====================================================================
+   Solaire : cœur de calcul (géométrie, échelle, redressement, calepinage,
+   ombre portée) — sans interface, exposé en window.SolaireCore pour les tests
+   ===================================================================== */
+(function(){
+'use strict';
+var D2R = Math.PI / 180;
+function sub(a, b){ return [a[0] - b[0], a[1] - b[1]]; }
+function add(a, b){ return [a[0] + b[0], a[1] + b[1]]; }
+function mul(a, k){ return [a[0] * k, a[1] * k]; }
+function dot(a, b){ return a[0] * b[0] + a[1] * b[1]; }
+function len(a){ return Math.sqrt(a[0] * a[0] + a[1] * a[1]); }
+function dist(a, b){ return len(sub(a, b)); }
+function sarea(p){ var s = 0; for(var i = 0, n = p.length; i < n; i++){ var a = p[i], b = p[(i + 1) % n]; s += a[0] * b[1] - b[0] * a[1]; } return s / 2; }
+function area(p){ return p && p.length > 2 ? Math.abs(sarea(p)) : 0; }
+function centroid(p){
+  var a = sarea(p), cx = 0, cy = 0, n = p.length;
+  if(Math.abs(a) < 1e-12){ p.forEach(function(q){ cx += q[0]; cy += q[1]; }); return [cx / n, cy / n]; }
+  for(var i = 0; i < n; i++){ var q = p[i], r = p[(i + 1) % n], f = q[0] * r[1] - r[0] * q[1]; cx += (q[0] + r[0]) * f; cy += (q[1] + r[1]) * f; }
+  return [cx / (6 * a), cy / (6 * a)];
+}
+function perim(p){ var s = 0; for(var i = 0; i < p.length; i++) s += dist(p[i], p[(i + 1) % p.length]); return s; }
+
+/* --- Systèmes linéaires et homographie (redressement de perspective) --- */
+function solve(A, b){
+  var n = b.length, M = A.map(function(r, i){ return r.concat([b[i]]); });
+  for(var c = 0; c < n; c++){
+    var piv = c; for(var r = c + 1; r < n; r++) if(Math.abs(M[r][c]) > Math.abs(M[piv][c])) piv = r;
+    if(Math.abs(M[piv][c]) < 1e-12) return null;
+    var t = M[c]; M[c] = M[piv]; M[piv] = t;
+    for(var r2 = 0; r2 < n; r2++){ if(r2 === c) continue; var f = M[r2][c] / M[c][c]; for(var k = c; k <= n; k++) M[r2][k] -= f * M[c][k]; }
+  }
+  return M.map(function(r, i){ return r[n] / r[i]; });
+}
+/** Homographie H (3×3, à plat) qui envoie src[i] sur dst[i] (4 points) */
+function homography(src, dst){
+  var A = [], b = [];
+  for(var i = 0; i < 4; i++){
+    var x = src[i][0], y = src[i][1], u = dst[i][0], v = dst[i][1];
+    A.push([x, y, 1, 0, 0, 0, -u * x, -u * y]); b.push(u);
+    A.push([0, 0, 0, x, y, 1, -v * x, -v * y]); b.push(v);
+  }
+  var h = solve(A, b); if(!h) return null;
+  return h.concat([1]);
+}
+function applyH(H, p){ var w = H[6] * p[0] + H[7] * p[1] + H[8]; return [(H[0] * p[0] + H[1] * p[1] + H[2]) / w, (H[3] * p[0] + H[4] * p[1] + H[5]) / w]; }
+function invH(m){
+  var a = m[0], b = m[1], c = m[2], d = m[3], e = m[4], f = m[5], g = m[6], h = m[7], i = m[8];
+  var A = e * i - f * h, B = -(d * i - f * g), C = d * h - e * g, det = a * A + b * B + c * C;
+  if(Math.abs(det) < 1e-15) return null;
+  return [A / det, -(b * i - c * h) / det, (b * f - c * e) / det, B / det, (a * i - c * g) / det, -(a * f - c * d) / det, C / det, -(a * h - b * g) / det, (a * e - b * d) / det];
+}
+function convex(p){
+  if(!p || p.length < 3) return false; var s = 0;
+  for(var i = 0; i < p.length; i++){ var a = p[i], b = p[(i + 1) % p.length], c = p[(i + 2) % p.length], z = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]); if(Math.abs(z) < 1e-9) continue; if(!s) s = z > 0 ? 1 : -1; else if((z > 0 ? 1 : -1) !== s) return false; }
+  return true;
+}
+
+/* --- Étalonnage : image (pixels) → plan réel (mètres) ---
+   cal.mode : 'longueur' (2 points + L), 'rect' (4 coins d'un rectangle W × H, dans l'ordre),
+              'echelle' (mpp : mètres par pixel, plan à l'échelle), 'aerien' (mpp connu, orthophoto) */
+function plane(cal){
+  if(!cal) return null;
+  if(cal.mode === 'longueur'){
+    if(!cal.pts || cal.pts.length < 2 || !(cal.L > 0)) return null;
+    var d = dist(cal.pts[0], cal.pts[1]); if(d < 1) return null;
+    var s = cal.L / d;
+    return { mpp: s, f: function(p){ return [p[0] * s, p[1] * s]; }, inv: function(q){ return [q[0] / s, q[1] / s]; } };
+  }
+  if(cal.mode === 'rect'){
+    if(!cal.pts || cal.pts.length < 4 || !(cal.W > 0) || !(cal.H > 0) || !convex(cal.pts)) return null;
+    var H = homography(cal.pts, [[0, 0], [cal.W, 0], [cal.W, cal.H], [0, cal.H]]); if(!H) return null;
+    var Hi = invH(H); if(!Hi) return null;
+    return { H: H, f: function(p){ return applyH(H, p); }, inv: function(q){ return applyH(Hi, q); } };
+  }
+  if((cal.mode === 'echelle' || cal.mode === 'aerien') && cal.mpp > 0){
+    var m = cal.mpp;
+    return { mpp: m, f: function(p){ return [p[0] * m, p[1] * m]; }, inv: function(q){ return [q[0] / m, q[1] / m]; } };
+  }
+  return null;
+}
+/** Mètres par pixel d'un plan à l'échelle 1/denom : rendu PDF (pxParPt = pixels par point PDF) ou image (dpi) */
+function planMpp(denom, pxParPt, dpi){
+  var mmParPx = pxParPt ? (25.4 / 72) / pxParPt : 25.4 / (dpi || 150);
+  return mmParPx / 1000 * denom;
+}
+/** Mètres par pixel d'une tuile Web Mercator au niveau z, à la latitude lat */
+function mercMpp(lat, z){ return Math.cos(lat * D2R) * 2 * Math.PI * 6378137 / (256 * Math.pow(2, z)); }
+function lonLatToPx(lon, lat, z){
+  var n = 256 * Math.pow(2, z), s = Math.sin(lat * D2R);
+  return [(lon + 180) / 360 * n, (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * n];
+}
+function pxToLonLat(x, y, z){
+  var n = 256 * Math.pow(2, z), lon = x / n * 360 - 180, t = Math.PI * (1 - 2 * y / n);
+  return [lon, Math.atan(Math.sinh(t)) / D2R];
+}
+
+/* --- Repère local d'un pan ---
+   Toiture : x le long du bas du pan (égout), y vers le haut de la pente (faîtage).
+     Vue de dessus (plan, vue aérienne) : y est allongé de 1/cos(pente) → surface réelle = projetée / cos(pente).
+   Sol, ombrière : x le long des rangées, y vers le nord (à l'opposé du soleil), selon l'azimut des panneaux
+     et la direction du nord sur l'image (vue aérienne : nord en haut). */
+function frame(pan, type){
+  var pl = plane(pan.cal); if(!pl || !pan.poly || pan.poly.length < 3) return null;
+  var P = pan.poly.map(pl.f), n = P.length, A, u, nv, k = 1;
+  if(type === 'toiture'){
+    var e = ((pan.eave || 0) % n + n) % n; A = P[e];
+    var B = P[(e + 1) % n], L = dist(A, B); if(L < 1e-9) return null;
+    u = mul(sub(B, A), 1 / L); nv = [-u[1], u[0]];
+    if(dot(sub(centroid(P), A), nv) < 0) nv = mul(nv, -1);
+    if(pan.top && pan.pente > 0 && pan.pente < 80) k = 1 / Math.cos(pan.pente * D2R);
+  } else {
+    var no = (pan.nord || 0) * D2R, N = [Math.sin(no), -Math.cos(no)], E = [Math.cos(no), Math.sin(no)];
+    var az = (pan.az == null ? 180 : pan.az) * D2R, f = add(mul(E, Math.sin(az)), mul(N, Math.cos(az)));
+    u = [-f[1], f[0]]; nv = mul(f, -1);
+    var ys = P.map(function(p){ return dot(p, nv); }), xs = P.map(function(p){ return dot(p, u); });
+    A = add(mul(u, Math.min.apply(null, xs)), mul(nv, Math.min.apply(null, ys)));
+  }
+  function toL(p){ var q = sub(pl.f(p), A); return [dot(q, u), dot(q, nv) * k]; }
+  function toI(q){ return pl.inv(add(A, add(mul(u, q[0]), mul(nv, q[1] / k)))); }
+  return { toL: toL, toI: toI, k: k, plane: pl, poly: pan.poly.map(toL), obs: (pan.obs || []).filter(function(o){ return o.length > 2; }).map(function(o){ return o.map(toL); }) };
+}
+
+/* --- Tests géométriques --- */
+function inPoly(pt, poly){
+  var x = pt[0], y = pt[1], c = false;
+  for(var i = 0, j = poly.length - 1; i < poly.length; j = i++){
+    var a = poly[i], b = poly[j];
+    if(((a[1] > y) !== (b[1] > y)) && (x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0])) c = !c;
+  }
+  return c;
+}
+function segPtDist(p, a, b){
+  var ab = sub(b, a), t = dot(sub(p, a), ab) / (dot(ab, ab) || 1e-18); t = Math.max(0, Math.min(1, t));
+  return dist(p, add(a, mul(ab, t)));
+}
+/** Le segment [a,b] coupe-t-il le rectangle r (Liang–Barsky) ? */
+function segHitsRect(a, b, r){
+  var t0 = 0, t1 = 1, dx = b[0] - a[0], dy = b[1] - a[1];
+  var P = [-dx, dx, -dy, dy], Q = [a[0] - r[0], r[2] - a[0], a[1] - r[1], r[3] - a[1]];
+  for(var i = 0; i < 4; i++){
+    if(Math.abs(P[i]) < 1e-15){ if(Q[i] < 0) return false; }
+    else { var t = Q[i] / P[i]; if(P[i] < 0){ if(t > t1) return false; if(t > t0) t0 = t; } else { if(t < t0) return false; if(t < t1) t1 = t; } }
+  }
+  return true;
+}
+function rectCorners(r){ return [[r[0], r[1]], [r[2], r[1]], [r[2], r[3]], [r[0], r[3]]]; }
+function segRectDist(a, b, r){
+  if(segHitsRect(a, b, r)) return 0;
+  var c = rectCorners(r), m = Infinity;
+  for(var i = 0; i < 4; i++){
+    var c2 = c[(i + 1) % 4];
+    m = Math.min(m, segPtDist(c[i], a, b), segPtDist(a, c[i], c2), segPtDist(b, c[i], c2));
+  }
+  return m;
+}
+function polyRectDist(O, r){
+  for(var i = 0; i < O.length; i++){ var p = O[i]; if(p[0] > r[0] && p[0] < r[2] && p[1] > r[1] && p[1] < r[3]) return 0; }
+  var c = rectCorners(r); for(var j = 0; j < 4; j++) if(inPoly(c[j], O)) return 0;
+  var m = Infinity; for(var k = 0; k < O.length; k++) m = Math.min(m, segRectDist(O[k], O[(k + 1) % O.length], r));
+  return m;
+}
+
+/* --- Nature des bords d'un pan de toiture (dans le repère local) --- */
+function edgeKinds(Q, type, eave){
+  var cy = centroid(Q)[1], t20 = Math.tan(20 * D2R);
+  return Q.map(function(a, i){
+    if(type !== 'toiture') return 'limite';
+    var b = Q[(i + 1) % Q.length], dx = Math.abs(b[0] - a[0]), dy = Math.abs(b[1] - a[1]);
+    if(i === eave) return 'egout';
+    if(dy <= dx * t20) return (a[1] + b[1]) / 2 < cy ? 'egout' : 'faitage';
+    return 'rive';
+  });
+}
+
+/* --- Calepinage ---
+   Q : contour local (m), OB : obstacles locaux, o : { pw, ph (largeur selon x, profondeur selon y),
+   gx (jeu entre panneaux en x), pitch (pas entre rangées en y), m (marge par bord), mo (marge obstacles),
+   align (colonnes alignées) } → { rects:[[x0,y0,x1,y1]], n } */
+function layout(Q, OB, o){
+  var rects = [], n = Q.length; if(n < 3 || !(o.pw > 0) || !(o.ph > 0)) return { rects: rects, n: 0 };
+  var xs = Q.map(function(p){ return p[0]; }), ys = Q.map(function(p){ return p[1]; });
+  var bx0 = Math.min.apply(null, xs), bx1 = Math.max.apply(null, xs), by0 = Math.min.apply(null, ys), by1 = Math.max.apply(null, ys);
+  var m = o.m || Q.map(function(){ return 0; }), mo = o.mo || 0, eps = 1e-7;
+  var pitch = Math.max(o.pitch || 0, o.ph), cw = o.pw + (o.gx || 0);
+  var mmin = Math.min.apply(null, m.concat([1e9]));
+  function ok(x0, y0){
+    var r = [x0, y0, x0 + o.pw, y0 + o.ph];
+    if(r[0] < bx0 + mmin - eps || r[2] > bx1 - mmin + eps || r[1] < by0 + mmin - eps || r[3] > by1 - mmin + eps) return false;
+    var c = rectCorners(r);
+    for(var i = 0; i < 4; i++) if(!inPoly(c[i], Q)) return false;
+    var ri = [r[0] + eps, r[1] + eps, r[2] - eps, r[3] - eps];
+    for(var k = 0; k < n; k++){
+      var a = Q[k], b = Q[(k + 1) % n];
+      if(a[0] > ri[0] && a[0] < ri[2] && a[1] > ri[1] && a[1] < ri[3]) return false;
+      if(m[k] > 0){ if(segRectDist(a, b, r) < m[k] - eps) return false; }
+      else if(segHitsRect(a, b, ri)) return false;
+    }
+    for(var j = 0; j < OB.length; j++){
+      var d = polyRectDist(OB[j], mo > 0 ? r : ri);
+      if(mo > 0 ? d < mo - eps : d === 0) return false;
+    }
+    return true;
+  }
+  var W = bx1 - bx0, Hh = by1 - by0;
+  var Ky = Math.max(1, Math.min(o.ky || 12, Math.ceil(pitch / 0.01)));
+  var step = o.step || Math.max(0.01, Math.min(0.05, W / 1500));
+  var best = { n: -1, rects: [] }, calls = 0;
+  for(var iy = 0; iy < Ky; iy++){
+    var oy = pitch * iy / Ky, rows = [];
+    for(var y = by0 + oy; y + o.ph <= by1 + eps; y += pitch) rows.push(y);
+    if(o.align){
+      var Kx = Math.max(1, Math.min(o.kx || 12, Math.ceil(cw / 0.01)));
+      for(var ix = 0; ix < Kx; ix++){
+        var ox = cw * ix / Kx, rr = [];
+        rows.forEach(function(yy){ for(var x = bx0 + ox; x + o.pw <= bx1 + eps; x += cw){ calls++; if(ok(x, yy)) rr.push([x, yy, x + o.pw, yy + o.ph]); } });
+        if(rr.length > best.n) best = { n: rr.length, rects: rr };
+      }
+    } else {
+      var rr2 = [];
+      rows.forEach(function(yy){ var x = bx0; while(x + o.pw <= bx1 + eps){ calls++; if(ok(x, yy)){ rr2.push([x, yy, x + o.pw, yy + o.ph]); x += cw; } else x += step; } });
+      if(rr2.length > best.n) best = { n: rr2.length, rects: rr2 };
+    }
+  }
+  return { rects: best.rects, n: Math.max(0, best.n), calls: calls, W: W, H: Hh };
+}
+
+/* --- Soleil et distance entre rangées (anti-ombrage) ---
+   Déclinaison au solstice d'hiver : −23,44°. Angle horaire H en degrés (0 = midi solaire, ±30 = 10 h / 14 h solaires). */
+function sun(lat, decl, H){
+  var p = lat * D2R, d = decl * D2R, h = H * D2R;
+  var se = Math.sin(p) * Math.sin(d) + Math.cos(p) * Math.cos(d) * Math.cos(h), el = Math.asin(se);
+  var ca = (Math.sin(d) - se * Math.sin(p)) / (Math.cos(el) * Math.cos(p)), az = Math.acos(Math.max(-1, Math.min(1, ca))) / D2R;
+  if(H > 0) az = 360 - az;
+  return { elev: el / D2R, az: az };
+}
+/** o : { lat, incl (°), slant (longueur de la table dans la pente, m), az (azimut des panneaux), critere 'midi' | '10-14' } */
+function rowSpacing(o){
+  var b = (o.incl || 0) * D2R, h = o.slant * Math.sin(b), Dp = o.slant * Math.cos(b);
+  var hs = o.critere === '10-14' ? [-30, -20, -10, 0, 10, 20, 30] : [0], d = 0, emin = 90, worst = null;
+  hs.forEach(function(H){
+    var s = sun(o.lat, -23.44, H);
+    if(s.elev <= 0.5){ d = Infinity; return; }
+    var L = h / Math.tan(s.elev * D2R), Ls = L * Math.cos((s.az - (o.az == null ? 180 : o.az)) * D2R);
+    if(Ls > d){ d = Ls; worst = H; }
+    emin = Math.min(emin, s.elev);
+  });
+  return { h: h, depth: Dp, d: d, pitch: Dp + d, elev: emin, noonElev: 90 - o.lat - 23.44, worst: worst, gcr: Dp / (Dp + d) };
+}
+
+/* --- Générateur pseudo-aléatoire reproductible et incertitude (Monte-Carlo) --- */
+function rng(seed){ var s = seed >>> 0 || 1; return function(){ s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; }
+function gauss(r){ var u = Math.max(1e-12, r()), v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+/** Surface réelle d'un pan (m²) et incertitude : on bouge chaque point pointé de σ pixels (et la pente de σ°) */
+function panArea(pan, type, opt){
+  opt = opt || {};
+  var F = frame(pan, type); if(!F) return null;
+  var a0 = area(F.poly), ob0 = F.obs.reduce(function(s, o){ return s + area(o); }, 0);
+  var N = opt.n || 160, sp = opt.sigmaPx != null ? opt.sigmaPx : (pan.cal && pan.cal.mode === 'aerien' ? 1 : 2), sd = opt.sigmaDeg != null ? opt.sigmaDeg : 1;
+  var r = rng(12345), vals = [];
+  function jit(p){ return [p[0] + gauss(r) * sp, p[1] + gauss(r) * sp]; }
+  for(var i = 0; i < N; i++){
+    var c = JSON.parse(JSON.stringify(pan.cal));
+    if(c.pts) c.pts = c.pts.map(jit);
+    var q = { cal: c, poly: pan.poly.map(jit), eave: pan.eave, top: pan.top, pente: pan.top && pan.pente > 0 ? pan.pente + gauss(r) * sd : pan.pente, az: pan.az, nord: pan.nord };
+    var f = frame(q, type); if(f) vals.push(area(f.poly));
+  }
+  var m = vals.reduce(function(s, v){ return s + v; }, 0) / (vals.length || 1);
+  var v = vals.reduce(function(s, x){ return s + (x - m) * (x - m); }, 0) / Math.max(1, vals.length - 1);
+  var e = 2 * Math.sqrt(v);
+  return { area: a0, obstacles: ob0, net: Math.max(0, a0 - ob0), err: e, rel: a0 ? e / a0 : 0, frame: F };
+}
+
+/* --- Calepinage complet d'un pan selon le type de projet ---
+   p : { type, lat, panneau {l, w, wc}, pose {orient, gap, align, marges {egout, faitage, rive, obstacle, limite}, sol {incl, rangs, critere}, omb {incl} } } */
+function calepiner(pan, p){
+  var F = frame(pan, p.type); if(!F) return null;
+  var pn = p.panneau, ps = p.pose, mg = ps.marges || {}, gap = ps.gap || 0;
+  var kinds = edgeKinds(F.poly, p.type, ((pan.eave || 0) % F.poly.length + F.poly.length) % F.poly.length);
+  var m = kinds.map(function(k){ return k === 'egout' ? mg.egout || 0 : k === 'faitage' ? mg.faitage || 0 : k === 'rive' ? mg.rive || 0 : mg.limite || 0; });
+  function run(orient){
+    var pw = orient === 'paysage' ? pn.l : pn.w, along = orient === 'paysage' ? pn.w : pn.l, info = null, ph, pitch;
+    if(p.type === 'toiture'){ ph = along; pitch = along + gap; }
+    else {
+      var nr = p.type === 'sol' ? Math.max(1, ps.sol.rangs || 1) : Math.max(1, ps.omb.rangs || 1);
+      var incl = p.type === 'sol' ? ps.sol.incl : ps.omb.incl;
+      var slant = nr * along + (nr - 1) * gap;
+      info = rowSpacing({ lat: p.lat || 45, incl: incl, slant: slant, az: pan.az, critere: ps.sol.critere });
+      ph = info.depth;
+      pitch = p.type === 'sol' ? info.pitch : info.depth + (ps.omb.allee || 0);
+      info.rangs = nr; info.slant = slant;
+    }
+    var L = layout(F.poly, F.obs, { pw: pw, ph: ph, gx: gap, pitch: pitch, m: m, mo: mg.obstacle || 0, align: ps.align !== false });
+    var per = p.type === 'toiture' ? 1 : info.rangs;
+    return { orient: orient, tables: L.n, n: L.n * per, per: per, rects: L.rects, info: info, pw: pw, ph: ph };
+  }
+  var res = ps.orient === 'auto' ? [run('portrait'), run('paysage')].sort(function(a, b){ return b.n - a.n; })[0] : run(ps.orient || 'portrait');
+  res.kinds = kinds; res.frame = F;
+  res.kwc = res.n * (pn.wc || 0) / 1000;
+  res.surfPanneaux = res.n * pn.l * pn.w;
+  res.emprise = res.rects.reduce(function(s, r){ return s + (r[2] - r[0]) * (r[3] - r[1]); }, 0);
+  return res;
+}
+
+window.SolaireCore = { area: area, sarea: sarea, centroid: centroid, dist: dist, perim: perim, homography: homography, applyH: applyH, invH: invH, plane: plane,
+  planMpp: planMpp, mercMpp: mercMpp, lonLatToPx: lonLatToPx, pxToLonLat: pxToLonLat, frame: frame, inPoly: inPoly, segRectDist: segRectDist, segHitsRect: segHitsRect,
+  polyRectDist: polyRectDist, edgeKinds: edgeKinds, layout: layout, sun: sun, rowSpacing: rowSpacing, panArea: panArea, calepiner: calepiner, convex: convex };
+})();
+</script>
+<script>
+/* =====================================================================
+   Solaire : règles d'autorisation (France) — window.SolaireRegles
+   Textes vérifiés le 26 octobre 2026 (sources officielles ci-dessous).
+   Rien n'est affirmé sans source ; toujours « à vérifier auprès de la mairie ».
+   ===================================================================== */
+(function(){
+'use strict';
+var VERIF = '26 octobre 2026';
+var S = {
+  sp_toit: { t: 'Service-public : panneaux solaires sur un toit (vérifié le 7 février 2025)', u: 'https://www.service-public.gouv.fr/particuliers/vosdroits/F36798' },
+  sp_sol: { t: 'Service-public : ombrières photovoltaïques ou panneaux au sol (vérifié le 17 janvier 2025)', u: 'https://www.service-public.gouv.fr/particuliers/vosdroits/F31923' },
+  sp_dp: { t: 'Service-public : déclaration préalable de travaux (vérifié le 22 octobre 2026)', u: 'https://www.service-public.gouv.fr/particuliers/vosdroits/F17578' },
+  sp_pc: { t: 'Service-public : permis de construire (vérifié le 13 février 2026)', u: 'https://www.service-public.gouv.fr/particuliers/vosdroits/F1986' },
+  sp_cerfa_dp: { t: 'Cerfa 16702*03 – Déclaration préalable constructions et travaux non soumis à permis (vérifié le 19 octobre 2026)', u: 'https://www.service-public.gouv.fr/particuliers/vosdroits/R2028' },
+  sp_cerfa_pc: { t: 'Cerfa 13409*17 – Permis de construire (autre que maison individuelle) (vérifié le 15 septembre 2026)', u: 'https://www.service-public.gouv.fr/particuliers/vosdroits/R20835' },
+  sp_elec: { t: 'Service-public : produire de l\'électricité avec des panneaux solaires (vérifié le 1er octobre 2025)', u: 'https://www.service-public.gouv.fr/particuliers/vosdroits/F31487' },
+  lf_r4219: { t: 'Légifrance : code de l\'urbanisme, article R421-9 (modifié par le décret n° 2024-1023 du 13 novembre 2024)', u: 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000050497051' },
+  lf_dp: { t: 'Légifrance : code de l\'urbanisme, constructions nouvelles soumises à déclaration préalable (R421-9 à R421-12)', u: 'https://www.legifrance.gouv.fr/codes/section_lc/LEGITEXT000006074075/LEGISCTA000006188272/' },
+  ce_2026: { t: 'Conseil d\'État, 30 juillet 2026, n° 500462 (seuil de 3 MWc maintenu)', u: 'https://www.conseil-etat.fr/fr/arianeweb/CE/decision/2026-07-30/500462' },
+  env_2026: { t: 'Décret n° 2026-674 du 27 juillet 2026, art. 18 : évaluation environnementale systématique relevée de 1 à 3 MWc (rubrique 30 de l\'annexe à l\'article R122-2 du code de l\'environnement) – analyse du cabinet Gossement', u: 'https://www.gossement-avocats.com/blog/solaire-le-gouvernement-releve-de-1-a-3-mwc-le-seuil-de-dispense-detude-dimpact-systematique-pour-les-installations-photovoltaiques-de-production-delectricite/' },
+  env_2022: { t: 'Banque des Territoires : décret n° 2022-970 (toitures et ombrières de parking exclues de l\'évaluation environnementale)', u: 'https://www.banquedesterritoires.fr/energie-solaire-un-decret-allege-la-procedure-devaluation-pour-les-petits-projets' },
+  dreal_ge: { t: 'DREAL Grand Est : guide réglementaire photovoltaïque au sol (décembre 2024)', u: 'https://www.grand-est.developpement-durable.gouv.fr/IMG/pdf/202412-guide-reglementaire_sol-w.pdf' },
+  aper_park: { t: 'Ministère de l\'Économie (11 septembre 2026) : solarisation des parcs de stationnement, échéances et décret du 7 septembre 2026', u: 'https://www.entreprises.gouv.fr/espace-presse/solarisation-des-parcs-de-stationnement-le-gouvernement-encourage-les-panneaux' },
+  deal_oblig: { t: 'DEAL Martinique (avril 2025) : obligations de solarisation (loi APER art. 40, code de la construction)', u: 'https://www.martinique.developpement-durable.gouv.fr/IMG/pdf/deal_decrypt_obligationspv_avril2025.pdf' },
+  erp_at: { t: 'Préfecture de Loire-Atlantique : autorisation de travaux dans un ERP (cerfa 13824*04)', u: 'https://www.loire-atlantique.gouv.fr/contenu/telechargement/53644/346503/file/2022_03_SBL_plaquette_ERP_Vf.pdf' },
+  consuel: { t: 'Consuel : attestation de conformité des installations de production (cerfa 15523*01 et 15524*01)', u: 'https://www.consuel.com/wp-content/uploads/2023/02/SC127_22.pdf' }
+};
+
+function kw(v){ return (Math.round(v * 100) / 100).toLocaleString('fr-FR') + ' kWc'; }
+
+/** i : { type 'toiture'|'sol'|'ombriere', kwc, hauteur (m, sol/ombrière), protege true|false|null, erp bool,
+         parking { surface m², existant bool }, couverture (m² de panneaux en projection, ombrière), surfPanneaux (m², sol) } */
+function evaluer(i){
+  var out = { verif: VERIF, besoins: [], urba: null, pieces: [], alertes: [], sources: [] };
+  var used = {};
+  function src(k){ if(!used[k]){ used[k] = 1; out.sources.push(S[k]); } return S[k]; }
+  function need(o){ o.src = (o.src || []).map(src); out.besoins.push(o); return o; }
+  var P = +i.kwc || 0, H = i.hauteur == null ? null : +i.hauteur, prot = i.protege;
+  var protTxt = prot === true ? ' (secteur protégé)' : '';
+
+  if(i.type === 'toiture'){
+    out.urba = need({ k: 'urba', niveau: 'warn', titre: 'Déclaration préalable de travaux (DP)' + protTxt,
+      pourquoi: 'Poser des panneaux sur un toit modifie l\'aspect extérieur du bâtiment : une déclaration préalable est à déposer en mairie (code de l\'urbanisme, art. R*421-17).',
+      cerfa: 'Cerfa 16702*03', delai: prot === true ? '2 mois (secteur protégé)' : '1 mois (2 mois en secteur protégé)',
+      src: ['sp_toit', 'sp_cerfa_dp', 'sp_dp'] });
+    if(prot === true) need({ k: 'abf', niveau: 'warn', titre: 'Avis de l\'Architecte des Bâtiments de France (ABF)',
+      pourquoi: 'Le terrain est dans un secteur protégé (abords de monument historique, site patrimonial remarquable, site classé…). Le dossier est transmis à l\'ABF : prévois une pose discrète (intégration, couleur, alignement) et des photos d\'insertion soignées. Un refus fondé sur un avis défavorable de l\'ABF se conteste d\'abord par un recours administratif préalable obligatoire.',
+      src: ['sp_dp'] });
+    if(prot == null) out.alertes.push('Secteur protégé non vérifié : si le bâtiment est aux abords d\'un monument historique ou dans un site patrimonial remarquable, le délai passe à 2 mois et l\'ABF donne son avis.');
+    if(i.erp) need({ k: 'erp', niveau: 'warn', titre: 'Autorisation de travaux ERP (cerfa 13824*04)',
+      pourquoi: 'Bâtiment recevant du public : tout aménagement ou modification d\'un ERP demande une autorisation de travaux, avant les travaux, en plus de la DP (deux dossiers distincts). Les commissions sécurité et accessibilité ont 2 mois pour se prononcer ; la mairie notifie la décision sous 4 mois au plus.',
+      src: ['erp_at'] });
+    need({ k: 'env', niveau: 'ok', titre: 'Pas d\'évaluation environnementale',
+      pourquoi: 'Les installations sur toiture sont exclues de la rubrique 30 (évaluation environnementale).', src: ['env_2022', 'env_2026'] });
+    out.alertes.push('Si la pose s\'accompagne d\'autres travaux (surélévation, création de surface, changement de destination…), le régime peut changer : demande au service urbanisme.');
+  } else {
+    var omb = i.type === 'ombriere', nom = omb ? 'ombrière' : 'installation au sol';
+    var reg, why, refs = ['sp_sol', 'lf_r4219'];
+    function regime(pr){
+      if(!pr){
+        if(P < 3 && H != null && H <= 1.8) return ['aucune', 'Moins de 3 kWc et hauteur au plus 1,80 m hors secteur protégé : aucune formalité (code de l\'urbanisme, art. R*421-2).'];
+        if(P < 3 && H == null) return ['?', 'Moins de 3 kWc : aucune formalité si la hauteur ne dépasse pas 1,80 m, sinon déclaration préalable. Indique la hauteur maximale.'];
+        if(P < 3) return ['DP', 'Moins de 3 kWc mais plus de 1,80 m de haut : déclaration préalable (art. R421-9 h).'];
+        if(P < 3000) return ['DP', 'Entre 3 kWc et moins de 3 MWc, quelle que soit la hauteur : déclaration préalable (art. R421-9 h, version du décret n° 2024-1023 du 13 novembre 2024, confirmée par le Conseil d\'État le 30 juillet 2026).'];
+        return ['PC', '3 MWc ou plus : permis de construire (art. R*421-1).'];
+      }
+      if(P < 3) return ['DP', 'Secteur protégé, moins de 3 kWc : déclaration préalable (art. R421-11).'];
+      return ['PC', 'Secteur protégé, 3 kWc ou plus : permis de construire.'];
+    }
+    if(prot == null){
+      var a = regime(false), b = regime(true);
+      reg = a[0] === b[0] ? a[0] : a[0] + '|' + b[0];
+      why = 'Hors secteur protégé : ' + a[1] + ' Dans un secteur protégé : ' + b[1];
+      if(a[0] !== b[0]) out.alertes.push('Le résultat dépend du secteur protégé : vérifie-le (onglet Lieu ou mairie).');
+    } else { var r = regime(prot); reg = r[0]; why = r[1]; }
+    if(P >= 3000) refs.push('ce_2026');
+    var lab = { aucune: 'Aucune formalité d\'urbanisme', DP: 'Déclaration préalable de travaux (DP)', PC: 'Permis de construire (PC)', '?': 'À préciser' };
+    var titre = reg.indexOf('|') > 0 ? reg.split('|').map(function(x){ return lab[x]; }).join(' ou ') + ' selon le secteur' : lab[reg];
+    var cerfa = reg.indexOf('PC') >= 0 ? 'Cerfa 13409*17' : reg.indexOf('DP') >= 0 ? 'Cerfa 16702*03' : '';
+    if(cerfa.indexOf('13409') >= 0) refs.push('sp_cerfa_pc', 'sp_pc'); else if(cerfa) refs.push('sp_cerfa_dp', 'sp_dp');
+    var del = reg === 'DP' ? (prot ? '2 mois (secteur protégé)' : '1 mois (2 mois en secteur protégé)') : reg === 'PC' ? (prot ? '4 mois en principe (secteur protégé)' : '3 mois (4 mois en secteur protégé)') : reg.indexOf('|') > 0 ? 'DP : 1 mois ; PC : 3 mois (plus en secteur protégé)' : '';
+    out.urba = need({ k: 'urba', niveau: reg === 'aucune' ? 'ok' : reg === 'PC' ? 'bad' : 'warn', titre: titre + ' – ' + nom + ' de ' + kw(P), pourquoi: why, cerfa: cerfa, delai: del, src: refs });
+    if(prot === true) need({ k: 'abf', niveau: 'warn', titre: 'Avis de l\'Architecte des Bâtiments de France (ABF)', pourquoi: 'Secteur protégé : l\'ABF est consulté sur le projet (délais allongés).', src: ['sp_dp'] });
+    if(!omb){
+      var env;
+      if(P <= 300) env = { niveau: 'ok', titre: 'Pas d\'évaluation environnementale', pourquoi: 'Jusqu\'à 300 kWc, une installation au sol n\'est pas soumise à évaluation environnementale (rubrique 30).' };
+      else if(P < 3000) env = { niveau: 'warn', titre: 'Examen au cas par cas (évaluation environnementale)', pourquoi: 'De plus de 300 kWc à moins de 3 MWc : demande d\'examen au cas par cas auprès de l\'autorité environnementale (préfet de région), qui décide si une étude d\'impact est nécessaire. Seuil relevé de 1 à 3 MWc par le décret n° 2026-674 du 27 juillet 2026 pour les dossiers déposés depuis sa publication (28 juillet 2026).' };
+      else env = { niveau: 'bad', titre: 'Évaluation environnementale (étude d\'impact) systématique', pourquoi: 'À partir de 3 MWc (décret n° 2026-674 du 27 juillet 2026), l\'étude d\'impact est obligatoire, avec enquête publique ou participation du public. Pense aussi à l\'évaluation des incidences Natura 2000.' };
+      env.k = 'env'; env.src = ['env_2026', 'dreal_ge']; need(env);
+      need({ k: 'taxe', niveau: 'info', titre: 'Taxe d\'aménagement', pourquoi: 'Les panneaux au sol y sont soumis, sur une valeur forfaitaire de 10 € par m² de panneaux' + (i.surfPanneaux ? ' (environ ' + Math.round(i.surfPanneaux).toLocaleString('fr-FR') + ' m² ici)' : '') + ' (code général des impôts, art. 1635 quater J).', src: ['sp_sol'] });
+      if(i.zoneAN) out.alertes.push('Le terrain est en zone ' + i.zoneAN + ' du document d\'urbanisme : lis le règlement de la zone, les centrales au sol y sont souvent encadrées (terrains agricoles : décret n° 2024-318 du 8 avril 2024 sur l\'agrivoltaïsme).');
+    } else {
+      need({ k: 'env', niveau: 'ok', titre: 'Pas d\'évaluation environnementale', pourquoi: 'Les ombrières sur aires de stationnement sont exclues de la rubrique 30.', src: ['env_2022', 'env_2026'] });
+      need({ k: 'taxe', niveau: 'ok', titre: 'Pas de taxe d\'aménagement sur l\'ombrière', pourquoi: 'Les panneaux posés sur ombrières et la structure de l\'ombrière n\'y sont pas soumis.', src: ['sp_sol'] });
+      var pk = i.parking || {};
+      if(pk.surface > 0){
+        var cov = i.couverture > 0 ? i.couverture / pk.surface : null, covTxt = cov != null ? ' Ton calepinage couvre environ ' + Math.round(cov * 100) + ' % du parking.' : '';
+        if(pk.existant !== false && pk.surface > 1500){
+          var big = pk.surface > 10000;
+          need({ k: 'aper', niveau: cov != null && cov >= 0.5 ? 'ok' : 'warn', titre: 'Obligation de solariser le parking (loi APER, art. 40)',
+            pourquoi: 'Parking extérieur existant de plus de 1 500 m² : il doit être équipé d\'ombrières à énergie renouvelable sur au moins la moitié de sa surface, au plus tard le ' + (big ? '1er juillet 2026 (plus de 10 000 m²)' : '1er juillet 2028 (de 1 500 à 10 000 m²)') + '. Un report est possible sous conditions (' + (big ? 'loi « industrie verte » de 2023' : 'jusqu\'en 2030, décret du 7 septembre 2026, panneaux assemblés en Europe') + '). Des exemptions existent (contraintes techniques, de sécurité, patrimoniales, coût excessif).' + covTxt,
+            src: ['aper_park', 'deal_oblig'] });
+        } else if(pk.existant === false && pk.surface > 500){
+          need({ k: 'aper', niveau: cov != null && cov >= 0.5 ? 'ok' : 'warn', titre: 'Parking neuf ou rénové lourdement : obligation d\'ombrage',
+            pourquoi: 'Nouveau parking extérieur de plus de 500 m² (ou rénovation lourde) : au moins 50 % de la surface doit être couverte par des ombrières à énergie renouvelable ou des dispositifs végétalisés (code de la construction, art. L171-4, depuis le 1er juillet 2023).' + covTxt,
+            src: ['deal_oblig'] });
+        } else {
+          need({ k: 'aper', niveau: 'ok', titre: 'Pas d\'obligation de solarisation du parking', pourquoi: 'Surface de ' + Math.round(pk.surface).toLocaleString('fr-FR') + ' m² : sous les seuils (1 500 m² pour un parking existant, 500 m² pour un parking neuf).', src: ['aper_park', 'deal_oblig'] });
+        }
+      }
+    }
+  }
+  // Raccordement et mise en service (toutes installations raccordées)
+  need({ k: 'consuel', niveau: 'info', titre: 'Attestation de conformité Consuel',
+    pourquoi: 'Avant la mise en service : attestation de conformité visée par le Consuel (formulaire bleu cerfa 15523*01 sans stockage, violet 15524*01 avec batterie), à envoyer au moins 20 jours avant la date prévue (code de l\'énergie, art. D342-18 à D342-21).', src: ['consuel'] });
+  need({ k: 'enedis', niveau: 'info', titre: 'Raccordement Enedis et contrat',
+    pourquoi: 'Vente du surplus : demande de raccordement à Enedis (par toi ou l\'installateur), proposition de raccordement, puis contrat d\'obligation d\'achat de 20 ans. Autoconsommation totale sans injection : convention CACSI à signer avec Enedis avant la mise en service.' + (P > 0 && P <= 9 ? ' TVA à 5,5 % possible jusqu\'à 9 kWc, sous conditions (depuis le 1er octobre 2025).' : ''), src: ['sp_elec'] });
+  if(P > 50000) need({ k: 'exploit', niveau: 'warn', titre: 'Autorisation d\'exploiter', pourquoi: 'Au-delà de 50 MWc, une autorisation d\'exploiter est nécessaire (code de l\'énergie, art. R311-2).', src: ['dreal_ge'] });
+
+  // Pièces (liste officielle de service-public pour une DP ; pour un PC, voir la notice du cerfa)
+  var u = out.urba && out.urba.cerfa || '';
+  if(u.indexOf('16702') >= 0) out.pieces = ['Formulaire cerfa 16702*03 rempli et signé', 'Plan de situation du terrain (tous projets)', 'Plan de masse si tu crées une construction ou modifies le volume d\'une construction existante', 'Plans des façades et des toitures si tu les modifies', 'Pièces complémentaires selon le projet (la notice du formulaire les détaille ; en secteur protégé, des exemplaires supplémentaires sont demandés)'];
+  else if(u.indexOf('13409') >= 0) out.pieces = ['Formulaire cerfa 13409*17 et son bordereau de pièces (la notice détaille les plans et documents à joindre)', 'Recours à un architecte : obligatoire pour une personne morale, ou au-delà de 150 m² de surface de plancher (800 m² pour un bâtiment agricole)'];
+  if(u) out.pieces.push('Après accord : panneau d\'affichage sur le terrain (plus de 80 cm, visible de la voie publique) pendant tout le chantier' + (u.indexOf('16702') >= 0 ? ' ; la DP est valable 3 ans' : ''));
+  out.mention = 'Estimation indicative établie avec les textes vérifiés le ' + VERIF + ' : ce n\'est pas un avis juridique. À vérifier auprès du service urbanisme de la mairie (règlement du PLU, servitudes) avant tout dépôt.';
+  return out;
+}
+window.SolaireRegles = { evaluer: evaluer, sources: S, verif: VERIF };
+})();
+</script>
+<script>
+/* =====================================================================
+   Solaire : interface
+   ===================================================================== */
+(function(){
+'use strict';
+var C = window.SolaireCore, R = window.SolaireRegles;
+var P = window.MAGPrint || null, B = window.MAGSolaire || null, MS = window.MAGMesure || null;
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function fmt(v, d){ if(v == null || isNaN(v)) return '–'; return (+v).toLocaleString('fr-FR', { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 }); }
+function num(v){ if(typeof v === 'number') return v; var x = parseFloat(String(v || '').replace(',', '.').replace(/\s/g, '')); return isNaN(x) ? null : x; }
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function dt(t){ return new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); }
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+var toastT = null;
+function toast(m, err){ var t = $('toast'); t.textContent = m; t.className = 'on' + (err ? ' err' : ''); clearTimeout(toastT); toastT = setTimeout(function(){ t.className = ''; }, 3200); }
+var IC = {
+  roof: '<path d="M3 12 12 4l9 8"/><path d="M5 10v10h14V10"/><path d="M8 14h3v3H8zM13 14h3v3h-3z"/>',
+  ground: '<path d="M3 20h18"/><path d="m5 17 5-6h9l-5 6z"/><path d="M9 17v3M17 17v3"/>',
+  carport: '<path d="M3 8h18l-2-3H5z"/><path d="M6 8v12M18 8v12"/><rect x="8" y="14" width="8" height="4" rx="1.5"/>',
+  cam: '<rect x="3" y="7" width="18" height="13" rx="3"/><path d="M8.5 7 10 4.5h4L15.5 7"/><circle cx="12" cy="13.5" r="3.5"/>',
+  img: '<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/>',
+  plan: '<path d="M4 4h16v16H4z"/><path d="M4 12h8v8M12 4v4h8"/>',
+  sat: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  pin: '<path d="M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/>',
+  edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>', trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+  copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>',
+  share: '<circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="m8.2 10.8 7.6-3.6M8.2 13.2l7.6 3.6"/>',
+  print: '<path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/>',
+  angle: '<path d="M4 20h16M4 20 18 6"/><path d="M10 20a6 6 0 0 0-1.8-4.2"/>', compass: '<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>',
+  gps: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/>', link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'
+};
+function ic(n, st){ return '<svg class="ic" viewBox="0 0 24 24"' + (st ? ' style="' + st + '"' : '') + '>' + (IC[n] || '') + '</svg>'; }
+var TYPES = { toiture: { n: 'Toiture', i: 'roof', d: 'Panneaux sur un toit (maison, hangar, bâtiment)' }, sol: { n: 'Au sol', i: 'ground', d: 'Rangées de panneaux sur un terrain' }, ombriere: { n: 'Ombrière / carport', i: 'carport', d: 'Panneaux au-dessus d\'un parking' } };
+var PANELS = [
+  { id: 'r425', nom: 'Modèle type 1,72 × 1,13 m · 425 Wc', l: 1.722, w: 1.134, wc: 425 },
+  { id: 'r450', nom: 'Modèle type 1,76 × 1,13 m · 450 Wc', l: 1.762, w: 1.134, wc: 450 },
+  { id: 'g580', nom: 'Grand format type 2,28 × 1,13 m · 580 Wc', l: 2.278, w: 1.134, wc: 580 }
+];
+var SUPN = { AC1: 'Monument historique (protection ou abords)', AC2: 'Site inscrit ou classé', AC3: 'Réserve naturelle', AC4: 'Site patrimonial remarquable (SPR)', PM1: 'Plan de prévention des risques naturels', PM3: 'Plan de prévention des risques technologiques', I4: 'Ligne électrique', T5: 'Servitude aéronautique de dégagement' };
+var MOIS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+
+/* ---------- Stockage (IndexedDB, repli en mémoire) ---------- */
+var mem = {}, dbp = null;
+function db(){
+  if(dbp) return dbp;
+  dbp = new Promise(function(ok){
+    try{ var r = indexedDB.open('solaire', 1); r.onupgradeneeded = function(){ r.result.createObjectStore('p', { keyPath: 'id' }); }; r.onsuccess = function(){ ok(r.result); }; r.onerror = function(){ ok(null); }; }
+    catch(e){ ok(null); }
+  });
+  return dbp;
+}
+function tx(mode, fn){ return db().then(function(d){ if(!d) return fn(null); return new Promise(function(ok, ko){ var t = d.transaction('p', mode), s = t.objectStore('p'), res = fn(s); t.oncomplete = function(){ ok(res && res.result !== undefined ? res.result : res); }; t.onerror = function(){ ko(t.error); }; }); }); }
+function dbAll(){ return tx('readonly', function(s){ if(!s) return { result: Object.keys(mem).map(function(k){ return mem[k]; }) }; return s.getAll(); }); }
+function dbPut(p){ p.u = Date.now(); return tx('readwrite', function(s){ if(!s){ mem[p.id] = clone(p); return null; } return s.put(p); }); }
+function dbDel(id){ return tx('readwrite', function(s){ if(!s){ delete mem[id]; return null; } return s.delete(id); }); }
+function lsGet(k, d){ try{ var v = localStorage.getItem('solaire-' + k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
+function lsSet(k, v){ try{ localStorage.setItem('solaire-' + k, JSON.stringify(v)); }catch(e){} }
+
+/* ---------- Réseau : fetch direct, sinon Android (MAGSolaire.http) ---------- */
+var pend = {}, seq = 0;
+window.solaireHttp = function(key, code, body, err){ var p = pend[key]; if(!p) return; delete pend[key]; clearTimeout(p.t); p.ok({ status: code, body: body, err: err, via: 'natif' }); };
+function nativeGet(url, b64){
+  return new Promise(function(ok){
+    if(!B || !B.http){ ok({ status: 0, body: '', err: 'pont natif absent' }); return; }
+    var k = 'h' + (++seq); pend[k] = { ok: ok, t: setTimeout(function(){ if(pend[k]){ delete pend[k]; ok({ status: 0, body: '', err: 'délai dépassé' }); } }, 60000) };
+    try{ B.http(k, url, !!b64); }catch(e){ delete pend[k]; ok({ status: 0, body: '', err: String(e) }); }
+  });
+}
+function webGet(url){
+  var ctl = window.AbortController ? new AbortController() : null, t = setTimeout(function(){ if(ctl) ctl.abort(); }, 25000);
+  return fetch(url, ctl ? { signal: ctl.signal } : {}).then(function(r){ clearTimeout(t); return r.text().then(function(x){ return { status: r.status, body: x, via: 'web' }; }); }, function(e){ clearTimeout(t); return { status: 0, body: '', err: String(e && e.message || e), via: 'web' }; });
+}
+function getJson(url, nativeFirst){
+  var first = nativeFirst && B ? nativeGet(url) : webGet(url);
+  return first.then(function(r){
+    if(r.status === 0){ return (nativeFirst || !B ? Promise.resolve(r) : nativeGet(url)); }
+    return r;
+  }).then(function(r){
+    if(r.status >= 200 && r.status < 300){ try{ return { ok: true, data: JSON.parse(r.body), via: r.via }; }catch(e){ return { ok: false, err: 'réponse illisible' }; } }
+    var msg = r.status ? 'erreur ' + r.status : (r.err || 'pas de réponse');
+    try{ var j = JSON.parse(r.body); if(j && j.message) msg += ' : ' + j.message; }catch(e){}
+    return { ok: false, err: msg, status: r.status };
+  });
+}
+
+/* ---------- API françaises ---------- */
+var API = {
+  geocode: function(q){
+    var u1 = 'https://data.geopf.fr/geocodage/search?limit=6&q=' + encodeURIComponent(q), u2 = 'https://api-adresse.data.gouv.fr/search/?limit=6&q=' + encodeURIComponent(q);
+    return getJson(u1).then(function(r){ return r.ok ? r : getJson(u2); });
+  },
+  reverse: function(lat, lon){
+    return getJson('https://data.geopf.fr/geocodage/reverse?limit=1&lon=' + lon + '&lat=' + lat).then(function(r){ return r.ok ? r : getJson('https://api-adresse.data.gouv.fr/reverse/?lon=' + lon + '&lat=' + lat); });
+  },
+  carto: function(path, lat, lon, extra){ return getJson('https://apicarto.ign.fr/api/' + path + '?geom=' + encodeURIComponent(JSON.stringify({ type: 'Point', coordinates: [lon, lat] })) + (extra || '')); },
+  batiments: function(lat, lon){
+    var dy = 0.0006, dx = 0.0008;
+    return getJson('https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=BDTOPO_V3:batiment&OUTPUTFORMAT=application/json&SRSNAME=CRS:84&COUNT=60&BBOX=' + [lon - dx, lat - dy, lon + dx, lat + dy].join(',') + ',CRS:84');
+  },
+  pvgis: function(o){
+    var u = 'https://re.jrc.ec.europa.eu/api/v5_3/PVcalc?lat=' + o.lat.toFixed(5) + '&lon=' + o.lon.toFixed(5) + '&peakpower=' + o.kwc.toFixed(3) + '&loss=' + o.loss + '&angle=' + Math.round(o.angle) + '&aspect=' + Math.round(o.aspect) + '&mountingplace=' + (o.bati ? 'building' : 'free') + '&outputformat=json';
+    return getJson(u, true);
+  }
+};
+function pick(o, keys){ if(!o) return null; for(var i = 0; i < keys.length; i++){ var k = keys[i]; if(o[k] != null && o[k] !== '') return o[k]; var K = Object.keys(o).find(function(x){ return x.toLowerCase() === k; }); if(K && o[K] != null && o[K] !== '') return o[K]; } return null; }
+function feats(r){ return r && r.ok && r.data && Array.isArray(r.data.features) ? r.data.features : []; }
+function supCode(p){
+  var c = pick(p, ['suptype', 'typesup', 'categorie', 'cat']);
+  if(c && /^[a-z]{1,3}\d{0,2}[a-z]?$/i.test(String(c))) return String(c).toUpperCase();
+  var m = JSON.stringify(p).match(/"(AC[1-4]|PM[1-9]|EL\d{1,2}|I\d{1,2}|T\d|PT\d|AS\d|A\d|INT\d|JS\d)"/i);
+  return m ? m[1].toUpperCase() : '';
+}
+function ring(g){ if(!g) return null; if(g.type === 'Polygon') return g.coordinates[0]; if(g.type === 'MultiPolygon') return g.coordinates[0][0]; return null; }
+function fixLL(r, lat, lon){ if(!r || !r.length) return r; var a = r[0]; if(Math.abs(a[0] - lat) < 0.5 && Math.abs(a[1] - lon) < 0.5 && Math.abs(lat - lon) > 1) return r.map(function(p){ return [p[1], p[0]]; }); return r; }
+
+/* ---------- Écrans et retour ---------- */
+var stack = [];
+function openScr(id){ $(id).hidden = false; stack.push(id); try{ history.pushState({ s: id }, ''); }catch(e){} }
+function closeTop(){ var id = stack.pop(); if(id){ $(id).hidden = true; if(id === 's-edit') edClose(); if(id === 's-proj') leaveProj(); } }
+window.addEventListener('popstate', function(){ if(sheetOpen){ closeSheet(true); return; } closeTop(); });
+function back(){ if(stack.length) history.back(); }
+document.querySelectorAll('[data-back]').forEach(function(b){ b.onclick = back; });
+
+/* ---------- Feuilles (dialogues) ---------- */
+var sheetOpen = null;
+function sheet(html, init){
+  var s = $('sheet'), bg = $('sheetBg');
+  s.innerHTML = html; s.hidden = false; bg.hidden = false;
+  requestAnimationFrame(function(){ s.classList.add('on'); bg.classList.add('on'); });
+  sheetOpen = { init: init };
+  try{ history.pushState({ sheet: 1 }, ''); }catch(e){}
+  s.querySelectorAll('[data-x]').forEach(function(b){ b.onclick = function(){ done(); }; });
+  function done(){ if(sheetOpen) history.back(); }
+  if(init) init(s, done);
+  return done;
+}
+function closeSheet(){ var s = $('sheet'), bg = $('sheetBg'); s.classList.remove('on'); bg.classList.remove('on'); var o = sheetOpen; sheetOpen = null; if(o && o.onClose) o.onClose(); setTimeout(function(){ if(!sheetOpen){ s.hidden = true; bg.hidden = true; s.innerHTML = ''; } }, 230); }
+$('sheetBg').onclick = function(){ if(sheetOpen) history.back(); };
+function confirmBox(t, p, okLabel, cb){ sheet('<h3>' + esc(t) + '</h3><p>' + esc(p) + '</p><div class="row"><button class="btn" data-x>Annuler</button><button class="btn main" id="cfOk">' + esc(okLabel) + '</button></div>', function(el, done){ el.querySelector('#cfOk').onclick = function(){ done(); setTimeout(cb, 60); }; }); }
+
+/* ---------- Projets ---------- */
+var PROJ = [], cur = null, curTab = 'lieu', saveT = null;
+function newProj(type){
+  return { id: uid(), t: Date.now(), u: Date.now(), type: type, nom: '', lieu: {}, client: { nom: '', notes: '' },
+    regl: { protege: null, erp: false, hauteur: type === 'sol' ? 2 : type === 'ombriere' ? 3 : null, parking: { surface: null, existant: true } },
+    panneau: clone(PANELS[0]),
+    pose: { orient: type === 'toiture' ? 'portrait' : 'portrait', gap: 0.02, align: true,
+      marges: { egout: 0.3, faitage: 0.3, rive: 0.3, obstacle: 0.3, limite: type === 'toiture' ? 0 : 1 },
+      sol: { incl: 25, rangs: 2, critere: '10-14' }, omb: { incl: 7, rangs: 3, allee: 0 } },
+    pans: [], prod: { pertes: 14, bati: false, res: null } };
+}
+function title(p){ return p.nom || (p.lieu && p.lieu.label) || ('Projet du ' + dt(p.t)); }
+function save(){ if(!cur) return; clearTimeout(saveT); saveT = setTimeout(function(){ var c = cur; summarize(c); dbPut(c).then(function(){ publish(); }); }, 250); }
+function saveNow(){ if(!cur) return Promise.resolve(); clearTimeout(saveT); summarize(cur); return dbPut(cur).then(publish); }
+function summarize(p){
+  var n = 0, kwc = 0;
+  (p.pans || []).forEach(function(pn){ if(pn.res){ n += pn.res.n; kwc += pn.res.kwc; } });
+  p.sum = { n: n, kwc: kwc, kwh: p.prod && p.prod.res ? p.prod.res.annuel : null };
+}
+function loadList(){ return dbAll().then(function(l){ PROJ = (l || []).sort(function(a, b){ return b.u - a.u; }); renderHome(); publish(); }); }
+function renderHome(){
+  $('pList').innerHTML = PROJ.length ? '<div class="card" style="padding:12px 12px 2px"><h3 style="margin:2px 2px 10px">Mes projets</h3>' + PROJ.map(function(p){
+    var s = p.sum || {};
+    return '<button class="pj" data-id="' + p.id + '">' + (p.thumb ? '<img src="' + p.thumb + '" alt="">' : '<span class="ph">' + ic(TYPES[p.type].i, 'width:30px;height:30px') + '</span>') +
+      '<span class="t"><b>' + esc(title(p)) + '</b><span>' + TYPES[p.type].n + (s.n ? ' · ' + s.n + ' panneau' + (s.n > 1 ? 'x' : '') + ' · ' + fmt(s.kwc, 2) + ' kWc' : '') + '</span><span>' + (s.kwh ? fmt(s.kwh) + ' kWh/an · ' : '') + 'modifié le ' + dt(p.u) + '</span></span>' +
+      '<span class="ib" data-more aria-label="Actions">' + '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/></svg></span></button>';
+  }).join('') + '</div>' : '<div class="empty">' + ic('sun', 'width:46px;height:46px;margin:0 auto 10px;color:var(--acc)') + 'Aucun projet pour l\'instant.<br>Clique sur « Nouveau projet » pour commencer.</div>';
+}
+$('pList').addEventListener('click', function(e){
+  var b = e.target.closest('.pj'); if(!b) return; var p = PROJ.find(function(x){ return x.id === b.dataset.id; }); if(!p) return;
+  if(e.target.closest('[data-more]')) projMenu(p); else openProj(p);
+});
+function projMenu(p){
+  sheet('<h3>' + esc(title(p)) + '</h3><div class="menu"><button data-a="open">' + ic('edit') + 'Ouvrir</button><button data-a="dup">' + ic('copy') + 'Dupliquer</button><button data-a="exp">' + ic('share') + 'Partager le projet (.json)</button><button data-a="del" style="color:var(--bad)">' + ic('trash') + 'Supprimer</button></div>', function(el, done){
+    el.querySelector('.menu').onclick = function(e){
+      var a = e.target.closest('[data-a]'); if(!a) return; a = a.dataset.a; done();
+      setTimeout(function(){
+        if(a === 'open') openProj(p);
+        if(a === 'dup'){ var q = clone(p); q.id = uid(); q.t = Date.now(); q.nom = (p.nom || title(p)) + ' (copie)'; dbPut(q).then(loadList).then(function(){ toast('Projet dupliqué'); }); }
+        if(a === 'exp') exportJson(p);
+        if(a === 'del') confirmBox('Supprimer ce projet ?', 'Le projet « ' + title(p) + ' » et ses photos seront effacés de cet ordinateur.', 'Supprimer', function(){ dbDel(p.id).then(loadList).then(function(){ toast('Projet supprimé'); }); });
+      }, 80);
+    };
+  });
+}
+function exportJson(p){
+  var t = JSON.stringify(p), name = 'solaire-' + (title(p).replace(/[^a-z0-9]+/gi, '-').toLowerCase().slice(0, 40) || 'projet') + '.json';
+  try{ if(P && P.fileMenu){ P.fileMenu(btoa(unescape(encodeURIComponent(t))), name, 'application/json', '', 'Projet Solaire', 'Projet Solaire : ' + title(p)); return; } }catch(e){}
+  var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([t], { type: 'application/json' })); a.download = name; a.click();
+}
+$('bImport').onclick = function(){ $('fJson').value = ''; $('fJson').click(); };
+$('fJson').onchange = function(){
+  var f = this.files[0]; if(!f) return; var r = new FileReader();
+  r.onload = function(){ try{ var p = JSON.parse(r.result); if(!p || !p.type || !p.pans) throw 0; p.id = uid(); dbPut(p).then(loadList).then(function(){ toast('Projet importé'); }); }catch(e){ toast('Fichier de projet illisible', true); } };
+  r.readAsText(f);
+};
+$('bNew').onclick = function(){ newFlow(); };
+function newFlow(){
+  sheet('<h3>Nouveau projet</h3><p>Où vas-tu poser les panneaux ?</p><div class="big3">' + Object.keys(TYPES).map(function(k){ return '<button class="choice" data-t="' + k + '"><span class="ico">' + ic(TYPES[k].i) + '</span><span><b>' + TYPES[k].n + '</b><span>' + TYPES[k].d + '</span></span></button>'; }).join('') + '</div>', function(el, done){
+    el.querySelectorAll('[data-t]').forEach(function(b){ b.onclick = function(){ var p = newProj(b.dataset.t); done(); dbPut(p).then(function(){ PROJ.unshift(p); renderHome(); setTimeout(function(){ openProj(p); }, 120); }); }; });
+  });
+}
+function openProj(p){ cur = p; curTab = 'lieu'; if(p.pans && p.pans.length) curTab = 'mesure'; $('pTitle').textContent = title(p); openScr('s-proj'); showTab(curTab); }
+function leaveProj(){ if(cur){ saveNow().then(loadList); } cur = null; }
+$('pMenu').onclick = function(){ if(cur) projMenuIn(); };
+function projMenuIn(){
+  sheet('<h3>Projet</h3><div class="fld"><label>Nom du projet<small>Par exemple le nom du client ou du chantier</small></label></div><input class="txt" id="pmNom" placeholder="' + esc(title(cur)) + '"><div class="menu" style="margin-top:8px"><button data-a="exp">' + ic('share') + 'Partager le projet (.json)</button><button data-a="dup">' + ic('copy') + 'Dupliquer</button><button data-a="del" style="color:var(--bad)">' + ic('trash') + 'Supprimer</button></div><div class="row"><button class="btn main" data-x>Fermer</button></div>', function(el, done){
+    var i = el.querySelector('#pmNom'); i.value = cur.nom || '';
+    i.oninput = function(){ cur.nom = i.value.trim(); $('pTitle').textContent = title(cur); save(); };
+    el.querySelector('.menu').onclick = function(e){
+      var a = e.target.closest('[data-a]'); if(!a) return; a = a.dataset.a;
+      if(a === 'exp') exportJson(cur);
+      if(a === 'dup'){ var q = clone(cur); q.id = uid(); q.t = Date.now(); q.nom = title(cur) + ' (copie)'; dbPut(q).then(function(){ toast('Copie créée dans la liste des projets'); }); }
+      if(a === 'del'){ done(); var id = cur.id; setTimeout(function(){ confirmBox('Supprimer ce projet ?', 'Il sera effacé de cet ordinateur.', 'Supprimer', function(){ cur = null; dbDel(id).then(function(){ back(); loadList(); toast('Projet supprimé'); }); }); }, 120); }
+    };
+  });
+}
+$('tabs').onclick = function(e){ var b = e.target.closest('[data-tab]'); if(b) showTab(b.dataset.tab); };
+function tabsState(){
+  var p = cur, has = (p.pans || []).some(function(x){ return x.res && x.res.n; });
+  var st = { lieu: !!(p.lieu && p.lieu.lat), mesure: (p.pans || []).some(function(x){ return C.frame(x, p.type); }), pose: has, regles: has, prod: !!(p.prod && p.prod.res), fiche: false };
+  document.querySelectorAll('#tabs [data-tab]').forEach(function(b){ b.classList.toggle('on', b.dataset.tab === curTab); b.classList.toggle('done', !!st[b.dataset.tab] && b.dataset.tab !== curTab); });
+}
+var TABS = {};
+function showTab(t){ curTab = t; tabsState(); var bd = $('pBody'); bd.scrollTop = 0; bd.onclick = null; TABS[t](bd); var b = document.querySelector('#tabs [data-tab="' + t + '"]'); if(b && b.scrollIntoView) b.scrollIntoView({ inline: 'center', block: 'nearest' }); }
+function seg(id, opts, val){ return '<div class="seg" id="' + id + '">' + opts.map(function(o){ return '<button data-v="' + o[0] + '"' + (String(val) === String(o[0]) ? ' class="on"' : '') + '>' + o[1] + '</button>'; }).join('') + '</div>'; }
+function bindSeg(el, id, cb){ var s = el.querySelector('#' + id); if(!s) return; s.onclick = function(e){ var b = e.target.closest('[data-v]'); if(!b) return; s.querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', x === b); }); cb(b.dataset.v); }; }
+function fld(id, lab, sub, val, unit, attrs){ return '<div class="fld"><label for="' + id + '">' + lab + (sub ? '<small>' + sub + '</small>' : '') + '</label><input id="' + id + '" inputmode="decimal" value="' + (val == null ? '' : esc(String(val).replace('.', ','))) + '"' + (attrs || '') + '><span class="u">' + (unit || '') + '</span></div>'; }
+function openLink(u){ if(B && B.openUrl){ try{ B.openUrl(u); return; }catch(e){} } window.open(u, '_blank'); }
+document.addEventListener('click', function(e){ var a = e.target.closest('a[data-ext]'); if(!a) return; e.preventDefault(); openLink(a.href); });
+function ext(u, t){ return '<a href="' + esc(u) + '" data-ext>' + esc(t) + '</a>'; }
+
+/* =========================== 1. LIEU =========================== */
+TABS.lieu = function(bd){
+  var L = cur.lieu || {}, rg = cur.regl;
+  bd.innerHTML = '<div class="card"><h3>Type d\'installation</h3>' + seg('lType', Object.keys(TYPES).map(function(k){ return [k, TYPES[k].n]; }), cur.type) + '</div>' +
+    '<div class="card"><h3>Adresse du projet</h3><div style="display:flex;gap:8px"><input class="txt" id="lQ" placeholder="N°, rue, commune" autocomplete="off" enterkeyhint="search" style="flex:1"><button class="btn sm" id="lGo" style="flex:none;min-width:58px" aria-label="Chercher">' + '<svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>' + '</button></div>' +
+    '<div class="sugg" id="lSug"></div><div class="row"><button class="btn" id="lGps">' + ic('gps') + 'Ma position (GPS)</button></div>' +
+    '<p class="note">Adresse cherchée dans la Base Adresse Nationale (IGN). La parcelle, les bâtiments et les règles d\'urbanisme viennent du cadastre et du Géoportail de l\'urbanisme.</p></div>' +
+    '<div id="lRes"></div>';
+  var q = bd.querySelector('#lQ'); q.value = L.label || '';
+  bindSeg(bd, 'lType', function(v){ cur.type = v; if(v !== 'toiture' && cur.regl.hauteur == null) cur.regl.hauteur = v === 'sol' ? 2 : 3; if(v !== 'toiture' && !cur.pose.marges.limite) cur.pose.marges.limite = 1; recalcAll(); save(); renderLieuRes(); });
+  function go(){
+    var v = q.value.trim(); if(v.length < 3){ toast('Tape au moins 3 caractères'); return; }
+    var sg = bd.querySelector('#lSug'); sg.innerHTML = '<p class="note"><span class="spin"></span> Recherche…</p>';
+    API.geocode(v).then(function(r){
+      var f = feats(r);
+      if(!r.ok){ sg.innerHTML = '<div class="card warn" style="margin-top:10px">La recherche d\'adresse ne répond pas (' + esc(r.err) + '). Vérifie la connexion, ou utilise le GPS, ou place le point sur la vue aérienne.</div>'; return; }
+      if(!f.length){ sg.innerHTML = '<p class="note">Aucune adresse trouvée.</p>'; return; }
+      sg.innerHTML = f.map(function(x, i){ var p = x.properties || {}; return '<button data-i="' + i + '"><b>' + esc(p.label || p.name) + '</b><br><small>' + esc(p.context || '') + '</small></button>'; }).join('');
+      sg.onclick = function(e){ var b = e.target.closest('[data-i]'); if(!b) return; var x = f[+b.dataset.i], p = x.properties || {}; sg.innerHTML = ''; q.value = p.label; setLieu(x.geometry.coordinates[1], x.geometry.coordinates[0], p.label, p.citycode, p.city, 'adresse'); };
+    });
+  }
+  bd.querySelector('#lGo').onclick = go;
+  q.onkeydown = function(e){ if(e.key === 'Enter'){ e.preventDefault(); go(); } };
+  bd.querySelector('#lGps').onclick = function(){
+    toast('Recherche de ta position…');
+    var done = false;
+    function use(lat, lon){ if(done) return; done = true; API.reverse(lat, lon).then(function(r){ var f = feats(r)[0], p = f && f.properties || {}; q.value = p.label || ''; setLieu(lat, lon, p.label || ('Position ' + lat.toFixed(5) + ', ' + lon.toFixed(5)), p.citycode, p.city, 'gps'); }); }
+    if(navigator.geolocation) navigator.geolocation.getCurrentPosition(function(p){ use(p.coords.latitude, p.coords.longitude); }, function(){ try{ var l = MS ? JSON.parse(MS.lastLocation()) : null; if(l && l.ok){ use(l.lat, l.lon); return; } }catch(e){} toast('Position indisponible : active la localisation', true); }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000 });
+  };
+  renderLieuRes();
+};
+function setLieu(lat, lon, label, citycode, city, srcK){
+  cur.lieu = { lat: lat, lon: lon, label: label, citycode: citycode || '', city: city || '', src: srcK, ts: Date.now(), loading: true };
+  if(!cur.nom) $('pTitle').textContent = title(cur);
+  save(); renderLieuRes(); fetchUrba();
+}
+function fetchUrba(){
+  var L = cur.lieu, lat = L.lat, lon = L.lon, id = cur.id;
+  var jobs = {
+    parcelle: API.carto('cadastre/parcelle', lat, lon),
+    doc: API.carto('gpu/document', lat, lon),
+    zone: API.carto('gpu/zone-urba', lat, lon),
+    secteur: API.carto('gpu/secteur-cc', lat, lon),
+    supS: API.carto('gpu/assiette-sup-s', lat, lon),
+    supL: API.carto('gpu/assiette-sup-l', lat, lon),
+    supP: API.carto('gpu/assiette-sup-p', lat, lon),
+    presc: API.carto('gpu/prescription-surf', lat, lon),
+    bat: API.batiments(lat, lon)
+  };
+  var keys = Object.keys(jobs);
+  Promise.all(keys.map(function(k){ return jobs[k]; })).then(function(res){
+    if(!cur || cur.id !== id) return;
+    var r = {}; keys.forEach(function(k, i){ r[k] = res[i]; });
+    var o = cur.lieu; o.loading = false; o.err = {};
+    keys.forEach(function(k){ if(!r[k].ok) o.err[k] = r[k].err; });
+    o.parcelles = feats(r.parcelle).map(function(f){ var p = f.properties || {}; return { idu: pick(p, ['idu']), section: pick(p, ['section']), numero: pick(p, ['numero']), commune: pick(p, ['nom_com']), insee: pick(p, ['code_insee', 'code_com']), contenance: pick(p, ['contenance']), ring: ring(f.geometry) }; });
+    o.docs = feats(r.doc).map(function(f){ var p = f.properties || {}; return { type: pick(p, ['du_type', 'typedoc', 'type']), nom: pick(p, ['grid_title', 'nom', 'name', 'original_name']), id: pick(p, ['id', 'gpu_doc_id']), etat: pick(p, ['legal_status', 'etat']), date: pick(p, ['publication_date', 'datappro', 'upload_date']) }; });
+    o.zones = feats(r.zone).concat(feats(r.secteur)).map(function(f){ var p = f.properties || {}; return { libelle: pick(p, ['libelle']), libelong: pick(p, ['libelong']), typezone: pick(p, ['typezone', 'typesect']), url: pick(p, ['urlfic']), doc: pick(p, ['gpu_doc_id']), partition: pick(p, ['partition']) }; });
+    var sup = [], seen = {};
+    feats(r.supS).concat(feats(r.supL), feats(r.supP)).forEach(function(f){ var p = f.properties || {}, c = supCode(p), l = pick(p, ['nomsuplitt', 'nomass', 'libelle', 'nomgen', 'nom']) || ''; var k = c + '|' + l; if(seen[k]) return; seen[k] = 1; sup.push({ code: c, label: l }); });
+    o.sup = sup;
+    o.presc = feats(r.presc).map(function(f){ var p = f.properties || {}; return pick(p, ['libelle', 'txt', 'libelong']) || ''; }).filter(Boolean).slice(0, 10);
+    o.bat = feats(r.bat).map(function(f){ var p = f.properties || {}; return { h: pick(p, ['hauteur']), usage: pick(p, ['usage_1', 'usage1', 'nature']), etages: pick(p, ['nombre_d_etages']), ring: fixLL(ring(f.geometry), lat, lon) }; }).filter(function(b){ return b.ring; });
+    var ll = [lon, lat];
+    o.batHere = o.bat.find(function(b){ return C.inPoly(ll, b.ring); }) || null;
+    // Secteur protégé déduit des servitudes
+    var hit = sup.filter(function(s){ return s.code === 'AC1' || s.code === 'AC4' || s.code === 'AC3' || (s.code === 'AC2' && /class/i.test(s.label)); });
+    var maybe = sup.filter(function(s){ return s.code === 'AC2' && !/class/i.test(s.label); });
+    o.protAuto = r.supS.ok ? (hit.length ? true : maybe.length ? null : false) : null;
+    o.protWhy = hit.concat(maybe).map(function(s){ return s.code + (s.label ? ' – ' + s.label : ''); });
+    if(cur.regl.protegeManuel == null) cur.regl.protege = o.protAuto;
+    save(); if(curTab === 'lieu') renderLieuRes(); tabsState();
+  });
+}
+function protLabel(v){ return v === true ? 'Oui' : v === false ? 'Non' : 'Je ne sais pas'; }
+function renderLieuRes(){
+  var el = $('lRes'); if(!el) return; var L = cur.lieu || {};
+  if(!L.lat){ el.innerHTML = '<div class="card"><h3>Sans adresse ?</h3><p class="note" style="margin-top:0">Tu peux quand même mesurer une photo ou un plan (onglet Surfaces). La production et les règles locales demandent une position.</p></div>'; return; }
+  var h = '<div class="card"><h3>Lieu</h3><table class="kv"><tr><td>Adresse</td><td>' + esc(L.label) + '</td></tr><tr><td>Coordonnées</td><td class="num">' + L.lat.toFixed(5) + ', ' + L.lon.toFixed(5) + '</td></tr>';
+  if(L.loading) h += '<tr><td colspan="2"><span class="spin"></span> Lecture du cadastre et de l\'urbanisme…</td></tr>';
+  (L.parcelles || []).forEach(function(p){ h += '<tr><td>Parcelle</td><td>' + esc((p.commune ? p.commune + ' · ' : '') + 'section ' + p.section + ' n° ' + p.numero) + (p.contenance ? '<br><span style="color:var(--tx2);font-weight:500">' + fmt(p.contenance) + ' m²</span>' : '') + '</td></tr>'; });
+  if(L.batHere) h += '<tr><td>Bâtiment (BD TOPO)</td><td>' + (L.batHere.h ? 'hauteur ' + fmt(L.batHere.h, 1) + ' m' : 'hauteur inconnue') + (L.batHere.usage ? ' · ' + esc(L.batHere.usage) : '') + '</td></tr>';
+  h += '</table></div>';
+  if(!L.loading){
+    var e = L.err || {};
+    h += '<div class="card"><h3>Urbanisme</h3>';
+    if(e.doc && e.zone) h += '<div class="need bad"><b>Géoportail de l\'urbanisme injoignable</b><p>' + esc(e.zone) + '. Saisis la zone à la main (elle figure sur le plan de zonage en mairie) et vérifie le secteur protégé.</p></div>';
+    (L.docs || []).forEach(function(d){ h += '<p style="margin:4px 0"><b>' + esc(d.type || 'Document d\'urbanisme') + '</b> ' + esc(d.nom || '') + (d.etat ? ' <span class="tag">' + esc({ APPROVED: 'approuvé', PRODUCTION: 'en vigueur', CANCELLED: 'annulé' }[String(d.etat).toUpperCase()] || d.etat) + '</span>' : '') + (d.id ? '<br>' + ext('https://www.geoportail-urbanisme.gouv.fr/document/by-id/' + d.id, 'Voir le document et son règlement') : '') + '</p>'; });
+    if(!e.doc && !(L.docs || []).length) h += '<p style="margin:4px 0">Aucun document d\'urbanisme publié ici : la commune est peut-être au règlement national d\'urbanisme (RNU). À confirmer en mairie.</p>';
+    (L.zones || []).forEach(function(z){ h += '<div class="need info"><b>Zone ' + esc(z.libelle || '?') + (z.typezone ? ' <span class="tag">' + esc(z.typezone) + '</span>' : '') + '</b>' + (z.libelong ? '<p>' + esc(z.libelong) + '</p>' : '') + (z.url ? '<div class="src">' + ext(z.url, 'Règlement de la zone (PDF)') + '</div>' : '') + '</div>'; });
+    h += '<div class="fld"><label>Zone (saisie)<small>Si l\'API ne répond pas ou pour corriger</small></label><input id="lZone" style="text-align:left;width:130px" value="' + esc(L.zoneManuelle || '') + '" placeholder="ex. UB"></div>';
+    h += '<p class="note">' + ext('https://www.geoportail-urbanisme.gouv.fr/map/#tile=1&lon=' + L.lon + '&lat=' + L.lat + '&zoom=18', 'Ouvrir la carte du Géoportail de l\'urbanisme') + '</p></div>';
+    h += '<div class="card' + (cur.regl.protege === true ? ' warn' : '') + '"><h3>Secteur protégé · Architecte des Bâtiments de France</h3>';
+    if(e.supS) h += '<p class="note" style="margin-top:0">Servitudes non lues (' + esc(e.supS) + ').</p>';
+    else if(L.protAuto === true) h += '<p style="margin:0 0 6px"><b>Secteur protégé détecté</b> : le projet passera par l\'avis de l\'ABF.</p>';
+    else if(L.protAuto === false) h += '<p style="margin:0 0 6px">Aucune servitude de protection du patrimoine (AC1, AC2, AC4) trouvée à ce point.</p>';
+    else h += '<p style="margin:0 0 6px">Site inscrit ou résultat incertain : à vérifier.</p>';
+    (L.protWhy || []).forEach(function(w){ h += '<span class="tag warn">' + esc(w) + '</span>'; });
+    h += '<p class="note">Ta réponse (utilisée pour les démarches) :</p>' + seg('lProt', [['true', 'Oui'], ['false', 'Non'], ['null', 'Je ne sais pas']], String(cur.regl.protege)) + '</div>';
+    var other = (L.sup || []).filter(function(s){ return ['AC1', 'AC2', 'AC3', 'AC4'].indexOf(s.code) < 0; });
+    if(other.length || (L.presc || []).length){
+      h += '<div class="card"><h3>Autres contraintes connues</h3>';
+      other.forEach(function(s){ h += '<p style="margin:4px 0"><span class="tag">' + esc(s.code || 'SUP') + '</span> ' + esc(SUPN[s.code] || '') + (s.label && s.label !== SUPN[s.code] ? ' · ' + esc(s.label) : '') + '</p>'; });
+      (L.presc || []).forEach(function(s){ h += '<p style="margin:4px 0"><span class="tag">Prescription</span> ' + esc(s) + '</p>'; });
+      h += '</div>';
+    }
+    var errs = Object.keys(e).filter(function(k){ return k !== 'doc' && k !== 'zone'; });
+    if(errs.length) h += '<p class="note">Services sans réponse : ' + errs.map(function(k){ return { parcelle: 'cadastre', secteur: 'carte communale', supS: 'servitudes', supL: 'servitudes (lignes)', supP: 'servitudes (points)', presc: 'prescriptions', bat: 'bâtiments BD TOPO' }[k] || k; }).join(', ') + '. <button class="tag" id="lRetry">Réessayer</button></p>';
+  }
+  h += '<div class="card"><h3>Notes sur les contraintes</h3><textarea class="txt" id="lNotes" placeholder="Ce que dit la mairie, le règlement (hauteur, aspect des toitures, reculs)…">' + esc(cur.lieu.notes || '') + '</textarea></div>';
+  el.innerHTML = h;
+  bindSeg(el, 'lProt', function(v){ cur.regl.protege = v === 'true' ? true : v === 'false' ? false : null; cur.regl.protegeManuel = true; save(); });
+  var z = el.querySelector('#lZone'); if(z) z.oninput = function(){ cur.lieu.zoneManuelle = z.value.trim(); save(); };
+  var n = el.querySelector('#lNotes'); if(n) n.oninput = function(){ cur.lieu.notes = n.value; save(); };
+  var rt = el.querySelector('#lRetry'); if(rt) rt.onclick = function(){ cur.lieu.loading = true; renderLieuRes(); fetchUrba(); };
+}
+
+/* =========================== 2. SURFACES =========================== */
+var IMGC = {};
+function imgOf(pan){ return new Promise(function(ok){ var k = pan.id; if(IMGC[k] && IMGC[k].src === pan.src.img){ ok(IMGC[k].im); return; } var im = new Image(); im.onload = function(){ IMGC[k] = { src: pan.src.img, im: im }; ok(im); }; im.onerror = function(){ ok(null); }; im.src = pan.src.img; }); }
+TABS.mesure = function(bd){
+  var h = '';
+  if(!cur.pans.length) h += '<div class="card"><h3>Comment mesurer ?</h3><p style="margin:0">Ajoute une surface : <b>photo</b> du pan (avec une longueur connue ou un rectangle connu, comme une fenêtre de toit), <b>plan</b> (PDF ou image à l\'échelle) ou <b>vue aérienne</b> IGN (échelle connue). Trace ensuite le contour et les obstacles.</p></div>';
+  cur.pans.forEach(function(pn, i){
+    var st = C.panArea(pn, cur.type, { n: 80 });
+    h += '<div class="pan" data-i="' + i + '"><img class="thumb" data-th="' + i + '" alt=""><div class="in"><div class="hd"><b>' + esc(pn.nom || ('Surface ' + (i + 1))) + '</b><span class="tag">' + { photo: 'Photo', plan: 'Plan', aerien: 'Vue aérienne' }[pn.src.kind] + '</span></div>';
+    if(st) h += '<div class="stats" style="margin-top:8px"><div class="stat"><div>Surface</div><div>' + fmt(st.area, 1) + ' m²</div></div><div class="stat"><div>Incertitude</div><div>± ' + fmt(st.rel * 100, st.rel < 0.1 ? 1 : 0) + ' %</div></div><div class="stat"><div>Obstacles</div><div>' + fmt(st.obstacles, 1) + ' m²</div></div></div>';
+    if(st && st.rel > 0.1) h += '<p class="note" style="color:var(--warn)">Incertitude forte : refais l\'échelle avec un repère plus grand (largeur totale du pan, rangée de tuiles comptées…).</p>';
+    if(!st) h += '<p class="note">' + (!C.plane(pn.cal) ? 'Échelle à régler, puis contour à tracer.' : 'Contour à tracer (au moins 3 points).') + '</p>';
+    h += '<div class="row"><button class="btn main" data-ed="' + i + '">' + ic('edit') + 'Tracer / modifier</button></div>';
+    if(cur.type === 'toiture'){
+      h += fld('pe' + i, 'Pente du toit', 'Inclinaison du pan', pn.pente, '°') +
+        '<div class="row" style="margin-top:4px"><button class="btn sm" data-sens="' + i + '">' + ic('angle') + 'Mesurer la pente</button></div>' +
+        '<div class="fld"><label>Vue de dessus<small>Plan de toiture ou vue aérienne : corrige la surface avec la pente</small></label><button class="btn sm' + (pn.top ? ' on' : '') + '" data-top="' + i + '" style="flex:none;min-width:86px">' + (pn.top ? 'Oui' : 'Non') + '</button></div>';
+    }
+    h += fld('az' + i, 'Orientation des panneaux', 'Azimut : 180 = plein sud, 90 = est, 270 = ouest', pn.az, '°') +
+      '<div class="row" style="margin-top:4px">' + [['N', 0], ['E', 90], ['SE', 135], ['S', 180], ['SO', 225], ['O', 270]].map(function(o){ return '<button class="btn sm" data-az="' + i + ':' + o[1] + '" style="flex:1 1 40px">' + o[0] + '</button>'; }).join('') + '</div>' +
+      '<div class="row"><button class="btn sm" data-comp="' + i + '">' + ic('compass') + 'Boussole</button><button class="btn sm" data-ren="' + i + '">Renommer</button><button class="btn sm" data-del="' + i + '" style="color:var(--bad)">' + ic('trash') + '</button></div>';
+    if(pn.azAuto) h += '<p class="note">Orientation déduite du bas du pan tracé sur la vue aérienne.</p>';
+    h += '</div></div>';
+  });
+  h += '<div class="card"><h3>Ajouter une surface</h3><div class="big3">' +
+    '<button class="choice" data-add="cam"><span class="ico">' + ic('cam') + '</span><span><b>Prendre une photo</b><span>Bien en face du pan, ou avec un rectangle connu</span></span></button>' +
+    '<button class="choice" data-add="gal"><span class="ico">' + ic('img') + '</span><span><b>Photo de l’ordinateur</b><span>Choisir un fichier image</span></span></button>' +
+    '<button class="choice" data-add="plan"><span class="ico">' + ic('plan') + '</span><span><b>Plan (PDF ou image)</b><span>Échelle du plan ou longueur connue</span></span></button>' +
+    '<button class="choice" data-add="air"><span class="ico">' + ic('sat') + '</span><span><b>Vue aérienne IGN</b><span>Orthophoto à l\'échelle, cadastre et bâtiments</span></span></button></div></div>';
+  bd.innerHTML = h;
+  cur.pans.forEach(function(pn, i){ panThumb(pn, 900).then(function(u){ var im = bd.querySelector('[data-th="' + i + '"]'); if(im && u) im.src = u; }); });
+  cur.pans.forEach(function(pn, i){
+    var pe = bd.querySelector('#pe' + i); if(pe) pe.onchange = function(){ pn.pente = num(pe.value); recalc(pn); save(); };
+    var az = bd.querySelector('#az' + i); az.onchange = function(){ var v = num(az.value); pn.az = v == null ? null : ((v % 360) + 360) % 360; pn.azAuto = false; pn.azManual = true; recalc(pn); save(); };
+  });
+  bd.onclick = function(e){
+    var b;
+    if((b = e.target.closest('[data-ed]'))) openEditor(cur.pans[+b.dataset.ed]);
+    else if((b = e.target.closest('[data-add]'))) addPan(b.dataset.add);
+    else if((b = e.target.closest('[data-top]'))){ var p = cur.pans[+b.dataset.top]; p.top = !p.top; recalc(p); save(); showTab('mesure'); }
+    else if((b = e.target.closest('[data-az]'))){ var s = b.dataset.az.split(':'), q = cur.pans[+s[0]]; q.az = +s[1]; q.azAuto = false; q.azManual = true; recalc(q); save(); showTab('mesure'); }
+    else if((b = e.target.closest('[data-sens]'))) measureSlope(cur.pans[+b.dataset.sens]);
+    else if((b = e.target.closest('[data-comp]'))) measureAz(cur.pans[+b.dataset.comp]);
+    else if((b = e.target.closest('[data-ren]'))){ var r = cur.pans[+b.dataset.ren]; sheet('<h3>Nom de la surface</h3><input class="txt" id="rnI"><div class="row"><button class="btn" data-x>Annuler</button><button class="btn main" id="rnOk">Valider</button></div>', function(el, done){ var i = el.querySelector('#rnI'); i.value = r.nom || ''; el.querySelector('#rnOk').onclick = function(){ r.nom = i.value.trim(); save(); done(); showTab('mesure'); }; }); }
+    else if((b = e.target.closest('[data-del]'))){ var k = +b.dataset.del; confirmBox('Supprimer cette surface ?', 'Le tracé et l\'image de « ' + (cur.pans[k].nom || 'Surface ' + (k + 1)) + ' » seront effacés.', 'Supprimer', function(){ cur.pans.splice(k, 1); save(); showTab('mesure'); }); }
+  };
+};
+var addKind = null;
+function addPan(k){
+  if(k === 'air'){ if(!cur.lieu || !cur.lieu.lat){ toast('Indique d\'abord l\'adresse (onglet Lieu)', true); showTab('lieu'); return; } openMap(); return; }
+  addKind = k; var inp = k === 'cam' ? $('fCam') : k === 'gal' ? $('fGal') : $('fPlan'); inp.value = ''; inp.click();
+}
+['fCam', 'fGal', 'fPlan'].forEach(function(id){ $(id).onchange = function(){ var f = this.files[0]; if(f) loadFile(f, id === 'fPlan'); }; });
+function newPan(src, cal){
+  var p = { id: uid(), nom: '', src: src, cal: cal, poly: [], obs: [], eave: 0, pente: cur.type === 'toiture' ? 30 : 0, top: src.kind !== 'photo' && cur.type === 'toiture', az: 180, nord: 0, res: null };
+  cur.pans.push(p); save(); return p;
+}
+function downscale(im, max){
+  var w = im.naturalWidth || im.width, h = im.naturalHeight || im.height, k = Math.min(1, max / Math.max(w, h));
+  var c = document.createElement('canvas'); c.width = Math.round(w * k); c.height = Math.round(h * k);
+  var g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0, c.width, c.height);
+  return { url: c.toDataURL('image/jpeg', 0.88), w: c.width, h: c.height, k: k };
+}
+function loadFile(f, plan){
+  var isPdf = /pdf$/i.test(f.type) || /\.pdf$/i.test(f.name);
+  if(isPdf){ loadPdf(f); return; }
+  var r = new FileReader();
+  r.onload = function(){
+    var im = new Image();
+    im.onload = function(){
+      var d = downscale(im, 2400);
+      var p = newPan({ kind: plan ? 'plan' : 'photo', img: d.url, w: d.w, h: d.h, nomFichier: f.name }, { mode: 'longueur', pts: [], L: null });
+      openEditor(p);
+    };
+    im.onerror = function(){ toast('Image illisible', true); };
+    im.src = r.result;
+  };
+  r.readAsDataURL(f);
+}
+function loadScript(src){ return new Promise(function(ok, ko){ var s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = ko; document.head.appendChild(s); }); }
+function need(name, local, cdn){ if(window[name]) return Promise.resolve(true); return loadScript(local).then(function(){ return !!window[name]; }, function(){ return false; }).then(function(ok){ if(ok || !cdn) return ok; return loadScript(cdn).then(function(){ return !!window[name]; }, function(){ return false; }); }); }
+function loadPdf(f){
+  toast('Ouverture du plan…');
+  need('pdfjsLib', '../shared/vendor/pdf.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js').then(function(ok){
+    if(!ok){ toast('Module PDF absent (pdf.min.js)', true); return; }
+    var L = window.pdfjsLib; if(!L.GlobalWorkerOptions.workerSrc) L.GlobalWorkerOptions.workerSrc = '../shared/vendor/pdf.worker.min.js';
+    f.arrayBuffer().then(function(buf){ return L.getDocument({ data: new Uint8Array(buf) }).promise; }).then(function(doc){
+      function render(n){
+        doc.getPage(n).then(function(pg){
+          var v1 = pg.getViewport({ scale: 1 }), sc = Math.min(4, 2400 / Math.max(v1.width, v1.height)), vp = pg.getViewport({ scale: sc });
+          var c = document.createElement('canvas'); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+          var g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+          pg.render({ canvasContext: g, viewport: vp }).promise.then(function(){
+            var p = newPan({ kind: 'plan', img: c.toDataURL('image/jpeg', 0.9), w: c.width, h: c.height, pxParPt: sc, page: n, nomFichier: f.name }, { mode: 'longueur', pts: [], L: null });
+            openEditor(p);
+          });
+        });
+      }
+      if(doc.numPages > 1) sheet('<h3>Quelle page ?</h3><p>Le PDF a ' + doc.numPages + ' pages.</p>' + fld('pgN', 'Page', '', 1, '') + '<div class="row"><button class="btn" data-x>Annuler</button><button class="btn main" id="pgOk">Ouvrir</button></div>', function(el, done){ el.querySelector('#pgOk').onclick = function(){ var n = Math.max(1, Math.min(doc.numPages, Math.round(num(el.querySelector('#pgN').value) || 1))); done(); render(n); }; });
+      else render(1);
+    }).catch(function(){ toast('PDF illisible', true); });
+  });
+}
+/* Rendu d'un pan (image + tracé + calepinage) en petite image */
+function panThumb(pan, max, opt){
+  opt = opt || {};
+  return imgOf(pan).then(function(im){
+    if(!im) return '';
+    var F = C.frame(pan, cur.type), w = pan.src.w, h = pan.src.h, box = [0, 0, w, h];
+    if(F && opt.crop !== false && pan.poly.length > 2){
+      var xs = pan.poly.map(function(p){ return p[0]; }), ys = pan.poly.map(function(p){ return p[1]; });
+      var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys), m = Math.max(x1 - x0, y1 - y0) * 0.18 + 20;
+      box = [Math.max(0, x0 - m), Math.max(0, y0 - m), Math.min(w, x1 + m), Math.min(h, y1 + m)];
+    }
+    var bw = box[2] - box[0], bh = box[3] - box[1], k = Math.min(1.5, max / Math.max(bw, bh));
+    var c = document.createElement('canvas'); c.width = Math.max(1, Math.round(bw * k)); c.height = Math.max(1, Math.round(bh * k));
+    var g = c.getContext('2d'); g.drawImage(im, box[0], box[1], bw, bh, 0, 0, c.width, c.height);
+    g.setTransform(k, 0, 0, k, -box[0] * k, -box[1] * k);
+    drawOverlay(g, pan, F, k, { panels: true, labels: opt.labels, fs: Math.max(13, c.width / 48) });
+    try{ return c.toDataURL('image/jpeg', 0.85); }catch(e){ return ''; }
+  });
+}
+function pathPoly(g, pts){ g.beginPath(); pts.forEach(function(p, i){ if(i) g.lineTo(p[0], p[1]); else g.moveTo(p[0], p[1]); }); g.closePath(); }
+/** Dessin commun (éditeur, vignettes, fiche) : z = pixels écran par pixel image */
+function drawOverlay(g, pan, F, z, o){
+  o = o || {}; var lw = 1 / z;
+  (pan.over || []).forEach(function(ov){ if(o.noOver) return; g.lineWidth = (ov.k === 'parcelle' ? 2.5 : 1.5) * lw; g.strokeStyle = ov.k === 'parcelle' ? '#ffe14dcc' : '#ffffffaa'; g.setLineDash(ov.k === 'parcelle' ? [8 * lw, 6 * lw] : []); pathPoly(g, ov.pts); g.stroke(); });
+  g.setLineDash([]);
+  if(pan.poly.length){
+    pathPoly(g, pan.poly); if(pan.poly.length > 2){ g.fillStyle = '#ffc94a26'; g.fill(); }
+    g.lineWidth = 3 * lw; g.strokeStyle = '#ffc94a'; if(pan.poly.length > 2) g.stroke(); else { g.beginPath(); pan.poly.forEach(function(p, i){ if(i) g.lineTo(p[0], p[1]); else g.moveTo(p[0], p[1]); }); g.stroke(); }
+    if(cur.type === 'toiture' && pan.poly.length > 2){ var e = pan.eave % pan.poly.length, a = pan.poly[e], b = pan.poly[(e + 1) % pan.poly.length]; g.lineWidth = 7 * lw; g.strokeStyle = '#ff7a2f'; g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.stroke(); }
+  }
+  pan.obs.forEach(function(ob){ if(!ob.length) return; pathPoly(g, ob); g.fillStyle = '#ff5c5c40'; if(ob.length > 2) g.fill(); g.lineWidth = 2.5 * lw; g.strokeStyle = '#ff6b6b'; g.stroke(); });
+  if(o.panels && F && pan.res && pan.res.rects && pan.res.rects.length && pan.res.sig === sig(pan)){
+    pan.res.rects.forEach(function(r){
+      var q = [[r[0], r[1]], [r[2], r[1]], [r[2], r[3]], [r[0], r[3]]].map(F.toI);
+      pathPoly(g, q); g.fillStyle = '#1b3f8fdd'; g.fill(); g.lineWidth = 1.4 * lw; g.strokeStyle = '#d8e6ff'; g.stroke();
+      if(pan.res.per > 1){ for(var j = 1; j < pan.res.per; j++){ var t = j / pan.res.per, y = r[1] + (r[3] - r[1]) * t, a2 = F.toI([r[0], y]), b2 = F.toI([r[2], y]); g.beginPath(); g.moveTo(a2[0], a2[1]); g.lineTo(b2[0], b2[1]); g.stroke(); } }
+    });
+  }
+  if(o.labels && F && pan.poly.length > 2){
+    var fs = (o.fs || 13) * lw; g.font = fs + 'px system-ui,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    pan.poly.forEach(function(p, i){
+      var q = pan.poly[(i + 1) % pan.poly.length]; if(C.dist(p, q) * z < fs / lw * 4.5) return;
+      var L = C.dist(F.poly[i], F.poly[(i + 1) % F.poly.length]), mx = (p[0] + q[0]) / 2, my = (p[1] + q[1]) / 2, t = fmt(L, 2) + ' m', tw = g.measureText(t).width + fs * 0.6;
+      g.fillStyle = '#000b'; g.fillRect(mx - tw / 2, my - fs * 0.78, tw, fs * 1.56); g.fillStyle = '#fff'; g.fillText(t, mx, my);
+    });
+  }
+}
+
+/* ---------- Capteurs (pente, boussole) : MAGMesure comme l'appli Mesure, sinon capteurs du navigateur ---------- */
+var sens = { h: {}, web: {}, pingT: null };
+window.mesureEvent = function(type, o){ if(typeof o === 'string'){ try{ o = JSON.parse(o); }catch(e){ o = {}; } } var f = sens.h[type]; if(f) try{ f(o); }catch(e){} };
+function sensStart(type, cb){
+  sens.h[type] = cb;
+  if(MS){ var ok = false; try{ ok = MS.start(type); }catch(e){} if(!sens.pingT) sens.pingT = setInterval(function(){ try{ MS.ping(); }catch(e){} }, 2000); return ok; }
+  if(type === 'motion'){ sens.web.m = function(e){ var g = e.accelerationIncludingGravity; if(g && g.x != null) cb({ x: g.x, y: g.y, z: g.z }); }; window.addEventListener('devicemotion', sens.web.m); return 'DeviceMotionEvent' in window; }
+  if(type === 'compass'){ sens.web.c = function(e){ if(e.alpha == null) return; var az = e.webkitCompassHeading != null ? e.webkitCompassHeading : (360 - e.alpha) % 360; cb({ az: az, cam: az, acc: 3 }); }; window.addEventListener('deviceorientationabsolute', sens.web.c); return 'ondeviceorientationabsolute' in window; }
+  return false;
+}
+function sensStop(){
+  sens.h = {}; if(MS){ try{ MS.stopAll(); }catch(e){} }
+  if(sens.web.m) window.removeEventListener('devicemotion', sens.web.m); if(sens.web.c) window.removeEventListener('deviceorientationabsolute', sens.web.c); sens.web = {};
+  clearInterval(sens.pingT); sens.pingT = null;
+}
+function measureSlope(pan){
+  var G = null, val = null;
+  var done = sheet('<h3>Mesurer la pente</h3><p>Sur PC, pas de capteur d’inclinaison : saisis la pente à la main, ou mesure-la avec l’appli Solaire du téléphone.</p><div class="live" id="slV">–</div><p class="note" id="slN" style="text-align:center">En attente du capteur…</p><div class="row"><button class="btn" data-x>Annuler</button><button class="btn main" id="slOk" disabled>Valider</button></div>', function(el){
+    el.querySelector('#slOk').onclick = function(){ if(val == null) return; pan.pente = Math.round(val * 10) / 10; recalc(pan); save(); done(); showTab('mesure'); toast('Pente : ' + fmt(pan.pente, 1) + '°'); };
+    var ok = sensStart('motion', function(o){
+      if(!G) G = { x: o.x, y: o.y, z: o.z }; else { G.x += (o.x - G.x) * 0.3; G.y += (o.y - G.y) * 0.3; G.z += (o.z - G.z) * 0.3; }
+      var n = Math.sqrt(G.x * G.x + G.y * G.y + G.z * G.z) || 9.81; val = Math.acos(Math.min(1, Math.abs(G.z) / n)) * 180 / Math.PI;
+      el.querySelector('#slV').textContent = fmt(val, 1) + '°'; el.querySelector('#slN').textContent = 'Pente ' + fmt(Math.tan(val * Math.PI / 180) * 100) + ' %'; el.querySelector('#slOk').disabled = false;
+    });
+    if(!ok) el.querySelector('#slN').textContent = 'Capteur indisponible ici : saisis la pente à la main.';
+  });
+  sheetOpen.onClose = sensStop;
+}
+function measureAz(pan){
+  var val = null, decl = 0;
+  try{ var l = MS ? JSON.parse(MS.lastLocation()) : null; var la = cur.lieu.lat || (l && l.lat), lo = cur.lieu.lon || (l && l.lon); if(MS && MS.declination && la != null) decl = MS.declination(la, lo, 0) || 0; }catch(e){}
+  var done = sheet('<h3>Orientation du pan</h3><p>Sur PC, pas de boussole : choisis l’orientation à la main (ou sur la vue aérienne).</p><div class="live" id="azV">–</div><p class="note" id="azN" style="text-align:center">En attente de la boussole…</p><div class="row"><button class="btn" data-x>Annuler</button><button class="btn main" id="azOk" disabled>Valider</button></div>', function(el){
+    el.querySelector('#azOk').onclick = function(){ if(val == null) return; pan.az = Math.round(val); pan.azAuto = false; pan.azManual = true; recalc(pan); save(); done(); showTab('mesure'); };
+    var ok = sensStart('compass', function(o){ val = ((o.az + decl) % 360 + 360) % 360; el.querySelector('#azV').textContent = fmt(val) + '°'; el.querySelector('#azN').textContent = dirName(val) + (decl ? ' · déclinaison ' + fmt(decl, 1) + '° corrigée' : '') + (o.acc != null && o.acc < 2 ? ' · calibre la boussole (geste en 8)' : ''); el.querySelector('#azOk').disabled = false; });
+    if(!ok) el.querySelector('#azN').textContent = 'Boussole indisponible ici : choisis l\'orientation à la main.';
+  });
+  sheetOpen.onClose = sensStop;
+}
+function dirName(a){ return ['nord', 'nord-est', 'est', 'sud-est', 'sud', 'sud-ouest', 'ouest', 'nord-ouest'][Math.round(((a % 360) + 360) % 360 / 45) % 8]; }
+
+/* ---------- Vue aérienne (Leaflet + orthophotos IGN Géoplateforme, WMTS) ---------- */
+var map = null, mapOv = null;
+var WMTS = 'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&TILEMATRIXSET=PM&FORMAT=image/jpeg';
+function tileUrl(z, x, y){ return WMTS + '&TILEMATRIX=' + z + '&TILEROW=' + y + '&TILECOL=' + x; }
+function needLeaflet(){
+  if(window.L) return Promise.resolve(true);
+  return need('L', '../shared/vendor/leaflet.js', 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js').then(function(ok){ if(ok && !window.L.version) return false; if(ok && !document.querySelector('link[href*="leaflet"]')){ var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'; document.head.appendChild(l); } return ok; });
+}
+function openMap(){
+  needLeaflet().then(function(ok){
+    if(!ok){ toast('Module de carte absent (leaflet.js)', true); return; }
+    openScr('s-map');
+    var L = window.L, la = cur.lieu.lat, lo = cur.lieu.lon;
+    if(!map){
+      map = L.map('map', { zoomControl: true, attributionControl: true, maxZoom: 20 });
+      L.tileLayer(WMTS + '&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}', { maxZoom: 20, maxNativeZoom: 19, attribution: 'IGN-F / Géoplateforme', crossOrigin: true }).addTo(map);
+    }
+    setTimeout(function(){ map.invalidateSize(); map.setView([la, lo], 19); }, 60);
+    if(mapOv) map.removeLayer(mapOv);
+    mapOv = L.layerGroup().addTo(map);
+    (cur.lieu.parcelles || []).forEach(function(p){ if(p.ring) L.polygon(p.ring.map(function(c){ return [c[1], c[0]]; }), { color: '#ffe14d', weight: 2, fill: false, dashArray: '6 5' }).addTo(mapOv); });
+    (cur.lieu.bat || []).forEach(function(b){ L.polygon(b.ring.map(function(c){ return [c[1], c[0]]; }), { color: '#fff', weight: 1, fill: false }).addTo(mapOv); });
+    L.circleMarker([la, lo], { radius: 5, color: '#ff7a2f', fill: true, fillOpacity: 1 }).addTo(mapOv);
+  });
+}
+$('mapLoc').onclick = function(){ if(map && cur.lieu.lat) map.setView([cur.lieu.lat, cur.lieu.lon], 19); };
+$('mapOk').onclick = function(){
+  var c = map.getCenter(), zm = map.getZoom(), z = 19;
+  var fr = $('mapFrame').getBoundingClientRect(), side = fr.width * Math.pow(2, z - zm);
+  var size = Math.round(Math.max(640, Math.min(2048, side * 1.15)));
+  captureOrtho(c.lat, c.lng, z, size).then(function(r){
+    if(!r){ toast('Vue aérienne indisponible (pas de réseau ?)', true); return; }
+    var pan = newPan({ kind: 'aerien', img: r.url, w: size, h: size, z: z, x0: r.x0, y0: r.y0, lat: c.lat, lon: c.lng }, { mode: 'aerien', mpp: C.mercMpp(c.lat, z) });
+    pan.over = [];
+    function toPx(ring){ return ring.map(function(p){ var q = C.lonLatToPx(p[0], p[1], z); return [q[0] - r.x0, q[1] - r.y0]; }); }
+    (cur.lieu.parcelles || []).forEach(function(p){ if(p.ring) pan.over.push({ k: 'parcelle', pts: toPx(p.ring) }); });
+    (cur.lieu.bat || []).forEach(function(b){ pan.over.push({ k: 'bat', pts: toPx(b.ring), h: b.h }); });
+    if(r.fail) toast(r.fail + ' tuile(s) manquante(s)', true);
+    save(); history.back(); setTimeout(function(){ openEditor(pan); }, 120);
+  });
+};
+function loadTile(u){
+  return new Promise(function(ok){
+    var im = new Image(); im.crossOrigin = 'anonymous';
+    im.onload = function(){ ok(im); };
+    im.onerror = function(){
+      if(!B){ ok(null); return; }
+      nativeGet(u, true).then(function(r){ if(r.status !== 200 || !r.body){ ok(null); return; } var j = new Image(); j.onload = function(){ ok(j); }; j.onerror = function(){ ok(null); }; j.src = 'data:image/jpeg;base64,' + r.body; });
+    };
+    im.src = u;
+  });
+}
+function captureOrtho(lat, lon, z, size){
+  var ctr = C.lonLatToPx(lon, lat, z), x0 = Math.round(ctr[0] - size / 2), y0 = Math.round(ctr[1] - size / 2);
+  var c = document.createElement('canvas'); c.width = size; c.height = size; var g = c.getContext('2d'); g.fillStyle = '#333'; g.fillRect(0, 0, size, size);
+  var jobs = [], fail = 0, okN = 0;
+  for(var tx = Math.floor(x0 / 256); tx <= Math.floor((x0 + size - 1) / 256); tx++) for(var ty = Math.floor(y0 / 256); ty <= Math.floor((y0 + size - 1) / 256); ty++) (function(tx, ty){
+    jobs.push(loadTile(tileUrl(z, tx, ty)).then(function(im){ if(im){ g.drawImage(im, tx * 256 - x0, ty * 256 - y0); okN++; } else fail++; }));
+  })(tx, ty);
+  toast('Chargement de la vue aérienne…');
+  return Promise.all(jobs).then(function(){ if(!okN) return null; try{ return { url: c.toDataURL('image/jpeg', 0.9), x0: x0, y0: y0, fail: fail }; }catch(e){ return null; } });
+}
+
+/* =========================== Éditeur de surface =========================== */
+var ED = null;
+var cv = $('cv'), cg = cv.getContext('2d');
+function openEditor(pan){
+  if(!stack.length || stack[stack.length - 1] !== 's-proj') return;
+  ED = { pan: pan, mode: C.plane(pan.cal) ? (pan.poly.length > 2 ? 'poly' : 'poly') : 'cal', s: 1, tx: 0, ty: 0, im: null, ptr: {}, drag: null, curObs: -1, sq: false, sqSize: 0.6, showPanels: true, hist: [] };
+  if(!C.plane(pan.cal)) ED.mode = 'cal';
+  if(pan.src.kind === 'aerien' && pan.poly.length < 3) ED.mode = 'poly';
+  $('edTitle').textContent = pan.nom || 'Surface ' + (cur.pans.indexOf(pan) + 1);
+  openScr('s-edit');
+  imgOf(pan).then(function(im){ ED.im = im; edResize(); edFit(); edMode(ED.mode); });
+}
+function edClose(){ if(!ED) return; var p = ED.pan; ED = null; autoAz(p); recalc(p); save(); if(curTab) showTab(curTab === 'pose' ? 'pose' : 'mesure'); }
+$('edBack').onclick = back;
+function edResize(){ var r = $('edWrap').getBoundingClientRect(), d = window.devicePixelRatio || 1; cv.width = Math.round(r.width * d); cv.height = Math.round(r.height * d); cv.style.width = r.width + 'px'; cv.style.height = r.height + 'px'; ED && (ED.dpr = d); draw(); }
+window.addEventListener('resize', function(){ if(ED) edResize(); });
+function edFit(full){
+  if(!ED) return; var r = $('edWrap').getBoundingClientRect(), p = ED.pan, box = [0, 0, p.src.w, p.src.h];
+  if(!full && p.poly.length > 2){ var xs = p.poly.map(function(q){ return q[0]; }), ys = p.poly.map(function(q){ return q[1]; }), x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys), m = Math.max(x1 - x0, y1 - y0) * 0.25 + 10; box = [x0 - m, y0 - m, x1 + m, y1 + m]; }
+  else if(!full && p.src.kind === 'aerien'){ var c = p.src.w / 2, d = Math.min(p.src.w, 300) / 2; box = [c - d, c - d, c + d, c + d]; }
+  var w = box[2] - box[0], h = box[3] - box[1], s = Math.min(r.width / w, (r.height - 60) / h) * 0.96;
+  ED.s = s; ED.tx = (r.width - w * s) / 2 - box[0] * s; ED.ty = (r.height - h * s) / 2 + 20 - box[1] * s; draw();
+}
+$('edFit').onclick = function(){ ED && (ED.fitFull = !ED.fitFull); edFit(ED && ED.fitFull); };
+function toImg(x, y){ return [(x - ED.tx) / ED.s, (y - ED.ty) / ED.s]; }
+function toScr(p){ return [p[0] * ED.s + ED.tx, p[1] * ED.s + ED.ty]; }
+$('edMode').onclick = function(e){ var b = e.target.closest('[data-m]'); if(b) edMode(b.dataset.m); };
+function snap(){ ED.hist.push(JSON.stringify({ cal: ED.pan.cal, poly: ED.pan.poly, obs: ED.pan.obs, eave: ED.pan.eave })); if(ED.hist.length > 60) ED.hist.shift(); }
+$('edUndo').onclick = function(){ if(!ED || !ED.hist.length){ toast('Rien à annuler'); return; } var s = JSON.parse(ED.hist.pop()); ED.pan.cal = s.cal; ED.pan.poly = s.poly; ED.pan.obs = s.obs; ED.pan.eave = s.eave; edMode(ED.mode); };
+function edMode(m){
+  ED.mode = m; var pan = ED.pan, k = pan.src.kind, o = $('edOpts'), help = '';
+  var eb = document.querySelector('#edMode [data-m="eave"]'); eb.hidden = cur.type !== 'toiture' && k === 'aerien'; eb.textContent = cur.type === 'toiture' ? 'Bas du pan' : 'Nord';
+  document.querySelectorAll('#edMode button').forEach(function(b){ b.classList.toggle('on', b.dataset.m === m); });
+  var h = '';
+  if(m === 'cal'){
+    if(k === 'aerien'){ h = '<span class="note" style="margin:0">Échelle connue : ' + fmt(pan.cal.mpp * 100, 1) + ' cm par pixel (orthophoto IGN, niveau ' + pan.src.z + ').</span>'; help = 'Rien à régler : passe à « Contour ».'; }
+    else {
+      var modes = k === 'plan' ? [['longueur', 'Longueur connue'], ['echelle', 'Échelle du plan']] : [['longueur', 'Longueur connue'], ['rect', 'Rectangle connu']];
+      h = seg('edCal', modes, pan.cal.mode);
+      if(pan.cal.mode === 'longueur'){ h += '<label for="edL">Longueur</label><input id="edL" inputmode="decimal" value="' + (pan.cal.L ? String(pan.cal.L).replace('.', ',') : '') + '"><label>m</label>'; help = 'Clique sur les 2 extrémités d\'une longueur connue (largeur de porte, rive, mètre déplié), puis indique sa longueur.' + (k === 'photo' ? ' La photo doit être prise bien en face du pan, sinon prends « Rectangle connu ».' : ''); }
+      if(pan.cal.mode === 'rect'){ h += '<label for="edW">1er côté</label><input id="edW" inputmode="decimal" value="' + (pan.cal.W ? String(pan.cal.W).replace('.', ',') : '') + '"><label for="edH">2e côté</label><input id="edH" inputmode="decimal" value="' + (pan.cal.H ? String(pan.cal.H).replace('.', ',') : '') + '"><label>m</label>'; help = 'Clique sur les 4 coins d\'un rectangle connu situé dans le plan du pan (fenêtre de toit, panneau déjà posé, trappe…), en tournant : 1er côté de 1 à 2, 2e côté de 2 à 3.'; }
+      if(pan.cal.mode === 'echelle'){ h += '<label for="edE">Échelle 1/</label><input id="edE" inputmode="numeric" value="' + (pan.cal.denom || '') + '">' + (pan.src.pxParPt ? '' : '<label for="edDpi">ppp</label><input id="edDpi" inputmode="numeric" value="' + (pan.cal.dpi || 300) + '">'); help = pan.src.pxParPt ? 'Échelle écrite sur le plan PDF (ex. 100 pour 1/100). Vérifie avec une cote connue.' : 'Image d\'un plan scanné : indique l\'échelle et la résolution du scan (points par pouce).'; }
+      h += '<button class="btn sm" id="edClr" style="flex:0 0 auto">Effacer</button>';
+    }
+  } else if(m === 'poly'){
+    h = '<button class="btn sm" id="edPClr">Effacer le contour</button>';
+    if(k === 'aerien' && (pan.over || []).some(function(v){ return v.k === 'bat'; })) h += '<button class="btn sm" id="edBat">Contour du bâtiment IGN</button>';
+    if(k === 'aerien' && cur.type !== 'toiture' && (pan.over || []).some(function(v){ return v.k === 'parcelle'; })) h += '<button class="btn sm" id="edPar">Contour de la parcelle</button>';
+    help = 'Clique sur chaque angle de la surface utile, dans l\'ordre. Fais glisser un point pour l\'ajuster. Deux doigts pour zoomer.';
+  } else if(m === 'obs'){
+    h = '<button class="btn sm" id="edONew">Nouvel obstacle</button><button class="btn sm' + (ED.sq ? ' on' : '') + '" id="edOSq">Carré rapide</button><input id="edOS" inputmode="decimal" value="' + String(ED.sqSize).replace('.', ',') + '"><label>m</label><button class="btn sm" id="edODel">Retirer le dernier</button>';
+    help = ED.sq ? 'Clique au centre de l\'obstacle (cheminée, VMC…) : un carré de la taille indiquée est posé.' : 'Clique sur les angles de l\'obstacle (cheminée, fenêtre de toit, VMC, arbre…). « Nouvel obstacle » pour en commencer un autre.';
+  } else if(m === 'eave'){
+    if(cur.type === 'toiture'){ h = '<span class="note" style="margin:0">Côté en orange = bas de la pente (gouttière). Les rangées de panneaux lui sont parallèles.</span>'; help = 'Clique sur le côté du contour qui est en bas de la pente.'; }
+    else { h = '<label for="edN">Nord sur l\'image</label><input id="edN" inputmode="decimal" value="' + (pan.nord || 0) + '"><label>° (sens horaire depuis le haut)</label>'; help = 'Indique où est le nord sur l\'image (0 = en haut). Les rangées sont tournées vers l\'azimut des panneaux.'; }
+  }
+  h += '<button class="btn sm' + (ED.showPanels ? ' on' : '') + '" id="edShow" style="flex:0 0 auto">Panneaux</button>';
+  o.innerHTML = h; $('edHelp').textContent = help;
+  bindSeg(o, 'edCal', function(v){ snap(); pan.cal = { mode: v, pts: [], L: pan.cal.L, W: pan.cal.W, H: pan.cal.H, denom: pan.cal.denom, dpi: pan.cal.dpi }; if(v === 'echelle') updEchelle(); edMode('cal'); });
+  function inp(id, f){ var e = o.querySelector('#' + id); if(e) e.onchange = e.oninput = function(){ f(num(e.value)); recalcLite(); draw(); }; }
+  inp('edL', function(v){ pan.cal.L = v; });
+  inp('edW', function(v){ pan.cal.W = v; });
+  inp('edH', function(v){ pan.cal.H = v; });
+  inp('edE', function(v){ pan.cal.denom = v; updEchelle(); });
+  inp('edDpi', function(v){ pan.cal.dpi = v; updEchelle(); });
+  inp('edN', function(v){ pan.nord = v || 0; });
+  inp('edOS', function(v){ if(v > 0) ED.sqSize = v; });
+  function btn(id, f){ var e = o.querySelector('#' + id); if(e) e.onclick = f; }
+  btn('edClr', function(){ snap(); pan.cal.pts = []; recalcLite(); draw(); });
+  btn('edPClr', function(){ snap(); pan.poly = []; pan.eave = 0; recalcLite(); draw(); });
+  btn('edBat', function(){ var b = bestOver('bat'); if(!b){ toast('Aucun bâtiment IGN ici'); return; } snap(); pan.poly = simplify(b.pts); pan.eave = lowestEdge(pan.poly); recalcLite(); edFit(); toast('Contour du bâtiment repris : ajuste-le au pan'); });
+  btn('edPar', function(){ var b = bestOver('parcelle'); if(!b) return; snap(); pan.poly = simplify(b.pts); recalcLite(); edFit(); });
+  btn('edONew', function(){ ED.curObs = -1; ED.sq = false; edMode('obs'); toast('Clique sur les angles du nouvel obstacle'); });
+  btn('edOSq', function(){ ED.sq = !ED.sq; edMode('obs'); });
+  btn('edODel', function(){ if(!pan.obs.length) return; snap(); pan.obs.pop(); ED.curObs = -1; recalcLite(); draw(); });
+  btn('edShow', function(){ ED.showPanels = !ED.showPanels; edMode(ED.mode); });
+  function updEchelle(){ if(pan.cal.mode !== 'echelle') return; pan.cal.mpp = pan.cal.denom > 0 ? C.planMpp(pan.cal.denom, pan.src.pxParPt, pan.cal.dpi || 300) : null; }
+  recalcLite(); draw();
+}
+function bestOver(kind){
+  var p = ED.pan, c = [p.src.w / 2, p.src.h / 2], l = (p.over || []).filter(function(v){ return v.k === kind && v.pts.length > 2; });
+  return l.find(function(v){ return C.inPoly(c, v.pts); }) || l.sort(function(a, b){ return C.dist(C.centroid(a.pts), c) - C.dist(C.centroid(b.pts), c); })[0];
+}
+function simplify(pts){ var o = pts.slice(); if(o.length > 3 && C.dist(o[0], o[o.length - 1]) < 0.5) o.pop(); return o.map(function(p){ return [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10]; }); }
+function lowestEdge(poly){ var best = 0, by = -Infinity; poly.forEach(function(p, i){ var q = poly[(i + 1) % poly.length], y = (p[1] + q[1]) / 2; if(y > by){ by = y; best = i; } }); return best; }
+/** Vue aérienne, toiture : l'orientation se déduit du bas du pan (le pan regarde de la ligne de faîtage vers l'égout) */
+function autoAz(pan){
+  if(!pan || pan.src.kind !== 'aerien' || cur.type !== 'toiture' || pan.poly.length < 3 || pan.azManual) return;
+  var e = pan.eave % pan.poly.length, a = pan.poly[e], b = pan.poly[(e + 1) % pan.poly.length], u = [b[0] - a[0], b[1] - a[1]], n = [-u[1], u[0]], c = C.centroid(pan.poly);
+  if((c[0] - a[0]) * n[0] + (c[1] - a[1]) * n[1] > 0) n = [-n[0], -n[1]];
+  var az = Math.atan2(n[0], -n[1]) * 180 / Math.PI; pan.az = Math.round((az + 360) % 360); pan.azAuto = true;
+}
+function recalcLite(){
+  var pan = ED.pan, el = $('edInfo'), pl = C.plane(pan.cal);
+  if(!pl){ el.innerHTML = '<b>Échelle à régler</b> · ' + (pan.cal.mode === 'rect' ? (pan.cal.pts.length < 4 ? (4 - pan.cal.pts.length) + ' coin(s) à toucher' : 'indique les 2 côtés (ou rectangle mal formé)') : pan.cal.mode === 'longueur' ? (pan.cal.pts.length < 2 ? (2 - pan.cal.pts.length) + ' point(s) à toucher' : 'indique la longueur') : 'indique l\'échelle'); return; }
+  if(pan.poly.length < 3){ el.innerHTML = 'Échelle : ' + (pl.mpp ? fmt(pl.mpp * 100, 2) + ' cm/pixel' : 'redressement OK') + ' · <b>contour : ' + pan.poly.length + ' point(s)</b>'; return; }
+  var st = C.panArea(pan, cur.type, { n: 60 });
+  if(!st){ el.innerHTML = 'Contour incomplet'; return; }
+  el.innerHTML = '<b>' + fmt(st.area, 1) + ' m²</b> ± ' + fmt(st.err, 1) + ' m² (' + fmt(st.rel * 100, 1) + ' %)' + (st.rel > 0.1 ? '<br><span style="color:var(--warn)">Incertitude forte : prends un repère plus grand (toute la largeur du pan) et zoome pour pointer.</span>' : '') + (st.obstacles ? ' · obstacles ' + fmt(st.obstacles, 1) + ' m²' : '') + (cur.type === 'toiture' && pan.top && pan.pente ? ' · pente ' + fmt(pan.pente) + '° corrigée' : '') + (pan.res && pan.res.sig === sig(pan) ? '<br>' + pan.res.n + ' panneaux · ' + fmt(pan.res.kwc, 2) + ' kWc' : '');
+}
+function draw(){
+  if(!ED) return; var d = ED.dpr || 1, pan = ED.pan;
+  cg.setTransform(1, 0, 0, 1, 0, 0); cg.fillStyle = '#000'; cg.fillRect(0, 0, cv.width, cv.height);
+  cg.setTransform(d * ED.s, 0, 0, d * ED.s, d * ED.tx, d * ED.ty);
+  if(ED.im) cg.drawImage(ED.im, 0, 0, pan.src.w, pan.src.h);
+  var F = C.frame(pan, cur.type);
+  if(ED.showPanels && F && !ED.drag && (!pan.res || pan.res.sig !== sig(pan))) recalc(pan);
+  drawOverlay(cg, pan, F, ED.s, { panels: ED.showPanels, labels: true });
+  cg.setTransform(d, 0, 0, d, 0, 0);
+  // calibrage
+  var cp = (pan.cal.pts || []).map(toScr);
+  if(cp.length){
+    cg.strokeStyle = '#4fc3ff'; cg.lineWidth = 3; cg.beginPath(); cp.forEach(function(p, i){ if(i) cg.lineTo(p[0], p[1]); else cg.moveTo(p[0], p[1]); }); if(pan.cal.mode === 'rect' && cp.length === 4) cg.closePath(); cg.stroke();
+    cp.forEach(function(p, i){ dot(p, '#4fc3ff', String(i + 1)); });
+  }
+  if(ED.mode !== 'cal'){
+    pan.poly.map(toScr).forEach(function(p, i){ dot(p, '#ffc94a', ''); });
+    pan.obs.forEach(function(o, j){ o.map(toScr).forEach(function(p){ dot(p, j === ED.curObs ? '#ffffff' : '#ff6b6b', ''); }); });
+  }
+  if(ED.drag) loupe(ED.drag.scr);
+}
+function dot(p, col, t){ cg.beginPath(); cg.arc(p[0], p[1], 9, 0, 7); cg.fillStyle = col + '55'; cg.fill(); cg.lineWidth = 2.5; cg.strokeStyle = col; cg.stroke(); cg.beginPath(); cg.arc(p[0], p[1], 2, 0, 7); cg.fillStyle = col; cg.fill(); if(t){ cg.font = 'bold 13px system-ui'; cg.fillStyle = '#fff'; cg.fillText(t, p[0] + 12, p[1] - 10); } }
+function loupe(sp){
+  var d = ED.dpr || 1, R = 64, z = 3, cx = sp[0] < cv.width / d / 2 ? cv.width / d - R - 12 : R + 12, cy = R + 70;
+  cg.save(); cg.beginPath(); cg.arc(cx, cy, R, 0, 7); cg.clip();
+  cg.fillStyle = '#000'; cg.fillRect(cx - R, cy - R, 2 * R, 2 * R);
+  var ip = toImg(sp[0], sp[1]), s = ED.s * z;
+  cg.setTransform(d * s, 0, 0, d * s, d * (cx - ip[0] * s), d * (cy - ip[1] * s));
+  if(ED.im) cg.drawImage(ED.im, 0, 0, ED.pan.src.w, ED.pan.src.h);
+  drawOverlay(cg, ED.pan, null, s, {});
+  cg.restore(); cg.setTransform(d, 0, 0, d, 0, 0);
+  cg.beginPath(); cg.arc(cx, cy, R, 0, 7); cg.lineWidth = 3; cg.strokeStyle = '#fff'; cg.stroke();
+  cg.beginPath(); cg.moveTo(cx - 12, cy); cg.lineTo(cx + 12, cy); cg.moveTo(cx, cy - 12); cg.lineTo(cx, cy + 12); cg.lineWidth = 1.5; cg.strokeStyle = '#ff3b3b'; cg.stroke();
+}
+/* Gestes : un doigt = toucher (ajouter) ou glisser (déplacer un point / la vue), deux doigts = zoom */
+function editable(){
+  var p = ED.pan, l = [];
+  if(ED.mode === 'cal') (p.cal.pts || []).forEach(function(q, i){ l.push({ arr: p.cal.pts, i: i }); });
+  else { p.poly.forEach(function(q, i){ l.push({ arr: p.poly, i: i }); }); p.obs.forEach(function(o){ o.forEach(function(q, i){ l.push({ arr: o, i: i }); }); }); }
+  return l;
+}
+function hitVertex(x, y){ var best = null, bd = 26; editable().forEach(function(v){ var s = toScr(v.arr[v.i]), d = Math.hypot(s[0] - x, s[1] - y); if(d < bd){ bd = d; best = v; } }); return best; }
+function rel(e){ var r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+cv.addEventListener('pointerdown', function(e){
+  if(!ED) return; cv.setPointerCapture(e.pointerId); var p = rel(e); ED.ptr[e.pointerId] = p;
+  var ids = Object.keys(ED.ptr);
+  if(ids.length === 1){ var v = hitVertex(p[0], p[1]); ED.g = { start: p, moved: false, v: v, t0: Date.now(), snapped: false }; }
+  else { ED.g = null; ED.drag = null; var a = ED.ptr[ids[0]], b = ED.ptr[ids[1]]; ED.pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), s: ED.s, tx: ED.tx, ty: ED.ty, m: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] }; }
+});
+cv.addEventListener('pointermove', function(e){
+  if(!ED || !ED.ptr[e.pointerId]) return; var p = rel(e), old = ED.ptr[e.pointerId]; ED.ptr[e.pointerId] = p;
+  var ids = Object.keys(ED.ptr);
+  if(ids.length >= 2 && ED.pinch){
+    var a = ED.ptr[ids[0]], b = ED.ptr[ids[1]], d = Math.hypot(a[0] - b[0], a[1] - b[1]), m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], P0 = ED.pinch;
+    var s = Math.max(0.05, Math.min(40, P0.s * d / P0.d)); var ip = [(P0.m[0] - P0.tx) / P0.s, (P0.m[1] - P0.ty) / P0.s];
+    ED.s = s; ED.tx = m[0] - ip[0] * s; ED.ty = m[1] - ip[1] * s; draw(); return;
+  }
+  var g = ED.g; if(!g) return;
+  if(!g.moved && Math.hypot(p[0] - g.start[0], p[1] - g.start[1]) > 8) g.moved = true;
+  if(!g.moved) return;
+  if(g.v){ if(!g.snapped){ snap(); g.snapped = true; } g.v.arr[g.v.i] = toImg(p[0], p[1]); ED.drag = { scr: p }; recalcLite(); draw(); }
+  else { ED.tx += p[0] - old[0]; ED.ty += p[1] - old[1]; draw(); }
+});
+function ptrEnd(e){
+  if(!ED || !ED.ptr[e.pointerId]) return; var p = ED.ptr[e.pointerId]; delete ED.ptr[e.pointerId];
+  var g = ED.g; ED.g = null;
+  if(ED.drag){ ED.drag = null; ED.pan.res = null; recalcLite(); draw(); }
+  if(Object.keys(ED.ptr).length < 2) ED.pinch = null;
+  if(g && !g.moved && e.type === 'pointerup') tap(p[0], p[1], g.v);
+}
+cv.addEventListener('pointerup', ptrEnd); cv.addEventListener('pointercancel', ptrEnd);
+cv.addEventListener('wheel', function(e){ if(!ED) return; e.preventDefault(); var p = rel(e), k = Math.exp(-e.deltaY * 0.0015), ip = toImg(p[0], p[1]); ED.s = Math.max(0.05, Math.min(40, ED.s * k)); ED.tx = p[0] - ip[0] * ED.s; ED.ty = p[1] - ip[1] * ED.s; draw(); }, { passive: false });
+function tap(x, y, v){
+  var pan = ED.pan, ip = toImg(x, y), m = ED.mode;
+  if(ip[0] < 0 || ip[1] < 0 || ip[0] > pan.src.w || ip[1] > pan.src.h) return;
+  if(m === 'cal'){
+    if(pan.src.kind === 'aerien' || pan.cal.mode === 'echelle') return;
+    var mx = pan.cal.mode === 'rect' ? 4 : 2; snap(); if(!pan.cal.pts) pan.cal.pts = [];
+    if(pan.cal.pts.length >= mx) pan.cal.pts = [];
+    pan.cal.pts.push(ip);
+    if(pan.cal.pts.length === mx){ var f = $('edOpts').querySelector(pan.cal.mode === 'rect' ? '#edW' : '#edL'); if(f && !f.value) setTimeout(function(){ f.focus(); }, 50); }
+  } else if(m === 'poly'){
+    if(v) return; snap(); insertPoint(pan.poly, ip);
+  } else if(m === 'obs'){
+    if(v) return; snap();
+    if(ED.sq){
+      var pl = C.plane(pan.cal); if(!pl){ toast('Règle d\'abord l\'échelle'); return; }
+      var F = C.frame(pan, cur.type), half = ED.sqSize / 2;
+      if(F){ var c = F.toL(ip); pan.obs.push([[c[0] - half, c[1] - half], [c[0] + half, c[1] - half], [c[0] + half, c[1] + half], [c[0] - half, c[1] + half]].map(F.toI)); }
+      else { var mpp = pl.mpp || 0.01, h = half / mpp; pan.obs.push([[ip[0] - h, ip[1] - h], [ip[0] + h, ip[1] - h], [ip[0] + h, ip[1] + h], [ip[0] - h, ip[1] + h]]); }
+      ED.curObs = -1;
+    } else {
+      if(ED.curObs < 0 || !pan.obs[ED.curObs]){ pan.obs.push([]); ED.curObs = pan.obs.length - 1; }
+      insertPoint(pan.obs[ED.curObs], ip);
+    }
+  } else if(m === 'eave' && cur.type === 'toiture'){
+    var best = -1, bd = 40; pan.poly.forEach(function(p, i){ var a = toScr(p), b = toScr(pan.poly[(i + 1) % pan.poly.length]), d = segD([x, y], a, b); if(d < bd){ bd = d; best = i; } });
+    if(best >= 0){ snap(); pan.eave = best; pan.azManual = false; autoAz(pan); toast('Bas du pan choisi'); }
+  }
+  pan.res = null; recalcLite(); draw();
+}
+function segD(p, a, b){ var dx = b[0] - a[0], dy = b[1] - a[1], t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / (dx * dx + dy * dy || 1); t = Math.max(0, Math.min(1, t)); return Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy); }
+/** Ajoute un point : au bout, ou sur le côté le plus proche si on touche près d'un côté existant */
+function insertPoint(arr, ip){
+  if(arr.length >= 3){
+    var best = -1, bd = 18 / ED.s;
+    for(var i = 0; i < arr.length; i++){ var d = segD(ip, arr[i], arr[(i + 1) % arr.length]); if(d < bd){ bd = d; best = i; } }
+    if(best >= 0 && best !== arr.length - 1){ arr.splice(best + 1, 0, ip); return; }
+  }
+  arr.push(ip);
+}
+
+/* =========================== 3. CALEPINAGE =========================== */
+function sig(pan){ return JSON.stringify([pan.cal, pan.poly, pan.obs, pan.eave, pan.pente, pan.top, pan.az, pan.nord, cur && cur.type, cur && cur.panneau, cur && cur.pose, cur && cur.lieu && cur.lieu.lat]); }
+function recalc(pan){
+  var s = sig(pan);
+  if(pan.res && pan.res.sig === s) return pan.res;
+  var r = C.calepiner(pan, { type: cur.type, lat: cur.lieu && cur.lieu.lat || 44, panneau: cur.panneau, pose: cur.pose });
+  pan.res = r ? { sig: s, n: r.n, tables: r.tables, per: r.per, kwc: r.kwc, rects: r.rects, orient: r.orient, info: r.info, surfPanneaux: r.surfPanneaux, emprise: r.emprise } : null;
+  return pan.res;
+}
+function recalcAll(){ (cur.pans || []).forEach(recalc); }
+function totals(){ var t = { n: 0, kwc: 0, surf: 0, emprise: 0, area: 0 }; cur.pans.forEach(function(p){ var r = recalc(p); if(r){ t.n += r.n; t.kwc += r.kwc; t.surf += r.surfPanneaux; t.emprise += r.emprise; } var a = C.panArea(p, cur.type, { n: 1 }); if(a) t.area += a.area; }); return t; }
+TABS.pose = function(bd){
+  var pn = cur.panneau, ps = cur.pose, mg = ps.marges, t = cur.type;
+  var sel = PANELS.find(function(x){ return x.l === pn.l && x.w === pn.w && x.wc === pn.wc; });
+  var h = '<div class="card"><h3>Panneau</h3><div class="fld"><label>Modèle</label><select id="poMod">' + PANELS.map(function(x){ return '<option value="' + x.id + '"' + (sel && sel.id === x.id ? ' selected' : '') + '>' + esc(x.nom) + '</option>'; }).join('') + '<option value="perso"' + (sel ? '' : ' selected') + '>Personnalisé</option></select></div>' +
+    fld('poL', 'Longueur', '', pn.l, 'm') + fld('poW', 'Largeur', '', pn.w, 'm') + fld('poWc', 'Puissance', 'Puissance crête d\'un panneau', pn.wc, 'Wc') +
+    '<p class="note">Modèles « types » aux dimensions courantes du marché : remplace-les par la fiche technique du panneau choisi.</p></div>';
+  h += '<div class="card"><h3>Pose</h3>' + seg('poOr', [['portrait', 'Portrait'], ['paysage', 'Paysage'], ['auto', 'Le meilleur']], ps.orient) +
+    fld('poGap', 'Jeu entre panneaux', 'Selon les brides du système de fixation', ps.gap, 'm') +
+    '<div class="fld"><label>Colonnes alignées<small>Plus soigné ; « Non » peut placer quelques panneaux de plus</small></label><button class="btn sm' + (ps.align !== false ? ' on' : '') + '" id="poAl" style="flex:none;min-width:86px">' + (ps.align !== false ? 'Oui' : 'Non') + '</button></div></div>';
+  if(t === 'toiture') h += '<div class="card"><h3>Marges (valeurs d\'usage)</h3>' + fld('mgE', 'Égout (bas)', '', mg.egout, 'm') + fld('mgF', 'Faîtage (haut)', '', mg.faitage, 'm') + fld('mgR', 'Rives (côtés)', '', mg.rive, 'm') + fld('mgO', 'Autour des obstacles', '', mg.obstacle, 'm') +
+    '<p class="note">Valeurs d\'usage, réglables : il n\'existe pas de distance réglementaire générale aux rives. Respecte la notice et l\'avis technique du système de montage (zones de rive exposées au vent), et les éventuelles prescriptions de l\'ABF, du PLU ou des services d\'incendie pour un ERP.</p></div>';
+  else {
+    h += '<div class="card"><h3>' + (t === 'sol' ? 'Rangées au sol' : 'Ombrière') + '</h3>' + fld('mgL', 'Recul aux limites', 'Distance au contour tracé (vérifie le règlement du PLU)', mg.limite, 'm') + fld('mgO', 'Autour des obstacles', '', mg.obstacle, 'm');
+    if(t === 'sol') h += fld('soI', 'Inclinaison des panneaux', '', ps.sol.incl, '°') + fld('soR', 'Panneaux par table', 'Nombre de panneaux dans la pente', ps.sol.rangs, '') + '<p class="note" style="margin-bottom:6px">Pas d\'ombre d\'une rangée sur la suivante le 21 décembre :</p>' + seg('soC', [['midi', 'À midi solaire'], ['10-14', 'De 10 h à 14 h (solaires)']], ps.sol.critere);
+    else h += fld('omI', 'Inclinaison', '', ps.omb.incl, '°') + fld('omR', 'Panneaux par rangée', 'Nombre de panneaux dans la pente', ps.omb.rangs, '') + fld('omA', 'Espace entre ombrières', 'Allée sans ombrière entre deux rangées', ps.omb.allee, 'm');
+    h += '<div id="soInfo"></div></div>';
+  }
+  h += '<div id="poRes"></div>';
+  bd.innerHTML = h;
+  function upd(){ recalcAll(); save(); renderPoseRes(); }
+  var deb = null; function later(){ clearTimeout(deb); deb = setTimeout(upd, 350); }
+  function bindNum(id, f){ var e = bd.querySelector('#' + id); if(e) e.oninput = function(){ var v = num(e.value); if(v != null && v >= 0){ f(v); later(); } }; }
+  bd.querySelector('#poMod').onchange = function(){ var x = PANELS.find(function(p){ return p.id === this.value; }, this); if(x){ cur.panneau = clone(x); showTab('pose'); upd(); } };
+  bindNum('poL', function(v){ if(v > 0.2) pn.l = v; }); bindNum('poW', function(v){ if(v > 0.2) pn.w = v; }); bindNum('poWc', function(v){ pn.wc = v; });
+  bindSeg(bd, 'poOr', function(v){ ps.orient = v; upd(); });
+  bindNum('poGap', function(v){ ps.gap = v; });
+  bd.querySelector('#poAl').onclick = function(){ ps.align = ps.align === false; this.classList.toggle('on', ps.align); this.textContent = ps.align ? 'Oui' : 'Non'; upd(); };
+  bindNum('mgE', function(v){ mg.egout = v; }); bindNum('mgF', function(v){ mg.faitage = v; }); bindNum('mgR', function(v){ mg.rive = v; }); bindNum('mgO', function(v){ mg.obstacle = v; }); bindNum('mgL', function(v){ mg.limite = v; });
+  bindNum('soI', function(v){ if(v < 80) ps.sol.incl = v; }); bindNum('soR', function(v){ if(v >= 1) ps.sol.rangs = Math.round(v); });
+  bindNum('omI', function(v){ if(v < 60) ps.omb.incl = v; }); bindNum('omR', function(v){ if(v >= 1) ps.omb.rangs = Math.round(v); }); bindNum('omA', function(v){ ps.omb.allee = v; });
+  bindSeg(bd, 'soC', function(v){ ps.sol.critere = v; upd(); });
+  renderPoseRes();
+};
+function renderPoseRes(){
+  var el = $('poRes'); if(!el) return; recalcAll(); var T = totals();
+  var h = '<div class="card"><h3>Résultat</h3>';
+  if(!cur.pans.length) h += '<p class="note" style="margin-top:0">Ajoute et trace une surface (onglet Surfaces).</p>';
+  else h += '<div class="stats"><div class="stat"><div>Panneaux</div><div id="rN">' + T.n + '</div></div><div class="stat"><div>Puissance</div><div id="rK">' + fmt(T.kwc, 2) + '</div></div><div class="stat"><div>Surface</div><div>' + fmt(T.surf, 1) + '</div></div></div><p class="note" style="margin-top:0;text-align:center">kWc = kilowatts-crête · surface de panneaux en m²</p>';
+  h += '</div>';
+  cur.pans.forEach(function(p, i){
+    var r = p.res;
+    h += '<div class="pan"><img class="thumb" data-pth="' + i + '" alt=""><div class="in"><div class="hd"><b>' + esc(p.nom || 'Surface ' + (i + 1)) + '</b>' + (r ? '<span class="tag ok">' + r.n + ' panneaux · ' + fmt(r.kwc, 2) + ' kWc</span>' : '<span class="tag warn">à tracer</span>') + '</div>';
+    if(r) h += '<p class="note">Pose ' + (r.orient === 'paysage' ? 'paysage' : 'portrait') + (r.per > 1 ? ' · ' + r.tables + ' tables de ' + r.per : '') + ' · ' + fmt(r.surfPanneaux, 1) + ' m² de panneaux</p>';
+    if(r && r.info){ var f = r.info; h += '<table class="kv" style="margin-top:6px"><tr><td>Soleil le 21 déc.</td><td>' + fmt(f.elev, 1) + '° de hauteur' + (cur.pose.sol.critere === '10-14' && cur.type === 'sol' ? ' (au plus bas entre 10 h et 14 h)' : ' à midi') + '</td></tr><tr><td>Hauteur de la table</td><td>' + fmt(f.h, 2) + ' m (dans la pente : ' + fmt(f.slant, 2) + ' m)</td></tr><tr><td>Emprise d\'une rangée</td><td>' + fmt(f.depth, 2) + ' m</td></tr>' + (cur.type === 'sol' ? '<tr><td>Écart anti-ombrage</td><td>' + fmt(f.d, 2) + ' m (pas de ' + fmt(f.pitch, 2) + ' m)</td></tr><tr><td>Taux d\'occupation</td><td>' + fmt(f.gcr * 100) + ' %</td></tr>' : '') + '</table>'; }
+    h += '<div class="row"><button class="btn sm" data-ed2="' + i + '">' + ic('edit') + 'Voir / modifier le tracé</button></div></div></div>';
+  });
+  el.innerHTML = h;
+  cur.pans.forEach(function(p, i){ panThumb(p, 900).then(function(u){ var im = el.querySelector('[data-pth="' + i + '"]'); if(im && u) im.src = u; }); });
+  el.onclick = function(e){ var b = e.target.closest('[data-ed2]'); if(b) openEditor(cur.pans[+b.dataset.ed2]); };
+  tabsState(); updThumb();
+}
+function updThumb(){ var p = cur.pans.find(function(x){ return x.poly.length > 2; }) || cur.pans[0]; if(!p) return; var id = cur.id; panThumb(p, 160).then(function(u){ if(cur && cur.id === id && u){ cur.thumb = u; save(); } }); }
+
+/* =========================== 4. DÉMARCHES =========================== */
+function reglInput(){
+  var T = totals(), rg = cur.regl, L = cur.lieu || {};
+  var zt = (L.zones || []).map(function(z){ return z.typezone || ''; }).concat([L.zoneManuelle || '']).join(' ');
+  var zAN = /(^|\s)(A|N|Ah|Nh)\b/i.test(zt) ? ((L.zones || [])[0] && (L.zones[0].libelle || L.zones[0].typezone)) || L.zoneManuelle : null;
+  var pk = rg.parking || {};
+  return { type: cur.type, kwc: rg.kwcManuel != null ? rg.kwcManuel : T.kwc, hauteur: rg.hauteur, protege: rg.protege, erp: rg.erp,
+    parking: { surface: pk.surface != null ? pk.surface : (cur.type === 'ombriere' ? T.area : null), existant: pk.existant !== false }, couverture: T.emprise, surfPanneaux: T.surf, zoneAN: zAN };
+}
+TABS.regles = function(bd){
+  var rg = cur.regl, inp = reglInput(), t = cur.type;
+  var h = '<div class="card"><h3>Ton projet</h3><table class="kv"><tr><td>Installation</td><td>' + TYPES[t].n + '</td></tr></table>' +
+    fld('rgK', 'Puissance crête', rg.kwcManuel != null ? 'Saisie à la main (vide = calepinage)' : 'Issue du calepinage (modifiable)', Math.round(inp.kwc * 100) / 100, 'kWc');
+  if(t !== 'toiture') h += fld('rgH', 'Hauteur maximale', 'Point le plus haut au-dessus du sol', rg.hauteur, 'm');
+  if(t === 'toiture') h += '<div class="fld"><label>Établissement recevant du public (ERP)<small>Commerce, école, salle, cabinet…</small></label><button class="btn sm' + (rg.erp ? ' on' : '') + '" id="rgE" style="flex:none;min-width:86px">' + (rg.erp ? 'Oui' : 'Non') + '</button></div>';
+  if(t === 'ombriere') h += fld('rgP', 'Surface du parking', 'Vide = surface tracée', rg.parking.surface != null ? rg.parking.surface : '', 'm²', ' placeholder="' + fmt(inp.parking.surface || 0) + '"') + '<div class="fld"><label>Parking</label>' + seg('rgPE', [['1', 'Existant'], ['0', 'Neuf']], rg.parking.existant === false ? '0' : '1') + '</div>';
+  h += '<p class="note" style="margin-bottom:6px">Secteur protégé (abords de monument historique, site patrimonial remarquable, site classé…) :</p>' + seg('rgS', [['true', 'Oui'], ['false', 'Non'], ['null', 'Je ne sais pas']], String(rg.protege)) + '</div><div id="rgOut"></div>';
+  bd.innerHTML = h;
+  function upd(){ save(); renderRegles(); }
+  var k = bd.querySelector('#rgK'); k.oninput = function(){ var v = num(k.value); rg.kwcManuel = k.value.trim() === '' ? null : v; upd(); };
+  var hh = bd.querySelector('#rgH'); if(hh) hh.oninput = function(){ rg.hauteur = num(hh.value); upd(); };
+  var e = bd.querySelector('#rgE'); if(e) e.onclick = function(){ rg.erp = !rg.erp; this.classList.toggle('on', rg.erp); this.textContent = rg.erp ? 'Oui' : 'Non'; upd(); };
+  var pp = bd.querySelector('#rgP'); if(pp) pp.oninput = function(){ rg.parking.surface = pp.value.trim() === '' ? null : num(pp.value); upd(); };
+  bindSeg(bd, 'rgPE', function(v){ rg.parking.existant = v === '1'; upd(); });
+  bindSeg(bd, 'rgS', function(v){ rg.protege = v === 'true' ? true : v === 'false' ? false : null; rg.protegeManuel = true; upd(); });
+  renderRegles();
+};
+function besoinsHtml(o, print){
+  var h = '';
+  o.besoins.forEach(function(b){
+    h += '<div class="need ' + (b.niveau === 'ok' ? 'ok' : b.niveau === 'bad' ? 'bad' : b.niveau === 'info' ? 'info' : '') + '"><b>' + esc(b.titre) + '</b><p>' + esc(b.pourquoi) + '</p>' +
+      (b.cerfa || b.delai ? '<p>' + (b.cerfa ? 'Formulaire : <b>' + esc(b.cerfa) + '</b>' : '') + (b.cerfa && b.delai ? ' · ' : '') + (b.delai ? 'Délai d\'instruction : <b>' + esc(b.delai) + '</b>' : '') + '</p>' : '') +
+      (b.src && b.src.length ? '<div class="src">Source : ' + b.src.map(function(s){ return print ? '<a href="' + esc(s.u) + '">' + esc(s.t) + '</a>' : ext(s.u, s.t); }).join(' · ') + '</div>' : '') + '</div>';
+  });
+  return h;
+}
+function renderRegles(){
+  var el = $('rgOut'); if(!el) return; var o = R.evaluer(reglInput());
+  var h = '<div class="card"><h3>Ce projet nécessite</h3>' + besoinsHtml(o) + '</div>';
+  if(o.alertes.length) h += '<div class="card warn"><h3>À vérifier</h3><ul class="pl">' + o.alertes.map(function(a){ return '<li>' + esc(a) + '</li>'; }).join('') + '</ul></div>';
+  if(o.pieces.length) h += '<div class="card"><h3>Pièces à prévoir</h3><ul class="pl">' + o.pieces.map(function(a){ return '<li>' + esc(a) + '</li>'; }).join('') + '</ul></div>';
+  h += '<div class="card"><h3>Important</h3><p style="margin:0">' + esc(o.mention) + '</p></div>';
+  el.innerHTML = h;
+}
+
+/* =========================== 5. PRODUCTION =========================== */
+TABS.prod = function(bd){
+  var pr = cur.prod, T = totals();
+  var h = '<div class="card"><h3>Estimation PVGIS</h3><p style="margin:0 0 8px">Production calculée par <b>PVGIS</b> (Centre commun de recherche de la Commission européenne) à partir de l\'ensoleillement du lieu, de l\'inclinaison et de l\'orientation de chaque surface.</p>' +
+    fld('prL', 'Pertes du système', 'Câbles, onduleur, salissure (14 % par défaut)', pr.pertes, '%') +
+    (cur.type === 'toiture' ? '<div class="fld"><label>Panneaux intégrés au bâti<small>Peu ventilés (sinon pose en surimposition)</small></label><button class="btn sm' + (pr.bati ? ' on' : '') + '" id="prB" style="flex:none;min-width:86px">' + (pr.bati ? 'Oui' : 'Non') + '</button></div>' : '') +
+    '<div class="row"><button class="btn main" id="prGo">' + ic('sun') + 'Calculer la production</button></div><div id="prMsg"></div></div><div id="prOut"></div>';
+  bd.innerHTML = h;
+  var l = bd.querySelector('#prL'); l.oninput = function(){ var v = num(l.value); if(v != null && v >= 0 && v < 90){ pr.pertes = v; save(); } };
+  var b = bd.querySelector('#prB'); if(b) b.onclick = function(){ pr.bati = !pr.bati; this.classList.toggle('on', pr.bati); this.textContent = pr.bati ? 'Oui' : 'Non'; save(); };
+  bd.querySelector('#prGo').onclick = runPvgis;
+  renderProd();
+};
+function panAngle(p){ return cur.type === 'toiture' ? (p.pente || 0) : cur.type === 'sol' ? cur.pose.sol.incl : cur.pose.omb.incl; }
+function runPvgis(){
+  var L = cur.lieu, msg = $('prMsg');
+  if(!L || !L.lat){ toast('Indique d\'abord l\'adresse (onglet Lieu)', true); return; }
+  var pans = cur.pans.filter(function(p){ var r = recalc(p); return r && r.kwc > 0; });
+  if(!pans.length){ toast('Aucun panneau calepiné', true); return; }
+  msg.innerHTML = '<p class="note"><span class="spin"></span> Interrogation de PVGIS…</p>';
+  Promise.all(pans.map(function(p){
+    var az = p.az == null ? 180 : p.az, aspect = ((az - 180 + 540) % 360) - 180;
+    return API.pvgis({ lat: L.lat, lon: L.lon, kwc: p.res.kwc, loss: cur.prod.pertes, angle: panAngle(p), aspect: aspect, bati: cur.type === 'toiture' && cur.prod.bati }).then(function(r){ return { p: p, r: r, aspect: aspect }; });
+  })).then(function(all){
+    var bad = all.filter(function(x){ return !x.r.ok || !x.r.data || !x.r.data.outputs; });
+    if(bad.length){
+      msg.innerHTML = '<div class="need bad"><b>PVGIS ne répond pas</b><p>' + esc(bad[0].r.err || 'réponse incomplète') + '. Vérifie la connexion et réessaie. En attendant, tu peux saisir un productible connu (kWh par kWc et par an) pour une estimation manuelle.</p></div>' + fld('prMan', 'Productible', 'kWh produits par kWc et par an', cur.prod.manuel || '', 'kWh/kWc');
+      var m = msg.querySelector('#prMan'); m.oninput = function(){ var v = num(m.value); cur.prod.manuel = v; if(v > 0){ var T = totals(); cur.prod.res = { annuel: T.kwc * v, mensuel: null, parPan: [], manuel: true, ts: Date.now() }; } save(); renderProd(); };
+      return;
+    }
+    var mens = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], tot = 0, per = [];
+    all.forEach(function(x){
+      var o = x.r.data.outputs, y = o.totals && o.totals.fixed && o.totals.fixed.E_y || 0; tot += y;
+      (o.monthly && o.monthly.fixed || []).forEach(function(m){ if(m.month >= 1 && m.month <= 12) mens[m.month - 1] += m.E_m || 0; });
+      per.push({ id: x.p.id, nom: x.p.nom, kwc: x.p.res.kwc, angle: panAngle(x.p), az: x.p.az, aspect: x.aspect, annuel: y, perte: o.totals && o.totals.fixed && o.totals.fixed.l_total });
+    });
+    var meta = all[0].r.data.inputs && all[0].r.data.inputs.meteo_data;
+    cur.prod.res = { annuel: tot, mensuel: mens, parPan: per, ts: Date.now(), base: meta ? (meta.radiation_db || '') + (meta.year_min ? ' ' + meta.year_min + '–' + meta.year_max : '') : '' };
+    msg.innerHTML = ''; save(); renderProd(); tabsState();
+  });
+}
+function renderProd(){
+  var el = $('prOut'); if(!el) return; var r = cur.prod.res, T = totals();
+  if(!r){ el.innerHTML = ''; return; }
+  var h = '<div class="card"><h3>Production estimée' + (r.manuel ? ' (saisie manuelle)' : '') + '</h3><div class="stats"><div class="stat"><div>Par an</div><div>' + fmt(r.annuel) + '</div></div><div class="stat"><div>Par kWc</div><div>' + fmt(T.kwc ? r.annuel / T.kwc : 0) + '</div></div><div class="stat"><div>Puissance</div><div>' + fmt(T.kwc, 2) + '</div></div></div><p class="note" style="text-align:center;margin-top:0">kWh/an · kWh/kWc/an · kWc</p>';
+  if(r.mensuel){ var mx = Math.max.apply(null, r.mensuel) || 1; h += '<div class="bars">' + r.mensuel.map(function(v, i){ return '<div style="height:' + Math.max(2, v / mx * 100) + '%" title="' + MOIS[i] + ' : ' + fmt(v) + ' kWh"></div>'; }).join('') + '</div><div class="bars-l">' + MOIS.map(function(m){ return '<span>' + m.slice(0, 1).toUpperCase() + '</span>'; }).join('') + '</div>'; h += '<table class="kv" style="margin-top:10px">' + r.mensuel.map(function(v, i){ return '<tr><td>' + MOIS[i] + '</td><td class="num">' + fmt(v) + ' kWh</td></tr>'; }).join('') + '</table>'; }
+  (r.parPan || []).forEach(function(p){ h += '<p class="note">' + esc(p.nom || 'Surface') + ' : ' + fmt(p.kwc, 2) + ' kWc, inclinaison ' + fmt(p.angle) + '°, azimut ' + fmt(p.az) + '° → ' + fmt(p.annuel) + ' kWh/an</p>'; });
+  h += '<p class="note">' + (r.manuel ? 'Estimation à partir du productible saisi.' : 'Source : PVGIS 5.3, Commission européenne (JRC)' + (r.base ? ', données ' + esc(r.base) : '') + ', calcul du ' + dt(r.ts) + '.') + ' Estimation : la production réelle dépend des ombres proches (arbres, cheminées) et du matériel.</p></div>';
+  el.innerHTML = h;
+}
+
+/* =========================== 6. FICHE CLIENT =========================== */
+TABS.fiche = function(bd){
+  var c = cur.client || (cur.client = {});
+  bd.innerHTML = '<div class="card"><h3>Client (facultatif)</h3><input class="txt" id="fiN" placeholder="Nom du client" style="margin-bottom:8px"><textarea class="txt" id="fiNo" placeholder="Remarques à imprimer sur la fiche"></textarea><p class="note">Ces informations restent sur cet ordinateur et sur la fiche que tu remets.</p></div>' +
+    '<div class="card"><h3>Fiche A4</h3><div class="row" style="margin-top:0"><button class="btn main" id="fiP">' + ic('print') + 'Imprimer / PDF</button></div><div class="row"><button class="btn" id="fiS">' + ic('share') + 'Partager le PDF</button><button class="btn" id="fiJ">' + ic('share') + 'Projet (.json)</button></div><p class="note">« Imprimer / PDF » ouvre l\'impression de Windows : choisis « Enregistrer au format PDF » (Microsoft Print to PDF) ou une imprimante.</p></div>' +
+    '<div class="card" style="padding:0;overflow:hidden;background:#fff"><iframe id="fiPrev" title="Aperçu de la fiche" style="width:100%;height:70vh;border:0;background:#fff"></iframe></div>';
+  var n = bd.querySelector('#fiN'), no = bd.querySelector('#fiNo'); n.value = c.nom || ''; no.value = c.notes || '';
+  var deb = null; function upd(){ c.nom = n.value.trim(); c.notes = no.value; save(); clearTimeout(deb); deb = setTimeout(prev, 600); }
+  n.oninput = upd; no.oninput = upd;
+  bd.querySelector('#fiP').onclick = printFiche;
+  bd.querySelector('#fiS').onclick = sharePdf;
+  bd.querySelector('#fiJ').onclick = function(){ exportJson(cur); };
+  function prev(){ ficheHtml().then(function(h){ var f = $('fiPrev'); if(f) f.srcdoc = h; }); }
+  prev();
+};
+function ficheData(){
+  recalcAll(); var T = totals(), o = R.evaluer(reglInput()), L = cur.lieu || {};
+  return Promise.all(cur.pans.map(function(p){ return panThumb(p, 1300, { labels: true }); })).then(function(imgs){ return { T: T, o: o, L: L, imgs: imgs }; });
+}
+function ficheHtml(){
+  return ficheData().then(function(d){
+    var T = d.T, o = d.o, L = d.L, pr = cur.prod.res, c = cur.client || {};
+    var h = '<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>' + esc('Étude solaire – ' + title(cur)) + '</title><style>@page{size:A4;margin:12mm}body{font:10.5pt/1.4 system-ui,"Segoe UI",Roboto,Arial,sans-serif;color:#111;margin:0;padding:10px}h1{font-size:18pt;margin:0}h2{font-size:12.5pt;margin:14px 0 6px;padding-bottom:3px;border-bottom:2px solid #f0a020}.hd{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;border-bottom:1px solid #ccc;padding-bottom:6px}.muted{color:#555}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4px 6px;text-align:left;vertical-align:top}th{background:#f4f4f4}.big{display:flex;gap:8px;margin:8px 0}.big div{flex:1;border:1px solid #ddd;border-radius:6px;padding:6px;text-align:center}.big b{display:block;font-size:16pt}img{max-width:100%;max-height:120mm;display:block;margin:6px auto;border:1px solid #ccc}.need{border-left:4px solid #f0a020;padding:4px 8px;margin:6px 0;background:#fafafa;break-inside:avoid}.need.ok{border-color:#2a9d5c}.need.bad{border-color:#d33}.need.info{border-color:#3a7bd5}.need b{display:block}.need p{margin:2px 0}.src{font-size:8.5pt;color:#555;word-break:break-word}.warn{border:2px solid #f0a020;padding:6px 8px;border-radius:6px;margin-top:10px}a{color:#1a4fb5}.pan{break-inside:avoid}</style></head><body>';
+    h += '<div class="hd"><div><h1>Étude de faisabilité photovoltaïque</h1><div class="muted">' + TYPES[cur.type].n + ' · estimation du ' + dt(Date.now()) + '</div></div><div class="muted" style="text-align:right">' + (c.nom ? '<b>Client : ' + esc(c.nom) + '</b><br>' : '') + esc(L.label || '') + '</div></div>';
+    h += '<div class="warn"><b>Estimation</b>, à confirmer par un relevé sur site et auprès de la mairie (service urbanisme). Ce document n\'est ni un devis ni un avis juridique.</div>';
+    h += '<div class="big"><div>Panneaux<b>' + T.n + '</b></div><div>Puissance<b>' + fmt(T.kwc, 2) + ' kWc</b></div><div>Production<b>' + (pr ? fmt(pr.annuel) + ' kWh/an' : '–') + '</b></div><div>Surface de panneaux<b>' + fmt(T.surf, 1) + ' m²</b></div></div>';
+    h += '<h2>Lieu</h2><table><tr><th style="width:32%">Adresse</th><td>' + esc(L.label || 'non renseignée') + (L.lat ? ' <span class="muted">(' + L.lat.toFixed(5) + ', ' + L.lon.toFixed(5) + ')</span>' : '') + '</td></tr>';
+    (L.parcelles || []).forEach(function(p){ h += '<tr><th>Parcelle cadastrale</th><td>' + esc((p.commune ? p.commune + ', ' : '') + 'section ' + p.section + ' n° ' + p.numero) + (p.contenance ? ' – ' + fmt(p.contenance) + ' m²' : '') + '</td></tr>'; });
+    (L.docs || []).forEach(function(x){ h += '<tr><th>Document d\'urbanisme</th><td>' + esc((x.type || '') + ' ' + (x.nom || '')) + (x.id ? '<br><a href="https://www.geoportail-urbanisme.gouv.fr/document/by-id/' + esc(x.id) + '">geoportail-urbanisme.gouv.fr/document/by-id/' + esc(x.id) + '</a>' : '') + '</td></tr>'; });
+    (L.zones || []).forEach(function(z){ h += '<tr><th>Zone</th><td>' + esc((z.libelle || '') + (z.libelong ? ' – ' + z.libelong : '')) + (z.url ? '<br><a href="' + esc(z.url) + '">Règlement de la zone</a>' : '') + '</td></tr>'; });
+    if(L.zoneManuelle) h += '<tr><th>Zone (saisie)</th><td>' + esc(L.zoneManuelle) + '</td></tr>';
+    h += '<tr><th>Secteur protégé</th><td>' + protLabel(cur.regl.protege) + ((L.protWhy || []).length ? ' – ' + esc(L.protWhy.join(' ; ')) : '') + '</td></tr>';
+    var oth = (L.sup || []).filter(function(s){ return ['AC1', 'AC2', 'AC3', 'AC4'].indexOf(s.code) < 0; });
+    if(oth.length) h += '<tr><th>Autres servitudes</th><td>' + oth.map(function(s){ return esc((s.code ? s.code + ' ' : '') + (SUPN[s.code] || s.label || '')); }).join('<br>') + '</td></tr>';
+    if(L.notes) h += '<tr><th>Notes</th><td>' + esc(L.notes) + '</td></tr>';
+    h += '</table>';
+    h += '<h2>Implantation des panneaux</h2>';
+    cur.pans.forEach(function(p, i){
+      var r = p.res, st = C.panArea(p, cur.type, { n: 120 });
+      h += '<div class="pan"><b>' + esc(p.nom || 'Surface ' + (i + 1)) + '</b> <span class="muted">(' + { photo: 'photo', plan: 'plan', aerien: 'vue aérienne IGN' }[p.src.kind] + ')</span>' + (d.imgs[i] ? '<img src="' + d.imgs[i] + '" alt="">' : '');
+      h += '<table><tr><th style="width:32%">Surface mesurée</th><td>' + (st ? fmt(st.area, 1) + ' m² ± ' + fmt(st.err, 1) + ' m²' + (st.obstacles ? ' (obstacles : ' + fmt(st.obstacles, 1) + ' m²)' : '') : '–') + '</td></tr>';
+      h += '<tr><th>Inclinaison · orientation</th><td>' + fmt(panAngle(p)) + '° · azimut ' + fmt(p.az) + '° (' + dirName(p.az || 0) + ')</td></tr>';
+      if(r) h += '<tr><th>Calepinage</th><td>' + r.n + ' panneaux en ' + (r.orient === 'paysage' ? 'paysage' : 'portrait') + (r.per > 1 ? ' (' + r.tables + ' tables de ' + r.per + ')' : '') + ' → ' + fmt(r.kwc, 2) + ' kWc</td></tr>';
+      if(r && r.info && cur.type === 'sol') h += '<tr><th>Rangées</th><td>Écart anti-ombrage ' + fmt(r.info.d, 2) + ' m, pas ' + fmt(r.info.pitch, 2) + ' m (soleil à ' + fmt(r.info.elev, 1) + '° le 21 décembre)</td></tr>';
+      h += '</table></div>';
+    });
+    var pn = cur.panneau, ps = cur.pose;
+    h += '<p class="muted">Panneau : ' + fmt(pn.l, 3) + ' × ' + fmt(pn.w, 3) + ' m, ' + fmt(pn.wc) + ' Wc. ' + (cur.type === 'toiture' ? 'Marges : égout ' + fmt(ps.marges.egout, 2) + ' m, faîtage ' + fmt(ps.marges.faitage, 2) + ' m, rives ' + fmt(ps.marges.rive, 2) + ' m, obstacles ' + fmt(ps.marges.obstacle, 2) + ' m (valeurs d\'usage).' : 'Recul ' + fmt(ps.marges.limite, 2) + ' m.') + '</p>';
+    h += '<h2>Production estimée</h2>';
+    if(pr){
+      h += '<p><b>' + fmt(pr.annuel) + ' kWh par an</b>' + (T.kwc ? ' (' + fmt(pr.annuel / T.kwc) + ' kWh/kWc)' : '') + '. ' + (pr.manuel ? 'Productible saisi à la main.' : 'Source : PVGIS 5.3, Commission européenne' + (pr.base ? ', ' + esc(pr.base) : '') + ', pertes ' + fmt(cur.prod.pertes) + ' %.') + '</p>';
+      if(pr.mensuel) h += '<table><tr>' + MOIS.map(function(m){ return '<th>' + m + '</th>'; }).join('') + '</tr><tr>' + pr.mensuel.map(function(v){ return '<td>' + fmt(v) + '</td>'; }).join('') + '</tr></table><p class="muted">kWh par mois.</p>';
+    } else h += '<p class="muted">Non calculée.</p>';
+    h += '<h2>Autorisations et démarches</h2>' + besoinsHtml(o, true);
+    if(o.alertes.length) h += '<p><b>À vérifier :</b></p><ul>' + o.alertes.map(function(a){ return '<li>' + esc(a) + '</li>'; }).join('') + '</ul>';
+    if(o.pieces.length) h += '<p><b>Pièces à prévoir :</b></p><ul>' + o.pieces.map(function(a){ return '<li>' + esc(a) + '</li>'; }).join('') + '</ul>';
+    if(c.notes) h += '<h2>Remarques</h2><p>' + esc(c.notes).replace(/\n/g, '<br>') + '</p>';
+    h += '<div class="warn">' + esc(o.mention) + ' Surfaces et nombre de panneaux : estimation, à confirmer par un relevé sur site (dimensions, état de la charpente et de la couverture, ombres).</div>';
+    h += '<p class="src">Sources consultées le ' + esc(o.verif) + ' : ' + o.sources.map(function(s){ return esc(s.t) + ' – ' + esc(s.u); }).join(' ; ') + '. Données : Base Adresse Nationale, cadastre et BD TOPO (IGN), Géoportail de l\'urbanisme, orthophotos IGN, PVGIS (Commission européenne).</p>';
+    h += '</body></html>';
+    return h;
+  });
+}
+function printFiche(){
+  ficheHtml().then(function(h){
+    if(P && P.printHtml){ try{ P.printHtml(h, 'Etude solaire - ' + title(cur)); return; }catch(e){} }
+    var f = document.createElement('iframe'); f.style.cssText = 'position:fixed;width:0;height:0;border:0'; document.body.appendChild(f);
+    f.srcdoc = h; f.onload = function(){ try{ f.contentWindow.print(); }catch(e){} setTimeout(function(){ f.remove(); }, 2000); };
+  });
+}
+function sharePdf(){
+  need('jspdf', '../shared/vendor/jspdf.umd.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js').then(function(ok){
+    if(!ok || !window.jspdf){ toast('Module PDF absent (jspdf.umd.min.js)', true); return; }
+    ficheData().then(function(d){
+      var doc = buildPdf(d), name = 'etude-solaire-' + (title(cur).replace(/[^a-z0-9]+/gi, '-').toLowerCase().slice(0, 40) || 'projet') + '.pdf';
+      var b64 = doc.output('datauristring').split(',')[1];
+      window.__lastPdf = { name: name, size: b64.length };
+      try{ if(P && P.fileMenu){ P.fileMenu(b64, name, 'application/pdf', '', 'Étude solaire – ' + title(cur), 'Étude de faisabilité photovoltaïque (estimation) : ' + title(cur)); return; } }catch(e){}
+      doc.save(name);
+    });
+  });
+}
+function buildPdf(d){
+  var J = window.jspdf.jsPDF, doc = new J({ unit: 'mm', format: 'a4' }), y = 15, W = 180, X = 15, T = d.T, o = d.o, L = d.L, pr = cur.prod.res;
+  function nl(h){ if(y + h > 282){ doc.addPage(); y = 15; } }
+  function txt(s, size, bold, col){ s = String(s).replace(/[\u202f\u00a0\u2009]/g, ' ').replace(/→/g, '->').replace(/≥/g, '>=').replace(/≤/g, '<=').replace(/[’]/g, "'").replace(/²/g, '2'); doc.setFont('helvetica', bold ? 'bold' : 'normal'); doc.setFontSize(size || 10); doc.setTextColor(col || '#111111'); var l = doc.splitTextToSize(String(s), W); l.forEach(function(x){ nl(size ? size * 0.45 : 4.6); doc.text(x, X, y); y += (size || 10) * 0.45; }); }
+  function h2(s){ y += 3; nl(10); doc.setDrawColor('#f0a020'); doc.setLineWidth(0.6); txt(s, 13, true); doc.line(X, y - 3.2, X + W, y - 3.2); y += 1.5; }
+  txt('Étude de faisabilité photovoltaïque', 17, true);
+  txt(TYPES[cur.type].n + ' · estimation du ' + dt(Date.now()) + ((cur.client || {}).nom ? ' · client : ' + cur.client.nom : ''), 10, false, '#555555');
+  txt(L.label || '', 10, true);
+  y += 2; txt('Estimation, à confirmer par un relevé sur site et auprès de la mairie. Ce document n\'est ni un devis ni un avis juridique.', 9.5, true, '#a05a00');
+  y += 2; txt(T.n + ' panneaux · ' + fmt(T.kwc, 2) + ' kWc · ' + (pr ? fmt(pr.annuel) + ' kWh/an' : 'production non calculée') + ' · ' + fmt(T.surf, 1) + ' m² de panneaux', 12, true);
+  h2('Lieu');
+  (L.parcelles || []).forEach(function(p){ txt('Parcelle : ' + (p.commune ? p.commune + ', ' : '') + 'section ' + p.section + ' n° ' + p.numero + (p.contenance ? ' (' + fmt(p.contenance) + ' m²)' : '')); });
+  (L.docs || []).forEach(function(x){ txt('Document d\'urbanisme : ' + (x.type || '') + ' ' + (x.nom || '')); });
+  (L.zones || []).forEach(function(z){ txt('Zone : ' + (z.libelle || '') + (z.libelong ? ' – ' + z.libelong : '')); });
+  if(L.zoneManuelle) txt('Zone (saisie) : ' + L.zoneManuelle);
+  txt('Secteur protégé : ' + protLabel(cur.regl.protege) + ((L.protWhy || []).length ? ' – ' + L.protWhy.join(' ; ') : ''));
+  h2('Implantation des panneaux');
+  cur.pans.forEach(function(p, i){
+    var r = p.res, st = C.panArea(p, cur.type, { n: 80 });
+    txt((p.nom || 'Surface ' + (i + 1)) + (st ? ' : ' + fmt(st.area, 1) + ' m² ± ' + fmt(st.err, 1) + ' m²' : '') + (r ? ' · ' + r.n + ' panneaux · ' + fmt(r.kwc, 2) + ' kWc' : ''), 10.5, true);
+    txt('Inclinaison ' + fmt(panAngle(p)) + '°, azimut ' + fmt(p.az) + '° (' + dirName(p.az || 0) + ')' + (r && r.info && cur.type === 'sol' ? ', écart anti-ombrage ' + fmt(r.info.d, 2) + ' m' : ''));
+    var u = d.imgs[i];
+    if(u){ try{ var pp = doc.getImageProperties(u), w = Math.min(W, 150), h = w * pp.height / pp.width; if(h > 110){ h = 110; w = h * pp.width / pp.height; } nl(h + 3); doc.addImage(u, 'JPEG', X + (W - w) / 2, y, w, h); y += h + 4; }catch(e){} }
+  });
+  h2('Production estimée');
+  if(pr){ txt(fmt(pr.annuel) + ' kWh par an' + (T.kwc ? ' (' + fmt(pr.annuel / T.kwc) + ' kWh/kWc)' : '') + (pr.manuel ? ', productible saisi à la main.' : ', source PVGIS 5.3 (Commission européenne).')); if(pr.mensuel) txt(pr.mensuel.map(function(v, i){ return MOIS[i] + ' ' + fmt(v); }).join(' · '), 9); }
+  else txt('Non calculée.');
+  h2('Autorisations et démarches');
+  o.besoins.forEach(function(b){ txt('• ' + b.titre, 10.5, true); txt(b.pourquoi, 9.5); if(b.cerfa || b.delai) txt((b.cerfa ? 'Formulaire : ' + b.cerfa : '') + (b.cerfa && b.delai ? ' · ' : '') + (b.delai ? 'Délai : ' + b.delai : ''), 9.5); if(b.src) txt('Source : ' + b.src.map(function(s){ return s.u; }).join(' ; '), 8, false, '#555555'); y += 1; });
+  if(o.alertes.length){ txt('À vérifier :', 10, true); o.alertes.forEach(function(a){ txt('– ' + a, 9.5); }); }
+  if(o.pieces.length){ txt('Pièces à prévoir :', 10, true); o.pieces.forEach(function(a){ txt('– ' + a, 9.5); }); }
+  y += 2; txt(o.mention, 9.5, true, '#a05a00');
+  return doc;
+}
+
+/* ---------- Tuile Socle ---------- */
+function publish(){
+  var l = PROJ[0];
+  if(cur){ summarize(cur); var i = PROJ.findIndex(function(x){ return x.id === cur.id; }); if(i >= 0) PROJ[i] = cur; l = PROJ.slice().sort(function(a, b){ return b.u - a.u; })[0]; }
+  try{ if(P && P.widgetPut) P.widgetPut(JSON.stringify({ last: l ? { id: l.id, adr: (l.lieu && l.lieu.label) || l.nom || '', nom: l.nom || '', type: l.type, n: (l.sum || {}).n || 0, kwc: Math.round(((l.sum || {}).kwc || 0) * 100) / 100, kwh: (l.sum || {}).kwh ? Math.round(l.sum.kwh) : null, date: l.u } : null, count: PROJ.length })); }catch(e){}
+}
+window.onSocle = function(a){
+  var o = a; if(typeof a === 'string'){ try{ o = JSON.parse(a); }catch(e){ o = {}; } } if(!o) return;
+  while(stack.length){ var id = stack.pop(); $(id).hidden = true; if(id === 's-edit'){ ED = null; } }
+  if(sheetOpen) closeSheet();
+  cur = null;
+  if(o['new']) newFlow();
+  else if(o.open){ var p = PROJ.find(function(x){ return x.id === o.open; }); if(p) openProj(p); }
+};
+window.SolaireApp = { get cur(){ return cur; }, openProj: openProj, showTab: showTab, recalcAll: recalcAll, totals: totals, ficheHtml: ficheHtml, buildPdf: function(){ return ficheData().then(buildPdf); }, publish: publish, edToScr: function(p){ return ED ? toScr(p) : null; }, edMode: function(m){ edMode(m); }, ed: function(){ return ED; }, setLieu: setLieu, save: saveNow, list: function(){ return PROJ; } };
+loadList().then(function(){ setTimeout(function(){ try{ if(P && P.takeSocle){ var x = P.takeSocle(); if(x) window.onSocle(x); } }catch(e){} }, 300); });
+})();
+</script>
+</body>
+</html>

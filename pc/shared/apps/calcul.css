@@ -1,0 +1,11 @@
+/* Calcul sur PC : calculatrice centrée (le clavier de l'ordinateur marche déjà : chiffres, + − * /, Entrée, Retour arrière, Échap) */
+html.mag-pc button{cursor:pointer}
+html.mag-pc .k:hover{filter:brightness(1.15)}
+@media (min-width:900px){
+  html.mag-pc body{width:min(600px,100%);margin:0 auto;padding:12px 0 18px;box-sizing:border-box}
+  html.mag-pc body.sci{width:min(820px,100%)}
+  html.mag-pc .sheet{align-items:center;justify-content:center}
+  html.mag-pc .sheet .pan{width:min(600px,94vw);border-radius:20px;border:1px solid var(--line)}
+  html.mag-pc .sheet .grab{display:none}
+  html.mag-pc #toast{left:50%;right:auto;width:min(480px,90vw);margin-left:calc(min(480px,90vw)/-2)}
+}

@@ -1,0 +1,5 @@
+/* Galerie sur PC : curseurs, fenêtres centrées ; la grille prend plus de colonnes sur grand écran (pc-apps.json) */
+html.mag-pc button,html.mag-pc [data-k]{cursor:pointer}
+@media (min-width:900px){
+  html.mag-pc #toast{left:50%;right:auto;width:min(520px,90vw);margin-left:calc(min(520px,90vw)/-2)}
+}

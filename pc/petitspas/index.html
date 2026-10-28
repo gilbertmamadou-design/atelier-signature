@@ -1,0 +1,989 @@
+<!-- FICHIER GÉNÉRÉ par pc/build-pc.py depuis applis/www-petitspas/index.html : ne pas modifier ici. -->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<!-- Suite MAG sur PC : ajouté par pc/build-pc.py (source : applis/www-petitspas/index.html) -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="../shared/pc.css">
+<link rel="stylesheet" href="../shared/apps/souris.css">
+<script>window.MAGPC_CONF={"app": "petitspas", "name": "Petits Pas", "vendor": "../shared/vendor/", "ocrWorker": "ocr-worker.js", "sw": "sw.js", "apps": {"fr.magformation13.lecteur": "../lecteur/", "fr.magformation13.pdf": "../pdf/", "fr.magformation13.budget": "../budget/", "fr.magformation13.liseuse": "../liseuse/", "fr.magformation13.fichiers": "../fichiers/", "fr.magformation13.actualites": "../actualites/", "fr.magformation13.carnet": "../notes/", "fr.magformation13.agenda": "../agenda/", "fr.magformation13.contacts": "../contacts/", "fr.magformation13.calcul": "../calcul/", "fr.magformation13.qr": "../qr/", "fr.magformation13.meteo": "../meteo/", "fr.magformation13.ciel": "../ciel/", "fr.magformation13.sentiers": "../sentiers/", "fr.magformation13.solaire": "../solaire/", "fr.magformation13.musique": "../musique/", "fr.magformation13.ondes": "../ondes/", "fr.magformation13.ecran": "../ecran/", "fr.magformation13.galerie": "../galerie/", "fr.magformation13.scan": "../scan/", "fr.magformation13.dicta": "../dicta/", "fr.magformation13.coffre": "../coffre/", "fr.magformation13.petitspas": "../petitspas/", "fr.magformation13.chasse": "../chasse/"}};</script>
+<script src="../shared/pc-shim.js"></script>
+
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Petits Pas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --co:#E36A54;--co-t:#B9452F;--co-l:#FDE8E2;--sa:#2F9488;--sa-t:#1F6E65;--sa-l:#DDF2EE;--su:#F2B53C;--su-l:#FFF3D6;
+  --ink:#2B2A33;--mut:#6B6873;--bg:#FFF8F0;--sf:#FFFFFF;--line:#EADFD3;
+  --ok:#2E9E4F;--ok-l:#E2F3E7;--no:#D7263D;--no-l:#FBE3E6;
+  --safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#17161C;--sf:#222029;--ink:#F1EEF4;--mut:#ABA6B3;--line:#34313C;--co:#F0826E;--co-t:#F59C8A;--co-l:#3B2622;--sa:#4FB9AC;--sa-t:#7DD3C8;--sa-l:#1C3532;--su-l:#3A3020;--ok-l:#173524;--no-l:#3D1B21}}
+:root[data-theme="dark"]{--bg:#17161C;--sf:#222029;--ink:#F1EEF4;--mut:#ABA6B3;--line:#34313C;--co:#F0826E;--co-t:#F59C8A;--co-l:#3B2622;--sa:#4FB9AC;--sa-t:#7DD3C8;--sa-l:#1C3532;--su-l:#3A3020;--ok-l:#173524;--no-l:#3D1B21}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Nunito Sans","Segoe UI",Arial,sans-serif}
+body{padding-bottom:calc(74px + var(--safe-b))}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+h1,h2,h3{font-family:Nunito,"Trebuchet MS",sans-serif;margin:0;line-height:1.15}
+h1{font-size:27px;font-weight:900}
+h2{font-size:18px;font-weight:800}
+h3{font-size:16px;font-weight:800}
+.lab{font-family:Nunito,sans-serif;font-weight:800;text-transform:uppercase;letter-spacing:.07em;font-size:12.5px;color:var(--co-t)}
+a{color:var(--sa-t)}
+.top{position:sticky;top:0;z-index:20;background:var(--sf);border-bottom:1px solid var(--line);padding:calc(8px + var(--safe-t)) 14px 8px;display:flex;align-items:center;gap:10px}
+.top .logo{width:42px;height:42px;flex:none;border-radius:13px;background:var(--co);display:grid;place-items:center}
+.top .tt{flex:1;min-width:0}
+.top .tt b{font-family:Nunito,sans-serif;font-weight:900;font-size:20px;display:block;line-height:1.05}
+.top .tt span{font-size:12.5px;color:var(--mut);font-weight:600}
+.ib{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--sf);display:grid;place-items:center;font-weight:800;flex:none}
+.wrap{max-width:780px;margin:0 auto;padding:14px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.card{background:var(--sf);border:1px solid var(--line);border-radius:16px;padding:14px}
+.muted{color:var(--mut)}.small{font-size:14px}.tiny{font-size:12.5px;color:var(--mut)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:42px;padding:0 15px;border-radius:12px;border:1px solid var(--line);background:var(--sf);font-weight:700;text-decoration:none;color:var(--ink)}
+.btn.p{background:var(--co);border-color:var(--co);color:#fff}
+.btn.g{background:var(--sa-l);border-color:transparent;color:var(--sa-t)}
+.btn.s{min-height:34px;padding:0 11px;font-size:14px;border-radius:10px}
+.btn.block{width:100%}
+.btn:disabled{opacity:.5}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:99px;font-size:12.5px;font-weight:700;background:var(--bg);border:1px solid var(--line);color:var(--mut)}
+.chip.co{background:var(--co-l);border-color:transparent;color:var(--co-t)}
+.chip.sa{background:var(--sa-l);border-color:transparent;color:var(--sa-t)}
+.chip.su{background:var(--su-l);border-color:transparent;color:#8A5A00}
+.chip.ok{background:var(--ok-l);border-color:transparent;color:var(--ok)}
+.chip.no{background:var(--no-l);border-color:transparent;color:var(--no)}
+.fc{min-height:36px;padding:0 13px;border-radius:99px;border:1px solid var(--line);background:var(--sf);font-weight:700;font-size:14px}
+.fc.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.fc b{margin-left:3px}
+.scr{display:flex;gap:8px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;padding-bottom:2px}.scr .fc{flex:none}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+@media (max-width:480px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--sf);border:1px solid var(--line);border-radius:16px;padding:11px;text-align:left}
+.kpi b{font-family:Nunito,sans-serif;font-size:28px;font-weight:900;display:block;line-height:1}
+.kpi span{font-size:13px;color:var(--mut)}
+.kpi.co b{color:var(--co)}.kpi.sa b{color:var(--sa)}.kpi.no b{color:var(--no)}.kpi.ok b{color:var(--ok)}.kpi.su b{color:#C88A00}
+.sec{display:flex;align-items:center;gap:8px;margin:8px 0 2px}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--co);flex:none}.dot.s{background:var(--sa)}.dot.y{background:var(--su)}
+.mets{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.met{background:var(--sf);border:1px solid var(--line);border-radius:16px;padding:12px;text-align:left;display:flex;flex-direction:column;gap:4px;position:relative}
+.met .e{font-size:26px}
+.met b{font-size:15px;line-height:1.2}
+.met .n{position:absolute;top:9px;right:9px;background:var(--co);color:#fff;border-radius:99px;font-size:12px;font-weight:800;padding:0 7px;line-height:20px}
+.item{display:flex;flex-direction:column;gap:6px}
+.item .t{font-weight:700;font-size:16px;line-height:1.35}
+.item.new{border-left:5px solid var(--co)}
+.dbadge{display:inline-flex;gap:4px;flex-wrap:wrap}
+.dbadge span{font-weight:700;font-size:12px;background:var(--sa-l);color:var(--sa-t);border-radius:6px;padding:0 6px}
+input[type=text],input[type=url],input[type=date],input[type=search],select,textarea{width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--sf);outline:0}
+input:focus,select:focus,textarea:focus{border-color:var(--sa);box-shadow:0 0 0 3px var(--sa-l)}
+textarea{min-height:80px;resize:vertical}
+label.f{display:flex;flex-direction:column;gap:4px;font-weight:700;font-size:14px}
+.ck{display:flex;gap:10px;align-items:flex-start;min-height:36px;font-weight:600}
+.ck input{width:22px;height:22px;accent-color:var(--sa);flex:none;margin-top:1px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:480px){.grid2{grid-template-columns:1fr}}
+.notice{background:var(--sa-l);border-radius:14px;padding:11px 13px;font-size:14.5px}
+.warnbox{background:var(--su-l);border-radius:14px;padding:11px 13px;font-size:14.5px}
+.urg{background:var(--co-l);border-radius:14px;padding:12px 14px}
+.urg a{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);padding:6px 0;font-weight:700}
+.urg a b{font-family:Nunito,sans-serif;font-size:22px;font-weight:900;color:var(--co-t);min-width:56px}
+nav.bn{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--sf);border-top:1px solid var(--line);padding-bottom:var(--safe-b)}
+nav.bn .in{max-width:780px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
+nav.bn button{background:none;border:0;min-height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-weight:700;font-size:12px;color:var(--mut);position:relative;white-space:nowrap;overflow:hidden}
+nav.bn button .e{font-size:21px;line-height:1;filter:grayscale(1);opacity:.7}
+nav.bn button.on{color:var(--co-t)}
+nav.bn button.on .e{filter:none;opacity:1}
+nav.bn .bd{position:absolute;top:6px;left:calc(50% + 6px);background:var(--co);color:#fff;border-radius:99px;font-size:11px;padding:0 5px;line-height:16px}
+.toast{position:fixed;left:50%;bottom:calc(86px + var(--safe-b));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;z-index:50;max-width:90vw;font-size:14.5px;box-shadow:0 6px 20px #0004}
+.ov{position:fixed;inset:0;background:#0008;z-index:40;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--sf);border-radius:20px 20px 0 0;width:100%;max-width:640px;max-height:88vh;overflow:auto;padding:18px 16px calc(16px + var(--safe-b))}
+.spin{width:18px;height:18px;border:3px solid var(--line);border-top-color:var(--co);border-radius:50%;animation:sp 1s linear infinite;display:inline-block;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+.help details,.fiche details{background:var(--sf);border:1px solid var(--line);border-radius:14px;padding:10px 14px}
+.help summary,.fiche summary{cursor:pointer;font-weight:800;font-family:Nunito,sans-serif}
+.help li{margin:4px 0}
+.foot{font-size:12px;color:var(--mut);text-align:center;margin-top:10px}
+.ref{border-left:3px solid var(--sa);padding:2px 0 2px 10px}
+.ref b{display:block}
+.cl{display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line)}
+.cl .st{display:flex;gap:4px;flex:none}
+.cl .st button{min-width:42px;min-height:32px;border-radius:9px;border:1px solid var(--line);background:var(--sf);font-weight:800;font-size:13px}
+.cl .st button.on.y{background:var(--ok);border-color:var(--ok);color:#fff}
+.cl .st button.on.n{background:var(--no);border-color:var(--no);color:#fff}
+.prog{height:10px;border-radius:99px;background:var(--line);overflow:hidden}
+.prog i{display:block;height:100%;background:var(--sa);border-radius:99px}
+.prof{display:grid;gap:8px}
+.prof button{display:flex;gap:12px;align-items:center;text-align:left;background:var(--sf);border:2px solid var(--line);border-radius:16px;padding:12px;font-weight:700}
+.prof button.on{border-color:var(--co);background:var(--co-l)}
+.prof button .e{font-size:28px}
+.art{width:100%;height:auto;display:block;border-radius:14px}
+.artcard{padding:0;overflow:hidden}
+.thumb{width:96px;flex:none;border-radius:12px;overflow:hidden;line-height:0}
+.thumb svg{border-radius:12px}
+@keyframes a-float{0%{transform:translateY(0);opacity:0}20%{opacity:1}100%{transform:translateY(-40px);opacity:0}}
+@keyframes a-wiggle{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(12deg)}}
+@keyframes a-crawl{0%{transform:translateX(0)}50%{transform:translateX(60px)}100%{transform:translateX(0)}}
+@keyframes a-climb{0%{transform:translate(0,0)}33%{transform:translate(40px,-18px)}66%{transform:translate(80px,-36px)}100%{transform:translate(0,0)}}
+@keyframes a-step{0%,100%{opacity:0}30%,70%{opacity:1}}
+@keyframes a-hop{0%{transform:translate(0,0)}12%{transform:translate(30px,-26px)}25%{transform:translate(60px,0)}37%{transform:translate(90px,-26px)}50%{transform:translate(120px,0)}62%{transform:translate(150px,-26px)}75%{transform:translate(180px,0)}100%{transform:translate(0,0)}}
+@keyframes a-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes a-glitter{0%{transform:translateY(0);opacity:.2}50%{opacity:1}100%{transform:translateY(-40px);opacity:.2}}
+@keyframes a-bubble{0%{transform:translateY(0) scale(.6);opacity:0}15%{opacity:1}85%{opacity:1}100%{transform:translateY(-140px) scale(1.1);opacity:0}}
+@keyframes a-pour{0%,100%{transform:rotate(0)}40%,70%{transform:rotate(35deg)}}
+@keyframes a-drop{0%{transform:translateY(0);opacity:0}20%{opacity:1}100%{transform:translateY(36px);opacity:0}}
+@keyframes a-sway{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)}}
+@keyframes a-shake{0%,100%{transform:rotate(-18deg)}50%{transform:rotate(18deg)}}
+@keyframes a-tap{0%,100%{transform:rotate(0)}50%{transform:rotate(-20deg)}}
+@keyframes a-wave{0%,100%{transform:translateY(0) scaleY(1)}50%{transform:translateY(-8px) scaleY(1.4)}}
+@keyframes a-grow{0%{transform:scale(0);opacity:0}30%{opacity:1}60%,100%{transform:scale(1.6);opacity:.9}}
+@keyframes a-pop{0%,10%{transform:scale(0)}25%{transform:scale(1.3)}35%,100%{transform:scale(1)}}
+@keyframes a-leaf{0%{transform:translate(0,0) rotate(0);opacity:0}10%{opacity:1}100%{transform:translate(-50px,70px) rotate(220deg);opacity:0}}
+@keyframes a-walk{0%{transform:translateX(0)}50%{transform:translateX(110px)}100%{transform:translateX(0)}}
+@keyframes a-page{0%,30%{transform:scaleX(1)}50%,80%{transform:scaleX(-1)}100%{transform:scaleX(1)}}
+@keyframes a-peek{0%,35%{transform:translateY(0)}50%,80%{transform:translateY(-70px)}100%{transform:translateY(0)}}
+@keyframes a-twinkle{0%,100%{opacity:.2}50%{opacity:1}}
+@keyframes a-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+.an-float{animation:a-float 3s ease-out infinite}.an-wiggle{animation:a-wiggle .8s ease-in-out infinite}.an-crawl{animation:a-crawl 6s ease-in-out infinite}.an-climb{animation:a-climb 5s ease-in-out infinite}.an-step{animation:a-step 4s ease-in-out infinite}.an-hop{animation:a-hop 5s ease-in-out infinite}.an-bob{animation:a-bob 1.8s ease-in-out infinite}.an-glitter{animation:a-glitter 3s ease-in-out infinite}.an-bubble{animation:a-bubble 4.2s ease-in infinite}.an-pour{animation:a-pour 3s ease-in-out infinite}.an-drop{animation:a-drop 1.4s ease-in infinite}.an-sway{animation:a-sway 2s ease-in-out infinite}.an-shake{animation:a-shake .45s ease-in-out infinite}.an-tap{animation:a-tap .6s ease-in-out infinite}.an-wave{animation:a-wave 1.6s ease-in-out infinite}.an-grow{animation:a-grow 4s ease-out infinite}.an-pop{animation:a-pop 4s ease-out infinite}.an-leaf{animation:a-leaf 4.5s ease-in infinite}.an-walk{animation:a-walk 7s ease-in-out infinite}.an-page{animation:a-page 4s ease-in-out infinite}.an-peek{animation:a-peek 4s ease-in-out infinite}.an-twinkle{animation:a-twinkle 2.4s ease-in-out infinite}.an-breathe{animation:a-breathe 4s ease-in-out infinite}
+@media (prefers-reduced-motion: reduce){.art *{animation:none!important}}
+.pres{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column;padding:calc(10px + var(--safe-t)) 16px calc(16px + var(--safe-b))}
+.pres-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pres-top b{font-family:Nunito,sans-serif;font-size:18px}
+.pres-top button{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--sf);font-size:18px}
+.pres-bar{height:8px;background:var(--line);border-radius:99px;margin:10px 0;overflow:hidden}.pres-bar i{display:block;height:100%;background:var(--co);transition:width .4s}
+.pres-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;max-width:720px;margin:0 auto;width:100%;animation:pres-in .45s ease}
+@keyframes pres-in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.pres-art{width:100%;max-width:560px}.pres-art.sm{max-width:300px}
+.pres-body h2{font-size:28px}.pres-body p{font-size:18px;color:var(--mut);margin:0}
+.pres-num{font-family:Nunito,sans-serif;font-weight:900;font-size:64px;color:var(--co);line-height:1}.pres-num small{font-size:22px;color:var(--mut)}
+.pres-txt{font-size:24px!important;color:var(--ink)!important;line-height:1.4;font-weight:700}
+.pres-nav{display:flex;justify-content:center;gap:18px}.pres-nav button{width:64px;height:64px;border-radius:50%;border:0;background:var(--co);color:#fff;font-size:28px;font-weight:800}.pres-nav button:disabled{opacity:.3}
+
+</style>
+</head>
+<body>
+<header class="top"><div class="logo"><svg viewBox="0 0 48 48" width="30" height="30"><g fill="#fff"><ellipse cx="17" cy="30" rx="7" ry="10" transform="rotate(-12 17 30)"/><circle cx="11.5" cy="16" r="2.6"/><circle cx="16.5" cy="13.5" r="2.4"/><circle cx="21.5" cy="14" r="2.2"/><ellipse cx="33" cy="22" rx="6" ry="8.5" transform="rotate(14 33 22)" opacity=".85"/><circle cx="29" cy="10" r="2.1" opacity=".85"/><circle cx="33.5" cy="8.6" r="2" opacity=".85"/><circle cx="37.8" cy="10" r="1.8" opacity=".85"/></g></svg></div><div class="tt"><b>Petits Pas</b><span id="sub">Veille petite enfance et RPE</span></div><button class="ib" id="setBtn" aria-label="Réglages">⚙️</button><button class="ib" id="helpBtn" aria-label="Aide">?</button></header>
+<main class="wrap" id="app"></main>
+<nav class="bn"><div class="in">
+  <button data-v="home"><span class="e">🏠</span>Accueil</button>
+  <button data-v="feed"><span class="e">📰</span>Nouveautés<span class="bd" id="bdFeed" hidden></span></button>
+  <button data-v="ans"><span class="e">📌</span>Suivis<span class="bd" id="bdAn" hidden></span></button>
+  <button data-v="mets"><span class="e">📚</span>Fiches</button>
+  <button data-v="eveil"><span class="e">🎨</span>Éveil</button>
+</div></nav>
+<input type="file" id="imp" accept="application/json,.json" hidden>
+<script>
+"use strict";
+/* ================= Outils ================= */
+const $=s=>document.querySelector(s), app=$("#app");
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const todayISO=()=>new Date().toISOString().slice(0,10);
+const daysTo=d=>Math.round((new Date(d+"T12:00:00")-new Date(todayISO()+"T12:00:00"))/864e5);
+const fmtDate=d=>{ if(!d) return ""; const x=new Date(String(d).slice(0,10)+"T12:00:00"); return isNaN(x)?d:x.toLocaleDateString("fr-FR",{day:"numeric",month:"short",year:"numeric"}); };
+const fmtDT=t=>new Date(t).toLocaleString("fr-FR",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const norm=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[’‘]/g,"'");
+const reEsc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+let tT; function toast(t,ms){ document.querySelectorAll(".toast").forEach(x=>x.remove()); const e=document.createElement("div"); e.className="toast"; e.textContent=t; document.body.appendChild(e); clearTimeout(tT); tT=setTimeout(()=>e.remove(),ms||2800); }
+const MP=window.MAGPrint||null;
+
+/* ================= Profils ================= */
+const PROFILES=[
+  ["dir","🏫","Direction de crèche ou de micro-crèche",["eaje","accueil","sante","alim","secu","protect","rh","finance","handi"]],
+  ["pro","🧸","Professionnel(le) en crèche (EJE, auxiliaire, CAP AEPE…)",["eaje","accueil","sante","alim","secu","protect","rh","handi"]],
+  ["am","🏡","Assistant(e) maternel(le) ou MAM",["assmat","accueil","sante","alim","secu","protect","finance","handi"]],
+  ["rpe","🤗","Animateur ou animatrice de relais petite enfance (RPE)",["rpe","assmat","accueil","finance","sante","secu","protect","rh","handi"]],
+  ["col","🏛️","Collectivité ou gestionnaire",["eaje","assmat","accueil","sante","secu","protect","rh","finance","handi"]],
+  ["par","👪","Parent",["accueil","assmat","eaje","sante","secu","finance","handi"]]
+];
+const PRM=Object.fromEntries(PROFILES.map(p=>[p[0],p]));
+
+/* ================= Documents de la structure à mettre à jour ================= */
+const DOCS=[["PJ","Projet de fonctionnement du RPE"],["RI","Programme et règlement des ateliers d'éveil"],["SUP","Supports d'information (parents, assistants maternels)"],["BIL","Bilan annuel et indicateurs CAF"],["PE","Projet d'établissement / projet d'accueil"],["RF","Règlement de fonctionnement"],["PU","Protocole situations d'urgence"],["PH","Protocole hygiène et maladies"],["PM","Protocole soins et médicaments"],["PS","Protocole de mise en sûreté"],["PX","Protocole maltraitance"],["PO","Protocole sorties"],["CA","Contrats (accueil, travail)"],["LA","Livret d'accueil des familles"],["PF","Plan de formation du personnel"],["AF","Affichages obligatoires"],["DU","Document unique (DUERP)"],["MN","Menus et hygiène alimentaire"]];
+const DN=Object.fromEntries(DOCS);
+const DOCS_P={rpe:["PJ","RI","SUP","BIL","PU","PS","PX","PO","AF","PF"],am:["PE","CA","PU","PM","PH","LA"],par:[]};
+const docsShown=()=>{ const l=DOCS_P[D.profile]; return l?DOCS.filter(d=>l.includes(d[0])):DOCS.filter(d=>!["PJ","RI","SUP","BIL"].includes(d[0])); };
+
+/* ================= Thèmes suivis ================= */
+// [clé, emoji, nom, mots-clés sans accents, documents liés, actif par défaut]
+const TH=[
+  ["eaje","🏫","Crèches et micro-crèches",["creche","creches","micro-creche","micro-creches","microcreche","microcreches","etablissements d'accueil du jeune enfant","etablissement d'accueil du jeune enfant","eaje","multi-accueil","halte-garderie","haltes-garderies","jardin d'enfants","jardins d'enfants","accueil collectif","taux d'encadrement","referent sante","referents sante"],["PE","RF","LA","PF"],true],
+  ["rpe","🤗","Relais petite enfance (RPE)",["relais petite enfance","relais petite-enfance","relais d'assistants maternels","relais assistants maternels","relais d'assistantes maternelles","rpe","monenfant","monenfant.fr","service public de la petite enfance","autorites organisatrices","convention territoriale globale","ctg","schema departemental des services aux familles","accueil individuel","garde d'enfants a domicile","information des familles","ateliers d'eveil"],["PJ","SUP","BIL","RI"],true],
+  ["assmat","🏡","Assistants maternels et MAM",["assistant maternel","assistants maternels","assistante maternelle","assistantes maternelles","maison d'assistants maternels","maisons d'assistants maternels","particuliers employeurs","particulier employeur","emploi a domicile","garde d'enfants a domicile","garde a domicile","pajemploi","relais petite enfance","agrement des assistants"],["CA","PE","SUP"],true],
+  ["accueil","👶","Modes d'accueil et politique familiale",["modes d'accueil","mode d'accueil","accueil du jeune enfant","jeunes enfants","jeune enfant","petite enfance","service public de la petite enfance","autorites organisatrices","charte nationale","1000 premiers jours","mille premiers jours","enfants de moins de trois ans","moins de trois ans","moins de 3 ans","parentalite","conge de naissance","conges de naissance","conge parental","politique familiale"],["PE","RF","PJ","SUP"],true],
+  ["sante","🩺","Santé, vaccins, soins",["vaccination","vaccinations","vaccin","vaccins","obligation vaccinale","protection maternelle et infantile","pmi","sante de l'enfant","carnet de sante","medicaments","administration de medicaments","allergie","allergies","projet d'accueil individualise","pai","epidemie","bronchiolite","rougeole","coqueluche","mort inattendue du nourrisson","nourrisson","nourrissons","nouveau-ne","nouveau-nes","pediatrie","pediatrique","ecrans","exposition aux ecrans"],["PH","PM","PU"],true],
+  ["alim","🥕","Repas et hygiène alimentaire",["alimentation infantile","lait infantile","laits infantiles","preparations pour nourrissons","biberon","biberons","restauration collective","repas","menus","egalim","allergenes","hygiene alimentaire","denrees alimentaires","plats","cantine"],["MN","PH"],true],
+  ["secu","🛡️","Sécurité des enfants et des locaux",["securite des enfants","jouets","jouet","articles de puericulture","puericulture","qualite de l'air interieur","air interieur","etablissements recevant du public","erp","incendie","evacuation","mise en surete","plomb","radon","produits chimiques","noyade","noyades","accidents domestiques","detecteurs de fumee"],["PS","PO","PU","AF","DU"],true],
+  ["protect","🤝","Protection de l'enfance, maltraitance",["protection de l'enfance","maltraitance","maltraitances","bientraitance","enfance en danger","enfants en danger","information preoccupante","informations preoccupantes","violences faites aux enfants","violences sur mineurs","honorabilite","attestation d'honorabilite","fichier judiciaire","antecedents judiciaires","droits de l'enfant","aide sociale a l'enfance"],["PX","PF","RF"],true],
+  ["rh","👩‍🍼","Personnel, diplômes, formation",["auxiliaire de puericulture","auxiliaires de puericulture","educateur de jeunes enfants","educateurs de jeunes enfants","educatrice de jeunes enfants","puericultrice","puericultrices","puericulteur","accompagnant educatif petite enfance","cap aepe","professionnels de la petite enfance","professionnel de la petite enfance","metiers de la petite enfance","analyse des pratiques","qualification des professionnels","formation des assistants maternels","validation des acquis","encadrement des enfants"],["PF","DU"],true],
+  ["finance","💶","Financements et aides aux familles",["complement de libre choix du mode de garde","complement de libre choix","cmg","prestation d'accueil du jeune enfant","paje","prestation de service unique","psu","caisse d'allocations familiales","caisses d'allocations familiales","caf","credit d'impot pour frais de garde","frais de garde","allocations familiales","prestation partagee","bonus inclusion","bonus territoire","fonds national d'action sociale"],["CA","RF","SUP","BIL"],true],
+  ["handi","♿","Inclusion et handicap",["accueil inclusif","inclusion","situation de handicap","enfants handicapes","enfant handicape","aeeh","allocation d'education de l'enfant handicape","troubles du neurodeveloppement","autisme","maison departementale des personnes handicapees","mdph"],["PE","PH"],true]
+];
+const THM=Object.fromEntries(TH.map(t=>[t[0],t]));
+const EXCL=["portant extension","relatif a l'extension","relatifs a l'extension","extension d'un","extension d'accords","extension d'avenants","nomination","nomme","nommes","avis de vacance","taux de promotion","tableau d'avancement","concours","jury","delegation de signature","cessation de fonctions","composition du","composition de la","election","elections","liste d'aptitude","admission a","radiation","attribution de la medaille","medaille d'honneur","formation de travail","formations de travail","assemblee pleniere","ordre du jour","promotion de grade","detachement","titularisation","integration dans le corps","mise a disposition","autorisees a exercer","autorises a exercer","praticiens hospitaliers","agence regionale de sante","centre hospitalier","pharmacopee","medicament veterinaire"];
+
+/* ================= Sources ================= */
+const LGF="https://legifrss.org/latest";
+const FEEDS=[
+  ["jo-familles","Journal officiel · ministère de la Santé et des Familles",LGF+"?author="+encodeURIComponent("Ministère de la santé, des familles, de l'autonomie et des personnes handicapées"),"familles"],
+  ["jo-travail","Journal officiel · ministère du Travail et des Solidarités",LGF+"?author="+encodeURIComponent("Ministère du travail et des solidarités"),"travail"],
+  ["jo-decrets","Journal officiel · tous les décrets",LGF+"?nature=DECRET",""],
+  ["jo-arretes","Journal officiel · tous les arrêtés",LGF+"?nature=ARRETE",""],
+  ["jo-lois","Journal officiel · lois",LGF+"?nature=LOI",""],
+  ["jo-ord","Journal officiel · ordonnances",LGF+"?nature=ORDONNANCE",""],
+  ["sp-pro","Service-public · actualités des professionnels","https://www.service-public.gouv.fr/abonnements/rss/actu-actu-pro.rss",""],
+  ["sp-part","Service-public · actualités des particuliers (familles)","https://www.service-public.gouv.fr/abonnements/rss/actu-actualites-particuliers.rss",""]
+];
+const LINKS=[["monenfant.fr – trouver un mode d'accueil (CAF)","https://monenfant.fr/"],["Ministère des Familles – petite enfance","https://solidarites.gouv.fr/petite-enfance"],["Légifrance – Journal officiel du jour","https://www.legifrance.gouv.fr/jorf/jo"],["Service-public – garde d'enfant","https://www.service-public.gouv.fr/particuliers/vosdroits/N155"],["Pajemploi (Urssaf)","https://www.pajemploi.urssaf.fr/"],["1000 premiers jours","https://www.1000-premiers-jours.fr/"],["Vaccination-info-service","https://vaccination-info-service.fr/"],["Allô 119 – enfance en danger","https://www.allo119.gouv.fr/"],["Santé publique France","https://www.santepubliquefrance.fr/"],["Caf – espace partenaires","https://www.caf.fr/partenaires"],["Iperia – formation des assistants maternels","https://www.iperia.eu/"],["Fepem – particuliers employeurs","https://www.fepem.fr/"]];
+
+/* ================= Fiches pratiques (repères indicatifs) ================= */
+const LIB={
+  rpe:[["Cadre légal","Ordonnance n° 2021-611 du 19 mai 2021 ; décret n° 2021-1115 du 25 août 2021 ; CASF L214-2-1 et D214-9","Les anciens RAM sont devenus des relais petite enfance (RPE) ; leurs missions sont fixées par le décret et précisées par le référentiel national de la Cnaf."],
+    ["Obligation pour les communes","Loi n° 2023-1196 du 18 décembre 2023 (service public de la petite enfance)","Depuis le 1er janvier 2026, les communes de plus de 10 000 habitants doivent créer un RPE et planifier le développement des modes d'accueil (schéma pluriannuel ou CTG)."],
+    ["Missions socles : familles","Référentiel national des RPE (Cnaf)","Informer les parents sur tous les modes d'accueil du territoire, les aider à choisir, les accompagner dans leur rôle d'employeur (contrat, CMG, Pajemploi), promouvoir monenfant.fr."],
+    ["Missions socles : professionnels","Référentiel national des RPE (Cnaf)","Informer les assistants maternels et gardes à domicile, offrir des temps d'échange, animer des ateliers d'éveil, accompagner les départs en formation, lutter contre la sous-activité subie, promouvoir le métier."],
+    ["Missions renforcées (au choix)","Référentiel national et guide Caf 2026","1) Guichet unique (référencement comme lieu d'information sur monenfant.fr, participation aux commissions d'attribution des places) ; 2) ateliers de pratique professionnelle (au moins 6 h et 3 séances par an pour au moins 8 assistants maternels) ; 3) promotion renforcée de l'accueil individuel (au moins une action de communication par an)."],
+    ["monenfant.fr","Loi ASAP (art. 100)","Les assistants maternels doivent déclarer et tenir à jour leurs disponibilités sur monenfant.fr. Le relais les aide, mais ne peut pas le faire à leur place."],
+    ["Ateliers d'éveil","Référentiel national des RPE","Programme annuel et règlement ; autorisation écrite des parents pour la participation des enfants ; l'assistant maternel reste responsable des enfants qu'il accueille."],
+    ["Animation du relais","Référentiel national et guide Caf 2026","Niveau bac+2 et expérience confirmée en petite enfance ou travail social ; profil validé par la Caf. Objectif national 2027 : 1 ETP d'animation pour 56 assistants maternels en moyenne."],
+    ["Projet de fonctionnement","Référentiel national des RPE","Rédigé par l'animateur et le gestionnaire, validé par le conseil d'administration de la Caf pour 5 ans au plus, en cohérence avec le diagnostic territorial et la CTG."],
+    ["Financement Caf (barèmes 2026)","Guide Caf RPE 2026","Prestation de service : 43 % du prix de revient, plafonné à 73 782 € par ETP ; mission renforcée : 3 368 € par ETP ; bonus territoire CTG pour une offre nouvelle. Montants à confirmer avec votre Caf."],
+    ["Bilan annuel","Référentiel national et guide Caf 2026","Données d'activité et financières sur le portail partenaires de la Caf, questionnaire de bilan, évaluation avec le conseiller Caf ; comité de pilotage annuel recommandé. Gardez les preuves (feuilles d'émargement, plan d'actions…)."]],
+  eaje:[["Autorisation de la structure","CSP L2324-1 et suivants ; décret de janvier 2026","Depuis 2026, toutes les crèches, y compris publiques, sont autorisées par le président du conseil départemental (après avis de la PMI), pour 15 ans au plus. Les structures ouvertes avant 2025 doivent l'obtenir selon un calendrier qui va jusqu'en 2034."],
+    ["Tailles des crèches","CSP R2324-46 et suivants (décret n° 2021-1131)","Micro-crèche : 12 places au plus · petite crèche : 13 à 24 · crèche : 25 à 39 · grande crèche : 40 à 59 · très grande crèche : 60 places et plus."],
+    ["Taux d'encadrement","CSP R2324-43 et suivants","1 professionnel pour 6 enfants, ou au choix 1 pour 5 enfants qui ne marchent pas et 1 pour 8 qui marchent. On arrondit toujours au-dessus (14 enfants = 3 professionnels)."],
+    ["Professionnels les plus qualifiés","CSP R2324-42 ; texte du 2 août 2026","Au 1er janvier 2027 : au moins 1 professionnel de « catégorie 1 » (puéricultrice, EJE, auxiliaire de puériculture, infirmier…) pour 10 enfants, en équivalent temps plein arrondi à la demi-unité. Micro-crèches : les dérogations sont maintenues (décision du Conseil d'État)."],
+    ["Direction","CSP R2324-34 et suivants","Une même personne peut diriger deux structures de 24 places ou moins chacune."],
+    ["Référent santé et accueil inclusif (RSAI)","CSP R2324-39 et suivants","Obligatoire : médecin, puéricultrice diplômée d'État ou infirmier diplômé d'État expérimenté, salarié ou en libéral (pas de micro-entreprise). Temps minimal selon la taille (ex. 0,2 ETP pour une crèche de 25 à 39 places)."],
+    ["Analyse des pratiques professionnelles","CSP R2324-37","6 heures par an et par professionnel, dont 2 heures par quadrimestre, animées par un intervenant extérieur à l'équipe."],
+    ["Documents obligatoires","CSP R2324-29 et R2324-30","Projet d'établissement (projet éducatif, social, accueil inclusif…) et règlement de fonctionnement, avec les protocoles : urgences, hygiène et maladies, soins et médicaments, maltraitance, mise en sûreté, sorties."],
+    ["Charte nationale pour l'accueil du jeune enfant","Arrêté du 23 septembre 2021","Les 10 grands principes à respecter et à faire vivre dans le projet d'accueil."]],
+  assmat:[["Agrément","CASF L421-3 et suivants","Délivré par le président du conseil départemental (service de PMI) ; il fixe le nombre et l'âge des enfants accueillis et sa durée de validité."],
+    ["Nombre d'enfants","CASF L421-4","En principe 4 enfants simultanément au plus (dérogations possibles), dans la limite fixée par l'agrément."],
+    ["Formation obligatoire","CASF L421-14 ; D421-44 et suivants","120 heures au total, dont une première partie validée avant le premier accueil ; la suite se fait en exerçant. Formation aux premiers secours incluse."],
+    ["Maison d'assistants maternels (MAM)","CASF L424-1 et suivants","Les assistants maternels peuvent exercer ensemble dans un local hors de leur domicile ; chacun reste salarié des parents."],
+    ["Contrat de travail et convention collective","Convention collective des particuliers employeurs et de l'emploi à domicile (IDCC 3239)","Contrat écrit obligatoire, mensualisation, congés, indemnités d'entretien et de repas ; déclaration via Pajemploi."],
+    ["Logement et sécurité","Référentiel d'agrément (CASF D421-3 et annexes)","Logement sûr et adapté : barrières, prises protégées, produits dangereux hors de portée, détecteur de fumée, plan d'évacuation."]],
+  accueil:[["Service public de la petite enfance","Loi n° 2023-1196 du 18 décembre 2023 (plein emploi)","Depuis le 1er janvier 2025, les communes sont autorités organisatrices de l'accueil du jeune enfant : recensement des besoins, information des familles, relais petite enfance selon la taille."],
+    ["Réforme des modes d'accueil","Ordonnance n° 2021-611 du 19 mai 2021 ; décret n° 2021-1131 du 30 août 2021","Socle des règles actuelles pour les crèches et les assistants maternels."],
+    ["Trouver un mode d'accueil","monenfant.fr (CAF)","Carte des crèches et des assistants maternels disponibles, simulateur du coût de garde."]],
+  sante:[["Vaccinations obligatoires","CSP L3111-2 ; R3111-2 et suivants","11 vaccins obligatoires pour les enfants nés depuis 2018 ; ils conditionnent l'entrée en crèche ou chez l'assistant maternel (vérification du carnet de santé)."],
+    ["Médicaments et soins","CSP R2111-1 (décret n° 2021-1131)","Un professionnel peut donner un traitement prescrit avec l'accord écrit des parents, selon le protocole de la structure ; tout est noté dans un registre."],
+    ["Projet d'accueil individualisé (PAI)","Circulaire PAI","Pour un enfant allergique ou malade chronique : rédigé avec le médecin, les parents et la structure."],
+    ["Sommeil du nourrisson","Recommandations de prévention de la mort inattendue du nourrisson","Couchage sur le dos, dans un lit adapté, sans oreiller, couverture ni tour de lit ; gigoteuse ; pièce à 18-20 °C."],
+    ["Exclusion en cas de maladie","Guide HCSP « collectivités de jeunes enfants et maladies infectieuses »","Liste des maladies imposant une éviction et mesures d'hygiène renforcées."]],
+  alim:[["Hygiène des repas et des biberons","Règlement (CE) n° 852/2004 ; arrêté du 21 décembre 2009","Plan de maîtrise sanitaire, traçabilité, températures, préparation des biberons dans de bonnes conditions."],
+    ["Allergènes","Règlement (UE) n° 1169/2011","Information sur les 14 allergènes majeurs ; lien avec les PAI."],
+    ["Qualité des repas (EGalim)","C. rural L230-5-1 et suivants","Restauration collective : au moins 50 % de produits durables et de qualité, dont 20 % de bio."]],
+  secu:[["Sécurité incendie (ERP de type R)","CCH R143-1 et suivants ; arrêté du 25 juin 1980","Registre de sécurité, vérifications périodiques, exercices d'évacuation adaptés aux tout-petits."],
+    ["Qualité de l'air intérieur","C. env. L221-8, R221-30 et suivants","Surveillance obligatoire dans les crèches : évaluation des moyens d'aération, autodiagnostic, mesures selon le calendrier."],
+    ["Jouets et mobilier","Directive 2009/48/CE (jouets) ; norme NF EN 71","Jouets marqués CE et adaptés à l'âge ; vérifier les rappels de produits (rappel.conso.gouv.fr)."],
+    ["Mise en sûreté","CSP R2324-30","Protocole en cas de risque majeur ou d'intrusion, connu de tous et exercé."]],
+  protect:[["Repérer et signaler","CASF L226-2-1 ; 119","Information préoccupante à la cellule départementale (CRIP), signalement au procureur si danger grave. En cas de doute : 119, 24 h/24, gratuit."],
+    ["Contrôle d'honorabilité","CASF L133-6","Les personnes condamnées pour certaines infractions ne peuvent pas travailler auprès des enfants ; attestation d'honorabilité vérifiée par l'employeur."],
+    ["Protocole maltraitance","CSP R2324-30","Conduite à tenir et mesures à prendre en cas de suspicion de maltraitance, connues de toute l'équipe."]],
+  rh:[["Diplômes et catégories de professionnels","CSP R2324-42 ; arrêté du 29 juillet 2022","Catégorie 1 (puéricultrices, EJE, auxiliaires de puériculture, infirmiers…) et autres professionnels qualifiés (CAP AEPE, assistants maternels expérimentés…)."],
+    ["Formation continue","Code du travail L6311-1 et suivants","Plan de développement des compétences ; analyse des pratiques obligatoire en crèche."],
+    ["Santé au travail du personnel","Code du travail L4121-1, R4121-1","Document unique : port d'enfants, postures, bruit, risques infectieux."]],
+  finance:[["Complément de libre choix du mode de garde (CMG)","CSS L531-5 et suivants","Aide de la CAF ou de la MSA pour l'emploi d'un assistant maternel, d'une garde à domicile ou une micro-crèche « Paje » ; calcul révisé en 2025."],
+    ["Crédit d'impôt pour frais de garde","CGI art. 200 quater B","50 % des frais de garde hors de la maison pour un enfant de moins de 6 ans, dans la limite d'un plafond par enfant."],
+    ["Prestation de service unique (PSU)","Circulaire Cnaf","Financement des crèches par la CAF ; tarif horaire selon les revenus des parents (barème national)."]],
+  handi:[["Accueil inclusif","CSP R2324-29 ; charte nationale","Le projet d'établissement décrit l'accueil des enfants en situation de handicap ou atteints de maladie chronique."],
+    ["Aides","CSS L541-1 (AEEH) ; bonus inclusion handicap (CAF)","Allocation d'éducation de l'enfant handicapé pour les familles ; bonus versé aux crèches qui accueillent ces enfants."]]
+};
+
+/* ================= Check-lists de conformité ================= */
+const CHK={
+  dir:[["Autorisation (ou avis) du département à jour et affichée","eaje"],["Projet d'établissement à jour (éducatif, social, accueil inclusif, développement durable)","eaje"],["Règlement de fonctionnement remis aux familles","eaje"],["6 protocoles : urgences, hygiène, soins et médicaments, maltraitance, mise en sûreté, sorties","eaje"],["Référent santé et accueil inclusif désigné, temps de présence suffisant","eaje"],["Taux d'encadrement respecté à chaque moment de la journée","eaje"],["Au moins 1 professionnel de catégorie 1 pour 10 enfants (au 1er janvier 2027)","rh"],["Analyse des pratiques : 6 h/an par professionnel","rh"],["Honorabilité vérifiée pour tout le personnel et les intervenants","protect"],["Vaccinations des enfants vérifiées à l'admission","sante"],["PAI rédigés pour les enfants concernés","sante"],["Registre des médicaments donnés tenu à jour","sante"],["Plan de maîtrise sanitaire (repas, biberons) et allergènes affichés","alim"],["Registre de sécurité, vérifications et exercices d'évacuation","secu"],["Surveillance de la qualité de l'air intérieur réalisée","secu"],["Document unique (DUERP) à jour","rh"],["Plan de formation du personnel","rh"],["Affichages obligatoires (horaires, numéros d'urgence, consignes)","secu"]],
+  pro:[["Je connais les 6 protocoles de la structure","eaje"],["Je sais quoi faire en cas d'urgence (15, 112, gestes de premiers secours)","sante"],["Je connais la conduite à tenir en cas de suspicion de maltraitance","protect"],["Je participe à l'analyse des pratiques (6 h/an)","rh"],["Je connais les PAI et les allergies des enfants","sante"],["Couchage des bébés sur le dos, sans objet dans le lit","sante"],["Médicaments donnés uniquement selon le protocole et notés","sante"],["Je sais où sont les issues et le point de rassemblement","secu"]],
+  am:[["Agrément valide (date de fin connue)","assmat"],["Formation de 120 h suivie (première partie validée avant le premier accueil)","rh"],["Assurance responsabilité civile professionnelle déclarée","assmat"],["Contrat de travail écrit pour chaque enfant (convention IDCC 3239)","assmat"],["Déclarations Pajemploi à jour","finance"],["Carnet de santé et vaccinations vérifiés","sante"],["Autorisations écrites des parents : soins, sorties, transport, photos","assmat"],["Ordonnance + accord écrit avant tout médicament","sante"],["Trousse de premiers secours complète","secu"],["Détecteur de fumée, barrières, prises protégées, produits hors de portée","secu"],["Couchage sur le dos, lit adapté, gigoteuse","sante"],["Numéros d'urgence et coordonnées des parents affichés","secu"],["Relais petite enfance identifié (informations, formations)","accueil"]],
+  rpe:[["Projet de fonctionnement validé par la Caf et encore valable (5 ans au plus)","rpe"],["Profil de l'animateur validé par la Caf ; temps d'animation adapté au nombre d'assistants maternels","rpe"],["Lien avec la CTG, le diagnostic territorial et la commune (autorité organisatrice)","accueil"],["Horaires de permanence et moyens de contact affichés et diffusés","rpe"],["Information des parents sur tous les modes d'accueil (collectif et individuel)","rpe"],["Promotion de monenfant.fr ; assistants maternels aidés à déclarer leurs disponibilités","rpe"],["Supports à jour pour les parents employeurs : contrat, CMG, Pajemploi, convention IDCC 3239","finance"],["Ateliers d'éveil : programme annuel et règlement","rpe"],["Autorisations écrites des parents pour les ateliers","rpe"],["Locaux des ateliers sûrs : trousse de secours, consignes d'urgence, assurance","secu"],["Conduite à tenir connue en cas d'inquiétude pour un enfant (information préoccupante, 119)","protect"],["Accompagnement des départs en formation continue des assistants maternels","rh"],["Temps d'échange ou réunions thématiques pour les professionnels","rpe"],["Mission renforcée choisie et preuves conservées (émargements, plan d'actions…)","rpe"],["Activité de l'année suivie (contacts, ateliers, participants)","rpe"],["Bilan annuel transmis à la Caf (portail partenaires, questionnaire)","rpe"],["Comité de pilotage annuel organisé","rpe"],["Partenariat avec la PMI (agréments, informations des assistants maternels)","assmat"]],
+  col:[["Recensement des besoins d'accueil sur la commune","accueil"],["Commune de plus de 10 000 habitants : relais petite enfance créé (obligatoire depuis le 1er janvier 2026)","rpe"],["Information des familles (relais petite enfance, monenfant.fr)","accueil"],["Calendrier des autorisations des crèches publiques (avant 2034)","eaje"],["Suivi des taux d'encadrement et des qualifications","rh"],["Contrôle de l'honorabilité des agents","protect"],["Surveillance de la qualité de l'air dans les crèches","secu"],["Financements CAF à jour (PSU, bonus)","finance"]],
+  par:[["Carnet de santé et vaccinations à jour","sante"],["Contrat (crèche ou assistant maternel) lu et signé","assmat"],["Autorisations données : soins, sorties, photos, personnes qui viennent chercher l'enfant","assmat"],["Aide CAF (CMG) demandée si assistant maternel ou micro-crèche Paje","finance"],["Crédit d'impôt pour frais de garde déclaré","finance"],["PAI demandé si allergie ou maladie chronique","sante"]]
+};
+
+/* ================= Données locales ================= */
+const LS="petitspas:v1";
+function load(){ try{ return JSON.parse(localStorage.getItem(LS)||"{}"); }catch(e){ return {}; } }
+let D=Object.assign({items:[],ans:[],last:0,feeds:{},themes:null,custom:[],notif:true,fixed:{},theme:"",helpSeen:false,profile:"",chk:{},name:"",acti:[],parcours:[],plan:[]},load());
+let saveT; function save(){ clearTimeout(saveT); saveT=setTimeout(()=>{ try{ localStorage.setItem(LS,JSON.stringify(D)); }catch(e){ toast("Mémoire pleine : faites une sauvegarde puis archivez des textes"); } },250); }
+if(D.theme) document.documentElement.dataset.theme=D.theme;
+const themesOn=()=>D.themes||(D.profile&&PRM[D.profile]?PRM[D.profile][3]:TH.filter(t=>t[5]).map(t=>t[0]));
+function feedsOn(){ return FEEDS.filter(f=>D.feeds[f[0]]!==false).map(f=>({id:f[0],name:f[1],url:D.fixed[f[0]]||f[2],key:f[3]})).concat((D.custom||[]).map((u,i)=>({id:"perso"+i,name:"Source perso : "+u.replace(/^https?:\/\//,"").slice(0,40),url:u,key:""}))); }
+function themesOf(txt){ const n=" "+norm(txt)+" "; if(EXCL.some(x=>n.includes(x))) return [];
+  return themesOn().filter(k=>THM[k]&&THM[k][3].some(w=>new RegExp("(^|[^a-z0-9])"+reEsc(w)+"([^a-z0-9]|$)").test(n))); }
+const docsOf=ths=>{ const ok=new Set(docsShown().map(d=>d[0])); return [...new Set((ths||[]).flatMap(k=>THM[k]?THM[k][4]:[]))].filter(d=>ok.has(d)); };
+const incRe=()=>"(^|[^a-z0-9])("+themesOn().flatMap(k=>THM[k]?THM[k][3]:[]).map(reEsc).join("|")+")([^a-z0-9]|$)";
+const excRe=()=>"("+EXCL.map(reEsc).join("|")+")";
+const nNew=()=>D.items.filter(x=>x.status==="new").length;
+const anOpen=()=>D.ans.filter(a=>a.status!=="traite").length;
+const docTodo=()=>D.ans.reduce((t,a)=>t+Object.values(a.docs||{}).filter(v=>v==="afaire").length,0);
+const actLate=()=>D.ans.reduce((t,a)=>t+(a.acts||[]).filter(x=>!x.done&&x.due&&daysTo(x.due)<0).length,0);
+const chkList=()=>CHK[D.profile]||CHK.dir;
+const chkKey=()=>D.profile||"dir";
+function chkStats(){ const L=chkList(), st=(D.chk[chkKey()]||{}); const y=L.filter((_,i)=>st[i]==="y").length, n=L.filter((_,i)=>st[i]==="n").length; return {y,n,tot:L.length}; }
+
+/* ================= Recherche des nouveaux textes ================= */
+async function getText(url){
+  if(MP&&MP.httpFetch){ const k="g"+uid(); MP.httpFetch(k,url);
+    for(let i=0;i<60;i++){ await new Promise(r=>setTimeout(r,500)); const r=MP.httpTake(k); if(r!=null&&r!=="__wait__") return r==="__err__"?null:r; } return null; }
+  try{ const r=await fetch(url,{cache:"no-store"}); return r.ok?await r.text():null; }catch(e){ return null; }
+}
+function parseFeed(xml,feed){
+  const out=[]; let doc; try{ doc=new DOMParser().parseFromString(xml,"text/xml"); }catch(e){ return out; }
+  const tx=(el,sel)=>{ const x=el.getElementsByTagName(sel)[0]; return x?x.textContent.trim():""; };
+  const strip=h=>String(h||"").replace(/<[^>]+>/g," ").replace(/&nbsp;/g," ").replace(/\s+/g," ").trim();
+  [...doc.getElementsByTagName("entry")].forEach(e=>{ const l=e.getElementsByTagName("link")[0], link=l?(l.getAttribute("href")||l.textContent):"";
+    out.push({id:tx(e,"id")||link,title:tx(e,"title"),link,date:(tx(e,"updated")||tx(e,"published")).slice(0,10),src:feed.name.split(" · ")[0],author:tx(e,"name"),sum:strip(tx(e,"summary")).slice(0,500)}); });
+  [...doc.getElementsByTagName("item")].forEach(e=>{ const link=tx(e,"link"), d=tx(e,"pubDate")||tx(e,"dc:date")||tx(e,"date"), dt=d?new Date(d):null;
+    out.push({id:tx(e,"guid")||link,title:tx(e,"title"),link,date:dt&&!isNaN(dt)?dt.toISOString().slice(0,10):"",src:feed.name.split(" · ")[0],author:"",sum:strip(tx(e,"description")).slice(0,500)}); });
+  return out.filter(x=>x.title&&x.link);
+}
+async function resolveAuthor(f){ if(!f.key) return null; const t=await getText("https://legifrss.org/authors"); if(!t) return null;
+  const names=[...new Set((t.match(/Minist[eè]re[^<>"\n\r]{3,170}/g)||[]).map(s=>s.trim()))]; const hit=names.find(n=>norm(n).includes(norm(f.key))); return hit?LGF+"?author="+encodeURIComponent(hit):null; }
+let busy=false, prog="";
+async function refresh(manual){
+  if(busy) return; busy=true; prog="Connexion aux sources…"; rerender();
+  const known=new Map(D.items.map(x=>[x.id,x])), first=!D.last; let added=0, ok=0; const fs=feedsOn();
+  for(let i=0;i<fs.length;i++){ const f=fs[i]; prog=`Source ${i+1} / ${fs.length} : ${f.name}`; paintProg();
+    let xml=await getText(f.url), items=xml?parseFeed(xml,f):null;
+    if((!items||!items.length)&&f.key){ const u=await resolveAuthor(f); if(u&&u!==f.url){ xml=await getText(u); items=xml?parseFeed(xml,f):null; if(items&&items.length) D.fixed[f.id]=u; } }
+    if(!items) continue; ok++;
+    for(const it of items){ if(known.has(it.id)) continue; const th=themesOf(it.title+" "+(f.id.startsWith("sp-")?it.sum:"")); if(!th.length) continue;
+      it.themes=th; it.status=(first&&it.date&&daysTo(it.date)<-14)?"lu":"new"; it.found=Date.now(); known.set(it.id,it); added++; }
+  }
+  D.items=[...known.values()].filter(x=>x.status==="suivi"||x.status==="new"||!x.date||daysTo(x.date)>-365).sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,800);
+  if(ok) D.last=Date.now(); busy=false; save(); syncNative(); badges();
+  if(manual) toast(ok?(added?`${added} nouveau(x) texte(s) pour la petite enfance`:"Rien de nouveau sur vos thèmes"):(MP&&!(window.MAGPC&&!MAGPC.net.proxy())?"Pas de connexion : réessayez plus tard":"La recherche automatique fonctionne dans l'application Android : la version en ligne ne peut pas lire les sources officielles (sur PC : relais réseau, voir le lanceur Suite MAG)."),4000);
+  rerender();
+}
+function paintProg(){ const e=$("#prog"); if(e) e.textContent=prog; }
+function takeNative(){ if(!(MP&&MP.veilleTake)) return; try{ const a=JSON.parse(MP.veilleTake()||"[]"); if(!a.length) return; const known=new Set(D.items.map(x=>x.id));
+  a.forEach(it=>{ if(known.has(it.id)) return; const th=themesOf(it.title); if(!th.length) return; D.items.unshift({...it,themes:th,status:"new",found:Date.now()}); }); save(); }catch(e){} }
+function syncNative(){ if(!(MP&&MP.veilleSetup)) return; try{ MP.veilleSetup(JSON.stringify({on:D.notif!==false,feeds:feedsOn().map(f=>f.url),inc:incRe(),exc:excRe(),seen:D.items.map(x=>x.id).slice(0,2000)})); }catch(e){} }
+
+/* ================= Navigation ================= */
+let V="home", stack=[], CUR=null;
+const S={flt:"new",th:"",q:"",aflt:"open"};
+function go(v,arg,noPush){ if(!noPush&&V!==v) stack.push([V,CUR]); V=v; CUR=arg===undefined?CUR:arg; render(); scrollTo(0,0); }
+function back(){ const s=stack.pop(); if(!s){ V="home"; } else { V=s[0]; CUR=s[1]; } render(); }
+document.querySelectorAll("nav.bn [data-v]").forEach(b=>b.onclick=()=>{ stack=[]; go(b.dataset.v,null,true); });
+$("#helpBtn").onclick=()=>go("help"); $("#setBtn").onclick=()=>go("set");
+function badges(){ const s=(id,n)=>{ const e=$(id); e.hidden=!n; e.textContent=n; }; s("#bdFeed",nNew()); s("#bdAn",anOpen()); }
+function rerender(){ if(["home","feed","met","set","chk","acti"].includes(V)){ const y=scrollY; render(); scrollTo(0,y); } }
+function render(){
+  if(!D.profile&&V!=="help"){ rProfile(); return; }
+  const top={home:"home",feed:"feed",ans:"ans",an:"ans",mets:"mets",met:"mets",chk:"mets",urg:"mets",acti:"mets",eveil:"eveil",ev:"eveil",mp:"eveil",plan:"eveil",set:"",help:""}[V]??"home";
+  document.querySelectorAll("nav.bn [data-v]").forEach(b=>b.classList.toggle("on",b.dataset.v===top));
+  $("#sub").textContent={home:D.profile==="rpe"?"Veille petite enfance et RPE":"Veille petite enfance",feed:"Nouveaux textes",ans:"Textes suivis",an:"Analyse d'un texte",mets:"Fiches pratiques",met:"Fiche pratique",chk:"Ma check-list",urg:"Urgences et contacts",acti:"Activité du relais",eveil:"Éveil 0-3 ans",ev:"Activité d'éveil",mp:"Mon parcours",plan:"Mes séances",set:"Réglages",help:"Aide"}[V];
+  badges();
+  ({home:rHome,feed:rFeed,ans:rAns,an:rAn,mets:rMets,met:rMet,chk:rChk,urg:rUrg,acti:rActi,eveil:rEveil,ev:rEv,mp:rMp,plan:rPlan,set:rSet,help:rHelp})[V]();
+}
+function rProfile(){
+  document.querySelectorAll("nav.bn [data-v]").forEach(b=>b.classList.remove("on"));
+  app.innerHTML=`<div class="stack"><div><div class="lab">Bienvenue</div><h1>Petits Pas 👣</h1><p class="muted" style="margin:6px 0 0">Les nouveaux textes officiels sur la petite enfance, les règles essentielles et votre check-list, au même endroit.</p></div>
+    <div class="card stack"><h2>Vous êtes…</h2><span class="small muted">Vos thèmes, vos fiches et votre check-list s'adaptent. Vous pourrez changer dans les réglages.</span>
+      <div class="prof">${PROFILES.map(p=>`<button data-p="${p[0]}" class="${D.profile===p[0]?"on":""}"><span class="e">${p[1]}</span><span>${esc(p[2])}</span></button>`).join("")}</div></div></div>`;
+  app.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{ D.profile=b.dataset.p; D.themes=null; save(); syncNative(); V="home"; render(); if(MP&&MP.httpFetch) refresh(false); else toast("C'est parti ! Cliquez sur « Actualiser » pour la première recherche"); });
+}
+const statusBox=()=>`<div class="card row" style="justify-content:space-between"><div style="flex:1;min-width:200px"><b>📡 Recherche automatique</b><br><span class="tiny" id="prog">${busy?esc(prog):D.last?"Dernière recherche : "+fmtDT(D.last)+(MP&&MP.veilleSetup&&D.notif!==false?" · puis toute seule 2 fois par jour":""):"Pas encore lancée"}</span></div><button class="btn p" id="goRef" ${busy?"disabled":""}>${busy?'<span class="spin"></span>':"🔄 Actualiser"}</button></div>${(!MP||(window.MAGPC&&!MAGPC.net.proxy()))?`<div class="notice">ℹ️ Cette version ne peut pas lire les sources officielles (sécurité du navigateur). Sur PC, le relais réseau personnel lève cette limite (lanceur Suite MAG › Relais réseau). La <b>recherche automatique</b> et les <b>notifications</b> fonctionnent dans l'application Android. Les fiches, la check-list et les suivis fonctionnent partout.</div>`:""}`;
+function wireStatus(){ const b=$("#goRef"); if(b) b.onclick=()=>refresh(true); }
+
+/* ================= Accueil ================= */
+function rHome(){
+  const recent=D.items.filter(x=>x.status!=="archive").slice(0,5), cs=chkStats(), p=PRM[D.profile];
+  const counts=k=>D.items.filter(x=>x.status==="new"&&(x.themes||[]).includes(k)).length;
+  app.innerHTML=`<div class="stack">
+    <div><div class="lab">${p[1]} ${esc(p[2])}</div><h1>Bonjour${D.name?" "+esc(D.name):""} 👋</h1><p class="muted" style="margin:4px 0 0">Ce qui change pour l'accueil des tout-petits, et ce qu'il faut vérifier chez vous.</p></div>
+    ${!D.helpSeen?`<div class="warnbox row" style="justify-content:space-between"><span><b>Première visite ?</b> Découvrez Petits Pas en 2 minutes.</span><span class="row"><button class="btn s p" id="hGo">Voir l'aide</button><button class="btn s" id="hNo">Plus tard</button></span></div>`:""}
+    ${statusBox()}
+    <div class="kpis">
+      <button class="kpi co" data-k="new"><b>${nNew()}</b><span>Textes à lire</span></button>
+      <button class="kpi sa" data-k="an"><b>${anOpen()}</b><span>Textes suivis en cours</span></button>
+      <button class="kpi su" data-k="doc"><b>${docTodo()}</b><span>Documents à mettre à jour</span></button>
+      <button class="kpi ${actLate()?"no":"ok"}" data-k="act"><b>${actLate()}</b><span>Actions en retard</span></button>
+    </div>
+    <button class="card stack" id="toChk" style="text-align:left;gap:8px"><div class="row" style="justify-content:space-between"><h2>✅ Ma check-list</h2><span class="chip ${cs.n?"no":cs.y===cs.tot?"ok":"su"}">${cs.y} / ${cs.tot} OK${cs.n?" · "+cs.n+" à faire":""}</span></div><div class="prog"><i style="width:${Math.round(cs.y/cs.tot*100)}%"></i></div><span class="tiny">Les points essentiels à vérifier pour votre situation.</span></button>
+    ${D.profile==="rpe"?`<button class="card row" id="toAct" style="text-align:left;justify-content:space-between"><span><b style="font-family:Nunito,sans-serif;font-size:17px">📊 Activité du relais</b><br><span class="tiny">${actYear(new Date().getFullYear()).length} action(s) notée(s) en ${new Date().getFullYear()} · prêt pour le bilan Caf</span></span><span>›</span></button>`:""}
+    <button class="urg row" id="toUrg" style="border:0;text-align:left;justify-content:space-between"><span><b style="font-family:Nunito,sans-serif;font-size:17px">🚑 Urgences et numéros utiles</b><br><span class="tiny">15 · 112 · 119 · centre antipoison</span></span><span>›</span></button>
+    ${(()=>{ const n=new Date(), i=(n.getFullYear()*400+n.getMonth()*31+n.getDate())%EVEIL.length, e=EVEIL[i]; return `<button class="card row" id="toEv" data-e="${e[0]}" style="text-align:left;flex-wrap:nowrap;gap:12px;background:var(--su-l);border-color:transparent;padding:10px"><span class="thumb" style="width:110px">${artSVG(e[0])}</span><span style="flex:1"><span class="lab" style="color:#8A5A00">🎨 Idée d'éveil du jour</span><br><b>${esc(e[2])}</b><br><span class="tiny">${ageLab(e[4],e[5])} · ${esc(e[6])}</span></span><span>›</span></button>`; })()}
+    <div class="sec"><span class="dot"></span><h2>Par thème</h2></div>
+    <div class="mets">${TH.filter(t=>themesOn().includes(t[0])).map(t=>`<button class="met" data-met="${t[0]}"><span class="e">${t[1]}</span><b>${esc(t[2])}</b>${counts(t[0])?`<span class="n">${counts(t[0])}</span>`:""}<span class="tiny">${(LIB[t[0]]||[]).length} repères</span></button>`).join("")}</div>
+    <div class="sec"><span class="dot s"></span><h2>Derniers textes</h2></div>
+    ${recent.length?recent.map(itemHTML).join(""):`<div class="notice">Aucun texte pour l'instant. ${MP?"Cliquez sur « Actualiser » pour lancer la première recherche.":""}</div>`}
+    ${recent.length?`<button class="btn block" data-k="new">Voir toutes les nouveautés</button>`:""}
+    <p class="foot">Les textes sont repérés automatiquement : leur lecture reste à faire sur la version officielle (Légifrance). Les fiches donnent des repères, pas un avis juridique.</p>
+  </div>`;
+  wireStatus(); wireItems();
+  if($("#hGo")){ $("#hGo").onclick=()=>{ D.helpSeen=true; save(); go("help"); }; $("#hNo").onclick=()=>{ D.helpSeen=true; save(); render(); }; }
+  $("#toChk").onclick=()=>go("chk"); $("#toUrg").onclick=()=>go("urg"); if($("#toAct")) $("#toAct").onclick=()=>go("acti"); $("#toEv").onclick=()=>go("ev",$("#toEv").dataset.e);
+  app.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{ const k=b.dataset.k; if(k==="new"){ S.flt="new"; go("feed",null); } else { S.aflt=k==="an"?"open":k==="doc"?"docs":"late"; go("ans"); } });
+  app.querySelectorAll("[data-met]").forEach(b=>b.onclick=()=>go("met",b.dataset.met));
+}
+
+/* ================= Nouveautés ================= */
+function itemHTML(x){ const dc=docsOf(x.themes);
+  return `<div class="card item ${x.status==="new"?"new":""}">
+    <div class="row" style="gap:5px">${(x.themes||[]).map(k=>THM[k]?`<span class="chip co">${THM[k][1]} ${esc(THM[k][2])}</span>`:"").join("")}${x.status==="new"?'<span class="chip sa">Nouveau</span>':x.status==="suivi"?'<span class="chip ok">📌 Suivi</span>':x.status==="archive"?'<span class="chip">Archivé</span>':""}</div>
+    <div class="t">${esc(x.title)}</div>
+    <span class="tiny">${esc(x.src)}${x.date?" · publié le "+fmtDate(x.date):""}</span>
+    ${x.sum?`<span class="small muted">${esc(x.sum.slice(0,240))}${x.sum.length>240?"…":""}</span>`:""}
+    ${dc.length&&D.profile!=="par"?`<div class="row" style="gap:6px"><span class="tiny">Documents peut-être concernés :</span><span class="dbadge">${dc.slice(0,4).map(d=>`<span>${esc(DN[d])}</span>`).join("")}</span></div>`:""}
+    <div class="row" style="gap:6px"><a class="btn s p" href="${esc(x.link)}" target="_blank" rel="noopener" data-read="${esc(x.id)}">📖 Lire</a>
+      ${x.status==="suivi"?`<button class="btn s g" data-open="${esc(x.id)}">Voir le suivi</button>`:`<button class="btn s g" data-follow="${esc(x.id)}">📌 Ça me concerne</button>`}
+      ${x.status==="archive"?`<button class="btn s" data-unarch="${esc(x.id)}">Remettre</button>`:x.status!=="suivi"?`<button class="btn s" data-arch="${esc(x.id)}">Pas pour moi</button>`:""}
+      <button class="btn s" data-share="${esc(x.id)}" aria-label="Partager">📤</button></div></div>`; }
+function wireItems(){
+  const by=id=>D.items.find(x=>x.id===id);
+  app.querySelectorAll("[data-read]").forEach(a=>a.addEventListener("click",()=>{ const x=by(a.dataset.read); if(x&&x.status==="new"){ x.status="lu"; save(); badges(); setTimeout(rerender,500); } }));
+  app.querySelectorAll("[data-arch]").forEach(b=>b.onclick=()=>{ by(b.dataset.arch).status="archive"; save(); badges(); rerender(); toast("Texte archivé"); });
+  app.querySelectorAll("[data-unarch]").forEach(b=>b.onclick=()=>{ by(b.dataset.unarch).status="lu"; save(); rerender(); });
+  app.querySelectorAll("[data-follow]").forEach(b=>b.onclick=()=>{ const x=by(b.dataset.follow); x.status="suivi"; const a=newAn(x); D.ans.unshift(a); save(); badges(); go("an",a.id); toast("Texte suivi : notez ce qu'il change pour vous"); });
+  app.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>{ const a=D.ans.find(z=>z.itemId===b.dataset.open); if(a) go("an",a.id); });
+  app.querySelectorAll("[data-share]").forEach(b=>b.onclick=()=>share(by(b.dataset.share)));
+}
+function share(x){ const txt=`${x.title}\n${x.src}${x.date?" – "+fmtDate(x.date):""}\n${x.link}`;
+  if(navigator.share){ navigator.share({title:"Petite enfance : nouveau texte",text:txt}).catch(()=>{}); return; }
+  const ov=sheet(`<h2>Partager ce texte</h2><a class="btn block p" href="mailto:?subject=${encodeURIComponent("Petite enfance : "+x.title.slice(0,80))}&body=${encodeURIComponent(txt)}">✉️ Envoyer par e-mail</a><a class="btn block g" href="https://wa.me/?text=${encodeURIComponent(txt)}" target="_blank" rel="noopener">💬 WhatsApp</a><button class="btn block" data-c>📋 Copier</button><button class="btn block" data-x>Fermer</button>`);
+  ov.querySelector("[data-c]").onclick=async()=>{ try{ await navigator.clipboard.writeText(txt); toast("Copié"); }catch(e){ toast("Copie impossible"); } ov.remove(); };
+  ov.querySelector("[data-x]").onclick=()=>ov.remove(); }
+function sheet(html){ const ov=document.createElement("div"); ov.className="ov"; ov.innerHTML=`<div class="sheet stack">${html}</div>`; ov.onclick=e=>{ if(e.target===ov) ov.remove(); }; document.body.appendChild(ov); return ov; }
+function rFeed(){
+  const q=norm(S.q), f=S.flt, th=S.th;
+  const st=k=>x=>k==="all"?x.status!=="archive":k==="new"?x.status==="new":k==="suivi"?x.status==="suivi":x.status==="archive";
+  const L=D.items.filter(x=>st(f)(x)&&(!th||(x.themes||[]).includes(th))&&(!q||norm(x.title+" "+x.sum).includes(q)));
+  const used=themesOn().filter(k=>D.items.some(x=>(x.themes||[]).includes(k)));
+  app.innerHTML=`<div class="stack"><div><div class="lab">Journal officiel et actualités</div><h1>Nouveautés</h1></div>
+    ${statusBox()}
+    <input type="search" id="q" placeholder="🔎 Rechercher (vaccins, micro-crèche, CMG…)" value="${esc(S.q)}">
+    <div class="row">${[["new","À lire"],["all","Tout"],["suivi","Suivis"],["archive","Archivés"]].map(([k,l])=>`<button class="fc ${f===k?"on":""}" data-f="${k}">${l}<b>${D.items.filter(st(k)).length}</b></button>`).join("")}</div>
+    ${used.length>1?`<div class="scr"><button class="fc ${!th?"on":""}" data-th="">Tous thèmes</button>${used.map(k=>`<button class="fc ${th===k?"on":""}" data-th="${k}">${THM[k][1]} ${esc(THM[k][2])}</button>`).join("")}</div>`:""}
+    ${f==="new"&&L.length>1?`<button class="btn s" id="allRead" style="align-self:flex-start">✓ Tout marquer comme lu</button>`:""}
+    ${L.length?L.slice(0,200).map(itemHTML).join(""):`<div class="notice">${f==="new"?(D.last?"Rien de nouveau à lire. 👍":"Cliquez sur « Actualiser » pour lancer la première recherche."):"Aucun texte ici."}</div>`}
+    <p class="foot">Sources : Journal officiel (via legifrss.org, relais non officiel de Légifrance) et Service-public, filtrés sur la petite enfance.</p></div>`;
+  wireStatus(); wireItems();
+  let qt; $("#q").addEventListener("input",e=>{ S.q=e.target.value; clearTimeout(qt); qt=setTimeout(()=>{ const p=e.target.selectionStart; rFeed(); const i=$("#q"); i.focus(); try{i.setSelectionRange(p,p)}catch(_){} },350); });
+  app.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{ S.flt=b.dataset.f; rFeed(); });
+  app.querySelectorAll("[data-th]").forEach(b=>b.onclick=()=>{ S.th=b.dataset.th; rFeed(); });
+  if($("#allRead")) $("#allRead").onclick=()=>{ D.items.forEach(x=>{ if(x.status==="new") x.status="lu"; }); save(); badges(); rFeed(); };
+}
+
+/* ================= Textes suivis ================= */
+const IMPACT={fort:["Fort","no"],moyen:["Moyen","su"],faible:["Faible","sa"],aucun:["Aucun","ok"]};
+const AST={aanalyser:"À lire en détail",encours:"En cours",traite:"Traité"};
+function newAn(x){ const a={id:uid(),itemId:x?x.id:"",title:x?x.title:"",link:x?x.link:"",date:x?x.date:"",src:x?x.src:"Saisie manuelle",themes:x?x.themes:[],impact:"",status:"aanalyser",resume:"",appDate:"",docs:{},acts:[],notes:"",created:Date.now(),updated:Date.now()};
+  if(D.profile!=="par") docsOf(a.themes).forEach(d=>a.docs[d]="afaire"); return a; }
+function rAns(){
+  const f=S.aflt||"open";
+  const T={open:a=>a.status!=="traite",docs:a=>Object.values(a.docs||{}).includes("afaire"),late:a=>(a.acts||[]).some(x=>!x.done&&x.due&&daysTo(x.due)<0),done:a=>a.status==="traite",all:()=>true};
+  const L=D.ans.filter(T[f]).sort((a,b)=>(b.updated||0)-(a.updated||0));
+  app.innerHTML=`<div class="stack"><div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="lab">Ce qui me concerne</div><h1>Textes suivis</h1></div><button class="btn p" id="newA">＋ Texte</button></div>
+    <div class="scr">${[["open","En cours"],["docs","Documents à mettre à jour"],["late","Actions en retard"],["done","Traités"],["all","Tous"]].map(([k,l])=>`<button class="fc ${f===k?"on":""}" data-af="${k}">${l}<b>${D.ans.filter(T[k]).length}</b></button>`).join("")}</div>
+    ${L.length?L.map(a=>{ const dt=Object.entries(a.docs||{}).filter(([,v])=>v==="afaire").map(([k])=>DN[k]), lt=(a.acts||[]).filter(x=>!x.done&&x.due&&daysTo(x.due)<0).length;
+      return `<button class="card item" data-an="${a.id}" style="text-align:left"><div class="row" style="gap:5px"><span class="chip ${a.status==="traite"?"ok":a.status==="encours"?"su":"sa"}">${AST[a.status]}</span>${a.impact?`<span class="chip ${IMPACT[a.impact][1]}">Impact ${IMPACT[a.impact][0].toLowerCase()}</span>`:""}${a.appDate?`<span class="chip">Applicable le ${fmtDate(a.appDate)}</span>`:""}${lt?`<span class="chip no">${lt} action(s) en retard</span>`:""}</div>
+        <div class="t">${esc(a.title||"Texte sans titre")}</div><span class="tiny">${esc(a.src)}${a.date?" · "+fmtDate(a.date):""}</span>
+        ${dt.length?`<div class="row" style="gap:6px"><span class="tiny">À mettre à jour :</span><span class="dbadge">${dt.slice(0,4).map(x=>`<span>${esc(x)}</span>`).join("")}${dt.length>4?`<span>+${dt.length-4}</span>`:""}</span></div>`:""}</button>`; }).join("")
+      :`<div class="notice">${D.ans.length?"Rien dans cette rubrique.":"Quand un texte vous concerne, touchez « 📌 Ça me concerne » : vous noterez ici ce qu'il change, les documents à mettre à jour et les actions à mener."}</div>`}
+    ${D.ans.length||D.items.length?`<div class="card stack"><h2>Bulletin de veille</h2><span class="small muted">Un PDF qui résume les textes repérés et vos suivis : pour l'équipe, une réunion, le gestionnaire ou un contrôle de la PMI.</span><div class="row"><select id="per" style="width:auto"><option value="30">30 derniers jours</option><option value="90">3 derniers mois</option><option value="365">12 derniers mois</option></select><button class="btn p" id="bul">📄 Bulletin PDF</button><button class="btn" id="xls">📊 Excel</button></div><div id="outBox"></div></div>`:""}</div>`;
+  app.querySelectorAll("[data-af]").forEach(b=>b.onclick=()=>{ S.aflt=b.dataset.af; rAns(); });
+  app.querySelectorAll("[data-an]").forEach(b=>b.onclick=()=>go("an",b.dataset.an));
+  $("#newA").onclick=()=>{ const a=newAn(null); D.ans.unshift(a); save(); go("an",a.id); };
+  if($("#bul")) $("#bul").onclick=()=>bulletin(+$("#per").value);
+  if($("#xls")) $("#xls").onclick=exportXls;
+}
+function rAn(){
+  const a=D.ans.find(x=>x.id===CUR); if(!a){ back(); return; }
+  a.docs=a.docs||{}; a.acts=a.acts||[];
+  const touch=()=>{ a.updated=Date.now(); save(); };
+  app.innerHTML=`<div class="stack"><button class="btn s" id="bk" style="align-self:flex-start">‹ Retour</button>
+    <div><div class="lab">Suivi d'un texte</div><h1 style="font-size:${(a.title||"").length>70?"20px":"24px"}">${esc(a.title||"Nouveau texte")}</h1><span class="tiny">${esc(a.src)}${a.date?" · publié le "+fmtDate(a.date):""}</span></div>
+    ${a.link?`<a class="btn p" href="${esc(a.link)}" target="_blank" rel="noopener">📖 Lire le texte officiel</a>`:""}
+    <div class="card stack">${!a.itemId?`<label class="f">Titre du texte<input type="text" data-f="title" value="${esc(a.title)}" placeholder="ex. Décret du … relatif aux micro-crèches"></label><label class="f">Lien (facultatif)<input type="url" data-f="link" value="${esc(a.link)}" placeholder="https://…"></label>`:""}
+      <div><b>État</b><div class="row" style="margin-top:6px">${Object.entries(AST).map(([k,l])=>`<button class="fc ${a.status===k?"on":""}" data-st="${k}">${l}</button>`).join("")}</div></div>
+      <div><b>Ce que ça change pour moi</b><div class="row" style="margin-top:6px">${Object.entries(IMPACT).map(([k,[l]])=>`<button class="fc ${a.impact===k?"on":""}" data-im="${k}">${l}</button>`).join("")}</div></div>
+      <label class="f">En résumé<textarea data-f="resume" placeholder="ex. À partir de janvier, il faut 1 professionnel de catégorie 1 pour 10 enfants…">${esc(a.resume)}</textarea></label>
+      <div class="grid2"><label class="f">Date d'application<input type="date" data-f="appDate" value="${esc(a.appDate)}"></label><label class="f">Thèmes<select id="addTh"><option value="">＋ Ajouter un thème</option>${TH.filter(t=>!(a.themes||[]).includes(t[0])).map(t=>`<option value="${t[0]}">${t[1]} ${esc(t[2])}</option>`).join("")}</select></label></div>
+      <div class="row" style="gap:5px">${(a.themes||[]).map(k=>THM[k]?`<span class="chip co">${THM[k][1]} ${esc(THM[k][2])} <button data-rmth="${k}" style="border:0;background:none;padding:0 0 0 4px;color:inherit">×</button></span>`:"").join("")}</div></div>
+    ${D.profile!=="par"?`<div class="card stack"><h2>Documents à mettre à jour</h2><span class="small muted">Cochez ce qu'il faut revoir${D.profile==="rpe"?" au relais":" dans votre structure"}, puis passez à « ✓ Fait ».</span>
+      ${docsShown().map(([k,l])=>{ const v=a.docs[k]; return `<div class="row" style="justify-content:space-between;gap:6px;border-bottom:1px solid var(--line);padding:4px 0;flex-wrap:nowrap"><label class="ck" style="flex:1"><input type="checkbox" data-do="${k}" ${v?"checked":""}><span>${esc(l)}</span></label>${v?`<button class="btn s ${v==="fait"?"":"p"}" data-dd="${k}">${v==="fait"?"✓ Fait":"À faire"}</button>`:""}</div>`; }).join("")}</div>`:""}
+    <div class="card stack"><h2>Actions à mener</h2>
+      ${a.acts.map((x,i)=>`<div class="stack" style="gap:6px;border-bottom:1px solid var(--line);padding-bottom:8px"><div class="row" style="gap:6px;flex-wrap:nowrap"><input type="checkbox" data-ad="${i}" ${x.done?"checked":""} style="width:22px;height:22px;accent-color:var(--ok);flex:none"><input type="text" data-ax="${i}" value="${esc(x.desc)}" placeholder="ex. En parler en réunion d'équipe"><button class="btn s" data-arm="${i}">×</button></div><div class="row" style="gap:6px"><input type="date" data-adue="${i}" value="${esc(x.due||"")}" style="width:auto">${!x.done&&x.due&&daysTo(x.due)<0?'<span class="chip no">En retard</span>':x.done?'<span class="chip ok">Fait</span>':""}</div></div>`).join("")}
+      <button class="btn s" id="addAct" style="align-self:flex-start">＋ Ajouter une action</button></div>
+    <div class="card stack"><label class="f">Notes<textarea data-f="notes" placeholder="Questions pour la PMI, contacts, liens utiles…">${esc(a.notes)}</textarea></label></div>
+    <button class="btn" id="delA" style="color:var(--no)">🗑 Supprimer ce suivi</button></div>`;
+  $("#bk").onclick=back;
+  app.querySelectorAll("[data-f]").forEach(el=>el.addEventListener(el.type==="date"?"change":"input",()=>{ a[el.dataset.f]=el.value; touch(); }));
+  app.querySelectorAll("[data-st]").forEach(b=>b.onclick=()=>{ a.status=b.dataset.st; touch(); rAn(); badges(); });
+  app.querySelectorAll("[data-im]").forEach(b=>b.onclick=()=>{ a.impact=b.dataset.im; if(a.status==="aanalyser") a.status="encours"; touch(); rAn(); });
+  $("#addTh").onchange=e=>{ if(!e.target.value) return; a.themes=[...(a.themes||[]),e.target.value]; if(D.profile!=="par") docsOf([e.target.value]).forEach(d=>{ if(!a.docs[d]) a.docs[d]="afaire"; }); touch(); rAn(); };
+  app.querySelectorAll("[data-rmth]").forEach(b=>b.onclick=()=>{ a.themes=a.themes.filter(k=>k!==b.dataset.rmth); touch(); rAn(); });
+  app.querySelectorAll("[data-do]").forEach(c=>c.onchange=()=>{ if(c.checked) a.docs[c.dataset.do]="afaire"; else delete a.docs[c.dataset.do]; touch(); rAn(); });
+  app.querySelectorAll("[data-dd]").forEach(b=>b.onclick=()=>{ const k=b.dataset.dd; a.docs[k]=a.docs[k]==="fait"?"afaire":"fait"; touch(); rAn(); });
+  app.querySelectorAll("[data-ad]").forEach(c=>c.onchange=()=>{ a.acts[+c.dataset.ad].done=c.checked; touch(); rAn(); });
+  app.querySelectorAll("[data-ax]").forEach(i=>i.oninput=()=>{ a.acts[+i.dataset.ax].desc=i.value; touch(); });
+  app.querySelectorAll("[data-adue]").forEach(i=>i.onchange=()=>{ a.acts[+i.dataset.adue].due=i.value; touch(); rAn(); });
+  app.querySelectorAll("[data-arm]").forEach(b=>b.onclick=()=>{ a.acts.splice(+b.dataset.arm,1); touch(); rAn(); });
+  $("#addAct").onclick=()=>{ a.acts.push({id:uid(),desc:"",due:"",done:false}); touch(); rAn(); const L=app.querySelectorAll("[data-ax]"); L[L.length-1].focus(); };
+  $("#delA").onclick=()=>{ const ov=sheet(`<h2>Supprimer ce suivi ?</h2><p class="muted" style="margin:0">Le texte reste dans les nouveautés.</p><div class="row"><button class="btn" data-n style="flex:1">Garder</button><button class="btn p" data-y style="flex:1;background:var(--no);border-color:var(--no)">Supprimer</button></div>`);
+    ov.querySelector("[data-n]").onclick=()=>ov.remove();
+    ov.querySelector("[data-y]").onclick=()=>{ ov.remove(); D.ans=D.ans.filter(x=>x.id!==a.id); const it=D.items.find(x=>x.id===a.itemId); if(it) it.status="lu"; save(); back(); toast("Suivi supprimé"); }; };
+}
+
+/* ================= Fiches, check-list, urgences ================= */
+function rMets(){
+  const cs=chkStats();
+  app.innerHTML=`<div class="stack"><div><div class="lab">L'essentiel à savoir</div><h1>Fiches pratiques</h1><p class="muted" style="margin:4px 0 0">Les règles de base par thème, votre check-list et les numéros utiles.</p></div>
+    <div class="row" style="gap:8px"><button class="btn p" id="toChk" style="flex:1">✅ Ma check-list (${cs.y}/${cs.tot})</button><button class="btn" id="toUrg" style="flex:1">🚑 Urgences et contacts</button>${D.profile==="rpe"?`<button class="btn g" id="toAct" style="flex:1 1 100%">📊 Activité du relais</button>`:""}</div>
+    <div class="mets">${TH.map(t=>{ const n=D.items.filter(x=>x.status==="new"&&(x.themes||[]).includes(t[0])).length, on=themesOn().includes(t[0]); return `<button class="met" data-met="${t[0]}" style="${on?"":"opacity:.6"}"><span class="e">${t[1]}</span><b>${esc(t[2])}</b>${n?`<span class="n">${n}</span>`:""}<span class="tiny">${(LIB[t[0]]||[]).length} repères${on?"":" · non suivi"}</span></button>`; }).join("")}</div>
+    <p class="tiny">Repères à jour en octobre 2026 (dont les règles d'encadrement au 1er janvier 2027 et les autorisations des crèches de 2026). Ils ne remplacent pas les textes officiels ni l'avis de votre PMI.</p></div>`;
+  $("#toChk").onclick=()=>go("chk"); $("#toUrg").onclick=()=>go("urg"); if($("#toAct")) $("#toAct").onclick=()=>go("acti");
+  app.querySelectorAll("[data-met]").forEach(b=>b.onclick=()=>go("met",b.dataset.met));
+}
+const lgf=r=>"https://www.legifrance.gouv.fr/search/all?tab_selection=all&searchField=ALL&query="+encodeURIComponent(r);
+function rMet(){
+  const t=THM[CUR]; if(!t){ back(); return; }
+  const items=D.items.filter(x=>x.status!=="archive"&&(x.themes||[]).includes(t[0])).slice(0,30), on=themesOn().includes(t[0]);
+  app.innerHTML=`<div class="stack fiche"><button class="btn s" id="bk" style="align-self:flex-start">‹ Retour</button>
+    <div><div class="lab">Fiche pratique</div><h1>${t[1]} ${esc(t[2])}</h1></div>
+    ${!on?`<div class="warnbox row" style="justify-content:space-between"><span>Ce thème n'est pas suivi : ses nouveaux textes ne vous sont pas signalés.</span><button class="btn s p" id="follow">Suivre ce thème</button></div>`:""}
+    <div class="card stack"><h2>Ce qu'il faut savoir</h2>${(LIB[t[0]]||[]).map(r=>`<div class="ref"><b>${esc(r[0])}</b><div class="small">${esc(r[2])}</div><span class="tiny" style="color:var(--sa-t)">${esc(r[1])}</span> <a class="tiny" href="${lgf(r[1].split(/[;(]/)[0].replace(/^CSP /,"code de la santé publique ").replace(/^CASF /,"code de l'action sociale et des familles ").replace(/^CSS /,"code de la sécurité sociale ").replace(/ et suivants.*/,"").trim())}" target="_blank" rel="noopener">Légifrance ›</a></div>`).join("")}</div>
+    ${D.profile!=="par"&&t[4].length?`<div class="card stack"><h2>Documents liés dans votre structure</h2><div class="dbadge">${t[4].map(d=>`<span>${esc(DN[d])}</span>`).join("")}</div></div>`:""}
+    <div class="sec"><span class="dot"></span><h2>Dernières nouveautés</h2></div>
+    ${items.length?items.map(itemHTML).join(""):`<div class="notice">Aucun texte récent repéré sur ce thème.</div>`}
+    <details><summary>Mots surveillés</summary><p class="small muted">${t[3].map(esc).join(" · ")}</p></details></div>`;
+  $("#bk").onclick=back; wireItems();
+  if($("#follow")) $("#follow").onclick=()=>{ D.themes=[...new Set([...themesOn(),t[0]])]; save(); syncNative(); rMet(); toast("Thème suivi"); };
+}
+function rChk(){
+  const L=chkList(), k=chkKey(), st=(D.chk[k]=D.chk[k]||{}), cs=chkStats(), p=PRM[D.profile]||PRM.dir;
+  app.innerHTML=`<div class="stack"><button class="btn s" id="bk" style="align-self:flex-start">‹ Retour</button>
+    <div><div class="lab">${p[1]} ${esc(p[2])}</div><h1>Ma check-list</h1></div>
+    <div class="card stack"><div class="row" style="justify-content:space-between"><b>${cs.y} point(s) OK sur ${cs.tot}</b><span class="chip ${cs.n?"no":"ok"}">${cs.n} à faire</span></div><div class="prog"><i style="width:${Math.round(cs.y/cs.tot*100)}%"></i></div></div>
+    <div class="card">${L.map(([txt,th],i)=>`<div class="cl"><div style="flex:1"><div style="font-weight:600">${esc(txt)}</div><button class="tiny" data-gm="${th}" style="border:0;background:none;padding:0;color:var(--sa-t)">${THM[th]?THM[th][1]+" "+esc(THM[th][2])+" ›":""}</button></div><div class="st"><button class="y ${st[i]==="y"?"on":""}" data-c="${i}" data-v="y">OK</button><button class="n ${st[i]==="n"?"on":""}" data-c="${i}" data-v="n">À faire</button></div></div>`).join("")}</div>
+    <div class="row"><button class="btn" id="pdfC">📄 Imprimer / PDF</button><button class="btn" id="rz">↺ Tout remettre à zéro</button></div><div id="outBox"></div>
+    <p class="tiny">Ces points sont des repères pratiques pour s'organiser ; votre PMI et les textes officiels font foi.</p></div>`;
+  $("#bk").onclick=back;
+  app.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{ const i=b.dataset.c; st[i]=st[i]===b.dataset.v?"":b.dataset.v; save(); const y=scrollY; rChk(); scrollTo(0,y); });
+  app.querySelectorAll("[data-gm]").forEach(b=>b.onclick=()=>go("met",b.dataset.gm));
+  $("#rz").onclick=()=>{ D.chk[k]={}; save(); rChk(); };
+  $("#pdfC").onclick=chkPdf;
+}
+function rUrg(){
+  app.innerHTML=`<div class="stack"><button class="btn s" id="bk" style="align-self:flex-start">‹ Retour</button>
+    <div><div class="lab">À garder sous la main</div><h1>Urgences et contacts</h1></div>
+    <div class="urg"><a href="tel:15"><b>15</b>SAMU – urgence médicale</a><a href="tel:112"><b>112</b>Urgences (depuis tout pays européen)</a><a href="tel:18"><b>18</b>Pompiers</a><a href="tel:17"><b>17</b>Police – gendarmerie</a><a href="tel:114"><b>114</b>Urgences par SMS (personnes sourdes ou malentendantes)</a><a href="tel:119"><b>119</b>Allô enfance en danger – 24 h/24, gratuit</a></div>
+    <div class="card stack"><h2>☠️ Intoxication</h2><span class="small">Appelez le centre antipoison de votre région (numéro sur centres-antipoison.net) ou le 15 si l'enfant a des signes de gravité. Gardez l'emballage du produit.</span><a class="btn g" href="https://centres-antipoison.net/" target="_blank" rel="noopener">Trouver mon centre antipoison</a></div>
+    <div class="card stack"><h2>📒 Mes contacts</h2><span class="small muted">PMI, médecin référent, relais petite enfance, CAF…</span><textarea id="ct" placeholder="ex. PMI de secteur : 04 …&#10;Référent santé : Dr …">${esc(D.contacts||"")}</textarea></div>
+    <div class="card stack"><h2>🔗 Sites utiles</h2>${LINKS.map(([l,u])=>`<a class="btn block" style="justify-content:flex-start" href="${u}" target="_blank" rel="noopener">${esc(l)}</a>`).join("")}</div></div>`;
+  $("#bk").onclick=back; $("#ct").oninput=e=>{ D.contacts=e.target.value; save(); };
+}
+
+/* ================= Réglages ================= */
+function rSet(){
+  const on=new Set(themesOn()), p=PRM[D.profile];
+  app.innerHTML=`<div class="stack"><div><div class="lab">Paramètres</div><h1>Réglages</h1></div>
+    <div class="card stack"><h2>Mon profil</h2><div class="row" style="justify-content:space-between"><span>${p[1]} <b>${esc(p[2])}</b></span><button class="btn s" id="chgP">Changer</button></div><label class="f">Votre prénom (accueil)<input type="text" id="nm" value="${esc(D.name||"")}"></label></div>
+    <div class="card stack"><h2>Thèmes suivis</h2><span class="small muted">Seuls les textes qui touchent ces sujets vous sont signalés.</span>
+      ${TH.map(t=>`<label class="ck"><input type="checkbox" data-th="${t[0]}" ${on.has(t[0])?"checked":""}><span>${t[1]} <b>${esc(t[2])}</b></span></label>`).join("")}
+      <button class="btn s" id="thReset" style="align-self:flex-start">Revenir aux thèmes de mon profil</button></div>
+    ${MP&&MP.veilleSetup?`<div class="card stack"><h2>Notification</h2><label class="ck"><input type="checkbox" id="notif" ${D.notif!==false?"checked":""}><span>🔔 Me prévenir des nouveaux textes, même application fermée (recherche 2 fois par jour)</span></label></div>`:""}
+    <div class="card stack"><h2>Sources consultées</h2>${FEEDS.map(f=>`<label class="ck"><input type="checkbox" data-fd="${f[0]}" ${D.feeds[f[0]]!==false?"checked":""}><span>${esc(f[1])}</span></label>`).join("")}
+      ${(D.custom||[]).map((u,i)=>`<div class="row" style="flex-wrap:nowrap"><span style="flex:1;font-size:12.5px;word-break:break-all">${esc(u)}</span><button class="btn s" data-cdel="${i}">×</button></div>`).join("")}
+      <div class="row" style="flex-wrap:nowrap"><input type="url" id="cu" placeholder="Ajouter un flux RSS (https://…)"><button class="btn s" id="cadd">Ajouter</button></div></div>
+    <div class="card stack"><h2>Sauvegarde</h2><span class="small muted">Tout est enregistré dans ce navigateur, sur cet ordinateur : rien ne se synchronise avec le téléphone. « Sauvegarder » ici, « Restaurer » là-bas (et inversement).</span>
+      <div class="row"><button class="btn p" id="bkp">💾 Sauvegarder</button><button class="btn" id="rst">📂 Restaurer</button></div><div id="bkBox"></div></div>
+    <div class="card stack"><h2>Affichage</h2><label class="f">Thème<select id="thm">${[["","Automatique"],["light","Clair"],["dark","Sombre"]].map(([v,l])=>`<option value="${v}" ${(D.theme||"")===v?"selected":""}>${l}</option>`).join("")}</select></label><button class="btn" id="clrA">Vider les textes archivés (${D.items.filter(x=>x.status==="archive").length})</button></div>
+    <p class="foot">Petits Pas · veille réglementaire petite enfance. Les textes sont repérés automatiquement ; les fiches sont des repères indicatifs.</p></div>`;
+  $("#chgP").onclick=()=>{ D.profile=""; save(); render(); };
+  $("#nm").oninput=e=>{ D.name=e.target.value.trim(); save(); };
+  app.querySelectorAll("[data-th]").forEach(c=>c.onchange=()=>{ D.themes=[...app.querySelectorAll("[data-th]")].filter(x=>x.checked).map(x=>x.dataset.th); save(); syncNative(); });
+  $("#thReset").onclick=()=>{ D.themes=null; save(); syncNative(); rSet(); toast("Thèmes du profil rétablis"); };
+  app.querySelectorAll("[data-fd]").forEach(c=>c.onchange=()=>{ D.feeds[c.dataset.fd]=c.checked; save(); syncNative(); });
+  if($("#notif")) $("#notif").onchange=e=>{ D.notif=e.target.checked; save(); syncNative(); toast(D.notif?"Notifications activées":"Notifications arrêtées"); };
+  app.querySelectorAll("[data-cdel]").forEach(b=>b.onclick=()=>{ D.custom.splice(+b.dataset.cdel,1); save(); syncNative(); rSet(); });
+  $("#cadd").onclick=()=>{ const u=$("#cu").value.trim(); if(!/^https?:\/\/\S+$/.test(u)) return toast("Adresse invalide"); D.custom=[...(D.custom||[]),u]; save(); syncNative(); rSet(); toast("Source ajoutée"); };
+  $("#thm").onchange=e=>{ D.theme=e.target.value; save(); if(D.theme) document.documentElement.dataset.theme=D.theme; else delete document.documentElement.dataset.theme; };
+  $("#clrA").onclick=()=>{ D.items=D.items.filter(x=>x.status!=="archive"); save(); rSet(); toast("Archives vidées"); };
+  $("#bkp").onclick=()=>{ const blob=new Blob([JSON.stringify({app:"Petits Pas",format:1,created:new Date().toISOString(),data:D},null,1)],{type:"application/json"}); offerFile(blob,`PetitsPas_sauvegarde_${todayISO()}.json`,"application/json",$("#bkBox")); };
+  $("#rst").onclick=()=>$("#imp").click();
+}
+$("#imp").onchange=async e=>{ const f=e.target.files[0]; e.target.value=""; if(!f) return;
+  try{ const j=JSON.parse(await f.text()); if(j.app!=="Petits Pas"||!j.data) throw 0;
+    const known=new Map(D.items.map(x=>[x.id,x])); (j.data.items||[]).forEach(x=>{ if(!known.has(x.id)) D.items.push(x); });
+    const ka=new Map(D.ans.map(x=>[x.id,x])); (j.data.ans||[]).forEach(a=>{ const c=ka.get(a.id); if(!c) D.ans.push(a); else if((a.updated||0)>(c.updated||0)) Object.assign(c,a); });
+    ["themes","feeds","custom","name","notif","profile","chk","contacts"].forEach(k=>{ if(j.data[k]!==undefined) D[k]=j.data[k]; });
+    const kt=new Set((D.acti||[]).map(x=>x.id)); D.acti=(D.acti||[]).concat((j.data.acti||[]).filter(x=>!kt.has(x.id)));
+    ["parcours","plan"].forEach(k=>{ const ks=new Set((D[k]||[]).map(x=>x.id)); D[k]=(D[k]||[]).concat((j.data[k]||[]).filter(x=>!ks.has(x.id))); });
+    save(); syncNative(); render(); toast("Sauvegarde restaurée"); }catch(_){ toast("Ce fichier n'est pas une sauvegarde de Petits Pas"); } };
+async function blobToB64(b){ return new Promise(ok=>{ const r=new FileReader(); r.onload=()=>ok(String(r.result).split(",")[1]); r.readAsDataURL(b); }); }
+let DLS=null; (async()=>{ try{ if(window.claude&&window.claude.use) DLS=await window.claude.use("downloads"); }catch(e){} })();
+async function offerFile(blob,name,mime,box){
+  if(MP&&MP.fileMenu){ try{ MP.fileMenu(await blobToB64(blob),name,mime,"","Petits Pas – "+name,""); return; }catch(e){} }
+  if(DLS){ try{ await DLS.save({filename:name,data:blob}); return; }catch(e){ if(e&&e.code==="declined") return; } }
+  const u=URL.createObjectURL(blob); box.innerHTML=`<div class="notice row" style="justify-content:space-between"><span>✅ ${esc(name)} prêt</span><a class="btn s p" href="${u}" download="${esc(name)}">Télécharger</a></div>`;
+}
+
+/* ================= PDF et Excel ================= */
+function loadScript(src){ return new Promise((ok,ko)=>{ const s=document.createElement("script"); s.src=src; s.onload=ok; s.onerror=ko; document.head.appendChild(s); }); }
+async function needLib(glob,local,cdn){ if(window[glob]) return true; for(const u of [local,cdn]){ try{ await loadScript(u); if(window[glob]) return true; }catch(e){} } return false; }
+async function pdfStart(title,sub){
+  if(!(await needLib("jspdf","../shared/vendor/jspdf.umd.min.js","https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"))){ toast("Module PDF indisponible (connexion nécessaire)"); return null; }
+  const {jsPDF}=window.jspdf, doc=new jsPDF({unit:"mm",format:"a4"}), K={doc,W:210,M:15,CW:180,y:0};
+  K.cl=s=>String(s??"").replace(/[’‘]/g,"'").replace(/[“”«»]/g,'"').replace(/…/g,"...").replace(/œ/g,"oe").replace(/Œ/g,"OE").replace(/[^\x00-\xFF–—•€]/g,"");
+  K.T=(s,x,yy,o={})=>{ doc.setFont("helvetica",o.b?"bold":"normal"); doc.setFontSize(o.s||10); doc.setTextColor(...(o.c||[43,42,51])); doc.text(Array.isArray(s)?s.map(K.cl):K.cl(s),x,yy,o.opt||{}); };
+  K.need=h=>{ if(K.y+h>280){ doc.addPage(); K.y=18; } };
+  K.sec=t=>{ K.need(14); doc.setFillColor(227,106,84); doc.circle(K.M+1.8,K.y-1.3,1.8,"F"); K.T(t.toUpperCase(),K.M+6,K.y,{b:1,s:11}); doc.setDrawColor(234,223,211); doc.line(K.M,K.y+2,K.M+K.CW,K.y+2); K.y+=8; };
+  doc.setFillColor(255,248,240); doc.rect(0,0,210,34,"F"); doc.setFillColor(227,106,84); doc.rect(0,34,210,2,"F");
+  doc.setFillColor(227,106,84); doc.roundedRect(15,8,18,18,4,4,"F"); K.T("PP",24,19.5,{b:1,s:12,c:[255,255,255],opt:{align:"center"}});
+  K.T(title,39,15,{b:1,s:16}); K.T(sub,39,22,{s:10.5,c:[185,69,47]}); K.T("Petits Pas – veille petite enfance"+(D.name?" · "+D.name:""),39,28,{s:9,c:[107,104,115]});
+  K.y=46; return K;
+}
+function pdfEnd(K,name){ const doc=K.doc, n=doc.getNumberOfPages(); for(let i=1;i<=n;i++){ doc.setPage(i); K.T("Repères indicatifs : seuls les textes officiels (legifrance.gouv.fr) et votre PMI font foi.",15,288,{s:7.5,c:[120,120,128]}); K.T(`Page ${i} / ${n}`,195,288,{s:7.5,c:[120,120,128],opt:{align:"right"}}); }
+  offerFile(doc.output("blob"),name,"application/pdf",$("#outBox")); }
+async function bulletin(days){
+  const fromISO=new Date(Date.now()-days*864e5).toISOString().slice(0,10);
+  const K=await pdfStart("BULLETIN DE VEILLE PETITE ENFANCE",`Du ${fmtDate(fromISO)} au ${fmtDate(todayISO())}`); if(!K) return; const {doc,M,CW}=K;
+  const items=D.items.filter(x=>x.status!=="archive"&&(x.date||"")>=fromISO), ans=D.ans.filter(a=>(a.updated||0)>=Date.now()-days*864e5||a.status!=="traite");
+  K.T(`${items.length} texte(s) repéré(s) · ${ans.length} suivi(s) · ${docTodo()} document(s) à mettre à jour`,M,K.y,{b:1}); K.y+=9;
+  if(ans.length){ K.sec("Textes suivis");
+    for(const a of ans){ const tl=doc.splitTextToSize(K.cl(a.title||"Texte"),CW), rs=a.resume?doc.splitTextToSize(K.cl("En résumé : "+a.resume),CW):[], dd=Object.entries(a.docs||{}).map(([k,v])=>DN[k]+(v==="fait"?" (fait)":" (à faire)")), dl=dd.length?doc.splitTextToSize(K.cl("Documents : "+dd.join(", ")),CW):[], ac=(a.acts||[]).filter(x=>x.desc).map(x=>(x.done?"[fait] ":"[ ] ")+x.desc+(x.due?" – "+fmtDate(x.due):"")), al=ac.length?doc.splitTextToSize(K.cl("Actions : "+ac.join(" ; ")),CW):[];
+      K.need(tl.length*4.6+rs.length*4.2+dl.length*4.2+al.length*4.2+12);
+      K.T(tl,M,K.y,{b:1}); K.y+=tl.length*4.6; K.T(`${a.src||""}${a.date?" · "+fmtDate(a.date):""} · ${AST[a.status]}${a.impact?" · impact "+IMPACT[a.impact][0].toLowerCase():""}${a.appDate?" · applicable le "+fmtDate(a.appDate):""}`,M,K.y,{s:8.5,c:[107,104,115]}); K.y+=4.6;
+      if(rs.length){ K.T(rs,M,K.y,{s:9}); K.y+=rs.length*4.2; } if(dl.length){ K.T(dl,M,K.y,{s:9,c:[31,110,101]}); K.y+=dl.length*4.2; } if(al.length){ K.T(al,M,K.y,{s:9,c:[185,69,47]}); K.y+=al.length*4.2; } K.y+=4; } }
+  for(const t of TH){ const L=items.filter(x=>(x.themes||[])[0]===t[0]); if(!L.length) continue; K.sec(t[2]);
+    for(const x of L){ const tl=doc.splitTextToSize(K.cl(x.title),CW); K.need(tl.length*4.3+9); K.T(tl,M,K.y,{s:9.5}); K.y+=tl.length*4.3; K.T(`${x.src}${x.date?" · "+fmtDate(x.date):""}${x.status==="suivi"?" · suivi":""}`,M,K.y,{s:8,c:[107,104,115]}); K.y+=3.6; K.T(x.link.slice(0,110),M,K.y,{s:7.5,c:[31,110,101]}); K.y+=5; } }
+  if(!items.length&&!ans.length) K.T("Aucun texte repéré sur la période.",M,K.y);
+  pdfEnd(K,`Bulletin_petite_enfance_${todayISO()}.pdf`);
+}
+async function chkPdf(){
+  const p=PRM[D.profile]||PRM.dir, cs=chkStats();
+  const K=await pdfStart("CHECK-LIST PETITE ENFANCE",p[2]+" · le "+fmtDate(todayISO())); if(!K) return; const {doc,M,CW}=K, st=D.chk[chkKey()]||{};
+  K.T(`${cs.y} point(s) OK sur ${cs.tot} · ${cs.n} à faire`,M,K.y,{b:1}); K.y+=9;
+  chkList().forEach(([txt],i)=>{ const l=doc.splitTextToSize(K.cl(txt),CW-30); K.need(l.length*4.6+4); const v=st[i];
+    doc.setDrawColor(150,150,150); doc.rect(M,K.y-3.6,4.5,4.5); if(v==="y"){ doc.setDrawColor(46,158,79); doc.setLineWidth(.8); doc.line(M+.8,K.y-1.4,M+1.9,K.y); doc.line(M+1.9,K.y,M+4,K.y-3.2); doc.setLineWidth(.2); }
+    K.T(l,M+8,K.y,{s:10}); K.T(v==="y"?"OK":v==="n"?"À FAIRE":"",M+CW,K.y,{s:9,b:1,c:v==="y"?[46,158,79]:[215,38,61],opt:{align:"right"}}); K.y+=l.length*4.6+2.5; });
+  pdfEnd(K,`Checklist_petite_enfance_${todayISO()}.pdf`);
+}
+async function exportXls(){
+  if(!(await needLib("XLSX","../shared/vendor/xlsx.full.min.js","https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"))) return toast("Module Excel indisponible (connexion nécessaire)");
+  const X=window.XLSX, wb=X.utils.book_new();
+  X.utils.book_append_sheet(wb,X.utils.json_to_sheet(D.ans.map(a=>({Texte:a.title,Source:a.src,Publication:a.date,État:AST[a.status],Impact:a.impact?IMPACT[a.impact][0]:"","Date d'application":a.appDate,Thèmes:(a.themes||[]).map(k=>THM[k]?THM[k][2]:k).join(", "),"En résumé":a.resume,"Documents à faire":Object.entries(a.docs||{}).filter(([,v])=>v==="afaire").map(([k])=>DN[k]).join(", "),"Documents faits":Object.entries(a.docs||{}).filter(([,v])=>v==="fait").map(([k])=>DN[k]).join(", "),Actions:(a.acts||[]).map(x=>(x.done?"[fait] ":"")+x.desc+(x.due?" ("+x.due+")":"")).join(" ; "),Notes:a.notes,Lien:a.link}))),"Textes suivis");
+  X.utils.book_append_sheet(wb,X.utils.json_to_sheet(D.items.filter(x=>x.status!=="archive").map(x=>({Date:x.date,Texte:x.title,Source:x.src,Thèmes:(x.themes||[]).map(k=>THM[k]?THM[k][2]:k).join(", "),État:{new:"À lire",lu:"Lu",suivi:"Suivi"}[x.status]||x.status,Lien:x.link}))),"Textes repérés");
+  offerFile(new Blob([X.write(wb,{bookType:"xlsx",type:"array"})],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}),`Veille_petite_enfance_${todayISO()}.xlsx`,"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",$("#outBox"));
+}
+
+
+/* ================= Activité du relais (RPE) ================= */
+const ATYPES=[["perm","🗣️","Permanence ou rendez-vous parents"],["tel","📞","Contact téléphone ou e-mail"],["am","🏡","Accompagnement d'un assistant maternel"],["gad","🏠","Accompagnement d'une garde à domicile"],["atel","🎨","Atelier d'éveil"],["reu","☕","Réunion, soirée ou temps d'échange"],["app","🧩","Atelier de pratique professionnelle"],["form","🎓","Départ en formation accompagné"],["prom","📣","Action de promotion du métier"],["part","🤝","Partenaires ou comité de pilotage"],["autre","📝","Autre"]];
+const ATM=Object.fromEntries(ATYPES.map(t=>[t[0],t]));
+const actYear=y=>(D.acti||[]).filter(a=>String(a.date).startsWith(String(y)));
+function actSheet(a0){
+  const a=a0?{...a0}:{id:uid(),date:todayISO(),type:"perm",parents:"",am:"",gad:"",enf:"",lieu:"",notes:""};
+  const ov=sheet(`<h2>${a0?"Modifier l'action":"Noter une action"}</h2>
+    <div class="grid2"><label class="f">Date<input type="date" id="aD" value="${esc(a.date)}"></label><label class="f">Type<select id="aT">${ATYPES.map(t=>`<option value="${t[0]}" ${a.type===t[0]?"selected":""}>${t[1]} ${esc(t[2])}</option>`).join("")}</select></label></div>
+    <div class="grid2"><label class="f">Parents<input type="text" inputmode="numeric" id="aP" value="${esc(a.parents)}" placeholder="0"></label><label class="f">Assistants maternels<input type="text" inputmode="numeric" id="aA" value="${esc(a.am)}" placeholder="0"></label></div>
+    <div class="grid2"><label class="f">Gardes à domicile<input type="text" inputmode="numeric" id="aG" value="${esc(a.gad)}" placeholder="0"></label><label class="f">Enfants<input type="text" inputmode="numeric" id="aE" value="${esc(a.enf)}" placeholder="0"></label></div>
+    <label class="f">Lieu ou commune<input type="text" id="aL" value="${esc(a.lieu)}" placeholder="ex. Salle des fêtes de …"></label>
+    <label class="f">Thème, remarques<textarea id="aN" placeholder="ex. Atelier motricité, 3 nouvelles assistantes maternelles">${esc(a.notes)}</textarea></label>
+    <div class="row"><button class="btn" data-x style="flex:1">Annuler</button><button class="btn p" data-ok style="flex:1">Enregistrer</button></div>`);
+  ov.querySelector("[data-x]").onclick=()=>ov.remove();
+  ov.querySelector("[data-ok]").onclick=()=>{ const n=id=>String(Math.max(0,parseInt(ov.querySelector(id).value)||0)||"");
+    Object.assign(a,{date:ov.querySelector("#aD").value||todayISO(),type:ov.querySelector("#aT").value,parents:n("#aP"),am:n("#aA"),gad:n("#aG"),enf:n("#aE"),lieu:ov.querySelector("#aL").value.trim(),notes:ov.querySelector("#aN").value.trim()});
+    D.acti=D.acti||[]; const i=D.acti.findIndex(x=>x.id===a.id); if(i>=0) D.acti[i]=a; else D.acti.unshift(a); save(); ov.remove(); rActi(); toast("Action enregistrée"); };
+}
+function actTotals(L){ const t={n:L.length,parents:0,am:0,gad:0,enf:0,by:{}}; L.forEach(a=>{ t.parents+=+a.parents||0; t.am+=+a.am||0; t.gad+=+a.gad||0; t.enf+=+a.enf||0; const b=t.by[a.type]=t.by[a.type]||{n:0,parents:0,am:0,gad:0,enf:0}; b.n++; b.parents+=+a.parents||0; b.am+=+a.am||0; b.gad+=+a.gad||0; b.enf+=+a.enf||0; }); return t; }
+function rActi(){
+  const years=[...new Set([new Date().getFullYear(),...(D.acti||[]).map(a=>+String(a.date).slice(0,4))])].filter(Boolean).sort((a,b)=>b-a);
+  const y=S.ay||years[0], L=actYear(y).sort((a,b)=>String(b.date).localeCompare(String(a.date))), t=actTotals(L);
+  app.innerHTML=`<div class="stack"><button class="btn s" id="bk" style="align-self:flex-start">‹ Retour</button>
+    <div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="lab">Relais petite enfance</div><h1>Activité du relais</h1></div><button class="btn p" id="addA">＋ Noter une action</button></div>
+    <div class="row">${years.map(v=>`<button class="fc ${v===y?"on":""}" data-y="${v}">${v}</button>`).join("")}</div>
+    <div class="kpis"><div class="kpi co"><b>${t.n}</b><span>Actions</span></div><div class="kpi sa"><b>${t.parents}</b><span>Parents</span></div><div class="kpi su"><b>${t.am+t.gad}</b><span>Professionnels${t.gad?` (dont ${t.gad} gardes à domicile)`:""}</span></div><div class="kpi"><b>${t.enf}</b><span>Enfants</span></div></div>
+    ${t.n?`<div class="card stack"><h2>Par type d'action</h2>${ATYPES.filter(a=>t.by[a[0]]).map(a=>{ const b=t.by[a[0]]; return `<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--line);padding:4px 0;flex-wrap:nowrap"><span>${a[1]} ${esc(a[2])}</span><span class="tiny" style="text-align:right;white-space:nowrap"><b style="color:var(--ink)">${b.n}</b>${b.parents?" · "+b.parents+" parents":""}${b.am?" · "+b.am+" AM":""}${b.enf?" · "+b.enf+" enfants":""}</span></div>`; }).join("")}</div>`:""}
+    <div class="card stack"><h2>Actions notées</h2>${L.length?L.slice(0,150).map(a=>`<div class="row" style="flex-wrap:nowrap;border-bottom:1px solid var(--line);padding:6px 0;gap:8px"><span style="font-size:22px">${ATM[a.type]?.[1]||"📝"}</span><button data-ed="${a.id}" style="flex:1;text-align:left;background:none;border:0;padding:0"><b>${esc(ATM[a.type]?.[2]||"Action")}</b><br><span class="tiny">${fmtDate(a.date)}${a.lieu?" · "+esc(a.lieu):""}${[a.parents&&a.parents+" parents",a.am&&a.am+" AM",a.gad&&a.gad+" GAD",a.enf&&a.enf+" enfants"].filter(Boolean).map(x=>" · "+x).join("")}</span>${a.notes?`<br><span class="tiny">${esc(a.notes.slice(0,90))}</span>`:""}</button><button class="btn s" data-rm="${a.id}" aria-label="Supprimer">×</button></div>`).join(""):`<div class="notice">Notez ici chaque permanence, atelier, rendez-vous ou réunion : les totaux de l'année se calculent tout seuls pour le bilan Caf.</div>`}</div>
+    ${t.n?`<div class="card stack"><h2>Bilan d'activité ${y}</h2><span class="small muted">Pour le bilan annuel Caf, le comité de pilotage ou le gestionnaire.</span><div class="row"><button class="btn p" id="aPdf">📄 Bilan PDF</button><button class="btn" id="aXls">📊 Excel</button></div><div id="outBox"></div></div>`:""}</div>`;
+  $("#bk").onclick=back; $("#addA").onclick=()=>actSheet(null);
+  app.querySelectorAll("[data-y]").forEach(b=>b.onclick=()=>{ S.ay=+b.dataset.y; rActi(); });
+  app.querySelectorAll("[data-ed]").forEach(b=>b.onclick=()=>actSheet(D.acti.find(x=>x.id===b.dataset.ed)));
+  app.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{ const i=D.acti.findIndex(x=>x.id===b.dataset.rm); const keep=D.acti[i]; D.acti.splice(i,1); save(); rActi(); toast("Action supprimée"); });
+  if($("#aPdf")) $("#aPdf").onclick=()=>actPdf(y);
+  if($("#aXls")) $("#aXls").onclick=()=>actXls(y);
+}
+async function actPdf(y){
+  const L=actYear(y).sort((a,b)=>String(a.date).localeCompare(String(b.date))), t=actTotals(L);
+  const K=await pdfStart("BILAN D'ACTIVITÉ DU RELAIS PETITE ENFANCE","Année "+y); if(!K) return; const {doc,M,CW}=K;
+  K.sec("Chiffres clés");
+  [["Actions menées",t.n],["Parents accueillis ou informés",t.parents],["Assistants maternels",t.am],["Gardes à domicile",t.gad],["Enfants (ateliers)",t.enf]].forEach(([l,v],i)=>{ const x=M+(i%3)*60, yy=K.y+Math.floor(i/3)*16; K.T(String(v),x,yy+4,{b:1,s:18,c:[227,106,84]}); K.T(l,x,yy+10,{s:8.5,c:[107,104,115]}); }); K.y+=36;
+  K.sec("Par type d'action");
+  K.T("Type",M,K.y,{b:1,s:9}); ["Nb","Parents","AM","GAD","Enfants"].forEach((h,i)=>K.T(h,M+110+i*14,K.y,{b:1,s:9,opt:{align:"right"}})); K.y+=5;
+  ATYPES.filter(a=>t.by[a[0]]).forEach(a=>{ const b=t.by[a[0]]; K.need(6); K.T(a[2],M,K.y,{s:9.5}); [b.n,b.parents,b.am,b.gad,b.enf].forEach((v,i)=>K.T(String(v||"–"),M+110+i*14,K.y,{s:9.5,opt:{align:"right"}})); doc.setDrawColor(234,223,211); doc.line(M,K.y+1.8,M+CW,K.y+1.8); K.y+=6; });
+  K.y+=4; K.sec("Détail des actions");
+  L.forEach(a=>{ const txt=`${fmtDate(a.date)} – ${ATM[a.type]?.[2]||"Action"}${a.lieu?" ("+a.lieu+")":""}${[a.parents&&a.parents+" parents",a.am&&a.am+" AM",a.gad&&a.gad+" GAD",a.enf&&a.enf+" enfants"].filter(Boolean).map(x=>" · "+x).join("")}${a.notes?" – "+a.notes:""}`; const l=doc.splitTextToSize(K.cl(txt),CW); K.need(l.length*4.2+2); K.T(l,M,K.y,{s:9}); K.y+=l.length*4.2+1.5; });
+  pdfEnd(K,`Bilan_activite_RPE_${y}.pdf`);
+}
+async function actXls(y){
+  if(!(await needLib("XLSX","../shared/vendor/xlsx.full.min.js","https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"))) return toast("Module Excel indisponible (connexion nécessaire)");
+  const X=window.XLSX, wb=X.utils.book_new(), L=actYear(y), t=actTotals(L);
+  X.utils.book_append_sheet(wb,X.utils.json_to_sheet(ATYPES.filter(a=>t.by[a[0]]).map(a=>({Type:a[2],Actions:t.by[a[0]].n,Parents:t.by[a[0]].parents,"Assistants maternels":t.by[a[0]].am,"Gardes à domicile":t.by[a[0]].gad,Enfants:t.by[a[0]].enf})).concat([{Type:"TOTAL",Actions:t.n,Parents:t.parents,"Assistants maternels":t.am,"Gardes à domicile":t.gad,Enfants:t.enf}])),"Synthèse "+y);
+  X.utils.book_append_sheet(wb,X.utils.json_to_sheet(L.sort((a,b)=>String(a.date).localeCompare(String(b.date))).map(a=>({Date:a.date,Type:ATM[a.type]?.[2]||a.type,Lieu:a.lieu,Parents:+a.parents||0,"Assistants maternels":+a.am||0,"Gardes à domicile":+a.gad||0,Enfants:+a.enf||0,Remarques:a.notes}))),"Actions "+y);
+  offerFile(new Blob([X.write(wb,{bookType:"xlsx",type:"array"})],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}),`Activite_RPE_${y}.xlsx`,"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",$("#outBox"));
+}
+
+
+/* ================= Illustrations animées (dessins originaux) ================= */
+const SK="#F4C9A8", SK2="#C98F65";
+// petit enfant : pose "debout", "4pattes", "assis", "allonge"
+function kid(x,y,s,shirt,pose,extra){ s=s||1; shirt=shirt||"#E36A54"; pose=pose||"debout";
+  const h=`<circle cx="0" cy="-34" r="11" fill="${SK}"/><path d="M-9 -40 q9 -10 18 0" fill="#7A4A2A"/><circle cx="-4" cy="-35" r="1.4" fill="#2B2A33"/><circle cx="4" cy="-35" r="1.4" fill="#2B2A33"/><path d="M-3 -30 q3 2.5 6 0" stroke="#B9452F" stroke-width="1.4" fill="none" stroke-linecap="round"/><circle cx="-7" cy="-31" r="2" fill="#F59C8A" opacity=".6"/><circle cx="7" cy="-31" r="2" fill="#F59C8A" opacity=".6"/>`;
+  let b="";
+  if(pose==="debout") b=`<rect x="-10" y="-23" width="20" height="22" rx="8" fill="${shirt}"/><path d="M-10 -18 l-8 10 M10 -18 l8 10" stroke="${SK}" stroke-width="5" stroke-linecap="round"/><path d="M-5 -2 v12 M5 -2 v12" stroke="#2F9488" stroke-width="6" stroke-linecap="round"/>`;
+  else if(pose==="bras") b=`<rect x="-10" y="-23" width="20" height="22" rx="8" fill="${shirt}"/><path d="M-10 -19 l-9 -12 M10 -19 l9 -12" stroke="${SK}" stroke-width="5" stroke-linecap="round"/><path d="M-5 -2 v12 M5 -2 v12" stroke="#2F9488" stroke-width="6" stroke-linecap="round"/>`;
+  else if(pose==="assis") b=`<rect x="-10" y="-23" width="20" height="20" rx="8" fill="${shirt}"/><path d="M-10 -17 l-9 6 M10 -17 l9 6" stroke="${SK}" stroke-width="5" stroke-linecap="round"/><path d="M-6 -3 h-10 M6 -3 h10" stroke="#2F9488" stroke-width="6" stroke-linecap="round"/>`;
+  else if(pose==="4pattes") return `<g transform="translate(${x},${y}) scale(${s})" ${extra||""}><path d="M10 -16 l4 16 M18 -18 l6 14" stroke="#2F9488" stroke-width="6" stroke-linecap="round"/><ellipse cx="4" cy="-20" rx="18" ry="9" fill="${shirt}"/><path d="M-10 -18 l-2 18 M-4 -16 l2 16" stroke="${SK}" stroke-width="5" stroke-linecap="round"/><g transform="translate(-20,12)">${h}</g></g>`;
+  else if(pose==="allonge") return `<g transform="translate(${x},${y}) scale(${s})" ${extra||""}><rect x="-14" y="-14" width="32" height="13" rx="6.5" fill="${shirt}"/><path d="M18 -9 h16 M18 -5 h14" stroke="#2F9488" stroke-width="5" stroke-linecap="round"/><g transform="translate(-26,26)">${h}</g></g>`;
+  return `<g transform="translate(${x},${y}) scale(${s})" ${extra||""}>${b}${h}</g>`;
+}
+const note=(x,y,c,d)=>`<g class="an-float" style="animation-delay:${d}s"><text x="${x}" y="${y}" font-size="20" fill="${c}">♪</text></g>`;
+const ground=c=>`<rect x="0" y="150" width="320" height="30" fill="${c||"#F7E6D4"}"/><rect x="20" y="146" width="280" height="8" rx="4" fill="#EAD6C0"/>`;
+const sky=(c1,c2)=>`<defs><linearGradient id="g${c1.slice(1)}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs><rect width="320" height="180" fill="url(#g${c1.slice(1)})"/>`;
+const ART={
+  p1:()=>`${sky("#FFF3E6","#FFE8D6")}${ground("#F9DCC4")}<rect x="40" y="140" width="240" height="14" rx="7" fill="#9ED8CF"/><rect x="230" y="92" width="44" height="52" rx="8" fill="#D9F0FF" stroke="#8CB8D6" stroke-width="3"/><path d="M238 100 l10 10" stroke="#fff" stroke-width="3" opacity=".8"/><g class="an-wiggle" style="transform-origin:200px 135px"><circle cx="200" cy="126" r="9" fill="#F2B53C"/><rect x="198" y="133" width="4" height="12" rx="2" fill="#E36A54"/></g><g class="an-crawl">${kid(110,142,1.05,"#E36A54","4pattes")}</g>`,
+  p2:()=>`${sky("#EAF7F4","#FFF6EC")}${ground()}<rect x="40" y="128" width="40" height="20" rx="4" fill="#F2B53C"/><rect x="80" y="110" width="40" height="38" rx="4" fill="#E36A54"/><rect x="120" y="92" width="40" height="56" rx="4" fill="#2F9488"/><path d="M190 148 v-36 a34 34 0 0 1 68 0 v36 z" fill="#8FC9F0"/><path d="M200 148 v-34 a24 24 0 0 1 48 0 v34 z" fill="#5A9FCF"/><g class="an-climb">${kid(60,128,.9,"#7C6BD6","4pattes")}</g>`,
+  p3:()=>parcoursSVG(PSTATIONS.p3,true),
+  p4:()=>`${sky("#FFF8EE","#FFEFDB")}${ground()}${[["#9AD18B",30],["#F2B53C",95],["#8FC9F0",160],["#E7B3D6",225]].map(([c,x],i)=>`<rect x="${x}" y="128" width="58" height="22" rx="6" fill="${c}"/>${i===0?Array.from({length:8},(_,j)=>`<path d="M${x+4+j*7} 128 l3 -6 l3 6" fill="#6DB35D"/>`).join(""):i===1?Array.from({length:6},(_,j)=>`<circle cx="${x+7+j*9}" cy="139" r="3" fill="#D9951F"/>`).join(""):i===2?Array.from({length:5},(_,j)=>`<circle cx="${x+9+j*10}" cy="139" r="4.5" fill="#fff" opacity=".7"/>`).join(""):""}`).join("")}${[0,1,2,3,4,5,6,7].map(i=>`<g class="an-step" style="animation-delay:${i*.5}s"><ellipse cx="${45+i*30}" cy="${i%2?134:144}" rx="5" ry="8" fill="#B9452F" opacity=".75"/></g>`).join("")}${kid(160,98,.8,"#E36A54","debout")}`,
+  p5:()=>`${sky("#F3EEFF","#FFF4EA")}${ground()}${[50,110,170,230].map((x,i)=>`<ellipse cx="${x+20}" cy="148" rx="26" ry="7" fill="none" stroke="${["#E36A54","#F2B53C","#2F9488","#7C6BD6"][i]}" stroke-width="5"/>`).join("")}<g class="an-hop">${kid(70,140,.95,"#F2B53C","bras")}</g>${note(230,60,"#7C6BD6",0)}${note(260,80,"#E36A54",.8)}${note(200,45,"#2F9488",1.6)}`,
+  s1:()=>`${sky("#FFF6EA","#FFEBD6")}${ground()}<path d="M150 150 l10 -46 h90 l10 46 z" fill="#D9A066"/><path d="M162 112 h86" stroke="#B37C45" stroke-width="3"/><path d="M158 126 h94 M154 140 h102" stroke="#B37C45" stroke-width="2" opacity=".6"/><g class="an-bob"><circle cx="180" cy="100" r="10" fill="#8C99A4"/><circle cx="180" cy="100" r="5" fill="#FFF6EA"/></g><g class="an-bob" style="animation-delay:.4s"><rect x="198" y="80" width="8" height="26" rx="4" fill="#B37C45"/><ellipse cx="202" cy="80" rx="8" ry="6" fill="#C98F65"/></g><g class="an-bob" style="animation-delay:.8s"><ellipse cx="226" cy="98" rx="11" ry="13" fill="#9C6B3C"/><path d="M216 98 h20 M218 91 h16 M218 105 h16" stroke="#7A4E25" stroke-width="2"/></g>${kid(100,146,1,"#2F9488","assis")}`,
+  s2:()=>`${sky("#EEF8FF","#FFF4EC")}${ground()}${[[70,"#8FC9F0"],[140,"#F2B53C"],[210,"#E7B3D6"]].map(([x,c],i)=>`<g><rect x="${x}" y="70" width="40" height="78" rx="12" fill="${c}" opacity=".35" stroke="${c}" stroke-width="3"/><rect x="${x+12}" y="60" width="16" height="12" rx="3" fill="#E36A54"/>${Array.from({length:7},(_,j)=>`<circle class="an-glitter" style="animation-delay:${(j*.37+i*.2).toFixed(2)}s" cx="${x+8+(j*5)%26}" cy="${140-(j*9)%60}" r="${2+j%3}" fill="${["#fff","#F2B53C","#E36A54","#7C6BD6"][j%4]}"/>`).join("")}</g>`).join("")}`,
+  s3:()=>`${sky("#EAF6FF","#FFF2F7")}${ground()}${kid(90,146,1,"#7C6BD6","bras")}${[0,1,2,3,4,5,6].map(i=>`<circle class="an-bubble" style="animation-delay:${i*.6}s" cx="${140+i*24}" cy="150" r="${9+i%3*5}" fill="rgba(255,255,255,.35)" stroke="#8FC9F0" stroke-width="2"/>`).join("")}`,
+  s4:()=>`${sky("#EAF7FF","#F1FBF8")}${ground()}<ellipse cx="190" cy="140" rx="70" ry="14" fill="#5A9FCF"/><path d="M120 128 a70 14 0 0 0 140 0 l-6 22 a64 10 0 0 1 -128 0 z" fill="#8FC9F0"/><g class="an-pour" style="transform-origin:175px 80px"><path d="M160 70 h30 l-4 26 h-22 z" fill="#F2B53C"/></g>${[0,1,2,3].map(i=>`<circle class="an-drop" style="animation-delay:${i*.35}s" cx="188" cy="100" r="3" fill="#5A9FCF"/>`).join("")}${kid(80,146,1,"#E36A54","debout")}`,
+  m1:()=>`${sky("#FFF1F4","#FFF8EC")}${ground()}<g class="an-sway" style="transform-origin:110px 146px">${kid(110,146,1.1,"#E36A54","bras")}</g>${kid(200,146,.9,"#2F9488","assis")}${note(150,70,"#E36A54",0)}${note(175,55,"#F2B53C",.7)}${note(230,75,"#7C6BD6",1.4)}${note(130,40,"#2F9488",2.1)}`,
+  m2:()=>`${sky("#FFF8E8","#FFEFE0")}${ground()}<ellipse cx="200" cy="128" rx="34" ry="10" fill="#F7E6D4" stroke="#B37C45" stroke-width="3"/><path d="M166 128 v18 a34 10 0 0 0 68 0 v-18" fill="#E36A54"/><path d="M170 133 l60 12 M230 133 l-60 12" stroke="#F2B53C" stroke-width="2"/><g class="an-shake" style="transform-origin:110px 120px"><circle cx="110" cy="92" r="14" fill="#2F9488"/><rect x="107" y="104" width="6" height="22" rx="3" fill="#B37C45"/>${[0,1,2].map(i=>`<circle cx="${103+i*7}" cy="90" r="2" fill="#fff"/>`).join("")}</g><g class="an-tap" style="transform-origin:200px 100px"><rect x="196" y="70" width="6" height="40" rx="3" fill="#B37C45" transform="rotate(25 199 90)"/></g>${kid(60,146,.9,"#7C6BD6","bras")}`,
+  m3:()=>`${sky("#F3EEFF","#FFF3EC")}${ground()}${kid(160,146,1.05,"#2F9488","bras")}<path class="an-wave" d="M100 60 q20 -15 40 0 t40 0 t40 0" stroke="#E36A54" stroke-width="10" fill="none" stroke-linecap="round" opacity=".8"/><path class="an-wave" style="animation-delay:.5s" d="M110 85 q20 -15 40 0 t40 0 t40 0" stroke="#F2B53C" stroke-width="8" fill="none" stroke-linecap="round" opacity=".7"/>`,
+  c1:()=>`${sky("#FFF6EC","#FFEDE0")}${ground()}<rect x="120" y="70" width="150" height="76" rx="6" fill="#fff" stroke="#EAD6C0" stroke-width="3"/>${[[150,100,"#E36A54"],[190,120,"#2F9488"],[230,95,"#F2B53C"],[210,130,"#7C6BD6"],[165,128,"#8FC9F0"]].map(([x,y,c],i)=>`<circle class="an-grow" style="animation-delay:${i*.5}s" cx="${x}" cy="${y}" r="12" fill="${c}"/>`).join("")}${kid(75,146,1,"#F2B53C","bras")}`,
+  c2:()=>`${sky("#FFFBEA","#FFF0E0")}${ground()}<rect x="110" y="62" width="160" height="84" rx="6" fill="#fff" stroke="#EAD6C0" stroke-width="3"/>${[[140,90,"#E36A54"],[180,110,"#F2B53C"],[220,85,"#2F9488"],[245,120,"#7C6BD6"],[160,125,"#8FC9F0"]].map(([x,y,c],i)=>`<path class="an-pop" style="animation-delay:${i*.45}s;transform-origin:${x}px ${y}px" d="M${x} ${y-10} l3 7 l8 1 l-6 5 l2 8 l-7 -4 l-7 4 l2 -8 l-6 -5 l8 -1 z" fill="${c}"/>`).join("")}${kid(70,146,.95,"#2F9488","debout")}`,
+  n1:()=>`${sky("#E8F6FF","#F5FBEA")}<rect x="0" y="150" width="320" height="30" fill="#BFE3A5"/><rect x="236" y="70" width="14" height="82" fill="#9C6B3C"/><circle cx="243" cy="66" r="38" fill="#7DBE6A"/><circle cx="222" cy="80" r="22" fill="#6DB35D"/><circle cx="266" cy="82" r="22" fill="#6DB35D"/>${[0,1,2,3,4].map(i=>`<path class="an-leaf" style="animation-delay:${i*.9}s" d="M${215+i*14} 90 q6 -6 12 0 q-6 6 -12 0" fill="${["#F2B53C","#E36A54","#D9951F"][i%3]}"/>`).join("")}<g class="an-walk">${kid(60,150,.95,"#E36A54","debout")}</g><circle cx="50" cy="35" r="16" fill="#FFD66B"/>`,
+  l1:()=>`${sky("#FFF5EE","#FFEFE2")}${ground()}<path d="M120 140 q50 -12 70 0 v-66 q-20 -12 -70 0 z" fill="#fff" stroke="#E36A54" stroke-width="3"/><path d="M190 140 q20 -12 70 0 v-66 q-50 -12 -70 0 z" fill="#fff" stroke="#E36A54" stroke-width="3"/><g class="an-page" style="transform-origin:190px 100px"><path d="M190 140 q20 -12 60 -2 v-62 q-40 -10 -60 -2 z" fill="#FFF3D6" stroke="#F2B53C" stroke-width="2"/></g><circle cx="150" cy="100" r="12" fill="#F2B53C"/><path d="M140 125 h24" stroke="#EAD6C0" stroke-width="3"/>${kid(80,146,1,"#2F9488","assis")}`,
+  l2:()=>`${sky("#F3EEFF","#FFF4EC")}${ground()}<g transform="translate(190,140)"><circle cx="0" cy="-22" r="16" fill="#C98F65"/><circle cx="-12" cy="-35" r="7" fill="#C98F65"/><circle cx="12" cy="-35" r="7" fill="#C98F65"/><circle cx="-5" cy="-24" r="2" fill="#2B2A33"/><circle cx="5" cy="-24" r="2" fill="#2B2A33"/><ellipse cx="0" cy="-17" rx="5" ry="3.5" fill="#E8C3A0"/><ellipse cx="0" cy="4" rx="18" ry="14" fill="#C98F65"/></g><g class="an-peek"><path d="M160 98 q30 -14 60 0 l6 50 h-72 z" fill="#E7B3D6" opacity=".95"/></g>${kid(90,146,1,"#F2B53C","assis")}`,
+  d1:()=>`${sky("#2D3159","#4B4F80")}<rect x="0" y="150" width="320" height="30" fill="#3A3E6B"/><circle cx="260" cy="40" r="18" fill="#FFE9A8"/><circle cx="268" cy="34" r="16" fill="#3E4270"/>${[[40,30],[90,55],[150,25],[200,60],[300,90],[120,85]].map(([x,y],i)=>`<circle class="an-twinkle" style="animation-delay:${i*.5}s" cx="${x}" cy="${y}" r="2.4" fill="#FFF6D0"/>`).join("")}<rect x="70" y="138" width="170" height="14" rx="7" fill="#7C6BD6"/><g class="an-breathe" style="transform-origin:150px 140px">${kid(150,138,1.05,"#8FC9F0","allonge")}</g>`
+};
+// stations des parcours intégrés (pour l'animation)
+const PSTATIONS={
+  p1:[["Tapis de textures","🧶"],["Coussin sur le ventre","☁️"],["Rouleau en mousse","🛢️"],["Miroir","🪞"],["Jouet à attraper","🧸"]],
+  p2:[["Pente douce","⛰️"],["Marches en mousse","🪜"],["Tunnel","🚇"],["Banc pour se lever","🪑"],["Chariot de marche","🛒"]],
+  p3:[["Poutre","➖"],["Cerceaux","⭕"],["Escalier","🪜"],["Toboggan","🛝"],["Slalom","🔶"],["Lancer de balles","🏀"]],
+  p4:[["Picots","🌵"],["Gazon","🌱"],["Papier bulle","🫧"],["Coussin moelleux","☁️"],["Fourrure douce","🧸"]],
+  p5:[["Cerceau rouge","🔴"],["Cerceau jaune","🟡"],["Statue !","🗿"],["Cerceau vert","🟢"],["Foulards","🧣"]]
+};
+function parcoursSVG(st,big){ const n=Math.max(1,st.length), W=360, H=big?200:180;
+  const pts=st.map((_,i)=>{ const t=n===1?.5:i/(n-1); return [30+t*(W-60), (H*.55)+Math.sin(t*Math.PI*2)*(H*.22)]; });
+  let d=`M${pts[0][0]} ${pts[0][1]}`; for(let i=1;i<pts.length;i++){ const [x0,y0]=pts[i-1],[x1,y1]=pts[i], mx=(x0+x1)/2; d+=` C${mx} ${y0} ${mx} ${y1} ${x1} ${y1}`; }
+  const dur=Math.max(6,n*2.2), kp=[], kt=[]; for(let i=0;i<n;i++){ const a=n===1?0:i/(n-1); const t0=i/n, t1=t0+(.55/n); kp.push(a.toFixed(3),a.toFixed(3)); kt.push(t0.toFixed(3),Math.min(1,t1).toFixed(3)); }
+  if(kt[kt.length-1]!=="1.000"){ kp.push(kp[kp.length-1]); kt.push("1"); } kt[0]="0";
+  return `<svg viewBox="0 0 ${W} ${H}" class="art" role="img" aria-label="Animation du parcours"><defs><linearGradient id="pg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF6EC"/><stop offset="1" stop-color="#EAF7F4"/></linearGradient></defs><rect width="${W}" height="${H}" fill="url(#pg)"/>
+    <path d="${d}" fill="none" stroke="#EAD6C0" stroke-width="16" stroke-linecap="round"/><path d="${d}" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="2 9" stroke-linecap="round"/>
+    ${pts.map(([x,y],i)=>`<g><circle cx="${x}" cy="${y}" r="20" fill="#fff" stroke="${["#E36A54","#2F9488","#F2B53C","#7C6BD6","#8FC9F0","#E7B3D6"][i%6]}" stroke-width="4"/><text x="${x}" y="${y+7}" font-size="20" text-anchor="middle">${st[i][1]||"⭐"}</text><circle cx="${x+15}" cy="${y-15}" r="8" fill="#E36A54"/><text x="${x+15}" y="${y-11.5}" font-size="10" font-weight="800" fill="#fff" text-anchor="middle" font-family="Nunito,sans-serif">${i+1}</text></g>`).join("")}
+    <g>${kid(0,-6,.62,"#E36A54","debout")}<animateMotion dur="${dur}s" repeatCount="indefinite" calcMode="linear" keyPoints="${kp.join(";")}" keyTimes="${kt.join(";")}" path="${d}"/></g></svg>`; }
+function artSVG(id){ const f=ART[id]; if(!f) return ""; const inner=f(); return inner.startsWith("<svg")?inner:`<svg viewBox="0 0 320 180" class="art" role="img" aria-hidden="true">${inner}</svg>`; }
+function parcoursSVGfromUser(p){ return parcoursSVG(p.st.map(s=>{ const x=STATIONS.find(z=>z[0]===s); return [s,x?x[1]:"⭐"]; }),true); }
+/* ---- Mode présentation : étapes en grand, défilement automatique ---- */
+function present(title,artHTML,steps,tip){
+  const ov=document.createElement("div"); ov.className="pres";
+  let i=-1, play=true, tm=null; const N=steps.length;
+  const draw=()=>{ ov.innerHTML=`<div class="pres-top"><b>${esc(title)}</b><button data-q aria-label="Fermer">✕</button></div>
+      <div class="pres-bar"><i style="width:${Math.round((i+1)/(N+1)*100)}%"></i></div>
+      <div class="pres-body">${i<0?`<div class="pres-art">${artHTML}</div><h2>${esc(title)}</h2><p>${esc(tip||"")}</p>`:`<div class="pres-art sm">${artHTML}</div><div class="pres-num">${i+1}<small>/${N}</small></div><p class="pres-txt">${esc(steps[i])}</p>`}</div>
+      <div class="pres-nav"><button data-p ${i<0?"disabled":""}>‹</button><button data-pl>${play?"⏸":"▶"}</button><button data-n ${i>=N-1?"disabled":""}>›</button></div>`;
+    ov.querySelector("[data-q]").onclick=close; ov.querySelector("[data-p]").onclick=()=>{ i=Math.max(-1,i-1); restart(); }; ov.querySelector("[data-n]").onclick=()=>{ i=Math.min(N-1,i+1); restart(); }; ov.querySelector("[data-pl]").onclick=()=>{ play=!play; restart(); }; };
+  const restart=()=>{ clearTimeout(tm); draw(); if(play&&i<N-1) tm=setTimeout(()=>{ i++; restart(); }, i<0?4000:7000); };
+  const close=()=>{ clearTimeout(tm); ov.remove(); if(MP&&MP.keepScreen) try{ MP.keepScreen(false); }catch(e){} };
+  let x0=null; ov.addEventListener("touchstart",e=>{ x0=e.touches[0].clientX; },{passive:true}); ov.addEventListener("touchend",e=>{ if(x0==null) return; const dx=e.changedTouches[0].clientX-x0; x0=null; if(Math.abs(dx)>60){ i=dx<0?Math.min(N-1,i+1):Math.max(-1,i-1); restart(); } });
+  document.body.appendChild(ov); if(MP&&MP.keepScreen) try{ MP.keepScreen(true); }catch(e){} restart(); return ov; }
+
+/* ================= Éveil 0-3 ans : parcours et ateliers ================= */
+// [id, emoji, titre, catégorie, âge min (mois), âge max, durée, objectifs, matériel, déroulé (étapes), sécurité, variantes]
+const ECAT={parcours:["🧗","Parcours moteurs"],sens:["🖐️","Sensoriel"],musique:["🎵","Musique et comptines"],manip:["🧩","Manipulation"],langage:["📖","Livres et langage"],crea:["🎨","Créatif"],nature:["🌿","Nature et dehors"],detente:["😌","Calme et détente"]};
+const EVEIL=[
+  ["p1","🐛","Parcours des tout-petits (non-marcheurs)","parcours",3,12,"20 à 30 min",["Motricité globale : se retourner, ramper, se redresser","Découverte de son corps et de l'espace"],["Grands tapis de sol","Coussins de positionnement","Rouleau ou demi-cylindre en mousse","Miroir incassable posé au sol","Tunnel court (moins d'1 m)","Quelques jouets attractifs (hochets, balles souples)"],["Installer un grand espace de tapis, sans obstacle dur autour.","Placer le miroir au sol et un coussin pour le temps sur le ventre.","Poser le rouleau en mousse : l'enfant peut s'y appuyer ou ramper par-dessus.","Placer des jouets un peu plus loin pour donner envie d'avancer.","Laisser l'enfant explorer à son rythme ; l'adulte reste au sol, à hauteur d'enfant, et met des mots sur ce qu'il fait."],["Jamais d'enfant installé dans une position qu'il ne sait pas prendre seul (motricité libre).","Pas de petits objets à portée (moins de 3 cm : risque d'étouffement).","Adulte assis au sol, enfant toujours à portée de vue."],["Ajouter des tissus de textures différentes sur les tapis.","Chanter une comptine pendant les déplacements."]],
+  ["p2","🧸","Parcours « à quatre pattes et premiers pas »","parcours",9,18,"20 à 30 min",["Ramper, grimper, se mettre debout, faire ses premiers pas","Confiance en soi"],["Modules en mousse (marches, pente douce)","Tunnel","Banc bas ou meuble stable pour se hisser","Chariot de marche lesté","Tapis épais"],["Disposer une petite boucle : pente douce → marches en mousse → tunnel → banc bas.","Placer le chariot de marche à la fin pour ceux qui se lèvent.","Montrer une fois le parcours à quatre pattes, puis laisser faire.","Encourager sans porter l'enfant aux endroits qu'il n'atteint pas seul.","Terminer par un temps calme sur le tapis."],["Modules stables et non glissants ; tapis autour des hauteurs.","Hauteur des modules adaptée (pas plus haut que le genou d'un adulte).","Un adulte près des passages en hauteur."],["Ajouter des ballons souples à pousser.","Faire le parcours en musique, puis en silence."]],
+  ["p3","🦁","Parcours de l'aventurier","parcours",18,36,"30 à 40 min",["Équilibre, coordination, sauter, enjamber, lancer","Respect du tour de rôle"],["Poutre au sol (ou bande adhésive)","Cerceaux","Petit toboggan","Escalier en mousse","Plots pour un slalom","Balles et un bac pour les lancer","Tunnel"],["Préparer 6 étapes en boucle : marcher sur la poutre, sauter dans les cerceaux, monter l'escalier, glisser au toboggan, slalom entre les plots, lancer la balle dans le bac.","Faire une démonstration lente, étape par étape.","Les enfants passent les uns après les autres ; l'adulte nomme chaque action (« je saute », « je passe dessous »).","Après quelques tours, changer l'ordre ou ajouter une consigne (marcher comme un ours, sauter comme une grenouille).","Finir par un retour au calme : s'allonger et écouter sa respiration."],["Espaces suffisants entre les étapes pour éviter les collisions.","Tapis au pied du toboggan et de l'escalier.","Pas plus de 6 à 8 enfants sur le parcours en même temps."],["Parcours « animaux » : chaque étape correspond à un animal.","Parcours en extérieur avec des éléments naturels."]],
+  ["p4","🦶","Parcours sensoriel pieds nus","parcours",12,36,"20 min",["Découvrir des sensations sous les pieds","Équilibre, vocabulaire des sensations"],["Tapis à picots","Gazon synthétique","Papier bulle bien scotché sur un carton","Coussins de textures différentes","Tissu doux (fausse fourrure)","Plateau avec un peu d'eau tiède (en été)"],["Aligner les surfaces en chemin, en alternant doux, piquant, froid, moelleux.","Enlever chaussures et chaussettes, montrer le chemin en tenant la main si besoin.","Mettre des mots : « ça pique », « c'est doux », « ça fait du bruit ».","Laisser revenir sur la surface préférée.","Essuyer les pieds et remettre les chaussettes au chaud."],["Sol non glissant, surfaces bien fixées.","Vérifier l'absence de petites pièces qui se détachent.","Pied mouillé : surveiller les glissades."],["Les yeux fermés pour les plus grands (en tenant la main).","Ajouter des feuilles mortes ou du sable en extérieur."]],
+  ["p5","🎶","Parcours musical en cerceaux","parcours",18,36,"20 min",["Rythme, écoute, arrêt et départ","Motricité globale"],["Cerceaux au sol","Musique (enceinte)","Foulards"],["Disposer les cerceaux en chemin.","Quand la musique joue, on avance de cerceau en cerceau ; quand elle s'arrête, on s'immobilise comme une statue.","Varier le tempo : lent (on marche), rapide (on trottine), très doux (sur la pointe des pieds).","Finir en agitant les foulards sur une musique douce."],["Sol dégagé, pas de course sur les cerceaux (risque de glisser) : les poser sur un tapis.","Volume sonore modéré."],["Remplacer les cerceaux par des ronds de couleur : « va sur le rouge »."]],
+  ["s1","🧺","Panier à trésors","sens",6,14,"15 à 20 min",["Explorer avec les mains et la bouche","Concentration, choix"],["Panier bas et solide","15 à 20 objets du quotidien en matières naturelles : cuillère en bois, grosse brosse, balle en laine, chaîne épaisse, pomme de pin (grosse), anneau métallique, éponge naturelle, petit pot en métal…"],["Asseoir le bébé (qui tient assis seul) près du panier.","L'adulte s'assoit à côté, observe sans diriger ni commenter sans cesse.","Laisser l'enfant prendre, porter à la bouche, taper, comparer.","Renouveler une partie des objets chaque semaine."],["Tous les objets plus gros que 4 à 5 cm, sans pièce qui se détache, propres et lavés.","Vérifier l'état des objets avant chaque séance.","Présence constante de l'adulte."],["Panier à thème : métal, bois, tissus."]],
+  ["s2","🫙","Bouteilles sensorielles","sens",4,36,"15 min",["Suivre des yeux, écouter, secouer","Causalité (je secoue → ça bouge)"],["Petites bouteilles en plastique solide","Eau, huile, paillettes, perles, riz, grelots…","Colle forte ou ruban adhésif solide pour sceller le bouchon"],["Préparer les bouteilles à l'avance, bouchon collé et scotché.","Les présenter aux bébés couchés ou assis, puis les laisser rouler.","Nommer : « ça brille », « ça tombe doucement », « ça fait du bruit ».","Ranger les bouteilles après la séance."],["Bouchons collés ET scotchés ; contrôler l'étanchéité avant chaque utilisation.","Retirer toute bouteille fissurée."],["Bouteille calme (huile et paillettes) pour les moments d'émotion."]],
+  ["s3","🫧","Bulles de savon","sens",6,36,"10 min",["Suivre des yeux, pointer, attraper","Plaisir partagé, langage (« encore », « pop »)"],["Liquide à bulles","Souffleur"],["L'adulte souffle les bulles au-dessus des enfants.","Laisser les plus grands essayer d'attraper ou de souffler.","Mettre des mots : « grosse bulle », « elle monte », « pop »."],["Le liquide ne doit pas aller dans la bouche ni dans les yeux : c'est l'adulte qui tient le flacon.","Sol qui peut devenir glissant : faire en extérieur ou sur un tapis."],["Bulles en musique ; bulles géantes dehors pour les 2-3 ans."]],
+  ["s4","💧","Jeux d'eau et transvasements","sens",12,36,"20 min",["Motricité fine, verser, remplir, vider","Notions plein/vide"],["Bassine peu profonde","Gobelets, entonnoirs, petits arrosoirs","Éponges","Tabliers"],["Remplir la bassine de quelques centimètres d'eau tiède.","Proposer gobelets et entonnoirs ; montrer comment verser.","Laisser expérimenter ; nommer « plein », « vide », « ça coule ».","Vider et sécher le sol à la fin."],["Jamais un enfant seul près de l'eau, même quelques centimètres (risque de noyade).","Vider la bassine immédiatement après l'activité.","Sol essuyé pour éviter les chutes."],["Glaçons en été ; eau colorée avec du colorant alimentaire."]],
+  ["m1","🎵","Comptines à gestes","musique",0,36,"10 à 15 min",["Langage, mémoire, imitation","Lien affectif, rituel"],["Aucun (ou un livre de comptines)"],["S'installer en cercle, les bébés sur les genoux ou devant l'adulte.","Chanter lentement en faisant de grands gestes (« Ainsi font font font », « Les petits poissons dans l'eau »…).","Répéter les mêmes comptines plusieurs séances : les enfants les reconnaissent et anticipent.","Laisser un enfant choisir la comptine suivante."],["Rien de particulier : surveiller simplement les bébés installés au sol."],["Comptine avec marionnettes ; comptines de chez les familles (autres langues)."]],
+  ["m2","🥁","Petit orchestre","musique",10,36,"15 à 20 min",["Écoute, rythme, fort/doux","Découverte des sons"],["Maracas (ou bouteilles sensorielles scellées)","Tambourins","Clochettes","Cuillères en bois et casseroles"],["Distribuer un instrument par enfant.","Jouer ensemble sur une musique, puis s'arrêter tous au signal.","Jouer « fort » puis « doux », « vite » puis « lentement ».","Échanger les instruments."],["Instruments solides, sans petites pièces ; grelots bien fixés.","Volume sonore raisonnable."],["Défilé en musique dans la salle."]],
+  ["m3","🧣","Danse des foulards","musique",6,36,"10 à 15 min",["Suivre un mouvement, coordination","Expression corporelle"],["Foulards légers et colorés (mousseline)","Musique douce puis entraînante"],["Distribuer un foulard à chacun.","Le faire voler, le lancer en l'air, se cacher dessous (coucou-caché).","Suivre la musique : lent (le foulard plane), rapide (il s'agite)."],["Foulards fins et transparents : on doit voir le visage à travers ; ne pas les nouer autour du cou."],["Faire passer un foulard d'enfant en enfant."]],
+  ["c1","🖐️","Peinture avec les doigts","crea",12,36,"20 min",["Découvrir les couleurs et la matière","Motricité fine, plaisir de laisser une trace"],["Grandes feuilles fixées sur la table","Peinture adaptée aux tout-petits (ou yaourt nature + colorant alimentaire)","Tabliers, lingettes"],["Fixer la feuille avec de l'adhésif.","Déposer une noisette de couleur ; montrer avec le doigt.","Laisser étaler, mélanger, tapoter ; nommer les couleurs.","Afficher les œuvres pour les parents."],["Peinture non toxique, adaptée à l'âge ; vérifier les allergies (lait si yaourt).","Surveiller que l'enfant ne mange pas la peinture."],["Peinture avec une éponge, avec les pieds, sur une vitre."]],
+  ["c2","⭐","Collage de gommettes et papiers","crea",24,36,"15 min",["Pince fine (pouce-index), précision","Couleurs et formes"],["Grandes gommettes","Papiers déchirés","Feuilles cartonnées"],["Montrer comment décoller une gommette.","Proposer de les coller librement ou sur un dessin simple.","Déchirer du papier ensemble et le coller."],["Gommettes assez grandes ; surveiller la mise en bouche."],["Fresque collective pour le relais ou la crèche."]],
+  ["n1","🍂","Promenade sensorielle dehors","nature",12,36,"30 min",["Observer, toucher, écouter la nature","Marche sur terrain varié"],["Petit panier","Tenue adaptée à la météo"],["Faire une courte promenade dans un parc ou un jardin.","S'arrêter pour toucher l'écorce, ramasser des feuilles, écouter les oiseaux.","Rapporter les trésors (grandes feuilles, bâtons) pour un collage."],["Autorisation des parents pour les sorties ; liste des enfants et trousse de secours.","Ne rien porter à la bouche (baies, champignons) ; se laver les mains au retour.","Protocole de sortie de la structure respecté."],["Chasse aux couleurs : trouver quelque chose de rouge, de vert…"]],
+  ["l1","📚","Lecture d'albums","langage",4,36,"10 à 15 min",["Langage, écoute, attention partagée","Plaisir des livres"],["Livres cartonnés, imagiers, livres à toucher, livres à rabats"],["Installer un coin confortable avec coussins.","Lire à voix expressive, montrer les images, laisser tourner les pages.","Relire les livres préférés : la répétition aide le langage.","Laisser les livres à disposition après la lecture."],["Livres adaptés à l'âge (cartonnés pour les plus jeunes), en bon état."],["Kamishibaï ou tapis de lecture ; lire dans les langues des familles."]],
+  ["l2","🙈","Coucou-caché et objets qui disparaissent","langage",6,18,"10 min",["Permanence de l'objet","Plaisir, langage (« où est… ? »)"],["Foulard","Petite boîte","Jouet préféré"],["Cacher son visage derrière un foulard : « coucou ! ».","Cacher un jouet sous le foulard devant l'enfant ; le laisser le retrouver.","Mettre le jouet dans une boîte fermée, puis l'ouvrir ensemble."],["Foulard léger, retiré après le jeu."],["Boîte à formes ; cacher un jouet sonore."]],
+  ["d1","🌙","Retour au calme","detente",0,36,"5 à 10 min",["Apaisement, conscience du corps","Transition entre deux activités"],["Musique douce","Lumière tamisée","Coussins"],["Baisser la lumière, mettre une musique douce.","S'allonger ou s'asseoir ; respirer ensemble « comme un ballon qui gonfle ».","Petit massage des mains ou des pieds proposé (jamais imposé), avec l'accord de l'enfant."],["Bébés couchés sur le dos s'ils s'endorment.","Respecter le refus de l'enfant."],["Bouteille calme à regarder ; berceuse."]]
+];
+const EM=Object.fromEntries(EVEIL.map(e=>[e[0],e]));
+// stations pour composer un parcours
+const STATIONS=[["Tapis de textures","🧶",3,36],["Miroir incassable au sol","🪞",3,18],["Rouleau en mousse à ramper","🛢️",6,18],["Tunnel","🚇",8,36],["Pente douce en mousse","⛰️",8,24],["Marches en mousse","🪜",10,36],["Banc bas pour se hisser","🪑",9,18],["Chariot de marche","🛒",9,18],["Poutre au sol","➖",18,36],["Cerceaux à sauter","⭕",20,36],["Petit toboggan","🛝",15,36],["Slalom entre les plots","🔶",18,36],["Lancer de balles dans un bac","🏀",15,36],["Ponts à passer dessous","🌉",12,36],["Coussins à escalader","☁️",10,30],["Chemin pieds nus (picots, gazon…)","🦶",12,36],["Gros ballon de gym (avec un adulte)","🟠",6,36],["Bac de balles","🔴",10,36],["Cachette sous un drap","⛺",8,36],["Coin calme pour finir","🌙",0,36]];
+const ageLab=(a,b)=>`${a<12?a+" mois":Math.floor(a/12)+" an"+(a>=24?"s":"")}${b>=36&&a<36?" à 3 ans":" à "+(b<12?b+" mois":Math.floor(b/12)+" an"+(b>=24?"s":"")+(b%12?" "+b%12+" mois":""))}`.replace("0 mois à","naissance à");
+function rEveil(){
+  const age=S.eage||"", cat=S.ecat||"", q=norm(S.eq||"");
+  const fit=e=>(!age||(e[4]<=+age&&e[5]>=+age))&&(!cat||e[3]===cat)&&(!q||norm(e[2]+" "+e[7].join(" ")+" "+e[8].join(" ")).includes(q));
+  const L=EVEIL.filter(fit), mine=(D.parcours||[]), plan=(D.plan||[]).filter(p=>p.date>=todayISO()).sort((a,b)=>a.date.localeCompare(b.date));
+  app.innerHTML=`<div class="stack"><div><div class="lab">Bébés et tout-petits</div><h1>Éveil 0-3 ans</h1><p class="muted" style="margin:4px 0 0">Parcours moteurs et ateliers d'éveil prêts à animer : matériel, déroulé, sécurité. Composez vos parcours et préparez vos séances.</p></div>
+    <div class="row" style="gap:8px"><button class="btn p" id="mkP" style="flex:1">🧩 Composer un parcours</button><button class="btn g" id="toPlan" style="flex:1">📅 Mes séances${plan.length?" ("+plan.length+")":""}</button></div>
+    <div class="scr">${[["","Tous âges"],["4","0-6 mois"],["9","6-12 mois"],["15","12-18 mois"],["21","18-24 mois"],["30","2-3 ans"]].map(([v,l])=>`<button class="fc ${age===v?"on":""}" data-ea="${v}">${l}</button>`).join("")}</div>
+    <div class="scr"><button class="fc ${!cat?"on":""}" data-ec="">Tout</button>${Object.entries(ECAT).map(([k,[e,l]])=>`<button class="fc ${cat===k?"on":""}" data-ec="${k}">${e} ${l}</button>`).join("")}</div>
+    <input type="search" id="eq" placeholder="🔎 Chercher (tunnel, eau, comptine…)" value="${esc(S.eq||"")}">
+    ${mine.length&&!cat?`<div class="sec"><span class="dot y"></span><h2>Mes parcours</h2></div>${mine.map(p=>`<button class="card row" data-mp="${p.id}" style="text-align:left;flex-wrap:nowrap;gap:12px;padding:10px"><span class="thumb">${parcoursSVGfromUser(p)}</span><span style="flex:1"><b>${esc(p.name)}</b><br><span class="tiny">${p.st.length} étapes · ${esc(p.age||"")}</span></span><span>›</span></button>`).join("")}`:""}
+    <div class="sec"><span class="dot"></span><h2>${L.length} activité(s)</h2></div>
+    ${L.map(e=>`<button class="card row" data-ev="${e[0]}" style="text-align:left;flex-wrap:nowrap;gap:12px;padding:10px"><span class="thumb">${artSVG(e[0])}</span><span style="flex:1;min-width:0"><b style="font-size:16px">${esc(e[2])}</b><br><span class="tiny">${ECAT[e[3]][0]} ${ECAT[e[3]][1]} · ${ageLab(e[4],e[5])} · ${esc(e[6])}</span></span><span>›</span></button>`).join("")||`<div class="notice">Aucune activité pour ce filtre.</div>`}
+    <p class="tiny">Idées d'animation données à titre indicatif : adaptez toujours au développement de chaque enfant, à vos locaux et à votre protocole de sécurité. Un adulte reste présent en permanence.</p></div>`;
+  app.querySelectorAll("[data-ea]").forEach(b=>b.onclick=()=>{ S.eage=b.dataset.ea; rEveil(); });
+  app.querySelectorAll("[data-ec]").forEach(b=>b.onclick=()=>{ S.ecat=b.dataset.ec; rEveil(); });
+  let qt; $("#eq").addEventListener("input",e=>{ S.eq=e.target.value; clearTimeout(qt); qt=setTimeout(()=>{ const p=e.target.selectionStart; rEveil(); const i=$("#eq"); i.focus(); try{i.setSelectionRange(p,p)}catch(_){} },350); });
+  app.querySelectorAll("[data-ev]").forEach(b=>b.onclick=()=>go("ev",b.dataset.ev));
+  app.querySelectorAll("[data-mp]").forEach(b=>b.onclick=()=>go("mp",b.dataset.mp));
+  $("#mkP").onclick=()=>parcoursSheet(null); $("#toPlan").onclick=()=>go("plan");
+}
+function rEv(){
+  const e=EM[CUR]; if(!e){ back(); return; }
+  app.innerHTML=`<div class="stack"><button class="btn s" id="bk" style="align-self:flex-start">‹ Retour</button>
+    <div style="display:flex;gap:12px;align-items:center"><span style="font-size:52px">${e[1]}</span><div><div class="lab">${ECAT[e[3]][0]} ${ECAT[e[3]][1]}</div><h1 style="font-size:24px">${esc(e[2])}</h1></div></div>
+    <div class="row"><span class="chip co">👶 ${ageLab(e[4],e[5])}</span><span class="chip sa">⏱ ${esc(e[6])}</span></div>
+    <div class="card artcard">${artSVG(e[0])}</div>
+    <button class="btn p block" id="pres">▶ Présenter l'activité pas à pas</button>
+    ${PSTATIONS[e[0]]&&e[0]!=="p3"?`<div class="card stack" style="gap:6px"><h2>🧭 Le parcours en animation</h2><div style="line-height:0">${parcoursSVG(PSTATIONS[e[0]],true)}</div></div>`:""}
+    <div class="card stack"><h2>🎯 Objectifs</h2><ul style="margin:0;padding-left:20px">${e[7].map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>
+    <div class="card stack"><h2>🧺 Matériel</h2><ul style="margin:0;padding-left:20px">${e[8].map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>
+    <div class="card stack"><h2>▶️ Déroulé</h2><ol style="margin:0;padding-left:22px">${e[9].map(x=>`<li style="margin:4px 0">${esc(x)}</li>`).join("")}</ol></div>
+    <div class="card stack" style="background:var(--no-l);border-color:transparent"><h2>⚠️ Sécurité</h2><ul style="margin:0;padding-left:20px">${e[10].map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>
+    <div class="card stack"><h2>💡 Variantes</h2><ul style="margin:0;padding-left:20px">${e[11].map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>
+    <div class="row"><button class="btn p" id="pl" style="flex:1">📅 Prévoir dans une séance</button><button class="btn" id="pf" style="flex:1">📄 Fiche PDF</button></div><div id="outBox"></div></div>`;
+  $("#bk").onclick=back; $("#pl").onclick=()=>planSheet({kind:"ev",ref:e[0],title:e[2]}); $("#pf").onclick=()=>evPdf([e]);
+  $("#pres").onclick=()=>present(e[2],artSVG(e[0]),e[9],"Âge : "+ageLab(e[4],e[5])+" · "+e[6]+" · Matériel : "+e[8].slice(0,4).join(", ")+(e[8].length>4?"…":""));
+}
+function parcoursSheet(p0){
+  const p=p0?JSON.parse(JSON.stringify(p0)):{id:uid(),name:"",age:"",st:[],notes:""};
+  const ov=sheet(`<h2>${p0?"Modifier le parcours":"Composer un parcours"}</h2>
+    <label class="f">Nom du parcours<input type="text" id="pn" value="${esc(p.name)}" placeholder="ex. Parcours de la jungle"></label>
+    <label class="f">Pour quel âge ?<select id="pa">${["0-12 mois","9-18 mois","12-24 mois","18-36 mois","Tous âges"].map(v=>`<option ${p.age===v?"selected":""}>${v}</option>`).join("")}</select></label>
+    <b>Étapes (dans l'ordre où vous les cochez)</b><div id="stl" class="stack" style="gap:2px">${STATIONS.map((s,i)=>`<label class="ck"><input type="checkbox" data-si="${i}" ${p.st.includes(s[0])?"checked":""}><span>${s[1]} ${esc(s[0])} <span class="tiny">(${ageLab(s[2],s[3])})</span></span></label>`).join("")}</div>
+    <label class="f">Étape personnelle<input type="text" id="px" placeholder="ex. Pont de cartons, puis Entrée"></label>
+    <label class="f">Consignes, histoire du parcours<textarea id="pnt" placeholder="ex. On part en voyage dans la jungle : on rampe sous les lianes…">${esc(p.notes)}</textarea></label>
+    <div class="row"><button class="btn" data-x style="flex:1">Annuler</button><button class="btn p" data-ok style="flex:1">Enregistrer</button></div>`);
+  ov.querySelectorAll("[data-si]").forEach(c=>c.onchange=()=>{ const n=STATIONS[+c.dataset.si][0]; if(c.checked){ if(!p.st.includes(n)) p.st.push(n); } else p.st=p.st.filter(x=>x!==n); });
+  ov.querySelector("#px").onkeydown=e=>{ if(e.key==="Enter"&&e.target.value.trim()){ p.st.push(e.target.value.trim()); e.target.value=""; toast("Étape ajoutée"); } };
+  ov.querySelector("[data-x]").onclick=()=>ov.remove();
+  ov.querySelector("[data-ok]").onclick=()=>{ const x=ov.querySelector("#px").value.trim(); if(x) p.st.push(x); p.name=ov.querySelector("#pn").value.trim()||"Mon parcours"; p.age=ov.querySelector("#pa").value; p.notes=ov.querySelector("#pnt").value.trim();
+    if(!p.st.length) return toast("Choisissez au moins une étape");
+    D.parcours=D.parcours||[]; const i=D.parcours.findIndex(z=>z.id===p.id); if(i>=0) D.parcours[i]=p; else D.parcours.unshift(p); save(); ov.remove(); go("mp",p.id); toast("Parcours enregistré"); };
+}
+function rMp(){
+  const p=(D.parcours||[]).find(x=>x.id===CUR); if(!p){ back(); return; }
+  app.innerHTML=`<div class="stack"><button class="btn s" id="bk" style="align-self:flex-start">‹ Retour</button>
+    <div><div class="lab">🧩 Mon parcours · ${esc(p.age)}</div><h1>${esc(p.name)}</h1></div>
+    <div class="card artcard">${parcoursSVGfromUser(p)}</div>
+    <button class="btn p block" id="pres">▶ Présenter le parcours</button>
+    <div class="card stack"><h2>Les étapes</h2><ol style="margin:0;padding-left:22px">${p.st.map((s,i)=>{ const st=STATIONS.find(x=>x[0]===s); return `<li style="margin:6px 0"><span style="font-size:20px">${st?st[1]:"⭐"}</span> <b>${esc(s)}</b></li>`; }).join("")}</ol></div>
+    ${p.notes?`<div class="card stack"><h2>Consignes</h2><p style="margin:0;white-space:pre-wrap">${esc(p.notes)}</p></div>`:""}
+    <div class="card stack" style="background:var(--no-l);border-color:transparent"><h2>⚠️ Avant de commencer</h2><ul style="margin:0;padding-left:20px"><li>Tapis sous et autour des éléments en hauteur ; modules stables.</li><li>Espace suffisant entre les étapes ; pas de petits objets au sol.</li><li>Un adulte près des passages délicats, les enfants toujours à portée de vue.</li><li>Motricité libre : on ne place pas un enfant dans une position qu'il ne sait pas prendre seul.</li></ul></div>
+    <div class="row"><button class="btn p" id="pl" style="flex:1">📅 Prévoir dans une séance</button><button class="btn" id="pf" style="flex:1">📄 PDF</button></div>
+    <div class="row"><button class="btn" id="ed" style="flex:1">✏️ Modifier</button><button class="btn" id="del" style="flex:1;color:var(--no)">🗑 Supprimer</button></div><div id="outBox"></div></div>`;
+  $("#bk").onclick=back; $("#ed").onclick=()=>parcoursSheet(p);
+  $("#pres").onclick=()=>present(p.name,parcoursSVGfromUser(p),p.st.map((x,i)=>`Étape ${i+1} : ${x}`).concat(p.notes?[p.notes]:[]),p.age+" · "+p.st.length+" étapes"); $("#pl").onclick=()=>planSheet({kind:"mp",ref:p.id,title:p.name}); $("#pf").onclick=()=>mpPdf(p);
+  $("#del").onclick=()=>{ D.parcours=D.parcours.filter(x=>x.id!==p.id); save(); back(); toast("Parcours supprimé"); };
+}
+function planSheet(it){
+  const ov=sheet(`<h2>Prévoir une séance</h2><p class="muted" style="margin:0">${esc(it.title)}</p>
+    <div class="grid2"><label class="f">Date<input type="date" id="sd" value="${todayISO()}"></label><label class="f">Heure<input type="text" id="sh" placeholder="ex. 9 h 30"></label></div>
+    <label class="f">Lieu<input type="text" id="sl" placeholder="ex. Salle du relais"></label>
+    <label class="f">Groupe, remarques<input type="text" id="sn" placeholder="ex. 6 assistants maternels, 12 enfants"></label>
+    <div class="row"><button class="btn" data-x style="flex:1">Annuler</button><button class="btn p" data-ok style="flex:1">Ajouter</button></div>`);
+  ov.querySelector("[data-x]").onclick=()=>ov.remove();
+  ov.querySelector("[data-ok]").onclick=()=>{ D.plan=D.plan||[]; D.plan.push({id:uid(),...it,date:ov.querySelector("#sd").value||todayISO(),time:ov.querySelector("#sh").value.trim(),lieu:ov.querySelector("#sl").value.trim(),notes:ov.querySelector("#sn").value.trim(),done:false}); save(); ov.remove(); toast("Séance ajoutée à « Mes séances »"); };
+}
+function rPlan(){
+  const all=(D.plan||[]).sort((a,b)=>a.date.localeCompare(b.date)), fut=all.filter(p=>p.date>=todayISO()), past=all.filter(p=>p.date<todayISO()).reverse();
+  const row=p=>`<div class="row" style="flex-wrap:nowrap;border-bottom:1px solid var(--line);padding:6px 0;gap:8px"><span style="font-size:24px">${p.kind==="ev"?(EM[p.ref]?.[1]||"🎨"):"🧩"}</span><button data-op="${p.id}" style="flex:1;text-align:left;background:none;border:0;padding:0"><b>${esc(p.title)}</b><br><span class="tiny">${fmtDate(p.date)}${p.time?" · "+esc(p.time):""}${p.lieu?" · "+esc(p.lieu):""}${p.notes?" · "+esc(p.notes):""}</span></button>${D.profile==="rpe"&&p.date<=todayISO()&&!p.logged?`<button class="btn s g" data-log="${p.id}" title="Noter dans l'activité du relais">📊</button>`:""}<button class="btn s" data-rm="${p.id}">×</button></div>`;
+  app.innerHTML=`<div class="stack"><button class="btn s" id="bk" style="align-self:flex-start">‹ Retour</button>
+    <div><div class="lab">Éveil 0-3 ans</div><h1>Mes séances</h1></div>
+    <div class="card stack"><h2>À venir</h2>${fut.length?fut.map(row).join(""):`<p class="muted" style="margin:0">Aucune séance prévue. Ouvrez une activité ou un parcours puis « 📅 Prévoir dans une séance ».</p>`}</div>
+    ${fut.length?`<div class="card stack"><h2>Programme</h2><span class="small muted">Le programme des séances à venir, avec les fiches des activités : à afficher, à remettre aux assistants maternels ou aux parents.</span><button class="btn p" id="prog">📄 Programme PDF avec les fiches</button><div id="outBox"></div></div>`:""}
+    ${past.length?`<div class="card stack"><h2>Passées</h2>${past.slice(0,40).map(row).join("")}</div>`:""}</div>`;
+  $("#bk").onclick=back;
+  app.querySelectorAll("[data-op]").forEach(b=>b.onclick=()=>{ const p=D.plan.find(x=>x.id===b.dataset.op); if(p.kind==="ev") go("ev",p.ref); else go("mp",p.ref); });
+  app.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{ D.plan=D.plan.filter(x=>x.id!==b.dataset.rm); save(); rPlan(); });
+  app.querySelectorAll("[data-log]").forEach(b=>b.onclick=()=>{ const p=D.plan.find(x=>x.id===b.dataset.log); p.logged=true; save(); actSheet({id:uid(),date:p.date,type:"atel",parents:"",am:"",gad:"",enf:"",lieu:p.lieu,notes:p.title+(p.notes?" – "+p.notes:"")}); });
+  if($("#prog")) $("#prog").onclick=()=>progPdf(fut);
+}
+function evBlock(K,e){ const {doc,M,CW}=K;
+  K.need(30); K.T(e[2],M,K.y,{b:1,s:13}); K.y+=5.5; K.T(`${ECAT[e[3]][1]} · ${ageLab(e[4],e[5])} · ${e[6]}`,M,K.y,{s:9,c:[185,69,47]}); K.y+=7;
+  const part=(t,arr,num,col)=>{ K.need(10); K.T(t,M,K.y,{b:1,s:10,c:col||[43,42,51]}); K.y+=5; arr.forEach((x,i)=>{ const l=doc.splitTextToSize(K.cl((num?(i+1)+". ":"• ")+x),CW-4); K.need(l.length*4.3); K.T(l,M+3,K.y,{s:9.5}); K.y+=l.length*4.3+0.8; }); K.y+=2.5; };
+  part("Objectifs",e[7]); part("Matériel",e[8]); part("Déroulé",e[9],true); part("Sécurité",e[10],false,[215,38,61]); part("Variantes",e[11]); K.y+=4; }
+async function evPdf(list){ const K=await pdfStart("FICHE D'ACTIVITÉ D'ÉVEIL","Enfants de 0 à 3 ans"); if(!K) return; list.forEach(e=>evBlock(K,e)); pdfEnd(K,`Fiche_eveil_${list[0][0]}.pdf`); }
+async function mpPdf(p){ const K=await pdfStart("PARCOURS D'ÉVEIL",p.name+" · "+p.age); if(!K) return; const {doc,M,CW}=K;
+  K.sec("Étapes"); p.st.forEach((s,i)=>{ K.need(8); K.doc.setFillColor(227,106,84); K.doc.circle(M+3,K.y-1.3,3,"F"); K.T(String(i+1),M+3,K.y,{b:1,s:9,c:[255,255,255],opt:{align:"center"}}); K.T(s,M+9,K.y,{s:11}); K.y+=8; });
+  if(p.notes){ K.sec("Consignes"); const l=doc.splitTextToSize(K.cl(p.notes),CW); K.T(l,M,K.y,{s:10}); K.y+=l.length*4.6+4; }
+  K.sec("Sécurité"); ["Tapis sous et autour des éléments en hauteur ; modules stables.","Espace suffisant entre les étapes ; aucun petit objet au sol.","Un adulte près des passages délicats ; enfants toujours à portée de vue.","Motricité libre : ne pas placer un enfant dans une position qu'il ne sait pas prendre seul."].forEach(x=>{ const l=doc.splitTextToSize(K.cl("• "+x),CW); K.T(l,M,K.y,{s:9.5}); K.y+=l.length*4.4+1; });
+  pdfEnd(K,`Parcours_${p.name.replace(/[^\w]+/g,"_").slice(0,30)}.pdf`); }
+async function progPdf(list){ const K=await pdfStart("PROGRAMME DES SÉANCES D'ÉVEIL",`À partir du ${fmtDate(todayISO())}`); if(!K) return; const {doc,M,CW}=K;
+  K.sec("Calendrier"); list.forEach(p=>{ const l=doc.splitTextToSize(K.cl(`${fmtDate(p.date)}${p.time?" à "+p.time:""} – ${p.title}${p.lieu?" ("+p.lieu+")":""}${p.notes?" · "+p.notes:""}`),CW); K.need(l.length*4.6+2); K.T(l,M,K.y,{s:10}); K.y+=l.length*4.6+2; });
+  const evs=[...new Set(list.filter(p=>p.kind==="ev").map(p=>p.ref))].map(r=>EM[r]).filter(Boolean), mps=[...new Set(list.filter(p=>p.kind==="mp").map(p=>p.ref))].map(r=>(D.parcours||[]).find(x=>x.id===r)).filter(Boolean);
+  if(evs.length){ doc.addPage(); K.y=18; K.sec("Fiches des activités"); evs.forEach(e=>evBlock(K,e)); }
+  mps.forEach(p=>{ K.need(30); K.sec("Parcours : "+p.name); p.st.forEach((s,i)=>{ K.need(6); K.T(`${i+1}. ${s}`,M+3,K.y,{s:10}); K.y+=5.5; }); if(p.notes){ const l=doc.splitTextToSize(K.cl(p.notes),CW); K.T(l,M,K.y+1,{s:9.5,c:[107,104,115]}); K.y+=l.length*4.4+4; } });
+  pdfEnd(K,`Programme_eveil_${todayISO()}.pdf`); }
+
+/* ================= Aide ================= */
+function rHelp(){
+  const H=[["👣","À quoi sert Petits Pas ?",["Repérer tout seul les nouveaux textes officiels (décrets, arrêtés, lois, actualités Service-public) sur la petite enfance : crèches, micro-crèches, assistants maternels, MAM, santé, sécurité, protection de l'enfance, personnel, aides aux familles.","Donner l'essentiel des règles dans des fiches pratiques, avec une check-list adaptée à votre situation.","Garder une trace de ce que vous avez lu et mis à jour."]],
+    ["📡","La recherche automatique",["Dans l'application Android, Petits Pas consulte les sources 2 fois par jour, même fermée, et vous envoie une notification s'il y a du nouveau.","« 🔄 Actualiser » lance une recherche tout de suite.","Les nominations, concours et textes sans rapport avec la petite enfance sont écartés automatiquement."]],
+    ["📰","Lire et trier",["« 📖 Lire » ouvre le texte officiel.","« 📌 Ça me concerne » le passe dans l'onglet Suivis.","« Pas pour moi » l'archive ; « 📤 » le partage (e-mail, WhatsApp).","Filtrez par thème ou cherchez un mot (vaccins, micro-crèche, CMG…)."]],
+    ["📌","Suivre un texte",["Notez ce qu'il change pour vous et sa date d'application.","Les documents de la structure à revoir sont proposés (projet d'établissement, règlement, protocoles…) : passez-les à « ✓ Fait ».","Ajoutez des actions avec une date : les retards s'affichent sur l'accueil."]],
+    ["📚","Fiches pratiques et check-list",["Chaque thème a sa fiche : les règles de base et les textes de référence (lien Légifrance).","La check-list liste les points essentiels pour votre profil : touchez OK ou À faire. Elle s'imprime en PDF.","« 🚑 Urgences et contacts » : 15, 112, 119, centre antipoison, et vos propres contacts (PMI, médecin…)."]],
+    ["🤗","Pour les relais petite enfance",["Choisissez le profil « Relais petite enfance » : veille sur les RPE, le service public de la petite enfance, les assistants maternels et les gardes à domicile.","Fiche RPE : cadre légal, missions socles et renforcées, monenfant.fr, financement Caf 2026, bilan annuel.","Check-list du relais (projet de fonctionnement, ateliers d'éveil, bilan Caf…).","« 📊 Activité du relais » : notez permanences, ateliers, rendez-vous ; les totaux de l'année et le bilan PDF ou Excel se font tout seuls."]],
+    ["🎨","Éveil 0-3 ans",["L'onglet Éveil propose des parcours moteurs et des ateliers (sensoriel, musique, manipulation, livres, créatif, nature, retour au calme) classés par âge.","Chaque fiche donne les objectifs, le matériel, le déroulé pas à pas, les points de sécurité et des variantes.","« 🧩 Composer un parcours » : cochez les étapes (tunnel, poutre, cerceaux…), donnez un nom et une histoire.","« 📅 Prévoir dans une séance » puis « Mes séances » : le programme PDF avec toutes les fiches, à afficher ou à remettre aux assistants maternels. Relais : notez la séance dans l'activité d'un toucher (📊)."]],
+    ["📄","Bulletin de veille",["Onglet Suivis : bulletin PDF sur 1, 3 ou 12 mois, et export Excel. Pratique pour une réunion d'équipe ou un échange avec la PMI."]],
+    ["⚙️","Réglages et sauvegarde",["Changez de profil, choisissez vos thèmes et vos sources, ajoutez un flux RSS.","« 💾 Sauvegarder » crée un fichier à garder ; « 📂 Restaurer » le recharge sur un autre téléphone."]]];
+  app.innerHTML=`<div class="stack help"><button class="btn s" id="bk" style="align-self:flex-start">‹ Retour</button><div><div class="lab">Mode d'emploi</div><h1>Aide</h1></div>
+    <div class="warnbox"><b>Petits Pas en une phrase :</b> l'application lit le Journal officiel pour vous, garde ce qui touche la petite enfance, et vous aide à rester en règle.</div>
+    ${H.map((h,i)=>`<details ${i===0?"open":""}><summary>${h[0]} ${esc(h[1])}</summary><ul>${h[2].map(t=>`<li>${esc(t)}</li>`).join("")}</ul></details>`).join("")}
+    <p class="tiny">Sources : Journal officiel via legifrss.org (relais non officiel des données de Légifrance) et Service-public. Petits Pas signale les textes et donne des repères : il ne remplace ni les textes officiels, ni l'avis de votre PMI ou d'un juriste.</p></div>`;
+  $("#bk").onclick=back; D.helpSeen=true; save();
+}
+
+/* ================= Démarrage ================= */
+addEventListener("popstate",()=>{ if(document.querySelector(".pres")) document.querySelector(".pres [data-q]").click(); else if(document.querySelector(".ov")) document.querySelector(".ov").remove(); else if(stack.length) back(); else if(V!=="home"){ V="home"; render(); } else return; history.pushState({},""); });
+history.pushState({},"");
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ takeNative(); badges(); if(["home","feed"].includes(V)) rerender(); } });
+render();
+setTimeout(()=>{ if(!D.profile) return; takeNative(); badges(); if(((MP&&MP.httpFetch)||(window.MAGPC&&MAGPC.net.proxy()))&&(!D.last||Date.now()-D.last>6*3600e3)) refresh(false); else { syncNative(); if(V==="home") rerender(); } },1500);
+</script>
+<script>/* Application Android : impression (MAGPrint.printHtml), et fichiers téléchargés -> menu Android (enregistrer dans un dossier, e-mail, partager, imprimer) */
+(function(){if(!window.MAGPrint)return;var MP=window.MAGPrint;
+function fixForms(src,dst){var a=src.querySelectorAll("input,textarea,select"),b=dst.querySelectorAll("input,textarea,select");for(var i=0;i<a.length&&i<b.length;i++){var x=a[i],y=b[i];if(x.tagName==="TEXTAREA")y.textContent=x.value;else if(x.tagName==="SELECT"){Array.prototype.forEach.call(y.options,function(o,k){if(k===x.selectedIndex)o.setAttribute("selected","");else o.removeAttribute("selected")})}else if(x.type==="checkbox"||x.type==="radio"){if(x.checked)y.setAttribute("checked","");else y.removeAttribute("checked")}else y.setAttribute("value",x.value)}}
+function snap(win){var doc=win.document,d=doc.documentElement.cloneNode(true);fixForms(doc.documentElement,d);d.querySelectorAll("script").forEach(function(s){s.remove()});
+  doc.querySelectorAll("canvas").forEach(function(c,i){try{var img=d.querySelectorAll("canvas")[i];if(img){var im=doc.createElement("img");im.src=c.toDataURL("image/png");im.style.cssText="max-width:100%";img.replaceWith(im)}}catch(e){}});
+  return "<!doctype html>"+d.outerHTML}
+function toB64(blob){return new Promise(function(ok,ko){var r=new FileReader();r.onload=function(){var x=String(r.result);ok(x.slice(x.indexOf(",")+1))};r.onerror=ko;r.readAsDataURL(blob)})}
+function sendFile(href,name,win){if(!MP.fileMenu)return false;(win||window).fetch(href).then(function(r){return r.blob()}).then(function(b){return toB64(b).then(function(x){MP.fileMenu(x,name||"fichier",b.type||"application/octet-stream","","","")})}).catch(function(){});return true}
+function openBlob(href,name,win){if(!MP.openFile)return sendFile(href,name,win);(win||window).fetch(href).then(function(r){return r.blob()}).then(function(b){return toB64(b).then(function(x){MP.openFile(x,name||("document"+(b.type.indexOf("pdf")>=0?".pdf":"")),b.type||"application/octet-stream")})}).catch(function(){});return true}
+function hook(win){if(!win||win.__magp)return;win.__magp=1;
+  /* liens créés par programme (a.click() hors de la page) */
+  try{var AC=win.HTMLAnchorElement.prototype.click;win.HTMLAnchorElement.prototype.click=function(){var h=this.getAttribute("href")||"";if(/^(blob:|data:)/.test(h)){if(this.hasAttribute("download")){sendFile(h,this.getAttribute("download"),win);return}if(this.target==="_blank"){openBlob(h,"",win);return}}return AC.apply(this,arguments)}}catch(e){}
+  win.print=function(){try{MP.printHtml(snap(win),win.document.title||"MAG Formation 13")}catch(e){}};
+  var op=win.open;win.open=function(u){if(u&&/^(blob:|data:)/.test(String(u))){openBlob(String(u),"",win);return null}if(!u||u==="about:blank"){var buf="";var fw={closed:false,document:{open:function(){buf=""},write:function(h){buf+=h},writeln:function(h){buf+=h+"\n"},close:function(){}},focus:function(){},close:function(){fw.closed=true},print:function(){MP.printHtml(buf,"MAG Formation 13")}};return fw}return op?op.apply(win,arguments):null};
+  win.document.addEventListener("click",function(e){var a=e.target&&e.target.closest?e.target.closest("a[href]"):null;if(!a)return;var h=a.getAttribute("href")||"";if(!/^(blob:|data:)/.test(h))return;if(a.hasAttribute("download")){e.preventDefault();e.stopPropagation();sendFile(h,a.getAttribute("download"),win)}else if(a.target==="_blank"){e.preventDefault();e.stopPropagation();openBlob(h,a.getAttribute("data-name")||"",win)}},true)}
+hook(window);
+function watch(f){var go=function(){try{hook(f.contentWindow)}catch(e){}};f.addEventListener("load",function(){if(f.contentWindow)f.contentWindow.__magp=0;go()});go()}
+document.querySelectorAll("iframe").forEach(watch);
+new MutationObserver(function(ms){ms.forEach(function(m){m.addedNodes.forEach(function(n){if(n.tagName==="IFRAME")watch(n)})})}).observe(document.documentElement,{childList:true,subtree:true});
+})();</script>
+</body>
+</html>

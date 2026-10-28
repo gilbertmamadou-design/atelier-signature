@@ -37,7 +37,29 @@ h2{font-size:15px;text-transform:uppercase;letter-spacing:1.2px;color:var(--tx2)
 kbd{font:600 13px/1 ui-monospace,Consolas,monospace;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:2px 6px;background:var(--bg);color:var(--tx)}
 .priv{display:inline-flex;gap:8px;align-items:center;background:var(--acc2);color:var(--acc);border-radius:99px;padding:5px 12px;font-weight:650;font-size:14px;margin-top:10px}
 footer{margin-top:36px;color:var(--tx2);font-size:13px}
-footer a{color:var(--acc)}
+.tw{display:flex;flex-direction:column;gap:6px}
+.tw .tile{flex:1}
+.dat{align-self:flex-start;margin-left:12px;background:none;border:0;color:var(--acc);font-family:inherit;font-size:13.5px;font-weight:600;line-height:1.2;padding:4px 6px;border-radius:8px;cursor:pointer}
+.dat:hover{background:var(--acc2)}
+.dat:focus-visible{outline:2px solid var(--acc)}
+.btn{font-family:inherit;font-size:15px;font-weight:600;line-height:1;border-radius:10px;padding:10px 16px;border:1px solid var(--line);background:var(--card);color:var(--tx);cursor:pointer}
+.btn:hover{border-color:var(--acc)}
+.btn.main{background:var(--acc);border-color:var(--acc);color:#fff}
+@media (prefers-color-scheme:dark){.btn.main{color:#0b1220}}
+.btn:disabled{opacity:.5;cursor:default}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+input[type=url]{flex:1;min-width:220px;font-family:inherit;font-size:15px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--tx)}
+.msg{margin-top:10px;font-size:14px;color:var(--tx2);min-height:1.4em}
+.msg.ok{color:var(--ok)}.msg.bad{color:#c0392b}
+@media (prefers-color-scheme:dark){.msg.bad{color:#ff8a80}}
+dialog{border:1px solid var(--line);border-radius:18px;background:var(--card);color:var(--tx);padding:22px 24px;width:min(560px,calc(100vw - 32px));box-shadow:0 20px 60px #0005}
+dialog::backdrop{background:#0008}
+dialog h3{margin:0 0 6px;font-size:19px}
+dialog p{margin:8px 0;color:var(--tx2);font-size:15px}
+dialog .x{float:right;background:none;border:0;font-size:22px;line-height:1;color:var(--tx2);cursor:pointer;padding:2px 6px;border-radius:8px}
+.warn{background:var(--acc2);border-radius:12px;padding:10px 12px;color:var(--tx);font-size:14.5px}
+code{font:13.5px ui-monospace,Consolas,monospace;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:1px 5px}
+footer a,.card a{color:var(--acc)}
 @media (max-width:520px){.wrap{padding:24px 16px 40px}h1{font-size:25px}}
 </style>
 </head>
@@ -46,13 +68,58 @@ footer a{color:var(--acc)}
   <header>
     <div class="mark" aria-hidden="true">MAG</div>
     <div><h1>Suite MAG sur PC</h1><p>Les applis du téléphone, version ordinateur : à installer depuis Edge ou Chrome, et utilisables sans internet.</p>
-      <span class="priv">🔒 Les fichiers restent sur cet ordinateur</span></div>
+      <span class="priv">🔒 Les fichiers et les données restent sur cet ordinateur</span></div>
   </header>
 
-  <h2>Applis (2)</h2>
+  <h2>Applis (24)</h2>
   <div class="grid">
-<a class="tile" href="lecteur/"><img src="lecteur/icon-192.png" alt="" width="64" height="64"><span class="tx"><b>Lecteur PDF</b><small>Lire les PDF, remplir les formulaires, annoter et signer</small></span><span class="go" aria-hidden="true">›</span></a>
-<a class="tile" href="pdf/"><img src="pdf/icon-192.png" alt="" width="64" height="64"><span class="tx"><b>Atelier PDF</b><small>Fusionner, découper, organiser, compresser, signer, reconnaître le texte (OCR)…</small></span><span class="go" aria-hidden="true">›</span></a>
+<div class="tw"><a class="tile" href="lecteur/"><img src="lecteur/icon-192.png" alt="" width="64" height="64"><span class="tx"><b>Lecteur PDF</b><small>Lire les PDF, remplir les formulaires, annoter et signer</small></span><span class="go" aria-hidden="true">›</span></a><button class="dat" type="button" data-app="lecteur">⇅ Exporter / importer mes données</button></div>
+<div class="tw"><a class="tile" href="pdf/"><img src="pdf/icon-192.png" alt="" width="64" height="64"><span class="tx"><b>Atelier PDF</b><small>Fusionner, découper, organiser, compresser, signer, reconnaître le texte (OCR)…</small></span><span class="go" aria-hidden="true">›</span></a><button class="dat" type="button" data-app="pdf">⇅ Exporter / importer mes données</button></div>
+<div class="tw"><a class="tile" href="budget/"><img src="budget/icon-192.png" alt="" width="64" height="64"><span class="tx"><b>Budget</b><small>Dépenses et revenus, comptes, budgets, relevés bancaires (CSV, OFX)</small></span><span class="go" aria-hidden="true">›</span></a><button class="dat" type="button" data-app="budget">⇅ Exporter / importer mes données</button></div>
+<div class="tw"><a class="tile" href="liseuse/"><img src="liseuse/icon-192.png" alt="" width="64" height="64"><span class="tx"><b>Liseuse</b><small>Livres EPUB et PDF, dossiers suivis, livres libres de droits</small></span><span class="go" aria-hidden="true">›</span></a><button class="dat" type="button" data-app="liseuse">⇅ Exporter / importer mes données</button></div>
+<div class="tw"><a class="tile" href="fichiers/"><img src="fichiers/icon-192.png" alt="" width="64" height="64"><span class="tx"><b>Rangement</b><small>Ce qui prend de la place dans un dossier du PC, doublons, gros fichiers</small></span><span class="go" aria-hidden="true">›</span></a><button class="dat" type="button" data-app="fichiers">⇅ Exporter / importer mes données</button></div>
+<div class="tw"><a class="tile" href="actualites/"><img src="actualites/icon-192.png" alt="" width="64" height="64"><span class="tx"><b>Actualités</b><small>L&#x27;essentiel de l&#x27;actu (franceinfo ; tous les médias avec le relais réseau)</small></span><span class="go" aria-hidden="true">›</span></a><button class="dat" type="button" data-app="actualites">⇅ Exporter / importer mes données</button></div>
+<div class="tw"><a class="tile" href="notes/"><img src="notes/icon-192.png" alt="" width="64" height="64"><span class="tx"><b>Carnet</b><small>Notes, listes, dessins et photos, rappels</small></span><span class="go" aria-hidden="true">›</span></a><button class="dat" type="button" data-app="notes">⇅ Exporter / importer mes données</button></div>
+<div class="tw"><a class="tile" href="agenda/"><img src="agenda/icon-192.png" alt="" width="64" height="64"><span class="tx"><b>Agenda</b><small>Rendez-vous, rappels, import et export .ics</small></span><span class="go" aria-hidden="true">›</span></a><button class="dat" type="button" data-app="agenda">⇅ Exporter / importer mes données</button></div>
+<div class="tw"><a class="tile" href="contacts/"><img src="contacts/icon-192.png" alt="" width="64" height="64"><span class="tx"><b>Contacts</b><small>Carnet d&#x27;adresses, doublons, import et export vCard (.vcf)</small></span><span class="go" aria-hidden="true">›</span></a><button class="dat" type="button" data-app="contacts">⇅ Exporter / importer mes données</button></div>
+<div class="tw"><a class="tile" href="calcul/"><img src="calcul/icon-192.png" alt="" width="64" height="64"><span class="tx"><b>Calcul</b><small>Calculatrice standard, scientifique et chantier</small></span><span class="go" aria-hidden="true">›</span></a><button class="dat" type="button" data-app="calcul">⇅ Exporter / importer mes données</button></div>
+<div class="tw"><a class="tile" href="qr/"><img src="qr/icon-192.png" alt="" width="64" height="64"><span class="tx"><b>QR</b><small>Lire un QR code (webcam, image, capture collée) et en créer</small></span><span class="go" aria-hidden="true">›</span></a><button class="dat" type="button" data-app="qr">⇅ Exporter / importer mes données</button></div>
+<div class="tw"><a class="tile" href="meteo/"><img src="meteo/icon-192.png" alt="" width="64" height="64"><span class="tx"><b>Météo</b><small>Prévisions, pluie dans l&#x27;heure, radar, qualité de l&#x27;air</small></span><span class="go" aria-hidden="true">›</span></a><button class="dat" type="button" data-app="meteo">⇅ Exporter / importer mes données</button></div>
+<div class="tw"><a class="tile" href="ciel/"><img src="ciel/icon-192.png" alt="" width="64" height="64"><span class="tx"><b>Ciel</b><small>Météo en clair : pluie, radar, pollens, conseils du jour</small></span><span class="go" aria-hidden="true">›</span></a><button class="dat" type="button" data-app="ciel">⇅ Exporter / importer mes données</button></div>
+<div class="tw"><a class="tile" href="sentiers/"><img src="sentiers/icon-192.png" alt="" width="64" height="64"><span class="tx"><b>Sentiers</b><small>Randonnée : carte topo, itinéraires, traces GPX, sorties (préparation sur PC)</small></span><span class="go" aria-hidden="true">›</span></a><button class="dat" type="button" data-app="sentiers">⇅ Exporter / importer mes données</button></div>
+<div class="tw"><a class="tile" href="solaire/"><img src="solaire/icon-192.png" alt="" width="64" height="64"><span class="tx"><b>Solaire</b><small>Combien de panneaux solaires : cadastre, urbanisme, plan, calepinage, fiche client</small></span><span class="go" aria-hidden="true">›</span></a><button class="dat" type="button" data-app="solaire">⇅ Exporter / importer mes données</button></div>
+<div class="tw"><a class="tile" href="musique/"><img src="musique/icon-192.png" alt="" width="64" height="64"><span class="tx"><b>Mélodie</b><small>Écouter la musique du PC (dossier gardé à sa place), listes, pochettes</small></span><span class="go" aria-hidden="true">›</span></a><button class="dat" type="button" data-app="musique">⇅ Exporter / importer mes données</button></div>
+<div class="tw"><a class="tile" href="ondes/"><img src="ondes/icon-192.png" alt="" width="64" height="64"><span class="tx"><b>Ondes</b><small>Podcasts et musique libre, en écoute en ligne</small></span><span class="go" aria-hidden="true">›</span></a><button class="dat" type="button" data-app="ondes">⇅ Exporter / importer mes données</button></div>
+<div class="tw"><a class="tile" href="ecran/"><img src="ecran/icon-192.png" alt="" width="64" height="64"><span class="tx"><b>Écran</b><small>Vidéos du PC, PeerTube, films libres, NASA, chaînes suivies</small></span><span class="go" aria-hidden="true">›</span></a><button class="dat" type="button" data-app="ecran">⇅ Exporter / importer mes données</button></div>
+<div class="tw"><a class="tile" href="galerie/"><img src="galerie/icon-192.png" alt="" width="64" height="64"><span class="tx"><b>Galerie</b><small>Photos et vidéos d&#x27;un dossier du PC : dates, albums, carte, éditeur</small></span><span class="go" aria-hidden="true">›</span></a><button class="dat" type="button" data-app="galerie">⇅ Exporter / importer mes données</button></div>
+<div class="tw"><a class="tile" href="scan/"><img src="scan/icon-192.png" alt="" width="64" height="64"><span class="tx"><b>Scan</b><small>Documents en PDF à partir d&#x27;images, de PDF ou de la webcam</small></span><span class="go" aria-hidden="true">›</span></a><button class="dat" type="button" data-app="scan">⇅ Exporter / importer mes données</button></div>
+<div class="tw"><a class="tile" href="dicta/"><img src="dicta/icon-192.png" alt="" width="64" height="64"><span class="tx"><b>Dictaphone</b><small>Enregistrer avec le micro du PC, marqueurs, extraits, dictée</small></span><span class="go" aria-hidden="true">›</span></a><button class="dat" type="button" data-app="dicta">⇅ Exporter / importer mes données</button></div>
+<div class="tw"><a class="tile" href="coffre/"><img src="coffre/icon-192.png" alt="" width="64" height="64"><span class="tx"><b>Coffre</b><small>Mots de passe et codes 2FA, chiffrés sur le PC (AES-256)</small></span><span class="go" aria-hidden="true">›</span></a><button class="dat" type="button" data-app="coffre">⇅ Exporter / importer mes données</button></div>
+<div class="tw"><a class="tile" href="petitspas/"><img src="petitspas/icon-192.png" alt="" width="64" height="64"><span class="tx"><b>Petits Pas</b><small>Veille petite enfance et RPE : textes officiels, fiches, check-list</small></span><span class="go" aria-hidden="true">›</span></a><button class="dat" type="button" data-app="petitspas">⇅ Exporter / importer mes données</button></div>
+<div class="tw"><a class="tile" href="chasse/"><img src="chasse/icon-192.png" alt="" width="64" height="64"><span class="tx"><b>Carnet de chasse</b><small>Carnet de prélèvements, statistiques, exports PDF et Excel (consultation sur PC)</small></span><span class="go" aria-hidden="true">›</span></a><button class="dat" type="button" data-app="chasse">⇅ Exporter / importer mes données</button></div>
+  </div>
+
+  <h2>Mes données</h2>
+  <div class="cols">
+    <div class="card"><h3>Où sont mes données ?</h3><ul>
+      <li>Chaque appli garde ses données (notes, rendez-vous, réglages…) dans le navigateur de cet ordinateur, sur ce compte Windows.</li>
+      <li><b>Le PC et le téléphone ne se synchronisent pas</b> : ce qui est fait sur l'un n'apparaît pas sur l'autre. Edge et Chrome ne partagent pas non plus leurs données.</li>
+      <li>Effacer les données de navigation du site (ou désinstaller l'appli en cochant « effacer les données ») supprime tout : pense à exporter avant.</li>
+    </ul></div>
+    <div class="card"><h3>Exporter / importer</h3><ul>
+      <li>Sous chaque appli, « ⇅ Exporter / importer mes données » enregistre tout son contenu dans un fichier <code>.json</code>, à réimporter sur un autre PC ou un autre navigateur.</li>
+      <li>Ce fichier n'est <b>pas chiffré</b> (sauf le Coffre, dont le contenu reste chiffré) : garde-le en lieu sûr.</li>
+      <li>Pour passer du PC au téléphone, utilise la sauvegarde propre à l'appli quand elle existe (indiquée dans la fenêtre) : c'est le même fichier des deux côtés.</li>
+    </ul></div>
+  </div>
+
+  <h2 id="relais">Relais réseau (facultatif)</h2>
+  <div class="card">
+    <p>Un navigateur ne peut lire un flux d'un autre site que si ce site l'autorise. Sur ordinateur, beaucoup de médias (Le Monde, Le Figaro, BBC, RFI…), le Journal officiel, PVGIS ou Project Gutenberg refusent : ces sources restent vides dans Actualités, Petits Pas, Solaire, Liseuse, Ondes et Écran. Les autres (franceinfo, Open-Meteo, la plupart des podcasts…) marchent sans rien faire.</p>
+    <p>Pour les retrouver, tu peux créer <b>ton propre relais</b>, gratuit, chez Cloudflare (<a href="https://github.com/gilbertmamadou-design/atelier-signature/blob/main/pc/README.md#relais-r%C3%A9seau" target="_blank" rel="noopener">mode d'emploi</a>, rubrique « Relais réseau » du README) puis coller son adresse ici. Il ne sert qu'à tes applis, en lecture seule. Aucun relais public n'est utilisé.</p>
+    <div class="row"><input type="url" id="rUrl" placeholder="https://mag-relais.ton-nom.workers.dev" autocomplete="off" spellcheck="false" aria-label="Adresse du relais">
+      <button class="btn main" id="rSave" type="button">Enregistrer</button><button class="btn" id="rTest" type="button">Tester</button><button class="btn" id="rDel" type="button">Retirer</button></div>
+    <div class="msg" id="rMsg"></div>
   </div>
 
   <h2>Installer sur Windows</h2>
@@ -67,18 +134,205 @@ footer a{color:var(--acc)}
       <li>Cliquer sur l'icône <b>Installer</b> (écran avec une flèche) dans la barre d'adresse, ou menu <b>⋮ › Caster, enregistrer et partager › Installer la page en tant qu'appli</b>.</li>
       <li>Confirmer. Désinstaller : clic droit sur l'icône dans le menu Démarrer › Désinstaller.</li>
     </ol></div>
-    <div class="card"><h3>Ouvrir un PDF avec l'appli</h3><ul>
-      <li>Une fois installée, clic droit sur un fichier PDF dans l'Explorateur › <b>Ouvrir avec</b> › Lecteur PDF (ou Atelier PDF).</li>
+    <div class="card"><h3>Ouvrir un fichier avec une appli</h3><ul>
+      <li>Une fois l'appli installée, clic droit sur un fichier dans l'Explorateur › <b>Ouvrir avec</b> : PDF › Lecteur PDF ou Atelier PDF ; .epub › Liseuse ; .ics › Agenda ; .vcf › Contacts ; .gpx › Sentiers ; musique › Mélodie ; vidéo › Écran ; photo › Galerie.</li>
       <li>Au premier usage, Windows demande d'autoriser l'appli à ouvrir ce type de fichier.</li>
-      <li>On peut aussi glisser un PDF sur la fenêtre, ou <kbd>Ctrl</kbd>+<kbd>O</kbd>.</li>
+      <li>On peut aussi glisser un fichier sur la fenêtre de l'appli, ou <kbd>Ctrl</kbd>+<kbd>O</kbd>.</li>
     </ul></div>
     <div class="card"><h3>Hors ligne et mises à jour</h3><ul>
       <li>Après une première ouverture avec internet, chaque appli fonctionne sans connexion.</li>
       <li>Quand une nouvelle version est publiée, un message « Nouvelle version disponible » propose de mettre à jour.</li>
-      <li>Les réglages, récents et signatures restent dans le navigateur de cet ordinateur : ils ne passent pas d'Edge à Chrome.</li>
+      <li>Les données restent dans le navigateur de cet ordinateur : elles ne passent pas d'Edge à Chrome (voir « Mes données »).</li>
     </ul></div>
   </div>
-  <footer>Versions : Lecteur PDF f9ccefaaf70f, Atelier PDF 83bc6f6f72fa. Les applis Android restent disponibles dans l'onglet Releases du dépôt.</footer>
+  <footer>Versions : Lecteur PDF 43c745da4530, Atelier PDF 13609204b5db, Budget 2bbbc23ec84d, Liseuse 2a7447684f7d, Rangement a73e092959c5, Actualités 475322758e68, Carnet 825220386bbf, Agenda 8109a5a369bd, Contacts f297532697f6, Calcul 67926f896b43, QR 0e41e04249fd, Météo 0b21c90a8a69, Ciel 4d4d2604a682, Sentiers b6ebaa4f3d54, Solaire 1bd035fecc34, Mélodie 4a804d40a0d5, Ondes 28f3db09984e, Écran d55e35ea3e13, Galerie 7284760b8568, Scan 1e98e3b2e8bc, Dictaphone db24237ab3b8, Coffre 24ca15c56201, Petits Pas 9ae22dc3d9bb, Carnet de chasse 337d530e3d7c. Les applis Android restent disponibles dans l'onglet Releases du dépôt.</footer>
 </div>
+<dialog id="dlg" aria-labelledby="dT">
+  <button class="x" type="button" id="dX" aria-label="Fermer">×</button>
+  <h3 id="dT"></h3>
+  <p class="warn">Les données du PC et du téléphone ne se synchronisent pas. Ce fichier sert à les déplacer vers un autre PC ou navigateur, ou à les mettre à l'abri.</p>
+  <p id="dNote"></p>
+  <div class="row"><button class="btn main" id="dExp" type="button">Exporter dans un fichier</button><button class="btn" id="dImp" type="button">Importer un fichier…</button>
+    <input type="file" id="dFile" accept=".json,application/json" hidden></div>
+  <div class="msg" id="dMsg"></div>
+</dialog>
+<script>
+/* Lanceur : export / import des données de chaque appli (même origine que les applis : le lanceur lit leur
+   localStorage et leurs bases IndexedDB) et adresse du relais réseau facultatif (clé « mag-pc-relais »). */
+(function () {
+  'use strict';
+  var DATA = {"lecteur": {"name": "Lecteur PDF", "ls": ["lecteur-"], "idb": ["lecteur"], "note": "Le code PIN qui protège la signature n'est pas exporté : il se recrée au premier usage."}, "pdf": {"name": "Atelier PDF", "ls": ["apdf-"], "idb": ["atelier-pdf"], "note": ""}, "budget": {"name": "Budget", "ls": ["budget."], "idb": [], "note": "Plus › Sauvegarde et données › Exporter une copie : même fichier que sur le téléphone (Restaurer une copie pour l'importer)."}, "liseuse": {"name": "Liseuse", "ls": ["liseuse-"], "idb": ["liseuse"], "note": ""}, "fichiers": {"name": "Rangement", "ls": ["rangement:"], "idb": ["rangement"], "note": ""}, "actualites": {"name": "Actualités", "ls": ["actu-"], "idb": [], "note": ""}, "notes": {"name": "Carnet", "ls": ["carnet."], "idb": ["carnet"], "note": "Menu ☰ › Sauvegarder (export .json) : même fichier que sur le téléphone (Restaurer une sauvegarde pour l'importer)."}, "agenda": {"name": "Agenda", "ls": ["agenda-"], "idb": [], "note": "Réglages › Exporter en .ics : même format que sur le téléphone."}, "contacts": {"name": "Contacts", "ls": ["contacts-"], "idb": ["contacts-pc"], "note": "Menu ⋮ › Exporter tous les contacts (.vcf) : même format que sur le téléphone."}, "calcul": {"name": "Calcul", "ls": ["calc."], "idb": [], "note": ""}, "qr": {"name": "QR", "ls": ["qr."], "idb": [], "note": ""}, "meteo": {"name": "Météo", "ls": ["meteo-"], "idb": [], "note": ""}, "ciel": {"name": "Ciel", "ls": ["ciel"], "idb": [], "note": ""}, "sentiers": {"name": "Sentiers", "ls": ["sentiers-"], "idb": ["sentiers"], "note": "Plus › Sauvegarde : même fichier que sur le téléphone (« Restaurer » pour l'importer)."}, "solaire": {"name": "Solaire", "ls": ["solaire-"], "idb": ["solaire"], "note": "Un projet s'exporte et s'importe en fichier (« Importer un projet »), comme sur le téléphone."}, "musique": {"name": "Mélodie", "ls": ["melodie:"], "idb": ["melodie"], "note": "Les morceaux d'un dossier du PC ne sont pas exportés (seulement leur liste) : rechoisir le dossier après import."}, "ondes": {"name": "Ondes", "ls": ["ondes-"], "idb": [], "note": ""}, "ecran": {"name": "Écran", "ls": ["ecran-"], "idb": [], "note": ""}, "galerie": {"name": "Galerie", "ls": ["galerie-"], "idb": ["galerie-pc"], "note": "Les photos restent dans leur dossier du PC : seuls les favoris et les réglages sont exportés."}, "scan": {"name": "Scan", "ls": ["scan."], "idb": ["mag-scan"], "note": ""}, "dicta": {"name": "Dictaphone", "ls": ["dicta."], "idb": ["dicta-pc"], "note": ""}, "coffre": {"name": "Coffre", "ls": ["coffre."], "idb": ["coffre"], "note": "Réglages › Exporter le coffre : fichier .coffre chiffré, le même que sur le téléphone (« Restaurer un fichier .coffre » pour l'importer)."}, "petitspas": {"name": "Petits Pas", "ls": ["petitspas:"], "idb": [], "note": "Réglages › Sauvegarde : même fichier que sur le téléphone (« Restaurer » pour l'importer)."}, "chasse": {"name": "Carnet de chasse", "ls": ["chasse-"], "idb": ["chasse-photos"], "note": "☰ › Exporter et sauvegarder : même fichier que sur le téléphone (« Restaurer une sauvegarde » pour l'importer)."}}, FORMAT = 'mag-pc-donnees';
+  var $ = function (id) { return document.getElementById(id); };
+  function msg(el, t, k) { el.textContent = t; el.className = 'msg' + (k ? ' ' + k : ''); }
+  /* ---------- encodage des valeurs IndexedDB (Blob, ArrayBuffer, Date…) en JSON ---------- */
+  function b64(u8) { var s = '', i, n = 0x8000; for (i = 0; i < u8.length; i += n) s += String.fromCharCode.apply(null, u8.subarray(i, i + n)); return btoa(s); }
+  function unb64(s) { var b = atob(s), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+  var TA = ['Int8Array', 'Uint8Array', 'Uint8ClampedArray', 'Int16Array', 'Uint16Array', 'Int32Array', 'Uint32Array', 'Float32Array', 'Float64Array'];
+  async function enc(v, st) {
+    if (v === null || typeof v !== 'object') return typeof v === 'undefined' ? { $t: 'undef' } : v;
+    if (v instanceof Date) return { $t: 'date', v: v.getTime() };
+    if (v instanceof Blob) { var o = { $t: 'blob', type: v.type, b64: b64(new Uint8Array(await v.arrayBuffer())) }; if (v instanceof File) { o.name = v.name; o.mod = v.lastModified; } return o; }
+    if (v instanceof ArrayBuffer) return { $t: 'ab', b64: b64(new Uint8Array(v)) };
+    if (ArrayBuffer.isView(v)) { var c = v.constructor && v.constructor.name; return { $t: 'ta', c: TA.indexOf(c) >= 0 ? c : 'Uint8Array', b64: b64(new Uint8Array(v.buffer, v.byteOffset, v.byteLength)) }; }
+    if (typeof FileSystemHandle !== 'undefined' && v instanceof FileSystemHandle) { st.handles++; return { $t: 'handle', kind: v.kind, name: v.name }; }
+    if (v instanceof Map) { var m = []; for (var e of v) m.push([await enc(e[0], st), await enc(e[1], st)]); return { $t: 'map', v: m }; }
+    if (v instanceof Set) { var a0 = []; for (var x of v) a0.push(await enc(x, st)); return { $t: 'set', v: a0 }; }
+    if (Array.isArray(v)) { var a = []; for (var i = 0; i < v.length; i++) a.push(await enc(v[i], st)); return a; }
+    var r = {}; for (var k in v) if (Object.prototype.hasOwnProperty.call(v, k)) r[k] = await enc(v[k], st);
+    return '$t' in v ? { $t: 'obj', v: r } : r;
+  }
+  function dec(v) {
+    if (v === null || typeof v !== 'object') return v;
+    if (Array.isArray(v)) return v.map(dec);
+    switch (v.$t) {
+      case 'undef': return undefined;
+      case 'date': return new Date(v.v);
+      case 'blob': var u = unb64(v.b64); return v.name != null ? new File([u], v.name, { type: v.type, lastModified: v.mod }) : new Blob([u], { type: v.type });
+      case 'ab': return unb64(v.b64).buffer;
+      case 'ta': var b = unb64(v.b64).buffer; return new (window[TA.indexOf(v.c) >= 0 ? v.c : 'Uint8Array'])(b);
+      case 'handle': return null;
+      case 'map': return new Map(v.v.map(function (e) { return [dec(e[0]), dec(e[1])]; }));
+      case 'set': return new Set(v.v.map(dec));
+      case 'obj': var o0 = {}; for (var k0 in v.v) o0[k0] = dec(v.v[k0]); return o0;
+    }
+    var o = {}; for (var k in v) o[k] = dec(v[k]); return o;
+  }
+  /* ---------- IndexedDB ---------- */
+  function req(r) { return new Promise(function (res, rej) { r.onsuccess = function () { res(r.result); }; r.onerror = function () { rej(r.error); }; }); }
+  async function exists(name) {
+    if (indexedDB.databases) { try { return (await indexedDB.databases()).some(function (d) { return d.name === name; }); } catch (e) { } }
+    return new Promise(function (res) {
+      var made = false, r = indexedDB.open(name);
+      r.onupgradeneeded = function () { made = true; r.transaction.abort(); };
+      r.onsuccess = function () { r.result.close(); res(true); };
+      r.onerror = function () { res(!made ? false : false); };
+    });
+  }
+  async function dumpDb(name, st) {
+    if (!(await exists(name))) return null;
+    var d = await req(indexedDB.open(name)), out = { name: name, version: d.version, stores: [] };
+    try {
+      for (var sn of Array.from(d.objectStoreNames)) {
+        var t = d.transaction(sn, 'readonly'), s = t.objectStore(sn), info = { name: sn, keyPath: s.keyPath, autoIncrement: s.autoIncrement, indexes: [], records: [] };
+        Array.from(s.indexNames).forEach(function (n) { var ix = s.index(n); info.indexes.push({ name: n, keyPath: ix.keyPath, unique: ix.unique, multiEntry: ix.multiEntry }); });
+        var raw = await new Promise(function (res, rej) {
+          var l = [], c = s.openCursor();
+          c.onsuccess = function () { var cu = c.result; if (!cu) return res(l); l.push([cu.primaryKey, cu.value]); cu.continue(); };
+          c.onerror = function () { rej(c.error); };
+        });
+        for (var i = 0; i < raw.length; i++) info.records.push({ k: s.keyPath == null ? await enc(raw[i][0], st) : undefined, v: await enc(raw[i][1], st) });
+        st.records += raw.length;
+        out.stores.push(info);
+      }
+    } finally { d.close(); }
+    return out;
+  }
+  function delDb(name) {
+    return new Promise(function (res, rej) {
+      var r = indexedDB.deleteDatabase(name), t = setTimeout(function () { rej(new Error('ferme d\'abord toutes les fenêtres de l\'appli, puis recommence')); }, 4000);
+      r.onsuccess = function () { clearTimeout(t); res(); };
+      r.onerror = function () { clearTimeout(t); rej(r.error); };
+    });
+  }
+  async function loadDb(db) {
+    await delDb(db.name);
+    var r = indexedDB.open(db.name, Math.max(1, db.version || 1));
+    r.onupgradeneeded = function () {
+      var d = r.result;
+      db.stores.forEach(function (s) {
+        var o = d.createObjectStore(s.name, s.keyPath != null ? { keyPath: s.keyPath, autoIncrement: !!s.autoIncrement } : { autoIncrement: !!s.autoIncrement });
+        (s.indexes || []).forEach(function (ix) { o.createIndex(ix.name, ix.keyPath, { unique: !!ix.unique, multiEntry: !!ix.multiEntry }); });
+      });
+    };
+    var d = await req(r);
+    try {
+      for (var s of db.stores) {
+        if (!s.records.length) continue;
+        await new Promise(function (res, rej) {
+          var t = d.transaction(s.name, 'readwrite'), o = t.objectStore(s.name);
+          s.records.forEach(function (rec) { var v = dec(rec.v); if (s.keyPath != null) o.put(v); else o.put(v, dec(rec.k)); });
+          t.oncomplete = res; t.onerror = function () { rej(t.error); }; t.onabort = function () { rej(t.error || new Error('stockage plein')); };
+        });
+      }
+    } finally { d.close(); }
+  }
+  function lsKeys(prefixes) { var l = []; for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (prefixes.some(function (p) { return k.indexOf(p) === 0; })) l.push(k); } return l; }
+  /* ---------- fenêtre ---------- */
+  var cur = null, busy = false, dlg = $('dlg');
+  function open(id) {
+    cur = id; var a = DATA[id];
+    $('dT').textContent = a.name + ' : mes données';
+    $('dNote').textContent = a.note ? 'À savoir : ' + a.note : '';
+    $('dNote').hidden = !a.note;
+    msg($('dMsg'), '');
+    if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
+  }
+  function close() { if (busy) return; if (dlg.close) dlg.close(); else dlg.removeAttribute('open'); }
+  document.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('.dat[data-app]'); if (b) open(b.getAttribute('data-app')); });
+  $('dX').onclick = close;
+  dlg.addEventListener('cancel', function (e) { if (busy) e.preventDefault(); });
+  function lock(on) { busy = on; ['dExp', 'dImp', 'dX'].forEach(function (i) { $(i).disabled = on; }); }
+  function stamp() { var d = new Date(), p = function (n) { return (n < 10 ? '0' : '') + n; }; return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); }
+  $('dExp').onclick = async function () {
+    var a = DATA[cur], st = { handles: 0, records: 0 }; lock(true); msg($('dMsg'), 'Préparation du fichier…');
+    try {
+      var out = { format: FORMAT, version: 1, app: cur, name: a.name, date: new Date().toISOString(), localStorage: {}, indexedDB: [] };
+      lsKeys(a.ls).forEach(function (k) { out.localStorage[k] = localStorage.getItem(k); });
+      for (var n of a.idb) { var dd = await dumpDb(n, st); if (dd) out.indexedDB.push(dd); }
+      var nk = Object.keys(out.localStorage).length;
+      if (!nk && !st.records) { msg($('dMsg'), 'Rien à exporter : cette appli n\'a encore aucune donnée sur cet ordinateur.'); return; }
+      var blob = new Blob([JSON.stringify(out)], { type: 'application/json' }), url = URL.createObjectURL(blob), l = document.createElement('a');
+      l.href = url; l.download = cur + '-donnees-' + stamp() + '.json'; document.body.appendChild(l); l.click(); l.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+      msg($('dMsg'), 'Fichier « ' + l.download + ' » enregistré dans Téléchargements (' + nk + ' réglage(s), ' + st.records + ' élément(s)' +
+        (st.handles ? ' ; ' + st.handles + ' lien(s) vers des dossiers du PC non exportés : il faudra les rechoisir' : '') + ').', 'ok');
+    } catch (e) { msg($('dMsg'), 'Export impossible : ' + (e && e.message || e), 'bad'); }
+    finally { lock(false); }
+  };
+  $('dImp').onclick = function () { $('dFile').value = ''; $('dFile').click(); };
+  $('dFile').onchange = async function () {
+    var f = this.files && this.files[0], a = DATA[cur]; if (!f) return;
+    var o; try { o = JSON.parse(await f.text()); } catch (e) { msg($('dMsg'), 'Ce fichier n\'est pas un export de la Suite MAG sur PC.', 'bad'); return; }
+    if (!o || o.format !== FORMAT || !o.localStorage || !Array.isArray(o.indexedDB)) {
+      msg($('dMsg'), 'Ce fichier n\'est pas un export « Exporter / importer mes données ».' + (a.note ? ' Pour une sauvegarde faite dans l\'appli, utilise sa propre fonction d\'import.' : ''), 'bad'); return;
+    }
+    if (o.app !== cur) { msg($('dMsg'), 'Ce fichier contient les données de « ' + (o.name || o.app) + ' », pas de ' + a.name + '.', 'bad'); return; }
+    if (!confirm('Remplacer les données de ' + a.name + ' sur cet ordinateur par celles du fichier (' + new Date(o.date).toLocaleString('fr-FR') + ') ?\n\nLes données actuelles de ' + a.name + ' seront effacées. Ferme d\'abord les fenêtres de l\'appli.')) return;
+    lock(true); msg($('dMsg'), 'Import en cours…');
+    try {
+      var names = o.indexedDB.map(function (d) { return d.name; });
+      if (names.some(function (n) { return a.idb.indexOf(n) < 0; })) throw new Error('base inattendue dans le fichier');
+      for (var d of o.indexedDB) await loadDb(d);
+      lsKeys(a.ls).forEach(function (k) { localStorage.removeItem(k); });
+      Object.keys(o.localStorage).forEach(function (k) { if (a.ls.some(function (p) { return k.indexOf(p) === 0; })) localStorage.setItem(k, o.localStorage[k]); });
+      msg($('dMsg'), 'Données importées. Ouvre (ou recharge) ' + a.name + ' pour les retrouver.', 'ok');
+    } catch (e) { msg($('dMsg'), 'Import impossible : ' + (e && e.message || e), 'bad'); }
+    finally { lock(false); }
+  };
+  /* ---------- relais réseau ---------- */
+  var KEY = 'mag-pc-relais', OK = /^(https:\/\/|http:\/\/localhost[:/])[^\s]+$/;
+  function getR() { try { return JSON.parse(localStorage.getItem(KEY) || '""') || ''; } catch (e) { return ''; } }
+  function show() { var r = getR(); $('rUrl').value = r; msg($('rMsg'), r ? 'Relais actif : les applis l\'utilisent pour les sites qui bloquent.' : 'Aucun relais : les sources qui bloquent restent indisponibles.', r ? 'ok' : ''); }
+  $('rSave').onclick = function () {
+    var v = $('rUrl').value.trim().replace(/\/+$/, '');
+    if (!v) { localStorage.removeItem(KEY); show(); return; }
+    if (!OK.test(v)) { msg($('rMsg'), 'L\'adresse doit commencer par https://', 'bad'); return; }
+    localStorage.setItem(KEY, JSON.stringify(v)); show();
+  };
+  $('rDel').onclick = function () { localStorage.removeItem(KEY); show(); };
+  $('rTest').onclick = async function () {
+    var v = $('rUrl').value.trim().replace(/\/+$/, '');
+    if (!OK.test(v)) { msg($('rMsg'), 'Saisis d\'abord l\'adresse du relais (https://…).', 'bad'); return; }
+    msg($('rMsg'), 'Test : lecture du flux du Monde par le relais…');
+    try {
+      var r = await fetch(v + (v.indexOf('?') < 0 ? '?' : '&') + 'url=' + encodeURIComponent('https://www.lemonde.fr/rss/une.xml'), { credentials: 'omit' });
+      var t = await r.text();
+      if (r.ok && /<(rss|feed)\b/i.test(t)) msg($('rMsg'), 'Le relais fonctionne' + (getR() === v ? '.' : ' : clique sur « Enregistrer » pour l\'utiliser.'), 'ok');
+      else msg($('rMsg'), 'Le relais répond, mais pas comme prévu (code ' + r.status + ') : ' + t.slice(0, 120), 'bad');
+    } catch (e) { msg($('rMsg'), 'Pas de réponse du relais (adresse fausse, ou le relais n\'autorise pas ce site).', 'bad'); }
+  };
+  show();
+})();
+</script>
 </body>
 </html>

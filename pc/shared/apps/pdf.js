@@ -46,6 +46,16 @@
       return JSON.stringify({ files: l.filter(function (x) { return !x.err; }).map(function (x) { return { token: x.token, name: x.name, size: x.size }; }), errors: l.filter(function (x) { return x.err; }).map(function (x) { return x.name; }) });
     }
   };
+  /** PC seulement : ouvre ce PDF dans le Lecteur PDF de la Suite (boîte « mag-pc/inbox », comme Lecteur → Atelier) */
+  B.toLecteur = function (blob, name) {
+    var w = null;
+    try { w = M.nativeOpen('about:blank'); } catch (e) { }      // pendant le clic : sinon la fenêtre serait bloquée
+    return M.db.put('inbox', { id: M.uid('i'), to: 'fr.magformation13.lecteur', name: M.safeName(name, '.pdf'), blob: blob, at: Date.now() }).then(function () {
+      var u = new URL(M.conf.apps['fr.magformation13.lecteur'] || '../lecteur/', location.href).href;
+      if (w) w.location.href = u; else M.nativeOpen(u);
+      M.toast('Ouverture dans le Lecteur PDF…');
+    }).catch(function (e) { if (w) w.close(); M.toast('Envoi au Lecteur PDF impossible : ' + (e && e.message || e), { bad: true }); });
+  };
   window.MAGPdf = B;
 
   function receive(list) {

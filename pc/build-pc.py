@@ -116,9 +116,9 @@ def page(app, conf, apps_android):
     # 1. adaptations de libellés (téléphone → ordinateur…) ; une phrase Android modifiée = simple avertissement
     for p in app.get('patches', []):
         n = out.count(p['from'])
-        want = p.get('count', 1)
-        if n != want:
-            WARN.append('%s : libellé trouvé %d fois au lieu de %d (adaptation ignorée) : %s…' % (app['id'], n, want, p['from'][:70]))
+        want = p.get('count', 1)          # 0 = toutes les occurrences (au moins une)
+        if (n != want and want) or (not want and n == 0):
+            WARN.append('%s : libellé trouvé %d fois au lieu de %s (adaptation ignorée) : %s…' % (app['id'], n, want or 'au moins 1', p['from'][:70]))
             if n == 0:
                 continue
         out = out.replace(p['from'], p['to'])
@@ -140,6 +140,8 @@ def page(app, conf, apps_android):
            '<link rel="icon" type="image/png" href="icon-192.png">\n'
            '<link rel="apple-touch-icon" href="icon-192.png">\n'
            '<link rel="stylesheet" href="../shared/pc.css">\n' % web)
+    for c in app.get('styles', []):          # feuilles communes à plusieurs applis (ex. « fenetres » : feuilles et pages centrées)
+        inj += '<link rel="stylesheet" href="../shared/apps/%s.css">\n' % c
     if os.path.exists(os.path.join(SHARED, 'apps', adapter + '.css')):
         inj += '<link rel="stylesheet" href="../shared/apps/%s.css">\n' % adapter
     inj += '<script>window.MAGPC_CONF=%s;</script>\n' % json.dumps(pcconf, ensure_ascii=False)
@@ -204,14 +206,19 @@ GENERATED = {}
 
 
 def launcher(conf, versions, apps_android):
-    tiles = []
+    tiles, data = [], {}
     for a in conf['apps']:
+        d = a.get('data')
+        if d:
+            data[a['id']] = {'name': a['name'], 'ls': d.get('ls', []), 'idb': d.get('idb', []), 'note': d.get('note', '')}
         tiles.append(
-            '<a class="tile" href="%(id)s/"><img src="%(id)s/icon-192.png" alt="" width="64" height="64">'
-            '<span class="tx"><b>%(name)s</b><small>%(desc)s</small></span><span class="go" aria-hidden="true">›</span></a>'
-            % {'id': a['id'], 'name': html.escape(a['name']), 'desc': html.escape(a.get('description', ''))})
+            '<div class="tw"><a class="tile" href="%(id)s/"><img src="%(id)s/icon-192.png" alt="" width="64" height="64">'
+            '<span class="tx"><b>%(name)s</b><small>%(desc)s</small></span><span class="go" aria-hidden="true">›</span></a>%(dat)s</div>'
+            % {'id': a['id'], 'name': html.escape(a['name']), 'desc': html.escape(a.get('description', '')),
+               'dat': ('<button class="dat" type="button" data-app="%s">⇅ Exporter / importer mes données</button>' % a['id']) if d else ''})
     tpl = read(os.path.join(SHARED, 'launcher.html'))
     return (tpl.replace('<!--TUILES-->', '\n'.join(tiles))
+            .replace('/*DONNEES*/{}', json.dumps(data, ensure_ascii=False).replace('</', '<\\/'))
             .replace('<!--NB-->', str(len(conf['apps'])))
             .replace('<!--VERSIONS-->', html.escape(', '.join('%s %s' % (a['name'], versions.get(a['id'], '')) for a in conf['apps']))))
 
@@ -237,6 +244,7 @@ def main():
             write(os.path.join(out_dir, wk), '/* COPIE GÉNÉRÉE par pc/build-pc.py depuis pc/shared/%s : ne pas modifier ici. */\n' % wk + read(os.path.join(SHARED, wk)))
         files = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png',
                  '../shared/pc-shim.js', '../shared/pc.css']
+        files += ['../shared/apps/%s.css' % c for c in app.get('styles', [])]
         for ext in ('.js', '.css'):
             if os.path.exists(os.path.join(SHARED, 'apps', adapter + ext)):
                 files.append('../shared/apps/' + adapter + ext)

@@ -1,0 +1,5 @@
+/* Sentiers sur PC : enregistrement GPS masqué (sans objet sur ordinateur), curseurs */
+html.mag-pc #recBtn{display:none}
+html.mag-pc button,html.mag-pc .item,html.mag-pc label.btn{cursor:pointer}
+html.mag-pc .leaflet-container{cursor:crosshair}
+@media (min-width:900px){ html.mag-pc .panel{max-width:760px;margin:0 auto} }

@@ -1,0 +1,26 @@
+/* Budget sur PC : barre de navigation à gauche, contenu centré sur deux colonnes, pages et feuilles centrées */
+html.mag-pc button,html.mag-pc .chip,html.mag-pc .row,html.mag-pc label.sw{cursor:pointer}
+html.mag-pc ::-webkit-scrollbar{width:12px;height:12px}
+html.mag-pc ::-webkit-scrollbar-thumb{background:#8884;border-radius:8px;border:3px solid transparent;background-clip:content-box}
+html.mag-pc nav#nav button:hover{color:var(--tx)}
+html.mag-pc .chip:hover{border-color:#8fb4ff66}
+@media (min-width:900px){
+  html.mag-pc body{padding-bottom:24px;padding-left:96px}
+  html.mag-pc nav#nav{top:0;bottom:0;right:auto;width:96px;display:flex;flex-direction:column;align-items:stretch;gap:6px;padding:18px 8px;border-top:0;border-right:1px solid var(--line)}
+  html.mag-pc nav#nav button{padding:10px 0;border-radius:14px}
+  html.mag-pc nav#nav button.on{background:#8fb4ff14}
+  html.mag-pc nav#nav button.fab{order:-1;margin:0 0 14px}
+  html.mag-pc header.top,html.mag-pc .accbar{max-width:1180px;margin-left:auto;margin-right:auto}
+  html.mag-pc main{max-width:960px;margin:0 auto}
+  /* Accueil : cartes sur deux colonnes */
+  html.mag-pc body:has(#nav [data-tab="home"].on) main{max-width:1180px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px;align-items:start}
+  html.mag-pc body:has(#nav [data-tab="home"].on) main>.card:first-child,html.mag-pc body:has(#nav [data-tab="home"].on) main>:not(.card){grid-column:1/-1}
+  html.mag-pc .page{left:96px}
+  html.mag-pc .page>header{padding-left:max(10px,calc((100% - 900px)/2));padding-right:max(10px,calc((100% - 900px)/2))}
+  html.mag-pc .page .body{max-width:900px;margin:0 auto}
+  html.mag-pc .veil{align-items:center;justify-content:center}
+  html.mag-pc .sheet{width:min(580px,94vw);border-radius:20px;border:1px solid var(--line);max-height:86vh}
+  html.mag-pc .sheet .grab{display:none}
+  html.mag-pc #toast{left:50%;right:auto;width:min(520px,90vw);margin-left:calc(min(520px,90vw)/-2 + 48px);bottom:24px}
+  html.mag-pc #lock{left:0}
+}

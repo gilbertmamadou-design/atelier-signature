@@ -1,0 +1,5 @@
+/* Solaire sur PC : fenêtres centrées (la page est déjà centrée sur grand écran) */
+@media (min-width:900px){
+  html.mag-pc #sheet{left:50%;right:auto;bottom:auto;top:50%;width:min(720px,94vw);max-height:86vh;border-radius:20px;border:1px solid #ffffff1f;transform:translate(-50%,-44%);opacity:0;transition:transform .2s,opacity .2s}
+  html.mag-pc #sheet.on{transform:translate(-50%,-50%);opacity:1}
+}
