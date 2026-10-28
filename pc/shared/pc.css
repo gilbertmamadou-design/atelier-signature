@@ -1,0 +1,57 @@
+/* Suite MAG sur PC : éléments communs ajoutés par pc-shim.js (toasts, dialogues, mise à jour, dépôt de fichiers, impression).
+   Tout est préfixé « mpc- » pour ne jamais toucher aux styles des applis. */
+#mpc-root{--mpc-bg:#ffffff;--mpc-tx:#151a24;--mpc-tx2:#5a6274;--mpc-line:#d9dde6;--mpc-acc:#1f5fbf;--mpc-acc-tx:#fff;--mpc-bad:#c62828;--mpc-shadow:0 18px 48px #0006;
+  font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--mpc-tx)}
+@media (prefers-color-scheme:dark){#mpc-root{--mpc-bg:#1d212b;--mpc-tx:#eef0f5;--mpc-tx2:#a9afbf;--mpc-line:#ffffff24;--mpc-acc:#6ea8ff;--mpc-acc-tx:#0b1220;--mpc-bad:#ff8a80}}
+#mpc-root *{box-sizing:border-box}
+#mpc-toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,16px);max-width:min(92vw,560px);background:#262b38;color:#f3f4f8;border:1px solid #ffffff22;padding:11px 16px;border-radius:12px;z-index:2147483600;opacity:0;pointer-events:none;transition:.2s;box-shadow:0 8px 24px #0007}
+#mpc-toast.on{opacity:1;transform:translate(-50%,0)}
+#mpc-toast.bad{border-color:#ff7b7b99}
+.mpc-dlg-wrap{position:fixed;inset:0;z-index:2147483500;background:#0a0d1499;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;transition:opacity .15s}
+.mpc-dlg-wrap.on{opacity:1}
+.mpc-dlg{background:var(--mpc-bg);color:var(--mpc-tx);border:1px solid var(--mpc-line);border-radius:16px;box-shadow:var(--mpc-shadow);width:min(440px,100%);max-height:calc(100vh - 32px);overflow:auto;padding:20px 20px 16px}
+.mpc-dlg.wide{width:min(640px,100%)}
+.mpc-dlg h2{margin:0 0 8px;font-size:19px;font-weight:750;overflow-wrap:anywhere}
+.mpc-dlg p{margin:6px 0;color:var(--mpc-tx2)}
+.mpc-dlg .mpc-small{font-size:13px}
+.mpc-dlg .mpc-err{color:var(--mpc-bad);font-weight:650;min-height:1.2em;margin:4px 0}
+.mpc-dlg a{color:var(--mpc-acc)}
+.mpc-btns{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:14px}
+.mpc-btns button{font:inherit;font-weight:650;min-height:40px;padding:0 16px;border-radius:10px;border:1px solid var(--mpc-line);background:transparent;color:var(--mpc-tx);cursor:pointer}
+.mpc-btns button:hover{background:#7f7f7f1f}
+.mpc-btns button.pri{background:var(--mpc-acc);border-color:var(--mpc-acc);color:var(--mpc-acc-tx)}
+.mpc-btns button.pri:hover{filter:brightness(1.08)}
+.mpc-btns button.bad{color:var(--mpc-bad)}
+.mpc-btns button.pri.bad{background:var(--mpc-bad);border-color:var(--mpc-bad);color:#fff}
+.mpc-btns button:focus-visible{outline:3px solid var(--mpc-acc);outline-offset:2px}
+.mpc-pin{display:block;width:100%;font:22px/1.2 ui-monospace,Consolas,monospace;letter-spacing:6px;text-align:center;padding:10px 12px;margin:10px 0 0;border-radius:10px;border:1px solid var(--mpc-line);background:transparent;color:var(--mpc-tx)}
+.mpc-pin:focus{outline:2px solid var(--mpc-acc);border-color:transparent}
+.mpc-pin::placeholder{font:15px system-ui,-apple-system,"Segoe UI",sans-serif;letter-spacing:normal;color:var(--mpc-tx2)}
+.mpc-dlg.menu .mpc-btns{flex-direction:column;align-items:stretch}
+.mpc-dlg.menu .mpc-btns button{text-align:left;min-height:44px}
+.mpc-dlg.menu .mpc-btns button:last-child{text-align:center;margin-top:4px}
+#mpc-update{position:fixed;right:20px;bottom:20px;z-index:2147483400;display:flex;align-items:center;gap:10px;background:var(--mpc-bg);border:1px solid var(--mpc-line);border-radius:14px;box-shadow:var(--mpc-shadow);padding:12px 12px 12px 16px;transform:translateY(20px);opacity:0;transition:.2s;max-width:calc(100vw - 32px)}
+#mpc-update.on{transform:none;opacity:1}
+#mpc-update span{display:flex;flex-direction:column;margin-right:6px}
+#mpc-update small{color:var(--mpc-tx2)}
+#mpc-update button{font:inherit;font-weight:650;min-height:38px;padding:0 14px;border-radius:10px;border:1px solid var(--mpc-line);background:transparent;color:var(--mpc-tx);cursor:pointer}
+#mpc-update button.go{background:var(--mpc-acc);border-color:var(--mpc-acc);color:var(--mpc-acc-tx)}
+#mpc-install{position:fixed;left:16px;bottom:16px;z-index:2147483300;display:flex;gap:2px;background:var(--mpc-bg);border:1px solid var(--mpc-line);border-radius:99px;box-shadow:0 4px 14px #0004;padding:3px}
+#mpc-install button{font:inherit;font-size:13.5px;font-weight:650;border:0;background:transparent;color:var(--mpc-tx);min-height:32px;padding:0 12px;border-radius:99px;cursor:pointer}
+#mpc-install button.go{color:var(--mpc-acc)}
+#mpc-install button:hover{background:#7f7f7f1f}
+@media (max-width:899px){#mpc-install{display:none}}
+#mpc-drop{position:fixed;inset:10px;z-index:2147483200;border:3px dashed var(--mpc-acc);border-radius:20px;background:#1f5fbf1f;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .12s}
+#mpc-drop.on{opacity:1}
+#mpc-drop div{background:var(--mpc-bg);border:1px solid var(--mpc-line);border-radius:14px;padding:16px 22px;text-align:center;box-shadow:var(--mpc-shadow);display:flex;flex-direction:column;gap:2px}
+#mpc-drop b{font-size:18px}
+#mpc-drop span{color:var(--mpc-tx2);font-size:14px}
+/* Impression d'un PDF : seules les pages rendues sont imprimées */
+#mpc-print{display:none}
+@media print{
+  html.mpc-printing,html.mpc-printing body{height:auto!important;min-height:0!important;overflow:visible!important;position:static!important;background:#fff!important}
+  html.mpc-printing body>*:not(#mpc-print){display:none!important}
+  html.mpc-printing #mpc-print{display:block!important}
+  #mpc-print img{display:block;width:100%;height:auto;break-after:page;page-break-after:always}
+  #mpc-print img:last-child{break-after:auto;page-break-after:auto}
+}

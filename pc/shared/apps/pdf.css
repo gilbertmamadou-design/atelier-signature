@@ -1,0 +1,9 @@
+/* Atelier PDF sur PC : la page est déjà prévue pour l'ordinateur (grille d'outils, glisser-déposer).
+   Ajustements grand écran : fenêtres centrées, aperçus de pages plus grands. */
+@media (min-width:900px){
+  html.mag-pc .overlay{align-items:center}
+  html.mag-pc .pages{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  html.mag-pc .tools{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+  html.mag-pc .top{padding-right:max(16px,calc((100% - 1060px)/2));padding-left:max(16px,calc((100% - 1060px)/2))}
+}
+html.mag-pc .pg .acts button:hover,html.mag-pc .btn:hover{filter:brightness(.97)}

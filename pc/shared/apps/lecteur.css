@@ -1,0 +1,38 @@
+/* Lecteur PDF sur PC : mise en page pour grand écran, souris et clavier.
+   La page Android est pensée pour 412 px ; ces règles ne s'appliquent qu'à la version PC (html.mag-pc),
+   et la plupart seulement à partir de 900 px de large. */
+html.mag-pc .doc,html.mag-pc .tools button,html.mag-pc .menu button,html.mag-pc .opt,html.mag-pc .seg button,html.mag-pc .hb,html.mag-pc .vb{cursor:pointer}
+html.mag-pc .doc:hover,html.mag-pc .menu button:hover,html.mag-pc .tools button:hover,html.mag-pc .hb:hover,html.mag-pc .vb:hover,html.mag-pc .res:hover,html.mag-pc .ol .oi button.go:hover{background:var(--bg3)}
+html.mag-pc .doc .ib:hover{background:var(--bg4)}
+html.mag-pc #viewer.ann.t-text .annL,html.mag-pc #viewer.ann.t-date .annL,html.mag-pc #viewer.ann.t-sign .annL,html.mag-pc #viewer.ann.t-mark .annL,html.mag-pc #viewer.ann.t-pen .annL,html.mag-pc #viewer.ann.t-hl .annL{cursor:crosshair}
+html.mag-pc #viewer.ann.t-erase .annL .it{cursor:not-allowed}
+html.mag-pc #sigpad{cursor:crosshair}
+html.mag-pc ::-webkit-scrollbar{width:12px;height:12px}
+html.mag-pc ::-webkit-scrollbar-thumb{background:#8884;border-radius:8px;border:3px solid transparent;background-clip:content-box}
+html.mag-pc ::-webkit-scrollbar-thumb:hover{background-color:#8888}
+html.mag-pc ::-webkit-scrollbar-track{background:transparent}
+html.mag-pc .kbd{font:600 12px/1 ui-monospace,Consolas,monospace;border:1px solid var(--line2);border-bottom-width:2px;border-radius:5px;padding:2px 5px;color:var(--tx2)}
+
+@media (min-width:900px){
+  /* Accueil : colonne centrée, documents sur deux ou trois colonnes */
+  html.mag-pc #home header{padding-left:max(24px,calc((100% - 1120px)/2));padding-right:max(24px,calc((100% - 1120px)/2))}
+  html.mag-pc #home main{max-width:1120px;margin:0 auto;padding:8px 24px 120px}
+  html.mag-pc #home .search,html.mag-pc #home .seg{max-width:620px}
+  html.mag-pc #list{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px}
+  html.mag-pc #list .doc{margin:0}
+  html.mag-pc #list .empty{grid-column:1/-1}
+  html.mag-pc #openBtn{left:auto;right:max(24px,calc((100% - 1120px)/2 + 24px));width:300px;bottom:24px}
+  /* Feuilles du bas → fenêtres centrées */
+  html.mag-pc .sheet{left:50%;right:auto;bottom:auto;top:50%;width:min(580px,94vw);max-height:84vh;border-radius:20px;transform:translate(-50%,-46%);opacity:0;transition:transform .18s ease-out,opacity .18s;padding-bottom:6px}
+  html.mag-pc #sheetWrap.on .sheet{transform:translate(-50%,-50%);opacity:1}
+  html.mag-pc .sheet.tall{height:80vh}
+  html.mag-pc .sheet.full{width:min(940px,96vw);height:90vh;max-height:90vh;border-radius:20px;padding-top:0}
+  html.mag-pc .sheet .grab{display:none}
+  html.mag-pc .sheet .sh{padding-top:12px}
+  html.mag-pc #sigpad{height:260px}
+  html.mag-pc .thg{grid-template-columns:repeat(4,minmax(0,1fr))}
+  /* Lecteur : barres centrées, aide-mémoire des raccourcis */
+  html.mag-pc #vbot>div{max-width:820px;margin-left:auto;margin-right:auto}
+  html.mag-pc #toast{left:50%;right:auto;width:min(560px,90vw);margin-left:calc(min(560px,90vw)/-2)}
+  html.mag-pc #selbar{bottom:calc(170px + var(--safe-b))}
+}

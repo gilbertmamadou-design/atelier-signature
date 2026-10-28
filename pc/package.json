@@ -1,0 +1,12 @@
+{
+  "name": "suite-mag-pc",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Bibliothèques de la Suite MAG sur PC. Elles sont vendorisées dans pc/shared/vendor/ (versionnées dans le dépôt) : après « npm ci » ici, « python3 pc/build-pc.py --vendor » les recopie. Les données françaises de Tesseract (fra.traineddata) viennent de github.com/tesseract-ocr/tessdata_fast.",
+  "dependencies": {
+    "jszip": "3.10.1",
+    "pdf-lib": "1.17.1",
+    "pdfjs-dist": "3.11.174",
+    "tesseract.js-core": "7.0.0"
+  }
+}

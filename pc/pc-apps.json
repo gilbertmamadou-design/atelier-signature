@@ -1,0 +1,66 @@
+{
+  "_lisez-moi": "Configuration de la Suite MAG sur PC. Après toute modification (ici, dans pc/shared/ ou dans applis/www-<appli>/), relancer : python3 pc/build-pc.py. Voir pc/README.md.",
+  "site": "https://gilbertmamadou-design.github.io/atelier-signature/pc/",
+  "vendor": {
+    "pdf.min.js": { "package": "pdfjs-dist", "version": "3.11.174", "from": "build/pdf.min.js", "license": "Apache-2.0", "licenseFile": "LICENSES/pdfjs-dist-Apache-2.0.txt" },
+    "pdf.worker.min.js": { "package": "pdfjs-dist", "version": "3.11.174", "from": "build/pdf.worker.min.js", "license": "Apache-2.0", "licenseFile": "LICENSES/pdfjs-dist-Apache-2.0.txt" },
+    "pdf-lib.min.js": { "package": "pdf-lib", "version": "1.17.1", "from": "dist/pdf-lib.min.js", "license": "MIT", "licenseFile": "LICENSES/pdf-lib-MIT.md" },
+    "jszip.min.js": { "package": "jszip", "version": "3.10.1", "from": "dist/jszip.min.js", "license": "MIT (ou GPL-3.0, au choix)", "licenseFile": "LICENSES/jszip-MIT-ou-GPLv3.md" },
+    "tesseract/tesseract-core-simd-lstm.js": { "package": "tesseract.js-core", "version": "7.0.0", "from": "tesseract-core-simd-lstm.js", "license": "Apache-2.0", "licenseFile": "LICENSES/tesseract.js-core-Apache-2.0.txt" },
+    "tesseract/tesseract-core-simd-lstm.wasm": { "package": "tesseract.js-core", "version": "7.0.0", "from": "tesseract-core-simd-lstm.wasm", "license": "Apache-2.0", "licenseFile": "LICENSES/tesseract.js-core-Apache-2.0.txt" },
+    "tesseract/fra.traineddata": { "package": "tessdata_fast (github.com/tesseract-ocr/tessdata_fast, commit 8741641)", "version": "4.1.0", "from": null, "license": "Apache-2.0", "licenseFile": "LICENSES/tessdata_fast-Apache-2.0.txt" }
+  },
+  "apps": [
+    {
+      "id": "lecteur",
+      "android": "lecteur",
+      "name": "Lecteur PDF",
+      "short_name": "Lecteur PDF",
+      "description": "Lire les PDF, remplir les formulaires, annoter et signer",
+      "theme_color": "#0f1116",
+      "background_color": "#0f1116",
+      "vendor": ["pdf.min.js", "pdf.worker.min.js", "pdf-lib.min.js"],
+      "file_handlers": [{ "accept": { "application/pdf": [".pdf"] } }],
+      "patches": [
+        { "from": "Touche « Ouvrir un PDF » pour choisir un fichier du téléphone.<br>Tu peux aussi ouvrir un PDF depuis une autre appli (e-mail, Rangement…) avec « Ouvrir avec Lecteur PDF ».",
+          "to": "Clique sur « Ouvrir un PDF » (Ctrl+O) ou glisse un PDF sur cette fenêtre.<br>Une fois l\\'appli installée, « Ouvrir avec › Lecteur PDF » marche aussi depuis l\\'Explorateur de fichiers." },
+        { "from": "'Le fichier reste sur le téléphone.'", "to": "'Le fichier reste sur l\\'ordinateur.'" },
+        { "from": "Tout reste sur le téléphone : aucune connexion internet, aucun envoi de données. Les fichiers ne sont jamais modifiés : chaque enregistrement crée une nouvelle copie.",
+          "to": "Tout reste sur cet ordinateur : aucun envoi de données. Le fichier d\\'origine n\\'est modifié que si tu choisis « Enregistrer dans le fichier d\\'origine ».</p><div class=\"lbl\">Raccourcis clavier</div><p class=\"note\">Ctrl+O ouvrir · Ctrl+S enregistrer · Ctrl+Maj+S enregistrer sous · Ctrl+P imprimer · Ctrl+F chercher · Ctrl+molette ou Ctrl +/− zoom · Ctrl+0 taille normale · Ctrl+Z annuler (annotation) · Échap fermer · Pg préc./Pg suiv. pages" },
+        { "from": "'Fichier du téléphone'", "to": "'Fichier de l\\'ordinateur'" },
+        { "from": "Elle signe sur ce téléphone", "to": "Elle signe sur cet ordinateur" },
+        { "from": "Avant de poser ta signature, le téléphone demande ton empreinte, ton visage ou ton code. Une validation reste valable 2 minutes pour signer plusieurs fois le même document. Cela protège contre l\\'usage par quelqu\\'un qui tient ton téléphone déverrouillé. La signature reste enregistrée dans l\\'appli sans chiffrement : ce n\\'est pas une signature électronique certifiée.",
+          "to": "Sur PC, avant de poser ta signature, l\\'appli demande ton code PIN : il remplace l\\'empreinte, le visage ou le code du téléphone, et il est propre à cet ordinateur (ce n\\'est pas Windows Hello). Une validation reste valable 2 minutes pour signer plusieurs fois le même document. Cela protège contre l\\'usage par quelqu\\'un qui utilise ta session Windows. La signature reste enregistrée dans le navigateur sans chiffrement : ce n\\'est pas une signature électronique certifiée." },
+        { "from": "'Empreinte, visage ou code du téléphone avant de la poser'", "to": "'Code PIN demandé avant de la poser (remplace l\\'empreinte du téléphone)'" },
+        { "from": "Garder cette signature sur le téléphone", "to": "Garder cette signature sur cet ordinateur", "count": 2 },
+        { "from": "Elle sera gardée sur ce téléphone comme « ma signature ».", "to": "Elle sera gardée sur cet ordinateur comme « ma signature »." },
+        { "from": "Signe avec le doigt dans le cadre blanc", "to": "Signe à la souris ou au stylet dans le cadre blanc", "count": 2 },
+        { "from": "<span>Ouvrir avec une autre appli</span>", "to": "<span>Ouvrir dans le navigateur<small>Visionneuse PDF d\\'Edge ou de Chrome</small></span>" },
+        { "from": "<span>Dans Téléchargements<small>Dossier « Lecteur PDF »</small></span>", "to": "<span>Télécharger<small>Dossier Téléchargements de Windows</small></span>" }
+      ]
+    },
+    {
+      "id": "pdf",
+      "android": "pdf",
+      "name": "Atelier PDF",
+      "short_name": "Atelier PDF",
+      "description": "Fusionner, découper, organiser, compresser, signer, reconnaître le texte (OCR)…",
+      "theme_color": "#1F4E79",
+      "background_color": "#EEF1F5",
+      "vendor": ["pdf.min.js", "pdf.worker.min.js", "pdf-lib.min.js", "jszip.min.js", "tesseract/tesseract-core-simd-lstm.js", "tesseract/tesseract-core-simd-lstm.wasm", "tesseract/fra.traineddata"],
+      "workers": ["ocr-worker.js"],
+      "file_handlers": [{ "accept": { "application/pdf": [".pdf"] } }],
+      "patches": [
+        { "from": "Il n'est pas disponible dans un navigateur.</div>", "to": "Il n'est pas disponible dans la version PC : pdf-lib, la bibliothèque PDF du navigateur, ne sait pas chiffrer ni déchiffrer, et aucune autre bibliothèque fiable n'est intégrée. Utilisez l'appli Android.</div>", "count": 2 },
+        { "from": "🔤 La reconnaissance de texte utilise le moteur hors ligne de l'application Android <b>Atelier PDF</b>. Elle n'est pas disponible dans un navigateur : ouvrez ce PDF dans l'application sur votre téléphone.",
+          "to": "🔤 Sur PC, la reconnaissance de texte utilise Tesseract (WebAssembly), que ce navigateur ne sait pas faire tourner. Utilisez Edge ou Chrome à jour, ou l'application Android <b>Atelier PDF</b>." },
+        { "from": "Chaque page est lue sur le téléphone (rien ne part sur internet).", "to": "Chaque page est lue sur cet ordinateur par Tesseract, en français (rien ne part sur internet)." },
+        { "from": "Tout se passe sur le téléphone, sans internet, dans l'application Android.", "to": "Sur PC, la lecture se fait sur l'ordinateur avec Tesseract (français), sans internet." },
+        { "from": "Mot de passe et retrait fonctionnent dans l'application Android.", "to": "Mot de passe et retrait fonctionnent seulement dans l'application Android (pas sur PC)." },
+        { "from": "Les documents sont gardés dans ce téléphone (ou ce navigateur).", "to": "Les documents sont gardés dans ce navigateur, sur cet ordinateur." },
+        { "from": "mémoire du téléphone pleine ?", "to": "stockage plein ?", "count": 2 },
+        { "from": "« Télécharger » sur ordinateur, « Enregistrer, envoyer… » sur téléphone (dossier, Google Drive, e-mail, WhatsApp…).", "to": "« Enregistrer, envoyer… » propose Enregistrer sous, Télécharger, Partager et Imprimer. Raccourcis : Ctrl+O choisir un fichier, Ctrl+S enregistrer le résultat, Ctrl+P l'imprimer, Échap retour à l'accueil." }
+      ]
+    }
+  ]
+}
