@@ -1060,8 +1060,8 @@ function budgetHtml(cfg){
   if(!m) return hd+'<div class="empty">Ouvre Budget pour commencer</div>';
   var pct=m.budget>0?Math.min(100,m.spent/m.budget*100):0, over=m.budget>0&&m.spent>m.budget;
   var h=hd+'<div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;margin-top:6px"><div class="big" style="margin:0;font-size:26px">'+esc(t.spent||eur(m.spent))+'</div><div class="sub">dépensés</div></div>';
-  if(m.budget>0) h+='<div class="mbar"><i style="width:'+pct+'%'+(over?';background:#ff6b6b':'')+'"></i></div><div class="sub">'+(over?'<span style="color:#ff9a8a">Budget dépassé de '+eur(m.spent-m.budget)+'</span>':'Reste '+esc(t.left||eur(m.left))+' sur '+esc(t.budget||eur(m.budget)))+'</div>';
-  if(cfg.h===2 && d.top && d.top.length) h+='<div style="margin-top:8px">'+d.top.map(function(x){ return '<div class="ev"><i class="c" style="background:'+esc(x.color||'var(--acc)')+'"></i><span>'+esc(x.cat)+'</span><b style="min-width:0;color:var(--tx)">'+eur(x.amount)+'</b></div>'; }).join('')+'</div>';
+  if(m.budget>0) h+='<div class="mbar"><i style="width:'+pct+'%'+(over?';background:#ff6b6b':'')+'"></i></div><div class="sub">'+(over?'<span style="color:#ff9a8a">Budget dépassé de '+esc(t.over||eur(m.spent-m.budget))+'</span>':'Reste '+esc(t.left||eur(m.left))+' sur '+esc(t.budget||eur(m.budget)))+'</div>';
+  if(cfg.h===2 && d.top && d.top.length) h+='<div style="margin-top:8px">'+d.top.map(function(x){ return '<div class="ev"><i class="c" style="background:'+esc(x.color||'var(--acc)')+'"></i><span>'+esc(x.cat)+'</span><b style="min-width:0;color:var(--tx)">'+esc(x.text||eur(x.amount))+'</b></div>'; }).join('')+'</div>';
   return h;
 }
 function dictaHtml(cfg){
