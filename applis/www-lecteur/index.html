@@ -692,7 +692,9 @@ async function loadPdf(rec, opt){
     params.data=new Uint8Array(await f.blob.arrayBuffer()); size=params.data.length;
   } else {
     if(!b || !b.open) throw new Error('Fonctions du téléphone indisponibles');
-    var o=J(b.open(rec.src),{ok:false,err:'?'});
+    // openAsync : version PC seulement (window.MAGPC, pc/shared/apps/lecteur.js) ; peut redemander l'autorisation de lire le fichier
+    var o=J(window.MAGPC&&b.openAsync?await b.openAsync(rec.src):b.open(rec.src),{ok:false,err:'?'});
+    if(!o.ok && o.err==='cancel') throw PdfError('Cancelled','Ouverture annulée');
     if(!o.ok){ throw PdfError(o.err==='perm'?'PermissionLost':'MissingPDFException', o.err==='perm'?'Autorisation de lecture perdue':(o.err==='missing'?'Fichier introuvable':o.err)); }
     handle=o.h; size=o.size;
     if(size>RANGE_MIN){
@@ -786,7 +788,7 @@ async function doRefresh(){
       var l2=recentSorted();
       for(var i=0;i<l2.length;i++){
         var d=l2[i]; if(/^idb:/.test(d.src||'')) continue;
-        var st='ok'; try{ st=b.check(d.src)||'ok'; }catch(e){}
+        var st='ok'; try{ st=(window.MAGPC&&b.checkAsync?await b.checkAsync(d.src):b.check(d.src))||'ok'; }catch(e){}
         if(st!=='ok' && !d.lost){ d.lost=true; lost++; saveDoc(d,true); }
         else if(st==='ok' && d.lost){ d.lost=false; found++; saveDoc(d,true); }
         if(i%6===5) await new Promise(function(r){ setTimeout(r,0); });
@@ -952,7 +954,7 @@ async function dimsLoop(gen){
   if(changed) relayout();
 }
 function dims(p){ return V.dims[p]||V.dims[1]; }
-function availW(){ return Math.min(sc.clientWidth-2*PADX, 1100); }
+function availW(){ return Math.min(sc.clientWidth-2*PADX, window.__lecteurMaxW||1100); }   // __lecteurMaxW : version PC (grand écran)
 function availH(){ return (V.vh||sc.clientHeight)-16; }
 function fitOf(p){ var d=dims(p), s=availW()/d.w; if(V.fit==='page') s=Math.min(s, availH()/d.h); return s; }
 function scaleOf(p){ return fitOf(p)*V.zoom; }
@@ -2558,9 +2560,13 @@ function copyName(){
   var tag=Object.keys(V.fv).length?(V.ann.length?'rempli et annoté':'rempli'):'annoté';
   return base+' ('+tag+')';
 }
+/* Remplacer le fichier d'origine : seulement si le pont le permet (version PC : fichier ouvert avec le sélecteur de Windows) */
+function canOverwrite(){ var b=B(); try{ return !!(window.MAGPC && V.open && hasDraft() && b && b.outOverwrite && b.canOverwrite && b.canOverwrite(V.doc.src)===true); }catch(e){ return false; } }
 function saveSheet(){
   if(!V.open) return;
-  var sh=openSheet('Enregistrer une copie','<p class="note">'+(hasDraft()?'Une nouvelle copie est créée avec tes ajouts. ':'Une nouvelle copie du document est créée. ')+'Le document d\'origine n\'est jamais modifié.</p><div class="lbl">Nom du fichier</div><input class="inp" id="svName" value="'+esc(hasDraft()?copyName():String(V.doc.name||V.doc.title).replace(/\.pdf$/i,''))+'"><div class="menu" style="margin-top:10px">'+
+  var ow=canOverwrite();
+  var sh=openSheet(ow?'Enregistrer':'Enregistrer une copie','<p class="note">'+(ow?'Enregistre tes ajouts dans le fichier d\'origine, ou crée une nouvelle copie.':(hasDraft()?'Une nouvelle copie est créée avec tes ajouts. ':'Une nouvelle copie du document est créée. ')+'Le document d\'origine n\'est jamais modifié.')+'</p><div class="lbl">Nom du fichier</div><input class="inp" id="svName" value="'+esc(hasDraft()?copyName():String(V.doc.name||V.doc.title).replace(/\.pdf$/i,''))+'"><div class="menu" style="margin-top:10px">'+
+    (ow?'<button data-m="overwrite">'+ic('check')+'<span>Enregistrer dans le fichier d\'origine<small>Remplace « '+esc(V.doc.name||V.doc.title)+' »</small></span></button>':'')+
     '<button data-m="download">'+ic('save')+'<span>Dans Téléchargements<small>Dossier « Lecteur PDF »</small></span></button>'+
     '<button data-m="saveas">'+ic('folder')+'<span>Choisir l\'emplacement…</span></button>'+
     '<button data-m="share">'+ic('share')+'<span>Partager</span></button>'+
@@ -2568,7 +2574,7 @@ function saveSheet(){
   sh.querySelector('.menu').onclick=function(e){
     var b=e.target.closest('button'); if(!b) return;
     var name=sh.querySelector('#svName').value.trim()||copyName(), m=b.dataset.m;
-    closeThen(function(){ if(!hasDraft() && m!=='download' && m!=='saveas'){ srcAction(V.doc, m); return; } exportCopy(m, name); });
+    closeThen(function(){ if(m==='overwrite'){ overwriteDoc(); return; } if(!hasDraft() && m!=='download' && m!=='saveas'){ srcAction(V.doc, m); return; } exportCopy(m, name); });
   };
 }
 function hexRgb(L, h){ var n=parseInt(h.slice(1),16); return L.rgb(((n>>16)&255)/255,((n>>8)&255)/255,(n&255)/255); }
@@ -2652,7 +2658,7 @@ function hideSigWidgets(Lb, doc, pages, placed){
   }catch(e){}
 }
 function findOpt(name, v){ for(var p in V.annots){ var l=V.annots[p]||[]; for(var i=0;i<l.length;i++){ var a=l[i]; if(a.fieldName===name && a.options){ for(var k=0;k<a.options.length;k++) if(a.options[k].exportValue===v) return a.options[k].displayValue; } } } return null; }
-async function sendOut(bytes, name, mode){
+async function sendOut(bytes, name, mode, src){
   var b=B();
   if(!b||!b.outBegin){
     var u=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'})), x=document.createElement('a'); x.href=u; x.download=name; document.body.appendChild(x); x.click(); x.remove(); setTimeout(function(){ URL.revokeObjectURL(u); },20000);
@@ -2662,9 +2668,26 @@ async function sendOut(bytes, name, mode){
   var CH=786432;
   for(var i=0;i<bytes.length;i+=CH){ if(!b.outChunk(t, bytesToB64(bytes.subarray(i,i+CH)))){ try{ b.outCancel(t); }catch(e){} throw new Error('Écriture impossible (stockage plein ?)'); } if(i%(CH*4)===0) await tick(); }
   return await new Promise(function(res){
-    OUT[t]=res; b.outEnd(t, mode, name);
-    setTimeout(function(){ if(OUT[t]){ delete OUT[t]; res({ok:false, err:'Pas de réponse'}); } }, mode==='saveas'?15*60000:120000);
+    OUT[t]=res; if(mode==='overwrite') b.outOverwrite(t, src, name); else b.outEnd(t, mode, name);
+    setTimeout(function(){ if(OUT[t]){ delete OUT[t]; res({ok:false, err:'Pas de réponse'}); } }, mode==='saveas'||mode==='overwrite'?15*60000:120000);
   });
+}
+/* Enregistrer dans le fichier d'origine (version PC) : les ajouts deviennent partie du document, le brouillon est vidé */
+async function overwriteDoc(){
+  if(exporting || !V.open || !canOverwrite()) return; exporting=true;
+  var d=V.doc, name=d.name||(d.title+'.pdf');
+  toast('Enregistrement…', false, 60000);
+  try{
+    var r=await buildCopy();
+    var o=await sendOut(r.bytes, name, 'overwrite', d.src);
+    if(!o.ok){ if(o.err==='Annulé') toast('Enregistrement annulé'); else toast('Échec : '+(o.err||'erreur inconnue'), true, 5000); return; }
+    if(V.open && V.doc===d){ V.fv={}; V.ann=[]; V.undo=[]; V.dirty=false; selectItem(null); }
+    delete d.draft; d.size=r.bytes.length; saveDoc(d,true);
+    toast(r.miss?r.miss+' champ'+(r.miss>1?'s n\'ont':' n\'a')+' pas pu être rempli'+(r.miss>1?'s':''):'Enregistré dans « '+(o.name||name)+' »', !!r.miss, 4000);
+    try{ var lib=await libJs(), pdf=await lib.getDocument({data:r.bytes.slice(0)}).promise; await makeThumb(d, pdf); pdf.destroy(); saveDoc(d,true); }catch(e){}
+    closeAllThen(function(){ openDoc(d); });                   // relit le fichier tel qu'il est maintenant
+  }catch(e){ console.error(e); toast(e.message||'Enregistrement impossible', true, 6000); }
+  finally{ exporting=false; }
 }
 var exporting=false;
 async function exportCopy(mode, name){
@@ -2774,7 +2797,11 @@ async function start(){
   // ménage : copies privées qui ne sont plus dans la liste
   setTimeout(function(){ try{ if(!dbOk||!b||!b.locals||importing||exporting) return; var keep={}; DOCS.forEach(function(d){ keep[d.src]=1; }); J(b.locals(),[]).forEach(function(s){ if(!keep[s]) b.forget(s); }); }catch(e){} },8000);
 }
-window.__lecteur={V:function(){ return V; }, DOCS:function(){ return DOCS; }, exportCopy:exportCopy, buildCopy:buildCopy, openDoc:openDoc, setField:setField, runSearch:runSearch, goTo:goTo, navSheet:navSheet, findZones:findZones, auth:function(){ return AUTH; }};
+window.__lecteur={V:function(){ return V; }, DOCS:function(){ return DOCS; }, exportCopy:exportCopy, buildCopy:buildCopy, openDoc:openDoc, setField:setField, runSearch:runSearch, goTo:goTo, navSheet:navSheet, findZones:findZones, auth:function(){ return AUTH; },
+  // pour la version PC (raccourcis clavier, molette) : pc/shared/apps/lecteur.js
+  pick:pick, saveSheet:saveSheet, zoomTo:zoomTo, enterSearch:enterSearch, back:back, navDepth:function(){ return NAV.length; }, sheetOpen:function(){ return sheetOpen; }, undo:undo,
+  saveAs:function(){ if(V.open) exportCopy('saveas', hasDraft()?copyName():String(V.doc.name||V.doc.title).replace(/\.pdf$/i,'')); },
+  print:function(){ if(V.open){ if(hasDraft()) shareChoice('print'); else srcAction(V.doc,'print'); } }};
 start();
 })();
 </script>

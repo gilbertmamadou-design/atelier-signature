@@ -475,7 +475,7 @@ async function placeTool(kind){ const w=$("#work"), F=S.files[0], L=await libJs(
     if($("#addS")) $("#addS").onclick=async()=>{ if(!S.opt.sig){ S.opt.sig=await signPad(); if(!S.opt.sig) return; } const im=new Image(); im.src=S.opt.sig; await im.decode().catch(()=>{}); const ar=(im.naturalHeight||1)/(im.naturalWidth||3); S.opt.items.push({pg:S.opt.pg,type:"img",src:S.opt.sig,x:.6,y:.82,w:.28,ar}); S.opt.cur=S.opt.items.length-1; show(); };
     if($("#addT")) $("#addT").onclick=()=>{ const t=winAnsi(S.opt.txt??("Lu et approuvé, le "+new Date().toLocaleDateString("fr-FR"))); if(!t.trim()){ toast("Écrivez le texte"); return; } S.opt.items.push({pg:S.opt.pg,type:"txt",txt:t,col:S.opt.col||"#111111",x:.1,y:.1,fs:.022}); S.opt.cur=S.opt.items.length-1; show(); };
     const stage=$("#stage");
-    const draw=()=>{ stage.querySelectorAll(".ov").forEach(e=>e.remove()); const W=stage.clientWidth, H=stage.clientHeight;
+    const draw=()=>{ if(S.tool!==kind||!S.opt.items) return; stage.querySelectorAll(".ov").forEach(e=>e.remove()); const W=stage.clientWidth, H=stage.clientHeight;   /* outil changé avant le chargement de l'aperçu : rien à dessiner */
       S.opt.items.forEach((it,k)=>{ if(it.pg!==S.opt.pg) return; const el=document.createElement("div"); el.className="ov"; el.style.left=it.x*W+"px"; el.style.top=it.y*H+"px";
         if(it.type==="img"){ el.style.width=it.w*W+"px"; el.style.height=it.w*W*it.ar+"px"; el.innerHTML=`<img src="${it.src}" alt="Signature">`; }
         else { el.innerHTML=`<span style="font:${it.fs*H}px Helvetica,Arial,sans-serif;color:${it.col}">${esc(it.txt)}</span>`; }
@@ -485,7 +485,7 @@ async function placeTool(kind){ const w=$("#work"), F=S.files[0], L=await libJs(
           el.onpointermove=ev=>{ it.x=Math.max(0,Math.min(.98,ox+(ev.clientX-sx)/W)); it.y=Math.max(0,Math.min(.98,oy+(ev.clientY-sy)/H)); el.style.left=it.x*W+"px"; el.style.top=it.y*H+"px"; };
           el.onpointerup=()=>{ el.onpointermove=null; }; };
         stage.appendChild(el); }); };
-    const selUi=()=>{ const it=S.opt.items[S.opt.cur], box=$("#sel"); if(!it||it.pg!==S.opt.pg){ box.innerHTML=""; return; }
+    const selUi=()=>{ if(S.tool!==kind||!S.opt.items) return; const it=S.opt.items[S.opt.cur], box=$("#sel"); if(!it||it.pg!==S.opt.pg){ box.innerHTML=""; return; }
       box.innerHTML=it.type==="img"?`<label class="f">Taille de la signature<input type="range" id="szR" min="8" max="70" value="${Math.round(it.w*100)}"></label>`:`<label class="f">Taille du texte<input type="range" id="szR" min="10" max="80" value="${Math.round(it.fs*1000)}"></label>`;
       $("#szR").oninput=e=>{ if(it.type==="img") it.w=e.target.value/100; else it.fs=e.target.value/1000; draw(); }; };
     const img=stage.querySelector("img"); if(img.complete) { draw(); selUi(); } else img.onload=()=>{ draw(); selUi(); };
