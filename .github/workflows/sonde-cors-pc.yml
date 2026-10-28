@@ -1,0 +1,12 @@
+name: Sonde CORS (temporaire, Suite MAG sur PC)
+on:
+  push:
+    branches: [sonde-cors-pc]
+permissions:
+  contents: read
+jobs:
+  sonde:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - run: python3 .github/sonde/sonde.py
