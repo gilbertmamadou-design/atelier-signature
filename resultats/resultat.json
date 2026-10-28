@@ -1,812 +1,45 @@
 {
- "actualites": [
+ "podcasts": [
   {
-   "u": "https://www.francetvinfo.fr/titres.rss",
+   "u": "https://feeds.audiomeans.fr/feed/7c44ef0d-1d1c-4230-9da1-b2e4f839108c.xml",
    "code": 200,
    "acao": "*",
-   "type": "text/xml; charset=UTF-8",
-   "n": 44014
+   "type": "text/xml; charset=utf-8",
+   "n": 200000
   },
   {
-   "u": "https://www.francetvinfo.fr/france.rss",
+   "u": "https://feeds.audiomeans.fr/feed/971b31f2-42d6-4d41-95ee-1c0554528483.xml",
    "code": 200,
    "acao": "*",
-   "type": "text/xml; charset=UTF-8",
-   "n": 23403
+   "type": "text/xml; charset=utf-8",
+   "n": 200000
   },
   {
-   "u": "https://www.francetvinfo.fr/politique.rss",
-   "code": 200,
-   "acao": "*",
-   "type": "text/xml; charset=UTF-8",
-   "n": 24403
-  },
-  {
-   "u": "https://www.francetvinfo.fr/societe.rss",
-   "code": 200,
-   "acao": "*",
-   "type": "text/xml; charset=UTF-8",
-   "n": 24809
-  },
-  {
-   "u": "https://www.francetvinfo.fr/monde.rss",
-   "code": 200,
-   "acao": "*",
-   "type": "text/xml; charset=UTF-8",
-   "n": 23459
-  },
-  {
-   "u": "https://www.francetvinfo.fr/economie.rss",
-   "code": 200,
-   "acao": "*",
-   "type": "text/xml; charset=UTF-8",
-   "n": 23067
-  },
-  {
-   "u": "https://www.francetvinfo.fr/sciences.rss",
-   "code": 200,
-   "acao": "*",
-   "type": "text/xml; charset=UTF-8",
-   "n": 22482
-  },
-  {
-   "u": "https://www.francetvinfo.fr/internet.rss",
-   "code": 200,
-   "acao": "*",
-   "type": "text/xml; charset=UTF-8",
-   "n": 22439
-  },
-  {
-   "u": "https://www.francetvinfo.fr/sports.rss",
-   "code": 200,
-   "acao": "*",
-   "type": "text/xml; charset=UTF-8",
-   "n": 23115
-  },
-  {
-   "u": "https://www.francetvinfo.fr/culture.rss",
-   "code": 200,
-   "acao": "*",
-   "type": "text/xml; charset=UTF-8",
-   "n": 22200
-  },
-  {
-   "u": "https://www.francetvinfo.fr/sante.rss",
-   "code": 200,
-   "acao": "*",
-   "type": "text/xml; charset=UTF-8",
-   "n": 22666
-  },
-  {
-   "u": "https://www.lemonde.fr/rss/une.xml",
-   "code": 200,
-   "acao": null,
-   "type": "application/xml; charset=UTF-8",
-   "n": 22496
-  },
-  {
-   "u": "https://www.lemonde.fr/politique/rss_full.xml",
-   "code": 200,
-   "acao": null,
-   "type": "application/xml; charset=UTF-8",
-   "n": 27942
-  },
-  {
-   "u": "https://www.lemonde.fr/societe/rss_full.xml",
-   "code": 200,
-   "acao": null,
-   "type": "application/xml; charset=UTF-8",
-   "n": 26852
-  },
-  {
-   "u": "https://www.lemonde.fr/international/rss_full.xml",
-   "code": 200,
-   "acao": null,
-   "type": "application/xml; charset=UTF-8",
-   "n": 28278
-  },
-  {
-   "u": "https://www.lemonde.fr/economie/rss_full.xml",
-   "code": 200,
-   "acao": null,
-   "type": "application/xml; charset=UTF-8",
-   "n": 27110
-  },
-  {
-   "u": "https://www.lemonde.fr/sciences/rss_full.xml",
-   "code": 200,
-   "acao": null,
-   "type": "application/xml; charset=UTF-8",
-   "n": 24845
-  },
-  {
-   "u": "https://www.lemonde.fr/pixels/rss_full.xml",
-   "code": 200,
-   "acao": null,
-   "type": "application/xml; charset=UTF-8",
-   "n": 27137
-  },
-  {
-   "u": "https://www.lemonde.fr/planete/rss_full.xml",
-   "code": 200,
-   "acao": null,
-   "type": "application/xml; charset=UTF-8",
-   "n": 27434
-  },
-  {
-   "u": "https://www.lemonde.fr/sport/rss_full.xml",
-   "code": 200,
-   "acao": null,
-   "type": "application/xml; charset=UTF-8",
-   "n": 27015
-  },
-  {
-   "u": "https://www.lemonde.fr/culture/rss_full.xml",
-   "code": 200,
-   "acao": null,
-   "type": "application/xml; charset=UTF-8",
-   "n": 24269
-  },
-  {
-   "u": "https://www.lemonde.fr/sante/rss_full.xml",
-   "code": 200,
-   "acao": null,
-   "type": "application/xml; charset=UTF-8",
-   "n": 27677
-  },
-  {
-   "u": "https://www.lefigaro.fr/rss/figaro_actualites.xml",
-   "code": 200,
-   "acao": null,
-   "type": "application/xml",
-   "n": 34416
-  },
-  {
-   "u": "https://www.lefigaro.fr/rss/figaro_flash-actu.xml",
-   "code": 200,
-   "acao": null,
-   "type": "application/xml",
-   "n": 32955
-  },
-  {
-   "u": "https://www.lefigaro.fr/rss/figaro_politique.xml",
-   "code": 200,
-   "acao": null,
-   "type": "application/xml",
-   "n": 34107
-  },
-  {
-   "u": "https://www.lefigaro.fr/rss/figaro_international.xml",
-   "code": 200,
-   "acao": null,
-   "type": "application/xml",
-   "n": 34476
-  },
-  {
-   "u": "https://www.lefigaro.fr/rss/figaro_economie.xml",
-   "code": 200,
-   "acao": null,
-   "type": "application/xml",
-   "n": 32874
-  },
-  {
-   "u": "https://www.lefigaro.fr/rss/figaro_sciences.xml",
-   "code": 200,
-   "acao": null,
-   "type": "application/xml",
-   "n": 34489
-  },
-  {
-   "u": "https://www.lefigaro.fr/rss/figaro_culture.xml",
-   "code": 200,
-   "acao": null,
-   "type": "application/xml",
-   "n": 30539
-  },
-  {
-   "u": "https://www.lefigaro.fr/rss/figaro_sport.xml",
-   "code": 200,
-   "acao": null,
-   "type": "application/xml",
-   "n": 30264
-  },
-  {
-   "u": "https://www.lefigaro.fr/rss/figaro_sante.xml",
-   "code": 200,
-   "acao": null,
-   "type": "application/xml",
-   "n": 34793
-  },
-  {
-   "u": "https://www.liberation.fr/arc/outboundfeeds/rss-all/?outputType=xml",
+   "u": "https://feeds.acast.com/public/shows/ecc4ef0f-1ca8-4ca0-90f2-cce7084aff43",
    "code": 200,
    "acao": null,
    "type": "application/xml; charset=utf-8",
-   "n": 47412
+   "n": 158898
   },
   {
-   "u": "https://www.rfi.fr/fr/rss",
-   "code": 200,
-   "acao": null,
-   "type": "application/rss+xml; charset=utf-8",
-   "n": 31721
-  },
-  {
-   "u": "https://www.rfi.fr/fr/france/rss",
-   "code": 200,
-   "acao": null,
-   "type": "application/rss+xml; charset=utf-8",
-   "n": 39146
-  },
-  {
-   "u": "https://www.rfi.fr/fr/afrique/rss",
-   "code": 200,
-   "acao": null,
-   "type": "application/rss+xml; charset=utf-8",
-   "n": 32986
-  },
-  {
-   "u": "https://www.france24.com/fr/rss",
-   "code": 200,
-   "acao": null,
-   "type": "application/rss+xml; charset=utf-8",
-   "n": 29789
-  },
-  {
-   "u": "https://www.france24.com/fr/france/rss",
-   "code": 200,
-   "acao": null,
-   "type": "application/rss+xml; charset=utf-8",
-   "n": 35698
-  },
-  {
-   "u": "https://www.france24.com/fr/europe/rss",
-   "code": 200,
-   "acao": null,
-   "type": "application/rss+xml; charset=utf-8",
-   "n": 37265
-  },
-  {
-   "u": "https://www.france24.com/fr/afrique/rss",
-   "code": 200,
-   "acao": null,
-   "type": "application/rss+xml; charset=utf-8",
-   "n": 35153
-  },
-  {
-   "u": "https://www.20minutes.fr/feeds/rss-une.xml",
-   "code": 200,
-   "acao": null,
-   "type": "application/xml",
-   "n": 187563
-  },
-  {
-   "u": "https://www.ouest-france.fr/rss/une",
-   "code": 200,
-   "acao": "https://www.ouest-france.fr",
-   "type": "application/xml;charset=UTF-8",
-   "n": 19097
-  },
-  {
-   "u": "https://feeds.leparisien.fr/leparisien/rss",
+   "u": "https://feeds.acast.com/public/shows/63a0a446157e1800116bef05",
    "code": 200,
    "acao": null,
    "type": "application/xml; charset=utf-8",
-   "n": 35862
+   "n": 143577
   },
   {
-   "u": "https://www.la-croix.com/feeds/rss/site.xml",
-   "code": 200,
-   "acao": null,
-   "type": "text/xml",
-   "n": 50646
-  },
-  {
-   "u": "https://fr.euronews.com/rss?format=mrss&level=theme&name=news",
-   "code": 200,
-   "acao": null,
-   "type": "text/xml; charset=UTF-8",
-   "n": 43631
-  },
-  {
-   "u": "https://www.euronews.com/rss?format=mrss&level=theme&name=news",
-   "code": 200,
-   "acao": null,
-   "type": "text/xml; charset=UTF-8",
-   "n": 42377
-  },
-  {
-   "u": "https://feeds.bbci.co.uk/news/rss.xml",
-   "code": 200,
-   "acao": null,
-   "type": "text/xml; charset=utf-8",
-   "n": 27409
-  },
-  {
-   "u": "https://feeds.bbci.co.uk/news/world/rss.xml",
-   "code": 200,
-   "acao": null,
-   "type": "text/xml; charset=utf-8",
-   "n": 18931
-  },
-  {
-   "u": "https://feeds.bbci.co.uk/news/business/rss.xml",
-   "code": 200,
-   "acao": null,
-   "type": "text/xml; charset=utf-8",
-   "n": 36181
-  },
-  {
-   "u": "https://feeds.bbci.co.uk/news/technology/rss.xml",
-   "code": 200,
-   "acao": null,
-   "type": "text/xml; charset=utf-8",
-   "n": 14650
-  },
-  {
-   "u": "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml",
-   "code": 200,
-   "acao": null,
-   "type": "text/xml; charset=utf-8",
-   "n": 30335
-  },
-  {
-   "u": "https://feeds.bbci.co.uk/news/health/rss.xml",
-   "code": 200,
-   "acao": null,
-   "type": "text/xml; charset=utf-8",
-   "n": 41275
-  },
-  {
-   "u": "https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml",
-   "code": 200,
-   "acao": null,
-   "type": "text/xml; charset=utf-8",
-   "n": 19103
-  },
-  {
-   "u": "https://feeds.bbci.co.uk/sport/rss.xml",
-   "code": 200,
-   "acao": null,
-   "type": "text/xml; charset=utf-8",
-   "n": 52929
-  },
-  {
-   "u": "https://www.theguardian.com/international/rss",
-   "code": 200,
-   "acao": null,
-   "type": "text/xml; charset=UTF-8",
-   "n": 200000
-  },
-  {
-   "u": "https://www.theguardian.com/world/rss",
-   "code": 200,
-   "acao": null,
-   "type": "text/xml; charset=UTF-8",
-   "n": 163834
-  },
-  {
-   "u": "https://www.theguardian.com/uk/business/rss",
-   "code": 200,
-   "acao": null,
-   "type": "text/xml; charset=UTF-8",
-   "n": 166085
-  },
-  {
-   "u": "https://www.theguardian.com/science/rss",
-   "code": 200,
-   "acao": null,
-   "type": "text/xml; charset=UTF-8",
-   "n": 94761
-  },
-  {
-   "u": "https://www.theguardian.com/uk/technology/rss",
-   "code": 200,
-   "acao": null,
-   "type": "text/xml; charset=UTF-8",
-   "n": 125742
-  },
-  {
-   "u": "https://www.theguardian.com/uk/sport/rss",
-   "code": 200,
-   "acao": null,
-   "type": "text/xml; charset=UTF-8",
-   "n": 170454
-  },
-  {
-   "u": "https://www.theguardian.com/uk/culture/rss",
-   "code": 200,
-   "acao": null,
-   "type": "text/xml; charset=UTF-8",
-   "n": 200000
-  },
-  {
-   "u": "https://www.brut.media/rss/fr/france.xml",
-   "code": 200,
-   "acao": null,
-   "type": "text/xml",
-   "n": 200000
-  },
-  {
-   "u": "https://www.brut.media/rss/fr/international.xml",
-   "code": 200,
-   "acao": null,
-   "type": "text/xml",
-   "n": 200000
-  },
-  {
-   "u": "https://www.brut.media/rss/fr/environnement.xml",
-   "code": 200,
-   "acao": null,
-   "type": "text/xml",
-   "n": 200000
-  },
-  {
-   "u": "https://www.brut.media/rss/fr/sciences-technologies.xml",
-   "code": 200,
-   "acao": null,
-   "type": "text/xml",
-   "n": 126536
-  },
-  {
-   "u": "https://www.brut.media/rss/fr/economie.xml",
-   "code": 200,
-   "acao": null,
-   "type": "text/xml",
-   "n": 61106
-  },
-  {
-   "u": "https://www.brut.media/rss/fr/sport.xml",
-   "code": 200,
-   "acao": null,
-   "type": "text/xml",
-   "n": 200000
-  },
-  {
-   "u": "https://www.brut.media/rss/fr/sante.xml",
-   "code": 200,
-   "acao": null,
-   "type": "text/xml",
-   "n": 190052
-  },
-  {
-   "u": "https://www.sudouest.fr/essentiel/rss.xml",
-   "code": 403,
-   "acao": null,
-   "type": "text/html",
-   "n": 0
-  },
-  {
-   "u": "https://www.ladepeche.fr/rss.xml",
+   "u": "https://anchor.fm/s/f1ebc854/podcast/rss",
    "code": 200,
    "acao": "*",
-   "type": "text/xml; charset=UTF-8",
-   "n": 136218
-  },
-  {
-   "u": "https://www.nicematin.com/rss",
-   "code": 200,
-   "acao": null,
    "type": "application/rss+xml; charset=utf-8",
-   "n": 74043
+   "n": 40552
   },
   {
-   "u": "https://www.dna.fr/rss",
+   "u": "https://anchor.fm/s/f621e278/podcast/rss",
    "code": 200,
    "acao": "*",
-   "type": "text/xml; charset=utf-8",
-   "n": 33261
-  },
-  {
-   "u": "https://actu.fr/rss.xml",
-   "code": 200,
-   "acao": null,
    "type": "application/rss+xml; charset=utf-8",
-   "n": 46693
-  },
-  {
-   "u": "https://feeds.meteoalarm.org/feeds/meteoalarm-legacy-atom-france",
-   "code": 200,
-   "acao": null,
-   "type": "application/atom+xml; charset=utf-8",
-   "n": 6647
-  },
-  {
-   "u": "https://vigilance.meteofrance.fr/fr",
-   "code": 200,
-   "acao": null,
-   "type": "text/html; charset=utf-8",
-   "n": 131629
-  },
-  {
-   "u": "https://geo.api.gouv.fr/communes?nom=Marseille&fields=departement",
-   "code": 200,
-   "acao": "https://gilbertmamadou-design.github.io",
-   "type": "application/json; charset=utf-8",
-   "n": 461
-  }
- ],
- "ondes": [
-  {
-   "u": "https://itunes.apple.com/search?media=podcast&entity=podcast&country=FR&limit=5&term=histoire",
-   "code": 200,
-   "acao": "*",
-   "type": "text/javascript; charset=utf-8",
-   "n": 8299
-  },
-  {
-   "u": "https://ccmixter.org/api/query?f=json&limit=5&sort=rank&search=piano",
-   "code": 200,
-   "acao": null,
-   "type": "text/plain",
-   "n": 17799
-  },
-  {
-   "u": "https://archive.org/advancedsearch.php?q=collection%3Aopensource_audio&fl%5B%5D=identifier&rows=3&output=json",
-   "code": 200,
-   "acao": "*",
-   "type": "application/json",
-   "n": 340
-  },
-  {
-   "u": "https://archive.org/metadata/OTRR_Gunsmoke_Singles",
-   "code": 200,
-   "acao": "*",
-   "type": "application/json",
-   "n": 200000
-  }
- ],
- "meteo": [
-  {
-   "u": "https://api.open-meteo.com/v1/forecast?latitude=43.3&longitude=5.4&current=temperature_2m",
-   "code": 200,
-   "acao": "*",
-   "type": "application/json; charset=utf-8",
-   "n": 321
-  },
-  {
-   "u": "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=43.3&longitude=5.4&current=pm10",
-   "code": 200,
-   "acao": "*",
-   "type": "application/json; charset=utf-8",
-   "n": 305
-  },
-  {
-   "u": "https://geocoding-api.open-meteo.com/v1/search?name=Marseille",
-   "code": 200,
-   "acao": "*",
-   "type": "application/json; charset=utf-8",
-   "n": 7670
-  },
-  {
-   "u": "https://api.rainviewer.com/public/weather-maps.json",
-   "code": 200,
-   "acao": "*",
-   "type": "application/json",
-   "n": 818
-  },
-  {
-   "u": "https://vigilance.meteofrance.fr/fr",
-   "code": 200,
-   "acao": null,
-   "type": "text/html; charset=utf-8",
-   "n": 131629
-  },
-  {
-   "u": "https://www.pollens.fr/",
-   "code": 200,
-   "acao": null,
-   "type": "text/html; charset=UTF-8",
-   "n": 200000
-  }
- ],
- "ciel": [
-  {
-   "u": "https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=43.3&longitude=5.4&localityLanguage=fr",
-   "code": 200,
-   "acao": "*",
-   "type": "application/json; charset=utf-8",
-   "n": 4413
-  },
-  {
-   "u": "https://archive-api.open-meteo.com/v1/archive?latitude=43.3&longitude=5.4&start_date=2025-01-01&end_date=2025-01-02&daily=temperature_2m_max",
-   "code": 200,
-   "acao": "*",
-   "type": "application/json; charset=utf-8",
-   "n": 309
-  },
-  {
-   "u": "https://marine-api.open-meteo.com/v1/marine?latitude=43.3&longitude=5.4&current=wave_height",
-   "code": 200,
-   "acao": "*",
-   "type": "application/json; charset=utf-8",
-   "n": 318
-  }
- ],
- "sentiers": [
-  {
-   "u": "https://photon.komoot.io/api/?q=Cassis&lang=fr&limit=3",
-   "code": 200,
-   "acao": "*",
-   "type": "application/json",
-   "n": 1237
-  },
-  {
-   "u": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/5.37,43.29;5.40,43.30?overview=false",
-   "code": 200,
-   "acao": "*",
-   "type": "application/json; charset=UTF-8",
-   "n": 596
-  },
-  {
-   "u": "https://api.open-meteo.com/v1/elevation?latitude=43.3&longitude=5.4",
-   "code": 200,
-   "acao": "*",
-   "type": "application/json",
-   "n": 20
-  }
- ],
- "petitspas": [
-  {
-   "u": "https://legifrss.org/latest",
-   "code": 200,
-   "acao": null,
-   "type": "application/atom+xml",
-   "n": 200000
-  },
-  {
-   "u": "https://legifrss.org/authors",
-   "code": 200,
-   "acao": null,
-   "type": "application/json",
-   "n": 2571
-  },
-  {
-   "u": "https://www.service-public.gouv.fr/abonnements/rss/actu-actu-pro.rss",
-   "code": 200,
-   "acao": "https://lannuaire.service-public.gouv.fr",
-   "type": "application/rss+xml;charset=UTF-8",
-   "n": 200000
-  },
-  {
-   "u": "https://www.service-public.gouv.fr/abonnements/rss/actu-actualites-particuliers.rss",
-   "code": 200,
-   "acao": "https://lannuaire.service-public.gouv.fr",
-   "type": "application/rss+xml;charset=UTF-8",
-   "n": 10485
-  }
- ],
- "solaire": [
-  {
-   "u": "https://api-adresse.data.gouv.fr/search/?q=8+bd+du+port&limit=1",
-   "code": 200,
-   "acao": "*",
-   "type": "application/json; charset=utf-8",
-   "n": 577
-  },
-  {
-   "u": "https://apicarto.ign.fr/api/cadastre/commune?code_insee=13055",
-   "code": 200,
-   "acao": "https://gilbertmamadou-design.github.io",
-   "type": "application/json; charset=utf-8",
-   "n": 147
-  },
-  {
-   "u": "https://data.geopf.fr/geocodage/search?q=marseille&limit=1",
-   "code": 200,
-   "acao": "*",
-   "type": "application/json; charset=utf-8",
-   "n": 501
-  },
-  {
-   "u": "https://data.geopf.fr/wfs/ows?SERVICE=WFS&REQUEST=GetCapabilities",
-   "code": 200,
-   "acao": "*",
-   "type": "application/xml",
-   "n": 200000
-  },
-  {
-   "u": "https://re.jrc.ec.europa.eu/api/v5_3/PVcalc?lat=43.3&lon=5.4&peakpower=1&loss=14&outputformat=json",
-   "code": 200,
-   "acao": null,
-   "type": "application/json",
-   "n": 5194
-  }
- ],
- "ecran": [
-  {
-   "u": "https://sepiasearch.org/api/v1/search/videos?search=bricolage&count=2",
-   "code": 200,
-   "acao": "*",
-   "type": "application/json; charset=utf-8",
-   "n": 11244
-  },
-  {
-   "u": "https://archive.org/advancedsearch.php?q=collection%3Afeature_films&fl%5B%5D=identifier&rows=2&output=json",
-   "code": 200,
-   "acao": "*",
-   "type": "application/json",
-   "n": 316
-  },
-  {
-   "u": "https://images-api.nasa.gov/search?q=apollo&media_type=video",
-   "code": 200,
-   "acao": "*",
-   "type": "application/json",
-   "n": 200000
-  },
-  {
-   "u": "https://commons.wikimedia.org/w/api.php?action=query&list=search&srsearch=film&format=json&origin=*",
-   "code": 200,
-   "acao": "*",
-   "type": "application/json; charset=utf-8",
-   "n": 4886
-  },
-  {
-   "u": "https://www.youtube.com/feeds/videos.xml?channel_id=UCX6OQ3DkcsbYNE6H8uQQuVA",
-   "code": 200,
-   "acao": null,
-   "type": "text/xml; charset=UTF-8",
-   "n": 30491
-  }
- ],
- "liseuse": [
-  {
-   "u": "https://gutendex.com/books?languages=fr&copyright=false",
-   "code": 0,
-   "err": "The read operation timed out"
-  },
-  {
-   "u": "https://www.gutenberg.org/ebooks/search.opds/?query=hugo",
-   "code": 200,
-   "acao": "*",
-   "type": "application/atom+xml; charset=UTF-8",
-   "n": 62220
-  },
-  {
-   "u": "https://www.gutenberg.org/ebooks/17489.epub3.images",
-   "code": 200,
-   "acao": null,
-   "type": "application/epub+zip",
-   "n": 200000
-  },
-  {
-   "u": "https://fr.wikisource.org/w/api.php?action=query&list=search&srsearch=Hugo&format=json&origin=*",
-   "code": 200,
-   "acao": "*",
-   "type": "application/json; charset=utf-8",
-   "n": 4249
-  },
-  {
-   "u": "https://ws-export.wmcloud.org/?format=epub&lang=fr&page=Les_Mis%C3%A9rables",
-   "code": 200,
-   "acao": null,
-   "type": "text/html; charset=utf-8",
-   "n": 7509
-  }
- ],
- "musique": [
-  {
-   "u": "https://itunes.apple.com/search?media=music&entity=album&limit=2&term=daft+punk",
-   "code": 200,
-   "acao": "*",
-   "type": "text/javascript; charset=utf-8",
-   "n": 1950
-  }
- ],
- "ondes-flux": [
-  {
-   "u": "https://api.octopus.saooti.com/rss/playlist/500.rss",
-   "code": 200,
-   "acao": "*",
-   "type": "application/xml;charset=utf-8",
-   "n": 200000
-  },
-  {
-   "u": "https://api.octopus.saooti.com/rss/playlist/510.rss",
-   "code": 200,
-   "acao": "*",
-   "type": "application/xml;charset=utf-8",
    "n": 200000
   },
   {
@@ -817,11 +50,378 @@
    "n": 54516
   },
   {
-   "u": "https://api.octopus.saooti.com/rss/emission/14574.rss",
+   "u": "https://api.octopus.saooti.com/rss/emission/1159.rss",
    "code": 200,
    "acao": "*",
    "type": "application/xml;charset=utf-8",
-   "n": 11884
+   "n": 52747
+  },
+  {
+   "u": "https://www.arteradio.com/xml_sound_emission?emissionname=quand-l-histoire-fait-dates",
+   "code": 200,
+   "acao": null,
+   "type": "text/xml",
+   "n": 200000
+  },
+  {
+   "u": "https://www.arteradio.com/xml_sound_emission?emissionname=%22Un%20podcast%20%C3%A0%20soi%22&partner=applepodcast",
+   "code": 200,
+   "acao": null,
+   "type": "text/xml",
+   "n": 200000
+  },
+  {
+   "u": "https://feed.ausha.co/WqXVNUjKv3mz",
+   "code": 200,
+   "acao": null,
+   "type": "application/xml",
+   "n": 200000
+  },
+  {
+   "u": "https://feed.ausha.co/bPV44um4EJ5g",
+   "code": 200,
+   "acao": null,
+   "type": "application/xml",
+   "n": 200000
+  },
+  {
+   "u": "https://audioblog.arteradio.com/blog/265217/rss",
+   "code": 200,
+   "acao": "*",
+   "type": "text/xml; charset=UTF-8",
+   "n": 33985
+  },
+  {
+   "u": "https://feeds.megaphone.fm/CKG8775456549",
+   "code": 200,
+   "acao": "*",
+   "type": "application/xml; charset=utf-8",
+   "n": 95044
+  },
+  {
+   "u": "https://feeds.megaphone.fm/YMH8516456556",
+   "code": 200,
+   "acao": "*",
+   "type": "application/xml; charset=utf-8",
+   "n": 200000
+  },
+  {
+   "u": "https://feeds.360.audion.fm/DvTHxYW1zFrtJE_EcJJWs",
+   "code": 200,
+   "acao": "*",
+   "type": "application/xml; charset=utf-8",
+   "n": 200000
+  },
+  {
+   "u": "https://feeds.360.audion.fm/vUrlrbXBi20Br6zvG7vAH",
+   "code": 200,
+   "acao": "*",
+   "type": "application/xml; charset=utf-8",
+   "n": 14308
+  },
+  {
+   "u": "https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/bc44988a-a82a-4291-ab8b-afdd01187fa8/39e2f432-53df-43b8-a7b9-afdd01187fc4/podcast.rss",
+   "code": 200,
+   "acao": "*",
+   "type": "application/xml; charset=utf-8",
+   "n": 200000
+  },
+  {
+   "u": "https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/7f3d9150-a284-4eb5-afdd-b36b012c131c/d0eda9ea-f1f7-4dbc-aeac-b36b012c1726/podcast.rss",
+   "code": 200,
+   "acao": "*",
+   "type": "application/xml; charset=utf-8",
+   "n": 200000
+  },
+  {
+   "u": "https://podcast.college-de-france.fr/xml2/cdf4-78.xml",
+   "code": 200,
+   "acao": null,
+   "type": "text/xml",
+   "n": 200000
+  },
+  {
+   "u": "https://rss.libsyn.com/shows/393380/destinations/3235040.xml",
+   "code": 200,
+   "acao": "*",
+   "type": "application/rss+xml; charset=utf-8",
+   "n": 200000
+  },
+  {
+   "u": "https://rss.libsyn.com/shows/73816/destinations/321559.xml",
+   "code": 200,
+   "acao": "*",
+   "type": "application/rss+xml; charset=utf-8",
+   "n": 200000
+  },
+  {
+   "u": "https://www.bricolagepod.com/podcast?format=RSS",
+   "code": 200,
+   "acao": null,
+   "type": "application/rss+xml; charset=UTF-8",
+   "n": 74855
+  },
+  {
+   "u": "https://www.sudradio.fr/programme/sud-radio-fait-son-bricolage/poditunes",
+   "code": 200,
+   "acao": null,
+   "type": "text/xml;charset=UTF-8",
+   "n": 15000
+  },
+  {
+   "u": "https://feeds.simplecast.com/dsB4V81t",
+   "code": 200,
+   "acao": "*",
+   "type": "application/xml",
+   "n": 200000
+  },
+  {
+   "u": "https://feeds.simplecast.com/JZSQrle9",
+   "code": 200,
+   "acao": "*",
+   "type": "application/xml",
+   "n": 200000
+  },
+  {
+   "u": "https://pharefm.com/feed/podcast/humour/",
+   "code": 403,
+   "acao": null,
+   "type": "text/html; charset=UTF-8",
+   "n": 0
+  },
+  {
+   "u": "https://flashimpro.lepodcast.fr/rss",
+   "code": 200,
+   "acao": null,
+   "type": "application/rss+xml; charset=utf-8",
+   "n": 200000
+  },
+  {
+   "u": "https://feeds.transistor.fm/quiz-g-o-a-t-sport-histoire-et-humour",
+   "code": 200,
+   "acao": "*",
+   "type": "text/xml; charset=utf-8",
+   "n": 16739
+  },
+  {
+   "u": "https://feeds.podcastics.com/podcastics/podcasts/rss/4428_1e202a5106a3cacf28bdadb35570b203.rss",
+   "code": 200,
+   "acao": null,
+   "type": "application/xml",
+   "n": 200000
+  },
+  {
+   "u": "https://feeds.podcastics.com/podcastics/podcasts/rss/8139_c41302458cc421cb10d50567f9a7f987.rss",
+   "code": 200,
+   "acao": null,
+   "type": "application/xml",
+   "n": 179043
+  },
+  {
+   "u": "https://baladoquebec.ca/ecrire-une-serie-sur-nos-scenaristes-en-humour/rss",
+   "code": 200,
+   "acao": null,
+   "type": "application/rss+xml; charset=utf-8",
+   "n": 23859
+  },
+  {
+   "u": "https://baladoquebec.ca/sketchetera-le-show-a-sketchs-de-lecole-nationale-de-lhumour/rss",
+   "code": 200,
+   "acao": null,
+   "type": "application/rss+xml; charset=utf-8",
+   "n": 53568
+  },
+  {
+   "u": "https://rss.art19.com/dollop",
+   "code": 200,
+   "acao": "*",
+   "type": "application/rss+xml; charset=utf-8",
+   "n": 200000
+  },
+  {
+   "u": "https://rss.art19.com/true-crime-all-the-time",
+   "code": 200,
+   "acao": "*",
+   "type": "application/rss+xml; charset=utf-8",
+   "n": 200000
+  },
+  {
+   "u": "http://itstreaming.apple.com/podcasts/meettheartist_fr/jerome/jerome.xml",
+   "code": 200,
+   "acao": null,
+   "type": "application/xml",
+   "n": 2111
+  },
+  {
+   "u": "https://feeds.soundcloud.com/users/soundcloud:users:717044734/sounds.rss",
+   "code": 200,
+   "acao": "https://www.radiofrance.fr",
+   "type": "application/rss+xml; charset=utf-8",
+   "n": 17261
+  },
+  {
+   "u": "https://feeds.soundcloud.com/users/soundcloud:users:569848275/sounds.rss",
+   "code": 200,
+   "acao": "https://www.radiofrance.fr",
+   "type": "application/rss+xml; charset=utf-8",
+   "n": 32684
+  },
+  {
+   "u": "https://feed.podbean.com/cuisineespagnole/feed.xml",
+   "code": 200,
+   "acao": "*",
+   "type": "text/xml; charset=UTF-8",
+   "n": 10474
+  },
+  {
+   "u": "https://feed.podbean.com/parlemoidesante/feed.xml",
+   "code": 200,
+   "acao": "*",
+   "type": "text/xml; charset=UTF-8",
+   "n": 200000
+  },
+  {
+   "u": "https://audioboom.com/channels/5146799.rss",
+   "code": 200,
+   "acao": null,
+   "type": "text/xml; charset=utf-8",
+   "n": 200000
+  },
+  {
+   "u": "https://audioboom.com/channels/5024396.rss",
+   "code": 200,
+   "acao": null,
+   "type": "text/xml; charset=utf-8",
+   "n": 200000
+  },
+  {
+   "u": "https://www.spreaker.com/show/5740276/episodes/feed",
+   "code": 200,
+   "acao": null,
+   "type": "text/xml",
+   "n": 124237
+  },
+  {
+   "u": "https://www.spreaker.com/show/6678714/episodes/feed",
+   "code": 200,
+   "acao": null,
+   "type": "text/xml",
+   "n": 200000
+  },
+  {
+   "u": "https://feeds.castos.com/m1389",
+   "code": 200,
+   "acao": "*",
+   "type": "text/xml; charset=utf-8",
+   "n": 133891
+  },
+  {
+   "u": "https://app.kajabi.com/podcasts/2147628820/feed",
+   "code": 200,
+   "acao": "*",
+   "type": "text/xml; charset=utf-8",
+   "n": 200000
+  },
+  {
+   "u": "https://nutriradio.radio-site.com/rss-feed-7-224",
+   "code": 200,
+   "acao": null,
+   "type": "text/xml; charset=UTF-8",
+   "n": 23949
+  },
+  {
+   "u": "https://feeds.captivate.fm/medecine-science-recherche-clinique-ramsay-sante/",
+   "code": 200,
+   "acao": "*",
+   "type": "application/xml",
+   "n": 81325
+  },
+  {
+   "u": "https://feeds.captivate.fm/symp/",
+   "code": 200,
+   "acao": "*",
+   "type": "application/xml",
+   "n": 200000
+  },
+  {
+   "u": "https://feeds.feedburner.com/FrenchPodcastHealth",
+   "code": 200,
+   "acao": null,
+   "type": "text/xml; charset=utf-8",
+   "n": 200000
+  },
+  {
+   "u": "http://feeds.feedburner.com/businessenglishpod",
+   "code": 200,
+   "acao": null,
+   "type": "text/xml; charset=utf-8",
+   "n": 200000
+  },
+  {
+   "u": "https://healthwise-fr.podigee.io/feed/mp3",
+   "code": 200,
+   "acao": "*",
+   "type": "application/rss+xml; charset=utf-8",
+   "n": 200000
+  },
+  {
+   "u": "https://feedesmots.fr/enfants/index.xml",
+   "code": 200,
+   "acao": null,
+   "type": "application/xml",
+   "n": 200000
+  },
+  {
+   "u": "https://apis.rfi.fr/products/get_product/rfi_getpodcast_by_nid?token_application=975d23b8-7a07-11e8-9f62-005056a90194&program.entrepriseId=WBMZ102182-RFI-FR-20211109",
+   "code": 200,
+   "acao": "*",
+   "type": "application/rss+xml;charset=utf-8",
+   "n": 85338
+  },
+  {
+   "u": "https://podcasts.files.bbci.co.uk/p002vsxs.rss",
+   "code": 200,
+   "acao": "*",
+   "type": "application/rss+xml",
+   "n": 200000
+  },
+  {
+   "u": "https://podcasts.files.bbci.co.uk/p0hvvqqr.rss",
+   "code": 200,
+   "acao": "*",
+   "type": "application/rss+xml",
+   "n": 200000
+  },
+  {
+   "u": "https://rss2.flightcast.com/xmsftuzjjykcmqwolaqn6mdn",
+   "code": 200,
+   "acao": "*",
+   "type": "application/xml; charset=utf-8",
+   "n": 200000
+  },
+  {
+   "u": "https://apis.france24.com/products/get_product/f24_getpodcast_audio_by_nid?token_application=33d60288-7e20-11e9-884b-005056a9c687&program.entrepriseId=WB5442702-F24-EN-20130826",
+   "code": 200,
+   "acao": "*",
+   "type": "application/rss+xml;charset=utf-8",
+   "n": 64670
+  },
+  {
+   "u": "https://feed.podcasts.com/rss_feed/284740f4d8dd95423a41781ef554347d",
+   "code": 200,
+   "acao": "*",
+   "type": "application/xml",
+   "n": 200000
+  },
+  {
+   "u": "https://www.vodio.fr/rssmedias.php?valeur=341",
+   "code": 0,
+   "err": "Remote end closed connection without response"
+  },
+  {
+   "u": "https://www.vodio.fr/rssmedias.php?valeur=1712",
+   "code": 0,
+   "err": "Remote end closed connection without response"
   }
  ]
 }
