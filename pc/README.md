@@ -105,6 +105,14 @@ ne déclenche pas « pages build and deployment ».
 
 `window.MAGPC_CONF` (injecté) : `{app, name, vendor, ocrWorker, sw, apps: {identifiant Android: '../<id>/'}}`.
 
+## Identifiant des applis installées
+
+Chaque manifeste a un `id` **unique** : `/atelier-signature/pc/<appli>/`. Le navigateur résout `id` par rapport à
+l'**origine** du site (pas au dossier de l'appli) : un id relatif comme `"./"` donnait le même identifiant
+(`https://gilbertmamadou-design.github.io/`) à toutes les applis, et Edge les confondait (installer l'Atelier PDF
+proposait « Lecteur PDF »). `build-pc.py` (et `--check`) s'arrête si deux identifiants résolus sont identiques.
+Une appli installée avec l'ancien identifiant doit être désinstallée puis réinstallée.
+
 ## Hors ligne et mises à jour
 
 `sw.js` précache la page, le shim, l'adaptateur et les bibliothèques de l'appli. Sa `VERSION` est l'empreinte de

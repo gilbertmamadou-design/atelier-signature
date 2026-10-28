@@ -154,9 +154,17 @@ def page(app, conf, apps_android):
     return head + out
 
 
+def app_id(app, conf):
+    """Identifiant unique et stable de l'appli installée. Il est résolu par rapport à l'ORIGINE (pas au dossier) :
+    un id relatif comme "./" donnerait le même identifiant à toutes les applis du site, que Edge et Chrome confondraient."""
+    from urllib.parse import urlparse
+    base = urlparse(conf['site']).path.rstrip('/') + '/'
+    return base + app['id'] + '/'
+
+
 def manifest(app, conf):
     m = {
-        'id': './', 'name': app['name'], 'short_name': app.get('short_name', app['name']), 'description': app.get('description', ''),
+        'id': app_id(app, conf), 'name': app['name'], 'short_name': app.get('short_name', app['name']), 'description': app.get('description', ''),
         'lang': 'fr', 'dir': 'ltr', 'start_url': './', 'scope': './', 'display': 'standalone',
         'background_color': app.get('background_color', '#ffffff'), 'theme_color': app.get('theme_color', '#ffffff'),
         'categories': ['productivity', 'utilities'],
@@ -240,6 +248,18 @@ def main():
         versions[app['id']] = v
         write(os.path.join(out_dir, 'sw.js'), sw)
     write(os.path.join(PC, 'index.html'), launcher(conf, versions, apps_android))
+    # identifiants des manifestes : tous différents une fois résolus sur l'origine du site
+    from urllib.parse import urljoin
+    ids = {}
+    for a in conf['apps']:
+        rid = urljoin(urljoin(conf['site'], a['id'] + '/'), app_id(a, conf))
+        if rid in ids:
+            WARN.append('identifiant de manifeste en double : %s et %s (%s)' % (ids[rid], a['id'], rid))
+        ids[rid] = a['id']
+    if any(w.startswith('identifiant de manifeste') for w in WARN):
+        for w in WARN:
+            print('ATTENTION : ' + w)
+        sys.exit('Identifiants de manifeste en double : corriger app_id()')
     for w in WARN:
         print('ATTENTION : ' + w)
     if CHECK:
