@@ -29,6 +29,7 @@ pc/
     ocr-worker.js        OCR Tesseract (français) hors ligne
     toile.html           page de Toile sur PC (propre au PC, champ « page » de pc-apps.json)
     toile-worker.js      moteur de recadrage de Toile (portage JS de applis/scripts/WallpaperJob.java)
+                         (« Images en ligne » : applis/www-fonds/en-ligne.js, copié dans pc/toile/toile-en-ligne.js)
     apps/fenetres.css    commun : feuilles du bas en fenêtres centrées (champ « styles » de pc-apps.json)
     apps/souris.css      commun : curseurs, survol, barres de défilement
     vendor/              bibliothèques (pdf.js, pdf-lib, jszip, tesseract, leaflet, jspdf, xlsx) + LICENSES/ + VENDOR.json
@@ -48,7 +49,7 @@ pc/
 | Carnet (`notes`), Agenda (`agenda`), Contacts (`contacts`) | tout le contenu ; .ics/.vcf en import/export et « Ouvrir avec » ; rappels fenêtre ouverte | agenda/contacts du téléphone, synchronisation |
 | Calcul, QR, Météo, Ciel, Sentiers, Solaire | tout (QR : webcam, image collée ; Sentiers : préparation, GPX) | Sentiers : enregistrement GPS ; Solaire : boussole/inclinomètre, PVGIS sans relais |
 | Mélodie (`musique`), Ondes, Écran | dossier de musique/vidéos du PC, podcasts CORS, PeerTube/NASA/archive | téléchargements hors ligne d'Ondes, applis TV (liens vers les sites) |
-| Toile (`toile`, page propre au PC) | fonds recadrés à la taille de l'écran (mêmes traitements que l'APK) dans un dossier « Fonds Toile », que le diaporama de Windows fait défiler ; mise à jour incrémentale | changer le fond d'écran lui-même (impossible pour une page web), tuile, changement en arrière-plan |
+| Toile (`toile`, page propre au PC) | fonds recadrés à la taille de l'écran (mêmes traitements que l'APK) dans un dossier « Fonds Toile », que le diaporama de Windows fait défiler ; mise à jour incrémentale ; onglet « Images en ligne » (thèmes, sources libres, crédits) | changer le fond d'écran lui-même (impossible pour une page web), tuile, changement en arrière-plan |
 | Galerie, Scan, Dictaphone | dossier photos du PC (corbeille, EXIF, carte), scan d'images/PDF/webcam, micro + dictée | photos du téléphone, partage vers d'autres applis |
 | Coffre (`coffre`) | identique (PBKDF2 600 000 + AES-GCM 256, rien ne sort) | empreinte (mot de passe maître seulement) |
 | Petits Pas (`petitspas`), Carnet de chasse (`chasse`) | consultation, fiches, statistiques, exports | Petits Pas : sources officielles sans relais ; chasse : position GPS précise |
@@ -89,6 +90,8 @@ ne déclenche pas « pages build and deployment ».
    (bases recréées à l'identique). `note` : la sauvegarde propre de l'appli, quand elle existe (même fichier que
    sur le téléphone).
    `android` = champ `app` de `applis/apps.json` (sert au dossier `www-…`, aux icônes et à l'identifiant).
+   `copies` (facultatif) : fichiers du dépôt copiés dans le dossier de l'appli et précachés, ex. Toile :
+   `{"toile-en-ligne.js": "applis/www-fonds/en-ligne.js"}` (même fichier que dans l'APK).
    `page` (facultatif) : page propre au PC à la place de `applis/www-<appli>/index.html` (ex. Toile :
    `"page": "pc/shared/toile.html"`, l'icône reste celle de l'appli Android).
 2. **`shared/apps/<id>.js`** (si la page appelle un pont propre à l'appli) : définir `window.MAG<Appli>` avec
@@ -187,6 +190,36 @@ le décode (sinon image « Ignorée » avec un message).
 supprime que les fichiers listés dans ce manifeste (préfixe `toile-`) dont la source a disparu ou a été exclue.
 Rien n'est jamais écrit dans les dossiers source. Réglages : `localStorage` `toile-pc:reglages` ; poignées et choix
 par image : IndexedDB `toile-pc`.
+
+### Toile : images en ligne
+
+Onglet « Images en ligne » (même code que l'APK : `applis/www-fonds/en-ligne.js`, copié en `pc/toile/toile-en-ligne.js`).
+Récupère des images par **thèmes** (16 prédéfinis + 5 thèmes libres, poids Peu / Normal / Beaucoup) uniquement depuis des
+sources qui autorisent la réutilisation, avec l'auteur et la licence de chaque image :
+
+| Source | Clé | Conditions retenues |
+|---|---|---|
+| Wikimedia Commons (`commons.wikimedia.org/w/api.php`, `origin=*`, en-tête `Api-User-Agent`) | non | licences CC0, domaine public, CC BY, CC BY-SA seulement (NC, ND, GFDL seule, « fair use », `NonFree` exclus) ; vignettes aux tailles standard (960, 1280, 1920, 3840) |
+| Openverse (`api.openverse.org/v1/images/`, `license=by,by-sa,cc0,pdm`, `mature=false`, `aspect_ratio`, `size=large`, sources Flickr, Wikimedia, Met) | non | anonyme : 20 recherches/min, 200/jour |
+| NASA APOD (`api.nasa.gov/planetary/apod`) | DEMO_KEY (30/h, 50/jour) ou clé gratuite | thème Espace ; images avec champ `copyright` exclues |
+| Pixabay (`pixabay.com/api/`, `safesearch=true`) | clé gratuite obligatoire | réponses gardées 24 h, images téléchargées (pas de lien permanent), « Image de X sur Pixabay » ; sans compte approuvé ≤ 1 280 px (résolution « tolérante ») |
+
+**Non retenues** : Unsplash (règles d'API : pas d'« applications de fonds d'écran », images affichées depuis leurs serveurs) et
+Pexels (conditions : pas de « wallpaper app »). L'appli l'explique. Pas de scraping ; « Manga / anime » = illustrations de
+style sous licence libre, les personnages de séries ne sont pas proposés (message dans l'appli).
+
+Règles communes (identiques dans `applis/scripts/ToileBridge.java`) : orientation de l'écran (paysage sur PC), résolution
+minimale = celle des fonds (ou la moitié en « tolérante »), mots-clés adultes refusés (titre, catégories, mots-clés),
+doublons par identifiant source, fichier Wikimedia (même image via Commons et Openverse) et empreinte SHA-256 du fichier ;
+une image refusée (« Ne plus montrer », « Signaler ») ne revient jamais ; plafond de stockage (les plus anciennes non favorites
+sont supprimées).
+
+Sur PC : `fetch` direct sans cookies ; une API ou un serveur d'images qui refuse le CORS (constaté deux fois alors que le
+réseau marche) est désactivé 7 jours avec un message (« Réessayer » le réactive). Fichiers dans le stockage privé du
+navigateur (OPFS `toile-en-ligne/`), liste dans IndexedDB `toile-pc` (`web-items`, `web-seen`, `web-refused`, `web-cache`…),
+réglages `localStorage` `toile-pc:en-ligne`, clés dans `toile-cles-pc` (hors du préfixe exporté). « Récupérer N images »
+puis traitement automatique vers « Fonds Toile » (mêmes réglages de recadrage) ; `toile-credits.txt` (dans la sortie) donne,
+pour chaque fond `toile-<source>-<id>-….jpg`, l'auteur, la licence et la source ; « Crédit » retrouve une image par ce nom.
 
 ## Relais réseau
 
