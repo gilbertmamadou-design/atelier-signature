@@ -1,4 +1,14 @@
 {
+  "hls.min.js": {
+    "package": "hls.js",
+    "version": "1.6.19",
+    "from": "dist/hls.min.js",
+    "license": "Apache-2.0",
+    "licenseFile": "LICENSES/hls.js-Apache-2.0.txt",
+    "note": "Copie actuelle construite depuis le tag v1.6.19 avec pc/hls-build.mjs (registre npm injoignable) ; --vendor la remplace par dist/hls.min.js du paquet npm, même version.",
+    "size": 505613,
+    "sha256": "37e1d71551d959b86280dfb31431ea55b5454a4e05de4260cedf3f2a0e9b486b"
+  },
   "jspdf.umd.min.js": {
     "package": "jspdf",
     "version": "2.5.1",

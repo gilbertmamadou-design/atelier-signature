@@ -12,7 +12,8 @@
     "leaflet.js": { "package": "leaflet", "version": "1.9.4", "from": "dist/leaflet.js", "license": "BSD-2-Clause", "licenseFile": "LICENSES/leaflet-BSD-2-Clause.txt" },
     "leaflet.css": { "package": "leaflet", "version": "1.9.4", "from": "dist/leaflet.css", "license": "BSD-2-Clause", "licenseFile": "LICENSES/leaflet-BSD-2-Clause.txt" },
     "jspdf.umd.min.js": { "package": "jspdf", "version": "2.5.1", "from": "dist/jspdf.umd.min.js", "license": "MIT", "licenseFile": "LICENSES/jspdf-MIT.txt" },
-    "xlsx.full.min.js": { "package": "xlsx", "version": "0.18.5", "from": "dist/xlsx.full.min.js", "license": "Apache-2.0", "licenseFile": "LICENSES/xlsx-Apache-2.0.txt" }
+    "xlsx.full.min.js": { "package": "xlsx", "version": "0.18.5", "from": "dist/xlsx.full.min.js", "license": "Apache-2.0", "licenseFile": "LICENSES/xlsx-Apache-2.0.txt" },
+    "hls.min.js": { "package": "hls.js", "version": "1.6.19", "from": "dist/hls.min.js", "license": "Apache-2.0", "licenseFile": "LICENSES/hls.js-Apache-2.0.txt", "note": "Copie actuelle construite depuis le tag v1.6.19 avec pc/hls-build.mjs (registre npm injoignable) ; --vendor la remplace par dist/hls.min.js du paquet npm, même version." }
   },
   "apps": [
     {
@@ -350,23 +351,16 @@
     {
       "id": "ecran",
       "android": "ecran",
+      "page": "pc/shared/ecran-pc.html",
       "name": "Écran",
       "short_name": "Écran",
-      "description": "Vidéos du PC, PeerTube, films libres, NASA, chaînes suivies",
+      "description": "Lire les vidéos du PC (plusieurs dossiers, miniatures, reprise, sous-titres) et les liens YouTube, Vimeo, PeerTube…",
       "theme_color": "#0f1116",
       "background_color": "#0f1116",
-      "vendor": [],
-      "patches": [
-        { "from": "<b>Mes vidéos</b><span>Sur le téléphone</span>", "to": "<b>Mes vidéos</b><span>Dossier du PC</span>" },
-        { "from": "Autorise l\\'accès à tes vidéos</b><br>Écran affiche les vidéos de l\\'appareil photo, des téléchargements, de WhatsApp et celles enregistrées par Ondes. Rien ne quitte ton téléphone.<br><br><button class=\"btn main\" id=\"bPerm\">Autoriser</button>", "to": "Choisis ton dossier de vidéos</b><br>Écran affiche les vidéos de ce dossier et de ses sous-dossiers (MP4, WebM…), sans rien copier ni envoyer. Tu peux aussi glisser une vidéo sur la fenêtre.<br><br><button class=\"btn main\" id=\"bPerm\">Choisir le dossier…</button>" },
-        { "from": "'Aucune vidéo sur ce téléphone pour le moment.'", "to": "'Aucune vidéo dans ce dossier.'" },
-        { "from": "toast('S\\'ouvre dans l\\'appli YouTube')", "to": "toast('S\\'ouvre sur YouTube')" },
-        { "from": "Touche une appli pour l\\'ouvrir, ou pour l\\'installer depuis le Pla", "to": "Sur PC, clique pour ouvrir le site officiel du diffuseur (l\\'appli Android s\\'installe depuis le Pla" },
-        { "from": "Touche Entrée pour chercher", "to": "Appuie sur Entrée pour chercher", "count": 2 },
-        { "from": "Écran lit son flux officiel et ouvre les vidéos dans l\\'appli YouTube.", "to": "Écran lit son flux officiel (sur PC : avec le relais réseau) et ouvre les vidéos sur YouTube." }
-      ],
-      "file_handlers": [{ "accept": { "video/mp4": [".mp4", ".m4v"], "video/webm": [".webm"] } }],
-      "data": { "ls": ["ecran-"] }
+      "vendor": ["hls.min.js"],
+      "patches": [],
+      "file_handlers": [{ "accept": { "video/mp4": [".mp4", ".m4v"], "video/webm": [".webm"], "video/x-matroska": [".mkv"], "video/quicktime": [".mov"], "video/ogg": [".ogv"] } }],
+      "data": { "ls": ["ecran-pc:"], "idb": ["ecran-pc"], "note": "Positions de lecture, vidéos vues, historique des liens et « À regarder plus tard » sont exportés ; la liste des dossiers ne l'est pas (les autorisations sont propres à ce PC : ajoutez-les à nouveau après import) et les miniatures se recalculent." }
     },
     {
       "id": "galerie",

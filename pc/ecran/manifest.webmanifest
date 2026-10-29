@@ -2,7 +2,7 @@
   "id": "/atelier-signature/pc/ecran/",
   "name": "Écran",
   "short_name": "Écran",
-  "description": "Vidéos du PC, PeerTube, films libres, NASA, chaînes suivies",
+  "description": "Lire les vidéos du PC (plusieurs dossiers, miniatures, reprise, sous-titres) et les liens YouTube, Vimeo, PeerTube…",
   "lang": "fr",
   "dir": "ltr",
   "start_url": "./",
@@ -58,6 +58,15 @@
         ],
         "video/webm": [
           ".webm"
+        ],
+        "video/x-matroska": [
+          ".mkv"
+        ],
+        "video/quicktime": [
+          ".mov"
+        ],
+        "video/ogg": [
+          ".ogv"
         ]
       }
     }
