@@ -145,10 +145,10 @@
   }
   async function mathPng(tex, display, theme) {
     await TX.loadKatex();
-    const host = document.createElement('span'); host.style.cssText = 'position:fixed;left:-10000px;top:0;font-size:14.67px;color:#000;display:inline-block;padding:1px';
+    const host = document.createElement('span'); host.style.cssText = 'position:fixed;left:-10000px;top:0;font-size:14.67px;color:#000;display:inline-block;padding:1px;white-space:nowrap';
     try { window.katex.render(tex, host, { throwOnError: false, displayMode: !!display }); } catch (e) { host.textContent = tex; }
     document.body.appendChild(host);
-    try { const w = host.offsetWidth + 2, h = host.offsetHeight + 2; const c = await O.Raster.canvas(host, { scale: 3, fonts: true, width: w, height: h }); const blob = await new Promise((ok) => c.toBlob(ok, 'image/png')); return { blob, w: w / TX.PX, h: h / TX.PX }; }
+    try { const w = host.offsetWidth + 2, h = host.offsetHeight + 2; const c = await O.Raster.canvas(host, { scale: 3, fonts: true, width: Math.ceil(w * 1.4) + 8, height: h, css: '.katex,.katex *{white-space:nowrap!important}' }); const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let right = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 8) { const col = ((i - 3) / 4) % c.width; if (col > right) right = col; } const cw = Math.max(3, right + 3), o2 = document.createElement('canvas'); o2.width = cw; o2.height = c.height; o2.getContext('2d').drawImage(c, 0, 0); const blob = await new Promise((ok) => o2.toBlob(ok, 'image/png')); return { blob, w: cw / 3 / TX.PX, h: h / TX.PX }; }
     catch (e) { return null; } finally { host.remove(); }
   }
   D._renderPng = renderToPng; D._mathPng = mathPng;

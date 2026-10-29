@@ -175,6 +175,7 @@
   };
   function fieldsNeedRefresh() { return false; }
   /** Redessine les champs (numéros de page, renvois, tables des matières) */
+  TX.refreshAll = function () { if (A.ed) { A.refreshFields(); A.relayout(true); } };
   A.refreshFields = function () { const v = A.ed.view; v.dispatch(v.state.tr.setMeta('tx-refresh', true).setMeta('addToHistory', false).setMeta('tx-layout', 1)); };
   // après une mise en page : les numéros de page affichés dans le texte (sommaire, renvois) ont pu changer
   let lastPagesSig = '';
@@ -428,7 +429,7 @@
     A.closeBackstage(); O.toast('Document récupéré. Pensez à l\'enregistrer (Ctrl+S).', { ms: 4000 });
   }
   function aboutHtml() {
-    const lic = [['ProseMirror 1.x', 'MIT', 'Marijn Haverbeke — moteur d\'édition (modèle, vue, tableaux, historique)', 'prosemirror-MIT.txt'], ['docx 9.8.1', 'MIT', 'Dolan Miu — écriture des fichiers .docx', 'docx-MIT.txt'], ['JSZip 3.10.1', 'MIT (ou GPLv3, au choix ; utilisé sous MIT)', 'lecture des .docx, .odt, .magdoc', 'jszip-MIT-ou-GPLv3.md'], ['jsPDF 2.5.1', 'MIT', 'export PDF', 'jspdf-MIT.txt'], ['KaTeX 0.16.47', 'MIT', 'Khan Academy — équations', 'katex-MIT.txt'], ['Lucide 1.64.0', 'ISC', 'icônes', 'lucide-ISC.txt'], ['Polices Mag Sans, Mag Serif, Mag Mono (Liberation 2.1.5), Mag Sans Douce (Carlito), Caladea', 'SIL OFL 1.1', 'polices équivalentes à Arial, Times New Roman, Courier New, Calibri et Cambria (versions réduites et renommées)', 'fonts-OFL-1.1.txt']];
+    const lic = [['ProseMirror 1.x', 'MIT', 'Marijn Haverbeke — moteur d\'édition (modèle, vue, tableaux, historique)', 'prosemirror-MIT.txt'], ['JSZip 3.10.1', 'MIT (ou GPLv3, au choix ; utilisé sous MIT)', 'archives .docx, .odt et .magdoc (le XML Office et OpenDocument est écrit et lu par Texte)', 'jszip-MIT-ou-GPLv3.md'], ['jsPDF 2.5.1', 'MIT', 'export PDF', 'jspdf-MIT.txt'], ['KaTeX 0.16.47', 'MIT', 'Khan Academy — équations', 'katex-MIT.txt'], ['Lucide 1.64.0', 'ISC', 'icônes', 'lucide-ISC.txt'], ['Polices Mag Sans, Mag Serif, Mag Mono (Liberation 2.1.5), Mag Sans Douce (Carlito), Caladea', 'SIL OFL 1.1', 'polices équivalentes à Arial, Times New Roman, Courier New, Calibri et Cambria (versions réduites et renommées)', 'fonts-OFL-1.1.txt']];
     return '<h2>À propos</h2><p><b>Texte</b> · Suite MAG · version ' + A.VERSION + '</p><p class="o-hint" style="max-width:720px">Traitement de texte hors ligne : rien n\'est envoyé sur internet. Formats : .magdoc (natif, ouvert : zip contenant document.json et les images), .docx et .odt (ouverture et enregistrement), .rtf (ouverture), .txt, .md, .html, export PDF.</p><h3>Bibliothèques libres utilisées</h3><table class="kbd-tbl" style="max-width:760px">' + lic.map((l) => '<tr><td><b>' + l[0] + '</b><br><small class="o-hint">' + l[2] + '</small></td><td>' + l[1] + '</td></tr>').join('') + '</table><p class="o-hint">Les textes complets des licences sont fournis avec l\'appli (dossier <code>LICENSES</code>). Word, Office et Microsoft sont des marques de leurs propriétaires ; Texte est une appli indépendante.</p><p><button type="button" class="mini-btn" onclick="TexteApp.cmd.shortcuts()">' + O.icon('keyboard') + 'Raccourcis clavier</button></p>';
   }
   /** Insérer le contenu d'un autre fichier à la position du curseur */

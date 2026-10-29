@@ -95,7 +95,7 @@
     // 2. texte : mot par mot
     const rng = document.createRange();
     for (const root of roots) {
-      const tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: (n) => { const p = n.parentElement; if (!p || p.closest(SKIP) || p.closest('.tx-tab') || p.closest('.katex') || p.closest('.tx-math-src') && false) return NodeFilter.FILTER_REJECT; return /\S/.test(n.data) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; } });
+      const tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: (n) => { const p = n.parentElement; if (!p || p.closest(SKIP) || p.closest('.tx-wm') || p.closest('.tx-tab') || p.closest('.katex') || p.closest('.tx-math-src') && false) return NodeFilter.FILTER_REJECT; return /\S/.test(n.data) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; } });
       let n;
       while ((n = tw.nextNode())) {
         const pe = n.parentElement, cs = getComputedStyle(pe); if (!visible(cs)) continue;
@@ -107,7 +107,30 @@
         for (let x = pe; x && !x.classList.contains('tx-pm') && x !== root; x = x.parentElement) { const c2 = x === pe ? cs : getComputedStyle(x); const dl = c2.textDecorationLine || ''; if (!under && /underline/.test(dl)) under = { c: colorOf(c2.textDecorationColor) || color, st: c2.textDecorationStyle }; if (!strike && /line-through/.test(dl)) strike = { c: colorOf(c2.textDecorationColor) || color, st: c2.textDecorationStyle }; if (x.tagName === 'P' || x.tagName === 'TD') break; }
         const m = met[fam + '|' + FACE(b, it)] || { ascent: 0.9, descent: 0.21 };
         const data = n.data, re = /\S+/g; let mm;
+        // lettrine : première lettre du paragraphe (pseudo-élément ::first-letter, plus grande)
+        const dcP = pe.closest('p.tx-dc');
+        let dcSkip = 0;
+        if (dcP) {
+          const w0 = document.createTreeWalker(dcP, NodeFilter.SHOW_TEXT, { acceptNode: (t) => /\S/.test(t.data) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP }).nextNode();
+          const i0 = w0 === n ? data.search(/\S/) : -1;
+          if (i0 >= 0) {
+            // la lettre occupe n lignes : hauteur de capitale = (n − 1) interlignes + hauteur de capitale du texte
+            rng.setStart(n, i0 + 1); rng.setEnd(n, Math.min(data.length, i0 + 2)); const r1 = rng.getClientRects()[0];
+            if (r1) {
+              const fl = getComputedStyle(dcP, '::first-letter'), pcs = getComputedStyle(dcP);
+              const nL = parseInt(pcs.getPropertyValue('--dc'), 10) || 3, lh = (parseFloat(pcs.lineHeight) || size * 1.2) / s;
+              const fam0 = P.familyOf(fl.fontFamily || cs.fontFamily), b0 = parseInt(fl.fontWeight, 10) >= 600, i0b = fl.fontStyle === 'italic';
+              const fsb = size / s, CAP = 0.66, fs0 = ((nL - 1) * lh + CAP * fsb) / CAP;
+              const q1 = toP(r1), base1 = q1.y + (q1.h - (m.ascent + m.descent) * fsb) / 2 + m.ascent * fsb;
+              const pr = toP(dcP.getBoundingClientRect()), x0 = pr.x + (parseFloat(pcs.paddingLeft) || 0) / s * 0 + (dcP.classList.contains('tx-dcm') ? -fs0 * 0.75 : 0);
+              const pi = pageAt(base1), pt = loc(pi, x0, base1 + (nL - 1) * lh);
+              push(pi, { k: 'text', s: data[i0], x: pt.x, y: pt.y, w: 0, size: fs0 / PX, fam: fam0, b: b0, i: i0b, c: colorOf(fl.color) || color });
+              dcSkip = i0 + 1;
+            }
+          }
+        }
         while ((mm = re.exec(data))) {
+          if (dcSkip && mm.index < dcSkip) { const st2 = dcSkip; mm = { index: st2, 0: data.slice(st2, mm.index + mm[0].length) }; if (!mm[0]) continue; mm[0] = mm[0]; mm.length = 1; }
           rng.setStart(n, mm.index); rng.setEnd(n, mm.index + mm[0].length);
           const rects = Array.from(rng.getClientRects()).filter((r) => r.width > 0.1);
           if (!rects.length) continue;
@@ -176,7 +199,15 @@
       return { url: c.toDataURL('image/png'), w: b.w, h: b.h, x: b.x, y: b.y, fmt: 'PNG' };
     }
     if (it.kind === 'math') {
-      try { const c = await O.Raster.canvas(el, { scale: 3 * scale, fonts: true, width: el.offsetWidth + 2, height: el.offsetHeight + 2 }); return { url: c.toDataURL('image/png'), w: b.w, h: b.h, x: b.x, y: b.y, fmt: 'PNG' }; } catch (e) { return null; }
+      try {
+        // rendu plus large que la boîte (polices de l'image légèrement différentes), puis rognage du vide à droite
+        const k = 3 * scale, c = await O.Raster.canvas(el, { scale: k, fonts: true, width: Math.ceil(el.offsetWidth * 1.4) + 8, height: el.offsetHeight + 2, css: '.katex,.katex *{white-space:nowrap!important}' });
+        const x = c.getContext('2d'), d = x.getImageData(0, 0, c.width, c.height).data; let right = 0;
+        for (let i = 3; i < d.length; i += 4) { if (d[i] > 8) { const col = ((i - 3) / 4) % c.width; if (col > right) right = col; } }
+        const cw = Math.max(1, right + 2), out = document.createElement('canvas'); out.width = cw; out.height = c.height; out.getContext('2d').drawImage(c, 0, 0);
+        const f = Math.min(1, b.w / (cw / k)), hh = c.height / k * f;
+        return { url: out.toDataURL('image/png'), w: cw / k * f, h: hh, x: b.x, y: b.y + (b.h - hh) / 2, fmt: 'PNG' };
+      } catch (e) { return null; }
     }
     return null;
   }

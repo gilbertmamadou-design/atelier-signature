@@ -281,3 +281,5 @@ button{font:inherit;color:inherit}
   .cmts-on .tx-cmts{display:none}
 }
 @media (pointer:coarse){#status .st-b{min-width:34px;min-height:34px;justify-content:center}.nv-h,.nv-res{min-height:40px}}
+/* galeries du ruban : une seule rangée visible (le reste par le bouton « plus ») */
+#ribbonHost .o-rb-gal-in{flex-wrap:nowrap;align-items:center}

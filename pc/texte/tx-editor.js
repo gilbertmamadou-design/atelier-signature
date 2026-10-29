@@ -44,7 +44,7 @@
       return true;
     });
     // légendes : texte complet et numéro (table des illustrations, renvois)
-    const captions = specials.map((sp) => { let label = '', n = 0; sp.node.descendants((c, p) => { if (c.type.name === 'field' && c.attrs.f === 'seq') { label = c.attrs.name || 'Figure'; n = seqPos[sp.pos + 1 + p] || 0; } }); return { pos: sp.pos, label, n, text: TX.textOf(sp.node).replace(/\s+/g, ' ').trim(), pid: sp.node.attrs.pid }; });
+    const captions = specials.map((sp) => { let label = '', n = 0, text = ''; sp.node.descendants((c, p) => { if (c.type.name === 'field' && c.attrs.f === 'seq') { label = c.attrs.name || 'Figure'; n = seqPos[sp.pos + 1 + p] || 0; text += String(n); } else if (c.isText) text += c.text; else if (c.type.name === 'tab' || c.type.name === 'hard_break') text += ' '; return true; }); return { pos: sp.pos, label, n, text: text.replace(/\s+/g, ' ').trim(), pid: sp.node.attrs.pid }; });
     return { labels, notes, seqPos, heads, captions, sig: JSON.stringify([labels.map((l) => l.label), notes, seqPos]) };
   }
   TX.computeNumbers = computeNumbers;
@@ -78,7 +78,7 @@
     // champs, notes, tables des matières : redessinés quand une numérotation ou un réglage change
     doc.descendants((node, pos) => {
       const t = node.type.name;
-      if (t === 'field' || t === 'fnref' || t === 'toc' || (t === 'drawing' && node.attrs.kind !== 'shape')) d.push(Decoration.node(pos, pos + node.nodeSize, { 'data-v': String(n.v) }));
+      if (t === 'field' || t === 'fnref' || t === 'toc' || t === 'math' || (t === 'drawing' && node.attrs.kind !== 'shape')) d.push(Decoration.node(pos, pos + node.nodeSize, { 'data-v': String(n.v) }));
       return t !== 'paragraph' || node.childCount > 0;
     });
     // paragraphes à bordures voisins identiques : une seule boîte
