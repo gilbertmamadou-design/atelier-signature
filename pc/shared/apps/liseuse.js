@@ -42,6 +42,12 @@
   }
 
   /* ---------------- Dossiers suivis ---------------- */
+  var DIRS = null, BAR = null, SCANQ = Promise.resolve();
+  function bar() {
+    if (!BAR) BAR = M.Folders.bar({ waiting: function () { return DIRS ? DIRS.waiting() : []; }, names: function (w) { return DIRS.names(w); }, reauth: function () { return DIRS.reauth(); } },
+      { sub: 'Le navigateur redemande l\'accès à chaque session : vos dossiers restent suivis.', onGranted: function () { var b = document.getElementById('hRef'); if (b) b.click(); } });
+    return BAR;
+  }
   function dirId(uri) { var m = /^pcd:([^:]+)$/.exec(uri || ''); return m ? m[1] : null; }
   async function walk(dh, path, depth, budget, uri, found) {
     if (depth > 6 || budget.n <= 0) return;
@@ -86,22 +92,26 @@
         }).catch(function (e) { if (!e || (e.name !== 'AbortError' && !e.cancel)) M.toast('Dossier inaccessible : ' + (e && e.message || e), { bad: true }); emit('folder', { cancel: true }); });
     },
     forgetFolder: function (uri) { var id = dirId(uri); if (id) M.fs.forget(id); },
+    /* Dossiers suivis : tous les accès demandés d'un coup (pc/shared/folders.js) ; un dossier dont l'accès est à redonner
+       n'est PAS marqué « perdu » (ok:true) : il reste suivi, et un bandeau propose « Autoriser l'accès ». */
     scanFolders: function (json) {
       var l = []; try { l = JSON.parse(json || '[]'); } catch (e) { }
-      (async function () {
-        var folders = [], found = [];
-        for (var i = 0; i < l.length; i++) {
-          var uri = l[i], id = dirId(uri), r = id ? await M.fs.get(id).catch(function () { return null; }) : null;
-          if (!r || !r.handle) { folders.push({ uri: uri, ok: false, err: 'missing' }); continue; }
-          try {
-            var st = await M.fs.perm(r.handle, 'read', true, 'Liseuse');
-            if (st !== 'granted') { folders.push({ uri: uri, ok: false, err: 'perm' }); continue; }
-            await walk(r.handle, '', 0, { n: 5000 }, uri, found);
-            folders.push({ uri: uri, ok: true });
-          } catch (e) { folders.push({ uri: uri, ok: !!(e && e.cancel), err: e && e.cancel ? 'later' : String(e && e.message || e) }); }
+      SCANQ = SCANQ.then(async function () {   // l'une après l'autre : une seule demande d'accès à la fois
+        var folders = [], found = [], recs = {};
+        for (var i = 0; i < l.length; i++) { var id = dirId(l[i]); recs[l[i]] = id ? await M.fs.get(id).catch(function () { return null; }) : null; }
+        DIRS = M.Folders({ mode: 'read', label: 'Liseuse', get: function () { return Promise.resolve(l.filter(function (u) { return recs[u] && recs[u].handle; }).map(function (u) { return { id: u, handle: recs[u].handle, at: recs[u].at }; })); } });
+        await DIRS.load();
+        if (DIRS.list.length) await DIRS.ensure({ text: 'Liseuse doit lire vos dossiers suivis : ' + DIRS.names().join(', ') + '. Le navigateur redemande votre accord à chaque nouvelle session.' });
+        for (var j = 0; j < l.length; j++) {
+          var uri = l[j], r = DIRS.byId(uri);
+          if (!r) { folders.push({ uri: uri, ok: false, err: 'missing' }); continue; }
+          if (!r.ok) { folders.push({ uri: uri, ok: true, err: 'perm' }); continue; }
+          try { await walk(r.handle, '', 0, { n: 5000 }, uri, found); folders.push({ uri: uri, ok: true }); }
+          catch (e) { folders.push({ uri: uri, ok: !(e && e.name === 'NotFoundError'), err: String(e && e.message || e) }); }
         }
+        bar().update();
         emit('scan', { folders: folders, found: found });
-      })();
+      }).catch(function () { emit('scan', { folders: [], found: [] }); });
     },
     importUris: function (json) {
       var l = []; try { l = JSON.parse(json || '[]'); } catch (e) { }

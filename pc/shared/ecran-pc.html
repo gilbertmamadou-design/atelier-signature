@@ -93,6 +93,10 @@ select.sel{background:var(--bg2);border:1px solid var(--line);border-radius:12px
 .chipf{display:inline-flex;align-items:center;gap:6px;padding:5px 6px 5px 11px;border-radius:99px;background:#ff8f701c;color:var(--acc);font-size:13px;font-weight:600;margin:0 0 10px}
 .chipf button{width:22px;height:22px;border-radius:50%;display:grid;place-items:center}
 .chipf button:hover{background:#ff8f7033}
+.permbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px 14px;padding:12px 14px;margin:0 0 12px;border-radius:14px;background:#ff8f7014;border:1px solid #ff8f7044;font-size:14px;line-height:1.4}
+.permbar .tx{flex:1 1 260px;min-width:0}
+.permbar .tx span{display:block;font-size:12.5px;color:var(--tx3)}
+.permbar a,.gate a.why{color:var(--acc);font-size:13px}
 .scanbar{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--tx2);margin-bottom:10px}
 .spin{width:16px;height:16px;border-radius:50%;border:2px solid var(--bg4);border-top-color:var(--acc);animation:sp .8s linear infinite;flex:none}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -316,6 +320,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
           </select>
           <button type="button" class="tog" id="bGroup" aria-pressed="false"><svg class="ic"><use href="#i-folder"/></svg>Par dossier</button>
         </div>
+        <div id="permbar" class="permbar" hidden></div>
         <div id="scanbar" class="scanbar" hidden><span class="spin"></span><span id="scantx">Recherche des vidéos…</span></div>
         <div id="dirChip"></div>
         <div id="out"></div>
@@ -421,88 +426,61 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
   function fmtRes(w, h) { if (!w || !h) return ''; return h >= 2000 || w >= 3800 ? '4K' : h >= 1400 ? '1440p' : h >= 1000 ? '1080p' : h >= 700 ? '720p' : h + 'p'; }
   function deb(fn, ms) { var t; return function () { var a = arguments; clearTimeout(t); t = setTimeout(function () { fn.apply(null, a); }, ms); }; }
 
-  /* ================= Dossiers (repris de Rangement : pc/shared/apps/fichiers.js) =================
+  /* ================= Dossiers (module commun pc/shared/folders.js, comme Rangement, Mélodie, Galerie, Liseuse) =================
      Liste de dossiers mémorisée (poignées File System Access dans IndexedDB), autorisation vérifiée au démarrage
      (queryPermission) et redemandée en un clic pour tous (requestPermission) ; dossier déjà compris dans un autre :
      pas ajouté ; dossier qui en contient un autre : fusion. Lecture seule : Écran n'écrit jamais dans vos dossiers. */
-  var ROOTS = [];   // {id, handle, at, name, ok, n}
   var NOTE = '<b>Dossiers refusés par le navigateur.</b> Edge et Chrome n\'ouvrent jamais <b>C:\\</b> ni les dossiers du système (Windows, Program Files, AppData), et selon les versions refusent le dossier personnel, Documents, Bureau ou Téléchargements pris en entier : choisissez plutôt <b>Vidéos</b>, OneDrive, un sous-dossier, ou un autre disque (D:\\Films…).';
-  function uid() { return 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  // liste commune (pc/shared/folders.js) : poignées dans « ecran-pc » › kv › racines (clonage structuré)
+  var F = M.Folders({
+    mode: 'read', label: 'Écran',
+    get: function () { return DB.get('kv', 'racines'); },
+    put: function (l) { return DB.put('kv', l, 'racines'); },
+    legacy: function () { return M.db.get('files', 'ecran-dossier').then(function (old) { return old && old.handle ? [{ handle: old.handle, at: old.at || Date.now() }] : null; }); }   // ancienne version : un seul dossier
+  });
+  var ROOTS = [];   // F.list + dossier de session (navigateur sans File System Access) : {id, handle, at, name, ok, n}
+  function sync() { ROOTS = F.list.concat(ROOTS.filter(function (r) { return r.tmp; })); }
   function okRoots() { return ROOTS.filter(function (r) { return r.ok; }); }
-  function labels() {
-    var used = {};
-    ROOTS.forEach(function (r) { var b = String((r.handle && r.handle.name) || 'Dossier') || 'Dossier', n = b, k = 2; while (used[n.toLowerCase()]) n = b + ' (' + k++ + ')'; used[n.toLowerCase()] = 1; r.name = n; });
-  }
-  function saveRoots() { return DB.put('kv', ROOTS.filter(function (r) { return r.handle; }).map(function (r) { return { id: r.id, handle: r.handle, at: r.at }; }), 'racines').catch(function () { }); }
-  async function loadRoots() {
-    var l = null;
-    try { l = await DB.get('kv', 'racines'); } catch (e) { }
-    var migrated = false;
-    if (!l) {   // ancienne version d'Écran sur PC : un seul dossier dans « mag-pc » › files › ecran-dossier
-      try { var old = await M.db.get('files', 'ecran-dossier'); if (old && old.handle) { l = [{ id: uid(), handle: old.handle, at: old.at || Date.now() }]; migrated = true; } } catch (e) { }
-    }
-    ROOTS = (l || []).filter(function (r) { return r && r.handle && r.handle.kind === 'directory'; }).map(function (r) { return { id: r.id || uid(), handle: r.handle, at: r.at || 0, ok: false, n: 0 }; });
-    labels();
-    if (migrated) await saveRoots();
-  }
-  async function check(r) {
-    try { if (await r.handle.queryPermission({ mode: 'read' }) === 'granted') return (r.ok = true); } catch (e) { }
-    return (r.ok = false);
-  }
-  async function ask(r) {
-    try { if (await r.handle.requestPermission({ mode: 'read' }) === 'granted') return (r.ok = true); } catch (e) { r.err = e; }
-    return false;
-  }
-  async function relation(a, b) {
-    try { if (await a.isSameEntry(b)) return { k: 'same' }; } catch (e) { }
-    try { var p = await a.resolve(b); if (p) return { k: 'inside', path: p }; } catch (e) { }
-    try { var q = await b.resolve(a); if (q) return { k: 'contains', path: q }; } catch (e) { }
-    return null;
-  }
+  function rootOk(id) { for (var i = 0; i < ROOTS.length; i++) if (ROOTS[i].id === id) return ROOTS[i].ok; return id === 'ouvert'; }
+  var rootsP = null;   // liste relue (un dossier déposé très tôt ne doit pas écraser la liste enregistrée)
+  function loadRoots() { return rootsP || (rootsP = F.load().then(function () { F.list.forEach(function (r) { r.n = 0; }); sync(); })); }
   async function addRoot(h) {
-    var merged = [];
-    for (var i = 0; i < ROOTS.length; i++) {
-      var r = ROOTS[i], rel = await relation(r.handle, h);
-      if (!rel) continue;
-      if (rel.k === 'same') { M.toast('« ' + h.name + ' » est déjà dans la liste'); if (!r.ok) { await ask(r); renderRoots(); } return false; }
-      if (rel.k === 'inside') {
-        M.dialog({ title: 'Déjà compris', html: '<p>« ' + esc(h.name) + ' » se trouve dans « ' + esc(r.name) + ' », qui est déjà dans la liste :</p><p><b>' + esc([r.name].concat(rel.path).join(' › ')) + '</b></p><p class="mpc-small">Ses vidéos sont donc déjà affichées. Pour ne voir que lui, choisissez-le dans « Dossiers ».</p>' });
-        DIRF = [r.name].concat(rel.path).join(' › '); render();
-        return false;
-      }
-      if (rel.k === 'contains') merged.push(r);
+    await loadRoots();
+    var res = await F.add(h, 'read'); sync();
+    if (res.k === 'same') { M.toast('« ' + h.name + ' » est déjà dans la liste'); if (!res.root.ok && await F.ask(res.root)) { renderRoots(); scan(); } return false; }
+    if (res.k === 'inside') {
+      var r = res.root;
+      M.dialog({ title: 'Déjà compris', html: '<p>« ' + esc(h.name) + ' » se trouve dans « ' + esc(r.name) + ' », qui est déjà dans la liste :</p><p><b>' + esc([r.name].concat(res.path).join(' › ')) + '</b></p><p class="mpc-small">Ses vidéos sont donc déjà affichées. Pour ne voir que lui, choisissez-le dans « Dossiers ».</p>' });
+      DIRF = [r.name].concat(res.path).join(' › '); render();
+      return false;
     }
-    if (merged.length) {
-      ROOTS = ROOTS.filter(function (r) { return merged.indexOf(r) < 0; });
-      M.toast('« ' + h.name + ' » contient déjà ' + merged.map(function (r) { return '« ' + r.name + ' »'; }).join(', ') + ' : dossiers fusionnés', { ms: 6000 });
+    res.root.n = 0;
+    if (res.merged.length) {
+      var gone = res.merged.map(function (x) { return x.id; });
+      LIB = LIB.filter(function (v) { return gone.indexOf(v.root) < 0; });
+      M.toast('« ' + h.name + ' » contient déjà ' + res.merged.map(function (r) { return '« ' + r.name + ' »'; }).join(', ') + ' : dossiers fusionnés', { ms: 6000 });
     }
-    ROOTS.push({ id: uid(), handle: h, at: Date.now(), ok: true, n: 0 });
-    labels(); await saveRoots();
     return true;
   }
   async function pickFolder() {
     if (!window.showDirectoryPicker) { $('#dirIn').click(); return; }
-    var h;
-    try { h = await window.showDirectoryPicker({ mode: 'read', id: 'ecran-videos', startIn: 'videos' }); }
-    catch (e) {
-      if (e && e.name === 'AbortError') return;
-      M.dialog({ title: 'Dossier refusé', html: '<p>' + esc(e && e.message || e) + '</p><p class="mpc-small">' + NOTE + '</p>' });
-      return;
-    }
-    if (await addRoot(h)) { renderRoots(); scan(); }
+    var h = await F.pick({ id: 'ecran-videos', startIn: 'videos', note: NOTE });
+    if (h && await addRoot(h)) { renderRoots(); scan(); }
   }
+  /** Un clic : tous les dossiers en attente (requestPermission à la suite), puis nouvelle recherche. La liste n'est jamais vidée. */
   async function reauthAll() {
-    var w = ROOTS.filter(function (r) { return !r.ok; });
-    for (var i = 0; i < w.length; i++) await ask(w[i]);
-    var still = ROOTS.filter(function (r) { return !r.ok; });
-    if (still.length && still.length === w.length) M.toast('Autorisation refusée : cliquez sur « Autoriser » dans la fenêtre du navigateur', { bad: true });
-    renderRoots(); scan();
+    var res = await F.reauth(); sync();
+    if (!res.got && res.left) M.toast('Accès non autorisé : la liste et la bibliothèque sont gardées. Recliquez sur « Autoriser l\'accès » quand vous voulez.', { bad: true, ms: 6000 });
+    else if (res.left) M.toast(res.left + ' dossier' + (res.left > 1 ? 's' : '') + ' toujours à autoriser', { bad: true });
+    renderRoots(); render();
+    if (res.got) scan();
+    return res;
   }
   async function removeRoot(id) {
-    var r = ROOTS.filter(function (x) { return x.id === id; })[0]; if (!r) return;
+    var r = F.byId(id) || ROOTS.filter(function (x) { return x.id === id; })[0]; if (!r) return;
     if (!await M.confirm('Retirer « ' + r.name + ' » ?', 'Ses vidéos ne seront plus affichées dans Écran. Rien n\'est supprimé sur le PC.', 'Retirer')) return;
-    ROOTS = ROOTS.filter(function (x) { return x !== r; });
-    labels(); await saveRoots(); LIB = LIB.filter(function (v) { return v.root !== r.id; });
+    if (r.tmp) ROOTS = ROOTS.filter(function (x) { return x !== r; }); else { await F.remove(id); sync(); }
+    LIB = LIB.filter(function (v) { return v.root !== r.id; }); saveLib();
     if (DIRF && DIRF.indexOf(r.name) === 0) DIRF = '';
     renderRoots(); render();
   }
@@ -563,8 +541,32 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
       catch (e) { r.ok = false; M.toast('« ' + r.name + ' » : accès perdu (' + (e && e.name === 'NotFoundError' ? 'dossier introuvable' : 'autorisation retirée') + ')', { bad: true }); }
     }
     if (id !== SCANID) return;
-    LIB = out; SCANNING = false; $('#scanbar').hidden = true;
-    renderRoots(); render(); thumbs();
+    // dossier dont l'accès n'est pas (ou plus) autorisé : ses vidéos déjà connues restent affichées
+    var walked = {}; okRoots().forEach(function (r) { walked[r.id] = 1; });
+    LIB = out.concat(LIB.filter(function (v) { return !walked[v.root] && v.root !== 'tmp' && F.byId(v.root); })); SCANNING = false; $('#scanbar').hidden = true;
+    saveLib(); renderRoots(); render(); thumbs();
+  }
+
+  /* ================= Bibliothèque gardée (IndexedDB « ecran-pc » › kv › bibliotheque) =================
+     Liste des vidéos (nom, dossier, taille, date, poignées de fichiers et de sous-titres) : affichée tout de suite au démarrage,
+     avant toute autorisation ; seule la lecture demande l'accès. Miniatures et durées : « ecran-pc-miniatures » ; positions : localStorage. */
+  var libT = null;
+  function saveLib() {
+    clearTimeout(libT);
+    libT = setTimeout(function () {
+      var items = LIB.filter(function (v) { return v.handle && F.byId(v.root); }).map(function (v) {
+        return { root: v.root, dir: v.dir, name: v.name, handle: v.handle, size: v.size, mtime: v.mtime, subs: v.subs.filter(function (x) { return x.handle; }).map(function (x) { return { name: x.name, handle: x.handle }; }) };
+      });
+      DB.put('kv', { v: 1, at: Date.now(), items: items }, 'bibliotheque').catch(function () { });
+    }, 400);
+  }
+  async function loadLib() {
+    var c = null; try { c = await DB.get('kv', 'bibliotheque'); } catch (e) { }
+    if (!c || !Array.isArray(c.items)) return;
+    LIB = c.items.filter(function (x) { return x && x.handle && F.byId(x.root); }).map(function (x) {
+      var v = entry(x.root, x.dir, x.name, x.handle, null, x.subs || []); v.size = x.size; v.mtime = x.mtime; v.k = pkey(x.name, x.size); v.tk = v.k + '|' + x.mtime; return v;
+    });
+    LIB.forEach(function (v) { var r = F.byId(v.root); if (r) r.n++; });
   }
 
   /* ================= Miniatures, durée, résolution =================
@@ -602,13 +604,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
     if (TQ) return; TQ = true;
     try {
       for (;;) {
-        var todo = visibleOrder().filter(function (v) { return v.play && !META[v.tk]; }).slice(0, 24);   // ordre d'affichage, recalculé toutes les 24
+        var todo = visibleOrder().filter(function (v) { return v.play && !META[v.tk] && (v.file || rootOk(v.root)); }).slice(0, 24);   // ordre d'affichage, recalculé toutes les 24
         if (!todo.length) break;
         for (var i = 0; i < todo.length; i++) {
           var v = todo[i], f;
           if (META[v.tk]) continue;
           while (document.hidden) await new Promise(function (r) { document.addEventListener('visibilitychange', r, { once: true }); });
-          try { f = v.file || await v.handle.getFile(); } catch (e) { META[v.tk] = { fail: 'error', at: Date.now() }; continue; }
+          try { f = v.file || await v.handle.getFile(); } catch (e) { if (e && e.name === 'NotAllowedError' || !rootOk(v.root)) return; META[v.tk] = { fail: 'error', at: Date.now() }; continue; }
           var m = await grab(f); m.at = Date.now();
           META[v.tk] = m; TDB.put('t', m, v.tk).catch(function () { });
           updateCard(v);
@@ -710,7 +712,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
       return '<div class="root"><span class="fi' + (r.ok ? '' : ' off') + '">' + ico('folder') + '</span><span class="t"><b title="' + esc(r.name) + '">' + esc(r.name) + '</b><span>' +
         (r.ok ? (SCANNING ? '…' : r.n + ' vidéo' + (r.n > 1 ? 's' : '')) + (r.tmp ? ' · cette session' : '') : 'À réautoriser') + '</span></span>' +
         '<button type="button" class="x" data-rm="' + r.id + '" title="Retirer de la liste (rien n\'est supprimé)" aria-label="Retirer ' + esc(r.name) + '">' + ico('x', 'width:16px;height:16px') + '</button></div>';
-    }).join('') + (w.length ? '<div class="row"><button type="button" class="btn main sm" data-act="reauth">Autoriser ' + (w.length > 1 ? 'les ' + w.length + ' dossiers' : 'l\'accès') + '</button></div>' : '')
+    }).join('')   // bouton « Autoriser l'accès » : un seul, dans le bandeau au-dessus des vidéos (ou l'écran « Vos dossiers »)
       : '<div class="hint">Aucun dossier pour l\'instant.</div>';
     // écran d'accueil / réautorisation
     var gate = $('#gate'), lib = $('#lib');
@@ -725,8 +727,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
       gate.hidden = false; lib.hidden = true;
       gate.innerHTML = '<div class="gate"><div class="big">' + ico('folder') + '</div><h2>Vos dossiers</h2>' +
         '<p>' + ROOTS.map(function (r) { return '<b>' + esc(r.name) + '</b>'; }).join(', ') + '</p><p>Le navigateur redemande votre accord à chaque nouvelle session : un clic suffit pour tous les dossiers.</p>' +
-        '<button type="button" class="btn main big" data-act="reauth">' + ico('check') + 'Autoriser l\'accès</button></div>';
+        '<button type="button" class="btn main big" data-act="reauth">' + ico('check') + 'Autoriser l\'accès</button>' +
+        '<p style="margin-top:14px"><a href="#" class="why" data-act="why">Pourquoi ? Comment « Toujours autoriser »</a></p></div>';
     } else { gate.hidden = true; lib.hidden = false; }
+    // bibliothèque gardée affichée, accès à redonner : un seul bouton pour tous les dossiers
+    var pb = $('#permbar');
+    pb.hidden = !w.length || gate.hidden === false;
+    if (!pb.hidden) pb.innerHTML = '<span class="fi">' + ico('folder') + '</span><div class="tx">Vos dossiers : <b>' + esc(w.map(function (r) { return r.name; }).join(', ')) + '</b>' +
+      '<span>Le navigateur redemande l\'accès à chaque session. Les vidéos ci-dessous sont celles de la dernière visite ; la lecture demandera l\'accès.</span></div>' +
+      '<button type="button" class="btn main sm" data-act="reauth">' + ico('check') + 'Autoriser l\'accès</button><a href="#" data-act="why">Toujours autoriser ?</a>';
   }
 
   /* ================= Positions, « vu » ================= */
@@ -799,6 +808,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
     $('#pSub').textContent = [v.dir, list.length > 1 ? (i + 1) + ' / ' + list.length : ''].filter(Boolean).join(' · ');
     $('#pLater').hidden = true; $('#pSite').hidden = true; $('#ehint').hidden = true;
     var f;
+    if (!v.file && !rootOk(v.root)) {   // vidéo de la bibliothèque gardée : l'accès est demandé pendant ce clic, pour tous les dossiers
+      await F.ensure({ text: 'Écran doit lire vos dossiers (' + F.names(F.waiting()).join(', ') + ') pour lancer « ' + v.name + ' ».' }); sync(); renderRoots();
+      if (!rootOk(v.root)) { if (P.v === v) showMsg('<h3>Accès au dossier non autorisé</h3><p>Le navigateur n\'a pas donné l\'accès à « ' + esc((F.byId(v.root) || {}).name || v.dir) + ' ». La liste est gardée : réessayez quand vous voulez.</p><div class="row"><button class="btn main" data-act="reauth">Autoriser l\'accès</button><button class="btn" data-act="why">Pourquoi ?</button></div>'); return; }
+      scan();
+      if (P.v !== v) return;
+    }
     try { f = v.file || await v.handle.getFile(); }
     catch (e) { showMsg('<h3>Vidéo introuvable</h3><p>« ' + esc(v.name) + ' » a été déplacée, renommée ou supprimée, ou l\'accès au dossier a été retiré.</p><div class="row"><button class="btn" data-act="rescan">Actualiser la liste</button></div>'); return; }
     if (P.v !== v) return;
@@ -932,6 +947,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
     else if (a === 'cancelnext') { clearTimeout(upT); $('#upnext').hidden = true; }
     else if (a === 'hidemsg') hideMsg();
     else if (a === 'rescan') { closePlayer(); scan(); }
+    else if (a === 'reauth') { if (P && P.mode === 'local') { var pv = P; F.reauth().then(function () { sync(); renderRoots(); if (rootOk(pv.v.root)) { scan(); if (P === pv) playLocal(pv.list, pv.i); } }); } }
+    else if (a === 'why') M.Folders.help();
     else if (a === 'winplayer') { if (P && P.v) unplayable(P.v); }
     else if (a === 'openweb' || a === 'openyt') { if (P && P.link) M.nativeOpen(P.link.open || P.link.url); }
     else if (b.dataset.track != null) { pickTrack(+b.dataset.track); }
@@ -1295,7 +1312,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
   $('#sort').addEventListener('change', function () { SET.sort = this.value; saveSet(); render(); });
   $('#bGroup').onclick = function () { SET.group = !SET.group; saveSet(); render(); };
   $('#bAdd').onclick = pickFolder;
-  $('#bRescan').onclick = function () { if (ROOTS.some(function (r) { return !r.ok; })) reauthAll(); else scan(); };
+  $('#bRescan').onclick = function () { if (F.waiting().length) reauthAll(); else scan(); };
   $('#bClearHist').onclick = async function () { if (await M.confirm('Effacer l\'historique ?', 'La liste « À regarder plus tard » est gardée.', 'Effacer', true)) { HIST = []; M.store.set(K.hist, HIST); renderLinks(); } };
   $('#bOpen').onclick = openFiles;
   $('#bHelp').onclick = help;
@@ -1305,6 +1322,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
     var a = b.dataset.act;
     if (a === 'add') pickFolder();
     else if (a === 'reauth') reauthAll();
+    else if (a === 'why') { e.preventDefault(); M.Folders.help(); }
     else if (a === 'nodir') { DIRF = ''; render(); }
     else if (a === 'showmore') { SHOWN += 480; render(); thumbs(); }
     else if (b.dataset.f) { SET.filter = b.dataset.f; saveSet(); SHOWN = 240; render(); thumbs(); }
@@ -1361,6 +1379,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
     var kb = function (k, t) { return '<tr><td style="padding:3px 14px 3px 0;white-space:nowrap"><b>' + k + '</b></td><td style="padding:3px 0">' + t + '</td></tr>'; };
     M.dialog({ title: 'Écran sur PC', wide: true, html:
       '<p><b>Mes vidéos</b> : ajoutez des dossiers (bouton « Ajouter un dossier ») ; Écran cherche les vidéos dans les sous-dossiers, calcule les miniatures et retient où vous en êtes. Rien n\'est copié, modifié ni envoyé. Les sous-titres <b>.srt</b> ou <b>.vtt</b> du même nom que la vidéo sont chargés tout seuls.</p>' +
+      '<p><b>Vos dossiers sont gardés</b> d\'une session à l\'autre, ainsi que la liste des vidéos, les miniatures et où vous en êtes. <a href="#" data-act="why" style="color:var(--acc)">Accès redemandé ? Comment « Toujours autoriser »</a></p>' +
       '<p><b>Formats lus</b> : MP4, M4V, MOV, WebM, MKV (H.264, VP9, AV1), OGV. <b>Non lus</b> par Edge/Chrome : AVI, WMV, FLV, MPG, 3GP… (signalés), et selon le PC la HEVC/H.265 (extension « Vidéo HEVC » de Windows) ou le son AC-3/DTS des MKV.</p>' +
       '<p><b>Liens</b> : YouTube (vidéos, Shorts, playlists, minutage <code>t=</code>), Vimeo, Dailymotion, PeerTube, Twitch, archive.org — chacun avec son lecteur officiel intégré ; fichiers .mp4/.webm et flux .m3u8 avec le lecteur d\'Écran. Ctrl+V n\'importe où pour coller un lien.</p>' +
       '<table style="border-collapse:collapse;font-size:14px;margin-top:6px">' +
@@ -1377,9 +1396,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
     var t = 'videos'; try { t = sessionStorage.getItem('ecran-pc:onglet') || 'videos'; } catch (e) { }
     tab(t);
     await Promise.all([loadRoots(), loadMeta()]);
-    await Promise.all(ROOTS.map(check));
+    await Promise.all([F.checkAll(), loadLib()]);
     renderRoots(); render(); renderLinks();
-    if (okRoots().length) scan();
+    if (okRoots().length) scan(); else if (LIB.length) thumbs();
     document.documentElement.dataset.ready = '1';
   })();
 })();

@@ -98,9 +98,22 @@
       out.push({ h: e, rel: path + e.name, v: isV });
     }
   }
+  /* Dossier retenu (pc/shared/folders.js) : accès redemandé d'un clic, jamais oublié en cas de refus */
+  var FD = M.Folders({ mode: 'read', label: 'Galerie', get: function () { return M.db.get('files', KEY).then(function (r) { return r && r.handle ? [{ id: KEY, handle: r.handle, at: r.at }] : []; }); } });
+  var BAR = M.Folders.bar(FD, { sub: 'Le navigateur redemande l\'accès à chaque session : vos photos n\'ont pas été oubliées.', onGranted: function () { var b = document.getElementById('bRefresh'); if (b) b.click(); } });
   async function loadAll(req) {
     var list = [];
-    try { if (ROOT && await M.fs.perm(ROOT, 'read', true, 'Galerie') === 'granted') await walk(ROOT, '', list, 0); }
+    try {
+      if (ROOT) {
+        await FD.load();
+        if (!await FD.ensure({ text: 'Galerie doit lire votre dossier de photos « ' + ROOT.name + ' ». Le navigateur redemande votre accord à chaque nouvelle session.' })) {
+          BAR.update();
+          emit('items', { req: req, start: 0, items: [], done: true, total: 0, err: 'accès au dossier non autorisé' }); return;
+        }
+        BAR.hide();
+        await walk(ROOT, '', list, 0);
+      }
+    }
     catch (e) { emit('items', { req: req, start: 0, items: [], done: true, total: 0, err: e && e.cancel ? 'accès au dossier non autorisé' : String(e && e.message || e) }); return; }
     var rows = [], seen = {};
     for (var i = 0; i < list.length; i++) {
@@ -326,7 +339,7 @@
   /* Dossier retenu d'une session à l'autre (Windows redemande l'accès d'un clic à la première lecture) */
   M.db.get('files', KEY).then(function (r) {
     if (!r || !r.handle) return;
-    ROOT = r.handle;
+    ROOT = r.handle; M.persist();
     if (window.galerieEvent) emit('perm', permState());
   }).catch(function () { });
 

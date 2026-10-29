@@ -5,7 +5,7 @@
      la page affiche « Nouvelle version disponible » et l'active sur demande (message SKIP_WAITING) ;
    - réponses : cache d'abord pour les fichiers précachés, réseau puis cache pour le reste (polices…). */
 'use strict';
-var VERSION = '495978579fae';
+var VERSION = '34d32006a355';
 var APP = 'musique';
 var CACHE = 'mag-pc-' + APP + '-' + VERSION, RUNTIME = 'mag-pc-' + APP + '-rt';
 var PRECACHE = [
@@ -17,7 +17,9 @@ var PRECACHE = [
   "icon-maskable-512.png",
   "../shared/pc-shim.js",
   "../shared/pc.css",
-  "../shared/apps/musique.js"
+  "../shared/folders.js",
+  "../shared/apps/musique.js",
+  "../shared/apps/musique.css"
 ];
 
 self.addEventListener('install', function (e) {

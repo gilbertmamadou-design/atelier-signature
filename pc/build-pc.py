@@ -191,6 +191,8 @@ def page(app, conf, apps_android):
         inj += '<link rel="stylesheet" href="../shared/apps/%s.css">\n' % adapter
     inj += '<script>window.MAGPC_CONF=%s;</script>\n' % json.dumps(pcconf, ensure_ascii=False)
     inj += '<script src="../shared/pc-shim.js"></script>\n'
+    for mod in app.get('modules', []):      # modules communs à plusieurs applis (ex. « folders » : dossiers du PC mémorisés)
+        inj += '<script src="../shared/%s.js"></script>\n' % mod
     if os.path.exists(os.path.join(SHARED, 'apps', adapter + '.js')):
         inj += '<script src="../shared/apps/%s.js"></script>\n' % adapter
     m = re.search(r'<meta charset="?utf-8"?\s*/?>', out, re.I)
@@ -293,6 +295,7 @@ def main():
         files = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png',
                  '../shared/pc-shim.js', '../shared/pc.css']
         files += ['../shared/apps/%s.css' % c for c in app.get('styles', [])]
+        files += ['../shared/%s.js' % m for m in app.get('modules', [])]
         for ext in ('.js', '.css'):
             if os.path.exists(os.path.join(SHARED, 'apps', adapter + ext)):
                 files.append('../shared/apps/' + adapter + ext)

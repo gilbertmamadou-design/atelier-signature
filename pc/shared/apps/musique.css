@@ -1,0 +1,17 @@
+/* Mélodie sur PC : bandeau « Vos dossiers » (accès à redonner), en-tête de l'onglet Dossiers, aide. */
+html.mag-pc .mpc-dirbar{position:sticky;top:0;z-index:4;display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;margin:2px 16px 10px;padding:11px 14px;border-radius:14px;
+  background:color-mix(in srgb,var(--acc) 12%,var(--bg2));border:1px solid color-mix(in srgb,var(--acc) 35%,transparent);font-size:14px;line-height:1.35}
+html.mag-pc .mpc-dirbar[hidden]{display:none}
+html.mag-pc .mpc-dirbar>.ic{color:var(--acc);flex:none}
+html.mag-pc .mpc-dirbar .tx{flex:1 1 240px;min-width:0}
+html.mag-pc .mpc-dirbar .tx span{display:block;font-size:12.5px;color:var(--tx3)}
+html.mag-pc .mpc-dirbar .pill.main{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#1a0f0a}
+html.mag-pc .mpc-dirbar a{color:var(--acc);font-size:13px}
+html.mag-pc .mpc-dirs-head{display:flex;align-items:center;gap:12px;margin:4px 16px 10px;padding:10px 12px;border-radius:12px;background:var(--bg2)}
+html.mag-pc .mpc-dirs-head>div{flex:1;min-width:0}
+html.mag-pc .mpc-dirs-head span{display:block;font-size:12.5px;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html.mag-pc .mpc-aide{margin-top:18px}
+html.mag-pc .mpc-aide a{color:var(--acc)}
+@media (min-width:900px){
+  html.mag-pc .mpc-dirbar,html.mag-pc .mpc-dirs-head{max-width:1100px;margin-left:auto;margin-right:auto}
+}

@@ -98,6 +98,7 @@
     },
     {
       "id": "liseuse",
+      "modules": ["folders"],
       "android": "liseuse",
       "name": "Liseuse",
       "short_name": "Liseuse",
@@ -119,6 +120,7 @@
     },
     {
       "id": "fichiers",
+      "modules": ["folders"],
       "android": "fichiers",
       "name": "Rangement",
       "short_name": "Rangement",
@@ -323,6 +325,7 @@
     },
     {
       "id": "musique",
+      "modules": ["folders"],
       "android": "musique",
       "name": "Mélodie",
       "short_name": "Mélodie",
@@ -331,7 +334,7 @@
       "background_color": "#121016",
       "vendor": [],
       "patches": [
-        { "from": "await IDB.set(\"blob:\" + id, new Blob([await f.arrayBuffer()], { type: f.type || \"audio/mpeg\" }));", "to": "await IDB.set(\"blob:\" + id, f.__mpcHandle ? { mpcHandle: f.__mpcHandle, mpcRoot: f.__mpcRoot, type: f.type || \"audio/mpeg\" } : new Blob([await f.arrayBuffer()], { type: f.type || \"audio/mpeg\" }));   /* PC : fichier laissé à sa place */" },
+        { "from": "await IDB.set(\"blob:\" + id, new Blob([await f.arrayBuffer()], { type: f.type || \"audio/mpeg\" }));", "to": "await IDB.set(\"blob:\" + id, f.__mpcHandle ? { mpcHandle: f.__mpcHandle, mpcRoot: f.__mpcRoot, mpcRootId: f.__mpcRootId, type: f.type || \"audio/mpeg\" } : new Blob([await f.arrayBuffer()], { type: f.type || \"audio/mpeg\" }));   /* PC : fichier laissé à sa place */" },
         { "from": "(photo du téléphone)", "to": "(image de l’ordinateur)", "count": 2 },
         { "from": "Touchez ♥ dans le lecteur", "to": "Cliquez sur ♥ dans le lecteur" }
       ],
@@ -360,6 +363,7 @@
     },
     {
       "id": "ecran",
+      "modules": ["folders"],
       "android": "ecran",
       "page": "pc/shared/ecran-pc.html",
       "name": "Écran",
@@ -374,6 +378,7 @@
     },
     {
       "id": "galerie",
+      "modules": ["folders"],
       "android": "galerie",
       "name": "Galerie",
       "short_name": "Galerie",
