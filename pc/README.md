@@ -30,9 +30,11 @@ pc/
     toile.html           page de Toile sur PC (propre au PC, champ « page » de pc-apps.json)
     toile-worker.js      moteur de recadrage de Toile (portage JS de applis/scripts/WallpaperJob.java)
                          (« Images en ligne » : applis/www-fonds/en-ligne.js, copié dans pc/toile/toile-en-ligne.js)
+    ecran-pc.html        page d'Écran sur PC (propre au PC) : vidéos du PC et liens vidéo
     apps/fenetres.css    commun : feuilles du bas en fenêtres centrées (champ « styles » de pc-apps.json)
     apps/souris.css      commun : curseurs, survol, barres de défilement
-    vendor/              bibliothèques (pdf.js, pdf-lib, jszip, tesseract, leaflet, jspdf, xlsx) + LICENSES/ + VENDOR.json
+    vendor/              bibliothèques (pdf.js, pdf-lib, jszip, tesseract, leaflet, jspdf, xlsx, hls.js) + LICENSES/ + VENDOR.json
+  hls-build.mjs          construit vendor/hls.min.js depuis les sources taguées de hls.js (si npm est injoignable)
   relais/worker.js       relais réseau personnel FACULTATIF (Cloudflare Worker), voir « Relais réseau »
 ```
 
@@ -48,7 +50,8 @@ pc/
 | Actualités (`actualites`) | franceinfo et flux qui autorisent CORS | les autres médias sans relais |
 | Carnet (`notes`), Agenda (`agenda`), Contacts (`contacts`) | tout le contenu ; .ics/.vcf en import/export et « Ouvrir avec » ; rappels fenêtre ouverte | agenda/contacts du téléphone, synchronisation |
 | Calcul, QR, Météo, Ciel, Sentiers, Solaire | tout (QR : webcam, image collée ; Sentiers : préparation, GPX) | Sentiers : enregistrement GPS ; Solaire : boussole/inclinomètre, PVGIS sans relais |
-| Mélodie (`musique`), Ondes, Écran | dossier de musique/vidéos du PC, podcasts CORS, PeerTube/NASA/archive | téléchargements hors ligne d'Ondes, applis TV (liens vers les sites) |
+| Mélodie (`musique`), Ondes | dossier de musique du PC, podcasts CORS | téléchargements hors ligne d'Ondes |
+| Écran (`ecran`, page propre au PC) | vidéos de plusieurs dossiers du PC (miniatures, reprise, vu/non vu, sous-titres .srt/.vtt), « Ouvrir avec », liens YouTube/Vimeo/Dailymotion/PeerTube/Twitch/archive.org (lecteurs officiels intégrés), .mp4/.webm, flux .m3u8 | catalogues de l'APK (PeerTube, NASA, chaînes suivies, applis TV) ; AVI/WMV/FLV (signalés) |
 | Toile (`toile`, page propre au PC) | fonds recadrés à la taille de l'écran (mêmes traitements que l'APK) dans un dossier « Fonds Toile », que le diaporama de Windows fait défiler ; mise à jour incrémentale ; onglet « Images en ligne » (thèmes, sources libres, crédits) | changer le fond d'écran lui-même (impossible pour une page web), tuile, changement en arrière-plan |
 | Galerie, Scan, Dictaphone | dossier photos du PC (corbeille, EXIF, carte), scan d'images/PDF/webcam, micro + dictée | photos du téléphone, partage vers d'autres applis |
 | Coffre (`coffre`) | identique (PBKDF2 600 000 + AES-GCM 256, rien ne sort) | empreinte (mot de passe maître seulement) |
@@ -221,6 +224,45 @@ réglages `localStorage` `toile-pc:en-ligne`, clés dans `toile-cles-pc` (hors d
 puis traitement automatique vers « Fonds Toile » (mêmes réglages de recadrage) ; `toile-credits.txt` (dans la sortie) donne,
 pour chaque fond `toile-<source>-<id>-….jpg`, l'auteur, la licence et la source ; « Crédit » retrouve une image par ce nom.
 
+## Écran sur PC
+
+Page propre au PC (`shared/ecran-pc.html`, champ `page`), à la place de la page Android, à la même adresse et avec le
+même identifiant d'installation (`/atelier-signature/pc/ecran/`) : l'appli déjà installée se met à jour. L'APK ne change pas.
+
+**Mes vidéos.** Plusieurs dossiers (code repris de Rangement : poignées dans IndexedDB `ecran-pc` › `kv` › `racines`,
+`queryPermission` au démarrage, un clic « Autoriser l'accès » pour tous, dossier déjà compris → pas ajouté, dossier qui en
+contient un autre → fusion ; lecture seule, `showDirectoryPicker({mode:'read', startIn:'videos'})`). L'ancien dossier unique
+(`mag-pc` › `files` › `ecran-dossier`) est repris. Parcours récursif (14 niveaux ; dossiers cachés, `$RECYCLE.BIN`,
+`System Volume Information`… ignorés). Lisibles : `.mp4 .m4v .mov .webm .mkv .ogv .ogg` ; listés mais signalés « non lisible ici » :
+`.avi .wmv .flv .f4v .mpg .mpeg .m2ts .mts .vob .3gp .asf .rm .rmvb .divx…` (une page web ne peut pas lancer le lecteur de
+Windows : l'appli explique « clic droit › Ouvrir avec » et copie le nom). Un codec refusé à la lecture (HEVC sans
+l'extension de Windows, son AC-3/DTS) est retenu et affiché « Codec non pris en charge ».
+Miniatures, durée et résolution : `<video>` + canvas (image à 15 % de la durée, 90 s au plus), une à la fois, dans l'ordre
+d'affichage, gardées dans IndexedDB `ecran-pc-miniatures` (clé `nom|taille|date` ; base non exportée, recalculable).
+Position et « vu » : `localStorage` `ecran-pc:positions` / `ecran-pc:vues`, clé `nom|taille` (survit à un déplacement) ;
+« vue » à 95 % ou à moins de 25 s de la fin. Recherche sans accents (nom et dossier), tris, regroupement par dossier,
+arborescence des dossiers dans la barre latérale.
+
+**Lecteur.** Contrôles propres (barre masquée après 2,6 s), plein écran du lecteur, vitesse, boucle, image dans l'image,
+suivant/précédent dans le dossier (avec « À suivre » en fin de vidéo). Sous-titres : `.srt`/`.vtt` du même nom (aussi
+`nom.fr.srt`…) chargés tout seuls, ou choisis à la main ; SRT → VTT (virgules, coordonnées, balises `{\an8}`), texte en
+UTF-8, UTF-16 ou Windows-1252. Pistes audio : `audioTracks` si le navigateur l'expose (Chrome/Edge : derrière un drapeau),
+pistes HLS. Raccourcis : Espace/K, ←/→ (J/L, Maj = 30 s), ↑/↓, M, F, N/P, chiffres (`event.code`, donc AZERTY sans Maj),
+C, `<`/`>`, I, Échap ; Ctrl+O, Ctrl+F, Ctrl+L. Dépôt d'une vidéo, d'un `.srt` ou d'un dossier ; `file_handlers` .mp4 .m4v
+.webm .mkv .mov .ogv.
+
+**Liens.** `EcranLiens.parse()` construit sans réseau l'adresse du **lecteur officiel intégré** : YouTube →
+`youtube-nocookie.com/embed/<id>` (watch, youtu.be, shorts, live, playlist `videoseries?list=`, `t=`/`start=` en secondes,
+`enablejsapi=1&origin=`) ; Vimeo → `player.vimeo.com/video/<id>?h=…&dnt=1#t=` ; Dailymotion → `/embed/video/<id>` ;
+PeerTube (instances connues, ou chemins `/w/<id>`, `/videos/watch/<id>`, `/w/p/<liste>`) → `/videos/embed/<id>?p2p=0` ;
+Twitch → `player.twitch.tv/?video=v…|channel=…&parent=<site>`, clips `clips.twitch.tv/embed?clip=` ; archive.org →
+`/embed/<id>`. Aucun téléchargement, aucune extraction de flux, aucun script de ces sites dans la page : seulement leur
+iframe. Le lecteur YouTube signale ses erreurs par `postMessage` (101/150 : intégration refusée) → « Ouvrir sur YouTube »
+(bouton présent de toute façon). Fichier `.mp4`/`.webm`… : lecteur d'Écran. `.m3u8` : natif si le navigateur sait, sinon
+hls.js (`vendor/hls.min.js`, chargé à la demande, précaché) ; sans CORS : message clair. Autre lien : « Ouvrir dans le
+navigateur ». Historique (150) et « À regarder plus tard » : `localStorage` `ecran-pc:liens` / `ecran-pc:plus-tard`, avec
+la dernière position connue. Ctrl+V n'importe où (hors champ de saisie) lit le lien collé.
+
 ## Relais réseau
 
 Une page web ne lit un flux d'un autre site que si ce site envoie `Access-Control-Allow-Origin` (CORS). Sonde du
@@ -265,9 +307,14 @@ Android (pages `applis/` avec ponts simulés, sans `MAGPC`). Toile : comparer le
 avec les fonctions de `WallpaperJob.java` compilées telles quelles (faux `android.graphics` en Java : `Bitmap`,
 `Rect`, `Canvas` bilinéaire) sur des images construites exprès (bordures, bandeau, logo, paysage, portrait).
 Autorisations « à redemander » : `queryPermission` simulé à `prompt` jusqu'au clic.
+Écran : vidéos de test faites avec ffmpeg en VP9/Opus (le Chromium de Playwright n'a ni H.264 ni AAC : un .mp4 H.264 y sert
+à vérifier « Codec non pris en charge »), `.srt` en Windows-1252, faux lecteurs intégrés (page qui répond au `postMessage`
+de YouTube), serveur à requêtes partielles (Range) pour le lien direct, flux HLS fMP4, second serveur sans CORS.
 
 ## Licences des bibliothèques (shared/vendor/LICENSES)
 
 pdf.js 3.11.174 (Apache-2.0) · pdf-lib 1.17.1 (MIT) · JSZip 3.10.1 (MIT ou GPL-3.0) ·
 tesseract.js-core 7.0.0 (Apache-2.0) · données françaises tessdata_fast 4.1.0 (Apache-2.0) ·
 Leaflet 1.9.4 (BSD-2-Clause) · jsPDF 2.5.1 (MIT) · SheetJS xlsx 0.18.5 (Apache-2.0) — mêmes versions que dans les APK.
+hls.js 1.6.19 (Apache-2.0, PC seulement, avec eventemitter3 MIT, url-toolkit et common-media-library Apache-2.0) : construit
+depuis le tag v1.6.19 par `pc/hls-build.mjs` (registre npm injoignable) ; `--vendor` le remplace par le `dist/hls.min.js` npm.
