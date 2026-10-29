@@ -332,6 +332,10 @@ Android (pages `applis/` avec ponts simulés, sans `MAGPC`). Toile : comparer le
 avec les fonctions de `WallpaperJob.java` compilées telles quelles (faux `android.graphics` en Java : `Bitmap`,
 `Rect`, `Canvas` bilinéaire) sur des images construites exprès (bordures, bandeau, logo, paysage, portrait).
 Autorisations « à redemander » : `queryPermission` simulé à `prompt` jusqu'au clic.
+Présentation : création de 8 diapositives (tous les contenus, animations, transitions, notes), diaporama et mode
+présentateur (fenêtre publique), annuler/rétablir, .magpres réouvert à l'identique, .pptx exporté puis validé par
+python-pptx et LibreOffice et réimporté, import d'un .pptx fait avec python-pptx, PDF (1 à 6 par page, commentaires),
+images, téléphone 412 px au doigt (événements tactiles CDP) et pont `MAGOffice` simulé.
 Écran : vidéos de test faites avec ffmpeg en VP9/Opus (le Chromium de Playwright n'a ni H.264 ni AAC : un .mp4 H.264 y sert
 à vérifier « Codec non pris en charge »), `.srt` en Windows-1252, faux lecteurs intégrés (page qui répond au `postMessage`
 de YouTube), serveur à requêtes partielles (Range) pour le lien direct, flux HLS fMP4, second serveur sans CORS.
