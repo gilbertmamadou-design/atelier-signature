@@ -10,6 +10,7 @@
 #  - MAGActualites (ActualitesBridge.java) : flux d'actualités en liste blanche, alertes infos et vigilance météo
 #  - MAGToile (ToileBridge.java) : Toile, « Images en ligne » (sources libres en liste blanche, tâche de fond WorkManager)
 #  - MAGOffice (OfficeBridge.java) : applis bureautiques (Présentation…), ouvrir / enregistrer sur place / enregistrer sous / partager
+#  - MAGMajordome (MajordomeBridge.java, appli Majordome seulement) : reconnaissance vocale Vosk, voix, alarmes, téléphone
 set -e
 F=$(find android/app/src/main/java -name MainActivity.java | head -1)
 PKG=$(sed -n 's/^package \(.*\);/\1/p' "$F")
@@ -395,7 +396,7 @@ public class MainActivity extends BridgeActivity {
     private final java.util.List<Object> extraBridges = new java.util.ArrayList<Object>();
     private void loadExtraBridges(WebView wv) {
         String pkg = MainActivity.class.getPackage().getName();
-        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge", "ReseauBridge", "LecteurBridge", "PdfBridge", "SolaireBridge", "SocleBridge", "FichiersBridge", "ActualitesBridge", "ToileBridge", "OfficeBridge" }) {
+        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge", "ReseauBridge", "LecteurBridge", "PdfBridge", "SolaireBridge", "SocleBridge", "FichiersBridge", "ActualitesBridge", "ToileBridge", "OfficeBridge", "MajordomeBridge" }) {
             try {
                 Class<?> k = Class.forName(pkg + "." + n);
                 Object o = k.getConstructor(android.app.Activity.class, WebView.class).newInstance(this, wv);
@@ -1621,7 +1622,7 @@ FSV="$(dirname "$F")/FileService.java"
 cp scripts/FileService.java "$FSV"
 sed -i "s/__PKG__/$PKG/" "$FSV"
 # Réveil, lever de soleil et endormissement (application Aube)
-for J in $(ls scripts/*Bridge.java 2>/dev/null | xargs -n1 basename 2>/dev/null | sed 's/\.java$//' | grep -vx 'PdfBridge'); do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
+for J in $(ls scripts/*Bridge.java 2>/dev/null | xargs -n1 basename 2>/dev/null | sed 's/\.java$//' | grep -vxE 'PdfBridge|MajordomeBridge'); do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
 for J in AlarmService AlarmReceiver WallpaperJob WallpaperTile LauncherService LauncherA11y LauncherMedia WidgetProvider SauvegardeJob PhotoCamera EcranPlayer DictaService MeteoPersoJob MelodieVolume; do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
 # Bibliothèque des tâches de fond
 G=android/app/build.gradle
@@ -1868,6 +1869,29 @@ android {
 GRADLE
   grep -n "mlkit\|pdfbox" "$G"; grep -n "minSdkVersion" android/variables.gradle
   addfilters '<intent-filter android:label="Atelier PDF"><action android:name="android.intent.action.SEND" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="application/pdf" /></intent-filter><intent-filter android:label="Atelier PDF"><action android:name="android.intent.action.SEND_MULTIPLE" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="application/pdf" /></intent-filter>'
+fi
+# Majordome : assistant vocal à commandes. MajordomeBridge.java copié ici seulement (il dépend de Vosk et JNA, ajoutés à cette appli seule) :
+# reconnaissance hors ligne (com.alphacephei:vosk-android, Apache-2.0 ; modèle téléchargé au premier lancement), écoute continue
+# (service au premier plan « micro », MajordomeBridge$Ecoute), minuteurs / réveils / rappels (AlarmManager, MajordomeBridge$Rappel,
+# reprogrammés au démarrage), voix (TextToSpeech), appel et SMS après confirmation, volume, ne pas déranger, panneaux Wi-Fi / Bluetooth.
+# Agenda (AgendaBridge), titres et vigilance (ActualitesBridge, liste blanche) : ponts communs déjà chargés.
+if [ "$APP" = "majordome" ]; then
+  cp scripts/MajordomeBridge.java "$(dirname "$F")/MajordomeBridge.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/MajordomeBridge.java"
+  grep -q "com.alphacephei:vosk-android" "$G" || sed -i '0,/^dependencies {/s//dependencies {\n    implementation "net.java.dev.jna:jna:5.13.0@aar"\n    implementation "com.alphacephei:vosk-android:0.3.47@aar"/' "$G"
+  cat >> "$G" <<'GRADLE'
+
+android {
+    // Bibliothèques natives de Vosk et JNA : seulement pour les processeurs ARM des téléphones (APK plus léger)
+    defaultConfig { ndk { abiFilters "arm64-v8a", "armeabi-v7a" } }
+}
+GRADLE
+  grep -n "vosk\|jna" "$G"
+  addperm INTERNET ACCESS_NETWORK_STATE RECORD_AUDIO FOREGROUND_SERVICE FOREGROUND_SERVICE_MICROPHONE POST_NOTIFICATIONS WAKE_LOCK VIBRATE USE_EXACT_ALARM USE_FULL_SCREEN_INTENT RECEIVE_BOOT_COMPLETED READ_CONTACTS CALL_PHONE SEND_SMS READ_CALENDAR WRITE_CALENDAR ACCESS_NOTIFICATION_POLICY MODIFY_AUDIO_SETTINGS SYSTEM_ALERT_WINDOW REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
+  grep -q 'SCHEDULE_EXACT_ALARM' "$MAN" || addraw '<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />'
+  addraw '<uses-feature android:name="android.hardware.microphone" android:required="false" /><uses-feature android:name="android.hardware.telephony" android:required="false" /><uses-feature android:name="android.hardware.camera.flash" android:required="false" /><queries><intent><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent><intent><action android:name="android.intent.action.TTS_SERVICE" /></intent><intent><action android:name="android.speech.RecognitionService" /></intent><intent><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="https" /></intent><intent><action android:name="android.intent.action.DIAL" /><data android:scheme="tel" /></intent><intent><action android:name="android.intent.action.SENDTO" /><data android:scheme="smsto" /></intent><package android:name="fr.magformation13.budget" /><package android:name="fr.magformation13.musique" /><package android:name="fr.magformation13.agenda" /><package android:name="fr.magformation13.echafaudage" /></queries>'
+  addactivity '<service android:name=".MajordomeBridge$Ecoute" android:foregroundServiceType="microphone" android:exported="false" />'
+  addactivity '<receiver android:name=".MajordomeBridge$Rappel" android:exported="true"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED" /><action android:name="android.intent.action.MY_PACKAGE_REPLACED" /></intent-filter></receiver>'
+  grep -n "Majordome" "$MAN"
 fi
 # Solaire : photos (appareil photo par le sélecteur de fichiers), position, internet (cadastre, urbanisme, PVGIS par SolaireBridge.java),
 # liens vers Légifrance et service-public ouverts dans le navigateur

@@ -270,5 +270,13 @@
   "name": "Texte",
   "icons": "android-icons-texte",
   "file": "Texte.apk"
+ },
+ {
+  "app": "majordome",
+  "web": "www-majordome",
+  "appid": "fr.magformation13.majordome",
+  "name": "Majordome",
+  "icons": "android-icons-majordome",
+  "file": "Majordome.apk"
  }
 ]
