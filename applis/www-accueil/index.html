@@ -379,6 +379,7 @@ var IC = {
   orb:'<circle cx="12" cy="12" r="8.5" stroke-dasharray="2 2.2"/><circle cx="12" cy="12" r="4.5"/><path d="M10.2 12h.01M13.8 12h.01M12 10.2h.01M12 13.8h.01"/>',
   easel:'<rect x="3" y="3" width="18" height="12" rx="1.5"/><path d="M12 15v3M8 21l4-3 4 3M7 8h6M7 11h4"/>',
   solar:'<circle cx="17.5" cy="5.5" r="2.5"/><path d="M3 20h13l3-8H6z"/><path d="M9.5 12 8 20M14.5 12 13 20M4.5 16h13"/>',
+  bulb:'<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3z"/>',
   sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   rain:'<path d="M7 15a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 6.5a4 4 0 0 1-.5 8.5z"/><path d="M8 19l-1 2M12 19l-1 2M16 19l-1 2"/>',
   snow:'<path d="M7 15a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 6.5a4 4 0 0 1-.5 8.5z"/><path d="M8 19h.01M12 20h.01M16 19h.01"/>',
@@ -1186,6 +1187,7 @@ function mjpRows(d){
   if(A){ var l=null; try{ l=J(A.homeAgenda(7),null); }catch(e){} var ev=l&&l.length?(l.filter(function(x){ return !x.all; })[0]||l[0]):null; if(ev) r.push(['cal',ev.title,evWhen(ev)]); }
   if(W && W.current){ var c=W.current, w=wmo(c.weather_code,c.is_day); r.push([w[1],Math.round(c.temperature_2m)+'° '+w[0].toLowerCase(),'vent '+Math.round(c.wind_speed_10m)+' km/h'+(c.wind_gusts_10m>=40?', rafales '+Math.round(c.wind_gusts_10m):'')]); }
   if(d.rem && d.rem.at>now) r.push(['bell','Rappel '+mjWhen(d.rem.at),d.rem.text||'']);
+  var hl=mjHueLine(d); if(hl) r.splice(Math.min(r.length,2),0,hl);
   return r;
 }
 function mjpHtml(cfg){
@@ -1204,15 +1206,40 @@ function mjMenu(){
     '<button data-mj="routine">'+ic('sun')+'Routine « Bonjour »</button>'+
     '<button data-mj="timer">'+ic('clock')+'Minuteur</button>'+
     '<button data-mj="note">'+ic('note')+'Note</button>'+
+    (mjHue(wd(MJ)||{})?'<button data-mj="hueoff">'+ic('bulb')+'Éteindre toutes les lumières</button>':'')+
     '<button data-mj="settings">'+ic('tool')+'Réglages de '+nm+'</button>'+
     '<button data-mj="edit">'+ic('grid')+'Modifier l\'écran</button></div>','mj');
   $('sbody').onclick=safe(function(e){
     var b=e.target.closest('[data-mj]'); if(!b) return; var m=b.dataset.mj; closeSheet(); $('sbody').onclick=null;
     if(m==='edit'){ startEdit(); return; }
     if(!A || !app(MJ)) return;
+    if(m==='hueoff'){ hueOff(); return; }
     var o={listen:{listen:1},routine:{routine:'matin'},timer:{timer:1},note:{note:1},settings:{settings:1}}[m];
     if(o) A.homeLaunchWith(MJ, JSON.stringify(o));
   },'Majordome');
+}
+/* Lumières Philips Hue (pont jumelé dans Majordome) : une ligne « Lumières : 3 allumées » dans le panneau, appui long › « Éteindre
+   toutes les lumières ». Socle ne parle jamais au pont : il demande à Majordome (canal privé WidgetProvider, permission
+   « signature »), qui garde la clé. Relecture à l'ouverture de Socle puis au plus toutes les 60 s quand il est visible,
+   seulement si le panneau est sur l'accueil et le pont jumelé. */
+function mjHue(d){ return d && d.hue && d.hue.paired ? d.hue : null; }
+function mjHueLine(d){
+  var h=mjHue(d); if(!h || !h.at) return null;
+  if(h.err) return ['bulb','Lumières',h.err==='unauthorized'?'pont à rejumeler':'pont injoignable'];
+  if(h.on==null) return null;
+  return ['bulb','Lumières',h.on?h.on+' allumée'+(h.on>1?'s':''):'tout est éteint'];
+}
+var hueAt=0;
+function hueTick(force){
+  if(!A || !A.homeWidgetCall || document.hidden || !app(MJ) || !hasTile('mjpanel')) return;
+  if(!mjHue(wd(MJ)||{})) return;
+  if(!force && Date.now()-hueAt<60000) return;
+  hueAt=Date.now();
+  if(A.homeWidgetCall(MJ,'hue_refresh','')) setTimeout(safe(function(){ wdata(MJ); refresh('mjpanel'); },'Lumières'), 2500);
+}
+function hueOff(){
+  if(A.homeWidgetCall(MJ,'hue_all_off','')){ toast('Extinction des lumières…'); hueAt=Date.now(); setTimeout(safe(function(){ wdata(MJ); refresh('mjpanel'); var h=mjHue(wd(MJ)||{}); if(h) toast(h.err?'Le pont Hue ne répond pas':h.on?h.on+' lumière'+(h.on>1?'s':'')+' encore allumée'+(h.on>1?'s':''):'Toutes les lumières sont éteintes'); },'Lumières'), 2500); }
+  else toast('Aucun pont Hue jumelé dans '+mjName());
 }
 /* Proposition unique (en haut de la page principale) : « Ajouter Jarvis à l'accueil ? » */
 function mjOfferHtml(){
@@ -1895,7 +1922,7 @@ window.accueilResume=safe(function(){
   checkApps(false);
   PHOTOS=null; PHOTOS_N=0; theme();
   if(!document.body.classList.contains('edit')) renderProgressive(function(){ refreshMag(); snapSoon(); });
-  fetchWeather(false); autoLocate(); medSig=''; pollMedia();
+  fetchWeather(false); autoLocate(); medSig=''; pollMedia(); setTimeout(safe(function(){ hueTick(false); },'Lumières'), 1200);
 },'Retour sur l\'accueil');
 /* Mémoire basse : on libère ce qui se recharge facilement */
 window.accueilTrim=safe(function(){ PHOTOS=null; PHOTOS_N=0; iconCache={}; },'Mémoire');
@@ -1915,6 +1942,7 @@ function boot1(){
   renderProgressive(function(){ booted=true; });
   requestAnimationFrame(function(){ readyNative(); });
   setTimeout(safe(function(){ if(cached && checkApps(true)) render(); refreshMag(); pollMedia(); },'Démarrage'), 350);
+  setTimeout(safe(function(){ hueTick(true); },'Lumières'), 1500);
   setTimeout(safe(function(){ if(C.city) fetchWeather(false); else refresh('weather'); },'Météo'), 900);
   setTimeout(safe(autoLocate,'Position'), 4000);
   /* Une seule fois : la météo de l'horloge suit ma position (si la position est refusée, la ville choisie reste) */
@@ -1924,6 +1952,7 @@ function boot1(){
 theme();
 requestAnimationFrame(function(){ setTimeout(safe(boot1,'Démarrage'), 0); });
 setInterval(safe(function(){ if(!document.hidden){ refresh('clock'); } },'Horloge'), 15000);
+setInterval(safe(function(){ hueTick(false); },'Lumières'), 60000);
 setInterval(safe(function(){ pollMedia(); if(!document.hidden) document.querySelectorAll('[data-since]').forEach(function(el){ el.textContent=mt(Date.now()-el.dataset.since); }); },'Musique'), 1000);
 setInterval(safe(function(){ if(!document.hidden){ ['battery','alarm','agenda','nextev','device','mjpanel'].forEach(refresh); fetchWeather(false); } },'Mise à jour'), 120000);
 document.addEventListener('visibilitychange', safe(function(){

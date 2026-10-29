@@ -1880,6 +1880,11 @@ fi
 # (service au premier plan « micro », MajordomeBridge$Ecoute), minuteurs / réveils / rappels (AlarmManager, MajordomeBridge$Rappel,
 # reprogrammés au démarrage), voix (TextToSpeech), appel et SMS après confirmation, volume, ne pas déranger, panneaux Wi-Fi / Bluetooth.
 # Agenda (AgendaBridge), titres et vigilance (ActualitesBridge, liste blanche) : ponts communs déjà chargés.
+# Lumières Philips Hue (MajordomeBridge.Hue) : rien à ajouter au manifeste. Découverte mDNS par NsdManager (sans autorisation),
+# INTERNET déjà demandé. Les requêtes vers le pont passent par des sockets directes : https avec le certificat du pont épinglé
+# au jumelage, ou http pour les anciens ponts (API v1), toujours vers l'adresse privée du pont jumelé seulement. Le trafic en clair
+# reste donc interdit pour tout le reste : pas de network_security_config (elle ne sait pas exprimer « adresses privées »,
+# seulement des noms ou des adresses fixes). Clé du pont : files/../no_backup/hue.json, hors sauvegardes Android.
 if [ "$APP" = "majordome" ]; then
   cp scripts/MajordomeBridge.java "$(dirname "$F")/MajordomeBridge.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/MajordomeBridge.java"
   grep -q "com.alphacephei:vosk-android" "$G" || sed -i '0,/^dependencies {/s//dependencies {\n    implementation "net.java.dev.jna:jna:5.13.0@aar"\n    implementation "com.alphacephei:vosk-android:0.3.47@aar"/' "$G"

@@ -607,6 +607,7 @@ public class MajordomeBridge {
                 if ("mj.RING".equals(act) && id != null) {
                     JSONObject all = alarms(c), o = all.optJSONObject(id);
                     if (o == null) return;
+                    if ("hue".equals(o.optString("kind"))) { all.remove(id); saveAlarms(c, all); hueLater(c, id, o, goAsync()); return; }
                     if (live != null && resumed) { send("alarm", obj("id", id)); return; }   // page ouverte : elle sonne et parle elle-même
                     channels(c);
                     boolean loud = !"reminder".equals(o.optString("kind"));
@@ -807,5 +808,426 @@ public class MajordomeBridge {
                 try { a.startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + a.getPackageName()))); } catch (Throwable t2) { toast("Ouvrez Paramètres › Applications › Majordome"); }
             }
         } });
+    }
+
+    // =====================================================================
+    // Philips Hue : pont Hue du réseau local (mj-maison.js)
+    //  - Découverte : mDNS « _hue._tcp » (NsdManager) ; sur demande explicite, https://discovery.meethue.com (seule
+    //    requête internet des lumières). Jumelage : « appuyez sur le bouton du pont », POST /api avec devicetype et
+    //    generateclientkey, répété 30 s (erreur 101 « link button not pressed » tant que le bouton n'est pas pressé).
+    //  - Clé d'application : fichier privé no_backup/hue.json (hors sauvegardes Android), jamais transmise à la page.
+    //  - Réseau : seule l'adresse du pont jumelé, et seulement une adresse privée (10/8, 172.16/12, 192.168/16).
+    //    API CLIP v2 en https ; le certificat du pont (auto-signé ou émis par Signify) est accepté seulement s'il est
+    //    celui noté au jumelage (empreinte SHA-256 épinglée, « TOFU »), et pour cette connexion seulement : TLS n'est
+    //    jamais désactivé ailleurs. Repli API v1 (https épinglé, ou http pour les anciens ponts sans https).
+    //  - Requêtes faites avec des sockets directes (HTTP/1.1 minimal) : le http en clair des anciens ponts ne demande
+    //    aucune exception dans la configuration réseau de l'appli (network_security_config inchangée).
+    // =====================================================================
+    static final java.util.concurrent.ExecutorService HX = java.util.concurrent.Executors.newSingleThreadExecutor();
+    static final java.util.concurrent.atomic.AtomicBoolean pairStop = new java.util.concurrent.atomic.AtomicBoolean();
+    static final Object HLOCK = new Object();
+
+    /** Partie réseau en Java pur (testée hors d'Android) : liste blanche, TLS épinglé, HTTP minimal, jumelage. */
+    static final class Hue {
+        interface Dialer { java.net.Socket open(String ip, int port, int timeoutMs) throws java.io.IOException; }
+        interface Progress { void left(int seconds); }
+        static volatile Dialer dialer = null;   // banc d'essai Java seulement ; null dans l'appli
+        static final String DEVICETYPE = "majordome#android";
+
+        static final class Resp { int code; String body = ""; String fp, cn; }
+        static final class HueErr extends Exception { final String code; HueErr(String c) { super(c); code = c; } }
+        static final class Pair { String user, clientkey, fp, api, bridgeId, name, model, sw, err, msg; boolean tls; }
+
+        /** Adresse IPv4 littérale d'un réseau privé (RFC 1918) ; rien d'autre (ni nom, ni 127.x, ni 169.254.x, ni IPv6) */
+        static boolean privateIp(String ip) {
+            if (ip == null || !ip.matches("\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}")) return false;
+            String[] p = ip.split("\\."); int[] o = new int[4];
+            for (int i = 0; i < 4; i++) { if (p[i].length() > 1 && p[i].charAt(0) == '0') return false; o[i] = Integer.parseInt(p[i]); if (o[i] > 255) return false; }
+            if (o[3] == 0 || o[3] == 255) return false;
+            return o[0] == 10 || (o[0] == 172 && o[1] >= 16 && o[1] <= 31) || (o[0] == 192 && o[1] == 168);
+        }
+        static boolean okPath(String p) { return p != null && p.length() <= 200 && p.matches("/[A-Za-z0-9/_\\-]*") && !p.contains("//"); }
+        static boolean okKey(String k) { return k != null && k.matches("[A-Za-z0-9\\-]{8,80}"); }
+        static String sha256(byte[] b) {
+            try { byte[] d = java.security.MessageDigest.getInstance("SHA-256").digest(b); StringBuilder s = new StringBuilder(); for (byte x : d) s.append(String.format("%02x", x & 0xff)); return s.toString(); }
+            catch (Exception e) { return ""; }
+        }
+        static String cnOf(String dn) { java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?:^|,)\\s*CN=([^,]+)").matcher(dn == null ? "" : dn); return m.find() ? m.group(1).trim() : null; }
+        static String str(String json, String key) { java.util.regex.Matcher m = java.util.regex.Pattern.compile("\"" + key + "\"\\s*:\\s*\"([^\"]*)\"").matcher(json == null ? "" : json); return m.find() ? m.group(1) : null; }
+        static String num(String json, String key) { java.util.regex.Matcher m = java.util.regex.Pattern.compile("\"" + key + "\"\\s*:\\s*(\\d+)").matcher(json == null ? "" : json); return m.find() ? m.group(1) : null; }
+
+        /** Certificat accepté seulement s'il a l'empreinte attendue ; want == null : premier contact (jumelage), empreinte notée */
+        static final class Pin implements javax.net.ssl.X509TrustManager {
+            final String want; volatile String seen, cn;
+            Pin(String want) { this.want = want; }
+            public void checkClientTrusted(java.security.cert.X509Certificate[] c, String t) throws java.security.cert.CertificateException { throw new java.security.cert.CertificateException("client"); }
+            public void checkServerTrusted(java.security.cert.X509Certificate[] c, String t) throws java.security.cert.CertificateException {
+                if (c == null || c.length == 0) throw new java.security.cert.CertificateException("aucun certificat");
+                seen = sha256(c[0].getEncoded());
+                try { cn = cnOf(c[0].getSubjectX500Principal().getName()); } catch (Exception e) { }
+                if (want != null && !want.equalsIgnoreCase(seen)) throw new java.security.cert.CertificateException("pin");
+            }
+            public java.security.cert.X509Certificate[] getAcceptedIssuers() { return new java.security.cert.X509Certificate[0]; }
+        }
+
+        static java.net.Socket connect(String ip, int port, int timeout) throws java.io.IOException {
+            String[] p = ip.split("\\."); byte[] b = new byte[4]; for (int i = 0; i < 4; i++) b[i] = (byte) Integer.parseInt(p[i]);
+            java.net.Socket s = new java.net.Socket();
+            s.connect(new java.net.InetSocketAddress(java.net.InetAddress.getByAddress(b), port), timeout);
+            return s;
+        }
+        /** Une requête HTTP/1.1 vers le pont (Connection: close). tofu : accepte et note le certificat (jumelage seulement). */
+        static Resp http(String ip, boolean tls, String pin, boolean tofu, String method, String path, String key, String body, int timeout) throws java.io.IOException {
+            if (!privateIp(ip)) throw new java.io.IOException("notprivate");
+            if (!okPath(path)) throw new java.io.IOException("path");
+            if (!"GET".equals(method) && !"PUT".equals(method) && !"POST".equals(method)) throw new java.io.IOException("method");
+            if (tls && (pin == null || pin.isEmpty()) && !tofu) throw new java.io.IOException("cert");
+            if (key != null && !okKey(key)) throw new java.io.IOException("key");
+            if (body != null && (body.length() > 8192 || !body.trim().startsWith("{"))) throw new java.io.IOException("body");
+            int port = tls ? 443 : 80;
+            Dialer d = dialer;
+            java.net.Socket raw = d != null ? d.open(ip, port, timeout) : connect(ip, port, timeout), s = raw;
+            Pin tm = null;
+            try {
+                raw.setSoTimeout(timeout);
+                if (tls) {
+                    tm = new Pin(tofu ? null : pin);
+                    javax.net.ssl.SSLContext ctx;
+                    try { ctx = javax.net.ssl.SSLContext.getInstance("TLS"); ctx.init(null, new javax.net.ssl.TrustManager[]{ tm }, new java.security.SecureRandom()); }
+                    catch (java.security.GeneralSecurityException e) { throw new java.io.IOException("tls"); }
+                    javax.net.ssl.SSLSocket ss = (javax.net.ssl.SSLSocket) ctx.getSocketFactory().createSocket(raw, ip, port, true);
+                    try { ss.startHandshake(); }
+                    catch (javax.net.ssl.SSLException e) { if (tm.seen != null && pin != null && !tofu && !pin.equalsIgnoreCase(tm.seen)) throw new java.io.IOException("cert"); throw e; }
+                    s = ss;
+                }
+                byte[] b = body == null ? new byte[0] : body.getBytes("UTF-8");
+                StringBuilder h = new StringBuilder();
+                h.append(method).append(' ').append(path).append(" HTTP/1.1\r\nHost: ").append(ip).append("\r\nConnection: close\r\nAccept: application/json\r\nUser-Agent: Majordome\r\n");
+                if (key != null) h.append("hue-application-key: ").append(key).append("\r\n");
+                if (body != null) h.append("Content-Type: application/json\r\nContent-Length: ").append(b.length).append("\r\n");
+                h.append("\r\n");
+                java.io.OutputStream o = s.getOutputStream(); o.write(h.toString().getBytes("UTF-8")); o.write(b); o.flush();
+                Resp r = read(s.getInputStream());
+                if (tm != null) { r.fp = tm.seen; r.cn = tm.cn; }
+                return r;
+            } finally { try { s.close(); } catch (Exception e) { } try { raw.close(); } catch (Exception e) { } }
+        }
+        static String line(java.io.InputStream in) throws java.io.IOException {
+            java.io.ByteArrayOutputStream b = new java.io.ByteArrayOutputStream(); int c;
+            while ((c = in.read()) >= 0) { if (c == '\n') break; if (c != '\r') b.write(c); if (b.size() > 8192) throw new java.io.IOException("ligne trop longue"); }
+            if (c < 0 && b.size() == 0) return null;
+            return b.toString("UTF-8");
+        }
+        static Resp read(java.io.InputStream in0) throws java.io.IOException {
+            java.io.InputStream in = new java.io.BufferedInputStream(in0);
+            Resp r = new Resp(); String st = line(in);
+            if (st == null || !st.startsWith("HTTP/1.")) throw new java.io.IOException("réponse invalide");
+            String[] sp = st.split(" "); r.code = sp.length > 1 ? Integer.parseInt(sp[1].trim()) : 0;
+            long len = -1; boolean chunked = false; String l;
+            while ((l = line(in)) != null && !l.isEmpty()) {
+                int k = l.indexOf(':'); if (k < 0) continue;
+                String n = l.substring(0, k).trim().toLowerCase(Locale.ROOT), v = l.substring(k + 1).trim();
+                if ("content-length".equals(n)) try { len = Long.parseLong(v); } catch (Exception e) { }
+                if ("transfer-encoding".equals(n) && v.toLowerCase(Locale.ROOT).contains("chunked")) chunked = true;
+            }
+            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+            byte[] buf = new byte[8192]; final int MAX = 4 << 20;
+            if (chunked) {
+                while (true) {
+                    String sz = line(in); if (sz == null) break; sz = sz.trim(); int sc = sz.indexOf(';'); if (sc >= 0) sz = sz.substring(0, sc);
+                    if (sz.isEmpty()) continue;
+                    int n = Integer.parseInt(sz, 16); if (n == 0) break;
+                    while (n > 0) { int k = in.read(buf, 0, Math.min(buf.length, n)); if (k < 0) throw new java.io.IOException("fin inattendue"); out.write(buf, 0, k); n -= k; if (out.size() > MAX) throw new java.io.IOException("réponse trop grande"); }
+                    line(in);
+                }
+            } else {
+                long left = len; int k;
+                while ((left < 0 || left > 0) && (k = in.read(buf, 0, (int) (left < 0 ? buf.length : Math.min(buf.length, left)))) >= 0) { out.write(buf, 0, k); if (left > 0) left -= k; if (out.size() > MAX) throw new java.io.IOException("réponse trop grande"); }
+            }
+            r.body = out.toString("UTF-8");
+            return r;
+        }
+        static String codeOf(java.io.IOException e) {
+            String m = e.getMessage();
+            if ("notprivate".equals(m) || "path".equals(m) || "cert".equals(m) || "method".equals(m) || "key".equals(m) || "body".equals(m)) return m;
+            return "unreachable";
+        }
+        /** Requête de l'appli vers le pont jumelé (le chemin et la clé sont vérifiés, le certificat doit être l'épinglé) */
+        static Resp call(String ip, boolean tls, String pin, String method, String path, String key, String body) throws HueErr {
+            try { return http(ip, tls, pin, false, method, path, key, body, 6000); }
+            catch (java.io.IOException e) { throw new HueErr(codeOf(e)); }
+        }
+        /** Jumelage : qui est là (/api/config), puis POST /api répété jusqu'à l'appui sur le bouton (au plus totalMs) */
+        static Pair pair(String ip, long totalMs, long stepMs, Progress pr, java.util.concurrent.atomic.AtomicBoolean stop) {
+            Pair res = new Pair();
+            if (!privateIp(ip)) { res.err = "notprivate"; return res; }
+            boolean tls = true; String fp = null; Resp cfg = null;
+            try { cfg = http(ip, true, null, true, "GET", "/api/config", null, null, 4000); fp = cfg.fp; }
+            catch (java.net.ConnectException e) { tls = false; }          // port 443 fermé : ancien pont, http seulement
+            catch (java.io.IOException e) { res.err = codeOf(e); res.msg = e.getMessage(); return res; }
+            if (!tls) {
+                try { cfg = http(ip, false, null, false, "GET", "/api/config", null, null, 4000); }
+                catch (java.io.IOException e) { res.err = codeOf(e); res.msg = e.getMessage(); return res; }
+            }
+            if (cfg.code != 200 || (!cfg.body.contains("\"bridgeid\"") && !cfg.body.contains("\"swversion\""))) { res.err = "notbridge"; return res; }
+            res.bridgeId = str(cfg.body, "bridgeid"); res.name = str(cfg.body, "name"); res.model = str(cfg.body, "modelid"); res.sw = str(cfg.body, "swversion");
+            // le nom commun du certificat d'un pont Hue est son identifiant : s'il en a la forme, il doit être le même
+            if (tls && cfg.cn != null && cfg.cn.matches("[0-9A-Fa-f]{16}") && res.bridgeId != null && !cfg.cn.equalsIgnoreCase(res.bridgeId)) { res.err = "certid"; return res; }
+            long end = System.currentTimeMillis() + totalMs;
+            String bodyPair = "{\"devicetype\":\"" + DEVICETYPE + "\",\"generateclientkey\":true}";
+            while (true) {
+                if (stop != null && stop.get()) { res.err = "cancel"; return res; }
+                try {
+                    Resp r = http(ip, tls, fp, false, "POST", "/api", null, bodyPair, 5000);
+                    String u = str(r.body, "username");
+                    if (u != null) {
+                        if (!okKey(u)) { res.err = "notbridge"; return res; }
+                        res.user = u; res.clientkey = str(r.body, "clientkey"); res.tls = tls; res.fp = tls ? fp : null;
+                        res.api = detect(ip, tls, fp, u);
+                        return res;
+                    }
+                    if (!"101".equals(num(r.body, "type"))) { res.err = "bridge"; res.msg = str(r.body, "description"); return res; }
+                } catch (java.io.IOException e) { res.err = codeOf(e); res.msg = e.getMessage(); return res; }
+                long left = end - System.currentTimeMillis();
+                if (left <= 0) { res.err = "timeout"; return res; }
+                if (pr != null) pr.left((int) Math.ceil(left / 1000.0));
+                try { Thread.sleep(Math.min(stepMs, left)); } catch (InterruptedException e) { res.err = "cancel"; return res; }
+            }
+        }
+        /** v2 si /clip/v2 répond, sinon v1 (« v1s » : https épinglé, « v1 » : http des anciens ponts) */
+        static String detect(String ip, boolean tls, String fp, String user) {
+            if (!tls) return "v1";
+            try { Resp r = http(ip, true, fp, false, "GET", "/clip/v2/resource/bridge", user, null, 5000); if (r.code == 200 && r.body.contains("\"data\"")) return "v2"; }
+            catch (java.io.IOException e) { }
+            return "v1s";
+        }
+        /** Le pont a changé d'adresse : même certificat et même identifiant exigés */
+        static boolean sameBridge(String ip, String fp, String id) {
+            try { Resp r = http(ip, true, fp, false, "GET", "/api/config", null, null, 4000); String b = str(r.body, "bridgeid"); return r.code == 200 && b != null && b.equalsIgnoreCase(id); }
+            catch (java.io.IOException e) { return false; }
+        }
+    }
+
+    static File hueFile(Context c) { return new File(c.getNoBackupFilesDir(), "hue.json"); }
+    static JSONObject hueLoad(Context c) {
+        synchronized (HLOCK) {
+            try {
+                File f = hueFile(c); if (!f.exists()) return null;
+                java.io.ByteArrayOutputStream b = new java.io.ByteArrayOutputStream(); byte[] buf = new byte[4096]; int n;
+                try (InputStream in = new java.io.FileInputStream(f)) { while ((n = in.read(buf)) > 0) b.write(buf, 0, n); }
+                JSONObject o = new JSONObject(b.toString("UTF-8"));
+                return Hue.okKey(o.optString("user")) && Hue.privateIp(o.optString("ip")) ? o : null;
+            } catch (Exception e) { return null; }
+        }
+    }
+    static void hueSave(Context c, JSONObject o) {
+        synchronized (HLOCK) {
+            try {
+                File f = hueFile(c), t = new File(f.getPath() + ".tmp");
+                try (FileOutputStream out = new FileOutputStream(t)) { out.write(o.toString().getBytes("UTF-8")); out.getFD().sync(); }
+                if (!t.renameTo(f)) { f.delete(); t.renameTo(f); }
+            } catch (Exception e) { }
+        }
+    }
+    static Hue.Resp hueCall(Context c, String method, String path, String body) throws Hue.HueErr {
+        JSONObject o = hueLoad(c);
+        if (o == null) throw new Hue.HueErr("notpaired");
+        if (!"GET".equals(method) && !"PUT".equals(method)) throw new Hue.HueErr("method");
+        String ip = o.optString("ip"), api = o.optString("api"), user = o.optString("user"), fp = o.optString("fp", "");
+        boolean tls; String full; String key = null;
+        // seulement les ressources des lumières (rien sur la configuration du pont, pas de suppression)
+        if (path != null && path.matches("/clip/v2/resource/(light|room|zone|device|grouped_light|scene|bridge_home|bridge)(/[0-9a-fA-F\\-]{8,64})?")) { if (!"v2".equals(api)) throw new Hue.HueErr("path"); tls = true; full = path; key = user; }
+        else if (path != null && path.matches("v1:/(lights|groups|scenes)(/[A-Za-z0-9\\-]{1,64}(/(state|action))?)?")) { tls = !"v1".equals(api); full = "/api/" + user + path.substring(3); }
+        else throw new Hue.HueErr("path");
+        if (tls && fp.isEmpty()) throw new Hue.HueErr("cert");
+        Hue.Resp r = Hue.call(ip, tls, tls ? fp : null, method, full, key, body == null || body.isEmpty() ? null : body);
+        if ("GET".equals(method) && ("/clip/v2/resource/light".equals(path) || "v1:/lights".equals(path))) hueStatusFrom(c, path, r);
+        return r;
+    }
+    /** Résumé pour le panneau Jarvis de Socle : nombre de lumières allumées (canal privé WidgetProvider) */
+    static void hueStatusFrom(Context c, String path, Hue.Resp r) {
+        try {
+            JSONObject s = new JSONObject().put("paired", true).put("at", System.currentTimeMillis());
+            if (r.code == 403 || r.code == 401) { WidgetProvider.putHue(c, s.put("err", "unauthorized").toString()); return; }
+            if (r.code != 200) { WidgetProvider.putHue(c, s.put("err", "http").toString()); return; }
+            int on = 0, total = 0; JSONArray names = new JSONArray();
+            if (path.startsWith("/clip")) {
+                JSONArray d = new JSONObject(r.body).optJSONArray("data");
+                for (int i = 0; d != null && i < d.length(); i++) { JSONObject l = d.getJSONObject(i); total++; if (l.optJSONObject("on") != null && l.getJSONObject("on").optBoolean("on")) { on++; if (names.length() < 3) names.put(l.optJSONObject("metadata") != null ? l.getJSONObject("metadata").optString("name") : ""); } }
+            } else {
+                JSONObject d = new JSONObject(r.body); Iterator<String> k = d.keys();
+                while (k.hasNext()) { JSONObject l = d.optJSONObject(k.next()); if (l == null) continue; total++; if (l.optJSONObject("state") != null && l.getJSONObject("state").optBoolean("on")) { on++; if (names.length() < 3) names.put(l.optString("name")); } }
+            }
+            WidgetProvider.putHue(c, s.put("on", on).put("total", total).put("names", names).toString());
+        } catch (Throwable t) { }
+    }
+    static void hueStatusErr(Context c, String err) { try { WidgetProvider.putHue(c, new JSONObject().put("paired", hueLoad(c) != null).put("err", err).put("at", System.currentTimeMillis()).toString()); } catch (Throwable t) { } }
+    /** Socle (WidgetProvider.call, permission « signature ») : relire l'état, ou tout éteindre, sans ouvrir Majordome */
+    public static boolean widgetCall(final Context c0, final String m) {
+        final Context c = c0.getApplicationContext();
+        final JSONObject o = hueLoad(c);
+        if (o == null) { try { WidgetProvider.putHue(c, "{\"paired\":false}"); } catch (Throwable t) { } return false; }
+        final boolean v2 = "v2".equals(o.optString("api"));
+        if ("hue_refresh".equals(m) || "hue_all_off".equals(m)) {
+            HX.execute(new Runnable() { public void run() {
+                try {
+                    if ("hue_all_off".equals(m)) {
+                        if (v2) {
+                            Hue.Resp g = hueCall(c, "GET", "/clip/v2/resource/grouped_light", null);
+                            JSONArray d = new JSONObject(g.body).optJSONArray("data"); String home = null;
+                            for (int i = 0; d != null && i < d.length(); i++) { JSONObject x = d.getJSONObject(i); JSONObject ow = x.optJSONObject("owner"); if (ow != null && "bridge_home".equals(ow.optString("rtype"))) home = x.optString("id"); }
+                            if (home != null && home.matches("[0-9a-fA-F\\-]{8,64}")) hueCall(c, "PUT", "/clip/v2/resource/grouped_light/" + home, "{\"on\":{\"on\":false}}");
+                        } else hueCall(c, "PUT", "v1:/groups/0/action", "{\"on\":false}");
+                    }
+                    hueCall(c, "GET", v2 ? "/clip/v2/resource/light" : "v1:/lights", null);
+                } catch (Hue.HueErr e) { hueStatusErr(c, e.code); }
+                catch (Throwable t) { hueStatusErr(c, "unreachable"); }
+            } });
+            return true;
+        }
+        return false;
+    }
+    static String hueEv(String op, Object... kv) {
+        try { JSONObject o = new JSONObject().put("op", op); for (int i = 0; i + 1 < kv.length; i += 2) if (kv[i + 1] != null) o.put((String) kv[i], kv[i + 1]); return o.toString(); }
+        catch (Exception e) { return "{}"; }
+    }
+
+    @JavascriptInterface public String hueInfo() {
+        try {
+            JSONObject o = hueLoad(a), r = new JSONObject();
+            if (o == null) return r.put("paired", false).toString();
+            return r.put("paired", true).put("ip", o.optString("ip")).put("id", o.optString("id")).put("name", o.optString("name")).put("api", o.optString("api"))
+                .put("model", o.optString("model")).put("fp", o.optString("fp")).put("at", o.optLong("at")).toString();   // jamais la clé
+        } catch (Exception e) { return "{\"paired\":false}"; }
+    }
+    @JavascriptInterface public void hueReq(final String id, final String method, final String path, final String body) {
+        final Context c = a.getApplicationContext();
+        HX.execute(new Runnable() { public void run() {
+            String ev;
+            try { Hue.Resp r = hueCall(c, method, path, body); ev = hueEv("res", "id", id, "code", r.code, "body", r.body); }
+            catch (Hue.HueErr e) { ev = hueEv("res", "id", id, "err", e.code); }
+            catch (Throwable t) { ev = hueEv("res", "id", id, "err", "unreachable"); }
+            emit("hue", ev);
+        } });
+    }
+    @JavascriptInterface public void huePair(final String ip) {
+        final Context c = a.getApplicationContext();
+        pairStop.set(false);
+        new Thread(new Runnable() { public void run() {
+            Hue.Pair p = Hue.pair(ip, 30000, 1500, new Hue.Progress() { public void left(int s) { emit("hue", hueEv("pair", "state", "wait", "left", s, "ip", ip)); } }, pairStop);
+            if (p.user == null) { emit("hue", hueEv("pair", "state", "error", "code", p.err, "msg", p.msg)); return; }
+            try {
+                JSONObject o = new JSONObject().put("ip", ip).put("user", p.user).put("clientkey", p.clientkey == null ? "" : p.clientkey).put("fp", p.fp == null ? "" : p.fp)
+                    .put("api", p.api).put("id", p.bridgeId == null ? "" : p.bridgeId).put("name", p.name == null ? "Hue" : p.name).put("model", p.model == null ? "" : p.model)
+                    .put("sw", p.sw == null ? "" : p.sw).put("at", System.currentTimeMillis());
+                hueSave(c, o);
+                emit("hue", hueEv("pair", "state", "ok", "api", p.api, "name", p.name));
+                widgetCall(c, "hue_refresh");
+            } catch (Exception e) { emit("hue", hueEv("pair", "state", "error", "code", "save", "msg", e.getMessage())); }
+        } }, "majordome-hue").start();
+    }
+    @JavascriptInterface public void huePairCancel() { pairStop.set(true); }
+    @JavascriptInterface public void hueForget() {
+        synchronized (HLOCK) { hueFile(a).delete(); }
+        try { WidgetProvider.putHue(a, "{\"paired\":false}"); } catch (Throwable t) { }
+    }
+    @JavascriptInterface public void hueMove(final String ip) {
+        final Context c = a.getApplicationContext();
+        HX.execute(new Runnable() { public void run() {
+            JSONObject o = hueLoad(c); boolean ok = false;
+            if (o != null && Hue.privateIp(ip) && !o.optString("fp").isEmpty() && Hue.sameBridge(ip, o.optString("fp"), o.optString("id"))) {
+                try { o.put("ip", ip); hueSave(c, o); ok = true; } catch (Exception e) { }
+            }
+            emit("hue", hueEv("move", "ok", ok, "ip", ip));
+        } });
+    }
+    @JavascriptInterface public void hueDiscover(final boolean cloud) {
+        final Context c = a.getApplicationContext();
+        if (cloud) {
+            new Thread(new Runnable() { public void run() {
+                JSONArray l = new JSONArray(); String err = null;
+                try {
+                    HttpURLConnection h = (HttpURLConnection) new URL("https://discovery.meethue.com/").openConnection();
+                    h.setConnectTimeout(8000); h.setReadTimeout(8000); h.setRequestProperty("Accept", "application/json");
+                    int code = h.getResponseCode();
+                    if (code != 200) err = code == 429 ? "trop de demandes, réessayez dans quelques minutes" : "HTTP " + code;
+                    else {
+                        java.io.ByteArrayOutputStream b = new java.io.ByteArrayOutputStream(); byte[] buf = new byte[4096]; int n;
+                        try (InputStream in = h.getInputStream()) { while ((n = in.read(buf)) > 0 && b.size() < 65536) b.write(buf, 0, n); }
+                        JSONArray a0 = new JSONArray(b.toString("UTF-8"));
+                        for (int i = 0; i < a0.length(); i++) { JSONObject x = a0.getJSONObject(i); String ip = x.optString("internalipaddress"); if (Hue.privateIp(ip)) l.put(new JSONObject().put("ip", ip).put("id", x.optString("id")).put("name", "Pont Hue").put("via", "cloud")); }
+                    }
+                } catch (Throwable t) { err = "injoignable"; }
+                emit("hue", hueEv("discover", "via", "cloud", "list", l, "err", err));
+            } }, "majordome-hue-cloud").start();
+            return;
+        }
+        ui.post(new Runnable() { public void run() { mdns(c); } });
+    }
+    private void mdns(final Context c) {
+        final android.net.nsd.NsdManager nm = (android.net.nsd.NsdManager) c.getSystemService(Context.NSD_SERVICE);
+        final JSONArray list = new JSONArray();
+        final java.util.ArrayDeque<android.net.nsd.NsdServiceInfo> q = new java.util.ArrayDeque<>();
+        final boolean[] busy = { false }, over = { false };
+        if (nm == null) { emit("hue", hueEv("discover", "via", "mdns", "list", list, "err", "mDNS indisponible")); return; }
+        final Runnable[] next = new Runnable[1];
+        next[0] = new Runnable() { public void run() {
+            if (busy[0] || over[0] || q.isEmpty()) return;
+            busy[0] = true;
+            nm.resolveService(q.poll(), new android.net.nsd.NsdManager.ResolveListener() {
+                public void onResolveFailed(android.net.nsd.NsdServiceInfo si, int e) { ui.post(new Runnable() { public void run() { busy[0] = false; next[0].run(); } }); }
+                public void onServiceResolved(final android.net.nsd.NsdServiceInfo si) {
+                    ui.post(new Runnable() { public void run() {
+                        try {
+                            java.net.InetAddress h = si.getHost(); String ip = h instanceof java.net.Inet4Address ? h.getHostAddress() : null; String id = "";
+                            try { byte[] b = si.getAttributes().get("bridgeid"); if (b != null) id = new String(b, "UTF-8"); } catch (Throwable t) { }
+                            boolean dup = false; for (int i = 0; i < list.length(); i++) if (list.getJSONObject(i).optString("ip").equals(ip)) dup = true;
+                            if (ip != null && Hue.privateIp(ip) && !dup) list.put(new JSONObject().put("ip", ip).put("id", id).put("name", si.getServiceName()).put("via", "mdns"));
+                        } catch (Throwable t) { }
+                        busy[0] = false; next[0].run();
+                    } });
+                }
+            });
+        } };
+        final android.net.nsd.NsdManager.DiscoveryListener dl = new android.net.nsd.NsdManager.DiscoveryListener() {
+            public void onStartDiscoveryFailed(String t, int e) { if (!over[0]) { over[0] = true; emit("hue", hueEv("discover", "via", "mdns", "list", list, "err", "recherche impossible (" + e + ")")); } }
+            public void onStopDiscoveryFailed(String t, int e) { }
+            public void onDiscoveryStarted(String t) { }
+            public void onDiscoveryStopped(String t) { }
+            public void onServiceFound(final android.net.nsd.NsdServiceInfo si) { ui.post(new Runnable() { public void run() { q.add(si); next[0].run(); } }); }
+            public void onServiceLost(android.net.nsd.NsdServiceInfo si) { }
+        };
+        try { nm.discoverServices("_hue._tcp", android.net.nsd.NsdManager.PROTOCOL_DNS_SD, dl); }
+        catch (Throwable t) { emit("hue", hueEv("discover", "via", "mdns", "list", list, "err", "recherche impossible")); return; }
+        ui.postDelayed(new Runnable() { public void run() {
+            try { nm.stopServiceDiscovery(dl); } catch (Throwable t) { }
+            if (!over[0]) { over[0] = true; emit("hue", hueEv("discover", "via", "mdns", "list", list)); }
+        } }, 6000);
+    }
+    /** Minuterie des lumières (« éteins le salon dans 10 minutes ») : exécutée ici, même appli fermée */
+    static void hueLater(final Context c, final String id, final JSONObject o, final BroadcastReceiver.PendingResult pr) {
+        new Thread(new Runnable() { public void run() {
+            boolean ok = true; String err = null;
+            try {
+                JSONArray reqs = o.optJSONArray("reqs");
+                for (int i = 0; reqs != null && i < reqs.length(); i++) {
+                    JSONObject r = reqs.getJSONObject(i); Object b = r.opt("body");
+                    Hue.Resp x = hueCall(c, r.optString("method", "PUT"), r.optString("path"), b == null ? null : b.toString());
+                    if (x.code >= 400) { ok = false; err = x.code == 403 ? "unauthorized" : "http"; }
+                    if (i < reqs.length() - 1) Thread.sleep(110);
+                }
+            } catch (Hue.HueErr e) { ok = false; err = e.code; }
+            catch (Throwable t) { ok = false; err = "unreachable"; }
+            if (live != null) send("hue", hueEv("later", "id", id, "ok", ok, "err", err, "label", o.optString("text")));
+            if (!ok && (live == null || !resumed)) {
+                try {
+                    channels(c);
+                    Notification n = nb(c, CH_RAPPEL).setSmallIcon(c.getApplicationInfo().icon).setContentTitle("Lumières : " + o.optString("text", ""))
+                        .setContentText("unreachable".equals(err) ? "Le pont Hue ne répond pas." : "Le pont Hue a refusé la commande.").setAutoCancel(true).build();
+                    ((NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE)).notify(N_ALARM_BASE + (id.hashCode() & 0x3ff), n);
+                } catch (Throwable t) { }
+            }
+            if (pr != null) pr.finish();
+        } }, "majordome-hue-later").start();
     }
 }

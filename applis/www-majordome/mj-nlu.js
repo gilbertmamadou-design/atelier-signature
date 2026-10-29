@@ -520,6 +520,142 @@
   function findApp(s) { for (var i = 0; i < APPS.length; i++) if (APPS[i][3].test(s)) return { id: APPS[i][0], name: APPS[i][1], pkg: APPS[i][2] }; return null; }
   function findSite(s) { for (var i = 0; i < SITES.length; i++) if (SITES[i][0].test(s)) return { name: SITES[i][1], url: SITES[i][2] }; return null; }
 
+  /* ---------------- Lumières (Philips Hue, pont du réseau local : mj-maison.js) ----------------
+     → { intent: 'light', p: { act, target, full, all, bri, dir, ct, color, scene, sceneFull, delay, at, ask } }
+       act : on | off | bri | step (dir up/down) | ct | color | scene | scenes | query | list | screen | again
+       target : nom de pièce, de zone ou d'ampoule, sans accents ni articles (« chambre de lea ») ; full : avec le nom
+       commun (« lampe de chevet ») ; all : toute la maison. La correspondance avec les noms du pont se fait dans mj-maison.js. */
+  var LNOUN = 'lumieres?|lampes?|ampoules?|eclairages?|plafonniers?|luminaires?|spots?|appliques?|lustres?|leds?|veilleuses?|guirlandes?|suspensions?|lampadaires?|luminosite';
+  var LNOUN_RE = new RegExp('\\b(' + LNOUN + ')\\b');
+  var LCOLORS = [[/^rouges?$/, 'rouge'], [/^(oranges?|orangee?s?)$/, 'orange'], [/^jaunes?$/, 'jaune'], [/^verte?s?$/, 'vert'], [/^bleue?s?$/, 'bleu'],
+    [/^(violets?|violettes?|mauves?|pourpres?|lilas)$/, 'violet'], [/^(roses?|fuchsias?)$/, 'rose'], [/^(turquoises?|cyans?)$/, 'turquoise'], [/^magentas?$/, 'magenta'],
+    [/^indigos?$/, 'indigo'], [/^(ambres?|dorees?|dores?)$/, 'ambre']];
+  function colorWord(w) { for (var i = 0; i < LCOLORS.length; i++) if (LCOLORS[i][0].test(w)) return LCOLORS[i][1]; return null; }
+  var LSTOP = /^(le|la|les|l|du|de|des|d|dans|au|aux|a|en|sur|pour|ma|mon|mes|notre|nos|ta|ton|tes|un|une|cette|ce|cet|ces|toute|tout|toutes|tous|qui|est|sont)$/;
+  var LALL = /^(maison|appartement|logement|partout|ensemble|baraque|chez moi|chez nous|tout le monde|la maison|l appartement)$/;
+  var LNOT = /^(lampe|lampe de poche|lampe torche|torche|flash|lampe du telephone|lumiere du telephone|flash du telephone|wifi|wi fi|bluetooth|blue tooth|son|volume|musique|radio|telephone|portable|micro|ecoute|ecoute continue|ecran|tele|television|tv|reveil|alarme|minuteur|chrono|chronometre|sonnerie|gps|localisation|position|donnees|ordinateur|pc|chauffage|radiateur|thermostat|clim|climatisation|four|volets?|stores?|vibreur|ne pas deranger|plein ecran|historique|mode \w+)$/;
+  /** Désignation de la pièce ou de l'ampoule : « la lumière de la cuisine » → {target:'cuisine', full:'lumiere de la cuisine'} */
+  function lightTarget(r) {
+    var w = r.replace(/\b(s il te plait|s il vous plait|stp|svp|maintenant|aussi|tout de suite|immediatement|merci|encore)\b/g, ' ').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+    var hadAll = w.some(function (x) { return /^(tout|toutes|tous|partout)$/.test(x); });
+    while (w.length && LSTOP.test(w[0])) w.shift();
+    while (w.length && LSTOP.test(w[w.length - 1]) && !/^(a|d|l)$/.test(w[w.length - 1])) w.pop();
+    var full = w.join(' ');
+    var plural = /^(lumieres|lampes|ampoules|spots|eclairages|leds|plafonniers|luminaires|appliques|veilleuses|guirlandes|suspensions|lampadaires)$/.test(w[0] || '');
+    if (w.length && LNOUN_RE.test(w[0]) && new RegExp('^(' + LNOUN + ')$').test(w[0])) { w.shift(); while (w.length && LSTOP.test(w[0])) w.shift(); }
+    var core = w.join(' ');
+    if (LNOT.test(full)) return null;
+    if (core && LALL.test(core)) return { all: true, target: null, full: full };
+    if (!core) return { all: hadAll || plural, target: null, full: full };
+    if (LNOT.test(core)) return null;
+    return { all: false, target: core, full: full };
+  }
+  function parseLight(t, P, ctx, now) {
+    if (/\b(liste|listes|note|rappelle|rappel|agenda|rendez vous)\b/.test(t)) return null;
+    var s = t, p = {}, m;
+    // minuterie : « dans 10 minutes », « dans une heure », « d'ici un quart d'heure », « à 23 h »
+    var ds = durations(s);
+    for (var i = 0; i < ds.length; i++) {
+      var pre = s.slice(0, ds[i].i0), mm = /\b(dans|d ici) $/.exec(pre);
+      if (mm) { p.delay = ds[i].ms; s = (pre.slice(0, mm.index) + ' ' + s.slice(ds[i].i1)).replace(/\s+/g, ' ').trim(); break; }
+    }
+    if (!p.delay && (m = /\ba (?:(\d{1,2}) (?:h|heure)(?: (\d{1,2}))?|minuit)\b/.exec(s)) && (LNOUN_RE.test(s) || /^(eteins|eteint|eteindre|eteignez|coupe|allume|allumez|rallume)\b/.test(s))) {
+      var d = new Date(now), h = m[1] != null ? +m[1] : 0, mi = m[2] ? +m[2] : 0;
+      if (h < 24 && mi < 60) { d.setHours(h, mi, 0, 0); if (d.getTime() <= now) d.setDate(d.getDate() + 1); p.at = d.getTime(); s = (s.slice(0, m.index) + ' ' + s.slice(m.index + m[0].length)).replace(/\s+/g, ' ').trim(); }
+    }
+    function out(act, extra) { p.act = act; for (var k in extra) if (extra[k] !== undefined) p[k] = extra[k]; return p; }
+    function tgt(rest) { var x = lightTarget(rest); return x; }
+    // « plus fort », « moins fort », « encore » juste après une commande de lumière
+    if (ctx.lightRecent && /^(plus fort|moins fort|un peu plus fort|un peu moins fort|plus|moins|un peu plus|un peu moins|plus clair|plus sombre|plus lumineux|moins lumineux|encore|encore un peu|encore plus|encore moins)$/.test(s)) {
+      if (/^encore( un peu)?$/.test(s)) return out('again', {});
+      return out('step', { dir: /moins|sombre/.test(s) ? 'down' : 'up' });
+    }
+    // écran « Maison »
+    if (/^(?:ouvre|affiche|montre|montre moi|va dans|va sur) (?:la |l |les |mes |l ecran )?(maison|domotique|lumieres|ecran maison|pieces)$/.test(s) || /^(maison|domotique)$/.test(s)) return out('screen', {});
+    // liste des scènes
+    if (/\b(quelles?|liste|lis|donne moi|montre|affiche|quels sont|c est quoi)\b.*\b(scenes|ambiances)\b/.test(s) || /^(mes |les )?(scenes|ambiances)$/.test(s)) return out('scenes', {});
+    // état : « est-ce que la lumière du garage est allumée ? », « quelles lumières sont allumées ? »
+    var verbStart = /^(allume|allumes|allumez|allumer|rallume|rallumez|eteins|eteint|eteindre|eteignez|eteigne|coupe|coupez|mets|met|baisse|augmente|monte)\b/.test(s);
+    var adj = /\b(allumee?s?|eteinte?s?|eteints?)\b/;
+    var isQ = /^(est ce que|est ce qu|est ce qui|y a t il|il y a|quelles?|quels?|combien|qu est ce qui|lesquelles|lesquels|dis moi si|dis moi quelles?|reste t il|ai je laisse|j ai laisse|tout est|toutes les|la lumiere|les lumieres|le |la |l )/.test(s) || /\b(est elle|est il|sont elles|sont ils|t elle|t il)\b/.test(s);
+    if (!verbStart && adj.test(s) && isQ && (LNOUN_RE.test(s) || /\b(est|sont|tout|qu est ce qui|quoi|reste)\b/.test(s))) {
+      var askOff = /\betein/.test(s.match(adj)[0]);
+      var rest = s.replace(/^(est ce que|est ce qu|est ce qui|y a t il|il y a|dis moi si|dis moi|reste t il|ai je laisse|j ai laisse)\b/, ' ')
+        .replace(/\b(est elle|est il|sont elles|sont ils|est|sont|t elle|t il|il|elle|elles|ils|encore|toujours|bien|deja|laisse|reste|restee?s?|y a|des|qu est ce qui|quoi)\b/g, ' ').replace(adj, ' ').replace(/\s+/g, ' ').trim();
+      var list = /^(quelles?|quels?|combien|lesquelles|lesquels)\b/.test(rest) || /^(est ce qui|qu est ce qui|y a t il|il y a|reste t il|dis moi quelles?)\b/.test(s);
+      rest = rest.replace(/^(quelles?|quels?|combien de|combien|lesquelles|lesquels)\b/, ' ').trim();
+      var tq = tgt(rest);
+      if (!tq) return null;
+      if (list || tq.all || !tq.target) return out('list', { ask: askOff ? 'off' : 'on', target: tq.target, full: tq.full, all: !tq.target });
+      return out('query', { ask: askOff ? 'off' : 'on', target: tq.target, full: tq.full });
+    }
+    // scènes : « active la scène Lecture », « mets l'ambiance détente dans le salon », « mets le salon en mode lecture »
+    if ((m = /^(?:active|activez|lance|lancez|mets|met|passe|passez|demarre|joue|choisis|allume|bascule|on passe|je veux|rappelle)? ?(?:la |une |l |en )?(?:scene|ambiance|atmosphere)(?: (?:de |d |du |en mode |mode ))?(.*)$/.exec(s))) {
+      var sr = m[1].trim(), room = null, sm2;
+      if ((sm2 = /^(.+?) (?:dans|pour|au|sur|du|de la|de l) (.+)$/.exec(sr))) { var rt = tgt(sm2[2]); if (rt && (rt.target || rt.all)) { room = rt; sr = sm2[1]; } }
+      sr = sr.replace(/^(?:la |le |l |les )/, '');
+      return out('scene', { scene: sr || null, sceneFull: m[1].trim().replace(/^(?:la |le |l |les )/, '') || null, target: room ? room.target : null, full: room ? room.full : null, all: room ? room.all : false });
+    }
+    if ((m = /^(?:mets|met|passe|bascule|passez) (.+?) en mode (.+)$/.exec(s))) { var rm = tgt(m[1]); if (rm) return out('scene', { scene: m[2], sceneFull: m[2], target: rm.target, full: rm.full, all: rm.all }); }
+    // couleur : « mets le salon en bleu », « lumière rouge dans la chambre », « change la couleur de la cuisine en vert »
+    var ws = s.split(' '), ci = -1, col = null;
+    for (var k2 = 0; k2 < ws.length; k2++) { var cw = colorWord(ws[k2]); if (cw) { ci = k2; col = cw; break; } }
+    if (col && ws[ci + 1] === 'ciel' && col === 'bleu') col = 'bleu ciel';
+    if (col) {
+      var prev = ws[ci - 1] || '', lightish = LNOUN_RE.test(s) || /\bcouleur\b/.test(s) || prev === 'en';
+      if (lightish && (verbStart || /^(passe|change|colore|fais|regle|choisis|lumiere|lumieres|en|couleur|eclairage)\b/.test(s) || LNOUN_RE.test(prev) || prev === 'en')) {
+        var cut = ws.slice(); cut.splice(ci, col === 'bleu ciel' ? 2 : 1); if (prev === 'en') cut.splice(ci - 1, 1);
+        var cs = cut.join(' ').replace(/^(mets|met|passe|passez|change|changez|colore|fais|regle|choisis|allume|allumez|rallume)\b ?/, '').replace(/\b(la |une )?couleur( de| du| des| d)?\b/, ' ').replace(/\s+/g, ' ').trim();
+        var tc = tgt(cs); if (!tc) return null;
+        return out('color', { color: col, target: tc.target, full: tc.full, all: tc.all });
+      }
+    }
+    // température de blanc : « lumière chaude », « mets le salon en blanc froid », « lumière plus chaude »
+    if ((m = /\b(?:(?:en |une |un )?(?:lumieres? |eclairage |blanc |ambiance )(?:plus |tres |bien )?|en (?:blanc )?(?:plus )?)(chaude?s?|froide?s?|neutres?|naturelle|tamisee|du jour)\b/.exec(s)) || (m = /^(?:mets |met )?(?:en )?(blanc)$/.exec(s)) || (m = /\ben (blanc)\b/.exec(s))) {
+      var w0 = m[1], rel = /\bplus\b/.test(m[0]);
+      var ct = /^chaud/.test(w0) ? (rel ? 'warmer' : 'warm') : /^froid|du jour/.test(w0) ? (rel ? 'cooler' : 'cold') : /tamisee/.test(w0) ? 'warm' : 'neutral';
+      var cr = (s.slice(0, m.index) + ' ' + s.slice(m.index + m[0].length)).replace(/^ ?(mets|met|passe|regle|change|choisis|allume|allumez|fais|donne moi|je veux)\b/, ' ').replace(/\s+/g, ' ').trim();
+      var tt = tgt(cr); if (!tt) return null;
+      return out('ct', { ct: ct, bri: /tamisee/.test(w0) ? 30 : undefined, target: tt.target, full: tt.full, all: tt.all });
+    }
+    // luminosité : « mets le salon à 30 % », « lumière à fond », « baisse la lumière du salon », « plus de lumière »
+    var hasLN = LNOUN_RE.test(s);
+    var bri = null, bspan = null;
+    if ((m = /\b(?:a|au|sur|de|en) (\d{1,3}) ?%/.exec(s)) || (m = /\b(\d{1,3}) ?%/.exec(s))) { bri = Math.min(100, +m[1]); bspan = m; }
+    else if ((m = /\b(?:a|au) (\d{1,3})$/.exec(s)) && (hasLN || /^(mets|met|regle|allume|allumez|baisse|monte)\b/.test(s)) && +m[1] <= 100) { bri = +m[1]; bspan = m; }
+    else if ((m = /\b(a fond|au max|au maximum|plein pot|a pleine puissance|en pleine puissance|au plus fort|au plus lumineux|a 100)\b/.exec(s))) { bri = 100; bspan = m; }
+    else if ((m = /\b(au minimum|au mini|au plus bas|au plus faible|tout doux|en veilleuse|au plus sombre)\b/.exec(s))) { bri = 1; bspan = m; }
+    else if ((m = /\b(a moitie|a la moitie|a mi puissance|a demi|a mi hauteur)\b/.exec(s))) { bri = 50; bspan = m; }
+    else if ((m = /^(tamise|tamisez|attenue)\b/.exec(s))) { bri = 30; bspan = m; }
+    if (bri != null && (hasLN || /^(mets|met|regle|reglez|allume|allumez|rallume|tamise|tamisez|attenue|baisse|monte|augmente|passe)\b/.test(s) || /\b(luminosite)\b/.test(s))) {
+      var br = (s.slice(0, bspan.index) + ' ' + s.slice(bspan.index + bspan[0].length)).replace(/^ ?(mets|met|regle|reglez|allume|allumez|rallume|tamise|tamisez|attenue|baisse|monte|augmente|passe)\b/, ' ').replace(/\b(la )?luminosite( de| du| des| d)?\b/, ' ').replace(/\s+/g, ' ').trim();
+      var tb = tgt(br); if (!tb) return null;
+      return out(bri === 0 ? 'off' : 'bri', { bri: bri || undefined, target: tb.target, full: tb.full, all: tb.all });
+    }
+    var up = /^(augmente|augmentez|monte|montez|remonte|intensifie|eclaire plus|plus de lumiere|un peu plus de lumiere|mets plus de lumiere|donne moi plus de lumiere|il faut plus de lumiere|plus lumineux|plus clair)\b/.exec(s);
+    var dn = !up && /^(baisse|baissez|diminue|diminuez|descends|reduis|reduisez|moins de lumiere|un peu moins de lumiere|mets moins de lumiere|moins lumineux|plus sombre|assombris)\b/.exec(s);
+    if (up || dn) {
+      var ur = s.slice((up || dn)[0].length).replace(/^ ?(un peu|d un cran|encore)\b/, ' ').replace(/\b(un peu|d un cran)\b/g, ' ').replace(/\b(la )?luminosite( de| du| des| d)?\b/, ' lumiere ').replace(/\s+/g, ' ').trim();
+      if (hasLN || /lumiere/.test((up || dn)[0]) || /\b(lumineux|clair|sombre)\b/.test((up || dn)[0]) || ur && !/^(le |la |les |l )?(son|volume|musique|chauffage|radio|tele|sonnerie)\b/.test(ur) && /^(le |la |les |l )/.test(ur)) {
+        var tu = tgt(ur); if (!tu) return null;
+        return out('step', { dir: up ? 'up' : 'down', target: tu.target, full: tu.full, all: tu.all });
+      }
+    }
+    // allumer / éteindre
+    var on = /^(allume|allumes|allumez|allumer|rallume|rallumez|fais de la lumiere|de la lumiere|lumiere)\b ?/.exec(s);
+    var off = !on && (/^(eteins|eteint|eteindre|eteignez|eteigne|eteinds|coupe|coupez)\b ?/.exec(s) || (hasLN && /^(ferme|fermez)\b ?/.exec(s)));
+    if (on || off) {
+      var orest = s.slice((on || off)[0].length).trim();
+      if (on && /^lumiere/.test(on[0]) && orest && !/^(dans|du|de|des|d|au|aux|sur|partout)\b/.test(orest)) return null;
+      if (/^(coupe|coupez)/.test((on || off)[0]) && !hasLN && !/^(tout|toutes|tous)\b/.test(orest) && !/^(le |la |les |l )/.test(orest)) return null;
+      var to = tgt(orest); if (!to) return null;
+      if (/^(coupe|coupez)/.test((on || off)[0]) && !hasLN && !to.all && !to.target) return null;
+      if (!orest && !/lumiere/.test((on || off)[0])) return null;
+      return out(on ? 'on' : 'off', { target: to.target, full: to.full, all: to.all });
+    }
+    return null;
+  }
+
   /* ---------------- Aide : exemples (servent aussi aux suggestions) ---------------- */
   var EXAMPLES = [
     ['time', 'Quelle heure est-il ?'], ['date', 'Quel jour sommes-nous ?'], ['countdown', 'Dans combien de jours est Noël ?'],
@@ -535,6 +671,8 @@
     ['music', 'Mets de la musique'], ['music', 'Chanson suivante'], ['call', 'Appelle Paul'], ['sms', 'Envoie un SMS à Paul : j\'arrive dans 10 minutes'],
     ['torch', 'Allume la lampe'], ['volume', 'Monte le son'], ['silent', 'Mode silencieux'], ['wifi', 'Active le Wi-Fi'], ['bluetooth', 'Ouvre le Bluetooth'],
     ['battery', 'Niveau de batterie'], ['fullscreen', 'Plein écran'], ['website', 'Ouvre YouTube'], ['routine', 'Bonjour Majordome'], ['routine', 'Bonne nuit'],
+    ['light', 'Allume le salon'], ['light', 'Éteins tout'], ['light', 'Mets le salon à 30 %'], ['light', 'Mets la chambre en bleu'], ['light', 'Lumière chaude dans le salon'],
+    ['light', 'Active la scène Lecture'], ['light', 'Quelles lumières sont allumées ?'], ['light', 'Éteins le salon dans 10 minutes'],
     ['help', 'Qu\'est-ce que tu sais faire ?'], ['repeat', 'Répète'], ['stop', 'Stop']
   ];
   function grams(s) { var g = {}; s = ' ' + s + ' '; for (var i = 0; i < s.length - 2; i++) g[s.substr(i, 3)] = 1; return g; }
@@ -722,6 +860,9 @@
       var whoO = orig(P, m.index + m[0].length - m[1].length);
       return R('call', { to: whoO.replace(/^(le|la|l'|au)\s+/i, ''), number: digits(whoO) });
     }
+    // --- lumières de la maison (Philips Hue) ---
+    var lg = parseLight(t, P, ctx, now);
+    if (lg) return R('light', lg);
     // --- téléphone : lampe, volume, silencieux, wifi, bluetooth, batterie ---
     if (/\b(lampe|torche|lampe de poche|flash|lumiere du telephone)\b/.test(t) && !/\b(achete|liste)\b/.test(t)) return R('torch', { on: !/\b(eteins|eteint|eteindre|coupe|desactive|arrete|stop|ferme)\b/.test(t) });
     if (/\b(mode silencieux|silencieux|mode vibreur|vibreur|ne pas deranger|mode silence|mode avion|mode normal|mode sonnerie|remets la sonnerie|reactive la sonnerie)\b/.test(t)) {
@@ -903,7 +1044,7 @@
 
   var NLU = {
     parse: parse, prep: prep, numberize: numberize, tokenize: tokenize, findWhen: findWhen, durations: durations, calcExpr: calcExpr,
-    convert: convert, nextFete: nextFete, easter: easter, findApp: findApp, findSite: findSite, APPS: APPS, SITES: SITES, EXAMPLES: EXAMPLES,
+    convert: convert, parseLight: parseLight, lightTarget: lightTarget, colorWord: colorWord, nextFete: nextFete, easter: easter, findApp: findApp, findSite: findSite, APPS: APPS, SITES: SITES, EXAMPLES: EXAMPLES,
     suggest: suggest, spell: spell, yesNo: yesNo, deacc: deacc, num: num, DN: DN, UNITS: UNITS, MONTHS: MONTHS, WDAYS: WDAYS, startOfDay: startOfDay, addDays: addDays
   };
   root.MJNLU = NLU;

@@ -23,6 +23,12 @@ public class WidgetProvider extends ContentProvider {
         try { c.getContentResolver().notifyChange(Uri.parse("content://" + c.getPackageName() + ".widget/data"), null); } catch (Exception e) { }
     }
 
+    // Majordome : nombre de lumières Philips Hue allumées (lu par le panneau Jarvis de Socle), tenu par MajordomeBridge
+    static void putHue(Context c, String json) {
+        prefs(c).edit().putString("hue", json).apply();
+        try { c.getContentResolver().notifyChange(Uri.parse("content://" + c.getPackageName() + ".widget/data"), null); } catch (Exception e) { }
+    }
+
     // Sauvegarde : chaque appli MAG peut déposer une copie complète de ses données (JSON), lue par l'appli Sauvegarde
     static void putBackup(Context c, String json) {
         prefs(c).edit().putString("backup", json).putLong("backupAt", System.currentTimeMillis()).apply();
@@ -43,6 +49,8 @@ public class WidgetProvider extends ContentProvider {
             JSONObject o;
             try { o = new JSONObject(prefs(c).getString("data", "{}")); } catch (Exception e) { o = new JSONObject(); }
             o.put("at", prefs(c).getLong("at", 0));
+            String hue = prefs(c).getString("hue", "");
+            if (!hue.isEmpty()) try { o.put("hue", new JSONObject(hue)); } catch (Exception e) { }
             // Toile : état du fond d'écran, tenu par la partie native
             SharedPreferences t = c.getSharedPreferences("toile", Context.MODE_PRIVATE);
             if (t.contains("folder") || t.contains("msg")) {
@@ -69,6 +77,12 @@ public class WidgetProvider extends ContentProvider {
             else if ("music_alive".equals(method)) {
                 Class<?> k = Class.forName(c.getPackageName() + ".MusicService");
                 b.putBoolean("ok", k.getDeclaredField("alive").getBoolean(null));
+            }
+            // Majordome : lumières Philips Hue (relire l'état, tout éteindre) sans ouvrir l'appli ; la clé du pont reste chez Majordome
+            else if ("hue_refresh".equals(method) || "hue_all_off".equals(method)) {
+                Class<?> k = Class.forName(c.getPackageName() + ".MajordomeBridge");
+                Object r = k.getMethod("widgetCall", Context.class, String.class).invoke(null, c, method);
+                b.putBoolean("ok", Boolean.TRUE.equals(r));
             }
             else b.putBoolean("ok", false);
         } catch (Throwable t) { b.putBoolean("ok", false); b.putString("err", String.valueOf(t.getMessage())); }

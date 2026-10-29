@@ -233,7 +233,7 @@
   function speaking() { return orb.get() === 'speak'; }
 
   /* ---------------- Traitement d'une commande ---------------- */
-  function ctx() { return { now: now(), names: wakeWords(), routines: S.routines.filter(function (r) { return r.id !== 'matin' && r.id !== 'nuit'; }).map(function (r) { return { id: r.id, name: r.name, phrase: r.phrase }; }) }; }
+  function ctx() { var c = { now: now(), names: wakeWords(), routines: S.routines.filter(function (r) { return r.id !== 'matin' && r.id !== 'nuit'; }).map(function (r) { return { id: r.id, name: r.name, phrase: r.phrase }; }) }; if (MJ.ctxExtra) try { Object.assign(c, MJ.ctxExtra()); } catch (e) { } return c; }
   function handle(text, via) {
     text = String(text || '').trim(); if (!text) return Promise.resolve();
     MJ.voiceTurn = via === 'voice';
@@ -373,16 +373,17 @@
   function saveAL() { lsSet(KEY.al, AL); publish(); }
   function addAlarm(o) {
     o.id = o.id || uid(); o.created = now(); AL.push(o); saveAL();
-    if (B && B.alarmSet) try { B.alarmSet(JSON.stringify({ id: o.id, at: o.at, kind: o.kind, title: alarmTitle(o), text: alarmText(o) })); } catch (e) { }
+    if (B && B.alarmSet) try { B.alarmSet(JSON.stringify({ id: o.id, at: o.at, kind: o.kind, title: alarmTitle(o), text: alarmText(o), reqs: o.reqs || undefined })); } catch (e) { }
     renderTimers(); return o;
   }
   function removeAlarm(o) { AL = AL.filter(function (x) { return x.id !== o.id; }); saveAL(); if (B && B.alarmCancel) try { B.alarmCancel(o.id); } catch (e) { } renderTimers(); }
-  function alarmTitle(o) { return o.kind === 'timer' ? 'Minuteur' + (o.label ? ' : ' + o.label : '') : o.kind === 'alarm' ? 'Réveil' : 'Rappel'; }
-  function alarmText(o) { return o.kind === 'timer' ? 'Le minuteur de ' + dur(o.ms) + ' est terminé.' : o.kind === 'alarm' ? 'Il est ' + hmSay(o.at) + '.' : (o.text || 'Rappel'); }
+  function alarmTitle(o) { return o.kind === 'hue' ? 'Lumières' : o.kind === 'timer' ? 'Minuteur' + (o.label ? ' : ' + o.label : '') : o.kind === 'alarm' ? 'Réveil' : 'Rappel'; }
+  function alarmText(o) { return o.kind === 'hue' ? (o.label || 'Lumières') : o.kind === 'timer' ? 'Le minuteur de ' + dur(o.ms) + ' est terminé.' : o.kind === 'alarm' ? 'Il est ' + hmSay(o.at) + '.' : (o.text || 'Rappel'); }
   var ringing = {};
   function tick() {
     var t = now();
     AL.slice().forEach(function (o) {
+      if (o.kind === 'hue') { if (t - o.at > 2 * MIN) { AL = AL.filter(function (x) { return x.id !== o.id; }); saveAL(); } return; }   // exécutée par MajordomeBridge (AlarmManager)
       if (o.at <= t && !ringing[o.id]) {
         if (t - o.at > 6 * HOUR) { removeAlarm(o); return; }   // passé depuis longtemps (appli fermée) : notification déjà montrée
         fire(o);
@@ -411,8 +412,8 @@
     var t = now(), h = '';
     AL.slice().sort(function (a, b) { return a.at - b.at; }).forEach(function (o) {
       var left = o.at - t;
-      var dd = Math.round((NLU.startOfDay(o.at) - NLU.startOfDay(t)) / DAY), lab = o.kind === 'timer' ? clock(left) : hm(o.at) + (dd === 1 ? ' demain' : dd > 1 ? ' ' + JOURS[new Date(o.at).getDay()].slice(0, 3) + '.' : '');
-      h += '<div class="tm' + (ringing[o.id] ? ' ring' : '') + '" data-id="' + o.id + '"><b>' + esc(lab) + '</b><small>' + esc(o.kind === 'timer' ? (o.label || 'Minuteur') : o.kind === 'alarm' ? 'Réveil' : (o.text || 'Rappel')) + '</small><button class="ib" data-del aria-label="Supprimer" style="width:34px;height:34px"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>';
+      var dd = Math.round((NLU.startOfDay(o.at) - NLU.startOfDay(t)) / DAY), lab = o.kind === 'timer' || o.kind === 'hue' ? clock(Math.max(0, left)) : hm(o.at) + (dd === 1 ? ' demain' : dd > 1 ? ' ' + JOURS[new Date(o.at).getDay()].slice(0, 3) + '.' : '');
+      h += '<div class="tm' + (ringing[o.id] ? ' ring' : '') + '" data-id="' + o.id + '"><b>' + esc(lab) + '</b><small>' + esc(o.kind === 'hue' ? (o.label || 'Lumières') : o.kind === 'timer' ? (o.label || 'Minuteur') : o.kind === 'alarm' ? 'Réveil' : (o.text || 'Rappel')) + '</small><button class="ib" data-del aria-label="Supprimer" style="width:34px;height:34px"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>';
     });
     var sw = lsGet(KEY.sw, null);
     if (sw && (sw.run || sw.acc)) h += '<div class="tm" data-sw><b>' + clock(sw.acc + (sw.run ? t - sw.start : 0)) + '</b><small>Chrono' + (sw.run ? '' : ' (arrêté)') + '</small><button class="ib" data-swx aria-label="Effacer le chrono" style="width:34px;height:34px"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>';
@@ -973,11 +974,12 @@
   };
   H.help = function () {
     helpSheet();
-    return answer('Je comprends des commandes : l\'heure et la date, les calculs et conversions, les minuteurs, réveils et rappels, la météo et le vent, les titres de l\'actualité, votre agenda, vos notes et listes, les dépenses de Budget, l\'ouverture des applis, la musique' + (ANDROID ? ', et sur le téléphone les appels, SMS, lampe, volume et modes' : '') + '. La liste d\'exemples est affichée.').done;
+    return answer('Je comprends des commandes : l\'heure et la date, les calculs et conversions, les minuteurs, réveils et rappels, la météo et le vent, les titres de l\'actualité, votre agenda, vos notes et listes, les dépenses de Budget, l\'ouverture des applis, la musique' + (ANDROID ? ', les lumières Philips Hue, et sur le téléphone les appels, SMS, lampe, volume et modes' : '') + '. La liste d\'exemples est affichée.').done;
   };
 
   /* --- Routines --- */
   var STEPS = { salut: 'Salutation', heure: 'Heure', date: 'Date', meteo: 'Météo du jour', vent: 'Vent (échafaudage)', vigilance: 'Vigilance météo', agenda: 'Agenda du jour', titres: '3 titres de l\'actualité', rappels: 'Rappels', liste: 'Liste de courses', musique: 'Lancer la musique', reveil: 'Réveil de demain', bonnenuit: 'Bonne nuit', ecoute_off: 'Couper l\'écoute continue', lampe_off: 'Éteindre la lampe', silencieux: 'Mode silencieux' };
+  function stepLabel(s) { return /^lum:/.test(s) ? 'Lumières : ' + s.slice(4) : STEPS[s] || s; }
   function runStep(s) {
     var t0 = NLU.startOfDay(now());
     switch (s) {
@@ -1004,6 +1006,7 @@
       case 'lampe_off': return P && P.homeTorch && ANDROID ? (P.homeTorch(false), Promise.resolve()) : Promise.resolve();
       case 'silencieux': return H.silent({ mode: 'silent' });
     }
+    if (/^lum:/.test(s) && MJ.lightStep) return MJ.lightStep(s.slice(4));
     return Promise.resolve();
   }
   H.routine = function (p) {
@@ -1169,10 +1172,11 @@
       '<div class="set"><div class="t">Utiliser ma position<small>Sinon, la ville choisie</small></div><label class="sw"><input type="checkbox" id="sGps"' + (S.gps ? ' checked' : '') + '><span></span></label></div>' +
       '<div class="set"><div class="t">Ville<small>' + esc(S.place ? S.place.name + (S.place.admin ? ', ' + S.place.admin : '') : 'Aucune') + '</small></div></div><div style="display:flex;gap:8px"><input class="in" id="sCity" placeholder="Rechercher une ville"><button class="btn sm" id="sCityGo">Choisir</button></div>' +
       '<div class="set"><div class="t">Seuil de vent (rafales) pour l\'échafaudage<small>Au-dessus : « vent fort, prudence ». À adapter aux consignes du fabricant et du chantier.</small></div><input class="in" id="sWind" type="number" min="20" max="120" step="1" style="width:90px" value="' + (+S.windLimit || 45) + '"> km/h</div>' +
-      '<div class="sect">Routines</div>' + S.routines.map(function (r, i) { return '<div class="set"><div class="t">' + esc(r.name) + '<small>« ' + esc(r.phrase) + ' » : ' + esc((r.steps || []).map(function (s) { return STEPS[s] || s; }).join(', ')) + '</small></div><button class="btn sm" data-rt="' + i + '">Modifier</button></div>'; }).join('') +
+      '<div class="sect">Routines</div>' + S.routines.map(function (r, i) { return '<div class="set"><div class="t">' + esc(r.name) + '<small>« ' + esc(r.phrase) + ' » : ' + esc((r.steps || []).map(stepLabel).join(', ')) + '</small></div><button class="btn sm" data-rt="' + i + '">Modifier</button></div>'; }).join('') +
       '<div class="row" style="display:flex;gap:8px;margin-top:8px"><button class="btn sm" id="sRtNew">Nouvelle routine</button></div>' +
       (ANDROID ? '<div class="sect">Téléphone</div><div class="set"><div class="t">Autorisations</div><button class="btn sm" id="sPerms">Voir</button></div>' + assistRow() : '') +
-      '<div class="sect">Vie privée</div><p class="note">Tout reste sur cet appareil : réglages, historique, notes, listes, minuteurs. Les seules connexions sont la météo (Open-Meteo), les titres (franceinfo), la vigilance (MeteoAlarm) et le téléchargement unique du modèle vocal (alphacephei.com).</p>' +
+      (MJ.settingsExtra ? MJ.settingsExtra() : '') +
+      '<div class="sect">Vie privée</div><p class="note">Tout reste sur cet appareil : réglages, historique, notes, listes, minuteurs. Les seules connexions sont la météo (Open-Meteo), les titres (franceinfo), la vigilance (MeteoAlarm) et le téléchargement unique du modèle vocal (alphacephei.com)' + (ANDROID ? ' ; le pont Philips Hue est joint sur le réseau local seulement (et, si vous le demandez, la recherche du pont sur discovery.meethue.com)' : '') + '.</p>' +
       '<div class="set"><div class="t">Historique des commandes</div><button class="btn sm" id="sHist">Voir / effacer</button></div>' +
       '<div class="sect">À propos</div><p class="note">' + esc(S.name) + ' : assistant vocal à commandes de la Suite MAG. Reconnaissance : Vosk (Apache 2.0)' + (PC ? ', vosk-browser de Ciaran O\'Reilly (Apache 2.0 ; Kaldi, OpenFST Apache 2.0 ; CLAPACK, libarchive BSD ; zlib)' : ', vosk-android et JNA (Apache 2.0)') + '. Modèle : vosk-model-small-fr-0.22, Alpha Cephei (Apache 2.0). Aucun personnage, logo ni visuel tiers.</p>';
     var b = openSheet('Réglages', h, 'settings');
@@ -1201,19 +1205,30 @@
     on('sPerms', 'onclick', permsSheet);
     on('sHist', 'onclick', histSheet);
     on('sRtNew', 'onclick', function () { routineSheet(-1); });
+    if (MJ.settingsBind) try { MJ.settingsBind(b); } catch (e) { console.warn(e); }
     b.addEventListener('click', function (e) { var r = e.target.closest('[data-rt]'); if (r) routineSheet(+r.dataset.rt); var f = e.target.closest('[data-fix]'); if (f && B && B.fix) B.fix(f.dataset.fix); });
     if (focus) { var f = $('f-' + focus); if (f) setTimeout(function () { f.scrollIntoView({ block: 'start' }); }, 50); }
   }
   MJ.settingsSheet = settingsSheet;
   $('bSet').onclick = function () { settingsSheet(); };
+  function lumRow(v) { return '<div style="display:flex;gap:6px;margin:6px 0"><input class="in" data-lum value="' + esc(v) + '" placeholder="ex. éteins tout"><button class="btn sm" data-lumx aria-label="Retirer">✕</button></div>'; }
   function routineSheet(i) {
     var r = i >= 0 ? S.routines[i] : { id: 'r' + uid(), name: '', phrase: '', steps: ['salut', 'heure'] };
     var h = '<div class="set"><div class="t">Nom</div></div><input class="in" id="rName" value="' + esc(r.name) + '" placeholder="ex. Départ chantier">' +
       '<div class="set"><div class="t">Phrase pour la lancer<small>ex. « départ chantier »</small></div></div><input class="in" id="rPh" value="' + esc(r.phrase) + '">' +
       '<div class="sect">Actions, dans l\'ordre</div>' + Object.keys(STEPS).map(function (k) { return '<div class="set"><div class="t">' + esc(STEPS[k]) + '</div><label class="sw"><input type="checkbox" data-st="' + k + '"' + ((r.steps || []).indexOf(k) >= 0 ? ' checked' : '') + '><span></span></label></div>'; }).join('') +
+      '<div class="sect">Lumières (Philips Hue)</div><p class="note">Une commande par ligne, comme on la dit : « éteins tout », « allume la cuisine à 60 % », « active la scène Lecture ».' + (MJ.hueReady && MJ.hueReady() ? '' : ' Sans pont Hue jumelé, ces actions sont ignorées.') + '</p><div id="rLum">' + (r.steps || []).filter(function (s) { return /^lum:/.test(s); }).map(function (s) { return lumRow(s.slice(4)); }).join('') + '</div>' +
+      '<div class="row" style="display:flex;gap:8px;margin-top:6px"><button class="btn sm" id="rLumAdd">Ajouter une action lumière</button></div>' +
       '<div class="row" style="display:flex;gap:8px;margin-top:12px"><button class="btn pri" id="rSave">Enregistrer</button>' + (i >= 0 && r.id !== 'matin' && r.id !== 'nuit' ? '<button class="btn bad" id="rDel">Supprimer</button>' : '') + '<button class="btn" id="rTry">Essayer</button></div>';
     openSheet('Routine', h, 'routine');
-    var collect = function () { var st = []; document.querySelectorAll('[data-st]').forEach(function (c) { if (c.checked) st.push(c.dataset.st); }); r.steps = (r.steps || []).filter(function (s) { return st.indexOf(s) >= 0; }).concat(st.filter(function (s) { return (r.steps || []).indexOf(s) < 0; })); r.name = $('rName').value.trim() || 'Routine'; r.phrase = $('rPh').value.trim() || r.name; };
+    var collect = function () {
+      var st = []; document.querySelectorAll('[data-st]').forEach(function (c) { if (c.checked) st.push(c.dataset.st); });
+      var lum = []; document.querySelectorAll('[data-lum]').forEach(function (c) { var v = c.value.trim(); if (!v) return; if (MJ.lightCheck && !MJ.lightCheck(v)) { toast('« ' + v + ' » n\'est pas une commande de lumière : ignorée'); return; } lum.push('lum:' + v); });
+      r.steps = (r.steps || []).filter(function (s) { return st.indexOf(s) >= 0; }).concat(st.filter(function (s) { return (r.steps || []).indexOf(s) < 0; })).concat(lum);
+      r.name = $('rName').value.trim() || 'Routine'; r.phrase = $('rPh').value.trim() || r.name;
+    };
+    $('rLumAdd').onclick = function () { $('rLum').insertAdjacentHTML('beforeend', lumRow('')); var l = $('rLum').querySelectorAll('[data-lum]'); l[l.length - 1].focus(); };
+    $('rLum').onclick = function (e) { var x = e.target.closest('[data-lumx]'); if (x) x.parentNode.remove(); };
     $('rSave').onclick = function () { collect(); if (i < 0) S.routines.push(r); saveS(); settingsSheet(); };
     if ($('rDel')) $('rDel').onclick = function () { if (confirm('Supprimer la routine « ' + r.name + ' » ?')) { S.routines.splice(i, 1); saveS(); settingsSheet(); } };
     $('rTry').onclick = function () { collect(); closeSheet(); var tmp = S.routines.concat(i < 0 ? [r] : []); var save = S.routines; S.routines = tmp; H.routine({ id: r.id }); S.routines = save; };
@@ -1269,5 +1284,9 @@
     takeAssist();
   }, 400);
   publish();
-  MJ.S = S; MJ.AL = function () { return AL; }; MJ.LS = function () { return LS; }; MJ.orb = orb; MJ.ask = ask; MJ.speakText = speechText; MJ.refresh = refreshInfo;
+  MJ.S = S; MJ.AL = function () { return AL; };
+  MJ._ = { H: H, answer: answer, ask: ask, errorReply: errorReply, openSheet: openSheet, closeSheet: closeSheet, curSheet: function () { return curSheet; }, esc: esc, J: J, lsGet: lsGet, lsSet: lsSet, uid: uid, now: now, cap: cap, deacc: deacc,
+    S: S, saveS: saveS, toast: toast, card: card, withSir: withSir, sir: sir, ack: ack, dur: dur, hm: hm, hmSay: hmSay, addAlarm: addAlarm, removeAlarm: removeAlarm, setAL: function (l) { AL = l; saveAL(); renderTimers(); },
+    HELP: HELP, settingsSheet: settingsSheet, handle: handle, ANDROID: ANDROID, PC: PC, B: B, P: P };
+  if (MJ.onReady) try { MJ.onReady(); } catch (e) { console.warn(e); } MJ.LS = function () { return LS; }; MJ.orb = orb; MJ.ask = ask; MJ.speakText = speechText; MJ.refresh = refreshInfo;
 })();

@@ -5,7 +5,7 @@
      la page affiche « Nouvelle version disponible » et l'active sur demande (message SKIP_WAITING) ;
    - réponses : cache d'abord pour les fichiers précachés, réseau puis cache pour le reste (polices…). */
 'use strict';
-var VERSION = '198c7cb4942d';
+var VERSION = 'fd3c6dac29d9';
 var APP = 'majordome';
 var CACHE = 'mag-pc-' + APP + '-' + VERSION, RUNTIME = 'mag-pc-' + APP + '-rt';
 var PRECACHE = [
@@ -21,6 +21,7 @@ var PRECACHE = [
   "../shared/vendor/vosk/vosk-worker.js",
   "mj-app.js",
   "mj-depts.js",
+  "mj-maison.js",
   "mj-nlu.js",
   "mj-orb.js",
   "../shared/apps/agenda.js"
