@@ -1,0 +1,142 @@
+{
+ "Mag Sans|Regular": {
+  "file": "MagSans-Regular.ttf",
+  "ascent": 0.9053,
+  "descent": 0.2119,
+  "winAscent": 0.9053,
+  "winDescent": 0.2119
+ },
+ "Mag Sans|Bold": {
+  "file": "MagSans-Bold.ttf",
+  "ascent": 0.9053,
+  "descent": 0.2119,
+  "winAscent": 0.9053,
+  "winDescent": 0.2119
+ },
+ "Mag Sans|Italic": {
+  "file": "MagSans-Italic.ttf",
+  "ascent": 0.9053,
+  "descent": 0.2119,
+  "winAscent": 0.9053,
+  "winDescent": 0.2119
+ },
+ "Mag Sans|BoldItalic": {
+  "file": "MagSans-BoldItalic.ttf",
+  "ascent": 0.9053,
+  "descent": 0.2119,
+  "winAscent": 0.9053,
+  "winDescent": 0.2119
+ },
+ "Mag Serif|Regular": {
+  "file": "MagSerif-Regular.ttf",
+  "ascent": 0.8911,
+  "descent": 0.2163,
+  "winAscent": 0.8911,
+  "winDescent": 0.2163
+ },
+ "Mag Serif|Bold": {
+  "file": "MagSerif-Bold.ttf",
+  "ascent": 0.8911,
+  "descent": 0.2163,
+  "winAscent": 0.8911,
+  "winDescent": 0.2163
+ },
+ "Mag Serif|Italic": {
+  "file": "MagSerif-Italic.ttf",
+  "ascent": 0.8911,
+  "descent": 0.2163,
+  "winAscent": 0.8911,
+  "winDescent": 0.2163
+ },
+ "Mag Serif|BoldItalic": {
+  "file": "MagSerif-BoldItalic.ttf",
+  "ascent": 0.8911,
+  "descent": 0.2163,
+  "winAscent": 0.8911,
+  "winDescent": 0.2163
+ },
+ "Mag Mono|Regular": {
+  "file": "MagMono-Regular.ttf",
+  "ascent": 0.8325,
+  "descent": 0.3003,
+  "winAscent": 0.8325,
+  "winDescent": 0.3003
+ },
+ "Mag Mono|Bold": {
+  "file": "MagMono-Bold.ttf",
+  "ascent": 0.8325,
+  "descent": 0.3003,
+  "winAscent": 0.8325,
+  "winDescent": 0.3003
+ },
+ "Mag Mono|Italic": {
+  "file": "MagMono-Italic.ttf",
+  "ascent": 0.8325,
+  "descent": 0.3003,
+  "winAscent": 0.8325,
+  "winDescent": 0.3003
+ },
+ "Mag Mono|BoldItalic": {
+  "file": "MagMono-BoldItalic.ttf",
+  "ascent": 0.8325,
+  "descent": 0.3003,
+  "winAscent": 0.8325,
+  "winDescent": 0.3003
+ },
+ "Mag Sans Douce|Regular": {
+  "file": "MagSansDouce-Regular.ttf",
+  "ascent": 0.9521,
+  "descent": 0.2686,
+  "winAscent": 0.9521,
+  "winDescent": 0.2686
+ },
+ "Mag Sans Douce|Bold": {
+  "file": "MagSansDouce-Bold.ttf",
+  "ascent": 0.9521,
+  "descent": 0.2686,
+  "winAscent": 0.9521,
+  "winDescent": 0.2686
+ },
+ "Mag Sans Douce|Italic": {
+  "file": "MagSansDouce-Italic.ttf",
+  "ascent": 0.9521,
+  "descent": 0.2686,
+  "winAscent": 0.9521,
+  "winDescent": 0.2686
+ },
+ "Mag Sans Douce|BoldItalic": {
+  "file": "MagSansDouce-BoldItalic.ttf",
+  "ascent": 0.9521,
+  "descent": 0.2686,
+  "winAscent": 0.9521,
+  "winDescent": 0.2686
+ },
+ "Caladea|Regular": {
+  "file": "Caladea-Regular.ttf",
+  "ascent": 0.9,
+  "descent": 0.25,
+  "winAscent": 1.05,
+  "winDescent": 0.25
+ },
+ "Caladea|Bold": {
+  "file": "Caladea-Bold.ttf",
+  "ascent": 0.9,
+  "descent": 0.25,
+  "winAscent": 1.05,
+  "winDescent": 0.25
+ },
+ "Caladea|Italic": {
+  "file": "Caladea-Italic.ttf",
+  "ascent": 0.9,
+  "descent": 0.25,
+  "winAscent": 1.05,
+  "winDescent": 0.25
+ },
+ "Caladea|BoldItalic": {
+  "file": "Caladea-BoldItalic.ttf",
+  "ascent": 0.9,
+  "descent": 0.25,
+  "winAscent": 1.05,
+  "winDescent": 0.25
+ }
+}

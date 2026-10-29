@@ -33,7 +33,7 @@ pc/
     ecran-pc.html        page d'Écran sur PC (propre au PC) : vidéos du PC et liens vidéo
     apps/fenetres.css    commun : feuilles du bas en fenêtres centrées (champ « styles » de pc-apps.json)
     apps/souris.css      commun : curseurs, survol, barres de défilement
-    office/              pièces communes des applis bureautiques (Présentation, puis Texte et Tableur), voir « Applis bureautiques »
+    office/              pièces communes des applis bureautiques (Présentation, Texte, puis Tableur), voir « Applis bureautiques »
     vendor/              bibliothèques (pdf.js, pdf-lib, jszip, tesseract, leaflet, jspdf, xlsx, hls.js, PptxGenJS, KaTeX,
                          icônes Lucide) + LICENSES/ + VENDOR.json
   hls-build.mjs          construit vendor/hls.min.js depuis les sources taguées de hls.js (si npm est injoignable)
@@ -58,6 +58,7 @@ pc/
 | Galerie, Scan, Dictaphone | dossier photos du PC (corbeille, EXIF, carte), scan d'images/PDF/webcam, micro + dictée | photos du téléphone, partage vers d'autres applis |
 | Coffre (`coffre`) | identique (PBKDF2 600 000 + AES-GCM 256, rien ne sort) | empreinte (mot de passe maître seulement) |
 | Présentation (`presentation`) | tout : édition, thèmes, masque, animations, diaporama et mode présentateur (2e fenêtre), .magpres, import/export .pptx, PDF, images, « Ouvrir avec » .pptx/.magpres, enregistrement sur place (File System Access) | — |
+| Texte (`texte`) | tout : traitement de texte paginé (sections, en-têtes et pieds, notes, tableaux, images habillées, styles, listes, table des matières, suivi des modifications, commentaires, publipostage CSV), .magdoc, .docx et .odt (ouvrir et enregistrer), .rtf/.txt/.md/.html, PDF à signets, « Ouvrir avec » .docx/.magdoc/.odt/.rtf/.txt/.md, enregistrement sur place, PDF envoyé à l'Atelier PDF | — |
 | Petits Pas (`petitspas`), Carnet de chasse (`chasse`) | consultation, fiches, statistiques, exports | Petits Pas : sources officielles sans relais ; chasse : position GPS précise |
 
 **Écartées** (n'ont de sens que sur le téléphone) : Socle (accueil Android), Aube (réveil), Urgence, Mesure
@@ -131,7 +132,7 @@ ne déclenche pas « pages build and deployment ».
 
 ## Applis bureautiques (shared/office/)
 
-Présentation est la première des applis bureautiques (Texte et Tableur suivront). Ses pièces communes sont dans
+Présentation et Texte sont les deux premières applis bureautiques (Tableur suivra). Leurs pièces communes sont dans
 `pc/shared/office/` et servent **telles quelles** au PC et à l'APK (une seule source) :
 
 | Fichier | Rôle |
@@ -149,7 +150,18 @@ Présentation est la première des applis bureautiques (Texte et Tableur suivron
 Une appli bureautique a `"office": true` dans `pc-apps.json` : `build-pc.py` réécrit `"office/…"` en
 `"../shared/office/…"` et précache tout le dossier. Côté APK, `applis/www-<appli>/office-deps.txt` liste ce qu'il
 faut copier (pièces communes, bibliothèques, licences) : `applis/scripts/office-deps.sh`, lancé par `print-patch.sh`.
-Les fichiers propres à l'appli (`pres-*.js`, `pres.css`) sont des `copies` (même fichier que dans l'APK).
+Les fichiers propres à l'appli (`pres-*.js`, `pres.css`, `tx-*.js`, `texte*.css`) sont des `copies` (même fichier que dans l'APK).
+
+Texte ajoute deux bibliothèques communes, prêtes pour Tableur :
+
+| Fichier (shared/vendor/) | Rôle |
+|---|---|
+| `prosemirror.min.js`, `prosemirror.css` | éditeur structuré ProseMirror (modèle, état, vue, historique, raccourcis, règles de saisie, listes, tableaux), objet global `window.PM` ; construit par `shared/office/tools/prosemirror-build.mjs` (esbuild) depuis les tags GitHub officiels |
+| `fonts/` | polices libres pour l'écran et le PDF (texte vectoriel incorporé) : Mag Sans, Mag Serif, Mag Mono (Liberation 2.1.5), Mag Sans Douce (Carlito), Caladea ; métriques dans `metrics.json` ; `shared/office/tools/fonts-build.py` |
+
+Formats de Texte : `.magdoc` (zip : `document.json`, `media/`, `thumb.jpg`) est le format complet ; `.docx` et `.odt`
+sont écrits et lus directement en XML (`tx-docx.js`, `tx-odt.js`, sans bibliothèque) ; PDF vectoriel (`tx-pdf.js`, jsPDF :
+chaque mot à sa place mesurée, polices incluses, signets des titres, liens, commentaires en notes PDF).
 
 ## API de `window.MAGPC` (shared/pc-shim.js)
 
@@ -336,6 +348,13 @@ Présentation : création de 8 diapositives (tous les contenus, animations, tran
 présentateur (fenêtre publique), annuler/rétablir, .magpres réouvert à l'identique, .pptx exporté puis validé par
 python-pptx et LibreOffice et réimporté, import d'un .pptx fait avec python-pptx, PDF (1 à 6 par page, commentaires),
 images, téléphone 412 px au doigt (événements tactiles CDP) et pont `MAGOffice` simulé.
+Texte : document de 9 à 10 pages (page de titre, table des matières, titres, tableau de 35 lignes à en-tête répété et
+cellules fusionnées, image habillée, 12 notes, en-tête de première page différent, section paysage), PDF (pages, signets,
+texte extractible), .docx validé par python-docx et LibreOffice (même nombre de pages) puis réimporté, .odt converti
+par LibreOffice et réimporté, .magdoc à l'identique ; suivi des modifications et commentaire saisis au clavier, exportés
+en `w:ins`/`w:del`/`w:comment` et relus ; publipostage (aperçu, un PDF de 3 pages, un document, un .docx par
+destinataire) ; import d'un .docx fait avec python-docx (styles, listes, fusions, image, en-tête, note) ; téléphone
+412 px, aucune requête extérieure ; pont `MAGOffice` simulé (Ouvrir avec, enregistrer sur place, imprimer, tuile Socle).
 Écran : vidéos de test faites avec ffmpeg en VP9/Opus (le Chromium de Playwright n'a ni H.264 ni AAC : un .mp4 H.264 y sert
 à vérifier « Codec non pris en charge »), `.srt` en Windows-1252, faux lecteurs intégrés (page qui répond au `postMessage`
 de YouTube), serveur à requêtes partielles (Range) pour le lien direct, flux HLS fMP4, second serveur sans CORS.
@@ -348,6 +367,11 @@ Leaflet 1.9.4 (BSD-2-Clause) · jsPDF 2.5.1 (MIT) · SheetJS xlsx 0.18.5 (Apache
 PptxGenJS 4.0.1 (MIT) : `dist/pptxgen.min.js` du tag v4.0.1 de github.com/gitbrent/PptxGenJS (identique au paquet npm,
 ligne `sourceMappingURL` retirée) · KaTeX 0.16.47 (MIT) : `dist/` du paquet (polices woff2 seulement) · Lucide 1.64.0
 (ISC) : `vendor/lucide-icons.js` généré par `shared/office/tools/lucide-build.py` depuis le dossier `icons/` du tag 1.64.0
-de github.com/lucide-icons/lucide (1999 icônes) — dans l'APK Présentation aussi, mêmes fichiers.
+de github.com/lucide-icons/lucide (1999 icônes) — dans les APK Présentation et Texte aussi, mêmes fichiers.
+ProseMirror (MIT) : model 1.25.4, state 1.4.4, transform 1.12.0, view 1.41.7, commands 1.7.1, keymap 1.2.3, history 1.5.0,
+inputrules 1.5.1, schema-list 1.5.1, tables 1.8.5, dropcursor 1.8.2, gapcursor 1.4.1 (+ orderedmap 2.1.1, rope-sequence
+1.3.4, w3c-keyname 2.2.8, MIT) : tags des dépôts github.com/ProseMirror (registre npm injoignable), réunis par
+`shared/office/tools/prosemirror-build.mjs`. Polices (OFL-1.1) : Liberation 2.1.5, Carlito 1.103, Caladea 1.002 (paquets
+Debian), sous-ensembles latins renommés Mag Sans / Mag Serif / Mag Mono / Mag Sans Douce (noms réservés de l'OFL).
 hls.js 1.6.19 (Apache-2.0, PC seulement, avec eventemitter3 MIT, url-toolkit et common-media-library Apache-2.0) : construit
 depuis le tag v1.6.19 par `pc/hls-build.mjs` (registre npm injoignable) ; `--vendor` le remplace par le `dist/hls.min.js` npm.

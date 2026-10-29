@@ -1,0 +1,21 @@
+/* Polices libres Mag Sans / Serif / Mono (Liberation 2.1.5 renommée), Mag Sans Douce (Carlito renommée), Caladea : SIL OFL 1.1, voir LICENSES/ */
+@font-face{font-family:'Mag Sans';src:url('MagSans-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Mag Sans';src:url('MagSans-Bold.ttf') format('truetype');font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:'Mag Sans';src:url('MagSans-Italic.ttf') format('truetype');font-weight:400;font-style:italic;font-display:swap}
+@font-face{font-family:'Mag Sans';src:url('MagSans-BoldItalic.ttf') format('truetype');font-weight:700;font-style:italic;font-display:swap}
+@font-face{font-family:'Mag Serif';src:url('MagSerif-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Mag Serif';src:url('MagSerif-Bold.ttf') format('truetype');font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:'Mag Serif';src:url('MagSerif-Italic.ttf') format('truetype');font-weight:400;font-style:italic;font-display:swap}
+@font-face{font-family:'Mag Serif';src:url('MagSerif-BoldItalic.ttf') format('truetype');font-weight:700;font-style:italic;font-display:swap}
+@font-face{font-family:'Mag Mono';src:url('MagMono-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Mag Mono';src:url('MagMono-Bold.ttf') format('truetype');font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:'Mag Mono';src:url('MagMono-Italic.ttf') format('truetype');font-weight:400;font-style:italic;font-display:swap}
+@font-face{font-family:'Mag Mono';src:url('MagMono-BoldItalic.ttf') format('truetype');font-weight:700;font-style:italic;font-display:swap}
+@font-face{font-family:'Mag Sans Douce';src:url('MagSansDouce-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Mag Sans Douce';src:url('MagSansDouce-Bold.ttf') format('truetype');font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:'Mag Sans Douce';src:url('MagSansDouce-Italic.ttf') format('truetype');font-weight:400;font-style:italic;font-display:swap}
+@font-face{font-family:'Mag Sans Douce';src:url('MagSansDouce-BoldItalic.ttf') format('truetype');font-weight:700;font-style:italic;font-display:swap}
+@font-face{font-family:'Caladea';src:url('Caladea-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Caladea';src:url('Caladea-Bold.ttf') format('truetype');font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:'Caladea';src:url('Caladea-Italic.ttf') format('truetype');font-weight:400;font-style:italic;font-display:swap}
+@font-face{font-family:'Caladea';src:url('Caladea-BoldItalic.ttf') format('truetype');font-weight:700;font-style:italic;font-display:swap}

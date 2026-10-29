@@ -151,6 +151,11 @@ def page(app, conf, apps_android):
     # 2. bibliothèques : 'pdf.min.js' → '../shared/vendor/pdf.min.js' (chaînes entre guillemets seulement, pas les adresses CDN)
     for lib in sorted(conf['vendor'], key=len, reverse=True):
         base = os.path.basename(lib)
+        if lib.endswith('/') and lib in app.get('vendor', []) and lib.count('/') == 1:
+            # dossier de premier niveau (ex. « fonts/ ») : 'fonts/x.css' → '../shared/vendor/fonts/x.css'
+            for q in ('"', "'"):
+                out = out.replace(q + lib, q + '../shared/vendor/' + lib)
+            continue
         if '/' in lib:
             continue
         for q in ('"', "'"):

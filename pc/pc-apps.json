@@ -18,7 +18,10 @@
     "leaflet.css": { "package": "leaflet", "version": "1.9.4", "from": "dist/leaflet.css", "license": "BSD-2-Clause", "licenseFile": "LICENSES/leaflet-BSD-2-Clause.txt" },
     "jspdf.umd.min.js": { "package": "jspdf", "version": "2.5.1", "from": "dist/jspdf.umd.min.js", "license": "MIT", "licenseFile": "LICENSES/jspdf-MIT.txt" },
     "xlsx.full.min.js": { "package": "xlsx", "version": "0.18.5", "from": "dist/xlsx.full.min.js", "license": "Apache-2.0", "licenseFile": "LICENSES/xlsx-Apache-2.0.txt" },
-    "hls.min.js": { "package": "hls.js", "version": "1.6.19", "from": "dist/hls.min.js", "license": "Apache-2.0", "licenseFile": "LICENSES/hls.js-Apache-2.0.txt", "note": "Copie actuelle construite depuis le tag v1.6.19 avec pc/hls-build.mjs (registre npm injoignable) ; --vendor la remplace par dist/hls.min.js du paquet npm, même version." }
+    "hls.min.js": { "package": "hls.js", "version": "1.6.19", "from": "dist/hls.min.js", "license": "Apache-2.0", "licenseFile": "LICENSES/hls.js-Apache-2.0.txt", "note": "Copie actuelle construite depuis le tag v1.6.19 avec pc/hls-build.mjs (registre npm injoignable) ; --vendor la remplace par dist/hls.min.js du paquet npm, même version." },
+    "prosemirror.min.js": { "package": "prosemirror (github.com/ProseMirror : model 1.25.4, state 1.4.4, transform 1.12.0, view 1.41.7, commands 1.7.1, keymap 1.2.3, history 1.5.0, inputrules 1.5.1, schema-list 1.5.1, tables 1.8.5, dropcursor 1.8.2, gapcursor 1.4.1, orderedmap 2.1.1, rope-sequence 1.3.4, w3c-keyname 2.2.8)", "version": "voir paquets", "from": null, "license": "MIT", "licenseFile": "LICENSES/prosemirror-MIT.txt", "note": "Construit par pc/shared/office/tools/prosemirror-build.mjs (esbuild) depuis les tags officiels des dépôts GitHub : un seul fichier, objet global window.PM." },
+    "prosemirror.css": { "package": "prosemirror-view, prosemirror-tables, prosemirror-gapcursor", "version": "voir prosemirror.min.js", "from": null, "license": "MIT", "licenseFile": "LICENSES/prosemirror-MIT.txt", "note": "Feuilles de style des paquets, réunies par le même script." },
+    "fonts/": { "package": "Liberation Fonts 2.1.5, Carlito 1.103, Caladea 1.002 (paquets Debian fonts-liberation2, fonts-crosextra-carlito, fonts-crosextra-caladea)", "version": "voir paquets", "from": null, "license": "OFL-1.1", "licenseFile": "LICENSES/fonts-OFL-1.1.txt", "note": "Sous-ensembles latins créés par pc/shared/office/tools/fonts-build.py (fontTools) et renommés Mag Sans, Mag Serif, Mag Mono, Mag Sans Douce (noms de fonte réservés de l'OFL) ; Caladea garde son nom (pas de nom réservé)." }
   },
   "apps": [
     {
@@ -528,6 +531,27 @@
         { "accept": { "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx"] } }
       ],
       "data": { "ls": ["presentation:", "office:"], "idb": ["office-presentation"], "note": "Les fichiers .magpres et .pptx restent dans tes dossiers : seuls les réglages, les documents récents et l'enregistrement automatique sont dans le navigateur." }
+    },
+    {
+      "id": "texte",
+      "android": "texte",
+      "office": true,
+      "name": "Texte",
+      "short_name": "Texte",
+      "description": "Traitement de texte : pagination, styles, tableaux, suivi des modifications, publipostage, .docx, .odt et PDF",
+      "theme_color": "#f6f7f9",
+      "background_color": "#f6f7f9",
+      "vendor": ["jszip.min.js", "jspdf.umd.min.js", "prosemirror.min.js", "prosemirror.css", "lucide-icons.js", "katex/katex.min.js", "katex/katex.min.css", "katex/fonts/", "fonts/"],
+      "copies": { "texte.css": "applis/www-texte/texte.css", "texte-doc.css": "applis/www-texte/texte-doc.css", "pres-shapes.js": "applis/www-presentation/pres-shapes.js", "pres-charts.js": "applis/www-presentation/pres-charts.js", "tx-schema.js": "applis/www-texte/tx-schema.js", "tx-model.js": "applis/www-texte/tx-model.js", "tx-views.js": "applis/www-texte/tx-views.js", "tx-editor.js": "applis/www-texte/tx-editor.js", "tx-layout.js": "applis/www-texte/tx-layout.js", "tx-commands.js": "applis/www-texte/tx-commands.js", "tx-io.js": "applis/www-texte/tx-io.js", "tx-docx.js": "applis/www-texte/tx-docx.js", "tx-odt.js": "applis/www-texte/tx-odt.js", "tx-pdf.js": "applis/www-texte/tx-pdf.js", "tx-merge.js": "applis/www-texte/tx-merge.js", "tx-templates.js": "applis/www-texte/tx-templates.js", "tx-dialogs.js": "applis/www-texte/tx-dialogs.js", "tx-panes.js": "applis/www-texte/tx-panes.js", "tx-ui.js": "applis/www-texte/tx-ui.js", "tx-app.js": "applis/www-texte/tx-app.js" },
+      "file_handlers": [
+        { "accept": { "application/x-magdoc": [".magdoc"] } },
+        { "accept": { "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"] } },
+        { "accept": { "application/vnd.oasis.opendocument.text": [".odt"] } },
+        { "accept": { "application/rtf": [".rtf"] } },
+        { "accept": { "text/plain": [".txt"] } },
+        { "accept": { "text/markdown": [".md"] } }
+      ],
+      "data": { "ls": ["texte:", "office:"], "idb": ["office-texte"], "note": "Les documents (.magdoc, .docx, .odt…) restent dans tes dossiers : seuls les réglages, les documents récents et l'enregistrement automatique sont dans le navigateur." }
     }
   ]
 }

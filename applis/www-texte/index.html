@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
+<title>Texte</title>
+<meta name="theme-color" content="#0B7285">
+<meta name="description" content="Texte : traitement de texte hors ligne de la Suite MAG (pagination, styles, tableaux, suivi des modifications, .docx, .odt, PDF, publipostage)">
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="prosemirror.css">
+<link rel="stylesheet" href="office/office.css">
+<link rel="stylesheet" href="texte.css">
+<link rel="stylesheet" href="texte-doc.css">
+</head>
+<body>
+<div id="app">
+  <header id="titlebar"></header>
+  <div id="ribbonHost"></div>
+  <div id="ctxbar" hidden></div>
+  <div id="main">
+    <aside id="nav" hidden aria-label="Volet de navigation"></aside>
+    <section id="center">
+      <div id="rulerRow"><div id="rulerCorner" title="Type de tabulation (cliquer pour changer)"></div><div id="rulerH" aria-hidden="true"></div></div>
+      <div id="docScroll" tabindex="-1" data-mpc-drop>
+        <div id="sizer"><div class="tx-paper" id="paper"><div class="tx-under"></div><div class="tx-body" id="docBody"></div><div class="tx-over"></div><div class="tx-cmts"></div></div></div>
+      </div>
+      <div id="spread" hidden></div>
+    </section>
+    <aside id="pane" hidden></aside>
+  </div>
+  <footer id="status"></footer>
+</div>
+<div id="backstage"></div>
+<div id="dropHint">Déposer un document (.docx, .magdoc, .odt, .rtf, .txt, .md, .html) pour l'ouvrir</div>
+<div id="printBox"></div>
+<noscript>Texte a besoin de JavaScript.</noscript>
+<!-- bibliothèques (licences : dossier LICENSES / À propos) -->
+<script src="jszip.min.js"></script>
+<script src="lucide-icons.js"></script>
+<script src="prosemirror.min.js"></script>
+<!-- pièces communes des applis bureautiques (pc/shared/office/) -->
+<script src="office/office-core.js"></script>
+<script src="office/office-ribbon.js"></script>
+<script src="office/office-richtext.js"></script>
+<script src="office/office-files.js"></script>
+<script src="office/office-themes.js"></script>
+<script src="office/office-raster.js"></script>
+<script src="office/office-pdf.js"></script>
+<!-- formes et graphiques : mêmes fichiers que Présentation -->
+<script src="pres-shapes.js"></script>
+<script src="pres-charts.js"></script>
+<!-- Texte -->
+<script src="tx-schema.js"></script>
+<script src="tx-model.js"></script>
+<script src="tx-views.js"></script>
+<script src="tx-editor.js"></script>
+<script src="tx-layout.js"></script>
+<script src="tx-commands.js"></script>
+<script src="tx-io.js"></script>
+<script src="tx-docx.js"></script>
+<script src="tx-odt.js"></script>
+<script src="tx-pdf.js"></script>
+<script src="tx-merge.js"></script>
+<script src="tx-templates.js"></script>
+<script src="tx-dialogs.js"></script>
+<script src="tx-panes.js"></script>
+<script src="tx-ui.js"></script>
+<script src="tx-app.js"></script>
+</body>
+</html>

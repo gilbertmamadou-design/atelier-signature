@@ -262,5 +262,13 @@
   "name": "Présentation",
   "icons": "android-icons-presentation",
   "file": "Presentation.apk"
+ },
+ {
+  "app": "texte",
+  "web": "www-texte",
+  "appid": "fr.magformation13.texte",
+  "name": "Texte",
+  "icons": "android-icons-texte",
+  "file": "Texte.apk"
  }
 ]

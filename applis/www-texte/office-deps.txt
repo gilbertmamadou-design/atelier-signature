@@ -1,0 +1,12 @@
+# Pièces communes des applis bureautiques copiées dans l'APK par scripts/office-deps.sh (appelé par print-patch.sh).
+# Une ligne : <source relative à applis/> <destination dans le dossier web>. Même source que la Suite MAG sur PC.
+../pc/shared/office/ office/
+../pc/shared/vendor/prosemirror.min.js prosemirror.min.js
+../pc/shared/vendor/prosemirror.css prosemirror.css
+../pc/shared/vendor/lucide-icons.js lucide-icons.js
+../pc/shared/vendor/katex/ katex/
+../pc/shared/vendor/fonts/ fonts/
+../pc/shared/vendor/LICENSES/ LICENSES/
+www-presentation/pres-shapes.js pres-shapes.js
+www-presentation/pres-charts.js pres-charts.js
+# jszip.min.js et jspdf.umd.min.js : copiés par le workflow depuis node_modules (mêmes versions que pc/shared/vendor/)

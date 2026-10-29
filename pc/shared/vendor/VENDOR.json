@@ -1,4 +1,224 @@
 {
+  "fonts/Caladea-Bold.ttf": {
+    "package": "Liberation Fonts 2.1.5, Carlito 1.103, Caladea 1.002 (paquets Debian fonts-liberation2, fonts-crosextra-carlito, fonts-crosextra-caladea)",
+    "version": "voir paquets",
+    "from": null,
+    "license": "OFL-1.1",
+    "licenseFile": "LICENSES/fonts-OFL-1.1.txt",
+    "note": "Sous-ensembles latins créés par pc/shared/office/tools/fonts-build.py (fontTools) et renommés Mag Sans, Mag Serif, Mag Mono, Mag Sans Douce (noms de fonte réservés de l'OFL) ; Caladea garde son nom (pas de nom réservé).",
+    "size": 50084,
+    "sha256": "b0a76ad09b1f1b5549046ed2b6de920b6fbdd5f681e8e262729e552ae8ee4e88"
+  },
+  "fonts/Caladea-BoldItalic.ttf": {
+    "package": "Liberation Fonts 2.1.5, Carlito 1.103, Caladea 1.002 (paquets Debian fonts-liberation2, fonts-crosextra-carlito, fonts-crosextra-caladea)",
+    "version": "voir paquets",
+    "from": null,
+    "license": "OFL-1.1",
+    "licenseFile": "LICENSES/fonts-OFL-1.1.txt",
+    "note": "Sous-ensembles latins créés par pc/shared/office/tools/fonts-build.py (fontTools) et renommés Mag Sans, Mag Serif, Mag Mono, Mag Sans Douce (noms de fonte réservés de l'OFL) ; Caladea garde son nom (pas de nom réservé).",
+    "size": 48152,
+    "sha256": "ba1f8d9dcccd0c226f6dcd17cc7c38d1579206379edcf0b0894130dce6aebd54"
+  },
+  "fonts/Caladea-Italic.ttf": {
+    "package": "Liberation Fonts 2.1.5, Carlito 1.103, Caladea 1.002 (paquets Debian fonts-liberation2, fonts-crosextra-carlito, fonts-crosextra-caladea)",
+    "version": "voir paquets",
+    "from": null,
+    "license": "OFL-1.1",
+    "licenseFile": "LICENSES/fonts-OFL-1.1.txt",
+    "note": "Sous-ensembles latins créés par pc/shared/office/tools/fonts-build.py (fontTools) et renommés Mag Sans, Mag Serif, Mag Mono, Mag Sans Douce (noms de fonte réservés de l'OFL) ; Caladea garde son nom (pas de nom réservé).",
+    "size": 48040,
+    "sha256": "f106eaf579d1cf70eac4778dfc2c166b1fa307ff9b319dfab714fd098e7a7154"
+  },
+  "fonts/Caladea-Regular.ttf": {
+    "package": "Liberation Fonts 2.1.5, Carlito 1.103, Caladea 1.002 (paquets Debian fonts-liberation2, fonts-crosextra-carlito, fonts-crosextra-caladea)",
+    "version": "voir paquets",
+    "from": null,
+    "license": "OFL-1.1",
+    "licenseFile": "LICENSES/fonts-OFL-1.1.txt",
+    "note": "Sous-ensembles latins créés par pc/shared/office/tools/fonts-build.py (fontTools) et renommés Mag Sans, Mag Serif, Mag Mono, Mag Sans Douce (noms de fonte réservés de l'OFL) ; Caladea garde son nom (pas de nom réservé).",
+    "size": 49024,
+    "sha256": "8a141fdf79ff40c4df1459de23271d466da52d9523bdc865a065f9fbf2235f35"
+  },
+  "fonts/MagMono-Bold.ttf": {
+    "package": "Liberation Fonts 2.1.5, Carlito 1.103, Caladea 1.002 (paquets Debian fonts-liberation2, fonts-crosextra-carlito, fonts-crosextra-caladea)",
+    "version": "voir paquets",
+    "from": null,
+    "license": "OFL-1.1",
+    "licenseFile": "LICENSES/fonts-OFL-1.1.txt",
+    "note": "Sous-ensembles latins créés par pc/shared/office/tools/fonts-build.py (fontTools) et renommés Mag Sans, Mag Serif, Mag Mono, Mag Sans Douce (noms de fonte réservés de l'OFL) ; Caladea garde son nom (pas de nom réservé).",
+    "size": 87428,
+    "sha256": "de23f7d9d7a1a4214f1b4f8eafde6b39c08e234a2a603aea2ebe552c724d1ed9"
+  },
+  "fonts/MagMono-BoldItalic.ttf": {
+    "package": "Liberation Fonts 2.1.5, Carlito 1.103, Caladea 1.002 (paquets Debian fonts-liberation2, fonts-crosextra-carlito, fonts-crosextra-caladea)",
+    "version": "voir paquets",
+    "from": null,
+    "license": "OFL-1.1",
+    "licenseFile": "LICENSES/fonts-OFL-1.1.txt",
+    "note": "Sous-ensembles latins créés par pc/shared/office/tools/fonts-build.py (fontTools) et renommés Mag Sans, Mag Serif, Mag Mono, Mag Sans Douce (noms de fonte réservés de l'OFL) ; Caladea garde son nom (pas de nom réservé).",
+    "size": 91288,
+    "sha256": "f45e94fcee55d53d1b775883f0a582f5207d21a448562824b3fdf70b31cf3d5a"
+  },
+  "fonts/MagMono-Italic.ttf": {
+    "package": "Liberation Fonts 2.1.5, Carlito 1.103, Caladea 1.002 (paquets Debian fonts-liberation2, fonts-crosextra-carlito, fonts-crosextra-caladea)",
+    "version": "voir paquets",
+    "from": null,
+    "license": "OFL-1.1",
+    "licenseFile": "LICENSES/fonts-OFL-1.1.txt",
+    "note": "Sous-ensembles latins créés par pc/shared/office/tools/fonts-build.py (fontTools) et renommés Mag Sans, Mag Serif, Mag Mono, Mag Sans Douce (noms de fonte réservés de l'OFL) ; Caladea garde son nom (pas de nom réservé).",
+    "size": 92080,
+    "sha256": "73a9c4c44b3ddd40e9e065f8ba5255768ed3ebddd752a7f71ab1c5523786ef8e"
+  },
+  "fonts/MagMono-Regular.ttf": {
+    "package": "Liberation Fonts 2.1.5, Carlito 1.103, Caladea 1.002 (paquets Debian fonts-liberation2, fonts-crosextra-carlito, fonts-crosextra-caladea)",
+    "version": "voir paquets",
+    "from": null,
+    "license": "OFL-1.1",
+    "licenseFile": "LICENSES/fonts-OFL-1.1.txt",
+    "note": "Sous-ensembles latins créés par pc/shared/office/tools/fonts-build.py (fontTools) et renommés Mag Sans, Mag Serif, Mag Mono, Mag Sans Douce (noms de fonte réservés de l'OFL) ; Caladea garde son nom (pas de nom réservé).",
+    "size": 86996,
+    "sha256": "b76869e4c529c1fcfdf16d31873b6359534df1ba650b0d738f1e70daff175cab"
+  },
+  "fonts/MagSans-Bold.ttf": {
+    "package": "Liberation Fonts 2.1.5, Carlito 1.103, Caladea 1.002 (paquets Debian fonts-liberation2, fonts-crosextra-carlito, fonts-crosextra-caladea)",
+    "version": "voir paquets",
+    "from": null,
+    "license": "OFL-1.1",
+    "licenseFile": "LICENSES/fonts-OFL-1.1.txt",
+    "note": "Sous-ensembles latins créés par pc/shared/office/tools/fonts-build.py (fontTools) et renommés Mag Sans, Mag Serif, Mag Mono, Mag Sans Douce (noms de fonte réservés de l'OFL) ; Caladea garde son nom (pas de nom réservé).",
+    "size": 109184,
+    "sha256": "efe78ed3228775a8719ee40622e994a809db1eb0369e5d68af0dbb79490a8595"
+  },
+  "fonts/MagSans-BoldItalic.ttf": {
+    "package": "Liberation Fonts 2.1.5, Carlito 1.103, Caladea 1.002 (paquets Debian fonts-liberation2, fonts-crosextra-carlito, fonts-crosextra-caladea)",
+    "version": "voir paquets",
+    "from": null,
+    "license": "OFL-1.1",
+    "licenseFile": "LICENSES/fonts-OFL-1.1.txt",
+    "note": "Sous-ensembles latins créés par pc/shared/office/tools/fonts-build.py (fontTools) et renommés Mag Sans, Mag Serif, Mag Mono, Mag Sans Douce (noms de fonte réservés de l'OFL) ; Caladea garde son nom (pas de nom réservé).",
+    "size": 111904,
+    "sha256": "5ed7df2064c5eb4c21fec36fcd1dddd61d21b41b5ae53f96b6a553c35e708ee3"
+  },
+  "fonts/MagSans-Italic.ttf": {
+    "package": "Liberation Fonts 2.1.5, Carlito 1.103, Caladea 1.002 (paquets Debian fonts-liberation2, fonts-crosextra-carlito, fonts-crosextra-caladea)",
+    "version": "voir paquets",
+    "from": null,
+    "license": "OFL-1.1",
+    "licenseFile": "LICENSES/fonts-OFL-1.1.txt",
+    "note": "Sous-ensembles latins créés par pc/shared/office/tools/fonts-build.py (fontTools) et renommés Mag Sans, Mag Serif, Mag Mono, Mag Sans Douce (noms de fonte réservés de l'OFL) ; Caladea garde son nom (pas de nom réservé).",
+    "size": 111576,
+    "sha256": "f68633d230cc0c8173e55e0530eda9e3dc56e2f7598cbdab3664f5670f758fc2"
+  },
+  "fonts/MagSans-Regular.ttf": {
+    "package": "Liberation Fonts 2.1.5, Carlito 1.103, Caladea 1.002 (paquets Debian fonts-liberation2, fonts-crosextra-carlito, fonts-crosextra-caladea)",
+    "version": "voir paquets",
+    "from": null,
+    "license": "OFL-1.1",
+    "licenseFile": "LICENSES/fonts-OFL-1.1.txt",
+    "note": "Sous-ensembles latins créés par pc/shared/office/tools/fonts-build.py (fontTools) et renommés Mag Sans, Mag Serif, Mag Mono, Mag Sans Douce (noms de fonte réservés de l'OFL) ; Caladea garde son nom (pas de nom réservé).",
+    "size": 109536,
+    "sha256": "30356dc58eb57e0c65d1bdf3b85d7585f86390f1b5cd8b9296ffb5285b00de16"
+  },
+  "fonts/MagSansDouce-Bold.ttf": {
+    "package": "Liberation Fonts 2.1.5, Carlito 1.103, Caladea 1.002 (paquets Debian fonts-liberation2, fonts-crosextra-carlito, fonts-crosextra-caladea)",
+    "version": "voir paquets",
+    "from": null,
+    "license": "OFL-1.1",
+    "licenseFile": "LICENSES/fonts-OFL-1.1.txt",
+    "note": "Sous-ensembles latins créés par pc/shared/office/tools/fonts-build.py (fontTools) et renommés Mag Sans, Mag Serif, Mag Mono, Mag Sans Douce (noms de fonte réservés de l'OFL) ; Caladea garde son nom (pas de nom réservé).",
+    "size": 167128,
+    "sha256": "d370e6135854e552e2a04e052465a39f0a7e9e8df3c066eb8e0e7331d44d39c5"
+  },
+  "fonts/MagSansDouce-BoldItalic.ttf": {
+    "package": "Liberation Fonts 2.1.5, Carlito 1.103, Caladea 1.002 (paquets Debian fonts-liberation2, fonts-crosextra-carlito, fonts-crosextra-caladea)",
+    "version": "voir paquets",
+    "from": null,
+    "license": "OFL-1.1",
+    "licenseFile": "LICENSES/fonts-OFL-1.1.txt",
+    "note": "Sous-ensembles latins créés par pc/shared/office/tools/fonts-build.py (fontTools) et renommés Mag Sans, Mag Serif, Mag Mono, Mag Sans Douce (noms de fonte réservés de l'OFL) ; Caladea garde son nom (pas de nom réservé).",
+    "size": 242004,
+    "sha256": "a81f0b7ea37f17838c221ba261bba90de1bda66c6305f1577c4984825e31be8b"
+  },
+  "fonts/MagSansDouce-Italic.ttf": {
+    "package": "Liberation Fonts 2.1.5, Carlito 1.103, Caladea 1.002 (paquets Debian fonts-liberation2, fonts-crosextra-carlito, fonts-crosextra-caladea)",
+    "version": "voir paquets",
+    "from": null,
+    "license": "OFL-1.1",
+    "licenseFile": "LICENSES/fonts-OFL-1.1.txt",
+    "note": "Sous-ensembles latins créés par pc/shared/office/tools/fonts-build.py (fontTools) et renommés Mag Sans, Mag Serif, Mag Mono, Mag Sans Douce (noms de fonte réservés de l'OFL) ; Caladea garde son nom (pas de nom réservé).",
+    "size": 159168,
+    "sha256": "7197949aa30de65bbf2a9ff34062cbd033d6291d4a0e58b2bdd79a50a074db40"
+  },
+  "fonts/MagSansDouce-Regular.ttf": {
+    "package": "Liberation Fonts 2.1.5, Carlito 1.103, Caladea 1.002 (paquets Debian fonts-liberation2, fonts-crosextra-carlito, fonts-crosextra-caladea)",
+    "version": "voir paquets",
+    "from": null,
+    "license": "OFL-1.1",
+    "licenseFile": "LICENSES/fonts-OFL-1.1.txt",
+    "note": "Sous-ensembles latins créés par pc/shared/office/tools/fonts-build.py (fontTools) et renommés Mag Sans, Mag Serif, Mag Mono, Mag Sans Douce (noms de fonte réservés de l'OFL) ; Caladea garde son nom (pas de nom réservé).",
+    "size": 160628,
+    "sha256": "1a4a21242e069f0df88ba9d66ba2e54aa18109a0391c8c806cabace71cd276e2"
+  },
+  "fonts/MagSerif-Bold.ttf": {
+    "package": "Liberation Fonts 2.1.5, Carlito 1.103, Caladea 1.002 (paquets Debian fonts-liberation2, fonts-crosextra-carlito, fonts-crosextra-caladea)",
+    "version": "voir paquets",
+    "from": null,
+    "license": "OFL-1.1",
+    "licenseFile": "LICENSES/fonts-OFL-1.1.txt",
+    "note": "Sous-ensembles latins créés par pc/shared/office/tools/fonts-build.py (fontTools) et renommés Mag Sans, Mag Serif, Mag Mono, Mag Sans Douce (noms de fonte réservés de l'OFL) ; Caladea garde son nom (pas de nom réservé).",
+    "size": 100732,
+    "sha256": "542ec29908868517f2090578f3eeb6fdc142e216e34220318ea225a33e1c23b3"
+  },
+  "fonts/MagSerif-BoldItalic.ttf": {
+    "package": "Liberation Fonts 2.1.5, Carlito 1.103, Caladea 1.002 (paquets Debian fonts-liberation2, fonts-crosextra-carlito, fonts-crosextra-caladea)",
+    "version": "voir paquets",
+    "from": null,
+    "license": "OFL-1.1",
+    "licenseFile": "LICENSES/fonts-OFL-1.1.txt",
+    "note": "Sous-ensembles latins créés par pc/shared/office/tools/fonts-build.py (fontTools) et renommés Mag Sans, Mag Serif, Mag Mono, Mag Sans Douce (noms de fonte réservés de l'OFL) ; Caladea garde son nom (pas de nom réservé).",
+    "size": 102704,
+    "sha256": "efb589cdfc90afc2ea68e37c076d9829421b470128fa0d6dfa465ac27d402e54"
+  },
+  "fonts/MagSerif-Italic.ttf": {
+    "package": "Liberation Fonts 2.1.5, Carlito 1.103, Caladea 1.002 (paquets Debian fonts-liberation2, fonts-crosextra-carlito, fonts-crosextra-caladea)",
+    "version": "voir paquets",
+    "from": null,
+    "license": "OFL-1.1",
+    "licenseFile": "LICENSES/fonts-OFL-1.1.txt",
+    "note": "Sous-ensembles latins créés par pc/shared/office/tools/fonts-build.py (fontTools) et renommés Mag Sans, Mag Serif, Mag Mono, Mag Sans Douce (noms de fonte réservés de l'OFL) ; Caladea garde son nom (pas de nom réservé).",
+    "size": 103368,
+    "sha256": "99659371e3993a04fa03e5c279b91a95d5b7ae5bc6f964154083284c5f2bac94"
+  },
+  "fonts/MagSerif-Regular.ttf": {
+    "package": "Liberation Fonts 2.1.5, Carlito 1.103, Caladea 1.002 (paquets Debian fonts-liberation2, fonts-crosextra-carlito, fonts-crosextra-caladea)",
+    "version": "voir paquets",
+    "from": null,
+    "license": "OFL-1.1",
+    "licenseFile": "LICENSES/fonts-OFL-1.1.txt",
+    "note": "Sous-ensembles latins créés par pc/shared/office/tools/fonts-build.py (fontTools) et renommés Mag Sans, Mag Serif, Mag Mono, Mag Sans Douce (noms de fonte réservés de l'OFL) ; Caladea garde son nom (pas de nom réservé).",
+    "size": 100292,
+    "sha256": "8441c4180bc90714ee9a2a6fbd52903de42c996cec68f7cc741bfb6fb5b1a0e8"
+  },
+  "fonts/fonts.css": {
+    "package": "Liberation Fonts 2.1.5, Carlito 1.103, Caladea 1.002 (paquets Debian fonts-liberation2, fonts-crosextra-carlito, fonts-crosextra-caladea)",
+    "version": "voir paquets",
+    "from": null,
+    "license": "OFL-1.1",
+    "licenseFile": "LICENSES/fonts-OFL-1.1.txt",
+    "note": "Sous-ensembles latins créés par pc/shared/office/tools/fonts-build.py (fontTools) et renommés Mag Sans, Mag Serif, Mag Mono, Mag Sans Douce (noms de fonte réservés de l'OFL) ; Caladea garde son nom (pas de nom réservé).",
+    "size": 2932,
+    "sha256": "66acac80d2e4771dc84f0ec70fd93c04f9114482d4aa5b420310cd751b91e5ec"
+  },
+  "fonts/metrics.json": {
+    "package": "Liberation Fonts 2.1.5, Carlito 1.103, Caladea 1.002 (paquets Debian fonts-liberation2, fonts-crosextra-carlito, fonts-crosextra-caladea)",
+    "version": "voir paquets",
+    "from": null,
+    "license": "OFL-1.1",
+    "licenseFile": "LICENSES/fonts-OFL-1.1.txt",
+    "note": "Sous-ensembles latins créés par pc/shared/office/tools/fonts-build.py (fontTools) et renommés Mag Sans, Mag Serif, Mag Mono, Mag Sans Douce (noms de fonte réservés de l'OFL) ; Caladea garde son nom (pas de nom réservé).",
+    "size": 2944,
+    "sha256": "438142fe95742211ae12bbadc06cc9f540986318039524f2c7830532b4f2a2af"
+  },
   "hls.min.js": {
     "package": "hls.js",
     "version": "1.6.19",
@@ -310,6 +530,26 @@
     "note": "Copie prise au tag v4.0.1 de github.com/gitbrent/PptxGenJS (dist/pptxgen.min.js, identique au paquet npm), ligne sourceMappingURL retirée.",
     "size": 270970,
     "sha256": "987e3da32f718a6a824893596a92ac2b86464797dc9cebd7a0f05360306071d7"
+  },
+  "prosemirror.css": {
+    "package": "prosemirror-view, prosemirror-tables, prosemirror-gapcursor",
+    "version": "voir prosemirror.min.js",
+    "from": null,
+    "license": "MIT",
+    "licenseFile": "LICENSES/prosemirror-MIT.txt",
+    "note": "Feuilles de style des paquets, réunies par le même script.",
+    "size": 2922,
+    "sha256": "46cc196791f48d606bad4b71601f3c52810940c3e1daa0dc70184ef2ef3a4073"
+  },
+  "prosemirror.min.js": {
+    "package": "prosemirror (github.com/ProseMirror : model 1.25.4, state 1.4.4, transform 1.12.0, view 1.41.7, commands 1.7.1, keymap 1.2.3, history 1.5.0, inputrules 1.5.1, schema-list 1.5.1, tables 1.8.5, dropcursor 1.8.2, gapcursor 1.4.1, orderedmap 2.1.1, rope-sequence 1.3.4, w3c-keyname 2.2.8)",
+    "version": "voir paquets",
+    "from": null,
+    "license": "MIT",
+    "licenseFile": "LICENSES/prosemirror-MIT.txt",
+    "note": "Construit par pc/shared/office/tools/prosemirror-build.mjs (esbuild) depuis les tags officiels des dépôts GitHub : un seul fichier, objet global window.PM.",
+    "size": 268715,
+    "sha256": "1953ff8675677604da1b51be4fcfd4f9e0e829dce513d8628ab7093b0d2d4902"
   },
   "tesseract/fra.traineddata": {
     "package": "tessdata_fast (github.com/tesseract-ocr/tessdata_fast, commit 8741641)",

@@ -1,0 +1,79 @@
+<!-- FICHIER GÉNÉRÉ par pc/build-pc.py depuis applis/www-texte/index.html : ne pas modifier ici. -->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<!-- Suite MAG sur PC : ajouté par pc/build-pc.py (source : applis/www-texte/index.html) -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="../shared/pc.css">
+<script>window.MAGPC_CONF={"app": "texte", "name": "Texte", "vendor": "../shared/vendor/", "ocrWorker": "ocr-worker.js", "sw": "sw.js", "apps": {"fr.magformation13.lecteur": "../lecteur/", "fr.magformation13.pdf": "../pdf/", "fr.magformation13.budget": "../budget/", "fr.magformation13.liseuse": "../liseuse/", "fr.magformation13.fichiers": "../fichiers/", "fr.magformation13.actualites": "../actualites/", "fr.magformation13.carnet": "../notes/", "fr.magformation13.agenda": "../agenda/", "fr.magformation13.contacts": "../contacts/", "fr.magformation13.calcul": "../calcul/", "fr.magformation13.qr": "../qr/", "fr.magformation13.meteo": "../meteo/", "fr.magformation13.ciel": "../ciel/", "fr.magformation13.sentiers": "../sentiers/", "fr.magformation13.solaire": "../solaire/", "fr.magformation13.musique": "../musique/", "fr.magformation13.ondes": "../ondes/", "fr.magformation13.ecran": "../ecran/", "fr.magformation13.galerie": "../galerie/", "fr.magformation13.toile": "../toile/", "fr.magformation13.scan": "../scan/", "fr.magformation13.dicta": "../dicta/", "fr.magformation13.coffre": "../coffre/", "fr.magformation13.petitspas": "../petitspas/", "fr.magformation13.chasse": "../chasse/", "fr.magformation13.presentation": "../presentation/", "fr.magformation13.texte": "../texte/"}};</script>
+<script src="../shared/pc-shim.js"></script>
+
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
+<title>Texte</title>
+<meta name="theme-color" content="#0B7285">
+<meta name="description" content="Texte : traitement de texte hors ligne de la Suite MAG (pagination, styles, tableaux, suivi des modifications, .docx, .odt, PDF, publipostage)">
+<link rel="stylesheet" href="../shared/vendor/fonts/fonts.css">
+<link rel="stylesheet" href="../shared/vendor/prosemirror.css">
+<link rel="stylesheet" href="../shared/office/office.css">
+<link rel="stylesheet" href="texte.css">
+<link rel="stylesheet" href="texte-doc.css">
+</head>
+<body>
+<div id="app">
+  <header id="titlebar"></header>
+  <div id="ribbonHost"></div>
+  <div id="ctxbar" hidden></div>
+  <div id="main">
+    <aside id="nav" hidden aria-label="Volet de navigation"></aside>
+    <section id="center">
+      <div id="rulerRow"><div id="rulerCorner" title="Type de tabulation (cliquer pour changer)"></div><div id="rulerH" aria-hidden="true"></div></div>
+      <div id="docScroll" tabindex="-1" data-mpc-drop>
+        <div id="sizer"><div class="tx-paper" id="paper"><div class="tx-under"></div><div class="tx-body" id="docBody"></div><div class="tx-over"></div><div class="tx-cmts"></div></div></div>
+      </div>
+      <div id="spread" hidden></div>
+    </section>
+    <aside id="pane" hidden></aside>
+  </div>
+  <footer id="status"></footer>
+</div>
+<div id="backstage"></div>
+<div id="dropHint">Déposer un document (.docx, .magdoc, .odt, .rtf, .txt, .md, .html) pour l'ouvrir</div>
+<div id="printBox"></div>
+<noscript>Texte a besoin de JavaScript.</noscript>
+<!-- bibliothèques (licences : dossier LICENSES / À propos) -->
+<script src="../shared/vendor/jszip.min.js"></script>
+<script src="../shared/vendor/lucide-icons.js"></script>
+<script src="../shared/vendor/prosemirror.min.js"></script>
+<!-- pièces communes des applis bureautiques (pc/shared/office/) -->
+<script src="../shared/office/office-core.js"></script>
+<script src="../shared/office/office-ribbon.js"></script>
+<script src="../shared/office/office-richtext.js"></script>
+<script src="../shared/office/office-files.js"></script>
+<script src="../shared/office/office-themes.js"></script>
+<script src="../shared/office/office-raster.js"></script>
+<script src="../shared/office/office-pdf.js"></script>
+<!-- formes et graphiques : mêmes fichiers que Présentation -->
+<script src="pres-shapes.js"></script>
+<script src="pres-charts.js"></script>
+<!-- Texte -->
+<script src="tx-schema.js"></script>
+<script src="tx-model.js"></script>
+<script src="tx-views.js"></script>
+<script src="tx-editor.js"></script>
+<script src="tx-layout.js"></script>
+<script src="tx-commands.js"></script>
+<script src="tx-io.js"></script>
+<script src="tx-docx.js"></script>
+<script src="tx-odt.js"></script>
+<script src="tx-pdf.js"></script>
+<script src="tx-merge.js"></script>
+<script src="tx-templates.js"></script>
+<script src="tx-dialogs.js"></script>
+<script src="tx-panes.js"></script>
+<script src="tx-ui.js"></script>
+<script src="tx-app.js"></script>
+</body>
+</html>
