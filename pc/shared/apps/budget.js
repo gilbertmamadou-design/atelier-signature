@@ -49,4 +49,9 @@
     };
     if (layer()) { history.back(); setTimeout(json ? put : openImport, 300); } else if (json) put(); else openImport();
   });
+  /* Opération ajoutée par Majordome (même stockage « budget.v1 ») pendant que Budget est ouvert : on relit les données */
+  window.addEventListener('storage', function (e) {
+    if (e.key !== 'budget.v1' || !e.newValue || !window.BudgetApp || !window.BudgetApp.reload) return;
+    try { window.BudgetApp.reload(JSON.parse(e.newValue)); M.toast('Opération ajoutée depuis Majordome'); } catch (x) { }
+  });
 })();

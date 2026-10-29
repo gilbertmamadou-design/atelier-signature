@@ -238,6 +238,13 @@
   function copyShare(t) { M.clip.write(t).then(function (ok) { M.toast(ok ? 'Événement copié dans le presse-papier' : 'Partage impossible', { bad: !ok }); }); }
   var pend = '';
   window.MAGAgenda = B;
+  /* Même agenda dans plusieurs fenêtres (Agenda, Majordome) : une modification faite ailleurs est relue ici */
+  window.addEventListener('storage', function (e) {
+    if (e.key !== KEY || !e.newValue) return;
+    try { var n = JSON.parse(e.newValue); if (n && Array.isArray(n.cals) && Array.isArray(n.ev)) { D = n; if (M.app === 'agenda') { planReminders(); emit('resume', ''); } } } catch (x) { }
+  });
+  // Chargé aussi par Majordome (pc/shared/apps/majordome.js) pour lire et ajouter des rendez-vous : sans l'interface d'Agenda
+  if (M.app !== 'agenda') return;
 
   /* .ics déposé sur la fenêtre ou ouvert avec « Ouvrir avec › Agenda » */
   M.conf.dropHint = 'Fichier agenda .ics à importer';

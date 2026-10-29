@@ -589,6 +589,16 @@
     "size": 2857601,
     "sha256": "34e8d50cac216427d86bf397d610fdd9f49492539bbcdfbfccc4eda20c810bea"
   },
+  "vosk/vosk-worker.js": {
+    "package": "vosk-browser (github.com/ccoreilly/vosk-browser, branche gh-pages, commit a4b0d0f)",
+    "version": "0.0.8",
+    "from": null,
+    "license": "Apache-2.0 (Vosk, Kaldi, OpenFST) ; BSD (CLAPACK, libarchive) ; zlib ; MIT (emscripten, musl)",
+    "licenseFile": "LICENSES/vosk-browser-Apache-2.0.txt",
+    "note": "Worker de reconnaissance (WebAssembly incorporé) décodé tel quel depuis la démo officielle (static/js/main.fcc31215.chunk.js) ; seule modification : clé de cache « key » du message load (voir l'en-tête du fichier). Registre npm injoignable au moment de l'intégration.",
+    "size": 4234514,
+    "sha256": "8fa4799741edb1bb83884051793e135232ad5dba100f886e57c2278a1f8dcfe4"
+  },
   "xlsx.full.min.js": {
     "package": "xlsx",
     "version": "0.18.5",

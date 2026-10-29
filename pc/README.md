@@ -33,6 +33,7 @@ pc/
     ecran-pc.html        page d'Écran sur PC (propre au PC) : vidéos du PC et liens vidéo
     apps/fenetres.css    commun : feuilles du bas en fenêtres centrées (champ « styles » de pc-apps.json)
     apps/souris.css      commun : curseurs, survol, barres de défilement
+    apps/majordome.js    pont simulé MAGMajordome : Vosk (vendor/vosk/vosk-worker.js), Web Speech facultatif, écoute continue, agenda partagé
     office/              pièces communes des applis bureautiques (Présentation, Texte, puis Tableur), voir « Applis bureautiques »
     vendor/              bibliothèques (pdf.js, pdf-lib, jszip, tesseract, leaflet, jspdf, xlsx, hls.js, PptxGenJS, KaTeX,
                          icônes Lucide) + LICENSES/ + VENDOR.json
@@ -59,6 +60,7 @@ pc/
 | Coffre (`coffre`) | identique (PBKDF2 600 000 + AES-GCM 256, rien ne sort) | empreinte (mot de passe maître seulement) |
 | Présentation (`presentation`) | tout : édition, thèmes, masque, animations, diaporama et mode présentateur (2e fenêtre), .magpres, import/export .pptx, PDF, images, « Ouvrir avec » .pptx/.magpres, enregistrement sur place (File System Access) | — |
 | Texte (`texte`) | tout : traitement de texte paginé (sections, en-têtes et pieds, notes, tableaux, images habillées, styles, listes, table des matières, suivi des modifications, commentaires, publipostage CSV), .magdoc, .docx et .odt (ouvrir et enregistrer), .rtf/.txt/.md/.html, PDF à signets, « Ouvrir avec » .docx/.magdoc/.odt/.rtf/.txt/.md, enregistrement sur place, PDF envoyé à l'Atelier PDF | — |
+| Majordome (`majordome`) | assistant vocal à commandes (sans IA) : reconnaissance hors ligne Vosk (WebAssembly), mot de réveil fenêtre ouverte, Ctrl+Espace, saisie au clavier ; heure, calculs, conversions, minuteurs, rappels, météo et vent (Open-Meteo), titres franceinfo, agenda (celui d'Agenda sur PC), notes et listes, dépense ajoutée dans Budget (après confirmation, jamais de solde lu), ouverture des applis de la Suite, pause / suivant de Mélodie | appels, SMS, lampe, volume du système, modes, Wi-Fi / Bluetooth ; vigilance MeteoAlarm sans relais ; alarmes appli fermée |
 | Petits Pas (`petitspas`), Carnet de chasse (`chasse`) | consultation, fiches, statistiques, exports | Petits Pas : sources officielles sans relais ; chasse : position GPS précise |
 
 **Écartées** (n'ont de sens que sur le téléphone) : Socle (accueil Android), Aube (réveil), Urgence, Mesure
@@ -129,6 +131,28 @@ ne déclenche pas « pages build and deployment ».
 - **Stockage** : l'origine est commune à toutes les applis PC (`gilbertmamadou-design.github.io`) :
   préfixer les clés `localStorage` et les bases IndexedDB par l'appli. Échanges entre applis : store `inbox`
   de la base `mag-pc` (voir `MAGLecteur.sendTo` → `MAGPdf.pending`).
+
+## Majordome sur PC
+
+Même page que l'APK (`applis/www-majordome` : `mj-nlu.js` analyse des commandes, `mj-orb.js` sphère de particules en canvas 2D,
+`mj-app.js` exécution, `mj-depts.js` départements pour la vigilance), copiée par `copies`. `shared/apps/majordome.js` définit
+`window.MAGMajordome` :
+
+- **Reconnaissance hors ligne** : `vendor/vosk/vosk-worker.js` (vosk-browser 0.0.8, Vosk compilé en WebAssembly, 4,2 Mo, précaché).
+  Le modèle `vosk-model-small-fr-0.22` (Alpha Cephei, Apache-2.0, ~41 Mo) se télécharge une fois depuis alphacephei.com (barre de
+  progression) ou se choisit comme fichier `.zip` (« Choisir le fichier du modèle » si le site refuse la lecture depuis une page web) ;
+  le worker l'extrait (libarchive) et le garde dans IndexedDB `/vosk` (clé `vosk-model-small-fr-0.22`, d'où le petit ajout « key » au
+  message `load`). Drapeau `localStorage` `majordome:modele`. Micro : `getUserMedia` + `ScriptProcessor`, échantillons ×32768 vers le worker.
+- **Web Speech** (Edge / Chrome) : seulement si l'utilisateur l'a choisi et a coché l'avertissement (l'audio part chez Microsoft / Google).
+- **Mot de réveil** : reconnaissance continue, mot cherché dans les résultats partiels (accents et variantes « jar vis » tolérés),
+  ignorée pendant que l'assistant parle (`hold`). Ctrl+Espace : parler.
+- **Agenda** : `loadAgenda()` charge `shared/apps/agenda.js` (sans son interface : test `M.app`), même stockage `agenda-pc.v1` qu'Agenda ;
+  une modification faite dans une autre fenêtre est relue (événement `storage`).
+- **Budget** : la page écrit l'opération dans `budget.v1` (même origine) après confirmation ; `shared/apps/budget.js` relit les données
+  si Budget est ouvert (`BudgetApp.reload`). Le solde n'est jamais lu.
+- **Mélodie** : « pause », « suivant »… passent par `BroadcastChannel('mag-media')`, écouté par `shared/apps/musique.js`.
+- Voix : `speechSynthesis` du navigateur (voix françaises de Windows, vitesse, hauteur, volume) ; minuteurs et rappels dans la page.
+- Réglages, historique, notes, listes, minuteurs : `localStorage` `majordome:*` (exportables par le lanceur, sauf le modèle).
 
 ## Applis bureautiques (shared/office/)
 
@@ -365,6 +389,12 @@ par LibreOffice et réimporté, .magdoc à l'identique ; suivi des modifications
 en `w:ins`/`w:del`/`w:comment` et relus ; publipostage (aperçu, un PDF de 3 pages, un document, un .docx par
 destinataire) ; import d'un .docx fait avec python-docx (styles, listes, fusions, image, en-tête, note) ; téléphone
 412 px, aucune requête extérieure ; pont `MAGOffice` simulé (Ouvrir avec, enregistrer sur place, imprimer, tuile Socle).
+Majordome : 265 phrases françaises pour l'analyseur (intention et paramètres, nombres en lettres, fautes de reconnaissance), page PC en
+1366×768 et 412×915 avec reconnaissance simulée (texte injecté), voix simulée, horloge simulée (minuteur, rappel), Open-Meteo et
+franceinfo simulés, confirmation obligatoire (« non » puis « oui »), solde jamais lu, ouverture des applis, nom « Jarvis », Ctrl+Espace,
+historique effacé ; installabilité, hors ligne, et chargement réel du moteur Vosk WebAssembly dans Chromium (faux modèle refusé
+proprement : le vrai modèle n'était pas téléchargeable depuis l'environnement d'essai) ; banc Android (ponts simulés : appel, SMS,
+Budget, applis, Mélodie, lampe, volume, modes, Wi-Fi, alarmes, agenda, titres) et tuile Socle.
 Écran : vidéos de test faites avec ffmpeg en VP9/Opus (le Chromium de Playwright n'a ni H.264 ni AAC : un .mp4 H.264 y sert
 à vérifier « Codec non pris en charge »), `.srt` en Windows-1252, faux lecteurs intégrés (page qui répond au `postMessage`
 de YouTube), serveur à requêtes partielles (Range) pour le lien direct, flux HLS fMP4, second serveur sans CORS.
@@ -383,5 +413,8 @@ inputrules 1.5.1, schema-list 1.5.1, tables 1.8.5, dropcursor 1.8.2, gapcursor 1
 1.3.4, w3c-keyname 2.2.8, MIT) : tags des dépôts github.com/ProseMirror (registre npm injoignable), réunis par
 `shared/office/tools/prosemirror-build.mjs`. Polices (OFL-1.1) : Liberation 2.1.5, Carlito 1.103, Caladea 1.002 (paquets
 Debian), sous-ensembles latins renommés Mag Sans / Mag Serif / Mag Mono / Mag Sans Douce (noms réservés de l'OFL).
+vosk-browser 0.0.8 (Apache-2.0, PC seulement ; Vosk, Kaldi, OpenFST Apache-2.0, CLAPACK et libarchive BSD, zlib, emscripten MIT) :
+`vendor/vosk/vosk-worker.js`, worker décodé tel quel de la démo officielle (branche gh-pages de github.com/ccoreilly/vosk-browser,
+commit a4b0d0f), registre npm injoignable ; seule modification : clé de cache « key » (voir l'en-tête du fichier).
 hls.js 1.6.19 (Apache-2.0, PC seulement, avec eventemitter3 MIT, url-toolkit et common-media-library Apache-2.0) : construit
 depuis le tag v1.6.19 par `pc/hls-build.mjs` (registre npm injoignable) ; `--vendor` le remplace par le `dist/hls.min.js` npm.

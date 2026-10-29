@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="../shared/pc.css">
 <link rel="stylesheet" href="../shared/apps/budget.css">
-<script>window.MAGPC_CONF={"app": "budget", "name": "Budget", "vendor": "../shared/vendor/", "ocrWorker": "ocr-worker.js", "sw": "sw.js", "apps": {"fr.magformation13.lecteur": "../lecteur/", "fr.magformation13.pdf": "../pdf/", "fr.magformation13.budget": "../budget/", "fr.magformation13.liseuse": "../liseuse/", "fr.magformation13.fichiers": "../fichiers/", "fr.magformation13.actualites": "../actualites/", "fr.magformation13.carnet": "../notes/", "fr.magformation13.agenda": "../agenda/", "fr.magformation13.contacts": "../contacts/", "fr.magformation13.calcul": "../calcul/", "fr.magformation13.qr": "../qr/", "fr.magformation13.meteo": "../meteo/", "fr.magformation13.ciel": "../ciel/", "fr.magformation13.sentiers": "../sentiers/", "fr.magformation13.solaire": "../solaire/", "fr.magformation13.musique": "../musique/", "fr.magformation13.ondes": "../ondes/", "fr.magformation13.ecran": "../ecran/", "fr.magformation13.galerie": "../galerie/", "fr.magformation13.toile": "../toile/", "fr.magformation13.scan": "../scan/", "fr.magformation13.dicta": "../dicta/", "fr.magformation13.coffre": "../coffre/", "fr.magformation13.petitspas": "../petitspas/", "fr.magformation13.chasse": "../chasse/", "fr.magformation13.presentation": "../presentation/", "fr.magformation13.texte": "../texte/"}};</script>
+<script>window.MAGPC_CONF={"app": "budget", "name": "Budget", "vendor": "../shared/vendor/", "ocrWorker": "ocr-worker.js", "sw": "sw.js", "apps": {"fr.magformation13.lecteur": "../lecteur/", "fr.magformation13.pdf": "../pdf/", "fr.magformation13.budget": "../budget/", "fr.magformation13.liseuse": "../liseuse/", "fr.magformation13.fichiers": "../fichiers/", "fr.magformation13.actualites": "../actualites/", "fr.magformation13.carnet": "../notes/", "fr.magformation13.agenda": "../agenda/", "fr.magformation13.contacts": "../contacts/", "fr.magformation13.calcul": "../calcul/", "fr.magformation13.qr": "../qr/", "fr.magformation13.meteo": "../meteo/", "fr.magformation13.ciel": "../ciel/", "fr.magformation13.sentiers": "../sentiers/", "fr.magformation13.solaire": "../solaire/", "fr.magformation13.musique": "../musique/", "fr.magformation13.ondes": "../ondes/", "fr.magformation13.ecran": "../ecran/", "fr.magformation13.galerie": "../galerie/", "fr.magformation13.toile": "../toile/", "fr.magformation13.scan": "../scan/", "fr.magformation13.dicta": "../dicta/", "fr.magformation13.coffre": "../coffre/", "fr.magformation13.petitspas": "../petitspas/", "fr.magformation13.chasse": "../chasse/", "fr.magformation13.presentation": "../presentation/", "fr.magformation13.texte": "../texte/", "fr.magformation13.majordome": "../majordome/"}};</script>
 <script src="../shared/pc-shim.js"></script>
 <script src="../shared/apps/budget.js"></script>
 
@@ -1405,7 +1405,7 @@ function pickCat(kind, sel, fn){
 /* ================= Saisie ================= */
 function openEntry(t){
   var isEdit = !!t.id, wasCat = t.cat;
-  var st = {type:t.type || 'dep', expr:isEdit ? fmt(t.amount, {noEur:1, plain:1}).replace(/ /g, '') : '', cat:t.cat || '', acc:t.acc || defaultAcc(), to:t.to || '', date:t.date || today(), pay:t.pay || D.set.lastPay || 'carte', note:t.note || '', repeat:''};
+  var st = {type:t.type || 'dep', expr:(isEdit || t.amount > 0) ? fmt(t.amount, {noEur:1, plain:1}).replace(/ /g, '') : '', cat:t.cat || '', acc:t.acc || defaultAcc(), to:t.to || '', date:t.date || today(), pay:t.pay || D.set.lastPay || 'carte', note:t.note || '', repeat:''};
   if(st.type === 'vir' && !st.to){ var o = liveAccs().find(function(a){ return a.id !== st.acc; }); st.to = o ? o.id : ''; }
   var el = document.createElement('div'); el.className = 'page'; el.style.overflow = 'hidden';
   el.innerHTML = '<div class="entry" id="entry"><header><button class="ib" data-x aria-label="Fermer">' + ic('close') + '</button><div class="seg" id="eType"><button data-v="dep">Dépense</button><button data-v="rev">Revenu</button><button data-v="vir">Virement</button></div>' + (isEdit ? '<button class="ib" id="eDel" aria-label="Supprimer" style="color:var(--bad)">' + ic('trash') + '</button>' : '') + '</header>' +
@@ -2108,13 +2108,25 @@ window.onSocle = function(a){
   var o = a; if(typeof a === 'string'){ try{ o = JSON.parse(a); }catch(e){ o = {}; } }
   if(!o) return;
   whenUnlocked(function(){
-    if(o.add){ while(pages.length){ var p = pages[pages.length - 1]; p.el.remove(); pages.pop(); stack.pop(); } openEntry({type:o.type === 'rev' ? 'rev' : 'dep'}); }
+    if(o.add){
+      while(pages.length){ var p = pages[pages.length - 1]; p.el.remove(); pages.pop(); stack.pop(); }
+      /* Majordome (commande vocale) : opération pré-remplie, l'utilisateur la valide avec « Ajouter » */
+      var pre = {type:o.type === 'rev' ? 'rev' : 'dep'};
+      if(+o.amount > 0) pre.amount = Math.round(+o.amount);
+      if(o.cat && cat(o.cat) && cat(o.cat).kind === pre.type) pre.cat = o.cat;
+      if(o.acc){ var an = norm(o.acc), a1 = liveAccs().filter(function(a){ return norm(a.name) === an; })[0] || liveAccs().filter(function(a){ return norm(a.name).indexOf(an) >= 0 || an.indexOf(norm(a.name)) >= 0; })[0]; if(a1) pre.acc = a1.id; }
+      if(/^\d{4}-\d\d-\d\d$/.test(o.date || '')) pre.date = o.date;
+      if(o.note) pre.note = String(o.note).slice(0, 120);
+      if(/^(carte|especes|cheque|virement|prelevement)$/.test(o.pay || '')) pre.pay = o.pay;
+      openEntry(pre);
+      if(o.src === 'majordome' && pre.amount) setTimeout(function(){ toast('Opération dictée à Majordome : vérifie puis touche « Ajouter »'); }, 400);
+    }
     else if(o.tab && TITLES[o.tab]) showTab(o.tab);
   });
 };
 
 /* ================= Démarrage ================= */
-window.BudgetApp = {data:function(){ return D; }, setView:setView, setDisc:setDisc, disc:function(){ return DISC; }, fmt:fmt, parseCents:parseCents, evalExpr:evalExpr, runRecurring:runRecurring, checkAlerts:checkAlerts, addPeriod:addPeriod, parseCSVFile:parseCSVFile, keyOf:keyOf, autoCat:autoCat, exportCSV:exportCSV, reportPDF:reportPDF, open:function(n){ PAGES[n](); }, lock:lockNow};
+window.BudgetApp = {data:function(){ return D; }, reload:function(d){ if(!d || !Array.isArray(d.tx)) return; D = fix(d); AGG = null; CATS = null; refresh(); }, setView:setView, setDisc:setDisc, disc:function(){ return DISC; }, fmt:fmt, parseCents:parseCents, evalExpr:evalExpr, runRecurring:runRecurring, checkAlerts:checkAlerts, addPeriod:addPeriod, parseCSVFile:parseCSVFile, keyOf:keyOf, autoCat:autoCat, exportCSV:exportCSV, reportPDF:reportPDF, open:function(n){ PAGES[n](); }, lock:lockNow};
 DISC = !!D.set.discreetStart;
 runRecurring();
 if(D.set.migrated){ var mg = D.set.migrated; delete D.set.migrated; setTimeout(function(){ toast(mg + ' opération' + (mg > 1 ? 's' : '') + ' sans compte rattachée' + (mg > 1 ? 's' : '') + ' au compte « Principal »'); }, 800); }

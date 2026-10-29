@@ -1,0 +1,207 @@
+<!-- FICHIER GÉNÉRÉ par pc/build-pc.py depuis applis/www-majordome/index.html : ne pas modifier ici. -->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<!-- Suite MAG sur PC : ajouté par pc/build-pc.py (source : applis/www-majordome/index.html) -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="../shared/pc.css">
+<script>window.MAGPC_CONF={"app": "majordome", "name": "Majordome", "vendor": "../shared/vendor/", "ocrWorker": "ocr-worker.js", "sw": "sw.js", "apps": {"fr.magformation13.lecteur": "../lecteur/", "fr.magformation13.pdf": "../pdf/", "fr.magformation13.budget": "../budget/", "fr.magformation13.liseuse": "../liseuse/", "fr.magformation13.fichiers": "../fichiers/", "fr.magformation13.actualites": "../actualites/", "fr.magformation13.carnet": "../notes/", "fr.magformation13.agenda": "../agenda/", "fr.magformation13.contacts": "../contacts/", "fr.magformation13.calcul": "../calcul/", "fr.magformation13.qr": "../qr/", "fr.magformation13.meteo": "../meteo/", "fr.magformation13.ciel": "../ciel/", "fr.magformation13.sentiers": "../sentiers/", "fr.magformation13.solaire": "../solaire/", "fr.magformation13.musique": "../musique/", "fr.magformation13.ondes": "../ondes/", "fr.magformation13.ecran": "../ecran/", "fr.magformation13.galerie": "../galerie/", "fr.magformation13.toile": "../toile/", "fr.magformation13.scan": "../scan/", "fr.magformation13.dicta": "../dicta/", "fr.magformation13.coffre": "../coffre/", "fr.magformation13.petitspas": "../petitspas/", "fr.magformation13.chasse": "../chasse/", "fr.magformation13.presentation": "../presentation/", "fr.magformation13.texte": "../texte/", "fr.magformation13.majordome": "../majordome/"}};</script>
+<script src="../shared/pc-shim.js"></script>
+<script src="../shared/apps/majordome.js"></script>
+
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Majordome</title>
+<meta name="theme-color" content="#070b14">
+<meta name="referrer" content="no-referrer">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#070b14;--bg2:#0d1422;--bg3:#152034;--bg4:#1d2b44;--line:#7ff3d61f;--line2:#7ff3d63d;
+  --tx:#e9f4f6;--tx2:#a9bfc6;--tx3:#6f8791;
+  --acc:#46d9c2;--acc2:#2bb8a3;--onacc:#03221d;--vio:#9a86ff;--ok:#62f0a0;--warn:#ffc35c;--bad:#ff5c73;
+  --r:16px;--safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);
+  --mono:ui-monospace,"Cascadia Mono","Consolas","Roboto Mono",monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);overscroll-behavior:none}
+body{font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden;-webkit-user-select:none;user-select:none}
+input,select,textarea{font:inherit;color:inherit;-webkit-user-select:text;user-select:text}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+.ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none;display:block}
+[hidden]{display:none!important}
+/* fond : grille HUD discrète */
+#bgfx{position:fixed;inset:0;pointer-events:none;background:
+  radial-gradient(ellipse at 50% 38%,#12324044 0,transparent 60%),
+  linear-gradient(#7ff3d608 1px,transparent 1px) 0 0/34px 34px,
+  linear-gradient(90deg,#7ff3d608 1px,transparent 1px) 0 0/34px 34px}
+#app{position:fixed;inset:0;display:grid;grid-template-rows:auto 1fr auto;padding-top:var(--safe-t)}
+/* barre du haut */
+header{display:flex;align-items:center;gap:6px;padding:8px 8px 6px 14px}
+header h1{flex:1;margin:0;font-size:17px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;display:flex;align-items:center;gap:10px;min-width:0}
+header h1 i{width:9px;height:9px;border-radius:50%;background:var(--acc);box-shadow:0 0 10px var(--acc);flex:none}
+header h1 span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ib{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--tx2);position:relative}
+.ib:hover{background:var(--bg3);color:var(--tx)}
+.ib:active{background:var(--bg4)}
+.ib .dot{position:absolute;top:7px;right:7px;width:8px;height:8px;border-radius:50%;background:var(--warn)}
+#chips{display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 4px}
+.chip{font:600 11px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--tx2);border:1px solid var(--line2);border-radius:20px;padding:5px 9px;display:inline-flex;align-items:center;gap:6px}
+.chip b{width:6px;height:6px;border-radius:50%;background:var(--tx3)}
+.chip.on b{background:var(--ok);box-shadow:0 0 6px var(--ok)}
+.chip.warn b{background:var(--warn)}
+.chip.bad b{background:var(--bad)}
+button.chip{cursor:pointer}
+/* scène */
+main{display:grid;grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr);min-height:0;overflow:hidden}
+#stage{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:0}
+#orbBox{position:relative;width:min(70vw,34vh,420px);aspect-ratio:1;cursor:pointer;margin-top:4px}
+#orb{position:absolute;inset:0;width:100%;height:100%}
+#ring{position:absolute;inset:-4%;border-radius:50%;pointer-events:none}
+#ring svg{width:100%;height:100%;overflow:visible}
+#ring circle{fill:none;stroke:var(--line2);stroke-width:.4}
+#ring .tick{stroke:var(--acc);stroke-width:.6;opacity:.55}
+#status{margin-top:4px;font:600 12px/1.2 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--acc);min-height:16px;text-align:center}
+#heard{margin:8px 18px 0;min-height:22px;font-size:17px;color:var(--tx);text-align:center;max-width:640px}
+#heard.partial{color:var(--tx2);font-style:italic}
+/* réponses */
+#side{min-height:0;overflow:auto;padding:4px 14px 10px;-webkit-overflow-scrolling:touch}
+#cards{display:flex;flex-direction:column;gap:10px;max-width:680px;margin:0 auto}
+.card{background:linear-gradient(180deg,#0f1828f2,#0b1220f2);border:1px solid var(--line2);border-radius:var(--r);padding:12px 14px;position:relative;animation:pop .22s ease-out}
+.card:before{content:"";position:absolute;left:-1px;top:14px;width:3px;height:18px;border-radius:2px;background:var(--acc)}
+.card.q{background:none;border-style:dashed;padding:8px 12px;color:var(--tx2)}
+.card.q:before{display:none}
+.card.err:before{background:var(--bad)}
+.card.warn:before{background:var(--warn)}
+.card .k{font:600 10.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--tx3);margin-bottom:6px}
+.card .big{font-size:30px;font-weight:300;letter-spacing:.02em}
+.card p{margin:4px 0}
+.card ul{margin:6px 0 0;padding-left:18px}
+.card li{margin:2px 0}
+.card .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.btn{border:1px solid var(--line2);background:var(--bg3);border-radius:12px;padding:9px 14px;font-weight:600;color:var(--tx);min-height:42px}
+.btn:hover{border-color:var(--acc)}
+.btn.pri{background:var(--acc);color:var(--onacc);border-color:var(--acc)}
+.btn.bad{background:var(--bad);color:#fff;border-color:var(--bad)}
+.btn.sm{padding:6px 10px;min-height:34px;font-size:13px}
+.wx{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px;margin-top:8px}
+.wx div{background:var(--bg3);border-radius:10px;padding:6px 8px;font-size:12.5px;color:var(--tx2)}
+.wx b{display:block;color:var(--tx);font-size:14px}
+@keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+/* minuteurs */
+#timers{display:flex;gap:8px;overflow:auto;padding:0 14px 6px;max-width:100%}
+.tm{flex:none;display:flex;align-items:center;gap:8px;border:1px solid var(--line2);border-radius:14px;padding:6px 8px 6px 12px;background:var(--bg2)}
+.tm b{font:600 16px var(--mono);color:var(--acc)}
+.tm small{color:var(--tx2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tm.ring{border-color:var(--warn);animation:blink 1s infinite}
+@keyframes blink{50%{background:#3a2c0a}}
+/* saisie */
+footer{padding:6px 12px calc(10px + var(--safe-b));display:flex;align-items:center;gap:10px;max-width:760px;width:100%;margin:0 auto}
+#ask{flex:1;display:flex;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--line2);border-radius:26px;padding:3px 4px 3px 16px;min-width:0}
+#ask:focus-within{border-color:var(--acc)}
+#q{flex:1;min-width:0;background:none;border:0;outline:0;height:44px;font-size:16px}
+#mic{width:64px;height:64px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 35%,#1d3b45,#0d1b26);border:1px solid var(--acc);color:var(--acc);box-shadow:0 0 0 0 #46d9c255;transition:box-shadow .2s}
+#mic .ic{width:28px;height:28px}
+#mic.on{background:var(--ok);color:#032213;border-color:var(--ok);box-shadow:0 0 0 8px #62f0a033}
+#hint{font-size:12px;color:var(--tx3);text-align:center;padding:0 14px 2px}
+/* feuilles (panneaux) */
+#veil{position:fixed;inset:0;background:#0009;z-index:30;opacity:0;pointer-events:none;transition:opacity .2s}
+#veil.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:31;max-height:88vh;display:flex;flex-direction:column;background:var(--bg2);border:1px solid var(--line2);border-bottom:0;border-radius:20px 20px 0 0;transform:translateY(102%);transition:transform .22s ease;padding-bottom:var(--safe-b)}
+.sheet.on{transform:none}
+.sheet header{padding:12px 8px 8px 18px;border-bottom:1px solid var(--line)}
+.sheet header h2{flex:1;margin:0;font-size:17px;letter-spacing:.06em}
+.sbody{overflow:auto;padding:12px 18px 22px;-webkit-overflow-scrolling:touch}
+.sect{font:600 11px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--acc);margin:18px 0 8px}
+.sect:first-child{margin-top:4px}
+.set{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}
+.set .t{flex:1;min-width:0}
+.set .t small{display:block;color:var(--tx3);font-size:12.5px;line-height:1.35}
+.in{background:var(--bg3);border:1px solid var(--line2);border-radius:10px;padding:9px 11px;min-height:42px;width:100%;outline:0}
+.in:focus{border-color:var(--acc)}
+select.in{width:auto;max-width:58%;text-overflow:ellipsis}
+input[type=range]{width:160px;accent-color:var(--acc)}
+.sw{position:relative;width:46px;height:28px;flex:none}
+.sw input{opacity:0;width:0;height:0;position:absolute}
+.sw span{position:absolute;inset:0;border-radius:20px;background:var(--bg4);transition:.15s;cursor:pointer}
+.sw span:after{content:"";position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#cfdde2;transition:.15s}
+.sw input:checked+span{background:var(--acc)}
+.sw input:checked+span:after{transform:translateX(18px);background:#03221d}
+.note{font-size:13px;color:var(--tx2);line-height:1.5}
+.note.warn{color:var(--warn)}
+.ex{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 2px}
+.ex button{border:1px solid var(--line2);border-radius:16px;padding:6px 11px;font-size:13.5px;color:var(--tx);background:var(--bg3);text-align:left}
+.ex button:hover{border-color:var(--acc)}
+.hist{display:flex;flex-direction:column;gap:6px}
+.hist div{border-bottom:1px solid var(--line);padding:6px 0;font-size:14px}
+.hist time{display:block;font:11px var(--mono);color:var(--tx3)}
+.hist b{color:var(--tx)}
+.hist span{color:var(--tx2)}
+.li{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)}
+.li span{flex:1}
+.li.done span{text-decoration:line-through;color:var(--tx3)}
+.bar{height:8px;border-radius:5px;background:var(--bg4);overflow:hidden;margin:6px 0}
+.bar i{display:block;height:100%;background:var(--acc);width:0;transition:width .3s}
+#toast{position:fixed;left:50%;bottom:calc(92px + var(--safe-b));transform:translate(-50%,20px);background:var(--bg4);border:1px solid var(--line2);color:var(--tx);padding:10px 16px;border-radius:12px;opacity:0;pointer-events:none;transition:.2s;z-index:40;max-width:90vw;font-size:14px}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+/* grand écran : sphère à gauche, réponses à droite */
+@media (min-width:900px){
+  main{grid-template-columns:minmax(380px,1fr) minmax(400px,560px);grid-template-rows:minmax(0,1fr);gap:8px}
+  #side{padding-top:14px}
+  #orbBox{width:min(40vw,56vh,460px)}
+  .sheet{left:50%;right:auto;bottom:50%;width:min(620px,92vw);transform:translate(-50%,60%) scale(.98);opacity:0;border-radius:20px;border-bottom:1px solid var(--line2);max-height:84vh;transition:transform .2s,opacity .2s;pointer-events:none}
+  .sheet.on{transform:translate(-50%,50%);opacity:1;pointer-events:auto}
+}
+@media (max-height:520px) and (orientation:landscape){ main{grid-template-columns:1fr 1fr} #orbBox{width:min(40vw,52vh)} }
+@media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
+</style>
+</head>
+<body>
+<div id="bgfx"></div>
+<div id="app">
+  <div>
+    <header>
+      <h1><i></i><span id="title">Majordome</span></h1>
+      <button class="ib" id="bLists" aria-label="Notes et listes" title="Notes et listes"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg></button>
+      <button class="ib" id="bHist" aria-label="Historique" title="Historique"><svg class="ic" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg></button>
+      <button class="ib" id="bHelp" aria-label="Aide : ce que je sais faire" title="Ce que je sais faire"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/></svg></button>
+      <button class="ib" id="bSet" aria-label="Réglages" title="Réglages"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><i class="dot" id="setDot" hidden></i></button>
+    </header>
+    <div id="chips"></div>
+  </div>
+  <main>
+    <section id="stage">
+      <div id="orbBox" role="button" tabindex="0" aria-label="Parler à l'assistant">
+        <canvas id="orb"></canvas>
+        <div id="ring"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="49"/><circle cx="50" cy="50" r="45.5" stroke-dasharray="1 3.2"/><g id="ticks"></g></svg></div>
+      </div>
+      <div id="status" aria-live="polite">Prêt</div>
+      <div id="heard" aria-live="polite"></div>
+    </section>
+    <section id="side">
+      <div id="cards" aria-live="polite"></div>
+    </section>
+  </main>
+  <div>
+    <div id="timers"></div>
+    <footer>
+      <form id="ask" autocomplete="off">
+        <input id="q" placeholder="Tape une commande…" enterkeyhint="send" aria-label="Commande au clavier">
+        <button class="ib" type="submit" aria-label="Envoyer"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      </form>
+      <button id="mic" aria-label="Parler (Ctrl+Espace)" title="Parler (Ctrl+Espace)"><svg class="ic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+    </footer>
+    <div id="hint"></div>
+  </div>
+</div>
+<div id="veil"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true"><header><h2 id="shT"></h2><button class="ib" id="shX" aria-label="Fermer"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></header><div class="sbody" id="shB"></div></div>
+<div id="toast" role="status"></div>
+<script src="mj-nlu.js"></script>
+<script src="mj-orb.js"></script>
+<script src="mj-depts.js"></script>
+<script src="mj-app.js"></script>
+</body>
+</html>

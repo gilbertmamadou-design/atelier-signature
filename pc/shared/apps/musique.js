@@ -71,4 +71,16 @@
     'mod+arrowleft': function () { if (typeof prev !== 'function') return false; prev(); },
     'mod+f': function () { var q = document.querySelector('input[type=search]'); if (!q) return false; q.focus(); q.select(); }
   });
+  /* Commandes de Majordome (« pause », « suivant »…) : canal BroadcastChannel « mag-media » entre fenêtres de la Suite sur PC */
+  /* global toggle, audio */
+  try {
+    var ch = new BroadcastChannel('mag-media');
+    ch.onmessage = function (e) {
+      var c = e.data && e.data.cmd; if (!c || typeof toggle !== 'function') return;
+      var a = typeof audio !== 'undefined' ? audio : document.getElementById('audio'), playing = a && !a.paused;
+      if (c === 'play' && !playing) toggle(); else if (c === 'pause' && playing) toggle();
+      else if (c === 'toggle') toggle(); else if (c === 'next' && typeof next === 'function') next(); else if (c === 'prev' && typeof prev === 'function') prev();
+      ch.postMessage({ ack: c });
+    };
+  } catch (x) { }
 })();
