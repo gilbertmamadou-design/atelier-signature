@@ -12,6 +12,7 @@
                  center, blur (blurFit)
    Messages reçus  : {id, cmd:'process', file, opt:{sw, sh, tol, borders, text, trim, fit, q, out, preview}}
                      {id, cmd:'thumb', file, size}
+                     {id, cmd:'measure', file}  → {ow, oh} (dimensions affichées, orientation EXIF comprise ; « Images en ligne »)
    Réponses        : {id, ok:true, ...} ou {id, ok:false, error, code}
    Une seule image en mémoire à la fois ; les grandes images sont décodées
    directement à taille réduite (createImageBitmap + resizeWidth/Height),
@@ -433,6 +434,13 @@ async function handle(m) {
       var c = new OffscreenCanvas(bm.width, bm.height); c.getContext('2d').drawImage(bm, 0, 0); bm.close();
       var blob = await c.convertToBlob({ type: 'image/jpeg', quality: 0.8 }); c.width = 0;
       self.postMessage({ id: m.id, ok: true, thumb: blob });
+      return;
+    }
+    if (m.cmd === 'measure') {
+      var d = probe(new Uint8Array(await m.file.slice(0, 512 * 1024).arrayBuffer())), mw, mh;
+      if (d && d.w > 0 && d.h > 0 && d.type !== 'gif') { mw = d.swap ? d.h : d.w; mh = d.swap ? d.w : d.h; }
+      else { var b2; try { b2 = await createImageBitmap(m.file, { imageOrientation: 'from-image' }); } catch (e) { throw unreadable(m.file); } mw = b2.width; mh = b2.height; b2.close(); }
+      self.postMessage({ id: m.id, ok: true, ow: mw, oh: mh });
       return;
     }
     if (m.cmd === 'process') {

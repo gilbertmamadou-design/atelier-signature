@@ -155,6 +155,13 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
 #toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,140%);width:min(560px,calc(100vw - 32px));background:#2b3042;border:1px solid #ffffff1f;color:var(--tx);padding:12px 14px;border-radius:14px;font-size:14px;box-shadow:0 10px 30px #0008;transition:transform .25s;z-index:80}
 #toast.on{transform:translate(-50%,0)}
 #toast.bad{border-color:#ff7b7b66}
+/* Onglets : Fonds / Images en ligne (toile-en-ligne.js) */
+.tabs{display:flex;gap:4px;background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:4px;margin-bottom:12px;max-width:520px}
+.tabs button{flex:1;padding:9px 10px;border-radius:10px;font-weight:700;font-size:14px;color:var(--tx2)}
+.tabs button:hover{color:var(--tx)}
+.tabs button.on{background:var(--bg4);color:var(--tx);box-shadow:0 0 0 1px #ffffff1c inset}
+.tabs b{font-weight:700;font-size:11.5px;background:var(--bg3);border-radius:99px;padding:1px 7px;margin-left:4px;color:var(--tx2)}
+.folder .ico.web{background:#6fd6a41f;color:var(--ok)}
 html.mag-pc ::-webkit-scrollbar{width:12px;height:12px}
 html.mag-pc ::-webkit-scrollbar-thumb{background:#8885;border-radius:8px;border:3px solid transparent;background-clip:content-box}
 html.mag-pc ::-webkit-scrollbar-track{background:transparent}
@@ -172,6 +179,7 @@ html.mag-pc ::-webkit-scrollbar-track{background:transparent}
 <symbol id="i-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
 <symbol id="i-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
 <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></symbol>
+<symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
 <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m10.8 12.2 9.2-9.2M17 6l3 3M14 9l2 2"/></symbol>
 </defs></svg>
 
@@ -196,6 +204,7 @@ html.mag-pc ::-webkit-scrollbar-track{background:transparent}
     <section class="card">
       <h3><span class="n" id="n1">1</span>Photos source</h3>
       <div id="srcList"></div>
+      <div id="webSrc"></div>
       <div class="row"><button class="btn" id="bAddSrc"><svg class="ic"><use href="#i-plus"/></svg>Ajouter un dossier</button></div>
       <div class="set" style="margin-top:8px;border-top:1px solid var(--line);padding-top:11px">
         <div class="t"><div>Inclure les sous-dossiers</div><div>Jusqu'à 4 niveaux, comme sur le téléphone</div></div>
@@ -256,6 +265,9 @@ html.mag-pc ::-webkit-scrollbar-track{background:transparent}
   </aside>
 
   <main class="work">
+    <div class="tabs" role="tablist" aria-label="Sections"><button role="tab" data-tab="fonds" class="on" aria-selected="true">Fonds</button><button role="tab" data-tab="web" aria-selected="false">Images en ligne<b id="webN" hidden></b></button></div>
+    <div id="tabWeb" hidden></div>
+    <div id="tabFonds">
     <div class="steps" id="steps"></div>
     <div class="bar">
       <button class="btn main big" id="bRun"><svg class="ic"><use href="#i-sync"/></svg>Mettre à jour les fonds</button>
@@ -264,6 +276,7 @@ html.mag-pc ::-webkit-scrollbar-track{background:transparent}
     </div>
     <div class="chips" id="chips"></div>
     <div id="gridBox"></div>
+    </div>
   </main>
 </div>
 
@@ -286,6 +299,7 @@ html.mag-pc ::-webkit-scrollbar-track{background:transparent}
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 
+<script src="toile-en-ligne.js"></script>
 <script>
 'use strict';
 (function () {
@@ -318,6 +332,10 @@ html.mag-pc ::-webkit-scrollbar-track{background:transparent}
     return { get: function (k) { return tx('readonly', function (s) { return s.get(k); }).catch(function () { }); }, set: function (k, v) { return tx('readwrite', function (s) { return s.put(v, k); }).catch(function () { }); } };
   })();
   var SOURCES = [];     // {id, handle, ok}
+  var WEB = null;       // images en ligne : {id:'web', handle (dossier privé OPFS « toile-en-ligne »), label, ok, web:true}
+  var WEBCFG_LS = 'toile-pc:en-ligne', KEYS_LS = 'toile-cles-pc';   // clés hors du préfixe « toile-pc: » : jamais exportées
+  function webCfg() { try { return TEL.config(JSON.parse(localStorage.getItem(WEBCFG_LS) || 'null')); } catch (e) { return window.TEL ? TEL.config(null) : { rot: true }; } }
+  function srcName(s) { return s.label || s.handle.name; }
   var OUT = null;       // {handle, parent, ok}
   var OVR = {};         // clé d'image → {fit, excl}
   var ITEMS = [], MAN = null, OUTFILES = null, SKIP = {};
@@ -387,6 +405,15 @@ html.mag-pc ::-webkit-scrollbar-track{background:transparent}
       try { await walk(s.handle, '', S.sub ? 4 : 0); }
       catch (e) { s.ok = false; toast('« ' + s.handle.name + ' » : accès perdu, réautorisez-le', true); }
     }
+    // images en ligne gardées (métadonnées dans IndexedDB, fichiers dans le stockage privé du navigateur)
+    var w = await webList();
+    if (w.length && webCfg().rot) {
+      var d = await webDir();
+      for (var x of w) {
+        if (out.length >= 5000) break;
+        try { var fh = await d.getFileHandle(x.file), f2 = await fh.getFile(); out.push({ key: 'web:' + x.file, src: WEB, rel: x.file, name: x.file, size: f2.size, mtime: f2.lastModified, fh: fh, web: x }); } catch (e) { }
+      }
+    }
     out.sort(function (a, b) { return a.name.localeCompare(b.name, 'fr', { sensitivity: 'base', numeric: true }) || a.key.localeCompare(b.key); });
     out.forEach(function (it) { it.out = outName(it); });
     return out;
@@ -442,7 +469,7 @@ html.mag-pc ::-webkit-scrollbar-track{background:transparent}
   async function run() {
     if (RUN) return;
     LAST = null; $('runT1').textContent = 'Vérification des accès…'; $('runT2').textContent = '';
-    if (!SOURCES.length) { toast("Ajoutez d'abord un dossier de photos (étape 1)", true); return; }
+    if (!SOURCES.length && !(await webList()).length) { toast("Ajoutez d'abord un dossier de photos (étape 1)", true); return; }
     if (!OUT) { toast('Choisissez d\'abord le dossier de sortie (étape 2)', true); return; }
     if (!await ensure(true)) { toast('Accès refusé : réautorisez les dossiers', true); paint(); return; }
     RUN = { cancel: false, made: 0, upd: 0, del: 0, skip: 0, err: [] };
@@ -474,7 +501,8 @@ html.mag-pc ::-webkit-scrollbar-track{background:transparent}
           var r = await ENG.call({ cmd: 'process', file: f, opt: o });
           var fh = await OUT.handle.getFileHandle(it.out, { create: true }), w = await fh.createWritable();
           await w.write(r.out); await w.close();
-          MAN.items[it.out] = { src: it.key, source: it.src.handle.name + '/' + it.rel, size: it.size, mtime: it.mtime, sig: sig(it), info: r.info, at: Date.now() };
+          MAN.items[it.out] = { src: it.key, source: srcName(it.src) + '/' + it.rel, size: it.size, mtime: it.mtime, sig: sig(it), info: r.info, at: Date.now() };
+          if (it.web) MAN.items[it.out].credit = TEL.credit(it.web);
           delete MAN.skipped[it.key];
           OUTFILES.add(it.out); RUN[was]++;
         } catch (e) {
@@ -488,6 +516,7 @@ html.mag-pc ::-webkit-scrollbar-track{background:transparent}
         paintItem(it);
       }
       await writeManifest();
+      await writeCredits().catch(function () { });
       setProg(1);
       var parts = [];
       if (RUN.made) parts.push(pl(RUN.made, 'fond créé', 'fonds créés'));
@@ -569,7 +598,11 @@ html.mag-pc ::-webkit-scrollbar-track{background:transparent}
     }).join('') : '<div class="emptyf">Aucun dossier : ajoutez celui (ou ceux) où sont vos photos.</div>';
     $('outBox').innerHTML = OUT ? '<div class="folder"><div class="ico out">' + icon('folder') + '</div><div class="t"><div>' + esc(OUT.handle.name) + '</div><div class="' + (OUT.ok ? '' : 'lost') + '">' + (OUT.ok ? (OUT.parent ? 'dans « ' + esc(OUT.parent) + ' » · ' : '') + (OUTFILES ? pl([].filter.call(Array.from(OUTFILES), function (n) { return n.indexOf(PREFIX) === 0 && n !== MANIFEST; }).length, 'fond') : '') : 'à réautoriser') + '</div></div></div>'
       : '<div class="emptyf">Pas encore choisi. Le plus simple : « Créer « Fonds Toile » dans… » puis choisir <b>Images</b>.</div>';
-    $('n1').classList.toggle('ok', SOURCES.length > 0); $('n1').textContent = SOURCES.length ? '✓' : '1';
+    var wn = ITEMS.filter(function (it) { return it.web; }).length;
+    $('webSrc').innerHTML = WEBN ? '<div class="folder"><div class="ico web">' + icon('globe') + '</div><div class="t"><div>Images en ligne</div><div>' + (webCfg().rot ? pl(wn || WEBN, 'image') + ' · onglet « Images en ligne »' : 'non préparées (réglage de l\'onglet « Images en ligne »)') + '</div></div></div>' : '';
+    $('webN').hidden = !WEBN; $('webN').textContent = WEBN;
+    var has = SOURCES.length > 0 || WEBN > 0;
+    $('n1').classList.toggle('ok', has); $('n1').textContent = has ? '✓' : '1';
     $('n2').classList.toggle('ok', !!OUT); $('n2').textContent = OUT ? '✓' : '2';
   }
   function counts() {
@@ -583,7 +616,7 @@ html.mag-pc ::-webkit-scrollbar-track{background:transparent}
     $('chips').innerHTML = ITEMS.length ? [['all', 'Toutes'], ['todo', 'À traiter'], ['ok', 'À jour'], ['excl', 'Exclues'], ['err', 'Ignorées']].filter(function (x) { return x[0] === 'all' || c[x[0]]; })
       .map(function (x) { return '<button class="chip' + (FILTER === x[0] ? ' on' : '') + '" data-f="' + x[0] + '">' + x[1] + '<b>' + c[x[0]] + '</b></button>'; }).join('') : '';
     if (FILTER !== 'all' && !c[FILTER]) FILTER = 'all';
-    var st = [['Photos source', SOURCES.length ? pl(SOURCES.length, 'dossier') + ' · ' + pl(c.all, 'image') : 'à ajouter', SOURCES.length > 0],
+    var st = [['Photos source', SOURCES.length || WEBN ? (SOURCES.length ? pl(SOURCES.length, 'dossier') : 'en ligne') + ' · ' + pl(c.all, 'image') : 'à ajouter', SOURCES.length > 0 || WEBN > 0],
       ['Dossier de sortie', OUT ? '« ' + OUT.handle.name + ' »' : 'à choisir', !!OUT],
       ['Mettre à jour', !ITEMS.length ? '—' : c.todo ? pl(c.todo, 'image') + ' à traiter' : 'tout est à jour', ITEMS.length > 0 && !c.todo],
       ['Diaporama Windows', '<a href="#" id="stGuide" style="color:var(--acc)">voir le guide</a>', !!(OUT && ITEMS.length && !c.todo)]];
@@ -594,14 +627,14 @@ html.mag-pc ::-webkit-scrollbar-track{background:transparent}
     $('pillTxt').textContent = !ITEMS.length ? (SOURCES.length ? 'Aucune image' : 'Pas de photos') : c.todo ? pl(c.todo, 'fond') + ' à préparer' : pl(c.ok, 'fond') + ' à jour';
     if (!RUN && !LISTING && LAST) { $('runT1').textContent = LAST.t1; $('runT2').textContent = LAST.t2; }
     else if (!RUN && !LISTING) {
-      $('runT1').textContent = !SOURCES.length ? '1. Ajoutez un dossier de photos' : !OUT ? '2. Choisissez le dossier de sortie' : c.todo ? pl(c.todo, 'image') + ' à préparer' : ITEMS.length ? 'Tout est à jour' : 'Aucune image dans ces dossiers';
+      $('runT1').textContent = !SOURCES.length && !WEBN ? '1. Ajoutez un dossier de photos' : !OUT ? '2. Choisissez le dossier de sortie' : c.todo ? pl(c.todo, 'image') + ' à préparer' : ITEMS.length ? 'Tout est à jour' : 'Aucune image dans ces dossiers';
       $('runT2').textContent = 'Écran ' + S.w + '×' + S.h + ' · JPEG ' + S.q + ' · ' + FITN[S.fit] + (c.excl ? ' · ' + pl(c.excl, 'exclue') : '') + (c.err ? ' · ' + pl(c.err, 'ignorée') : '');
     }
-    $('bRun').disabled = !!RUN || !SOURCES.length || !OUT;
+    $('bRun').disabled = !!RUN || (!SOURCES.length && !WEBN) || !OUT;
     var list = ITEMS.filter(function (it) { return FILTER === 'all' || (FILTER === 'todo' ? it.st === 'new' || it.st === 'changed' : it.st === FILTER); });
     if (!ITEMS.length) {
       var lost = SOURCES.length && !SOURCES.some(function (s) { return s.ok; });
-      $('gridBox').innerHTML = '<div class="empty"><b>' + (!SOURCES.length ? 'Ajoutez vos photos' : lost ? 'Accès aux dossiers à réautoriser' : LISTING ? 'Lecture…' : 'Aucune image trouvée') + '</b>' + (!SOURCES.length ? 'Étape 1 : « Ajouter un dossier ». Toile lit les JPEG, PNG, WebP (et HEIC si le navigateur sait les décoder).' : 'Formats lus : JPEG, PNG, WebP, AVIF, BMP, HEIC (si le navigateur le décode).') + '</div>';
+      $('gridBox').innerHTML = '<div class="empty"><b>' + (!SOURCES.length ? 'Ajoutez vos photos, ou des images en ligne' : lost ? 'Accès aux dossiers à réautoriser' : LISTING ? 'Lecture…' : 'Aucune image trouvée') + '</b>' + (!SOURCES.length ? 'Étape 1 : « Ajouter un dossier ». Toile lit les JPEG, PNG, WebP (et HEIC si le navigateur sait les décoder).' : 'Formats lus : JPEG, PNG, WebP, AVIF, BMP, HEIC (si le navigateur le décode).') + '</div>';
       return;
     }
     $('gridBox').innerHTML = '<div class="grid" id="grid">' + list.slice(0, SHOWN).map(card).join('') + '</div>' + (list.length > SHOWN ? '<div class="more"><button class="btn" id="bMore">Afficher ' + Math.min(240, list.length - SHOWN) + ' de plus (' + (list.length - SHOWN) + ' restantes)</button></div>' : '');
@@ -613,7 +646,7 @@ html.mag-pc ::-webkit-scrollbar-track{background:transparent}
     var o = OVR[it.key] || {}, t = THUMB.get(it.key);
     return '<div class="it' + (it.st === 'excl' ? ' excl' : '') + '" data-k="' + esc(it.key) + '"><div class="th" data-v="1" title="Aperçu avant / après" style="' + (t ? "background-image:url('" + t + "')" : '') + '">' + (t ? '' : t === '' ? 'aperçu indisponible' : '') +
       '<span class="badge ' + it.st + '"' + (it.msg && it.st === 'err' ? ' title="' + esc(it.msg) + '"' : '') + '>' + BADGE[it.st] + '</span></div>' +
-      '<div class="bd"><div class="nm" title="' + esc(it.rel) + '">' + esc(it.name) + '</div><div class="sb">' + esc(it.st === 'err' && it.msg ? it.msg : it.src.handle.name + (it.rel.indexOf('/') > 0 ? ' › ' + it.rel.slice(0, it.rel.lastIndexOf('/')).split('/').join(' › ') : '') + ' · ' + fsz(it.size)) + '</div>' +
+      '<div class="bd"><div class="nm" title="' + esc(it.web ? TEL.credit(it.web) : it.rel) + '">' + esc(it.web ? it.web.title : it.name) + '</div><div class="sb">' + esc(it.st === 'err' && it.msg ? it.msg : it.web ? 'En ligne · ' + it.web.author + ' · ' + it.web.license : srcName(it.src) + (it.rel.indexOf('/') > 0 ? ' › ' + it.rel.slice(0, it.rel.lastIndexOf('/')).split('/').join(' › ') : '') + ' · ' + fsz(it.size)) + '</div>' +
       '<div class="ctl"><select data-fit aria-label="Ajustement de cette image"><option value="">Général (' + esc(FITN[S.fit]) + ')</option>' + Object.keys(FITN).map(function (k) { return '<option value="' + k + '"' + (o.fit === k ? ' selected' : '') + '>' + FITN[k] + '</option>'; }).join('') + '</select>' +
       '<button class="ex' + (o.excl ? ' on' : '') + '" data-ex title="' + (o.excl ? 'Remettre cette image' : 'Exclure cette image') + '" aria-label="' + (o.excl ? 'Remettre' : 'Exclure') + ' ' + esc(it.name) + '">' + icon(o.excl ? 'eyeoff' : 'eye') + '</button></div></div></div>';
   }
@@ -669,7 +702,7 @@ html.mag-pc ::-webkit-scrollbar-track{background:transparent}
   async function openViewer(it) {
     VIT = it; $('viewer').hidden = false; document.body.style.overflow = 'hidden';
     var o = OVR[it.key] || {};
-    $('vName').textContent = it.src.handle.name + ' › ' + it.rel;
+    $('vName').textContent = it.web ? 'Images en ligne › ' + it.web.title + ' · ' + it.web.author + ' · ' + it.web.license : srcName(it.src) + ' › ' + it.rel;
     $('vFit').innerHTML = '<button data-v=""' + (!o.fit ? ' class="on"' : '') + '>Général</button>' + Object.keys(FITN).map(function (k) { return '<button data-v="' + k + '"' + (o.fit === k ? ' class="on"' : '') + '>' + FITN[k] + '</button>'; }).join('');
     $('vExcl').innerHTML = icon(o.excl ? 'eye' : 'eyeoff') + (o.excl ? 'Remettre cette image' : 'Exclure cette image');
     $('vAfterCap').textContent = 'Après · écran ' + S.w + '×' + S.h;
@@ -703,6 +736,102 @@ html.mag-pc ::-webkit-scrollbar-track{background:transparent}
     else if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
     else if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
   }, true);
+
+  /* ---------------- Images en ligne (toile-en-ligne.js) ---------------- */
+  var WEBDIR = null, WEBN = 0, WEBUI = null, WEBTH = new Map();
+  async function webDir() { if (!WEBDIR) WEBDIR = await (await navigator.storage.getDirectory()).getDirectoryHandle('toile-en-ligne', { create: true }); if (!WEB) WEB = { id: 'web', handle: WEBDIR, label: 'Images en ligne', ok: true, web: true }; return WEBDIR; }
+  async function webList() { if (!window.TEL || !navigator.storage || !navigator.storage.getDirectory) return []; var a = (await DB.get('web-items')) || []; WEBN = a.length; return a; }
+  function rawKeys() { try { return JSON.parse(localStorage.getItem(KEYS_LS) || '{}') || {}; } catch (e) { return {}; } }
+  function hex(buf) { return Array.from(new Uint8Array(buf)).map(function (b) { return ('0' + b.toString(16)).slice(-2); }).join(''); }
+  var ENGINE = window.TEL ? TEL.Engine({
+    fetch: function (u, i) { return fetch(u, i); },
+    store: { get: function (k) { return DB.get(k); }, set: function (k, v) { return DB.set(k, v); } },
+    files: {
+      put: async function (n, b) { var d = await webDir(), w = await (await d.getFileHandle(n, { create: true })).createWritable(); await w.write(b); await w.close(); },
+      del: async function (n) { var d = await webDir(); try { await d.removeEntry(n); } catch (e) { if (!e || e.name !== 'NotFoundError') throw e; } }
+    },
+    measure: function (b) { return UIENG.call({ cmd: 'measure', file: b }).then(function (r) { return { w: r.ow, h: r.oh }; }); },
+    hash: async function (buf) { return hex(await crypto.subtle.digest('SHA-256', buf)).slice(0, 32); },
+    keys: rawKeys,
+    screen: function () { return { w: S.w, h: S.h }; },
+    wait: function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  }) : null;
+  async function writeCredits() {
+    if (!OUT || !OUT.ok || !MAN) return;
+    var lines = Object.keys(MAN.items).filter(function (n) { return MAN.items[n].credit; }).sort().map(function (n) { return n + '\n    ' + MAN.items[n].credit; });
+    var NAME = 'toile-credits.txt';
+    if (!lines.length) { if (OUTFILES && OUTFILES.has(NAME)) { await OUT.handle.removeEntry(NAME).catch(function () { }); OUTFILES.delete(NAME); } return; }
+    var txt = 'Toile : crédits des images en ligne (auteur, licence, source)\r\nMis à jour le ' + new Date().toLocaleString('fr-FR') + '\r\n\r\n' + lines.join('\r\n').replace(/\n/g, '\r\n') + '\r\n';
+    var fh = await OUT.handle.getFileHandle(NAME, { create: true }), w = await fh.createWritable(); await w.write(new Blob([txt], { type: 'text/plain' })); await w.close(); OUTFILES && OUTFILES.add(NAME);
+  }
+  // retire tout de suite de « Fonds Toile » le fond tiré d'une image refusée
+  async function dropOutput(file) {
+    if (!OUT || !OUT.ok) return;
+    var m = await readManifest(); MAN = m;
+    for (var n of Object.keys(m.items)) if (m.items[n].src === 'web:' + file) { await OUT.handle.removeEntry(n).catch(function () { }); delete m.items[n]; OUTFILES.delete(n); }
+    await writeManifest().catch(function () { }); await writeCredits().catch(function () { });
+  }
+  var WAD = {
+    platform: 'pc', features: { auto: false, current: false, apply: false, lookup: true },
+    toast: toast,
+    screen: function () { return { w: S.w, h: S.h }; },
+    getConfig: function () { try { return JSON.parse(localStorage.getItem(WEBCFG_LS) || 'null'); } catch (e) { return null; } },
+    setConfig: function (c) { var old = webCfg().rot; try { localStorage.setItem(WEBCFG_LS, JSON.stringify(c)); } catch (e) { } if (old !== c.rot) { LAST = null; refresh(true); } },
+    keys: function () { var k = rawKeys(), o = {}; Object.keys(k).forEach(function (s) { if (k[s]) o[s] = '••••' + String(k[s]).slice(-4); }); return o; },
+    setKey: function (s, v) { var k = rawKeys(); if (v) k[s] = v; else delete k[s]; try { localStorage.setItem(KEYS_LS, JSON.stringify(k)); } catch (e) { } },
+    items: async function () { return webList(); },
+    thumb: async function (x) {
+      if (WEBTH.has(x.id)) return WEBTH.get(x.id);
+      var f = await (await (await webDir()).getFileHandle(x.file)).getFile(), r = await UIENG.call({ cmd: 'thumb', file: f, size: 320 }), u = URL.createObjectURL(r.thumb);
+      WEBTH.set(x.id, u); return u;
+    },
+    status: async function () {
+      var l = (await ENGINE.last()) || {}, b = await ENGINE.blocked(), api = {}, hosts = [];
+      Object.keys(b).forEach(function (k) { if (/^api:/.test(k)) api[k] = b[k]; else hosts.push(b[k]); });
+      return { at: l.at, added: l.added, msgs: l.msgs || [], blocked: api, blockedHosts: hosts };
+    },
+    unblock: function () { return ENGINE.unblock(); },
+    fetch: async function (n, prog) {
+      if (!navigator.onLine) throw new Error('Pas de connexion internet');
+      var r = await ENGINE.collect(webCfg(), n, prog);
+      return r;
+    },
+    after: async function (r) {
+      WEBN = (await webList()).length;
+      var add = r && r.added ? r.added.length : 0, rm = r && r.removed || 0;
+      if ((!add && !rm) || !webCfg().rot) { await refresh(true); return; }
+      // les nouvelles images (et celles retirées par le plafond) passent tout de suite dans « Fonds Toile »
+      if (OUT) { if (add) toast('Préparation des nouveaux fonds dans « ' + OUT.handle.name + ' »…'); await run(); }
+      else { await refresh(true); if (add) toast('Images récupérées : choisissez le dossier de sortie (étape 2) pour les préparer en fonds', false, 6000); }
+      if (WEBUI) WEBUI.refresh();
+    },
+    fav: function (id, on) { return ENGINE.setFav(id, on); },
+    refuse: async function (id) { var x = (await webList()).filter(function (y) { return y.id === id; })[0]; await ENGINE.refuse(id); if (x) { WEBTH.delete(id); await dropOutput(x.file); } WEBN = (await webList()).length; refresh(true); },
+    report: async function (x) { WAD.open(x.page); await WAD.refuse(x.id); },   // ouverture d'abord : le navigateur exige le clic tout juste fait
+    open: function (u) { if (!/^https:\/\//.test(u || '')) return; (M && M.nativeOpen ? M.nativeOpen : window.open).call(window, u, '_blank', 'noopener'); },
+    lookup: async function (name) {
+      var n = String(name).split(/[\\/]/).pop().trim().toLowerCase(), a = await webList();
+      var m = MAN || await readManifest(), e = Object.keys(m.items).filter(function (k) { return k.toLowerCase() === n || k.toLowerCase() === n + '.jpg'; })[0];
+      var file = e && /^web:/.test(m.items[e].src) ? m.items[e].src.slice(4) : null;
+      return a.filter(function (x) { return x.file === file || x.file.toLowerCase() === n || x.id.toLowerCase() === n; })[0] || null;
+    },
+    preview: async function (x) {
+      tab('fonds');
+      var it = ITEMS.find(function (y) { return y.key === 'web:' + x.file; });
+      if (!it) { await refresh(true); it = ITEMS.find(function (y) { return y.key === 'web:' + x.file; }); }
+      if (it) openViewer(it); else toast('Activez « Préparer dans « Fonds Toile » » pour voir son recadrage', true);
+    }
+  };
+  function tab(t) {
+    document.querySelectorAll('.tabs button').forEach(function (b) { var on = b.dataset.tab === t; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+    $('tabFonds').hidden = t !== 'fonds'; $('tabWeb').hidden = t !== 'web';
+    try { localStorage.setItem('toile-pc:onglet', t); } catch (e) { }
+    if (t !== 'web') return;
+    if (!window.TEL || !ENGINE || !navigator.storage || !navigator.storage.getDirectory) { $('tabWeb').innerHTML = '<div class="empty"><b>Images en ligne indisponibles</b>Ce navigateur ne permet pas de les garder (stockage privé).</div>'; return; }
+    if (!WEBUI) { WEBUI = { refresh: function () { } }; TEL.mount($('tabWeb'), WAD).then(function (u) { WEBUI = u; }); }
+    else if (!WEBUI.busy || !WEBUI.busy()) WEBUI.refresh();
+  }
+  document.querySelector('.tabs').addEventListener('click', function (e) { var b = e.target.closest('[data-tab]'); if (b) tab(b.dataset.tab); });
 
   /* ---------------- Réglages : interface ---------------- */
   function renderSettings() {
@@ -765,8 +894,10 @@ html.mag-pc ::-webkit-scrollbar-track{background:transparent}
     SOURCES = (src || []).filter(function (s) { return s && s.handle; }).map(function (s) { return { id: s.id, handle: s.handle, ok: false }; });
     OUT = out && out.handle ? { handle: out.handle, parent: out.parent || '', ok: false } : null;
     await ensure(false);
+    WEBN = (await webList()).length;
     paint();
-    if (SOURCES.some(function (s) { return s.ok; })) refresh();
+    if (SOURCES.some(function (s) { return s.ok; }) || WEBN) refresh();
+    try { if (localStorage.getItem('toile-pc:onglet') === 'web') tab('web'); } catch (e) { }
     if (M) M.keys({ 'mod+u': function () { run(); }, 'f5': function () { if (!RUN) refresh(); } });
   })();
 })();

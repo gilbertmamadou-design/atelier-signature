@@ -399,13 +399,14 @@
       "page": "pc/shared/toile.html",
       "name": "Toile",
       "short_name": "Toile",
-      "description": "Fonds d'écran recadrés à la taille de l'écran, que le diaporama de Windows fait défiler",
+      "description": "Fonds d'écran recadrés à la taille de l'écran, que le diaporama de Windows fait défiler ; images en ligne libres de droits par thèmes",
       "theme_color": "#0f1116",
       "background_color": "#0f1116",
       "vendor": [],
       "workers": ["toile-worker.js"],
+      "copies": { "toile-en-ligne.js": "applis/www-fonds/en-ligne.js" },
       "patches": [],
-      "data": { "ls": ["toile-pc:"], "idb": ["toile-pc"], "note": "Les fonds préparés sont dans le dossier de sortie (« Fonds Toile ») avec leur liste toile-manifest.json ; seuls les réglages et les choix par image sont exportés ici." }
+      "data": { "ls": ["toile-pc:"], "idb": ["toile-pc"], "note": "Les fonds préparés sont dans le dossier de sortie (« Fonds Toile ») avec leur liste toile-manifest.json ; seuls les réglages, les choix par image et la liste des images en ligne sont exportés ici (pas les fichiers téléchargés ni les clés d'API, qui restent sur ce PC)." }
     },
     {
       "id": "scan",

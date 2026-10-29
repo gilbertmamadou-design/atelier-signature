@@ -86,6 +86,12 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
 #toast{position:fixed;left:16px;right:16px;bottom:calc(18px + var(--safe-b));background:#2b3042;border:1px solid #ffffff1f;color:var(--tx);padding:12px 14px;border-radius:14px;font-size:14px;box-shadow:0 10px 30px #0008;transform:translateY(140%);transition:transform .25s;z-index:30}
 #toast.on{transform:none}
 #toast.bad{border-color:#ff7b7b66}
+/* Onglets : Mes fonds / Images en ligne */
+.tabs{display:flex;gap:4px;margin:0 16px 12px;background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:4px}
+.tabs button{flex:1;padding:10px 6px;border-radius:10px;font-weight:700;font-size:14px;color:var(--tx2)}
+.tabs button.on{background:var(--bg4);color:var(--tx);box-shadow:0 0 0 1px #ffffff1c inset}
+.webline{font-size:12.5px;color:var(--tx3);margin-top:8px}
+.webline a{color:var(--acc)}
 </style>
 </head>
 <body>
@@ -98,7 +104,9 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
   <div class="pill"><span class="dot" id="autoDot"></span><span id="autoTxt">Manuel</span></div>
 </header>
 
-<main>
+<nav class="tabs" role="tablist" aria-label="Sections"><button role="tab" data-tab="fonds" class="on" aria-selected="true">Mes fonds</button><button role="tab" data-tab="web" aria-selected="false">Images en ligne</button></nav>
+<main id="tabWeb" hidden></main>
+<main id="tabFonds">
   <div class="card warn" id="noBridge" hidden>Cette page fonctionne dans l'application Android <b>Toile</b> : c'est elle qui lit tes images et change le fond d'écran.</div>
 
   <section class="card">
@@ -129,6 +137,7 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
       <div class="t"><div id="fName">Aucun dossier</div><div id="fCount">Choisis le dossier où sont tes fonds d'écran</div></div>
       <button class="btn" id="bFolder">Choisir</button>
     </div>
+    <div class="webline" id="webLine" hidden></div>
     <div class="set" style="margin-top:10px;border-top:1px solid var(--line);padding-top:11px">
       <div class="t"><div>Inclure les sous-dossiers</div></div>
       <label class="sw"><input type="checkbox" data-k="sub"><span></span></label>
@@ -205,6 +214,7 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
 </main>
 <div id="toast"></div>
 
+<script src="en-ligne.js"></script>
 <script>
 (function(){
   var A = window.MAGPrint, $ = function(i){return document.getElementById(i)};
@@ -260,9 +270,11 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
   function state(){
     if(!A||!A.wpState) return;
     var st={}; try{ st=JSON.parse(A.wpState()); }catch(e){}
-    S._f = !!st.folder;
+    S._f = !!st.folder || st.web > 0;
     $('fName').textContent = st.folder || 'Aucun dossier';
-    $('fCount').textContent = !st.folder ? "Choisis le dossier où sont tes fonds d'écran" : st.count<0 ? 'Recherche des images…' : st.count===0 ? 'Aucune image trouvée' : st.count+' image'+(st.count>1?'s':'');
+    $('fCount').textContent = !st.folder ? (st.web > 0 ? 'Les images en ligne tournent seules' : "Choisis le dossier où sont tes fonds d'écran") : st.count<0 ? 'Recherche des images…' : st.count===0 ? 'Aucune image trouvée' : st.count+' image'+(st.count>1?'s':'');
+    $('webLine').hidden = !(st.web > 0);
+    $('webLine').innerHTML = st.web > 0 ? '+ ' + st.web + ' image' + (st.web>1?'s':'') + ' en ligne dans la rotation · <a href="#" data-goweb>gérer</a>' : '';
     $('autoDot').classList.toggle('on', !!(S.auto && st.planned));
     $('autoTxt').textContent = S.auto && st.planned ? 'Auto · '+label(S.interval) : 'Manuel';
     $('last').textContent = st.msg ? st.msg+' · '+ago(st.at) : '';
@@ -305,9 +317,56 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
   $('bPrev').onclick = function(){ if(A){ setBusy('bPrev', true); A.wpPrevious(); } };
   $('bTile').onclick = function(){ if(A&&A.wpAddTile) A.wpAddTile(); };
 
+  /* ---------- Onglet « Images en ligne » (en-ligne.js, pont MAGToile) ---------- */
+  var T = window.MAGToile, WEB = null, TAB = 'fonds';
+  function J(f, d){ try{ var v = f(); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
+  var AD = {
+    platform:'android', features:{ auto:true, current:true, apply:true }, ensurePlan:true,
+    toast: toast,
+    screen: function(){ var s = J(function(){ return A && A.wpState ? A.wpState() : ''; }, {}); return { w: s.sw || Math.round(Math.min(screen.width, screen.height) * (window.devicePixelRatio||1)), h: s.sh || Math.round(Math.max(screen.width, screen.height) * (window.devicePixelRatio||1)) }; },
+    getConfig: function(){ return J(function(){ return T.config(); }, {}); },
+    setConfig: function(c){ T.setConfig(JSON.stringify(Object.assign({}, c, { plan: TEL.buildPlan(c) }))); setTimeout(state, 300); },
+    keys: function(){ return J(function(){ return T.keys(); }, {}); },
+    setKey: function(s, k){ T.setKey(s, k || ''); },
+    items: function(){ return J(function(){ return T.items(); }, []); },
+    thumb: function(x){ return T.thumb(x.id) || ''; },
+    status: function(){ return J(function(){ return T.state(); }, {}); },
+    fetch: function(n, prog){
+      return new Promise(function(res){
+        T.fetchNow(n);
+        var iv = setInterval(function(){
+          var s = J(function(){ return T.state(); }, {});
+          if(s.running){ var p = String(s.prog||'').split('/'); prog({ step: s.queued ? 'wait' : 'download', i: Math.max(0, (+p[0]||1) - 1), n: +p[1] || n, theme: s.theme || '', title: s.title || s.theme || '', text: s.queued ? 'En attente du réseau…' : '' }); return; }
+          clearInterval(iv); state();
+          res({ added: s.added || 0, wanted: n, msgs: s.msgs || [] });
+        }, 700);
+      });
+    },
+    fav: function(id, on){ T.fav(id, !!on); },
+    refuse: function(id){ T.refuse(id); setTimeout(state, 200); },
+    report: function(x){ T.report(x.id, x.page || ''); setTimeout(state, 200); },
+    open: function(u){ if(T && T.openUrl) T.openUrl(u); },
+    current: function(){ return J(function(){ return T.current(); }, null); },
+    preview: function(x){ tab('fonds'); window.scrollTo(0, 0); preview(x.uri); }
+  };
+  function tab(t){
+    TAB = t;
+    document.querySelectorAll('.tabs button').forEach(function(b){ var on = b.dataset.tab === t; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+    $('tabFonds').hidden = t !== 'fonds'; $('tabWeb').hidden = t !== 'web';
+    try{ localStorage.setItem('toile.onglet', t); }catch(e){}
+    if(t === 'web'){
+      if(!T || !window.TEL){ $('tabWeb').innerHTML = '<div class="card warn">Les images en ligne fonctionnent dans l\'application Android <b>Toile</b>.</div>'; return; }
+      if(!WEB) TEL.mount($('tabWeb'), AD).then(function(w){ WEB = w; });
+      else WEB.refresh();
+    } else state();
+  }
+  document.querySelector('.tabs').addEventListener('click', function(e){ var b = e.target.closest('[data-tab]'); if(b) tab(b.dataset.tab); });
+  $('webLine').addEventListener('click', function(e){ if(e.target.closest('[data-goweb]')){ e.preventDefault(); tab('web'); } });
+
   render();
   var st = state();
-  if(st && st.folder){ A.wpScan(); }
+  if(st && (st.folder || st.web > 0)){ A.wpScan(); }
+  try{ if(localStorage.getItem('toile.onglet') === 'web') tab('web'); }catch(e){}
   document.addEventListener('visibilitychange', function(){ if(!document.hidden) state(); });
   setInterval(function(){ if(!document.hidden) state(); }, 30000);
 })();

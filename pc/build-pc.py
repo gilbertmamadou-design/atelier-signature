@@ -244,6 +244,9 @@ def main():
         # workers : copiés dans le dossier de l'appli (un worker hors de la portée du service worker ne marche pas hors ligne)
         for wk in app.get('workers', []):
             write(os.path.join(out_dir, wk), '/* COPIE GÉNÉRÉE par pc/build-pc.py depuis pc/shared/%s : ne pas modifier ici. */\n' % wk + read(os.path.join(SHARED, wk)))
+        # copies : fichiers communs avec l'APK (ex. Toile : applis/www-fonds/en-ligne.js → pc/toile/toile-en-ligne.js)
+        for dest, src_rel in sorted(app.get('copies', {}).items()):
+            write(os.path.join(out_dir, dest), '/* COPIE GÉNÉRÉE par pc/build-pc.py depuis %s : ne pas modifier ici. */\n' % src_rel + read(os.path.join(REPO, src_rel)))
         files = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png',
                  '../shared/pc-shim.js', '../shared/pc.css']
         files += ['../shared/apps/%s.css' % c for c in app.get('styles', [])]
@@ -252,6 +255,7 @@ def main():
                 files.append('../shared/apps/' + adapter + ext)
         files += ['../shared/vendor/' + v for v in app.get('vendor', [])]
         files += app.get('workers', [])
+        files += sorted(app.get('copies', {}))
         files += app.get('extra', [])
         sw, v = service_worker(app, conf, out_dir, [f for f in files if f != './'])
         sw = sw.replace('var PRECACHE = [', 'var PRECACHE = [\n  "./",', 1)

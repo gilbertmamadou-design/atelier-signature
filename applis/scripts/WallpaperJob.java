@@ -5,6 +5,7 @@ package __PKG__;
 //  - retrait des bordures unies, des bandeaux de texte en bord, rognage des bords
 //  - adaptation au format de l'écran : recadrage intelligent, centré, ou image entière sur fond flou
 //  - changement automatique (JobScheduler, survit au redémarrage), précédent, aperçu
+//  - « Images en ligne » (ToileBridge.java) : les images récupérées rejoignent la rotation, avec les mêmes traitements
 
 import android.app.WallpaperManager;
 import android.app.job.JobInfo;
@@ -91,7 +92,7 @@ public class WallpaperJob extends JobService {
     static void schedule(Context c) {
         JobScheduler js = c.getSystemService(JobScheduler.class);
         JSONObject s = settings(c);
-        if (!s.optBoolean("auto") || prefs(c).getString("folder", null) == null) { js.cancel(JOB_AUTO); return; }
+        if (!s.optBoolean("auto") || (prefs(c).getString("folder", null) == null && !ToileBridge.rotationOn(c))) { js.cancel(JOB_AUTO); return; }
         long ms = Math.max(15, s.optInt("interval", 360)) * 60000L;
         JobInfo ji = new JobInfo.Builder(JOB_AUTO, new ComponentName(c, WallpaperJob.class))
             .setPeriodic(ms).setPersisted(true).setRequiresCharging(s.optBoolean("charging")).build();
@@ -121,6 +122,7 @@ public class WallpaperJob extends JobService {
             String f = p.getString("folder", null);
             o.put("folder", f == null ? "" : folderName(f));
             o.put("count", p.getInt("count", -1));
+            o.put("web", ToileBridge.rotation(c).size());
             o.put("msg", p.getString("msg", ""));
             o.put("at", p.getLong("at", 0));
             o.put("busy", busy);
@@ -146,10 +148,14 @@ public class WallpaperJob extends JobService {
     // ---------- Liste des images ----------
     static List<Uri> list(Context c) throws Exception {
         String f = prefs(c).getString("folder", null);
-        if (f == null) throw new Exception("Choisis d'abord un dossier d'images");
-        Uri tree = Uri.parse(f);
+        List<String[]> web = ToileBridge.rotation(c);
+        if (f == null && web.isEmpty()) throw new Exception("Choisis d'abord un dossier d'images");
         List<String[]> found = new ArrayList<>();
-        walk(c, tree, DocumentsContract.getTreeDocumentId(tree), settings(c).optBoolean("sub", true) ? 4 : 0, found);
+        if (f != null) {
+            Uri tree = Uri.parse(f);
+            walk(c, tree, DocumentsContract.getTreeDocumentId(tree), settings(c).optBoolean("sub", true) ? 4 : 0, found);
+        }
+        for (String[] w : web) if (found.size() < 5000) found.add(w);
         Collections.sort(found, (a, b) -> a[0].compareToIgnoreCase(b[0]));
         List<Uri> out = new ArrayList<>();
         for (String[] s : found) out.add(Uri.parse(s[1]));
@@ -173,6 +179,8 @@ public class WallpaperJob extends JobService {
     }
 
     static String name(Context c, Uri u) {
+        String t = ToileBridge.label(c, u);
+        if (t != null) return t;
         try (Cursor cur = c.getContentResolver().query(u, new String[]{ OpenableColumns.DISPLAY_NAME }, null, null, null)) {
             if (cur != null && cur.moveToFirst()) { String n = cur.getString(0); if (n != null) return n; }
         } catch (Exception e) { }

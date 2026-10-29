@@ -8,6 +8,7 @@
 #  - MAGPrint.wp…() : Toile, fonds d'écran automatiques recadrés (WallpaperJob.java, WallpaperTile.java)
 #  - MAGPrint.weatherWatch(lat, lng, lieu, actif) : surveillance du vent et des orages, même application fermée (toutes les 30 min)
 #  - MAGActualites (ActualitesBridge.java) : flux d'actualités en liste blanche, alertes infos et vigilance météo
+#  - MAGToile (ToileBridge.java) : Toile, « Images en ligne » (sources libres en liste blanche, tâche de fond WorkManager)
 set -e
 F=$(find android/app/src/main/java -name MainActivity.java | head -1)
 PKG=$(sed -n 's/^package \(.*\);/\1/p' "$F")
@@ -393,7 +394,7 @@ public class MainActivity extends BridgeActivity {
     private final java.util.List<Object> extraBridges = new java.util.ArrayList<Object>();
     private void loadExtraBridges(WebView wv) {
         String pkg = MainActivity.class.getPackage().getName();
-        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge", "ReseauBridge", "LecteurBridge", "PdfBridge", "SolaireBridge", "SocleBridge", "FichiersBridge", "ActualitesBridge" }) {
+        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge", "ReseauBridge", "LecteurBridge", "PdfBridge", "SolaireBridge", "SocleBridge", "FichiersBridge", "ActualitesBridge", "ToileBridge" }) {
             try {
                 Class<?> k = Class.forName(pkg + "." + n);
                 Object o = k.getConstructor(android.app.Activity.class, WebView.class).newInstance(this, wv);
@@ -1906,7 +1907,8 @@ if [ "$APP" = "fonds" ] && ! grep -q "WallpaperJob" "$MAN"; then
 </vector>
 XML
   sed -i 's#</application>#    <service android:name=".WallpaperJob" android:permission="android.permission.BIND_JOB_SERVICE" android:exported="false" />\n        <service android:name=".WallpaperTile" android:label="Fond suivant" android:icon="@drawable/ic_toile_tile" android:permission="android.permission.BIND_QUICK_SETTINGS_TILE" android:exported="true"><intent-filter><action android:name="android.service.quicksettings.action.QS_TILE" /></intent-filter></service>\n    </application>#' "$MAN"
-  for P in SET_WALLPAPER RECEIVE_BOOT_COMPLETED; do
+  # INTERNET, ACCESS_NETWORK_STATE : « Images en ligne » (ToileBridge.java, sources libres en liste blanche)
+  for P in SET_WALLPAPER RECEIVE_BOOT_COMPLETED INTERNET ACCESS_NETWORK_STATE; do
     grep -q "android.permission.$P" "$MAN" || sed -i "s#</manifest>#    <uses-permission android:name=\"android.permission.$P\" />\n</manifest>#" "$MAN"
   done
 fi

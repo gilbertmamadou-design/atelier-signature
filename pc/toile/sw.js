@@ -5,7 +5,7 @@
      la page affiche « Nouvelle version disponible » et l'active sur demande (message SKIP_WAITING) ;
    - réponses : cache d'abord pour les fichiers précachés, réseau puis cache pour le reste (polices…). */
 'use strict';
-var VERSION = '1aa8891bb2a9';
+var VERSION = 'd1cfc357e5c2';
 var APP = 'toile';
 var CACHE = 'mag-pc-' + APP + '-' + VERSION, RUNTIME = 'mag-pc-' + APP + '-rt';
 var PRECACHE = [
@@ -17,7 +17,8 @@ var PRECACHE = [
   "icon-maskable-512.png",
   "../shared/pc-shim.js",
   "../shared/pc.css",
-  "toile-worker.js"
+  "toile-worker.js",
+  "toile-en-ligne.js"
 ];
 
 self.addEventListener('install', function (e) {

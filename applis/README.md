@@ -5,7 +5,7 @@ Petites applications Android faites sur mesure pour un téléphone Oukitel WP60 
 | Appli | Rôle |
 |---|---|
 | Socle | Écran d'accueil en tableau de bord (tuiles, tiroir d'applis, gestes) |
-| Toile | Fonds d'écran automatiques, recadrés (bordures, bandeaux de texte, format de l'écran) |
+| Toile | Fonds d'écran automatiques, recadrés (bordures, bandeaux de texte, format de l'écran) ; « Images en ligne » par thèmes, sources libres seulement (Wikimedia Commons, Openverse, NASA, Pixabay avec clé), crédits, tâche de fond Wi-Fi |
 | Galerie | Photos et vidéos (remplace Google Photos) |
 | Agenda | Agenda (remplace Google Agenda) |
 | Contacts | Contacts (remplace Google Contacts) |
