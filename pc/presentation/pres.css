@@ -97,7 +97,7 @@ button{font:inherit;color:inherit}
 .an-it.on{border-color:var(--o-acc);background:var(--o-acc-soft)}
 .an-it .n{width:18px;text-align:center;color:var(--o-tx3);font-weight:700}
 .an-it .k{width:9px;height:9px;border-radius:2px;flex:none}
-.an-it .k.in{background:#2F9E44}.an-it .k.em{background:#E8A400}.an-it .k.out{background:#E03131}.an-it .k.path{background:#7048E8}
+.an-it .k.in{background:#2F9E44}.an-it .k.em{background:#E8A400}.an-it .k.out{background:#E03131}.an-it .k.path{background:#7048E8}.an-it .k.media{background:#1971C2}
 .an-it .l{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .an-it .bar{height:6px;border-radius:3px;background:var(--o-acc2);opacity:.6}
 .an-it[draggable=true]{cursor:grab}
@@ -223,6 +223,23 @@ button{font:inherit;color:inherit}
 .sl .vid-ph .oi{width:56px;height:56px;stroke-width:1.4}
 .sl .vid-ph small{font-weight:400;font-size:12px;opacity:.7;word-break:break-all;max-width:100%}
 .sl .vid-badge{position:absolute;left:8px;bottom:8px;background:#000a;color:#fff;border-radius:6px;padding:4px;display:flex}
+/* diaporama : vidéos et sons (commandes à taille constante à l'écran : --k = échelle de la diapositive) */
+.mode-show .el-video,.mode-show .el-audio{cursor:pointer}
+.mode-show .el-video video{pointer-events:none}
+.sl .vplay{position:absolute;left:50%;top:50%;width:calc(64px / var(--k,1));height:calc(64px / var(--k,1));transform:translate(-50%,-50%);border-radius:50%;background:#000a;color:#fff;display:flex;align-items:center;justify-content:center;pointer-events:none;transition:opacity .2s}
+.sl .vplay .oi{width:45%;height:45%;margin-left:6%}
+.sl .el-video.playing .vplay{opacity:0}
+.sl .vctl{position:absolute;left:0;right:0;bottom:0;height:calc(40px / var(--k,1));font:600 calc(12.5px / var(--k,1)) var(--o-font,system-ui);display:flex;align-items:center;gap:.35em;padding:0 .5em;background:linear-gradient(transparent,#000c);color:#fff;opacity:0;transition:opacity .2s;z-index:2;cursor:default}
+.sl .el-video:hover .vctl,.sl .el-video.ctl-on .vctl,.sl .el-video:not(.playing) .vctl{opacity:1}
+.sl .vctl button{background:none;border:0;color:#fff;padding:.35em;display:flex;cursor:pointer;border-radius:.4em}
+.sl .vctl button:hover{background:#fff3}
+.sl .vctl .oi{width:1.45em;height:1.45em}
+.sl .vctl input{flex:1;min-width:2em;accent-color:#fff;height:1.3em;margin:0;cursor:pointer}
+.sl .vctl .vt{font-variant-numeric:tabular-nums;white-space:nowrap}
+.sl .el-video.vfull{left:0!important;top:0!important;width:100%!important;height:100%!important;transform:none!important;z-index:50}
+.sl .el-video.vmuted-auto::after,.sl .el-audio.vmuted-auto::after{content:'Son coupé : touchez pour l\2019 activer';position:absolute;left:50%;top:calc(10px / var(--k,1));transform:translateX(-50%);background:#000c;color:#fff;font:600 calc(13px / var(--k,1)) system-ui;padding:.4em .8em;border-radius:.6em;white-space:nowrap;pointer-events:none}
+.mode-show .el-audio.playing .aud-ic{animation:aud-pulse 1.2s ease-in-out infinite}
+@keyframes aud-pulse{50%{transform:scale(1.12)}}
 .sl .aud-ic{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#fff;box-shadow:0 1px 4px #0003}
 .sl .aud-ic .oi{width:60%;height:60%;stroke-width:1.8}
 .sl .eq{position:absolute;inset:0;display:flex;align-items:center;overflow:visible;white-space:nowrap}

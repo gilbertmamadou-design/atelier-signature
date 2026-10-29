@@ -206,8 +206,13 @@
   function videoHtml(e, ctx) {
     const yt = e.url ? P.ytId(e.url) : null;
     if (ctx.mode === 'show') {
-      if (yt) return '<div class="vid-yt" data-yt="' + yt + '" data-start="' + (e.start || P.ytStart(e.url) || 0) + '"><div class="vid-ph">' + O.icon('youtube') + '<span>Vidéo YouTube : touchez pour lire</span></div></div>';
-      if (e.media) return '<video src="' + P.mediaUrl(e.media) + '"' + (e.poster ? ' poster="' + P.mediaUrl(e.poster) + '"' : '') + ' playsinline preload="metadata"' + (e.loop ? ' loop' : '') + (e.muted ? ' muted' : '') + ' data-auto="' + (e.autoplay ? 1 : 0) + '" data-start="' + (e.start || 0) + '" data-end="' + (e.end || 0) + '" controls></video>';
+      const play = P.mediaStart(e);
+      if (yt) return '<div class="vid-yt" data-play="' + play + '" data-yt="' + yt + '" data-start="' + (e.start || P.ytStart(e.url) || 0) + '"><div class="vid-ph">' + O.icon('youtube') + '<span>Vidéo YouTube : touchez pour lire</span></div></div>';
+      // commandes propres à l'appli (les commandes natives seraient réduites avec la diapositive) : leur taille à l'écran
+      // reste constante grâce à --k (échelle de la diapositive, posée par le diaporama)
+      if (e.media) return '<video src="' + P.mediaUrl(e.media) + '"' + (e.poster ? ' poster="' + P.mediaUrl(e.poster) + '"' : '') + ' playsinline preload="metadata"' + (e.loop ? ' loop' : '') + (e.muted ? ' muted' : '') + ' data-play="' + play + '" data-start="' + (e.start || 0) + '" data-end="' + (e.end || 0) + '" data-rewind="' + (e.rewind ? 1 : 0) + '" data-full="' + (e.full ? 1 : 0) + '"></video>' +
+        '<div class="vplay" aria-hidden="true">' + O.icon('play') + '</div>' +
+        '<div class="vctl"><button type="button" data-v="play" title="Lecture / pause (Alt+P)" aria-label="Lecture / pause">' + O.icon('play') + '</button><input type="range" data-v="seek" min="0" max="1000" step="1" value="0" aria-label="Position dans la vidéo"><span class="vt">0:00</span><button type="button" data-v="mute" title="Son" aria-label="Couper ou remettre le son">' + O.icon(e.muted ? 'volume-x' : 'volume-2') + '</button><button type="button" data-v="full" title="Plein écran" aria-label="Plein écran">' + O.icon('maximize') + '</button></div>';
     }
     if (e.media && !yt) {
       if (ctx.mode === 'edit') return '<video src="' + P.mediaUrl(e.media) + '#t=' + Math.max(0.1, e.start || 0.1) + '"' + (e.poster ? ' poster="' + P.mediaUrl(e.poster) + '"' : '') + ' preload="metadata" muted playsinline></video><div class="vid-badge">' + O.icon('film') + '</div>';
@@ -218,7 +223,7 @@
   }
   function audioHtml(e, ctx) {
     let h = '<div class="aud-ic" style="color:' + css(e.color || 't:accent1') + '">' + O.icon('volume-2') + '</div>';
-    if (ctx.mode === 'show' && e.media) h += '<audio src="' + P.mediaUrl(e.media) + '" preload="auto"' + (e.loop ? ' loop' : '') + ' data-auto="' + (e.autoplay ? 1 : 0) + '" data-across="' + (e.across ? 1 : 0) + '"></audio>';
+    if (ctx.mode === 'show' && e.media) h += '<audio src="' + P.mediaUrl(e.media) + '" preload="auto"' + (e.loop ? ' loop' : '') + ' data-play="' + P.mediaStart(e) + '" data-start="' + (e.start || 0) + '" data-end="' + (e.end || 0) + '" data-rewind="' + (e.rewind ? 1 : 0) + '" data-across="' + (e.across ? 1 : 0) + '"></audio>';
     return h;
   }
   function elementHtml(e, doc, ctx) {

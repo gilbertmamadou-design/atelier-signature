@@ -48,7 +48,7 @@
     Object.keys(def.styles).forEach((k) => { doc.master.styles[k] = Object.assign({}, def.styles[k], doc.master.styles[k] || {}); });
     doc.settings = Object.assign({ loop: false, useTimings: true, pen: '#E03131', laser: '#FF1F1F', firstNumber: 1 }, doc.settings || {});
     doc.sections = doc.sections || []; doc.media = doc.media || {}; doc.theme = doc.theme || { id: 'clair' };
-    doc.slides.forEach((s) => { s.anims = s.anims || []; s.comments = s.comments || []; s.transition = s.transition || { type: 'none', dur: 0.7 }; s.advance = s.advance || { click: true, after: null }; s.elements = s.elements || []; });
+    doc.slides.forEach((s) => { s.anims = s.anims || []; s.comments = s.comments || []; s.transition = s.transition || { type: 'none', dur: 0.7 }; s.advance = s.advance || { click: true, after: null }; s.elements = s.elements || []; P.syncMedia(s); });
     return doc;
   };
   IO.isMagpres = (name) => /\.magpres$/i.test(name || '');

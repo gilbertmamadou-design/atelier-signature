@@ -316,13 +316,13 @@
         return;
       }
       case 'smartart': {
-        const L = P.smartLayout(e, e.w, e.h, doc);
+        const L = P.smartLayout(e, e.w, e.h, doc); let part = 0; // pièces nommées « mag-<id>-<n> » : l'animation du SmartArt les vise toutes
         for (const l of L.links) for (let k = 0; k < l.pts.length - 1; k++) {
           const a = l.pts[k], b = l.pts[k + 1];
-          sl.addShape('line', { x: inch(x + Math.min(a[0], b[0])), y: inch(y + Math.min(a[1], b[1])), w: inch(Math.abs(b[0] - a[0])), h: inch(Math.abs(b[1] - a[1])), flipH: a[0] > b[0], flipV: a[1] > b[1], line: { color: hex(L.line), width: (l.w || 2) * 0.75 } });
+          sl.addShape('line', { objectName: name + '-' + (part++), x: inch(x + Math.min(a[0], b[0])), y: inch(y + Math.min(a[1], b[1])), w: inch(Math.abs(b[0] - a[0])), h: inch(Math.abs(b[1] - a[1])), flipH: a[0] > b[0], flipV: a[1] > b[1], line: { color: hex(L.line), width: (l.w || 2) * 0.75 } });
         }
         for (const n of L.nodes) {
-          const o = { x: inch(x + n.x), y: inch(y + n.y), w: inch(n.w), h: inch(n.h), shape: PPT_SHAPES.has(n.shape) ? n.shape : 'rect', valign: n.va === 'top' ? 'top' : n.va === 'bottom' ? 'bottom' : 'middle', align: n.align || 'center', fontFace: t.fonts.minor, fontSize: O.round(n.fs * 0.75, 1), color: hex(n.tx || '#000000'), margin: [3, 3, 3, 3] };
+          const o = { objectName: name + '-' + (part++), x: inch(x + n.x), y: inch(y + n.y), w: inch(n.w), h: inch(n.h), shape: PPT_SHAPES.has(n.shape) ? n.shape : 'rect', valign: n.va === 'top' ? 'top' : n.va === 'bottom' ? 'bottom' : 'middle', align: n.align || 'center', fontFace: t.fonts.minor, fontSize: O.round(n.fs * 0.75, 1), color: hex(n.tx || '#000000'), margin: [3, 3, 3, 3] };
           if (n.rot) o.rotate = n.rot; if (n.bold) o.bold = true;
           if (n.fill) o.fill = { color: hex(n.fill), transparency: n.alpha ? Math.round((1 - n.alpha) * 100) : 0 };
           if (n.line) o.line = { color: hex(n.line), width: 1 };
@@ -359,23 +359,31 @@
     return '<p:transition' + attrs + '>' + el + '</p:transition>';
   }
   /* ----- animations → <p:timing> ----- */
-  const PRESET = { appear: 1, fade: 10, fly: 2, float: 42, zoom: 53, wipe: 22, split: 16, bounce: 26, growTurn: 31, swivel: 10, disappear: 1, fadeOut: 10, flyOut: 2, floatOut: 42, zoomOut: 53, wipeOut: 22, shrinkTurn: 31, pulse: 26, spin: 8, grow: 6, teeter: 32, blink: 35, colorPulse: 27 };
+  const PRESET = { appear: 1, fade: 10, fly: 2, float: 42, zoom: 53, wipe: 22, split: 16, bounce: 26, growTurn: 31, swivel: 19, disappear: 1, fadeOut: 10, flyOut: 2, floatOut: 42, zoomOut: 53, wipeOut: 22, shrinkTurn: 31, pulse: 26, spin: 8, grow: 6, teeter: 32, blink: 35, colorPulse: 27 };
   const SUB = { b: 4, l: 8, r: 2, t: 1 };
-  function animXml(list, spidOf) {
-    let id = 3; const nid = () => ++id;
+  /** Animations et lecture des médias → <p:timing>. spidsOf(id) : identifiants de forme d'un objet (plusieurs pour un groupe
+      ou un SmartArt, exportés en pièces séparées). media : [{el, spid, kind:'video'|'audio', play, loop, full, dur}] */
+  function animXml(list, spidsOf, media) {
+    let id = 2; const nid = () => ++id;
     const tgt = (sp) => '<p:tgtEl><p:spTgt spid="' + sp + '"/></p:tgtEl>';
     const setVis = (sp, val, delay) => '<p:set><p:cBhvr><p:cTn id="' + nid() + '" dur="1" fill="hold"><p:stCondLst><p:cond delay="' + (delay || 0) + '"/></p:stCondLst></p:cTn>' + tgt(sp) + '<p:attrNameLst><p:attrName>style.visibility</p:attrName></p:attrNameLst></p:cBhvr><p:to><p:strVal val="' + val + '"/></p:to></p:set>';
     const effect = (sp, tr, filter, dur) => '<p:animEffect transition="' + tr + '" filter="' + filter + '"><p:cBhvr><p:cTn id="' + nid() + '" dur="' + dur + '"/>' + tgt(sp) + '</p:cBhvr></p:animEffect>';
     const anim = (sp, attr, from, to, dur) => '<p:anim calcmode="lin" valueType="num"><p:cBhvr additive="base"><p:cTn id="' + nid() + '" dur="' + dur + '" fill="hold"/>' + tgt(sp) + '<p:attrNameLst><p:attrName>' + attr + '</p:attrName></p:attrNameLst></p:cBhvr><p:tavLst><p:tav tm="0"><p:val><p:strVal val="' + from + '"/></p:val></p:tav><p:tav tm="100000"><p:val><p:strVal val="' + to + '"/></p:val></p:tav></p:tavLst></p:anim>';
+    const scale = (sp, by, dur, extra) => '<p:animScale><p:cBhvr><p:cTn id="' + nid() + '" dur="' + dur + '"' + (extra || '') + ' fill="hold"/>' + tgt(sp) + '</p:cBhvr><p:by x="' + by + '" y="' + by + '"/></p:animScale>';
+    const rot = (sp, by, dur, extra) => '<p:animRot by="' + by + '"><p:cBhvr><p:cTn id="' + nid() + '" dur="' + dur + '"' + (extra || '') + ' fill="hold"/>' + tgt(sp) + '<p:attrNameLst><p:attrName>r</p:attrName></p:attrNameLst></p:cBhvr></p:animRot>';
+    // la durée totale de chaque effet est celle de l'appli (aller-retour et répétitions compris) : la relecture la retrouve
     function behaviors(a, sp) {
-      const dur = Math.round((a.dur || 0.5) * 1000), dir = a.dir || 'b';
+      const dur = Math.round((+a.dur || 0.5) * 1000), dir = a.dir || 'b';
       const wd = { l: 'left', r: 'right', t: 'up', b: 'down' }[dir];
       const offX = dir === 'l' ? '0-#ppt_w/2' : dir === 'r' ? '1+#ppt_w/2' : '#ppt_x', offY = dir === 't' ? '0-#ppt_h/2' : dir === 'b' ? '1+#ppt_h/2' : '#ppt_y';
       switch (a.fx) {
         case 'appear': return setVis(sp, 'visible');
         case 'fly': return setVis(sp, 'visible') + anim(sp, 'ppt_x', offX, '#ppt_x', dur) + anim(sp, 'ppt_y', offY, '#ppt_y', dur);
         case 'float': return setVis(sp, 'visible') + effect(sp, 'in', 'fade', dur) + anim(sp, 'ppt_y', '#ppt_y+.1', '#ppt_y', dur);
-        case 'zoom': case 'growTurn': return setVis(sp, 'visible') + anim(sp, 'ppt_w', '0', '#ppt_w', dur) + anim(sp, 'ppt_h', '0', '#ppt_h', dur) + effect(sp, 'in', 'fade', dur);
+        case 'bounce': { const d = Math.round(dur * 1.6); return setVis(sp, 'visible') + effect(sp, 'in', 'fade', d) + anim(sp, 'ppt_y', '0-#ppt_h', '#ppt_y', d); }
+        case 'zoom': return setVis(sp, 'visible') + anim(sp, 'ppt_w', '0', '#ppt_w', dur) + anim(sp, 'ppt_h', '0', '#ppt_h', dur) + effect(sp, 'in', 'fade', dur);
+        case 'growTurn': return setVis(sp, 'visible') + anim(sp, 'ppt_w', '0', '#ppt_w', dur) + anim(sp, 'ppt_h', '0', '#ppt_h', dur) + anim(sp, 'style.rotation', '-90', '0', dur) + effect(sp, 'in', 'fade', dur);
+        case 'swivel': return setVis(sp, 'visible') + anim(sp, 'ppt_w', '0', '#ppt_w', dur) + effect(sp, 'in', 'fade', dur);
         case 'wipe': return setVis(sp, 'visible') + effect(sp, 'in', 'wipe(' + ({ l: 'right', r: 'left', t: 'down', b: 'up' }[dir]) + ')', dur);
         case 'split': return setVis(sp, 'visible') + effect(sp, 'in', 'barn(inVertical)', dur);
         case 'disappear': return setVis(sp, 'hidden');
@@ -383,39 +391,66 @@
         case 'wipeOut': return effect(sp, 'out', 'wipe(' + wd + ')', dur) + setVis(sp, 'hidden', dur - 1);
         case 'zoomOut': case 'shrinkTurn': return anim(sp, 'ppt_w', '#ppt_w', '0', dur) + anim(sp, 'ppt_h', '#ppt_h', '0', dur) + effect(sp, 'out', 'fade', dur) + setVis(sp, 'hidden', dur - 1);
         case 'fadeOut': case 'floatOut': return effect(sp, 'out', 'fade', dur) + setVis(sp, 'hidden', dur - 1);
-        case 'spin': return '<p:animRot by="21600000"><p:cBhvr><p:cTn id="' + nid() + '" dur="' + dur + '" fill="hold"/>' + tgt(sp) + '<p:attrNameLst><p:attrName>r</p:attrName></p:attrNameLst></p:cBhvr></p:animRot>';
-        case 'grow': return '<p:animScale><p:cBhvr><p:cTn id="' + nid() + '" dur="' + dur + '" fill="hold"/>' + tgt(sp) + '</p:cBhvr><p:by x="150000" y="150000"/></p:animScale>';
-        case 'teeter': return '<p:animRot by="300000"><p:cBhvr><p:cTn id="' + nid() + '" dur="' + Math.round(dur / 4) + '" autoRev="1" repeatCount="2000" fill="hold"/>' + tgt(sp) + '<p:attrNameLst><p:attrName>r</p:attrName></p:attrNameLst></p:cBhvr></p:animRot>';
+        case 'spin': return rot(sp, 21600000, Math.round(dur * 1.5));
+        case 'grow': return scale(sp, 150000, dur);
+        case 'teeter': return rot(sp, 300000, Math.round(dur / 4), ' autoRev="1" repeatCount="2000"');
+        case 'pulse': return scale(sp, 110000, Math.round(dur / 2), ' autoRev="1"');
+        case 'blink': return '<p:set><p:cBhvr><p:cTn id="' + nid() + '" dur="' + Math.round(dur / 4) + '" autoRev="1" repeatCount="2000">' + '</p:cTn>' + tgt(sp) + '<p:attrNameLst><p:attrName>style.opacity</p:attrName></p:attrNameLst></p:cBhvr><p:to><p:strVal val="0.15"/></p:to></p:set>';
+        case 'colorPulse': return scale(sp, 105000, Math.round(dur / 2), ' autoRev="1"');
         default:
-          if (a.cat === 'em') return '<p:animScale><p:cBhvr><p:cTn id="' + nid() + '" dur="' + Math.round(dur / 2) + '" autoRev="1" fill="hold"/>' + tgt(sp) + '</p:cBhvr><p:by x="110000" y="110000"/></p:animScale>';
+          if (a.cat === 'em') return scale(sp, 110000, Math.round(dur / 2), ' autoRev="1"');
           if (a.cat === 'out') return effect(sp, 'out', 'fade', dur) + setVis(sp, 'hidden', dur - 1);
           return setVis(sp, 'visible') + effect(sp, 'in', 'fade', dur);
       }
     }
-    const items = list.filter((a) => spidOf(a.el));
-    if (!items.length) return '';
-    // groupes « au clic », sous-groupes « après »
-    const clicks = [];
-    items.forEach((a, i) => { if (a.start === 'click' || !clicks.length) clicks.push({ auto: a.start !== 'click', subs: [] }); const c = clicks[clicks.length - 1]; if (a.start === 'after' || !c.subs.length) c.subs.push({ items: [] }); c.subs[c.subs.length - 1].items.push(a); void i; });
+    const medOf = {}; (media || []).forEach((m) => { medOf[m.el] = m; });
+    const cmd = (sp, c, dur) => '<p:cmd type="call" cmd="' + c + '"><p:cBhvr><p:cTn id="' + nid() + '" dur="' + dur + '" fill="hold"/>' + tgt(sp) + '</p:cBhvr></p:cmd>';
+    // lecture automatique : un effet « Lecture » en tête, lancé avec la diapositive (comme « Démarrer : automatiquement »)
+    const auto = (media || []).filter((m) => m.play === 'auto').map((m) => ({ cat: 'media', fx: 'play', el: m.el, start: 'with', delay: 0, _auto: true }));
+    const all = auto.concat((list || []).filter((a) => a.cat !== 'media' || (medOf[a.el] && medOf[a.el].play === 'seq')));
+    const items = all.filter((a) => spidsOf(a.el).length);
     let body = '';
-    clicks.forEach((c) => {
-      let t0 = 0, inner = '';
-      c.subs.forEach((s) => {
-        let subEnd = 0, sx = '';
-        s.items.forEach((a, k) => {
-          const sp = spidOf(a.el), dur = Math.round((a.dur || 0.5) * 1000), dl = Math.round((a.delay || 0) * 1000);
-          const cls = a.cat === 'in' ? 'entr' : a.cat === 'out' ? 'exit' : 'emph';
-          const nt = k === 0 && s === c.subs[0] ? (c.auto ? (a.start === 'after' ? 'afterEffect' : 'withEffect') : 'clickEffect') : (a.start === 'after' ? 'afterEffect' : 'withEffect');
-          const cid = nid();
-          sx += '<p:par><p:cTn id="' + cid + '" presetID="' + (PRESET[a.fx] || 10) + '" presetClass="' + cls + '" presetSubtype="' + (P.ANIM_DIRS[a.fx] ? SUB[a.dir || 'b'] || 0 : 0) + '" fill="hold" nodeType="' + nt + '"><p:stCondLst><p:cond delay="' + dl + '"/></p:stCondLst><p:childTnLst>' + behaviors(a, sp) + '</p:childTnLst></p:cTn></p:par>';
-          subEnd = Math.max(subEnd, dl + dur);
+    if (items.length) {
+      // groupes « au clic », sous-groupes « après »
+      const clicks = [];
+      items.forEach((a) => { if (a.start === 'click' || !clicks.length) clicks.push({ auto: a.start !== 'click', subs: [] }); const c = clicks[clicks.length - 1]; if (a.start === 'after' || !c.subs.length) c.subs.push({ items: [] }); c.subs[c.subs.length - 1].items.push(a); });
+      clicks.forEach((c) => {
+        let t0 = 0, inner = '';
+        c.subs.forEach((sb) => {
+          let subEnd = 0, sx = '';
+          sb.items.forEach((a, k) => {
+            const dl = Math.round((+a.delay || 0) * 1000);
+            const nt0 = k === 0 && sb === c.subs[0] ? (c.auto ? (a.start === 'after' ? 'afterEffect' : 'withEffect') : 'clickEffect') : (a.start === 'after' ? 'afterEffect' : 'withEffect');
+            if (a.cat === 'media') {
+              const m = medOf[a.el], d = Math.max(1, Math.round((m.dur || 0) * 1000));
+              sx += '<p:par><p:cTn id="' + nid() + '" presetID="1" presetClass="mediacall" presetSubtype="0" fill="hold" nodeType="' + nt0 + '"><p:stCondLst><p:cond delay="' + dl + '"/></p:stCondLst><p:childTnLst>' + cmd(m.spid, 'playFrom(' + (m.start || 0).toFixed(1) + ')', d) + '</p:childTnLst></p:cTn></p:par>';
+              subEnd = Math.max(subEnd, dl + (m.dur ? d : 0));
+              return;
+            }
+            const cls = a.cat === 'in' ? 'entr' : a.cat === 'out' ? 'exit' : 'emph';
+            const rep = Math.max(1, Math.round(+a.repeat || 1));
+            spidsOf(a.el).forEach((sp, j) => {
+              const nt = j === 0 ? nt0 : 'withEffect';
+              sx += '<p:par><p:cTn id="' + nid() + '" presetID="' + (PRESET[a.fx] || 10) + '" presetClass="' + cls + '" presetSubtype="' + (P.ANIM_DIRS[a.fx] ? SUB[a.dir || 'b'] || 0 : 0) + '"' + (rep > 1 ? ' repeatCount="' + rep * 1000 + '"' : '') + ' fill="hold" nodeType="' + nt + '"><p:stCondLst><p:cond delay="' + dl + '"/></p:stCondLst><p:childTnLst>' + behaviors(a, sp) + '</p:childTnLst></p:cTn></p:par>';
+            });
+            subEnd = Math.max(subEnd, dl + Math.round(P.animDur(a) * 1000));
+          });
+          inner += '<p:par><p:cTn id="' + nid() + '" fill="hold"><p:stCondLst><p:cond delay="' + t0 + '"/></p:stCondLst><p:childTnLst>' + sx + '</p:childTnLst></p:cTn></p:par>';
+          t0 += subEnd;
         });
-        inner += '<p:par><p:cTn id="' + nid() + '" fill="hold"><p:stCondLst><p:cond delay="' + t0 + '"/></p:stCondLst><p:childTnLst>' + sx + '</p:childTnLst></p:cTn></p:par>';
-        t0 += subEnd;
+        body += '<p:par><p:cTn id="' + nid() + '" fill="hold"><p:stCondLst><p:cond delay="indefinite"/>' + (c.auto ? '<p:cond evt="onBegin" delay="0"><p:tn val="2"/></p:cond>' : '') + '</p:stCondLst><p:childTnLst>' + inner + '</p:childTnLst></p:cTn></p:par>';
       });
-      body += '<p:par><p:cTn id="' + nid() + '" fill="hold"><p:stCondLst><p:cond delay="indefinite"/>' + (c.auto ? '<p:cond evt="onBegin" delay="0"><p:tn val="2"/></p:cond>' : '') + '</p:stCondLst><p:childTnLst>' + inner + '</p:childTnLst></p:cTn></p:par>';
+    }
+    // clic sur la vidéo : lecture / pause (déclencheur que PowerPoint met sur chaque média), et nœuds média (boucle, plein écran)
+    let trig = '', nodes = '';
+    (media || []).forEach((m) => {
+      trig += '<p:seq concurrent="1" nextAc="seek"><p:cTn id="' + nid() + '" restart="whenNotActive" fill="hold" evtFilter="cancelBubble" nodeType="interactiveSeq"><p:stCondLst><p:cond evt="onClick" delay="0">' + tgt(m.spid) + '</p:cond></p:stCondLst><p:endSync evt="end" delay="0"><p:rtn val="all"/></p:endSync><p:childTnLst><p:par><p:cTn id="' + nid() + '" fill="hold"><p:stCondLst><p:cond delay="0"/></p:stCondLst><p:childTnLst><p:par><p:cTn id="' + nid() + '" fill="hold"><p:stCondLst><p:cond delay="0"/></p:stCondLst><p:childTnLst><p:par><p:cTn id="' + nid() + '" presetID="2" presetClass="mediacall" presetSubtype="0" fill="hold" nodeType="clickEffect"><p:stCondLst><p:cond delay="0"/></p:stCondLst><p:childTnLst>' + cmd(m.spid, 'togglePause', 1) + '</p:childTnLst></p:cTn></p:par></p:childTnLst></p:cTn></p:par></p:childTnLst></p:cTn></p:par></p:childTnLst></p:cTn><p:nextCondLst><p:cond evt="onClick" delay="0">' + tgt(m.spid) + '</p:cond></p:nextCondLst></p:seq>';
+      const tag = m.kind === 'audio' ? 'audio' : 'video';
+      nodes += '<p:' + tag + (tag === 'video' && m.full ? ' fullScrn="1"' : '') + '><p:cMediaNode vol="80000"' + (m.muted ? ' mute="1"' : '') + '><p:cTn id="' + nid() + '"' + (m.loop ? ' repeatCount="indefinite"' : '') + ' fill="hold" display="0"><p:stCondLst><p:cond delay="indefinite"/></p:stCondLst></p:cTn>' + tgt(m.spid) + '</p:cMediaNode></p:' + tag + '>';
     });
-    return '<p:timing><p:tnLst><p:par><p:cTn id="1" dur="indefinite" restart="never" nodeType="tmRoot"><p:childTnLst><p:seq concurrent="1" nextAc="seek"><p:cTn id="2" dur="indefinite" nodeType="mainSeq"><p:childTnLst>' + body + '</p:childTnLst></p:cTn><p:prevCondLst><p:cond evt="onPrev" delay="0"><p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:prevCondLst><p:nextCondLst><p:cond evt="onNext" delay="0"><p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:nextCondLst></p:seq></p:childTnLst></p:cTn></p:par></p:tnLst></p:timing>';
+    if (!body && !trig && !nodes) return '';
+    const main = body ? '<p:seq concurrent="1" nextAc="seek"><p:cTn id="2" dur="indefinite" nodeType="mainSeq"><p:childTnLst>' + body + '</p:childTnLst></p:cTn><p:prevCondLst><p:cond evt="onPrev" delay="0"><p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:prevCondLst><p:nextCondLst><p:cond evt="onNext" delay="0"><p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:nextCondLst></p:seq>' : '';
+    return '<p:timing><p:tnLst><p:par><p:cTn id="1" dur="indefinite" restart="never" nodeType="tmRoot"><p:childTnLst>' + main + trig + nodes + '</p:childTnLst></p:cTn></p:par></p:tnLst></p:timing>';
   }
   IO.toPptx = async function (doc, progress) {
     if (!window.PptxGenJS) await O.loadScript(O.vendor + 'pptxgen.min.js');
@@ -475,8 +510,15 @@
       const rz = zip.file('ppt/slides/_rels/slide' + (i + 1) + '.xml.rels');
       if (rz) { const rels = await rz.async('string'); rels.replace(/<Relationship Id="(rId\d+)" Type="[^"]*\/relationships\/audio"/g, (mm, rid) => { xml = xml.split('<a:videoFile r:link="' + rid + '"/>').join('<a:audioFile r:link="' + rid + '"/>'); return mm; }); }
       const spid = {}; xml.replace(/<p:cNvPr id="(\d+)" name="mag-([^"]+)"/g, (mm, id, nm) => { spid[nm] = id; return mm; });
+      // un objet peut être exporté en plusieurs formes (bordure d'image, enfants d'un groupe, pièces d'un SmartArt)
+      const spidsOf = (elId) => {
+        const e = P.findEl(s, elId); const out = [];
+        const add = (x) => { Object.keys(spid).forEach((k) => { if (k === x.id || k.startsWith(x.id + '-')) out.push(spid[k]); }); (x.children || []).forEach(add); };
+        if (e) add(e); return out;
+      };
+      const media = []; P.walk(s.elements, (e) => { if (P.isMediaEl(e) && spid[e.id]) media.push({ el: e.id, spid: spid[e.id], kind: e.type, play: P.mediaStart(e), loop: !!e.loop, full: !!e.full, muted: !!e.muted, start: +e.start || 0, dur: Math.max(0, (+e.end || +e.mediaDur || 0) - (+e.start || 0)) }); });
       const tr = trXml(s.transition, s.advance);
-      const tm = animXml(s.anims || [], (id) => spid[id]);
+      const tm = animXml(s.anims || [], spidsOf, media);
       if (tr || tm) {
         const at = xml.indexOf('</p:clrMapOvr>');
         const ins = tr + tm;
@@ -1009,24 +1051,63 @@
       // animations
       const timing = desc(x, 'timing')[0];
       if (timing) {
-        const PRE_IN = { 1: 'appear', 10: 'fade', 2: 'fly', 42: 'float', 47: 'float', 53: 'zoom', 23: 'zoom', 22: 'wipe', 16: 'split', 26: 'bounce', 31: 'growTurn' };
+        const PRE_IN = { 1: 'appear', 10: 'fade', 2: 'fly', 42: 'float', 47: 'float', 53: 'zoom', 23: 'zoom', 22: 'wipe', 16: 'split', 26: 'bounce', 31: 'growTurn', 19: 'swivel' };
         const PRE_OUT = { 1: 'disappear', 10: 'fadeOut', 2: 'flyOut', 42: 'floatOut', 53: 'zoomOut', 23: 'zoomOut', 22: 'wipeOut', 31: 'shrinkTurn' };
         const PRE_EM = { 8: 'spin', 6: 'grow', 26: 'pulse', 32: 'teeter', 35: 'blink', 27: 'colorPulse' };
         const DIRS = { 4: 'b', 8: 'l', 2: 'r', 1: 't' };
+        // durée totale d'un effet : la plus longue de ses actions (délai, aller-retour et répétitions compris)
+        const total = (c) => {
+          let best = 0, any = false;
+          desc(c, 'cTn').forEach((k) => {
+            const d = k.getAttribute('dur'); if (!d || d === 'indefinite') return;
+            let v = num(d, 0); if (v > 1) any = true;
+            if (k.getAttribute('autoRev') === '1') v *= 2;
+            const rc = k.getAttribute('repeatCount'); if (rc && rc !== 'indefinite') v *= num(rc, 1000) / 1000;
+            const sc = kid(kid(k, 'stCondLst'), 'cond'); v += sc ? num(sc.getAttribute('delay'), 0) : 0;
+            best = Math.max(best, v);
+          });
+          return any ? best / 1000 : 0;
+        };
+        const inTrigger = (c) => { for (let q = c.parentElement; q && q !== timing; q = q.parentElement) if (q.localName === 'cTn' && q.getAttribute('nodeType') === 'interactiveSeq') return true; return false; };
+        let seenClick = false;
         desc(timing, 'cTn').filter((c) => c.getAttribute('presetClass')).forEach((c) => {
-          const cls = c.getAttribute('presetClass'); if (!/entr|exit|emph/.test(cls)) return;
-          const pid = +c.getAttribute('presetID'); const sp = desc(c, 'spTgt')[0]; if (!sp) return;
-          const el = ctx.spid[sp.getAttribute('spid')]; if (!el) return;
+          const cls = c.getAttribute('presetClass');
           const nt = c.getAttribute('nodeType') || 'clickEffect';
-          const bh = desc(c, 'cTn').find((k) => k.getAttribute('dur') && k.getAttribute('dur') !== '1' && k.getAttribute('dur') !== 'indefinite');
-          const cond = desc(c, 'cond')[0];
+          const cond = kid(kid(c, 'stCondLst'), 'cond') || desc(c, 'cond')[0];
+          const delay = cond ? num(cond.getAttribute('delay'), 0) / 1000 || 0 : 0;
+          const start = nt === 'withEffect' ? 'with' : nt === 'afterEffect' ? 'after' : 'click';
+          if (inTrigger(c)) return; // déclencheurs (clic sur un objet) : la lecture / pause au clic sur la vidéo est native ici
+          if (nt === 'clickEffect') seenClick = true;
+          const sp = desc(c, 'spTgt')[0]; if (!sp) return;
+          const el = ctx.spid[sp.getAttribute('spid')]; if (!el) return;
+          if (cls === 'mediacall') { // « Lecture » d'une vidéo ou d'un son
+            const cm = desc(c, 'cmd')[0]; if (!cm || !/^playFrom/.test(cm.getAttribute('cmd') || '')) return;
+            const me = P.findEl(s, el); if (!me || !P.isMediaEl(me)) return;
+            const cd = desc(cm, 'cTn')[0], d = cd ? num(cd.getAttribute('dur'), 0) : 0; if (d > 1 && !me.mediaDur) me.mediaDur = O.round(d / 1000, 2);
+            if (!seenClick && start !== 'click' && !s.anims.length) { me.play = 'auto'; return; }
+            me.play = 'seq'; s.anims.push({ id: P.uid('a'), el, cat: 'media', fx: 'play', start, delay, dur: 0 });
+            return;
+          }
+          if (!/entr|exit|emph/.test(cls)) return;
+          const pid = +c.getAttribute('presetID');
           const cat = cls === 'entr' ? 'in' : cls === 'exit' ? 'out' : 'em';
           const fx = cat === 'in' ? PRE_IN[pid] || 'fade' : cat === 'out' ? PRE_OUT[pid] || 'fadeOut' : PRE_EM[pid] || 'pulse';
-          const a = { id: P.uid('a'), el, cat, fx, start: nt === 'withEffect' ? 'with' : nt === 'afterEffect' ? 'after' : 'click', delay: cond ? num(cond.getAttribute('delay'), 0) / 1000 || 0 : 0, dur: bh ? num(bh.getAttribute('dur'), 500) / 1000 : 0.5 };
+          const T = total(c), k = fx === 'bounce' ? 1.6 : fx === 'spin' ? 1.5 : 1;
+          const a = { id: P.uid('a'), el, cat, fx, start, delay, dur: fx === 'appear' || fx === 'disappear' ? 0 : O.round(T / k, 2) || 0.5 };
+          const rc = c.getAttribute('repeatCount'); if (rc && rc !== 'indefinite' && num(rc, 1000) >= 2000) a.repeat = Math.round(num(rc, 1000) / 1000);
           const sub = DIRS[+c.getAttribute('presetSubtype')]; if (P.ANIM_DIRS[fx] && sub) a.dir = sub;
           s.anims.push(a);
         });
+        // nœuds média : boucle, plein écran
+        desc(timing, 'cMediaNode').forEach((mn) => {
+          const sp = desc(mn, 'spTgt')[0], el = sp && ctx.spid[sp.getAttribute('spid')], me = el && P.findEl(s, el); if (!me || !P.isMediaEl(me)) return;
+          const ct = kid(mn, 'cTn'); if (ct && ct.getAttribute('repeatCount') === 'indefinite') me.loop = true;
+          if (mn.getAttribute('mute') === '1') me.muted = true;
+          if (mn.parentElement && mn.parentElement.getAttribute('fullScrn') === '1') me.full = true;
+        });
       }
+      // médias sans « Lecture » dans la séquence : lus en cliquant dessus (comme dans PowerPoint)
+      P.walk(s.elements, (e) => { if (P.isMediaEl(e) && !e.play) { e.play = 'click'; e.autoplay = false; } });
       doc.slides.push(s);
     }
     // sections

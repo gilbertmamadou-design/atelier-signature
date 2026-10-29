@@ -166,7 +166,29 @@
   P.findEl = (slide, id) => { const r = P.find(slide, id); return r ? r.el : null; };
   P.listOf = (slide, parent) => parent ? parent.children : slide.elements;
   P.slideIndex = (doc, id) => doc.slides.findIndex((s) => s.id === id);
-  P.cloneEl = function (e) { const c = O.clone(e); P.walk([c], (x) => { x.id = P.uid(); }); return c; };
+  /** Copie d'un objet (nouveaux identifiants) ; map, si donné, reçoit ancien id → nouvel id (objet et enfants) */
+  P.cloneEl = function (e, map) { const c = O.clone(e); P.walk([c], (x) => { const n = P.uid(); if (map) map[x.id] = n; x.id = n; }); return c; };
+  /** Animations des objets copiés (map : ancien id → nouvel id), dans l'ordre d'origine, comme PowerPoint */
+  P.animsFor = (anims, map) => (anims || []).filter((a) => map[a.el]).map((a) => Object.assign({}, a, { id: P.uid('a'), el: map[a.el] }));
+  /* ---------------- Vidéos et sons : démarrage (comme PowerPoint) ----------------
+     e.play : 'seq' (au clic, dans la séquence des clics : une étape « Lecture » dans les animations),
+     'auto' (automatiquement à l'affichage de la diapositive), 'click' (en cliquant dessus seulement).
+     Les anciens fichiers n'avaient que e.autoplay : sans lecture automatique, la vidéo démarre au clic. */
+  P.isMediaEl = (e) => !!e && (e.type === 'video' || e.type === 'audio');
+  P.mediaStart = (e) => (e.play === 'seq' || e.play === 'auto' || e.play === 'click') ? e.play : (e.autoplay ? 'auto' : 'seq');
+  P.syncMedia = function (slide) {
+    slide.anims = slide.anims || [];
+    const seen = new Set();
+    P.walk(slide.elements, (e) => {
+      if (!P.isMediaEl(e)) return;
+      const m = P.mediaStart(e); e.play = m; e.autoplay = m === 'auto'; seen.add(e.id);
+      const has = slide.anims.some((a) => a.cat === 'media' && a.el === e.id);
+      if (m === 'seq' && !has) slide.anims.push({ id: P.uid('a'), el: e.id, cat: 'media', fx: 'play', start: 'click', delay: 0, dur: 0 });
+      if (m !== 'seq' && has) slide.anims = slide.anims.filter((a) => !(a.cat === 'media' && a.el === e.id));
+    });
+    slide.anims = slide.anims.filter((a) => a.cat !== 'media' || seen.has(a.el));
+    return slide;
+  };
   P.cloneSlide = function (s) {
     const c = O.clone(s); const map = {};
     c.id = P.uid('s'); P.walk(c.elements, (x) => { const n = P.uid(); map[x.id] = n; x.id = n; });

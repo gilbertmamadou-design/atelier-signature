@@ -35,17 +35,31 @@
     const u = $('#tbUndo'), r = $('#tbRedo'); if (u) { u.disabled = !A.history.canUndo(); u.title = 'Annuler ' + (A.history.undoLabel() || '') + ' (Ctrl+Z)'; } if (r) { r.disabled = !A.history.canRedo(); r.title = 'Rétablir ' + (A.history.redoLabel() || '') + ' (Ctrl+Y)'; }
   };
   /* ---------------- enregistrement automatique ---------------- */
-  let saving = false;
-  A.autosave = async function () {
-    if (saving || !A.doc) return;
+  // Une seule écriture à la fois ; une demande faite pendant une écriture est refaite juste après (sinon l'état
+  // enregistré pouvait rester celui d'avant les dernières modifications, et être rouvert tel quel au lancement suivant).
+  let saving = null, again = false, warned = false;
+  A.autosave = function () {
+    if (!A.doc) return Promise.resolve();
     // une récupération est proposée : ne pas l'écraser tant qu'aucun travail n'a été fait
-    if (A._pendingRecovery && !A.dirty) return;
+    if (A._pendingRecovery && !A.dirty) return Promise.resolve();
     A._pendingRecovery = false;
-    saving = true;
-    try {
-      const used = P.usedMedia(A.doc), media = {}; used.forEach((id) => { if (P.blobs[id]) media[id] = P.blobs[id]; });
-      await F.autosave.put('courant', { doc: A.doc, file: { name: A.file.name, kind: A.file.kind, recentId: A.file.recentId }, dirty: A.dirty }, media);
-    } catch (e) { console.warn('autosave', e); } finally { saving = false; }
+    if (saving) { again = true; return saving; }
+    saving = (async () => {
+      do {
+        again = false;
+        try {
+          const used = P.usedMedia(A.doc), media = {}; used.forEach((id) => { if (P.blobs[id]) media[id] = P.blobs[id]; });
+          await F.autosave.put('courant', { doc: A.doc, file: { name: A.file.name, kind: A.file.kind, recentId: A.file.recentId }, dirty: A.dirty }, media);
+        } catch (e) {
+          console.warn('autosave', e);
+          // copie incomplète (espace plein, vidéo trop lourde…) : l'ancienne copie ne doit pas être rouverte à la place du travail actuel
+          try { await F.autosave.drop('courant'); } catch (x) { }
+          if (!warned) { warned = true; O.toast('Copie de sécurité impossible (espace insuffisant ?) : pensez à enregistrer (Ctrl+S)', { bad: true, ms: 6000 }); }
+        }
+      } while (again);
+      saving = null;
+    })();
+    return saving;
   };
   document.addEventListener('visibilitychange', () => { if (document.hidden && A.doc) A.autosave(); });
   window.addEventListener('pagehide', () => { if (A.doc) A.autosave(); });
@@ -64,7 +78,7 @@
       if (!r.doc.title) r.doc.title = O.baseName(name);
       await addRecent(blob);
       A.closeBackstage();
-      if (r.kind === 'pptx') O.toast('Présentation PowerPoint importée. Enregistrer (Ctrl+S) réécrit le .pptx ; « Enregistrer sous » propose aussi le format .magpres, plus complet.', { ms: 5000 });
+      if (r.kind === 'pptx' && !opt.quiet) O.toast('Présentation PowerPoint importée. Enregistrer (Ctrl+S) réécrit le .pptx ; « Enregistrer sous » propose aussi le format .magpres, plus complet.', { ms: 5000 });
       return true;
     } catch (e) { prog(1, 1, true); console.error(e); O.alert('Ouverture impossible', '<p>« ' + O.esc(name) + ' » n\'a pas pu être ouvert.</p><p class="o-hint">' + O.esc(e.message || String(e)) + '</p>'); return false; }
   }
@@ -114,7 +128,7 @@
       try {
         const b = await buildBlob(kind);
         await F.write(A.file.ref, b, A.file.name);
-        A.dirty = false; A.renderTitle(); O.toast('Enregistré', { ms: 1200 }); await addRecent(b); A.autosave(); return true;
+        A.dirty = false; A.renderTitle(); O.toast('Enregistré', { ms: 1200 }); await A.autosave(); await addRecent(b); A.autosave(); return true;
       } catch (e) { if (e && e.code === 'perm') { O.toast('Autorisation refusée : choisissez un emplacement', { bad: true }); } else O.toast('Enregistrement impossible : ' + (e.message || e), { bad: true }); }
     }
     return C.saveAs(kind);
@@ -128,7 +142,7 @@
       const r = await F.saveAs(b, name, { types: [kind === 'pptx' ? IO.PPTX : IO.MAGPRES], mime: kind === 'pptx' ? O.MIME.pptx : 'application/x-magpres', id: 'presentation' });
       if (!r.ok) { if (r.err) O.toast('Enregistrement impossible : ' + r.err, { bad: true }); return false; }
       A.file = { name: r.name || name, ref: r.ref, kind, recentId: A.file.recentId };
-      A.dirty = false; A.renderTitle();
+      A.dirty = false; A.renderTitle(); await A.autosave();
       O.toast(r.downloaded ? '« ' + (r.name || name) + ' » téléchargé' : 'Enregistré : ' + (r.name || name), { ms: 2200 });
       await addRecent(b); A.autosave(); A.closeBackstage();
       return true;
@@ -345,6 +359,14 @@
       // reprise silencieuse de la dernière présentation (enregistrée) : comme une appli qu'on rouvre
       try { const doc = IO.upgrade(rec.data.doc); A.setDoc(doc, rec.media, rec.data.file ? { name: rec.data.file.name, kind: rec.data.file.kind, recentId: rec.data.file.recentId, ref: null } : {}); if (rec.data.file && rec.data.file.recentId) { const r = await F.recents.get(rec.data.file.recentId); if (r && r.ref && r.ref.kind !== 'blob') A.file.ref = r.ref; } }
       catch (e) { A.setDoc(P.fromTemplate('vide'), {}, {}); }
+      // le fichier sur le disque est plus récent que la copie de sécurité (fermeture juste après Ctrl+S, par exemple) : c'est lui qui fait foi
+      try {
+        const ref = A.file.ref, h = ref && ref.kind === 'handle' && ref.handle;
+        if (h && h.queryPermission && (await h.queryPermission({ mode: 'read' })) === 'granted') {
+          const f = await h.getFile();
+          if (f.lastModified > rec.at + 1500) await openBlob(f, A.file.name || f.name, ref, { dirtyOk: true, quiet: true });
+        }
+      } catch (e) { console.warn('reprise', e); }
     } else A.setDoc(P.fromTemplate('vide'), {}, {});
     A.renderStatus();
     F.onLaunch(launchFiles);

@@ -118,8 +118,10 @@
   };
   C.duplicate = function () {
     const els = A.selEls(); if (!els.length) return;
-    const list = A.els(); const copies = els.map((e) => { const c = P.cloneEl(e); c.x += 20; c.y += 20; delete c.ph; if (c.type === 'placeholder') return null; return c; }).filter(Boolean);
-    copies.forEach((c) => list.push(c)); A.sel = copies.map((c) => c.id); A.change('Dupliquer');
+    const list = A.els(), map = {}; const copies = els.map((e) => { const c = P.cloneEl(e, map); c.x += 20; c.y += 20; delete c.ph; if (c.type === 'placeholder') return null; return c; }).filter(Boolean);
+    copies.forEach((c) => list.push(c)); A.sel = copies.map((c) => c.id);
+    if (A.view !== 'master') { const s = A.slide(); s.anims = (s.anims || []).concat(P.animsFor(s.anims, map).filter((a) => P.findEl(s, a.el))); } // les animations suivent, comme dans PowerPoint
+    A.change('Dupliquer');
   };
   C.group = function () {
     const els = A.selEls(); if (els.length < 2) return;
@@ -190,7 +192,9 @@
   }
   C.add = function (e, label, opt) {
     if (A.editing) A.stopEdit();
-    A.els().push(e); A.sel = [e.id]; A._fresh = e.id; A.change(label || 'Insérer');
+    A.els().push(e); A.sel = [e.id]; A._fresh = e.id;
+    if (P.isMediaEl(e) && A.view !== 'master') P.syncMedia(A.slide()); // « au clic » : étape « Lecture » dans les animations
+    A.change(label || 'Insérer');
     if (opt && opt.edit) setTimeout(() => A.startEdit(e.id), 30);
     return e;
   };
@@ -483,37 +487,55 @@
     if (!file) { file = (await O.Files.pickMedia('video/*,.mp4,.webm,.mov,.m4v,.ogv', false))[0]; if (!file) return; }
     if (file.size > 400 * 1024 * 1024) { O.toast('Vidéo trop lourde (400 Mo au plus)', { bad: true }); return; }
     const id = P.addMedia(A.doc, file, file.name);
-    const e = { id: P.uid(), type: 'video', media: id, x: 0, y: 0, w: 640, h: 360, rot: 0, name: file.name, alt: O.baseName(file.name) };
+    const e = { id: P.uid(), type: 'video', media: id, x: 0, y: 0, w: 640, h: 360, rot: 0, name: file.name, alt: O.baseName(file.name), play: 'seq' };
     place(e); C.add(e, 'Vidéo');
     // proportions réelles et image d'aperçu
     const v = document.createElement('video'); v.muted = true; v.preload = 'auto'; v.src = P.mediaUrl(id);
-    v.addEventListener('loadeddata', () => { if (v.videoWidth) { const k = Math.min(640 / v.videoWidth, 360 / v.videoHeight); e.w = Math.round(v.videoWidth * k); e.h = Math.round(v.videoHeight * k); } v.currentTime = Math.min(1, (v.duration || 2) / 3); }, { once: true });
+    v.addEventListener('loadeddata', () => { if (isFinite(v.duration)) e.mediaDur = O.round(v.duration, 2); if (v.videoWidth) { const k = Math.min(640 / v.videoWidth, 360 / v.videoHeight); e.w = Math.round(v.videoWidth * k); e.h = Math.round(v.videoHeight * k); } v.currentTime = Math.min(1, (v.duration || 2) / 3); }, { once: true });
     v.addEventListener('seeked', () => { try { const c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight; c.getContext('2d').drawImage(v, 0, 0); c.toBlob((b) => { if (b) { e.poster = P.addMedia(A.doc, b, 'apercu.jpg'); A.change('Vidéo', { noHistory: true }); } }, 'image/jpeg', 0.85); } catch (er) { } }, { once: true });
     v.addEventListener('error', () => O.toast('Format vidéo non lisible par le navigateur (préférez MP4 H.264 ou WebM)', { bad: true }), { once: true });
   };
   C.addVideoLink = function (url) {
-    const go = (u) => { const id = P.ytId(u); if (!id) { O.toast('Lien YouTube non reconnu', { bad: true }); return; } const e = { id: P.uid(), type: 'video', url: 'https://www.youtube.com/watch?v=' + id, start: P.ytStart(u), x: 0, y: 0, w: 640, h: 360, rot: 0, alt: 'Vidéo YouTube' }; place(e); C.add(e, 'Vidéo en ligne'); };
+    const go = (u) => { const id = P.ytId(u); if (!id) { O.toast('Lien YouTube non reconnu', { bad: true }); return; } const e = { id: P.uid(), type: 'video', url: 'https://www.youtube.com/watch?v=' + id, start: P.ytStart(u), x: 0, y: 0, w: 640, h: 360, rot: 0, alt: 'Vidéo YouTube', play: 'seq' }; place(e); C.add(e, 'Vidéo en ligne'); };
     if (url) { go(url); return; }
     O.prompt('Vidéo en ligne (YouTube)', 'Adresse de la vidéo', '', { hint: 'La vidéo est lue par le lecteur officiel de YouTube (youtube-nocookie.com), seulement pendant le diaporama et s\'il y a une connexion. Rien n\'est téléchargé.' }).then((u) => { if (u) go(u.trim()); });
   };
   C.addAudioFile = async function (file) {
     if (!file) { file = (await O.Files.pickMedia('audio/*,.mp3,.wav,.ogg,.m4a', false))[0]; if (!file) return; }
     const id = P.addMedia(A.doc, file, file.name);
-    const e = { id: P.uid(), type: 'audio', media: id, x: W() - 120, y: H() - 120, w: 64, h: 64, rot: 0, name: file.name, color: 't:accent1', autoplay: false, alt: O.baseName(file.name) };
+    const e = { id: P.uid(), type: 'audio', media: id, x: W() - 120, y: H() - 120, w: 64, h: 64, rot: 0, name: file.name, color: 't:accent1', autoplay: false, play: 'seq', alt: O.baseName(file.name) };
+    const au = new Audio(); au.preload = 'metadata'; au.src = P.mediaUrl(id); au.addEventListener('loadedmetadata', () => { if (isFinite(au.duration)) e.mediaDur = O.round(au.duration, 2); }, { once: true });
     C.add(e, 'Son');
+  };
+  P.MEDIA_STARTS = [['seq', 'Au clic'], ['auto', 'Automatiquement'], ['click', 'En cliquant dessus']]; // comme PowerPoint : « au clic » = dans la séquence des clics
+  /** Démarrage d'une vidéo ou d'un son (comme PowerPoint) ; la séquence des animations suit */
+  C.setMediaStart = function (mode, els) {
+    els = els || A.selEls().filter(P.isMediaEl); if (!els.length) return;
+    els.forEach((e) => { e.play = mode; e.autoplay = mode === 'auto'; });
+    if (A.view !== 'master') P.syncMedia(A.slide());
+    A.change('Démarrer la lecture');
   };
   C.mediaOptions = function () {
     const e = A.one(); if (!e || (e.type !== 'video' && e.type !== 'audio')) return;
     const isV = e.type === 'video', yt = isV && e.url;
     O.form(isV ? 'Options de la vidéo' : 'Options du son', [
-      { id: 'autoplay', type: 'check', label: 'Lecture automatique à l\'affichage de la diapositive', value: !!e.autoplay },
-      { id: 'loop', type: 'check', label: 'En boucle', value: !!e.loop },
+      { id: 'play', type: 'select', label: 'Démarrer', value: P.mediaStart(e), options: P.MEDIA_STARTS },
+      ...(isV && !yt ? [{ id: 'full', type: 'check', label: 'Lire en plein écran', value: !!e.full }] : []),
+      { id: 'loop', type: 'check', label: 'En boucle jusqu\'à l\'arrêt', value: !!e.loop },
+      ...(!yt ? [{ id: 'rewind', type: 'check', label: 'Rembobiner après la lecture', value: !!e.rewind }] : []),
       ...(isV && !yt ? [{ id: 'muted', type: 'check', label: 'Sans le son', value: !!e.muted }] : []),
       ...(!isV ? [{ id: 'hide', type: 'check', label: 'Masquer l\'icône pendant le diaporama', value: !!e.hideInShow }, { id: 'across', type: 'check', label: 'Continuer sur les diapositives suivantes', value: !!e.across }] : []),
       { id: 'start', type: 'number', label: 'Début (secondes)', value: e.start || 0, min: 0, half: true },
       ...(isV && !yt ? [{ id: 'end', type: 'number', label: 'Fin (secondes, 0 = jusqu\'au bout)', value: e.end || 0, min: 0, half: true }] : []),
       ...(yt ? [{ id: 'url', type: 'text', label: 'Adresse YouTube', value: e.url }] : [])
-    ]).then((r) => { if (!r) return; e.autoplay = r.autoplay; e.loop = r.loop; if ('muted' in r) e.muted = r.muted; if ('hide' in r) { e.hideInShow = r.hide; e.across = r.across; } e.start = r.start || 0; if ('end' in r) e.end = r.end || 0; if (r.url && P.ytId(r.url)) e.url = r.url; A.change('Options du média'); });
+    ]).then((r) => {
+      if (!r) return;
+      e.play = r.play; e.autoplay = r.play === 'auto'; e.loop = r.loop;
+      if ('full' in r) e.full = r.full; if ('rewind' in r) e.rewind = r.rewind; if ('muted' in r) e.muted = r.muted;
+      if ('hide' in r) { e.hideInShow = r.hide; e.across = r.across; } e.start = r.start || 0; if ('end' in r) e.end = r.end || 0; if (r.url && P.ytId(r.url)) e.url = r.url;
+      if (A.view !== 'master') P.syncMedia(A.slide());
+      A.change('Options du média');
+    });
   };
   C.posterFromFrame = function () {
     const e = A.one(); if (!e || e.type !== 'video' || !e.media) return;

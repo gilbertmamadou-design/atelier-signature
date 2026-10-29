@@ -13,19 +13,27 @@
     em: [['pulse', 'Impulsion'], ['spin', 'Rotation'], ['grow', 'Agrandir / réduire'], ['teeter', 'Bascule'], ['blink', 'Clignotement'], ['colorPulse', 'Éclat de couleur']],
     out: [['disappear', 'Disparaître'], ['fadeOut', 'Fondu'], ['flyOut', 'Sortie brusque'], ['floatOut', 'Flottant'], ['zoomOut', 'Zoom'], ['wipeOut', 'Balayer'], ['shrinkTurn', 'Réduire et tourner']]
   };
+  P.ANIMS.media = [['play', 'Lecture']];
   P.ANIM_DIRS = { fly: 1, float: 1, wipe: 1, flyOut: 1, floatOut: 1, wipeOut: 1 };
   P.animName = (a) => { const l = P.ANIMS[a.cat] || []; const x = l.find((k) => k[0] === a.fx); return x ? x[1] : a.fx; };
-  /** Étapes d'animation d'une diapo : [{auto:bool, items:[{a, t0}]}] (t0 en secondes depuis le début de l'étape) */
+  /** Durée réelle d'un effet (s), répétitions comprises */
+  P.animDur = function (a, slide) {
+    if (a.cat === 'media') { const e = (slide && P.findEl(slide, a.el)) || {}; return Math.max(0, (+e.end || +e.mediaDur || 0) - (+e.start || 0)); }
+    if (a.fx === 'appear' || a.fx === 'disappear') return 0;
+    return (+a.dur || 0.5) * (a.fx === 'bounce' ? 1.6 : a.fx === 'spin' ? 1.5 : 1) * Math.max(1, +a.repeat || 1);
+  };
+  /** Étapes d'animation d'une diapo : [{auto:bool, items:[{a, t0}]}] (t0 en secondes depuis le début de l'étape).
+      Comme PowerPoint : « avec la précédente » part en même temps que le groupe en cours (son propre délai en plus),
+      « après la précédente » ouvre un nouveau groupe à la fin de tout ce qui précède dans l'étape. */
   P.animSteps = function (slide) {
-    const steps = []; let cur = null, prevStart = 0, prevEnd = 0;
-    (slide.anims || []).forEach((a, i) => {
-      if (a.start === 'click' || !cur) { cur = { auto: a.start !== 'click', items: [] }; steps.push(cur); prevStart = 0; prevEnd = 0; if (a.start !== 'click' && i > 0) cur.auto = false; }
-      const t0 = (a.start === 'after' ? prevEnd : prevStart) + (a.delay || 0);
-      if (a.start !== 'click' || cur.items.length === 0) { /* rien */ }
+    const steps = []; let cur = null, subStart = 0, end = 0;
+    (slide.anims || []).forEach((a) => {
+      if (a.start === 'click' || !cur) { cur = { auto: a.start !== 'click', items: [] }; steps.push(cur); subStart = 0; end = 0; }
+      if (a.start === 'after' && cur.items.length) subStart = end;
+      const t0 = subStart + (+a.delay || 0);
       cur.items.push({ a, t0 });
-      prevStart = t0; prevEnd = Math.max(prevEnd, t0 + (a.fx === 'appear' || a.fx === 'disappear' ? 0 : (a.dur || 0.5)) * (a.repeat || 1));
+      end = Math.max(end, t0 + P.animDur(a, slide));
     });
-    if (steps.length && (slide.anims || [])[0] && slide.anims[0].start !== 'click') steps[0].auto = true;
     return steps;
   };
   function kf(a, e, W, H) {
@@ -68,6 +76,10 @@
   };
   function playOne(root, slide, a, delay, doc, instant) {
     const n = root.querySelector('.el[data-id="' + a.el + '"]'); if (!n) return Promise.resolve();
+    if (a.cat === 'media') { // étape « Lecture » d'une vidéo ou d'un son (seulement dans un vrai diaporama, pas dans l'aperçu de l'éditeur)
+      if (!instant && root.closest('.show-stage')) { const t = setTimeout(() => { if (root.isConnected) P.mediaPlayBox(n); }, delay * 1000); (root._timers = root._timers || []).push(t); }
+      return Promise.resolve();
+    }
     const e = P.findEl(slide, a.el) || { x: 0, y: 0, w: 100, h: 100 };
     const [frames, dur, easing, fill] = kf(a, e, doc.size.w, doc.size.h);
     if (a.cat === 'in') n.style.visibility = 'visible';
@@ -105,6 +117,89 @@
   }
   P.transition = transition;
 
+  /* ---------------- Vidéos et sons pendant le diaporama ---------------- */
+  const fmtT = (s) => { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+  const medOf = (box) => box && box.querySelector('video,audio');
+  /** Lecture d'une vidéo YouTube : lecteur officiel (youtube-nocookie) */
+  P.playYt = function (box) {
+    if (!box || box.querySelector('iframe')) return;
+    const id = box.dataset.yt, st = +box.dataset.start || 0;
+    const f = document.createElement('iframe');
+    f.className = 'show-yt'; f.title = 'Vidéo YouTube'; f.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen'; f.setAttribute('allowfullscreen', '');
+    f.src = 'https://www.youtube-nocookie.com/embed/' + id + '?autoplay=1&rel=0&playsinline=1' + (st ? '&start=' + st : '');
+    box.innerHTML = ''; box.appendChild(f);
+  };
+  /** Lance la vidéo ou le son d'un objet. La politique de lecture automatique des navigateurs peut refuser le son
+      sans geste de l'utilisateur (fenêtre publique, par exemple) : on lit alors sans le son, avec un bouton pour le remettre. */
+  P.mediaPlayBox = function (box, quiet) {
+    if (!box) return;
+    const yt = box.querySelector('.vid-yt'); if (yt) { P.playYt(yt); return; }
+    const m = medOf(box); if (!m) return;
+    if (m.ended || m.dataset.done === '1' || (+m.dataset.end && m.currentTime >= +m.dataset.end)) { m.dataset.done = ''; try { m.currentTime = +m.dataset.start || 0; } catch (e) { } }
+    if (m.dataset.full === '1') box.classList.add('vfull');
+    if (box._show && box._show.muteMedia && box._show.muteMedia()) m.muted = true;
+    const p = m.play();
+    if (p && p.catch) p.catch((er) => {
+      if (er && er.name === 'NotAllowedError' && !m.muted) { m.muted = true; box.classList.add('vmuted-auto'); m.play().catch(() => { }); }
+    });
+    if (!quiet && box._show && box._show.onMedia) box._show.onMedia({ id: box.dataset.id, act: 'play', t: m.currentTime });
+  };
+  P.mediaPauseBox = function (box, quiet) {
+    const m = medOf(box); if (!m) return;
+    m.pause();
+    if (!quiet && box._show && box._show.onMedia) box._show.onMedia({ id: box.dataset.id, act: 'pause', t: m.currentTime });
+  };
+  P.mediaToggleBox = function (box) {
+    if (!box) return;
+    if (box.querySelector('.vid-yt')) { P.playYt(box.querySelector('.vid-yt')); return; }
+    const m = medOf(box); if (!m) return;
+    if (box.classList.contains('vmuted-auto')) { box.classList.remove('vmuted-auto'); m.muted = false; if (!m.paused) return; }
+    if (m.paused) P.mediaPlayBox(box); else P.mediaPauseBox(box);
+  };
+  /** Branche les commandes des vidéos et sons d'une diapositive affichée en diaporama */
+  P.wireMedia = function (root, hooks) {
+    O.$$('.el-video, .el-audio', root).forEach((box) => {
+      const m = medOf(box); box._show = hooks;
+      if (!m) return;
+      const st = +m.dataset.start || 0, end = +m.dataset.end || 0;
+      const ctl = box.querySelector('.vctl'), seek = ctl && ctl.querySelector('[data-v="seek"]'), vt = ctl && ctl.querySelector('.vt');
+      const total = () => (end || m.duration || 0) - st;
+      const upd = () => {
+        box.classList.toggle('playing', !m.paused);
+        if (!ctl) return;
+        const b = ctl.querySelector('[data-v="play"]'); if (b && b.dataset.s !== String(m.paused)) { b.dataset.s = String(m.paused); b.innerHTML = O.icon(m.paused ? 'play' : 'pause'); }
+        const mu = ctl.querySelector('[data-v="mute"]'); if (mu && mu.dataset.s !== String(m.muted)) { mu.dataset.s = String(m.muted); mu.innerHTML = O.icon(m.muted ? 'volume-x' : 'volume-2'); }
+        const tt = total(); if (seek && !seek._drag && tt > 0) seek.value = Math.round(O.clamp((m.currentTime - st) / tt, 0, 1) * 1000);
+        if (vt) vt.textContent = fmtT(m.currentTime - st) + (tt > 0 ? ' / ' + fmtT(tt) : '');
+      };
+      const finish = () => {
+        box.classList.remove('vfull');
+        m.dataset.done = '1';
+        if (m.dataset.rewind === '1') { try { m.currentTime = st; } catch (e) { } }
+        upd();
+      };
+      m.addEventListener('loadedmetadata', () => { if (st && m.currentTime < st) { try { m.currentTime = st; } catch (e) { } } upd(); });
+      m.addEventListener('timeupdate', () => { if (end && m.currentTime >= end && !m.paused) { if (m.loop) { m.currentTime = st; } else { m.pause(); finish(); } } upd(); });
+      ['play', 'pause', 'volumechange', 'seeked'].forEach((ev) => m.addEventListener(ev, upd));
+      m.addEventListener('ended', finish);
+      if (!ctl) return;
+      ctl.addEventListener('pointerdown', (e) => e.stopPropagation());
+      ctl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const b = e.target.closest('button[data-v]'); if (!b) return;
+        const k = b.dataset.v;
+        if (k === 'play') P.mediaToggleBox(box);
+        if (k === 'mute') { m.muted = !m.muted; box.classList.remove('vmuted-auto'); }
+        if (k === 'full') box.classList.toggle('vfull');
+        if (hooks && hooks.onMedia && k !== 'play') hooks.onMedia({ id: box.dataset.id, act: k === 'mute' ? 'mute' : 'full', muted: m.muted, full: box.classList.contains('vfull') });
+        b.blur();
+      });
+      seek.addEventListener('input', () => { seek._drag = true; const tt = total(); if (tt > 0) { m.currentTime = st + seek.value / 1000 * tt; } });
+      seek.addEventListener('change', () => { seek._drag = false; seek.blur(); if (hooks && hooks.onMedia) hooks.onMedia({ id: box.dataset.id, act: 'seek', t: m.currentTime }); });
+      upd();
+    });
+  };
+
   /* ---------------- Moteur ---------------- */
   /** new P.Show(hôte, doc, {follower, onState, onEnd, preview, quiet}) */
   P.Show = function (host, doc, opt) {
@@ -119,6 +214,7 @@
     S.fit = function () {
       const W = doc.size.w, H = doc.size.h, hw = host.clientWidth, hh = host.clientHeight;
       const k = Math.min(hw / W, hh / H); S.k = k;
+      stage.style.setProperty('--k', k || 1);
       stage.style.width = W + 'px'; stage.style.height = H + 'px';
       stage.style.transform = 'translate(' + (-W * k / 2) + 'px,' + (-H * k / 2) + 'px) scale(' + k + ')';
       const dpr = devicePixelRatio || 1; ink.width = hw * dpr; ink.height = hh * dpr; ink.style.width = hw + 'px'; ink.style.height = hh + 'px';
@@ -132,13 +228,28 @@
       P.fitAll(n, doc, s);
       if (window.katex === undefined && n.querySelector('.eq-raw') && window.PresApp && window.PresApp.loadKatex) window.PresApp.loadKatex().then(() => { O.$$('.eq-raw', n).forEach((r) => { r.outerHTML = P.katexHtml(r.dataset.tex, true) || r.outerHTML; }); });
       P.animPrepare(n, s);
+      P.wireMedia(n, S.mediaHooks);
       return n;
     }
-    function stopMedia(n, keepAcross) { if (!n) return; O.$$('video,audio', n).forEach((m) => { if (keepAcross && m.dataset.across === '1') { document.body.appendChild(m); m.style.display = 'none'; return; } try { m.pause(); } catch (e) { } }); O.$$('iframe', n).forEach((f) => f.remove()); }
+    function stopMedia(n, keepAcross) { if (!n) return; (n._timers || []).forEach(clearTimeout); O.$$('video,audio', n).forEach((m) => { if (keepAcross && m.dataset.across === '1' && !m.paused) { document.body.appendChild(m); m.style.display = 'none'; return; } try { m.pause(); } catch (e) { } }); O.$$('iframe', n).forEach((f) => f.remove()); }
+    /** Vidéos et sons « automatiquement » : lancés à l'arrivée sur la diapositive */
     function startMedia(n) {
-      O.$$('video[data-auto="1"],audio[data-auto="1"]', n).forEach((m) => { try { m.currentTime = +m.dataset.start || 0; } catch (e) { } const p = m.play(); if (p && p.catch) p.catch(() => { }); });
-      O.$$('video', n).forEach((v) => { const end = +v.dataset.end; if (end) v.addEventListener('timeupdate', () => { if (v.currentTime >= end) { v.pause(); } }); if (+v.dataset.start) v.addEventListener('loadedmetadata', () => { v.currentTime = +v.dataset.start; }, { once: true }); });
+      O.$$('[data-play="auto"]', n).forEach((m) => { const box = m.closest('.el'); if (box) P.mediaPlayBox(box, true); });
     }
+    S.mediaHooks = { muteMedia: opt.muteMedia, onMedia: opt.onMedia };
+    /** Clic ou toucher sur une vidéo / un son : lecture ou pause (sans passer à l'étape suivante) */
+    S.mediaToggle = (box) => P.mediaToggleBox(box);
+    /** Alt+P : lecture / pause de la première vidéo (ou du premier son) de la diapositive */
+    S.mediaKey = function () { const box = cur && cur.querySelector('.el-video, .el-audio'); if (box) P.mediaToggleBox(box); };
+    /** Fenêtre publique : refait ce que le présentateur a fait sur une vidéo */
+    S.mediaApply = function (d) {
+      const box = cur && cur.querySelector('.el[data-id="' + d.id + '"]'); if (!box) return;
+      const m = medOf(box);
+      if (d.act === 'play') { if (m && d.t != null && Math.abs(m.currentTime - d.t) > 0.6) m.currentTime = d.t; P.mediaPlayBox(box, true); }
+      else if (d.act === 'pause') { P.mediaPauseBox(box, true); if (m && d.t != null) m.currentTime = d.t; }
+      else if (d.act === 'seek' && m) m.currentTime = d.t;
+      else if (d.act === 'full') box.classList.toggle('vfull', !!d.full);
+    };
     S.go = function (i, opt2) {
       opt2 = opt2 || {};
       busy = busy.then(async () => {
@@ -244,13 +355,19 @@
     host.innerHTML = ''; host.className = 'on';
     A.showing = true; A.presenterMode = !!opt.presenter;
     const doc = A.doc;
+    doc.slides.forEach((s) => P.syncMedia(s));
     let idx = from || 0; if (doc.slides[idx].hidden && !opt.forceHidden) { const v = doc.slides.findIndex((s, i) => i >= idx && !s.hidden); idx = v >= 0 ? v : idx; }
     if (A.presenterMode) { setupPresenter(); host.className = ''; }
     const target = A.presenterMode ? document.querySelector('#presenter .pr-cur .pr-host') : host;
-    show = new P.Show(target, doc, { onState: (st) => { post({ type: 'state', st }); updatePresenter(st); updateNum(st); if (rehearse) rehearseTick(st); } });
+    show = new P.Show(target, doc, {
+      onState: (st) => { post({ type: 'state', st }); updatePresenter(st); updateNum(st); if (rehearse) rehearseTick(st); },
+      // mode présentateur : le son vient de la fenêtre publique ; ce que le présentateur fait sur une vidéo y est refait
+      muteMedia: () => !!(A.presenterMode && A.audienceWin && !A.audienceWin.closed),
+      onMedia: (m) => post(Object.assign({ type: 'media' }, m))
+    });
     A.show = show;
-    if (!A.presenterMode) buildBar(host);
     attachInput(A.presenterMode ? document.querySelector('#presenter .pr-cur') : host);
+    if (!A.presenterMode) buildBar(host);
     keyFn = (e) => handleKey(e);
     window.addEventListener('keydown', keyFn, true);
     timerStart = Date.now(); timerPause = 0; paused = false;
@@ -269,6 +386,7 @@
     A.showing = false; A._leavingFs = true;
     window.removeEventListener('keydown', keyFn, true);
     document.removeEventListener('fullscreenchange', fsChange);
+    if (inputAbort) { inputAbort.abort(); inputAbort = null; }
     if (document.fullscreenElement) document.exitFullscreen().catch(() => { });
     setTimeout(() => { A._leavingFs = false; }, 300);
     post({ type: 'end' });
@@ -303,7 +421,7 @@
     host.appendChild(bar);
     host.appendChild(O.h('div', { cls: 'show-num' }));
     host.appendChild(O.h('div', { cls: 'show-goto' }));
-    let t = null; host.addEventListener('pointermove', () => { host.classList.add('cur'); clearTimeout(t); t = setTimeout(() => host.classList.remove('cur'), 2200); });
+    let t = null; host.addEventListener('pointermove', () => { host.classList.add('cur'); clearTimeout(t); t = setTimeout(() => host.classList.remove('cur'), 2200); }, { signal: inputAbort ? inputAbort.signal : undefined });
   }
   function updateNum(st) { const n = document.querySelector('#show .show-num'); if (n) n.textContent = (st.i + 1) + ' / ' + A.doc.slides.length; }
   function toolAction(k, btn) {
@@ -338,25 +456,35 @@
     g.classList.add('on');
     requestAnimationFrame(() => O.$$('.th-box', g).forEach((b, i) => { const n = P.renderSlide(A.doc, A.doc.slides[i], { mode: 'thumb', index: i }); n.style.transform = 'scale(' + (b.clientWidth / W) + ')'; n.style.transformOrigin = '0 0'; n.style.position = 'absolute'; b.style.position = 'relative'; b.appendChild(n); }));
   }
+  // Les écouteurs sont retirés à la fin de chaque diaporama : #show reste dans la page, et sans cela chaque nouveau
+  // diaporama de la session en ajoutait un jeu de plus (un clic faisait alors avancer de plusieurs étapes).
+  let inputAbort = null;
   function attachInput(host) {
-    let stroke = null, swipe = null;
+    if (inputAbort) inputAbort.abort();
+    inputAbort = new AbortController();
+    const sig = { signal: inputAbort.signal };
+    let stroke = null, swipe = null, mediaTap = null;
     host.addEventListener('pointerdown', (e) => {
       if (!A.showing || e.button === 2) return;
-      if (e.target.closest('.show-bar, video, audio, iframe, .show-grid, button, .vid-ph, .show-end')) { if (e.target.closest('.show-end')) A.endShow(); if (e.target.closest('.vid-ph')) playYt(e.target.closest('.vid-yt')); return; }
+      if (e.target.closest('.show-bar, iframe, .show-grid, button, input, .vctl, .show-end')) { if (e.target.closest('.show-end')) A.endShow(); return; }
+      // vidéo ou son : le clic (ou le toucher) va d'abord à la vidéo, et ne fait pas avancer le diaporama
+      const mb = !tools.mode && e.target.closest('.show-stage .el-video, .show-stage .el-audio');
+      if (mb) { mediaTap = { box: mb, x: e.clientX, y: e.clientY }; return; }
       const p = show.toSlide(e.clientX, e.clientY);
       if (tools.mode === 'pen' || tools.mode === 'hl') { e.preventDefault(); stroke = { c: tools.color, w: tools.mode === 'hl' ? 22 : 4, hl: tools.mode === 'hl', p: [p] }; host.setPointerCapture(e.pointerId); return; }
       if (tools.mode === 'laser') { show.setLaser(true, p, A.doc.settings.laser); post({ type: 'laser', on: true, p, c: A.doc.settings.laser }); return; }
       const link = e.target.closest('.el.has-link'); if (link) { e.preventDefault(); followShowLink(JSON.parse(link.dataset.link)); return; }
       const a = e.target.closest('.el-tx-in a'); if (a) { e.preventDefault(); const h = a.getAttribute('href'); if (/^#slide:/.test(h)) followShowLink({ type: 'slide', slide: h.slice(7) }); else if (/^#/.test(h)) followShowLink({ type: h.slice(1) }); else followShowLink({ type: 'url', url: h }); return; }
       swipe = { x: e.clientX, y: e.clientY, t: Date.now(), touch: e.pointerType === 'touch' };
-    });
+    }, sig);
     host.addEventListener('pointermove', (e) => {
       if (!A.showing) return;
       const p = show.toSlide(e.clientX, e.clientY);
       if (stroke) { stroke.p.push(p); const x = show.inkCanvas.getContext('2d'); const dpr = devicePixelRatio || 1; x.setTransform(dpr * show.k, 0, 0, dpr * show.k, dpr * show.ox, dpr * show.oy); x.strokeStyle = stroke.c; x.globalAlpha = stroke.hl ? 0.4 : 1; x.lineWidth = stroke.w; x.lineCap = 'round'; const q = stroke.p[stroke.p.length - 2]; x.beginPath(); x.moveTo(q[0], q[1]); x.lineTo(p[0], p[1]); x.stroke(); x.globalAlpha = 1; return; }
       if (tools.mode === 'laser') { show.setLaser(true, p, A.doc.settings.laser); post({ type: 'laser', on: true, p, c: A.doc.settings.laser }); }
-    });
+    }, sig);
     const up = (e) => {
+      if (mediaTap) { const t = mediaTap; mediaTap = null; if (Math.hypot(e.clientX - t.x, e.clientY - t.y) < 24) { show.mediaToggle(t.box); t.box.classList.add('ctl-on'); clearTimeout(t.box._ctlT); t.box._ctlT = setTimeout(() => t.box.classList.remove('ctl-on'), 3000); } return; }
       if (stroke) { if (stroke.p.length > 1) { show.addStroke(stroke); post({ type: 'ink', i: show.i, st: stroke }); A._lastInk = show.ink; } stroke = null; return; }
       if (!swipe) return;
       const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y; const s = swipe; swipe = null;
@@ -364,17 +492,9 @@
       if (Math.hypot(dx, dy) < 12 && Date.now() - s.t < 600 && !A.presenterMode) show.next();
       else if (A.presenterMode && Math.hypot(dx, dy) < 12) show.next();
     };
-    host.addEventListener('pointerup', up); host.addEventListener('pointercancel', () => { stroke = null; swipe = null; });
-    host.addEventListener('contextmenu', (e) => { if (!A.showing) return; e.preventDefault(); toolAction('menu', { getBoundingClientRect: () => ({ left: e.clientX, right: e.clientX, top: e.clientY, bottom: e.clientY }) }); });
-    host.addEventListener('wheel', (e) => { if (!A.showing || e.target.closest('.show-grid, .pr-notes')) return; e.preventDefault(); if (e.deltaY > 0) show.next(); else if (e.deltaY < 0) show.prev(); }, { passive: false });
-  }
-  function playYt(box) {
-    if (!box) return;
-    const id = box.dataset.yt, st = +box.dataset.start || 0;
-    const f = document.createElement('iframe');
-    f.className = 'show-yt'; f.title = 'Vidéo YouTube'; f.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen'; f.setAttribute('allowfullscreen', '');
-    f.src = 'https://www.youtube-nocookie.com/embed/' + id + '?autoplay=1&rel=0&playsinline=1' + (st ? '&start=' + st : '');
-    box.innerHTML = ''; box.appendChild(f);
+    host.addEventListener('pointerup', up, sig); host.addEventListener('pointercancel', () => { stroke = null; swipe = null; mediaTap = null; }, sig);
+    host.addEventListener('contextmenu', (e) => { if (!A.showing) return; e.preventDefault(); toolAction('menu', { getBoundingClientRect: () => ({ left: e.clientX, right: e.clientX, top: e.clientY, bottom: e.clientY }) }); }, sig);
+    host.addEventListener('wheel', (e) => { if (!A.showing || e.target.closest('.show-grid, .pr-notes')) return; e.preventDefault(); if (e.deltaY > 0) show.next(); else if (e.deltaY < 0) show.prev(); }, { passive: false, signal: inputAbort.signal });
   }
   function followShowLink(l) {
     if (!l) return;
@@ -392,6 +512,7 @@
     if (/^[0-9]$/.test(k) && !mod) { gotoBuf += k; const g = document.querySelector('.show-goto'); if (g) { g.textContent = gotoBuf; g.style.display = 'block'; } stop(); return; }
     if (k === 'Enter' && gotoBuf) { const n = parseInt(gotoBuf, 10) - 1; gotoBuf = ''; const g = document.querySelector('.show-goto'); if (g) g.style.display = 'none'; if (n >= 0 && n < A.doc.slides.length) { show.forceIdx = n; show.go(n); } stop(); return; }
     if (gotoBuf && k !== 'Enter') { gotoBuf = ''; const g = document.querySelector('.show-goto'); if (g) g.style.display = 'none'; }
+    if (e.altKey && !mod && (k === 'p' || k === 'P' || e.code === 'KeyP')) { show.mediaKey(); stop(); return; }
     if (mod && (k === 'p' || k === 'P')) { setTool(tools.mode === 'pen' ? null : 'pen'); stop(); return; }
     if (mod && (k === 'l' || k === 'L')) { setTool(tools.mode === 'laser' ? null : 'laser'); stop(); return; }
     if (mod && (k === 'a' || k === 'A')) { setTool(null); stop(); return; }
@@ -493,10 +614,13 @@
       if (d.type === 'ink') { sh.ink[d.i] = sh.ink[d.i] || []; sh.ink[d.i].push(d.st); if (d.i === sh.i) sh.redrawInk(); }
       if (d.type === 'ink-clear') { sh.ink[d.i] = []; sh.redrawInk(); }
       if (d.type === 'laser') sh.setLaser(d.on, d.p, d.c);
+      if (d.type === 'media') sh.mediaApply(d);
       if (d.type === 'end') { sh.destroy(); host.innerHTML = '<div style="color:#999;font:16px system-ui;display:flex;align-items:center;justify-content:center;height:100%">Diaporama terminé. Vous pouvez fermer cette fenêtre.</div>'; setTimeout(() => window.close(), 1500); }
     };
     c.postMessage({ type: 'hello' });
-    host.addEventListener('click', () => { const m = host.querySelector('.aud-msg'); if (m) m.remove(); if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => { }); });
+    host.addEventListener('click', () => { const m = host.querySelector('.aud-msg'); if (m) m.remove();
+      // le clic autorise le son : les vidéos lancées sans le son (politique de lecture automatique) le retrouvent
+      O.$$('.vmuted-auto', host).forEach((b) => { b.classList.remove('vmuted-auto'); const v = b.querySelector('video,audio'); if (v) v.muted = false; }); if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => { }); });
     window.addEventListener('keydown', (e) => { if (e.key === 'F11' || e.key === 'f') { document.documentElement.requestFullscreen().catch(() => { }); return; } c.postMessage({ type: 'key', key: e.key }); e.preventDefault(); });
     window.addEventListener('beforeunload', () => c.postMessage({ type: 'closed' }));
     // le message devient un bandeau discret en bas, puis disparaît

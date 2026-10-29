@@ -510,8 +510,9 @@
         drawGuides([]); const t = overlay.querySelector('.size-tip'); if (t) t.remove();
         if (!moved) { if (onClick) onClick(); return; }
         if (dup) { // Ctrl + glisser : copie
-          const copies = start.map((s) => { const c = P.cloneEl(s.e); s.e.x = s.x; s.e.y = s.y; return c; });
+          const map = {}; const copies = start.map((s) => { const c = P.cloneEl(s.e, map); s.e.x = s.x; s.e.y = s.y; return c; });
           const list = A.els(); copies.forEach((c) => list.push(c)); A.sel = copies.map((c) => c.id);
+          if (A.view !== 'master') { const sl = A.slide(); sl.anims = (sl.anims || []).concat(P.animsFor(sl.anims, map).filter((a) => P.findEl(sl, a.el))); }
           A.change('Copie par glisser'); return;
         }
         A.updateConnectors();
@@ -886,7 +887,8 @@
   const MARK = 'magpres-clip:';
   A.copySel = function (cut) {
     const els = A.selEls(); if (!els.length) return null;
-    const data = { kind: 'elements', from: A.slide().id, els: O.clone(els), media: {} };
+    const ids = new Set(); P.walk(els, (x) => ids.add(x.id));
+    const data = { kind: 'elements', from: A.slide().id, els: O.clone(els), media: {}, anims: O.clone((A.view === 'master' ? [] : A.slide().anims || []).filter((a) => ids.has(a.el))) };
     els.forEach((e) => P.walk([e], (x) => { [x.media, x.poster, x.orig, x.fill && x.fill.media].forEach((m) => { if (m && A.doc.media[m]) data.media[m] = A.doc.media[m]; }); }));
     A.clip = { data, blobs: Object.assign({}, P.blobs) };
     if (cut) A.cmd.del('Couper');
@@ -927,11 +929,13 @@
     const c = A.clip; if (!c) return;
     Object.keys(c.data.media).forEach((m) => { if (!A.doc.media[m]) { A.doc.media[m] = c.data.media[m]; if (c.blobs[m]) P.blobs[m] = c.blobs[m]; } });
     const same = c.data.from === A.slide().id;
-    const copies = c.data.els.map((e) => { const x = P.cloneEl(e); delete x.ph; if (same) { x.x += 20; x.y += 20; } if (x.type === 'placeholder') return null; if (x.autofit === 'shrink') x.autofit = 'none'; return x; }).filter(Boolean);
+    const map = {};
+    const copies = c.data.els.map((e) => { const x = P.cloneEl(e, map); delete x.ph; if (same) { x.x += 20; x.y += 20; } if (x.type === 'placeholder') return null; if (x.autofit === 'shrink') x.autofit = 'none'; return x; }).filter(Boolean);
     if (!same && copies.length) { // la même chose placée au même endroit sur une autre diapo
     }
     const list = A.els(); copies.forEach((x) => list.push(x));
     A.sel = copies.map((x) => x.id);
+    if (A.view !== 'master' && c.data.anims && c.data.anims.length) { const sl = A.slide(); sl.anims = (sl.anims || []).concat(P.animsFor(c.data.anims, map).filter((a) => P.findEl(sl, a.el))); } // les animations suivent l'objet collé
     if (same) c.data.els = c.data.els.map((e) => Object.assign({}, e, { x: e.x + 20, y: e.y + 20 }));
     A.change('Coller');
   };

@@ -77,7 +77,7 @@
     const s = A.doc.slides[A.cur]; if (!s || !A.sel.length) { O.toast('Sélectionnez d\'abord un objet à animer'); return; }
     s.anims = s.anims || [];
     A.sel.forEach((id, k) => {
-      const ex = s.anims.filter((a) => a.el === id);
+      const ex = s.anims.filter((a) => a.el === id && a.cat !== 'media');
       if (replace !== false && ex.length) { const a = ex[ex.length - 1]; a.cat = cat; a.fx = fx; if (!P.ANIM_DIRS[fx]) delete a.dir; else a.dir = a.dir || (cat === 'out' ? 'b' : 'b'); A.animSel = a.id; }
       else { const a = { id: P.uid('a'), el: id, cat, fx, start: k === 0 ? 'click' : 'with', delay: 0, dur: fx === 'appear' || fx === 'disappear' ? 0 : 0.5 }; if (P.ANIM_DIRS[fx]) a.dir = 'b'; s.anims.push(a); A.animSel = a.id; }
     });
@@ -85,7 +85,8 @@
   };
   C.animProp = function (k, v) { const a = selAnim(); if (!a) return; a[k] = v; A.change('Animation'); };
   C.animMove = function (dir) { const s = A.doc.slides[A.cur], a = selAnim(); if (!a) return; const i = s.anims.indexOf(a), j = i + dir; if (j < 0 || j >= s.anims.length) return; s.anims.splice(i, 1); s.anims.splice(j, 0, a); A.change('Ordre des animations'); };
-  C.animDel = function () { const s = A.doc.slides[A.cur], a = selAnim(); if (!a) return; s.anims.splice(s.anims.indexOf(a), 1); A.animSel = null; A.change('Supprimer l\'animation'); };
+  C.animDel = function () { const s = A.doc.slides[A.cur], a = selAnim(); if (!a) return; s.anims.splice(s.anims.indexOf(a), 1);
+    if (a.cat === 'media') { const e = P.findEl(s, a.el); if (e) { e.play = 'click'; e.autoplay = false; } } /* plus d'étape « Lecture » : la vidéo se lance en cliquant dessus */ A.animSel = null; A.change('Supprimer l\'animation'); };
   function animGallery() {
     const g = [];
     P.ANIMS.in.forEach((x) => g.push({ id: 'in:' + x[0], title: 'Entrée : ' + x[1], html: '<div class="tr-gal" style="color:#2F9E44">' + O.icon(ANIM_IC[x[0]] || 'star') + '<span style="color:var(--o-tx)">' + x[1] + '</span></div>' }));
@@ -424,7 +425,11 @@
     arrangeGroup(), { label: 'Taille', items: [sizeItems()] }
   ] });
   TABS.push({ id: 'mediafmt', label: 'Lecture', contextual: () => selType('video', 'audio'), groups: [
-    { label: 'Options', items: [{ icon: 'settings-2', label: 'Options du média', size: 'lg', on: () => C.mediaOptions() }, { type: 'col', items: [{ icon: 'play', label: 'Lecture automatique', active: () => !!(one() || {}).autoplay, on: () => C.setProp((e) => { e.autoplay = !e.autoplay; }, 'Lecture automatique') }, { icon: 'repeat', label: 'En boucle', active: () => !!(one() || {}).loop, on: () => C.setProp((e) => { e.loop = !e.loop; }, 'Boucle') }, { icon: 'image', label: 'Image d\'aperçu (image actuelle)', disabled: () => !selType('video') || !!(one() || {}).url, on: () => C.posterFromFrame() }] }] },
+    { label: 'Options', items: [{ icon: 'settings-2', label: 'Options du média', size: 'lg', on: () => C.mediaOptions() }, { type: 'col', items: [
+      { type: 'select', id: 'mstart', width: 170, title: 'Démarrer : au clic (dans la séquence des clics, comme une animation), automatiquement, ou en cliquant sur la vidéo', options: () => P.MEDIA_STARTS, value: () => one() ? P.mediaStart(one()) : 'seq', on: (c, v) => C.setMediaStart(v) },
+      { icon: 'maximize', label: 'Lire en plein écran', disabled: () => !selType('video') || !!(one() || {}).url, active: () => !!(one() || {}).full, on: () => C.setProp((e) => { e.full = !e.full; }, 'Lire en plein écran') },
+      { icon: 'image', label: 'Image d\'aperçu (image actuelle)', disabled: () => !selType('video') || !!(one() || {}).url, on: () => C.posterFromFrame() }] },
+      { type: 'col', items: [{ icon: 'repeat', label: 'En boucle jusqu\'à l\'arrêt', active: () => !!(one() || {}).loop, on: () => C.setProp((e) => { e.loop = !e.loop; }, 'Boucle') }, { icon: 'rotate-ccw', label: 'Rembobiner après la lecture', disabled: () => !!(one() || {}).url, active: () => !!(one() || {}).rewind, on: () => C.setProp((e) => { e.rewind = !e.rewind; }, 'Rembobiner') }] }] },
     { label: 'Accessibilité', items: [{ icon: 'scan-text', label: 'Texte de remplacement', size: 'lg', on: () => C.altText() }] },
     arrangeGroup(), { label: 'Taille', items: [sizeItems()] }
   ] });
