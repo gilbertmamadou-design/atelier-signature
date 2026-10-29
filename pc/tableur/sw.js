@@ -5,7 +5,7 @@
      la page affiche « Nouvelle version disponible » et l'active sur demande (message SKIP_WAITING) ;
    - réponses : cache d'abord pour les fichiers précachés, réseau puis cache pour le reste (polices…). */
 'use strict';
-var VERSION = 'cf1f4079e0c4';
+var VERSION = '62e30c1ad48f';
 var APP = 'tableur';
 var CACHE = 'mag-pc-' + APP + '-' + VERSION, RUNTIME = 'mag-pc-' + APP + '-rt';
 var PRECACHE = [
@@ -78,6 +78,7 @@ var PRECACHE = [
   "tb-pdf.js",
   "tb-templates.js",
   "tb-ui.js",
+  "tb-xlsx-charts.js",
   "tb-xlsx.js"
 ];
 

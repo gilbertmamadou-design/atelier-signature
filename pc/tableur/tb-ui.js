@@ -537,6 +537,7 @@
       if (Gr.edit || e.defaultPrevented || O.dialogOpen() || O.menuOpen()) return;
       if (e.ctrlKey || e.metaKey || (e.altKey && !e.getModifierState('AltGraph'))) return;
       if (A.selObj) return;
+      if (e.key === ' ' && e.shiftKey) return; // Maj+Espace : sélectionner la ligne
       if (e.key.length === 1 || e.key === 'Dead' || e.key === 'Process') {
         if (!A.canEdit(sh(), Gr.sel.r, Gr.sel.c)) { e.preventDefault(); return; }
         Gr.beginEdit({ text: '', mode: 'enter' });

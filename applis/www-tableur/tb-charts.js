@@ -64,6 +64,8 @@
       for (let r = r0; r <= g.r2; r++) { if (sh.hidR.has(r) && !ch.showHidden) continue; const vals = []; for (let c = c0; c <= g.c2; c++) { const v = sh.get(r, c); vals.push(typeof v === 'number' ? v : null); } out.series.push({ name: lab ? txt(wb, sh, r, g.c1) : 'Série ' + (out.series.length + 1), values: vals }); }
       if (out.series.length) out.fmt = wb.styles.get(sh.styleAt(r0, c0)).nf || 'General';
     }
+    // colonnes de texte (aucun nombre) : pas de série vide quand d'autres séries ont des nombres
+    if (out.series.some((x) => x.values.some((v) => typeof v === 'number'))) out.series = out.series.filter((x) => x.values.some((v) => typeof v === 'number'));
     (ch.seriesOpt || []).forEach((o, i) => { if (out.series[i] && o) Object.assign(out.series[i], o); });
     if (/^combo/.test(ch.kind)) out.series.forEach((s, i) => { if (i > 0 && !s.kind) { s.kind = 'line'; if (ch.kind === 'comboAxis') s.axis = 2; } });
     return out;

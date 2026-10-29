@@ -128,7 +128,7 @@
     row(s, 'D23', ['Total TTC', null, { f: 'ROUND(F19+SUM(F20:F22),2)' }], [{ b: true, ha: 'right', bg: DARK, fc: '#FFFFFF' }, { bg: DARK }, { b: true, nf: EUR, bg: DARK, fc: '#FFFFFF', fs: 12 }]); merge(s, 'D23:E23');
     put(s, 'A19', 'Conditions de paiement : 30 jours à réception.', SUB);
     put(s, 'A20', 'Pénalités de retard et indemnité forfaitaire : à compléter selon vos conditions générales (à vérifier).', WARN); merge(s, 'A20:C21');
-    put(s, 'A25', 'Arrêtée la présente facture à la somme de :', { i: true }); put(s, 'C25', { f: 'F23' }, { b: true, nf: EUR });
+    put(s, 'A25', 'Arrêtée la présente facture à la somme de :', { i: true }); put(s, 'D25', { f: 'F23' }, { b: true, nf: EUR, ha: 'left' }); merge(s, 'D25:F25');
     widths(s, [40, 10, 8, 16, 8, 16]);
     s.print = { orient: 'portrait', fitW: 1, fitH: 1, margins: { t: 1.5, b: 1.5, l: 1.5, r: 1.5, h: 0.8, f: 0.8 }, footer: { c: 'Page &P sur &N' } };
     s.grid = false;
@@ -246,10 +246,10 @@
     put(s, 'A1', 'Métré de calorifuge – tuyauteries', TITLE); put(s, 'A2', 'MAG Formation 13 · exercice de métré', { b: true, fc: ORANGE });
     put(s, 'A3', 'Toutes les valeurs (diamètres, épaisseurs, recouvrement, chutes, équivalences d\'accessoires) sont des EXEMPLES À VÉRIFIER : reprenez celles du cahier des charges, des plans et des fiches techniques du fabricant.', WARN); merge(s, 'A3:L4'); s.rowH[2] = 22; s.rowH[3] = 22;
     put(s, 'A6', 'Hypothèses (à vérifier)', { b: true, bg: '#FFF3BF' }); merge(s, 'A6:C6');
-    row(s, 'A7', ['Recouvrement de la tôle (mm)', null, 50], [null, null, { bg: '#FFF3BF', nf: '0', ha: 'center' }]);
-    row(s, 'A8', ['Majoration chutes tôle (%)', null, 0.1], [null, null, { bg: '#FFF3BF', nf: '0%', ha: 'center' }]);
-    row(s, 'A9', ['Longueur équivalente d\'un coude (× Ø fini)', null, 1.5], [null, null, { bg: '#FFF3BF', nf: '0.0', ha: 'center' }]);
-    row(s, 'A10', ['Longueur équivalente d\'une vanne (m)', null, 0.5], [null, null, { bg: '#FFF3BF', nf: '0.00', ha: 'center' }]);
+    row(s, 'A7', ['Recouvrement tôle (mm)', null, 50], [null, null, { bg: '#FFF3BF', nf: '0', ha: 'center' }]);
+    row(s, 'A8', ['Chutes tôle (%)', null, 0.1], [null, null, { bg: '#FFF3BF', nf: '0%', ha: 'center' }]);
+    row(s, 'A9', ['Coude : long. équiv. (× Ø)', null, 1.5], [null, null, { bg: '#FFF3BF', nf: '0.0', ha: 'center' }]);
+    row(s, 'A10', ['Vanne : long. équiv. (m)', null, 0.5], [null, null, { bg: '#FFF3BF', nf: '0.00', ha: 'center' }]);
     row(s, 'A12', ['Repère', 'Désignation', 'Ø ext. tube (mm)', 'Épaisseur isolant (mm)', 'Longueur droite (m)', 'Coudes', 'Vannes', 'Ø fini (mm)', 'Longueur totale (m)', 'Surface isolant (m²)', 'Développé tôle (m)', 'Tôle (m²)'], H);
     s.rowH[11] = 46;
     const L = [['T1', 'Eau chaude aller', 60.3, 40, 24.5, 4, 1], ['T2', 'Eau chaude retour', 48.3, 40, 24.5, 4, 1], ['T3', 'Vapeur BP', 88.9, 60, 12, 3, 2], ['T4', 'Condensats', 33.7, 30, 12, 3, 0], ['T5', 'Collecteur', 114.3, 80, 4.2, 2, 2]];

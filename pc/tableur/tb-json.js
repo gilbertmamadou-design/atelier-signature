@@ -11,7 +11,7 @@
   const pairs = (a) => { const out = []; a.forEach((v, i) => { if (v !== undefined && v !== null) out.push([i, v]); }); return out; };
   const mapList = (m) => Array.from(m.entries()).map(([k, v]) => { const p = TB.unkey(k); return [p.r, p.c, v]; });
   J.sheetToJson = function (wb, sh) {
-    const cells = [];
+    const cells = [], runs = [];
     const ncol = Math.max(sh.vals.length, sh.sty.length);
     for (let c = 0; c < ncol; c++) {
       const vc = sh.vals[c] || [], sc = sh.sty[c] || [];
@@ -21,6 +21,8 @@
         if (sh.spillOwner.has(k)) { if (s !== undefined) cells.push([r, c, null, 0, s]); continue; }
         const v = vc[r];
         if ((v === undefined || v === null) && !f && s === undefined) continue;
+        // suites de valeurs simples (sans formule ni style) : [colonne, première ligne, [valeurs]]
+        if (!f && s === undefined && !(v instanceof TB.Err)) { const last = runs[runs.length - 1]; if (last && last[0] === c && last[1] + last[2].length === r) last[2].push(v); else runs.push([c, r, [v]]); continue; }
         const row = [r, c, v === undefined ? null : encV(v)];
         if (f || s !== undefined || (f && f.arr)) { row.push(f ? f.src : 0); if (s !== undefined || (f && f.arr)) row.push(s === undefined ? null : s); if (f && f.arr) row.push([f.arr.r1, f.arr.c1, f.arr.r2, f.arr.c2]); }
         cells.push(row);
@@ -31,10 +33,12 @@
     const o = {
       id: sh.id, name: sh.name, tab: sh.tab || null, hidden: sh.hidden || 0, zoom: sh.zoom || 1, grid: sh.grid !== false, heads: sh.heads !== false, defW: sh.defW, defH: sh.defH,
       colW: pairs(sh.colW), rowH: pairs(sh.rowH), hidC: Array.from(sh.hidC), hidR: Array.from(sh.hidR), colSt: pairs(sh.colSt), rowSt: pairs(sh.rowSt), outR: pairs(sh.outR), outC: pairs(sh.outC),
-      cells, merges: sh.merges, freeze: sh.freeze, cf: sh.cf, dv: sh.dv, af: sh.af, tables: sh.tables, objs: sh.objs, sparks: sh.sparks || [],
+      cells: null, runs: null, merges: sh.merges, freeze: sh.freeze, cf: sh.cf, dv: sh.dv, af: sh.af, tables: sh.tables, objs: sh.objs, sparks: sh.sparks || [],
       notes: mapList(sh.notes), links: mapList(sh.links), threads: mapList(sh.threads), protect: sh.protect, print: sh.print, sel: sh.sel, showF: !!sh.showF, rtl: !!sh.rtl, collapsedR: sh.collapsedR || null, pivots: sh.pivots || []
     };
-    return JSON.parse(JSON.stringify(o));
+    const out = JSON.parse(JSON.stringify(o)); out.cells = cells; out.runs = runs.filter((x) => x[2].length > 1);
+    runs.forEach((x) => { if (x[2].length === 1) cells.push([x[1], x[0], x[2][0]]); });
+    return out;
   };
   J.toJson = function (wb) {
     return {
@@ -52,6 +56,7 @@
     const n = wb.styles.list.length;
     wb.suspend++;
     try {
+      for (const [c, r0, vals] of o.runs || []) { const col = sh.vals[c] || (sh.vals[c] = []); for (let i = 0; i < vals.length; i++) col[r0 + i] = vals[i]; }
       for (const cell of o.cells || []) {
         const [r, c, v, f, s, a] = cell;
         if (f) TB._addFormula(wb, sh, r, c, f, a ? { r1: a[0], c1: a[1], r2: a[2], c2: a[3] } : null);

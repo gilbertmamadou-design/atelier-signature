@@ -462,7 +462,7 @@
     if (!srcRef) { const da = A.dataArea(); if (!da) { O.toast('Sélectionnez une cellule dans les données (avec en-têtes)', { bad: true }); return; } srcRef = TB.quoteSheet(s.name) + '!' + TB.rangeStr(da.g, true); }
     let cfg = p ? TB.deepClone(p.cfg) : { rows: [], cols: [], vals: [], filters: [], groups: {} };
     const body = '<div class="two-col">' + fld('Source', inp('pvS', srcRef)) + fld('Emplacement', sel('pvW', [['new', 'Nouvelle feuille'], ['here', 'Feuille existante (cellule ci-dessous)']], p ? 'here' : 'new')) + '</div>' + fld('Cellule de destination', inp('pvA', p ? TB.quoteSheet(s.name) + '!' + TB.addr(p.anchor.r, p.anchor.c, true) : '')) +
-      '<div class="two-col" style="grid-template-columns:1fr 2fr;gap:12px"><div class="o-field"><span>Champs</span><div id="pvF" class="fmt-cats" style="max-height:330px"></div></div><div><div class="two-col"><div class="o-field"><span>Filtres</span><div class="cf-list" id="pvZf" style="min-height:60px"></div></div><div class="o-field"><span>Colonnes</span><div class="cf-list" id="pvZc" style="min-height:60px"></div></div><div class="o-field"><span>Lignes</span><div class="cf-list" id="pvZr" style="min-height:60px"></div></div><div class="o-field"><span>Valeurs</span><div class="cf-list" id="pvZv" style="min-height:60px"></div></div></div></div></div><div class="csv-prev" id="pvPv" style="max-height:200px"></div>';
+      '<div class="two-col" style="grid-template-columns:1fr 2fr;gap:12px"><div class="o-field"><span>Champs (cliquez pour ajouter)</span><div id="pvF" class="fmt-cats" style="max-height:330px"></div></div><div><div class="two-col"><div class="o-field"><span>Filtres</span><div class="cf-list pv-zone" id="pvZf"></div></div><div class="o-field"><span>Colonnes</span><div class="cf-list pv-zone" id="pvZc"></div></div><div class="o-field"><span>Lignes</span><div class="cf-list pv-zone" id="pvZr"></div></div><div class="o-field"><span>Valeurs</span><div class="cf-list pv-zone" id="pvZv"></div></div></div></div></div><div class="csv-prev" id="pvPv" style="max-height:200px"></div>';
     let src = null;
     const loadSrc = (el) => { src = TB.Pivot.source(wb(), String(val(el, 'pvS')).replace(/^=/, '')); if (!src) { $in(el, 'pvF').innerHTML = '<p class="o-hint">Source incorrecte.</p>'; return; } $in(el, 'pvF').innerHTML = src.fields.map((f, i) => '<button type="button" data-f="' + i + '">' + esc(f) + '</button>').join(''); O.$$('#pvF button', el).forEach((b) => b.onclick = () => fieldMenu(el, +b.dataset.f, b)); draw(el); };
     const fieldMenu = (el, f, at) => {
@@ -489,7 +489,7 @@
       O.menu(at, [{ html: '', node }], { keep: true });
       node.querySelector('.pri').onclick = () => { x.vals = keys.filter((k, j) => !node.querySelector('[data-k="' + j + '"]').checked); O.closeMenu(); draw(el); };
     };
-    const preview = (el) => { if (!src) return; try { const res = TB.Pivot.compute(src, cfg); $in(el, 'pvPv').innerHTML = '<table class="pv-table">' + res.grid.slice(0, 30).map((row) => '<tr>' + row.map((c) => '<td' + (c && (c.k === 'h' || c.k === 'ch' || c.k === 'gt' || c.b) ? ' style="font-weight:700"' : '') + '>' + esc(c && c.v != null ? (typeof c.v === 'number' ? TB.Fmt.text(c.v, c.pct ? '0.00%' : '#,##0.##') : String(c.v)) : '') + '</td>').join('') + '</tr>').join('') + '</table>'; } catch (e) { $in(el, 'pvPv').textContent = e.message; } };
+    const preview = (el) => { if (!src) return; try { const res = TB.Pivot.compute(src, cfg); $in(el, 'pvPv').innerHTML = '<table class="pv-table">' + res.grid.slice(0, 30).map((row) => '<tr>' + row.map((c) => '<td' + (c && (c.k === 'h' || c.k === 'ch' || c.k === 'gt' || c.b) ? ' style="font-weight:700"' : '') + '>' + esc(c && c.v != null ? (typeof c.v === 'number' ? TB.Fmt.text(c.v, c.pct ? '0.00%' : 'General') : String(c.v)) : '') + '</td>').join('') + '</tr>').join('') + '</table>'; } catch (e) { $in(el, 'pvPv').textContent = e.message; } };
     return dlg(p ? 'Modifier le tableau croisé dynamique' : 'Tableau croisé dynamique', body, (el, close) => {
       if (!src) return false; if (!cfg.rows.length && !cfg.cols.length && !cfg.vals.length) { O.toast('Ajoutez au moins un champ (cliquez sur un nom de champ)', { bad: true }); return false; }
       const srcTxt = String(val(el, 'pvS')).replace(/^=/, '');
@@ -618,13 +618,13 @@
       O.$$('#ifL button', el).forEach((b) => { b.onclick = () => { cur = b.dataset.n; O.$$('#ifL button', el).forEach((x) => x.classList.toggle('on', x === b)); info(el); }; b.ondblclick = () => { cur = b.dataset.n; el.querySelector('.o-dlg-ft .pri').click(); }; });
       if (!cur && L.length) cur = L[0]; info(el);
     };
-    const info = (el) => { if (!cur) { $in(el, 'ifH').innerHTML = ''; return; } const I = TB.FN_INFO[cur] || {}; const args = TB.fnArgs ? TB.fnArgs(cur) : (I.args || []); $in(el, 'ifH').innerHTML = '<b style="font-family:Consolas,monospace">' + esc(P.displayFn(cur, TB.loc.fn)) + '(' + esc((args || []).join(TB.loc.arg + ' ')) + ')</b><br>' + esc(I.desc || 'Fonction compatible avec les tableurs courants.') + (TB.FN[cur] && TB.FN[cur].fr ? '<br><small>Nom anglais : ' + esc(cur) + '</small>' : ''); };
+    const info = (el) => { if (!cur) { $in(el, 'ifH').innerHTML = ''; return; } const I = TB.FN_INFO[cur] || {}; const args = TB.fnArgs ? TB.fnArgs(cur) : String(I.args || ''); $in(el, 'ifH').innerHTML = '<b style="font-family:Consolas,monospace">' + esc(P.displayFn(cur, TB.loc.fn)) + '(' + esc(args) + ')</b><br>' + esc(I.desc || 'Fonction compatible avec les tableurs courants.') + (TB.FN[cur] && TB.FN[cur].fr ? '<br><small>Nom anglais : ' + esc(cur) + '</small>' : ''); };
     return dlg('Insérer une fonction', body, (el, close) => { if (!cur) return false; close('ok'); try { recent = [cur].concat(recent.filter((x) => x !== cur)).slice(0, 12); localStorage.setItem('tableur:fnRecentes', JSON.stringify(recent)); } catch (e) { } setTimeout(() => argsDialog(cur), 0); return false; }, { wide: true, onOpen: (el) => { $in(el, 'ifQ').addEventListener('input', () => list(el)); $in(el, 'ifC').addEventListener('change', () => list(el)); list(el); } });
   };
   /** arguments d'une fonction, avec résultat en direct */
   function argsDialog(canon) {
     const I = TB.FN_INFO[canon] || {}; const def = TB.FN[canon] || {};
-    const names = (TB.fnArgs ? TB.fnArgs(canon) : I.args) || [];
+    const names = String((TB.fnArgs ? TB.fnArgs(canon) : I.args) || '').split(/\s*[;,]\s*/).filter((x) => x && x !== '…' && x !== '...');
     const n = Math.max(names.length, def.min || 1, 1);
     const Gr = G(); const r = Gr.sel.r, c = Gr.sel.c;
     const fname = P.displayFn(canon, TB.loc.fn);

@@ -51,7 +51,7 @@
         case 'sep': return '<span class="o-rb-vsep"></span>';
         case 'html': return '<div class="o-rb-html" data-id="' + id + '"></div>';
         case 'select': return '<span class="o-rb-sel' + (c.edit ? ' edit' : '') + '" data-id="' + id + '" title="' + tt + '" style="width:' + (c.width || 120) + 'px">' + (c.edit ? '<input type="text" aria-label="' + O.esc(t) + '"><button type="button" class="o-rb-dd" aria-label="Liste">' + O.icon('chevron-down') + '</button>' : '<select aria-label="' + O.esc(t) + '"></select>') + '</span>';
-        case 'num': return '<label class="o-rb-num" data-id="' + id + '" title="' + tt + '">' + (c.icon ? icon : '<span>' + O.esc(c.label || '') + '</span>') + '<input type="number" step="' + (c.step || 1) + '"' + (c.min != null ? ' min="' + c.min + '"' : '') + (c.max != null ? ' max="' + c.max + '"' : '') + ' style="width:' + (c.width || 58) + 'px" aria-label="' + O.esc(t) + '">' + (c.unit ? '<small>' + O.esc(c.unit) + '</small>' : '') + '</label>';
+        case 'num': return '<label class="o-rb-num" data-id="' + id + '" title="' + tt + '">' + (c.icon ? icon : '<span>' + O.esc(c.label || '') + '</span>') + '<input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" step="' + (c.step || 1) + '"' + (c.min != null ? ' min="' + c.min + '"' : '') + (c.max != null ? ' max="' + c.max + '"' : '') + ' style="width:' + (c.width || 58) + 'px" aria-label="' + O.esc(t) + '">' + (c.unit ? '<small>' + O.esc(c.unit) + '</small>' : '') + '</label>';
         case 'gallery': return '<div class="o-rb-gal" data-id="' + id + '" style="--gw:' + (c.w || 64) + 'px;--gh:' + (c.h || 40) + 'px"><div class="o-rb-gal-in"></div><button type="button" class="o-rb-gal-more" title="Plus" aria-label="Afficher tout">' + O.icon('chevron-down') + '</button></div>';
         case 'color': return '<span class="o-rb-split o-rb-color" data-id="' + id + '" title="' + tt + '"><button type="button" class="o-rb-b sm main">' + icon + (c.showLabel ? '<span class="l">' + O.esc(c.label) + '</span>' : '') + '<i class="o-rb-bar"></i></button><button type="button" class="o-rb-b sm arr" aria-label="' + O.esc(t) + ' : choisir">' + O.icon('chevron-down') + '</button></span>';
         case 'split': return '<span class="o-rb-split ' + (c.size === 'lg' ? 'lg' : 'sm') + '" data-id="' + id + '" title="' + tt + '"><button type="button" class="o-rb-b ' + (c.size === 'lg' ? 'lg' : 'sm') + ' main">' + icon + '<span class="l">' + O.esc(c.label || '') + '</span></button><button type="button" class="o-rb-b arr" aria-label="' + O.esc(t) + ' : options">' + O.icon('chevron-down') + '</button></span>';
@@ -115,10 +115,15 @@
     }
     function mountNum(n) {
       const c = R.byId[n.dataset.id], inp = n.querySelector('input');
-      const commit = () => { const v = parseFloat(String(inp.value).replace(',', '.')); if (!isNaN(v) && String(v) !== inp._v) { c.on(ctx, v); R.refresh(); } };
+      const commit = () => { let v = parseFloat(String(inp.value).replace(/\s/g, '').replace(',', '.')); if (isNaN(v)) { R.refresh(); return; } if (c.min != null) v = Math.max(c.min, v); if (c.max != null) v = Math.min(c.max, v); if (String(v) !== inp._v) { c.on(ctx, v); R.refresh(); } };
       inp.addEventListener('change', commit);
-      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); commit(); } });
-      refreshers.push(() => { const v = c.value ? c.value(ctx) : ''; if (document.activeElement !== inp) { inp.value = v == null || v === '' ? '' : O.round(v, 2); inp._v = String(inp.value); } inp.disabled = !!(c.disabled && c.disabled(ctx)); });
+      // nombres affichés à la française (virgule décimale) ; flèches haut / bas : pas de la commande
+      const show = (v) => String(O.round(v, 2)).replace('.', ',');
+      inp.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); commit(); return; }
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); const st = +(c.step || 1), cur = parseFloat(String(inp.value).replace(',', '.')) || 0; let v = O.round(cur + (e.key === 'ArrowUp' ? st : -st), 4); if (c.min != null) v = Math.max(c.min, v); if (c.max != null) v = Math.min(c.max, v); inp.value = show(v); commit(); }
+      });
+      refreshers.push(() => { const v = c.value ? c.value(ctx) : ''; if (document.activeElement !== inp) { inp.value = v == null || v === '' ? '' : show(v); inp._v = String(parseFloat(String(inp.value).replace(',', '.'))); } inp.disabled = !!(c.disabled && c.disabled(ctx)); });
     }
     function mountGallery(n) {
       const c = R.byId[n.dataset.id], inner = n.querySelector('.o-rb-gal-in');

@@ -220,11 +220,13 @@
             // débordement à droite (texte aligné à gauche) : cellules vides suivantes
             let clipW = b.w;
             if (!st.wr && !isNum && ha === 'left' && tw > b.w - 2 * pad && !g) { let ci = colsAll.indexOf(c) + 1; while (ci < colsAll.length && clipW < tw + 2 * pad && !occupied(r, colsAll[ci])) { clipW += W.get(colsAll[ci]) * k; ci++; } }
+            let clipX = b.x;
+            if (!st.wr && !isNum && ha === 'right' && tw > b.w - 2 * pad && !g) { let ci = colsAll.indexOf(c) - 1; while (ci >= 0 && clipW < tw + 2 * pad && !occupied(r, colsAll[ci])) { const w0 = W.get(colsAll[ci]) * k; clipW += w0; clipX -= w0; ci--; } }
             const totalH = lines.length * lh;
             let ty = va === 'top' ? b.y + 1.5 * k + size * 0.85 : va === 'center' ? b.y + (b.h - totalH) / 2 + size * 0.85 : b.y + b.h - 2 * k - totalH + size * 0.85;
             const tx = ha === 'right' ? b.x + b.w - pad : ha === 'center' ? b.x + b.w / 2 : b.x + pad;
             doc.saveGraphicsState();
-            doc.rect(b.x, b.y - 0.5, Math.max(clipW, ha === 'center' ? b.w : 0), b.h + 1, null); doc.clip(); doc.discardPath();
+            doc.rect(clipX, b.y - 0.5, Math.max(clipW, ha === 'center' ? b.w : 0), b.h + 1, null); doc.clip(); doc.discardPath();
             const rot = st.rot && st.rot !== 255 ? st.rot : 0;
             if (rot) { doc.text(lines.join(' '), b.x + b.w / 2, b.y + b.h - 3 * k, { angle: rot, baseline: 'alphabetic' }); }
             else if (st.rot === 255) { const ch = Array.from(lines.join('')); let yy = b.y + size; ch.forEach((t) => { doc.text(t, b.x + b.w / 2, yy, { align: 'center', baseline: 'alphabetic' }); yy += lh; }); }

@@ -359,7 +359,7 @@
     wb.media = media;
     if (!wb.sheets.length) wb.addSheetRaw('Feuil1');
     THEME = null;
-    if (await hasCharts(z)) warnings.push('Les graphiques du fichier ne sont pas repris : recréez-les avec Insertion › Graphique.');
+    if (await hasCharts(z)) { try { (await TB.XlsxCharts.read(z, wb)).forEach((w) => warnings.push(w)); } catch (e) { warnings.push('Graphiques non repris : ' + e.message); } }
     if (z.file('xl/pivotCache/pivotCacheDefinition1.xml')) warnings.push('Tableaux croisés dynamiques repris comme valeurs (recréez-les avec Données › Tableau croisé).');
     if (Object.keys(z.files).some((n) => /^xl\/vbaProject\.bin$/i.test(n))) warnings.push('Les macros (VBA) ne sont pas prises en charge et ne seront pas enregistrées.');
     wb.finishLoad();
@@ -539,10 +539,9 @@
       if (sh.protect) { const al = sh.protect.allow || {}; await ws.protect('', { selectLockedCells: true, selectUnlockedCells: true, formatCells: !!al.formatCells, formatColumns: !!al.formatColumns, formatRows: !!al.formatRows, insertRows: !!al.insertRows, deleteRows: !!al.deleteRows, sort: !!al.sort, autoFilter: !!al.autoFilter, spinCount: 1 }); if (sh.protect.hash) warn.push('Protection de « ' + sh.name + ' » exportée sans mot de passe'); }
       if (sh.tables.length) extra.push({ si, tables: sh.tables });
     }
-    if (charts) warn.push(charts + ' graphique(s) non exporté(s) en .xlsx (conservés dans le .magcalc)');
     let out = await book.xlsx.writeBuffer();
     // ajouts au paquet : tableaux, noms
-    out = await patchPackage(out, wb, extra);
+    out = await patchPackage(out, wb, extra, warn); void charts;
     return { blob: new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), warn: Array.from(new Set(warn)) };
   };
 
@@ -555,7 +554,7 @@
     if (!ext && !before) return sx;
     return sx.replace('</worksheet>', () => before + ext + '</worksheet>');
   }
-  async function patchPackage(buf, wb, extra) {
+  async function patchPackage(buf, wb, extra, warn) {
     const z = await JSZip.loadAsync(buf);
     let ct = await z.file('[Content_Types].xml').async('string');
     let tid = 0;
@@ -602,6 +601,7 @@
       else x = x.replace(/(<calcPr\b|<\/workbook>)/, (m) => '<definedNames>' + defs + '</definedNames>' + m);
       z.file('xl/workbook.xml', x);
     }
+    if (wb.sheets.some((s) => s.objs.some((o) => o.type === 'chart'))) { try { const r = await TB.XlsxCharts.write(z, wb); if (r.skipped) warn.push(r.skipped + ' graphique(s) sans données non exporté(s)'); } catch (e) { console.warn(e); warn.push('Graphiques non exportés : ' + e.message); } }
     return z.generateAsync({ type: 'uint8array', compression: 'DEFLATE', compressionOptions: { level: 6 }, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   }
   X._styleIn = styleIn; X._styleOut = styleOut; X._cfIn = cfIn; X._cfOut = cfOut;

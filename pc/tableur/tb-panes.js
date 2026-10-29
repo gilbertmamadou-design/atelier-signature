@@ -23,7 +23,7 @@
     pane.hidden = !kind;
     if (kind === 'find') renderFind(opt);
     else if (kind === 'comments') renderComments(opt);
-    if (A.grid) setTimeout(() => { A.grid.resize && A.grid.resize(); A.grid.draw(); }, 0);
+    if (A.grid) setTimeout(() => { A.grid.resize && A.grid.resize(); A.grid.draw(); if (!kind) A.grid.focus(); }, 0);
     A.refreshUi && A.refreshUi();
   };
   A.paneRefresh = function () { if (A.pane === 'comments') renderComments({ keep: true }); };

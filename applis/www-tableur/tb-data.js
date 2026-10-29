@@ -331,7 +331,7 @@
     const perm = order; // nouvelle position i ← ancienne ligne order[i]
     const apply = (pm) => permute(wb, sh, g, a, pm, byCols);
     const inv = new Array(perm.length); perm.forEach((old, i) => { inv[old - a] = a + i; });
-    wb.fnEntry(() => apply(perm), () => apply(inv.map((x, i) => inv.indexOf(a + i) + a)));
+    wb.fnEntry(() => apply(perm), () => apply(inv));
     apply(perm);
     return true;
   };
@@ -645,7 +645,7 @@
       if (cell.k === 'h' || cell.k === 'ch') s = sHead;
       else if (cell.k === 'gt' || cell.gt) s = cell.k === 'v' ? W.styles.with(sGt, { nf: cell.pct ? '0.00%' : res.valFmts[cell.fi] !== 'General' ? res.valFmts[cell.fi] : null }) : sGt;
       else if (cell.k === 'rh') s = st({ b: cell.b || undefined, ind: cell.level || undefined, nf: typeof cell.v === 'number' && res.rowFmts[cell.level] !== 'General' ? res.rowFmts[cell.level] : undefined });
-      else if (cell.k === 'v') s = st({ b: cell.b || undefined, nf: cell.pct ? '0.00%' : (res.valFmts[cell.fi] !== 'General' ? res.valFmts[cell.fi] : '#,##0.##') });
+      else if (cell.k === 'v') s = st({ b: cell.b || undefined, nf: cell.pct ? '0.00%' : (res.valFmts[cell.fi] !== 'General' ? res.valFmts[cell.fi] : undefined) });
       const idx = list.findIndex((x) => x[0] === r && x[1] === c); const o = cell.v === null || cell.v === undefined ? (s ? { s } : null) : { v: cell.v, s: s || undefined };
       if (idx >= 0) list[idx] = [r, c, o]; else list.push([r, c, o]);
     }));

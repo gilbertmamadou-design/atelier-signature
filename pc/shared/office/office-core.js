@@ -137,6 +137,8 @@
   };
   O.dialogOpen = () => stack.length > 0;
   O.closeTopDialog = () => { const c = stack[stack.length - 1]; if (c) { c(null); return true; } return false; };
+  // Échap ferme la boîte de dialogue du dessus (sauf si un menu y est ouvert : il se ferme d'abord)
+  window.addEventListener('keydown', (e) => { if (e.key !== 'Escape' || !stack.length || openMenu || e.defaultPrevented) return; e.preventDefault(); e.stopPropagation(); O.closeTopDialog(); }, true);
   O.confirm = (title, text, ok, bad) => O.dialog({ title, body: '<p>' + O.esc(text || '') + '</p>', buttons: [{ label: 'Annuler', value: false }, { label: ok || 'OK', value: true, primary: true, bad }] }).then((v) => !!v);
   O.alert = (title, html) => O.dialog({ title, body: html, buttons: [{ label: 'OK', value: true, primary: true }] });
   O.prompt = function (title, label, value, opt) {
