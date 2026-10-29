@@ -170,6 +170,35 @@ body:not(.edit) .pempty{display:none}
 .calcres{font-size:24px;font-weight:600;margin-top:6px;text-align:right;font-variant-numeric:tabular-nums;min-height:30px}
 .t-note textarea{width:100%;min-height:70px;background:transparent;border:0;outline:0;resize:none;margin-top:6px;font-size:14px;color:var(--tx)}
 .empty{font-size:12.5px;color:var(--tx3);margin-top:8px}
+/* Panneau Majordome : sphère de particules, nom, salutation, résumé de la journée */
+.mjp{display:flex;align-items:center;gap:12px;min-width:0}
+.mjo{position:relative;width:112px;height:112px;flex:none;border-radius:50%;background:radial-gradient(circle,rgba(70,217,194,.26) 0,rgba(70,217,194,.07) 46%,transparent 68%)}
+.mjo canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.mjp .tt{flex:1;min-width:0}
+.mjp .nm{font-size:25px;font-weight:600;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mjp .gr{font-size:14px;color:var(--tx2);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mjp .ht{display:flex;align-items:center;gap:5px;margin-top:9px;font-size:12px;color:#7fe6d2;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mjp .ht svg{width:14px;height:14px}
+.mjl{margin-top:9px;display:grid;gap:6px}
+.mjl div{display:flex;align-items:center;gap:8px;font-size:13px;min-width:0}
+.mjl svg{width:15px;height:15px;color:#7fe6d2}
+.mjl span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;color:var(--tx2)}
+.mjl b{font-weight:600;color:var(--tx)}
+.mjq{margin-top:9px;padding:7px 10px;border-radius:12px;background:rgba(255,255,255,.07);font-size:12.5px;color:var(--tx2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.t-mjpanel:not(.h2) .mjo{width:78px;height:78px}
+.t-mjpanel:not(.h2) .mjp .nm{font-size:21px}
+.t-mjpanel:not(.w2) .mjp{flex-direction:column;align-items:flex-start;gap:6px}
+.t-mjpanel:not(.w2) .mjo{width:64px;height:64px}
+.t-mjpanel:not(.w2) .mjp .nm{font-size:17px}
+.t-mjpanel:not(.w2) .mjp .gr{font-size:12.5px}
+.mjoffer{grid-column:span 2;display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:var(--r);background:var(--tile);border:1px solid var(--tile-b);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.mjoffer>svg{width:26px;height:26px;color:#7fe6d2;flex:none}
+.mjoffer .t{flex:1;min-width:0;font-size:13.5px;font-weight:600}
+.mjoffer .t small{display:block;font-weight:400;font-size:12px;color:var(--tx2);margin-top:1px}
+.mjoffer button{padding:8px 11px;border-radius:11px;font-size:13px;font-weight:600;flex:none}
+.mjoffer .y{background:var(--acc);color:var(--acc-d)}
+.mjoffer .n{background:rgba(255,255,255,.1)}
+body.edit .mjoffer{display:none}
 
 /* Barre de recherche */
 #dock{position:fixed;left:12px;right:12px;bottom:calc(var(--nb) + 10px);z-index:5}
@@ -417,7 +446,7 @@ var TYPES = {
   sos:{n:'Urgence : bouton SOS',i:'sos',w:1}, coffre:{n:'Coffre : mots de passe',i:'lock',w:1},
   qrcode:{n:'QR : lire un code',i:'qr',w:1}, livre:{n:'Liseuse : livre en cours',i:'book',w:2},
   budget:{n:'Budget : dépenses du mois',i:'wallet',w:2,tall:1}, dicta:{n:'Dictaphone',i:'mic',w:1},
-  meteoapp:{n:'Météo : aujourd\'hui',i:'sun',w:2}, reseau:{n:'Réseau : connexion, débit et VPN',i:'web',w:1}, lecteur:{n:'Lecteur PDF : documents récents',i:'pdf',w:2}, solaire:{n:'Solaire : dernier projet',i:'solar',w:1}, presentation:{n:'Présentation : dernière présentation',i:'easel',w:1}, majordome:{n:'Majordome : commande vocale',i:'orb',w:1}, texte:{n:'Texte : dernier document',i:'doc',w:1}, actu:{n:'Actualités : l\'essentiel',i:'news',w:2}, power:{n:'Éteindre le téléphone',i:'power',w:1}, mag:{n:'Mes applis MAG',i:'mag',w:2}, note:{n:'Note rapide',i:'note',w:1},
+  meteoapp:{n:'Météo : aujourd\'hui',i:'sun',w:2}, reseau:{n:'Réseau : connexion, débit et VPN',i:'web',w:1}, lecteur:{n:'Lecteur PDF : documents récents',i:'pdf',w:2}, solaire:{n:'Solaire : dernier projet',i:'solar',w:1}, presentation:{n:'Présentation : dernière présentation',i:'easel',w:1}, majordome:{n:'Majordome : commande vocale',i:'orb',w:1}, mjpanel:{n:'Majordome : panneau d\'accueil (sphère et résumé)',i:'orb',w:2,tall:1,h:2}, texte:{n:'Texte : dernier document',i:'doc',w:1}, actu:{n:'Actualités : l\'essentiel',i:'news',w:2}, power:{n:'Éteindre le téléphone',i:'power',w:1}, mag:{n:'Mes applis MAG',i:'mag',w:2}, note:{n:'Note rapide',i:'note',w:1},
   app:{n:'Une appli',i:'grid',w:1,pick:1}, contact:{n:'Un contact',i:'user',w:1,pick:1}, link:{n:'Un site web',i:'link',w:1,pick:1},
   nextev:{n:'Prochain rendez-vous',i:'cal',w:1}, device:{n:'Batterie et stockage',i:'phonedev',w:1}, wxdetail:{n:'Météo détaillée',i:'cloud',w:2}
 };
@@ -652,6 +681,7 @@ function tileBody(cfg){
     case 'solaire': body = solaireHtml(cfg); break;
     case 'presentation': body = presHtml(cfg); break;
     case 'majordome': body = mjHtml(cfg); break;
+    case 'mjpanel': body = mjpHtml(cfg); break;
     case 'texte': body = texteHtml(cfg); break;
     case 'actu': body = actuHtml(cfg); break;
     case 'note': body = '<div class="hd">'+ic('note')+'Note rapide</div><textarea data-nk="'+esc(noteKey(cfg))+'" placeholder="Écris ici…">'+esc(lsGet(noteKey(cfg))||'')+'</textarea>'; break;
@@ -688,7 +718,8 @@ function renderPage(p){
   var pg=pageEls()[p]; if(!pg || !C.pages[p]) return;
   var n=C.pages.length;
   pg.querySelector('.phd').innerHTML='<span class="sh">'+(n>1?'Page '+(p+1)+' sur '+n:'Page principale')+'</span>'+(n>1?'<button data-pg="del" data-p="'+p+'">'+ic('trash')+'Supprimer la page</button>':'');
-  pg.querySelector('.grid').innerHTML=C.pages[p].map(function(c,i){ return tileHtml(c,p,i); }).join('')+(C.pages[p].length?'':'<div class="pempty">Page vide : touche <b>Ajouter</b> pour y mettre une appli, un contact, un site ou un panneau.</div>');
+  pg.querySelector('.grid').innerHTML=(p===0?mjOfferHtml():'')+C.pages[p].map(function(c,i){ return tileHtml(c,p,i); }).join('')+(C.pages[p].length?'':'<div class="pempty">Page vide : touche <b>Ajouter</b> pour y mettre une appli, un contact, un site ou un panneau.</div>');
+  mjOrbSync();
 }
 function mjBtn(){ var b=$('bMj'); if(b) b.toggleAttribute('hidden', !(C.mjBtn!==false && app(MJ))); }
 function render(){ mjBtn(); ensurePages(); for(var p=0;p<C.pages.length;p++) renderPage(p); snapSoon(); }
@@ -703,6 +734,7 @@ function refresh(type){
     var cfg=C.pages[+el.dataset.p]&&C.pages[+el.dataset.p][+el.dataset.i]; if(!cfg || cfg.t!==type) return;
     var tmp=document.createElement('div'); tmp.innerHTML=tileHtml(cfg, +el.dataset.p, +el.dataset.i); el.replaceWith(tmp.firstChild);
   });
+  if(type==='mjpanel') mjOrbSync();
 }
 function dots(){
   var n=C.pages.length;
@@ -774,7 +806,7 @@ function fetchWeather(force){
   weatherBusy=true;
   var u='https://api.open-meteo.com/v1/forecast?latitude='+C.city.lat+'&longitude='+C.city.lon+'&current=temperature_2m,weather_code,wind_speed_10m,wind_gusts_10m,is_day&hourly=precipitation_probability,temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_gusts_10m_max&timezone=auto&forecast_days=4';
   fetch(u).then(function(r){ return r.json(); }).then(function(d){
-    if(d && d.current){ d.at=Date.now(); d.lat=C.city.lat; W=d; lsSet('socle-meteo', JSON.stringify(d)); refresh('weather'); refresh('clock'); refresh('wxdetail'); snapSoon(); if(sheetType==='weather') weatherSheet(); }
+    if(d && d.current){ d.at=Date.now(); d.lat=C.city.lat; W=d; lsSet('socle-meteo', JSON.stringify(d)); refresh('weather'); refresh('clock'); refresh('wxdetail'); refresh('mjpanel'); snapSoon(); if(sheetType==='weather') weatherSheet(); }
   }).catch(function(){}).then(function(){ weatherBusy=false; });
 }
 function placeName(lat, lon){ try{ var n=A&&A.homePlace?A.homePlace(lat, lon):''; return n||'Ma position'; }catch(e){ return 'Ma position'; } }
@@ -1138,6 +1170,111 @@ function mjHtml(cfg){
 }
 function mjListen(){ if(A && app(MJ)) A.homeLaunchWith(MJ, JSON.stringify({listen:1})); }
 
+/* Panneau Majordome (2×2) : sphère de particules légère, nom choisi dans Majordome (« Jarvis »), salutation selon l'heure,
+   résumé (minuteur, réveil, rendez-vous, météo et vent, rappel, dernière réponse). Aucune requête réseau : la météo est celle
+   déjà chargée par Socle, le reste vient d'Android (réveil, agenda) et du résumé publié par Majordome (widgetPut).
+   Toucher : Majordome s'ouvre en écoute. Appui long : menu (routine « Bonjour », minuteur, note, réglages). */
+function mjName(){ var d=wd(MJ)||{}; return String(d.name||'Majordome').slice(0,24); }
+function mjGreet(d){ var h=new Date().getHours(), x=d.sir!==undefined?String(d.sir||''):'Monsieur'; return (h>=18||h<5?'Bonsoir':'Bonjour')+(x?' '+x:''); }
+function mjWhen(t){ var d=new Date(t); return (d.toDateString()===new Date().toDateString()?'':dayLabel(t)+' ')+hm(t); }
+function mjpRows(d){
+  var r=[], now=Date.now();
+  if(d.timer && d.timer.at>now) r.push(['clock','Minuteur'+(d.timer.label?' '+d.timer.label:''),'fin à '+hm(d.timer.at)]);
+  var al=alarmInfo(); if(al.at) r.push(['alarm','Réveil',dayLabel(al.at)+' à '+hm(al.at)]);
+  if(A){ var l=null; try{ l=J(A.homeAgenda(7),null); }catch(e){} var ev=l&&l.length?(l.filter(function(x){ return !x.all; })[0]||l[0]):null; if(ev) r.push(['cal',ev.title,evWhen(ev)]); }
+  if(W && W.current){ var c=W.current, w=wmo(c.weather_code,c.is_day); r.push([w[1],Math.round(c.temperature_2m)+'° '+w[0].toLowerCase(),'vent '+Math.round(c.wind_speed_10m)+' km/h'+(c.wind_gusts_10m>=40?', rafales '+Math.round(c.wind_gusts_10m):'')]); }
+  if(d.rem && d.rem.at>now) r.push(['bell','Rappel '+mjWhen(d.rem.at),d.rem.text||'']);
+  return r;
+}
+function mjpHtml(cfg){
+  var d=wd(MJ)||{}, nm=esc(mjName()), big=cfg.h===2, wide=cfg.w===2;
+  if(!app(MJ)) return '<div class="hd">'+ic('orb')+nm+'</div>'+missing('Majordome');
+  var rows=wide?mjpRows(d).slice(0,big?5:2):[];
+  var la=big && d.last && d.last.a && Date.now()-d.last.at<3*3600000 ? '<div class="mjq">« '+esc(d.last.a)+' »</div>' : '';
+  return '<div class="mjp"><div class="mjo" aria-hidden="true"><canvas class="mjorb"></canvas></div><div class="tt"><div class="nm">'+nm+'</div><div class="gr">'+esc(mjGreet(d))+'</div>'+
+    '<div class="ht">'+ic('mic')+(d.wake?'Touchez ou dites « '+nm+' »':'Touchez pour parler')+'</div></div></div>'+
+    (rows.length?'<div class="mjl">'+rows.map(function(x){ return '<div>'+ic(x[0])+'<span><b>'+esc(x[1])+'</b>'+(x[2]?' · '+esc(x[2]):'')+'</span></div>'; }).join('')+'</div>':(big?'<div class="empty">Rien de prévu : demandez « Quel temps fait-il ? » ou « Réveille-moi à 7 h ».</div>':''))+la;
+}
+function mjMenu(){
+  var nm=esc(mjName());
+  openSheet('<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">'+ic('orb',' style="width:26px;height:26px;color:#7fe6d2"')+'<h2 style="margin:0">'+nm+'</h2></div><div class="menu">'+
+    '<button data-mj="listen">'+ic('mic')+'Parler à '+nm+'</button>'+
+    '<button data-mj="routine">'+ic('sun')+'Routine « Bonjour »</button>'+
+    '<button data-mj="timer">'+ic('clock')+'Minuteur</button>'+
+    '<button data-mj="note">'+ic('note')+'Note</button>'+
+    '<button data-mj="settings">'+ic('tool')+'Réglages de '+nm+'</button>'+
+    '<button data-mj="edit">'+ic('grid')+'Modifier l\'écran</button></div>','mj');
+  $('sbody').onclick=safe(function(e){
+    var b=e.target.closest('[data-mj]'); if(!b) return; var m=b.dataset.mj; closeSheet(); $('sbody').onclick=null;
+    if(m==='edit'){ startEdit(); return; }
+    if(!A || !app(MJ)) return;
+    var o={listen:{listen:1},routine:{routine:'matin'},timer:{timer:1},note:{note:1},settings:{settings:1}}[m];
+    if(o) A.homeLaunchWith(MJ, JSON.stringify(o));
+  },'Majordome');
+}
+/* Proposition unique (en haut de la page principale) : « Ajouter Jarvis à l'accueil ? » */
+function mjOfferHtml(){
+  if(!A || C.mjOffer || !app(MJ) || hasTile('mjpanel')) return '';
+  var nm=esc(mjName());
+  return '<div class="mjoffer sh">'+ic('orb')+'<div class="t">Ajouter '+nm+' à l\'accueil ?<small>Sa sphère, votre journée en bref ; touchez pour lui parler</small></div><button class="n" data-mjo="no">Non merci</button><button class="y" data-mjo="yes">Ajouter</button></div>';
+}
+function mjOffer(yes){
+  C.mjOffer=1;
+  if(yes && !hasTile('mjpanel')){ var p0=C.pages[0], ci=p0.findIndex(function(t){ return t.t==='clock'; }); p0.splice(ci+1,0,{t:'mjpanel',w:2,h:2}); }
+  save(); render(); if(yes){ goPage(0,true); toast(mjName()+' est sur l\'accueil (appui long : son menu)'); }
+}
+/* Sphère : une seule boucle pour tous les panneaux, ~150 points en canvas 2D. Elle tourne seulement si un panneau est
+   réellement à l'écran (IntersectionObserver : page affichée et partie visible), Socle visible, hors mode modification
+   et tiroir fermé ; 30 images/s puis 12 après 15 s sans toucher l'écran ; « réduire les animations » : une image fixe. */
+var MJO={raf:0, cv:[], io:null, pts:null, t0:performance.now(), last:0, act:performance.now(), frames:0, reduce:false};
+try{ var mjMq=window.matchMedia('(prefers-reduced-motion: reduce)'); MJO.reduce=mjMq.matches; if(mjMq.addEventListener) mjMq.addEventListener('change', function(e){ MJO.reduce=e.matches; MJO.cv.forEach(function(c){ c.__drawn=0; }); mjOrbKick(); }); }catch(e){}
+window.__mjo=MJO;   // pour les tests
+function mjOrbPts(){
+  if(MJO.pts) return MJO.pts;
+  var N=150, GA=Math.PI*(3-Math.sqrt(5)), l=[];
+  for(var i=0;i<N;i++){ var y=1-i/(N-1)*2, r=Math.sqrt(1-y*y), th=GA*i; l.push([Math.cos(th)*r, y, Math.sin(th)*r, Math.random()*6.283, .6+Math.random()*.8]); }
+  return (MJO.pts=l);
+}
+function mjOrbSync(){
+  var all=[].slice.call(document.querySelectorAll('#pages canvas.mjorb'));
+  if(MJO.io) MJO.cv.forEach(function(c){ if(!c.isConnected) MJO.io.unobserve(c); });
+  MJO.cv=all;
+  if(!all.length){ if(MJO.raf){ cancelAnimationFrame(MJO.raf); MJO.raf=0; } return; }
+  if(window.IntersectionObserver){
+    if(!MJO.io) MJO.io=new IntersectionObserver(function(es){ es.forEach(function(e){ e.target.__on=e.isIntersecting; }); mjOrbKick(); });
+    all.forEach(function(c){ if(!c.__obs){ c.__obs=1; c.__on=false; MJO.io.observe(c); } });
+  } else all.forEach(function(c){ c.__on=true; });
+  mjOrbKick();
+}
+function mjOrbOn(){ return !document.hidden && !document.body.classList.contains('edit') && !$('drawer').classList.contains('on') && !$('pages').classList.contains('snap') && MJO.cv.some(function(c){ return c.__on && c.isConnected; }); }
+function mjOrbKick(){
+  if(MJO.reduce){ if(!document.hidden) MJO.cv.forEach(function(c){ if(c.__on && !c.__drawn){ c.__drawn=1; mjOrbDraw(c, performance.now()); } }); return; }
+  if(!MJO.raf && mjOrbOn()) MJO.raf=requestAnimationFrame(mjOrbFrame);
+}
+function mjOrbFrame(now){
+  MJO.raf=0;
+  if(MJO.reduce || !mjOrbOn()) return;   // en pause : la boucle s'arrête complètement
+  if(now-MJO.last >= (now-MJO.act>15000 ? 80 : 30)){ MJO.last=now; MJO.frames++; MJO.cv.forEach(function(c){ if(c.__on && c.isConnected) mjOrbDraw(c, now); }); }
+  MJO.raf=requestAnimationFrame(mjOrbFrame);
+}
+function mjOrbDraw(c, now){
+  var w=c.clientWidth, h=c.clientHeight; if(!w || !h) return;
+  var dpr=Math.min(2, window.devicePixelRatio||1), bw=Math.round(w*dpr), bh=Math.round(h*dpr);
+  if(c.width!==bw || c.height!==bh){ c.width=bw; c.height=bh; }
+  var x=c.getContext('2d'); if(!x) return;
+  var rd=MJO.reduce, t=(now-MJO.t0)/1000, P=mjOrbPts(), R=Math.min(w,h)*.36*(1+(rd?0:.03*Math.sin(t*1.1)));
+  var cx=w/2, cy=h/2, rot=rd?.6:t*.3, cr=Math.cos(rot), sr=Math.sin(rot), ct=Math.cos(.35), st=Math.sin(.35), sm=w<90?.8:1;
+  x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,w,h); x.globalCompositeOperation='lighter';
+  for(var i=0;i<P.length;i++){
+    var p=P[i], n=rd?0:Math.sin(t*p[4]*2.1+p[3])*Math.sin(p[1]*4+t*1.3)*.07;
+    var px=p[0]*(1+n), py=p[1]*(1+n), pz=p[2]*(1+n), x1=px*cr+pz*sr, z1=-px*sr+pz*cr, y1=py*ct-z1*st, z2=py*st+z1*ct;
+    var k=1.9/(2.6-z2), dp=(z2+1)/2, sz=(1.2+dp*2)*sm;
+    x.fillStyle='rgba(70,217,194,'+(.2+dp*.75).toFixed(2)+')';
+    x.fillRect(cx+x1*R*k-sz/2, cy+y1*R*k-sz/2, sz, sz);
+  }
+  x.globalCompositeOperation='source-over';
+}
+
 /* Présentation : dernière présentation (vignette, nom, diapositives) et bouton Nouveau */
 var PRES='fr.magformation13.presentation';
 function presHtml(cfg){
@@ -1290,6 +1427,7 @@ $('pages').addEventListener('click', safe(function(e){
     save(); render(); if(go>=0) goPage(go, true); return;
   }
   if(longFired){ longFired=false; return; }
+  var mo=e.target.closest('[data-mjo]'); if(mo){ mjOffer(mo.dataset.mjo==='yes'); return; }
   var ap=e.target.closest('[data-app]'); if(ap){ var a=byKey(ap.dataset.app); if(a) launch(a); return; }
   var act=e.target.closest('[data-act]');
   if(act){
@@ -1369,13 +1507,14 @@ $('pages').addEventListener('click', safe(function(e){
   if(tp==='nextev') openRole('calendar','calendar','');
   if(tp==='device' && A) A.homeOpen('storage','');
   if(tp==='wxdetail'){ if(C.city) weatherSheet(); else locateMe(); }
+  if(tp==='mjpanel'){ mjListen(); return; }
   var tmap={camera:PHOTO,scandoc:SCANP,mesure:MESURE,backup:SAUVE,video:ECRAN,sos:URG,coffre:COF,qrcode:QRP,livre:LIS,budget:BUD,dicta:DIC,meteoapp:MET,reseau:RES,lecteur:LEC,solaire:SOL,presentation:PRES,texte:TEXTE,majordome:MJ,actu:ACTU}; if(tmap[tp]){ var ap2=app(tmap[tp]); if(ap2) launch(ap2); }
 }, 'Toucher'));
 
 /* ---------- Gestes ---------- */
 var tStart=null, longT=null, longFired=false, lastTap=0;
 home.addEventListener('touchstart', function(e){
-  var t=e.touches[0]; tStart={x:t.clientX,y:t.clientY,s:curPage().scrollTop,tm:Date.now(),target:e.target,moved:false};
+  var t=e.touches[0]; tStart={x:t.clientX,y:t.clientY,s:curPage().scrollTop,tm:Date.now(),target:e.target,moved:false}; MJO.act=performance.now();
   clearTimeout(longT);
   if(!document.body.classList.contains('edit')){
     longT=setTimeout(function(){
@@ -1383,8 +1522,10 @@ home.addEventListener('touchstart', function(e){
       var ap=tStart.target.closest && tStart.target.closest('[data-app]');
       longFired=true;
       var mjt=tStart.target.closest && tStart.target.closest('.tile[data-t="majordome"]');
+      var mjp=tStart.target.closest && tStart.target.closest('.tile[data-t="mjpanel"]');
       if(ap){ var a=byKey(ap.dataset.app); if(a) appMenu(a, true); }
       else if(mjt && app(MJ)) mjListen();
+      else if(mjp && app(MJ)) mjMenu();
       else startEdit();
       if(navigator.vibrate) navigator.vibrate(18);
     }, 550);
@@ -1417,7 +1558,7 @@ $('dock').addEventListener('touchend', function(e){ if(dockY!=null && dockY-e.ch
 
 /* ---------- Mode « Modifier l'écran » ---------- */
 function startEdit(){ closeDrawer(); document.body.classList.add('edit'); }
-function endEdit(){ if(!document.body.classList.contains('edit')) return; document.body.classList.remove('edit'); snapSoon(); }
+function endEdit(){ if(!document.body.classList.contains('edit')) return; document.body.classList.remove('edit'); snapSoon(); mjOrbKick(); }
 $('bDone').onclick=endEdit;
 $('bAddPage').onclick=safe(function(){
   if(C.pages.length>=9){ toast('9 pages au maximum'); return; }
@@ -1439,10 +1580,10 @@ function addTile(cfg){
   setTimeout(function(){ var pg=pageEls()[p]; if(pg) pg.scrollTop=pg.scrollHeight; }, 50);
   toast('Ajouté à la page '+(p+1));
 }
-var NEED={majordome:MJ,notes:CARNET,podcast:ONDES,wallpaper:TOILE,camera:PHOTO,scandoc:SCANP,mesure:MESURE,backup:SAUVE,video:ECRAN,sos:URG,coffre:COF,qrcode:QRP,livre:LIS,budget:BUD,dicta:DIC,meteoapp:MET,reseau:RES,lecteur:LEC,solaire:SOL,presentation:PRES,texte:TEXTE,actu:ACTU};
+var NEED={majordome:MJ,mjpanel:MJ,notes:CARNET,podcast:ONDES,wallpaper:TOILE,camera:PHOTO,scandoc:SCANP,mesure:MESURE,backup:SAUVE,video:ECRAN,sos:URG,coffre:COF,qrcode:QRP,livre:LIS,budget:BUD,dicta:DIC,meteoapp:MET,reseau:RES,lecteur:LEC,solaire:SOL,presentation:PRES,texte:TEXTE,actu:ACTU};
 $('bAddTile').onclick=safe(function(){
-  var btn=function(k){ var miss=NEED[k]&&!app(NEED[k]); return '<button data-add="'+k+'"'+(miss?' style="opacity:.5"':'')+'>'+ic(TYPES[k].i)+'<span style="flex:1;text-align:left">'+TYPES[k].n+(miss?'<br><small style="color:var(--tx3)">Appli non installée</small>':'')+'</span></button>'; };
-  var panels=['note','nextev','device','wxdetail','clock','weather','battery','agenda','alarm','music','tools','calc','favs','mag','photos','contacts'];
+  var btn=function(k){ var miss=NEED[k]&&!app(NEED[k]); return '<button data-add="'+k+'"'+(miss?' style="opacity:.5"':'')+'>'+ic(TYPES[k].i)+'<span style="flex:1;text-align:left">'+(k==='mjpanel'?esc(mjName())+' : panneau d\'accueil (sphère et résumé)':TYPES[k].n)+(miss?'<br><small style="color:var(--tx3)">Appli non installée</small>':'')+'</span></button>'; };
+  var panels=['mjpanel','note','nextev','device','wxdetail','clock','weather','battery','agenda','alarm','music','tools','calc','favs','mag','photos','contacts'];
   var mine=Object.keys(TYPES).filter(function(k){ return !TYPES[k].pick && panels.indexOf(k)<0; });
   var h='<h2>Ajouter à la page '+(Math.min(CP,C.pages.length-1)+1)+'</h2>'+
     '<div class="sect" style="margin-left:0">Raccourcis</div><div class="menu">'+['app','contact','link'].map(btn).join('')+'</div>'+
@@ -1499,7 +1640,7 @@ function openDrawer(focus){
   endEdit(); $('drawer').classList.add('on'); renderChips(); renderList();
   if(focus) setTimeout(function(){ $('q').focus(); }, 280);
 }
-function closeDrawer(){ $('drawer').classList.remove('on'); $('q').value=''; $('qx').hidden=true; $('q').blur(); }
+function closeDrawer(){ $('drawer').classList.remove('on'); $('q').value=''; $('qx').hidden=true; $('q').blur(); mjOrbKick(); }
 function renderChips(){
   var present={}; APPS.forEach(function(a){ present[a.c]=1; });
   $('chips').innerHTML = CATS.filter(function(c){ return c[0]==='all'||present[c[0]]; }).map(function(c){ return '<button class="chip'+(c[0]===curCat?' on':'')+'" data-cat="'+c[0]+'">'+c[1]+'</button>'; }).join('');
@@ -1562,9 +1703,10 @@ $('searchBar').onclick=function(e){ if(e.target.closest('#bSet')){ settingsSheet
 
 /* ---------- Feuilles ---------- */
 var sheetType=null;
-function openSheet(html, type){ $('sbody').innerHTML=html; sheetType=type||'x'; $('sheet').classList.add('on'); $('veil').classList.add('on'); $('sheet').scrollTop=0; }
+var sheetAt=0;
+function openSheet(html, type){ sheetAt=Date.now(); $('sbody').innerHTML=html; sheetType=type||'x'; $('sheet').classList.add('on'); $('veil').classList.add('on'); $('sheet').scrollTop=0; }
 function closeSheet(){ $('sheet').classList.remove('on'); $('veil').classList.remove('on'); if(sheetType==='compass') stopCompass(); if(sheetType==='level') stopLevel(); sheetType=null; }
-$('veil').onclick=closeSheet;
+$('veil').onclick=function(){ if(Date.now()-sheetAt>450) closeSheet(); };   // le clic qui suit un appui long ne referme pas le menu ouvert
 var shY=null;
 $('sheet').addEventListener('touchstart', function(e){ shY=$('sheet').scrollTop<=0?e.touches[0].clientY:null; }, {passive:true});
 $('sheet').addEventListener('touchend', function(e){ if(shY!=null && e.changedTouches[0].clientY-shY>90) closeSheet(); shY=null; }, {passive:true});
@@ -1704,7 +1846,7 @@ $('sbody').addEventListener('click', safe(function(e){
   if(k==='app'){ appPicker(); return; }
   if(k==='contact'){ contactPicker(); return; }
   if(k==='link'){ linkForm(); return; }
-  var cfg={t:k,w:TYPES[k].w}; if(k==='note') cfg.nid=newId();
+  var cfg={t:k,w:TYPES[k].w}; if(TYPES[k].h) cfg.h=TYPES[k].h; if(k==='note') cfg.nid=newId(); if(k==='mjpanel') C.mjOffer=1;
   addTile(cfg);
 }, 'Ajouter'));
 
@@ -1770,10 +1912,10 @@ theme();
 requestAnimationFrame(function(){ setTimeout(safe(boot1,'Démarrage'), 0); });
 setInterval(safe(function(){ if(!document.hidden){ refresh('clock'); } },'Horloge'), 15000);
 setInterval(safe(function(){ pollMedia(); if(!document.hidden) document.querySelectorAll('[data-since]').forEach(function(el){ el.textContent=mt(Date.now()-el.dataset.since); }); },'Musique'), 1000);
-setInterval(safe(function(){ if(!document.hidden){ ['battery','alarm','agenda','nextev','device'].forEach(refresh); fetchWeather(false); } },'Mise à jour'), 120000);
+setInterval(safe(function(){ if(!document.hidden){ ['battery','alarm','agenda','nextev','device','mjpanel'].forEach(refresh); fetchWeather(false); } },'Mise à jour'), 120000);
 document.addEventListener('visibilitychange', safe(function(){
-  if(!document.hidden) window.accueilResume();
-  else { endEdit(); saveSnap(); persistW(); }   // on quitte l'accueil : instantané et cache pour le prochain démarrage
+  if(!document.hidden){ window.accueilResume(); MJO.act=performance.now(); mjOrbKick(); }
+  else { endEdit(); saveSnap(); persistW(); if(MJO.raf){ cancelAnimationFrame(MJO.raf); MJO.raf=0; } }   // on quitte l'accueil : instantané et cache pour le prochain démarrage
 },'Visibilité'));
 })();
 </script>

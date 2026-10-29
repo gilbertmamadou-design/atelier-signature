@@ -42,7 +42,7 @@
   };
   var S = Object.assign({}, DEF, lsGet(KEY.set, {}));
   if (!Array.isArray(S.routines) || !S.routines.length) S.routines = DEF.routines;
-  function saveS() { lsSet(KEY.set, S); }
+  function saveS() { lsSet(KEY.set, S); if (typeof publish === 'function') publish(); }
   function wakeWords() {
     var w = [deacc(S.name || 'Majordome')];
     String(S.wake || '').split(/[,;]/).forEach(function (x) { x = deacc(x); if (x && w.indexOf(x) < 0) w.push(x); });
@@ -219,6 +219,7 @@
       case 'error': stopUi(); errorReply(d.msg || 'Erreur de reconnaissance.'); break;
       case 'wake': if (!MJ.listening && !speaking()) { orb.pulse(); startListen(); } break;
       case 'command': if (d.text) handle(d.text, 'voice'); break;
+      case 'assist': takeAssist(); break;
       case 'spoken': if (speakWait[d.id]) speakWait[d.id](); break;
       case 'boundary': orb.pulse(); break;
       case 'model': INFO.model = d; chips(); modelUi(); if (d.state === 'ready' && d.fresh) { answer({ say: 'Le modèle vocal français est installé. Je vous écoute quand vous voulez.', k: 'Modèle vocal' }); applyWake(); } break;
@@ -1125,7 +1126,13 @@
 
   function permsHtml() {
     var p = J(B.perms(), {}), rows = [['mic', 'Micro', 'Pour vous entendre'], ['notif', 'Notifications', 'Minuteurs, réveils et rappels, écoute continue'], ['exact', 'Alarmes exactes', 'Réveils et minuteurs à l\'heure près'], ['contacts', 'Contacts', 'Pour « appelle Paul »'], ['phone', 'Téléphone', 'Passer l\'appel après votre confirmation'], ['sms', 'SMS', 'Envoyer après votre confirmation'], ['calendar', 'Agenda', 'Lire et ajouter des rendez-vous'], ['location', 'Position', 'Météo de l\'endroit où vous êtes'], ['dnd', 'Ne pas déranger', 'Mode silencieux et ne pas déranger'], ['overlay', 'Affichage par-dessus', 'Répondre tout de suite après « ' + S.name + ' », téléphone en veille'], ['battery', 'Sans optimisation de batterie', 'Écoute continue fiable (consomme plus)']];
-    return '<p class="note">Chaque autorisation est demandée seulement quand elle sert. Rien n\'est envoyé sur internet en dehors de la météo, des titres et du téléchargement du modèle.</p>' + rows.map(function (r) { return '<div class="set"><div class="t">' + esc(r[1]) + '<small>' + esc(r[2]) + '</small></div>' + (p[r[0]] ? '<span class="chip on"><b></b>OK</span>' : '<button class="btn sm" data-fix="' + r[0] + '">Autoriser</button>') + '</div>'; }).join('');
+    if (p.assist !== undefined) rows.push(['assist', 'Assistant du téléphone', 'Appui long sur le bouton d\'accueil (ou geste d\'assistant) : ' + S.name + ' vous écoute. Dans Applis par défaut › Assistant numérique, choisissez « Majordome »', 'Choisir']);
+    return '<p class="note">Chaque autorisation est demandée seulement quand elle sert. Rien n\'est envoyé sur internet en dehors de la météo, des titres et du téléchargement du modèle.</p>' + rows.map(function (r) { return '<div class="set"><div class="t">' + esc(r[1]) + '<small>' + esc(r[2]) + '</small></div>' + (p[r[0]] ? '<span class="chip on"><b></b>OK</span>' : '<button class="btn sm" data-fix="' + r[0] + '">' + esc(r[3] || 'Autoriser') + '</button>') + '</div>'; }).join('');
+  }
+  function assistRow() {
+    var p = J(B && B.perms ? B.perms() : '{}', {}) || {};
+    if (p.assist === undefined) return '';
+    return '<div class="set"><div class="t">Assistant du téléphone<small>' + (p.assist ? 'Actif : un appui long sur le bouton d\'accueil me fait écouter.' : 'Appui long sur le bouton d\'accueil : choisissez « Majordome » comme assistant numérique (Applis par défaut).') + '</small></div>' + (p.assist ? '<span class="chip on"><b></b>OK</span>' : '<button class="btn sm" data-fix="assist">Choisir</button>') + '</div>';
   }
   function permsSheet() { var b = openSheet('Autorisations', permsHtml(), 'perms'); b.onclick = function (e) { var f = e.target.closest('[data-fix]'); if (f) B.fix(f.dataset.fix); }; }
 
@@ -1163,7 +1170,7 @@
       '<div class="set"><div class="t">Seuil de vent (rafales) pour l\'échafaudage<small>Au-dessus : « vent fort, prudence ». À adapter aux consignes du fabricant et du chantier.</small></div><input class="in" id="sWind" type="number" min="20" max="120" step="1" style="width:90px" value="' + (+S.windLimit || 45) + '"> km/h</div>' +
       '<div class="sect">Routines</div>' + S.routines.map(function (r, i) { return '<div class="set"><div class="t">' + esc(r.name) + '<small>« ' + esc(r.phrase) + ' » : ' + esc((r.steps || []).map(function (s) { return STEPS[s] || s; }).join(', ')) + '</small></div><button class="btn sm" data-rt="' + i + '">Modifier</button></div>'; }).join('') +
       '<div class="row" style="display:flex;gap:8px;margin-top:8px"><button class="btn sm" id="sRtNew">Nouvelle routine</button></div>' +
-      (ANDROID ? '<div class="sect">Téléphone</div><div class="set"><div class="t">Autorisations</div><button class="btn sm" id="sPerms">Voir</button></div>' : '') +
+      (ANDROID ? '<div class="sect">Téléphone</div><div class="set"><div class="t">Autorisations</div><button class="btn sm" id="sPerms">Voir</button></div>' + assistRow() : '') +
       '<div class="sect">Vie privée</div><p class="note">Tout reste sur cet appareil : réglages, historique, notes, listes, minuteurs. Les seules connexions sont la météo (Open-Meteo), les titres (franceinfo), la vigilance (MeteoAlarm) et le téléchargement unique du modèle vocal (alphacephei.com).</p>' +
       '<div class="set"><div class="t">Historique des commandes</div><button class="btn sm" id="sHist">Voir / effacer</button></div>' +
       '<div class="sect">À propos</div><p class="note">' + esc(S.name) + ' : assistant vocal à commandes de la Suite MAG. Reconnaissance : Vosk (Apache 2.0)' + (PC ? ', vosk-browser de Ciaran O\'Reilly (Apache 2.0 ; Kaldi, OpenFST Apache 2.0 ; CLAPACK, libarchive BSD ; zlib)' : ', vosk-android et JNA (Apache 2.0)') + '. Modèle : vosk-model-small-fr-0.22, Alpha Cephei (Apache 2.0). Aucun personnage, logo ni visuel tiers.</p>';
@@ -1193,7 +1200,7 @@
     on('sPerms', 'onclick', permsSheet);
     on('sHist', 'onclick', histSheet);
     on('sRtNew', 'onclick', function () { routineSheet(-1); });
-    b.addEventListener('click', function (e) { var r = e.target.closest('[data-rt]'); if (r) routineSheet(+r.dataset.rt); });
+    b.addEventListener('click', function (e) { var r = e.target.closest('[data-rt]'); if (r) routineSheet(+r.dataset.rt); var f = e.target.closest('[data-fix]'); if (f && B && B.fix) B.fix(f.dataset.fix); });
     if (focus) { var f = $('f-' + focus); if (f) setTimeout(function () { f.scrollIntoView({ block: 'start' }); }, 50); }
   }
   MJ.settingsSheet = settingsSheet;
@@ -1221,19 +1228,29 @@
 
   /* ---------------- Socle (tuile, appui long) ---------------- */
   function publish() {
-    if (!P || !P.widgetPut) return;
-    var next = AL.slice().sort(function (a, b) { return a.at - b.at; })[0];
-    try { P.widgetPut(JSON.stringify({ name: S.name, last: MJ.last ? { a: String(MJ.last.a).slice(0, 140), at: MJ.last.at } : null, next: next ? { kind: next.kind, at: next.at, label: next.kind === 'timer' ? (next.label || 'Minuteur') : next.kind === 'alarm' ? 'Réveil' : next.text } : null, wake: !!S.wakeOn })); } catch (e) { }
+    if (!P || !P.widgetPut || !Array.isArray(AL)) return;
+    var srt = AL.slice().sort(function (a, b) { return a.at - b.at; }), next = srt[0];
+    var first = function (k) { return srt.filter(function (o) { return o.kind === k; })[0]; }, tm = first('timer'), rm = first('reminder');
+    // name, sir (appellation) : panneau « Majordome » de Socle ; timer / rem : prochain minuteur et prochain rappel
+    try { P.widgetPut(JSON.stringify({ name: S.name, sir: sir(), last: MJ.last ? { a: String(MJ.last.a).slice(0, 140), at: MJ.last.at } : null, next: next ? { kind: next.kind, at: next.at, label: next.kind === 'timer' ? (next.label || 'Minuteur') : next.kind === 'alarm' ? 'Réveil' : next.text } : null, timer: tm ? { at: tm.at, label: tm.label || '' } : null, rem: rm ? { at: rm.at, text: String(rm.text || 'Rappel').slice(0, 100) } : null, wake: !!S.wakeOn, at: now() })); } catch (e) { }
   }
   window.onSocle = function (a) {
     var o = J(a, {}) || {};
+    var voice = !!(B && B.listen && engineReady());
     if (o.listen) setTimeout(function () { startListen(); }, 300);
+    else if (o.routine) setTimeout(function () { MJ.voiceTurn = false; H.routine({ id: String(o.routine) }); }, 300);
+    else if (o.timer) setTimeout(function () { MJ.voiceTurn = voice; H.timer({}); }, 300);
+    else if (o.note) setTimeout(function () { MJ.voiceTurn = voice; H.note_add({}); }, 300);
+    else if (o.settings) settingsSheet(o.settings === 1 ? '' : String(o.settings));
     else if (o.cmd) handle(String(o.cmd), 'socle');
   };
+  /* Assistant du téléphone (appui long sur le bouton d'accueil) : MajordomeBridge garde la demande, la page la prend une fois */
+  function takeAssist() { try { if (B && B.takeAssist && B.takeAssist()) { closeSheet(); setTimeout(function () { startListen(); }, 250); return true; } } catch (e) { } return false; }
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) return;
     refreshInfo(); tick();
     if (B && B.takeCommand) { var c = B.takeCommand(); if (c) handle(c, 'voice'); }
+    takeAssist();
   });
 
   /* ---------------- Démarrage ---------------- */
@@ -1248,6 +1265,7 @@
   setTimeout(function () {
     try { if (P && P.takeSocle) { var x = P.takeSocle(); if (x) window.onSocle(x); } } catch (e) { }
     if (B && B.takeCommand) { var c = B.takeCommand(); if (c) handle(c, 'voice'); }
+    takeAssist();
   }, 400);
   publish();
   MJ.S = S; MJ.AL = function () { return AL; }; MJ.LS = function () { return LS; }; MJ.orb = orb; MJ.ask = ask; MJ.speakText = speechText; MJ.refresh = refreshInfo;

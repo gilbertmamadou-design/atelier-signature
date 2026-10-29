@@ -80,6 +80,7 @@ public class MajordomeBridge {
     static volatile MajordomeBridge live;
     static volatile boolean resumed;
     static volatile String pendingCmd = "";
+    static volatile boolean pendingAssist = false;
 
     private final Activity a;
     private final WebView wv;
@@ -119,6 +120,10 @@ public class MajordomeBridge {
         if (i == null) return;
         String c = i.getStringExtra("majordome_cmd");
         if (c != null && !c.isEmpty()) { i.removeExtra("majordome_cmd"); pendingCmd = ""; emitLater("command", obj("text", c)); }
+        // Assistant du téléphone : appui long sur le bouton d'accueil / geste d'assistant (intent ACTION_ASSIST,
+        // filtre ajouté par print-patch.sh). On note la demande (prise une fois par la page) et on neutralise l'intent
+        // pour qu'une recréation de l'activité ne relance pas l'écoute.
+        if (Intent.ACTION_ASSIST.equals(i.getAction())) { i.setAction(Intent.ACTION_MAIN); pendingAssist = true; emitLater("assist", "{}"); }
         try { ((NotificationManager) a.getSystemService(Context.NOTIFICATION_SERVICE)).cancel(N_CMD); } catch (Throwable t) { }
     }
 
@@ -284,6 +289,7 @@ public class MajordomeBridge {
         } catch (Throwable t) { emit("error", obj("msg", "Reconnaissance d'Android indisponible : " + t.getMessage())); }
     }
     @JavascriptInterface public void hold(boolean on) { Ear.hold(on); }
+    @JavascriptInterface public boolean takeAssist() { boolean b = pendingAssist; pendingAssist = false; return b; }
     @JavascriptInterface public String takeCommand() { String c = pendingCmd; pendingCmd = ""; return c == null ? "" : c; }
 
     /** Moteur Vosk partagé par la page et le service d'écoute continue : un seul micro, deux modes (commande, mot de réveil) */
@@ -755,10 +761,30 @@ public class MajordomeBridge {
                 .put("location", has(Manifest.permission.ACCESS_COARSE_LOCATION))
                 .put("dnd", Build.VERSION.SDK_INT < 23 || nm.isNotificationPolicyAccessGranted())
                 .put("overlay", Build.VERSION.SDK_INT < 23 || Settings.canDrawOverlays(a))
-                .put("battery", bat).toString();
+                .put("battery", bat)
+                .put("assist", isAssistant()).toString();
         } catch (Exception e) { return "{}"; }
     }
+    // Majordome est-il l'« assistant numérique » du téléphone ? (rôle ASSISTANT depuis Android 10, réglage « assistant » avant)
+    private boolean isAssistant() {
+        try {
+            if (Build.VERSION.SDK_INT >= 29) {
+                android.app.role.RoleManager rm = a.getSystemService(android.app.role.RoleManager.class);
+                if (rm != null && rm.isRoleAvailable(android.app.role.RoleManager.ROLE_ASSISTANT)) return rm.isRoleHeld(android.app.role.RoleManager.ROLE_ASSISTANT);
+            }
+            String s = Settings.Secure.getString(a.getContentResolver(), "assistant");
+            return s != null && s.startsWith(a.getPackageName() + "/");
+        } catch (Throwable t) { return false; }
+    }
     @JavascriptInterface public void fix(final String what) {
+        if ("assist".equals(what)) {
+            // Le rôle « assistant » ne peut pas être demandé par une boîte de dialogue : on ouvre la page des applis par défaut
+            ui.post(new Runnable() { public void run() {
+                String[] acts = { Settings.ACTION_VOICE_INPUT_SETTINGS, Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS, Settings.ACTION_SETTINGS };
+                for (String x : acts) { try { a.startActivity(new Intent(x)); toast("Assistant numérique : choisissez Majordome"); return; } catch (Throwable t) { } }
+            } });
+            return;
+        }
         ui.post(new Runnable() { public void run() {
             try {
                 String pkg = "package:" + a.getPackageName();
