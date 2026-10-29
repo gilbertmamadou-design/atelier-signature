@@ -34,7 +34,7 @@ pc/
     apps/fenetres.css    commun : feuilles du bas en fenêtres centrées (champ « styles » de pc-apps.json)
     apps/souris.css      commun : curseurs, survol, barres de défilement
     apps/majordome.js    pont simulé MAGMajordome : Vosk (vendor/vosk/vosk-worker.js), Web Speech facultatif, écoute continue, agenda partagé
-    office/              pièces communes des applis bureautiques (Présentation, Texte, puis Tableur), voir « Applis bureautiques »
+    office/              pièces communes des applis bureautiques (Présentation, Texte, Tableur), voir « Applis bureautiques »
     vendor/              bibliothèques (pdf.js, pdf-lib, jszip, tesseract, leaflet, jspdf, xlsx, hls.js, PptxGenJS, KaTeX,
                          icônes Lucide) + LICENSES/ + VENDOR.json
   hls-build.mjs          construit vendor/hls.min.js depuis les sources taguées de hls.js (si npm est injoignable)
@@ -61,6 +61,7 @@ pc/
 | Présentation (`presentation`) | tout : édition, thèmes, masque, animations, diaporama et mode présentateur (2e fenêtre), .magpres, import/export .pptx, PDF, images, « Ouvrir avec » .pptx/.magpres, enregistrement sur place (File System Access) | — |
 | Texte (`texte`) | tout : traitement de texte paginé (sections, en-têtes et pieds, notes, tableaux, images habillées, styles, listes, table des matières, suivi des modifications, commentaires, publipostage CSV), .magdoc, .docx et .odt (ouvrir et enregistrer), .rtf/.txt/.md/.html, PDF à signets, « Ouvrir avec » .docx/.magdoc/.odt/.rtf/.txt/.md, enregistrement sur place, PDF envoyé à l'Atelier PDF | — |
 | Majordome (`majordome`) | assistant vocal à commandes (sans IA) : reconnaissance hors ligne Vosk (WebAssembly), mot de réveil fenêtre ouverte, Ctrl+Espace, saisie au clavier ; heure, calculs, conversions, minuteurs, rappels, météo et vent (Open-Meteo), titres franceinfo, agenda (celui d'Agenda sur PC), notes et listes, dépense ajoutée dans Budget (après confirmation, jamais de solde lu), ouverture des applis de la Suite, pause / suivant de Mélodie | appels, SMS, lampe, volume du système, modes, Wi-Fi / Bluetooth ; vigilance MeteoAlarm sans relais ; alarmes appli fermée |
+| Tableur (`tableur`) | tout : tableur (formules en français ou en anglais, plus de 330 fonctions, tableaux dynamiques, mises en forme conditionnelles, tableaux, tris et filtres, tableaux croisés, graphiques), .magcalc, .xlsx et .ods (ouvrir et enregistrer), .xls (lecture), .csv/.tsv, .html, PDF, « Ouvrir avec » .xlsx/.xls/.ods/.csv/.tsv/.magcalc, enregistrement sur place, PDF envoyé à l'Atelier PDF | — |
 | Petits Pas (`petitspas`), Carnet de chasse (`chasse`) | consultation, fiches, statistiques, exports | Petits Pas : sources officielles sans relais ; chasse : position GPS précise |
 
 **Écartées** (n'ont de sens que sur le téléphone) : Socle (accueil Android), Aube (réveil), Urgence, Mesure
@@ -156,13 +157,13 @@ Même page que l'APK (`applis/www-majordome` : `mj-nlu.js` analyse des commandes
 
 ## Applis bureautiques (shared/office/)
 
-Présentation et Texte sont les deux premières applis bureautiques (Tableur suivra). Leurs pièces communes sont dans
+Présentation, Texte et Tableur sont les applis bureautiques. Leurs pièces communes sont dans
 `pc/shared/office/` et servent **telles quelles** au PC et à l'APK (une seule source) :
 
 | Fichier | Rôle |
 |---|---|
 | `office-core.js` | `window.Office` : utilitaires, icônes Lucide (avec alias), dialogues, menus (feuille du bas sur téléphone), sélecteur de couleurs (couleurs du thème), raccourcis, polices |
-| `office-ribbon.js` | ruban à onglets (boutons, menus, listes, galeries, onglets contextuels, recherche de commande, mode compact, repli) |
+| `office-ribbon.js` | ruban à onglets (boutons, menus, listes, galeries, onglets contextuels, recherche de commande, mode compact, repli) ; champs numériques à la française (virgule décimale, flèches haut / bas) |
 | `office-richtext.js` | texte riche (contentEditable) : nettoyage du collé, styles par plage, listes, reproduire la mise en forme, rechercher/remplacer |
 | `office-files.js` | ouvrir, enregistrer sur place, enregistrer sous, exporter, partager, « Ouvrir avec », récents, enregistrement automatique et récupération (IndexedDB) ; trois moteurs : `MAGPC` (PC), `MAGOffice` (APK, `applis/scripts/OfficeBridge.java`), navigateur |
 | `office-themes.js` | 16 thèmes (couleurs, polices), rôles de couleur, contrôle de contraste WCAG |
@@ -174,7 +175,7 @@ Présentation et Texte sont les deux premières applis bureautiques (Tableur sui
 Une appli bureautique a `"office": true` dans `pc-apps.json` : `build-pc.py` réécrit `"office/…"` en
 `"../shared/office/…"` et précache tout le dossier. Côté APK, `applis/www-<appli>/office-deps.txt` liste ce qu'il
 faut copier (pièces communes, bibliothèques, licences) : `applis/scripts/office-deps.sh`, lancé par `print-patch.sh`.
-Les fichiers propres à l'appli (`pres-*.js`, `pres.css`, `tx-*.js`, `texte*.css`) sont des `copies` (même fichier que dans l'APK).
+Les fichiers propres à l'appli (`pres-*.js`, `pres.css`, `tx-*.js`, `texte*.css`, `tb-*.js`, `tableur.css`) sont des `copies` (même fichier que dans l'APK).
 
 Texte ajoute deux bibliothèques communes, prêtes pour Tableur :
 
@@ -196,6 +197,46 @@ Ctrl+Maj+Entrée (saut de colonne), Ctrl+Alt+F (note de bas de page), Ctrl+Alt+D
 (commentaire), Ctrl+Maj+E (suivi des modifications), Ctrl+K (lien), F9 (mettre à jour les champs), F7 (orthographe),
 Maj+F3 (casse), Alt+Q (rechercher une commande), Ctrl+F1 (replier le ruban). Le panneau « Raccourcis » de l'appli
 (Fichier › À propos) donne la liste complète.
+
+### Tableur : repères
+
+Fichiers de `applis/www-tableur/` : `tb-core` (adresses, dates, nombres, styles), `tb-format` (formats de nombre des
+tableurs, affichage français), `tb-formula` (analyse et écriture des formules, noms français et anglais, `;` ou `,`),
+`tb-engine` (classeur, recalcul par dépendances, références circulaires et itérations, tableaux dynamiques, annuler /
+rétablir), `tb-functions` (fonctions), `tb-grid` (grille sur canevas, virtualisée), `tb-data` (presse-papiers, CSV,
+recopie, tri, filtres, sous-totaux, plan, tableaux croisés, valeur cible, remplissage instantané), `tb-cf` (mises en forme
+conditionnelles, styles de tableau, sparklines), `tb-charts`, `tb-objects` (graphiques, images, formes, icônes),
+`tb-io` (aiguillage des formats, .magcalc, CSV, HTML, .xls), `tb-xlsx` et `tb-xlsx-charts` (.xlsx), `tb-ods` (.ods),
+`tb-pdf`, `tb-templates`, `tb-dialogs`, `tb-panes`, `tb-ui` (ruban, barre de formule, onglets, raccourcis), `tb-app`.
+
+Bibliothèques : **ExcelJS 4.4.0** (MIT) lit et écrit les .xlsx (styles, fusions, volets, validations, mises en forme
+conditionnelles, notes, images, mise en page) ; Tableur ajoute au paquet les tableaux, les noms et les graphiques
+(XML Office standard) et corrige deux défauts d'ExcelJS (ordre de l'`extLst`, styles différentiels absents des fichiers
+de LibreOffice). **SheetJS CE 0.18.5** (Apache-2.0) lit les anciens .xls. Le .ods est lu et écrit en XML OpenDocument
+(`tb-ods.js`). Le moteur de formules est celui de Tableur (`tb-formula.js`, `tb-engine.js`, `tb-functions.js`) : il gère
+les noms français des fonctions, les tableaux dynamiques et les références structurées, et a été comparé au recalcul de
+LibreOffice (voir Essais).
+
+**Mettre à jour une bibliothèque** : changer la version dans `pc/package.json` et dans `vendor` de `pc/pc-apps.json`,
+puis GitHub › Actions › « Mettre à jour les bibliothèques (pc/shared/vendor) » › Run workflow (champ « fichiers » :
+par exemple `exceljs.min.js`, ou `toutes`) ; le workflow recopie le fichier et sa licence dans `pc/shared/vendor/` et
+enregistre sur `main`. En local : `cd pc && npm install && python3 build-pc.py --vendor=exceljs.min.js`.
+
+Formats : `.magcalc` (zip : `workbook.json`, `media/`, `thumb.jpg`, `LISEZMOI.txt`) est le format complet ; `.xlsx`,
+`.ods` en lecture et écriture ; `.xls` en lecture ; `.csv` / `.tsv` (assistant : encodage UTF-8 ou Windows-1252,
+séparateur, virgule décimale, ordre des dates) ; `.html` ; PDF vectoriel à polices incluses (`tb-pdf.js`).
+
+Raccourcis principaux : flèches, Entrée / Tab (Entrée revient à la colonne de départ après des Tab), F2 (modifier),
+Échap, Ctrl+flèches (bord des données), Maj+flèches (étendre), Ctrl+Espace / Maj+Espace (colonne, ligne),
+Ctrl+A, Ctrl+Début / Fin, Ctrl+; (date du jour), Ctrl+Maj+: (heure), F4 ($ dans une formule, sinon répéter),
+Alt+= (somme automatique), Ctrl+D / Ctrl+R (recopier en bas, à droite), Ctrl+E (remplissage instantané),
+Ctrl+Maj+L (filtre), Ctrl+L ou Ctrl+T (tableau), Ctrl+1 (format de cellule), Ctrl+B/I/U, Ctrl+Z / Ctrl+Y,
+Ctrl+C / X / V et Ctrl+Alt+V (collage spécial), Ctrl++ / Ctrl+- (insérer, supprimer), Ctrl+9 / Ctrl+0 (masquer),
+Ctrl+Entrée (remplir la sélection), Ctrl+Maj+Entrée (formule matricielle), Alt+Entrée (retour à la ligne),
+Alt+↓ (liste de validation ou filtre), F9 (recalculer ; dans une formule : évaluer la partie choisie), Maj+F3
+(insérer une fonction), Ctrl+F3 (noms), Maj+F2 (note), F11 / Alt+F1 (graphique), Maj+F11 (feuille),
+Ctrl+Pg préc. / Pg suiv. (feuilles), Ctrl+F / Ctrl+H (rechercher, remplacer), Ctrl+G / F5 (atteindre),
+Ctrl+` (afficher les formules), Ctrl+S / F12, Ctrl+O, Ctrl+N, Ctrl+P.
 
 ## API de `window.MAGPC` (shared/pc-shim.js)
 
@@ -395,6 +436,20 @@ franceinfo simulés, confirmation obligatoire (« non » puis « oui »), solde 
 historique effacé ; installabilité, hors ligne, et chargement réel du moteur Vosk WebAssembly dans Chromium (faux modèle refusé
 proprement : le vrai modèle n'était pas téléchargeable depuis l'environnement d'essai) ; banc Android (ponts simulés : appel, SMS,
 Budget, applis, Mélodie, lampe, volume, modes, Wi-Fi, alarmes, agenda, titres) et tuile Socle.
+Tableur : saisie au clavier (formules françaises, dates, %, €, Tab/Entrée, F2, F4, Ctrl+D, Alt+=, annuler) ; classeur de
+3 feuilles et 126 formules (130 fonctions distinctes) exporté en .xlsx, recalculé par LibreOffice 24.2 sans valeurs en
+cache : 125 résultats identiques (le dernier, TEXTE(x;"0.0"), dépend de la langue, comme dans les tableurs courants),
+tableaux dynamiques (TRIER, UNIQUE, FILTRE, SEQUENCE, RECHERCHEX, A4#) vérifiés à part (absents de LibreOffice 24.2) ;
+import d'un .xlsx fait avec openpyxl (styles, bordures, alignements, format €, fusion, volets, largeurs, MFC de 5 types,
+validations, note, lien, tableau, filtre, couleur d'onglet, nom, mise en page, _xlfn.XLOOKUP) ; les 11 modèles en
+.xlsx, .ods, .magcalc et .csv, rouverts à l'identique, ouverts par openpyxl et LibreOffice, puis les fichiers réécrits par
+LibreOffice (.ods et .xlsx) réimportés (valeurs, formules, formats, styles, fusions, validations, MFC) ; 17 types de
+graphiques en .xlsx relus et affichés par LibreOffice ; CSV français en UTF-8 et Windows-1252, .xls écrit par
+LibreOffice ; boîtes de dialogue (32) ; parcours filtre / tri / MFC / tableau croisé / remplacer / commentaire / volets /
+lignes / feuilles / copier-coller (interne, texte tabulé, HTML) / poignée de recopie / graphique / PDF ;
+100 000 lignes × 200 colonnes + 100 004 formules (recalcul complet 0,3 s, saisie et recalcul de SOMME(A:A) 25 ms,
+dessin médian 4 ms, tri de 100 000 lignes 0,6 s) ; téléphone 412 px au doigt (dossier web de l'APK) ; PC : manifeste,
+service worker, « Ouvrir avec » .xlsx, Ctrl+S dans le fichier d'origine, récupération après fermeture, hors ligne.
 Écran : vidéos de test faites avec ffmpeg en VP9/Opus (le Chromium de Playwright n'a ni H.264 ni AAC : un .mp4 H.264 y sert
 à vérifier « Codec non pris en charge »), `.srt` en Windows-1252, faux lecteurs intégrés (page qui répond au `postMessage`
 de YouTube), serveur à requêtes partielles (Range) pour le lien direct, flux HLS fMP4, second serveur sans CORS.
@@ -404,6 +459,7 @@ de YouTube), serveur à requêtes partielles (Range) pour le lien direct, flux H
 pdf.js 3.11.174 (Apache-2.0) · pdf-lib 1.17.1 (MIT) · JSZip 3.10.1 (MIT ou GPL-3.0) ·
 tesseract.js-core 7.0.0 (Apache-2.0) · données françaises tessdata_fast 4.1.0 (Apache-2.0) ·
 Leaflet 1.9.4 (BSD-2-Clause) · jsPDF 2.5.1 (MIT) · SheetJS xlsx 0.18.5 (Apache-2.0) — mêmes versions que dans les APK.
+ExcelJS 4.4.0 (MIT) : `dist/exceljs.min.js` du paquet npm, recopié par le workflow « Mettre à jour les bibliothèques » ·
 PptxGenJS 4.0.1 (MIT) : `dist/pptxgen.min.js` du tag v4.0.1 de github.com/gitbrent/PptxGenJS (identique au paquet npm,
 ligne `sourceMappingURL` retirée) · KaTeX 0.16.47 (MIT) : `dist/` du paquet (polices woff2 seulement) · Lucide 1.64.0
 (ISC) : `vendor/lucide-icons.js` généré par `shared/office/tools/lucide-build.py` depuis le dossier `icons/` du tag 1.64.0
