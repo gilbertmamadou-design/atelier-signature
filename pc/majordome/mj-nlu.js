@@ -657,6 +657,35 @@
     return null;
   }
 
+  /* ---------------- Climatisation (Panasonic Comfort Cloud) ----------------
+     Majordome ne pilote pas la clim (pas d'API officielle Panasonic, pas d'émetteur infrarouge sur le téléphone) :
+     il ouvre l'appli Comfort Cloud, et pour un réglage il le dit honnêtement (l'utilisateur passe par Alexa).
+     → { intent: 'clim', p: { act: 'open' } } ou { act: 'ctl', what: on | off | temp | mode | fan | timer | query | other } */
+  var CLIM_RE = /\b(clim|clims|clime|climatisation|climatiseurs?|air conditionne|pompe a chaleur)\b/;
+  var CLIM_APP = /\b(comfort|confort) (cloud|clouds|clou|claude)\b|\bpanasonic\b/;
+  function parseClim(t) {
+    var app = CLIM_APP.test(t), dev = CLIM_RE.test(t);
+    if (!app && !dev) {
+      // sans le mot « clim » : seulement des formules propres à la clim
+      if (/\btemperature (demandee|de consigne|reglee|programmee|affichee)\b/.test(t) || /\b(la )?consigne de temperature\b/.test(t)) return { act: 'ctl', what: 'query' };
+      if (/^(?:mets |met |regle |passe )?(?:la )?ventilation (?:au |a |en |sur )?(maximum|max|fond|auto|automatique|minimum|mini|silencieuse?)\b/.test(t)) return { act: 'ctl', what: 'fan' };
+      return null;
+    }
+    if (/\b(liste|listes|note|notes|rappelle|rappel|agenda|rendez vous|achete|acheter|courses)\b/.test(t)) return null;
+    // ouvrir l'appli : « ouvre la clim », « lance Comfort Cloud », « l'appli de la clim »
+    if (/^(ouvre|ouvrir|ouvrez|affiche|montre|montre moi|va dans|va sur|aller dans|aller sur|passe sur|bascule sur)\b/.test(t) && !/\b(fenetre|porte|volets?|stores?)\b/.test(t)) return { act: 'open' };
+    if (app && !/\b(degres?|mode|ventilation|allume|eteins|eteint|eteindre|coupe|mets|met|regle|baisse|monte|augmente|diminue)\b/.test(t)) return { act: 'open' };
+    if (/\b(appli|application)\b/.test(t)) return { act: 'open' };
+    var what = /\b(eteins|eteint|eteindre|eteignez|coupe|coupez|arrete|arretez|stoppe|desactive)\b/.test(t) ? 'off'
+      : /\b(pendant|dans|d ici|minuterie|programmateur|programme)\b/.test(t) && /\b(minutes?|heures?|h|quart|demi)\b/.test(t) ? 'timer'
+      : /\b(quelle|quel|combien|est ce que|est elle|est il)\b/.test(t) ? 'query'
+      : /\b(mode|froid|chaud|chauffage|deshumidific\w*|deshumidifie|sec|dry|ventilation seule)\b/.test(t) ? 'mode'
+      : /\b(ventilation|ventilateur|vitesse|soufflerie)\b/.test(t) ? 'fan'
+      : /\b\d{2}\b|\b(degres?|plus chaud|plus froid|plus frais|baisse|monte|augmente|diminue|temperature)\b/.test(t) ? 'temp'
+      : /\b(allume|allumes|allumez|allumer|demarre|demarrez|lance|lancez|mets en marche|mets la|met la|active|activez|rallume)\b/.test(t) ? 'on' : 'other';
+    return { act: 'ctl', what: what };
+  }
+
   /* ---------------- Aide : exemples (servent aussi aux suggestions) ---------------- */
   var EXAMPLES = [
     ['time', 'Quelle heure est-il ?'], ['date', 'Quel jour sommes-nous ?'], ['countdown', 'Dans combien de jours est Noël ?'],
@@ -674,6 +703,7 @@
     ['battery', 'Niveau de batterie'], ['fullscreen', 'Plein écran'], ['website', 'Ouvre YouTube'], ['routine', 'Bonjour Majordome'], ['routine', 'Bonne nuit'],
     ['light', 'Allume le salon'], ['light', 'Éteins tout'], ['light', 'Mets le salon à 30 %'], ['light', 'Mets la chambre en bleu'], ['light', 'Lumière chaude dans le salon'],
     ['light', 'Active la scène Lecture'], ['light', 'Quelles lumières sont allumées ?'], ['light', 'Éteins le salon dans 10 minutes'],
+    ['clim', 'Ouvre la clim'], ['clim', 'Ouvre Comfort Cloud'],
     ['help', 'Qu\'est-ce que tu sais faire ?'], ['repeat', 'Répète'], ['stop', 'Stop']
   ];
   function grams(s) { var g = {}; s = ' ' + s + ' '; for (var i = 0; i < s.length - 2; i++) g[s.substr(i, 3)] = 1; return g; }
@@ -752,6 +782,9 @@
     if (/^(ca va|comment ca va|comment vas tu|comment allez vous|tu vas bien|vous allez bien|la forme)$/.test(t)) return R('greet', { kind: 'howareyou' });
     if (/^(qui es tu|qui etes vous|tu es qui|c est quoi ton nom|comment tu t appelles|comment vous appelez vous|quel est ton nom|tu t appelles comment|presente toi)$/.test(t)) return R('greet', { kind: 'who' });
     if (/^(tu es la|t es la|es tu la|vous etes la|tu m entends|tu m ecoutes|test|test test|essai)$/.test(t)) return R('greet', { kind: 'here' });
+    // --- climatisation (ouvrir Comfort Cloud ; réglage : réponse honnête) ---
+    var cl = parseClim(t);
+    if (cl) return R('clim', cl);
     // --- aide ---
     if (/\b(qu est ce que tu (sais|peux) faire|que (sais|peux) tu faire|tu (sais|peux) faire quoi|qu est ce que vous (savez|pouvez) faire|que (savez|pouvez) vous faire|liste des commandes|quelles (sont les )?commandes|comment ca marche|tes fonctions|quelles sont tes capacites|que puis je te demander|qu est ce que je peux te demander|aide moi)\b/.test(t) || /^(aide|l aide|help|au secours d utilisation|exemples|des exemples)$/.test(t)) return R('help');
     // --- réglages, écoute, historique ---
@@ -1045,7 +1078,7 @@
 
   var NLU = {
     parse: parse, prep: prep, numberize: numberize, tokenize: tokenize, findWhen: findWhen, durations: durations, calcExpr: calcExpr,
-    convert: convert, parseLight: parseLight, lightTarget: lightTarget, colorWord: colorWord, nextFete: nextFete, easter: easter, findApp: findApp, findSite: findSite, APPS: APPS, SITES: SITES, EXAMPLES: EXAMPLES,
+    convert: convert, parseClim: parseClim, parseLight: parseLight, lightTarget: lightTarget, colorWord: colorWord, nextFete: nextFete, easter: easter, findApp: findApp, findSite: findSite, APPS: APPS, SITES: SITES, EXAMPLES: EXAMPLES,
     suggest: suggest, spell: spell, yesNo: yesNo, deacc: deacc, num: num, DN: DN, UNITS: UNITS, MONTHS: MONTHS, WDAYS: WDAYS, startOfDay: startOfDay, addDays: addDays
   };
   root.MJNLU = NLU;

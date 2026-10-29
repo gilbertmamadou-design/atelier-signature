@@ -832,6 +832,29 @@
     }
     return answer('Je ne peux pas ouvrir ' + p.name + ' ici.').done;
   };
+  /* --- Climatisation : Majordome ne pilote pas la clim Panasonic (pas d'API officielle, pas d'infrarouge sur le téléphone).
+     Il ouvre l'appli officielle Panasonic Comfort Cloud (com.panasonic.ACCsmart, visible grâce à <queries> du manifeste),
+     ou propose le Play Store si elle manque ; pour un réglage, il renvoie honnêtement vers Alexa ou Comfort Cloud. */
+  var CLIM_PKG = 'com.panasonic.ACCsmart', CLIM_STORE = 'https://play.google.com/store/apps/details?id=' + CLIM_PKG;
+  function climInstalled() { return !!(P && P.homeInstalled && P.homeInstalled(CLIM_PKG) === '1'); }
+  function climOpen(prefix) {
+    if (PC) return answer({ say: (prefix || '') + 'Sur l\'ordinateur, je ne peux pas ouvrir Comfort Cloud : c\'est une appli du téléphone. Demandez à Alexa, ou utilisez le téléphone.', k: 'Climatisation' }).done;
+    if (!(P && P.homeLaunch && P.homeInstalled)) return answer('Je ne peux pas ouvrir Comfort Cloud ici.').done;
+    if (!climInstalled()) {
+      var c = answer({ say: 'L\'appli Panasonic Comfort Cloud n\'est pas installée sur ce téléphone. Voici le lien du Play Store.', html: '<div class="k">Climatisation</div><p>L\'appli Panasonic Comfort Cloud n\'est pas installée sur ce téléphone.</p><div class="row"><button class="btn pri" data-clstore>Installer depuis le Play Store</button></div>' });
+      c.querySelector('[data-clstore]').onclick = function () { if (B && B.openUrl) B.openUrl(CLIM_STORE); };
+      return c.done;
+    }
+    P.homeLaunch(CLIM_PKG, '');
+    return answer({ say: (prefix || '') + withSir('J\'ouvre Comfort Cloud') + '.', k: 'Climatisation' }).done;
+  }
+  H.clim = function (p) {
+    if (p.act === 'open') return climOpen();
+    var t = withSir('Je ne pilote pas la clim') + ' : demandez à Alexa' + (PC ? '.' : ', ou je peux ouvrir Comfort Cloud.');
+    var c = answer({ say: t, html: '<div class="k">Climatisation</div><p>' + esc(t) + '</p>' + (PC ? '' : '<div class="row"><button class="btn pri" data-clopen>Ouvrir Comfort Cloud</button></div>') });
+    var b = c.querySelector('[data-clopen]'); if (b) b.onclick = function () { climOpen(); };
+    return c.done;
+  };
   H.website = function (p) {
     if (p.unknown) return answer('Je ne connais pas le site « ' + p.unknown + ' ». Je n\'ouvre que les sites de ma liste, pour votre sécurité.').done;
     return openLink(p.url, p.name);
@@ -1065,6 +1088,7 @@
     ['Notes et listes', ['Note : commander les vis de 6', 'Ajoute du pain à la liste de courses', 'Lis ma liste de courses', 'Enlève le pain de la liste', 'Lis mes notes']],
     ['Budget (jamais de solde lu)', ['J\'ai dépensé 45 euros de carburant sur le compte courant', 'J\'ai payé 12,50 € au restaurant par carte']],
     ['Applis et sites', ['Ouvre Présentation', 'Ouvre le tableur', 'Ouvre le lecteur PDF', 'Ouvre Rangement', 'Ouvre YouTube'].concat(PC ? ['Plein écran'] : [])],
+    ['Climatisation' + (ANDROID ? '' : ' (sur le téléphone seulement)'), ['Ouvre la clim', 'Ouvre Comfort Cloud']],
     ['Musique', ['Mets de la musique', 'Pause', 'Chanson suivante', 'Morceau précédent']],
     ['Téléphone' + (ANDROID ? '' : ' (sur le téléphone seulement)'), ['Appelle Paul', 'Envoie un SMS à Paul : j\'arrive dans 10 minutes', 'Allume la lampe', 'Monte le son', 'Mode silencieux', 'Ne pas déranger', 'Active le Wi-Fi', 'Ouvre le Bluetooth', 'Niveau de batterie']],
     ['Routines et réglages', ['Bonjour ' + (S.name || 'Majordome'), 'Bonne nuit', 'Parle plus lentement', 'Appelle-moi Gilbert', 'Arrête d\'écouter', 'Efface l\'historique', 'Répète', 'Stop']]

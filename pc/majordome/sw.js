@@ -5,7 +5,7 @@
      la page affiche « Nouvelle version disponible » et l'active sur demande (message SKIP_WAITING) ;
    - réponses : cache d'abord pour les fichiers précachés, réseau puis cache pour le reste (polices…). */
 'use strict';
-var VERSION = 'fd3c6dac29d9';
+var VERSION = '12719651d3e7';
 var APP = 'majordome';
 var CACHE = 'mag-pc-' + APP + '-' + VERSION, RUNTIME = 'mag-pc-' + APP + '-rt';
 var PRECACHE = [
