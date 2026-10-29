@@ -27,6 +27,8 @@ pc/
     sw-template.js       modèle du service worker
     launcher.html        modèle du lanceur
     ocr-worker.js        OCR Tesseract (français) hors ligne
+    toile.html           page de Toile sur PC (propre au PC, champ « page » de pc-apps.json)
+    toile-worker.js      moteur de recadrage de Toile (portage JS de applis/scripts/WallpaperJob.java)
     apps/fenetres.css    commun : feuilles du bas en fenêtres centrées (champ « styles » de pc-apps.json)
     apps/souris.css      commun : curseurs, survol, barres de défilement
     vendor/              bibliothèques (pdf.js, pdf-lib, jszip, tesseract, leaflet, jspdf, xlsx) + LICENSES/ + VENDOR.json
@@ -41,18 +43,19 @@ pc/
 | Atelier PDF (`pdf`) | tous les outils, OCR Tesseract, « Lire dans le Lecteur PDF » | chiffrement/déchiffrement PDF |
 | Budget (`budget`) | comptes, budgets, import CSV/OFX (dépôt), graphiques, sauvegarde | — |
 | Liseuse (`liseuse`) | EPUB/PDF, dossiers suivis (File System Access), « Ouvrir avec » .epub | catalogues sans CORS (Gutenberg) sans relais |
-| Rangement (`fichiers`) | analyse d'un dossier du PC, doublons, gros fichiers | onglet Applis, stockage du téléphone |
+| Rangement (`fichiers`) | plusieurs dossiers du PC analysés ensemble (vue d'ensemble, catégories, doublons d'un dossier à l'autre, gros fichiers, récents, recherche), liste mémorisée, réautorisation en un clic | onglet Applis, stockage du téléphone, corbeille (suppression définitive) |
 | Actualités (`actualites`) | franceinfo et flux qui autorisent CORS | les autres médias sans relais |
 | Carnet (`notes`), Agenda (`agenda`), Contacts (`contacts`) | tout le contenu ; .ics/.vcf en import/export et « Ouvrir avec » ; rappels fenêtre ouverte | agenda/contacts du téléphone, synchronisation |
 | Calcul, QR, Météo, Ciel, Sentiers, Solaire | tout (QR : webcam, image collée ; Sentiers : préparation, GPX) | Sentiers : enregistrement GPS ; Solaire : boussole/inclinomètre, PVGIS sans relais |
 | Mélodie (`musique`), Ondes, Écran | dossier de musique/vidéos du PC, podcasts CORS, PeerTube/NASA/archive | téléchargements hors ligne d'Ondes, applis TV (liens vers les sites) |
+| Toile (`toile`, page propre au PC) | fonds recadrés à la taille de l'écran (mêmes traitements que l'APK) dans un dossier « Fonds Toile », que le diaporama de Windows fait défiler ; mise à jour incrémentale | changer le fond d'écran lui-même (impossible pour une page web), tuile, changement en arrière-plan |
 | Galerie, Scan, Dictaphone | dossier photos du PC (corbeille, EXIF, carte), scan d'images/PDF/webcam, micro + dictée | photos du téléphone, partage vers d'autres applis |
 | Coffre (`coffre`) | identique (PBKDF2 600 000 + AES-GCM 256, rien ne sort) | empreinte (mot de passe maître seulement) |
 | Petits Pas (`petitspas`), Carnet de chasse (`chasse`) | consultation, fiches, statistiques, exports | Petits Pas : sources officielles sans relais ; chasse : position GPS précise |
 
 **Écartées** (n'ont de sens que sur le téléphone) : Socle (accueil Android), Aube (réveil), Urgence, Mesure
-(capteurs), Photo (appareil photo), Réseau (Wi-Fi/mobile du téléphone), Toile (fond d'écran), Sauvegarde
-(sauvegarde des applis du téléphone).
+(capteurs), Photo (appareil photo), Réseau (Wi-Fi/mobile du téléphone), Sauvegarde (sauvegarde des applis du
+téléphone).
 
 ## Fabriquer
 
@@ -86,6 +89,8 @@ ne déclenche pas « pages build and deployment ».
    (bases recréées à l'identique). `note` : la sauvegarde propre de l'appli, quand elle existe (même fichier que
    sur le téléphone).
    `android` = champ `app` de `applis/apps.json` (sert au dossier `www-…`, aux icônes et à l'identifiant).
+   `page` (facultatif) : page propre au PC à la place de `applis/www-<appli>/index.html` (ex. Toile :
+   `"page": "pc/shared/toile.html"`, l'icône reste celle de l'appli Android).
 2. **`shared/apps/<id>.js`** (si la page appelle un pont propre à l'appli) : définir `window.MAG<Appli>` avec
    **exactement** les méthodes du `scripts/<Appli>Bridge.java`, en s'appuyant sur `MAGPC`. Garder les mêmes
    formats de retour (chaînes JSON) et les mêmes événements (`window.<appli>Event(type, json)`).
@@ -147,6 +152,42 @@ l'**origine** du site (pas au dossier de l'appli) : un id relatif comme `"./"` d
 proposait « Lecteur PDF »). `build-pc.py` (et `--check`) s'arrête si deux identifiants résolus sont identiques.
 Une appli installée avec l'ancien identifiant doit être désinstallée puis réinstallée.
 
+## Rangement : plusieurs dossiers
+
+`shared/apps/fichiers.js` remplace, sans toucher à la page Android, le pilote `PcDrv` à un dossier par une liste de
+« racines » (`/Documents`, `/Images`, `/Images (2)` si deux dossiers ont le même nom) analysées ensemble : `roots()`,
+`root()`, `scan()` (toutes les racines), `pick()` (ajout). La liste est dans IndexedDB `mag-pc` › `files` › `fichiers-racines`
+(l'ancien `fichiers-dossier` du lot 1 est repris). Au démarrage, `queryPermission` ; si l'accès est à redemander :
+écran « Vos dossiers » et un bouton qui appelle `requestPermission` pour chacun (un clic). Un dossier déjà compris dans
+un autre (`resolve()`) n'est pas ajouté (« Déjà analysé », avec « Ouvrir ce dossier ») ; un dossier qui en contient un
+autre le remplace (fusion). Retirer un dossier ne supprime rien. Edge et Chrome refusent `C:\`, Windows, Program Files,
+AppData et, selon les versions, le dossier personnel, Documents, Bureau et Téléchargements pris en entier (leurs
+sous-dossiers sont acceptés) : l'appli l'explique.
+
+## Toile sur PC
+
+Une page web ne peut pas changer le fond d'écran de Windows. Toile prépare donc les fonds, et Windows les fait défiler :
+
+1. dossiers de photos source (lecture seule, `showDirectoryPicker({mode:'read'})`, sous-dossiers sur 4 niveaux, 5 000
+   images au plus, comme l'APK) ;
+2. dossier de sortie : « Créer « Fonds Toile » dans… » (`getDirectoryHandle('Fonds Toile', {create:true})`) ou un
+   dossier existant ;
+3. traitement à la résolution de l'écran (`screen.width × devicePixelRatio`…, ou 1920×1080, 2560×1440, 3840×2160,
+   ou saisie), JPEG de qualité réglable, fichiers `toile-<nom>-<empreinte>.jpg` ;
+4. Windows : Paramètres › Personnalisation › Arrière-plan › Diaporama › Parcourir → « Fonds Toile » (guide dans l'appli).
+
+`toile-worker.js` est le portage de `WallpaperJob.java` (`borders`, `textBands`, `logoBands`, `trim`, `fit` avec
+`bestOffset`, `blurFit`, `scaleRegion`) : mêmes seuils, divisions entières et arrondis `float` de Java. Décodage direct
+à taille réduite (`createImageBitmap` + `resizeWidth/Height`, réduction par 2, 4… comme `inSampleSize`, 16 Mpx au plus),
+orientation EXIF appliquée par le navigateur. Formats : JPEG, PNG, WebP, AVIF, BMP ; HEIC seulement si le navigateur
+le décode (sinon image « Ignorée » avec un message).
+
+`toile-manifest.json` (dossier de sortie) : pour chaque fond, la source, sa taille, sa date et les réglages
+(`sig`). « Mettre à jour » ne traite que les images nouvelles ou modifiées (ou dont le réglage a changé), et ne
+supprime que les fichiers listés dans ce manifeste (préfixe `toile-`) dont la source a disparu ou a été exclue.
+Rien n'est jamais écrit dans les dossiers source. Réglages : `localStorage` `toile-pc:reglages` ; poignées et choix
+par image : IndexedDB `toile-pc`.
+
 ## Relais réseau
 
 Une page web ne lit un flux d'un autre site que si ce site envoie `Access-Control-Allow-Origin` (CORS). Sonde du
@@ -187,7 +228,10 @@ Playwright (Chromium) contre un serveur http local servant la racine du dépôt,
 Les sélecteurs de fichiers sont simulés avec l'OPFS (vraies poignées File System Access, stockables dans
 IndexedDB) ; `launchQueue` et `window.print` sont simulés. Vérifier : `Page.getInstallabilityErrors` (CDP) vide,
 service worker maître de la page, rechargement hors ligne, fonctions principales, console sans erreur, et le banc
-Android (pages `applis/` avec ponts simulés, sans `MAGPC`).
+Android (pages `applis/` avec ponts simulés, sans `MAGPC`). Toile : comparer les zones gardées de `toile-worker.js`
+avec les fonctions de `WallpaperJob.java` compilées telles quelles (faux `android.graphics` en Java : `Bitmap`,
+`Rect`, `Canvas` bilinéaire) sur des images construites exprès (bordures, bandeau, logo, paysage, portrait).
+Autorisations « à redemander » : `queryPermission` simulé à `prompt` jusqu'au clic.
 
 ## Licences des bibliothèques (shared/vendor/LICENSES)
 
