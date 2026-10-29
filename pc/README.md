@@ -59,7 +59,7 @@ pc/
 | Toile (`toile`, page propre au PC) | fonds recadrés à la taille de l'écran (mêmes traitements que l'APK) dans un dossier « Fonds Toile », que le diaporama de Windows fait défiler ; mise à jour incrémentale ; onglet « Images en ligne » (thèmes, sources libres, crédits) | changer le fond d'écran lui-même (impossible pour une page web), tuile, changement en arrière-plan |
 | Galerie, Scan, Dictaphone | dossier photos du PC (corbeille, EXIF, carte), scan d'images/PDF/webcam, micro + dictée | photos du téléphone, partage vers d'autres applis |
 | Coffre (`coffre`) | identique (PBKDF2 600 000 + AES-GCM 256, rien ne sort) | empreinte (mot de passe maître seulement) |
-| Présentation (`presentation`) | tout : édition, thèmes, masque, animations, diaporama et mode présentateur (2e fenêtre), .magpres, import/export .pptx, PDF, images, « Ouvrir avec » .pptx/.magpres, enregistrement sur place (File System Access) | — |
+| Présentation (`presentation`) | tout : édition, thèmes, masque, animations, vidéos et sons (démarrer au clic, automatiquement ou en cliquant dessus, plein écran, boucle, rembobiner), diaporama et mode présentateur (2e fenêtre), .magpres, import/export .pptx, PDF, images, « Ouvrir avec » .pptx/.magpres, enregistrement sur place (File System Access) | — |
 | Texte (`texte`) | tout : traitement de texte paginé (sections, en-têtes et pieds, notes, tableaux, images habillées, styles, listes, table des matières, suivi des modifications, commentaires, publipostage CSV), .magdoc, .docx et .odt (ouvrir et enregistrer), .rtf/.txt/.md/.html, PDF à signets, « Ouvrir avec » .docx/.magdoc/.odt/.rtf/.txt/.md, enregistrement sur place, PDF envoyé à l'Atelier PDF | — |
 | Majordome (`majordome`) | assistant vocal à commandes (sans IA) : reconnaissance hors ligne Vosk (WebAssembly), mot de réveil fenêtre ouverte, Ctrl+Espace, saisie au clavier ; heure, calculs, conversions, minuteurs, rappels, météo et vent (Open-Meteo), titres franceinfo, agenda (celui d'Agenda sur PC), notes et listes, dépense ajoutée dans Budget (après confirmation, jamais de solde lu), ouverture des applis de la Suite, pause / suivant de Mélodie | appels, SMS, lampe, volume du système, modes, Wi-Fi / Bluetooth ; vigilance MeteoAlarm sans relais ; alarmes appli fermée |
 | Tableur (`tableur`) | tout : tableur (formules en français ou en anglais, plus de 330 fonctions, tableaux dynamiques, mises en forme conditionnelles, tableaux, tris et filtres, tableaux croisés, graphiques), .magcalc, .xlsx et .ods (ouvrir et enregistrer), .xls (lecture), .csv/.tsv, .html, PDF, « Ouvrir avec » .xlsx/.xls/.ods/.csv/.tsv/.magcalc, enregistrement sur place, PDF envoyé à l'Atelier PDF | — |
@@ -466,6 +466,17 @@ Présentation : création de 8 diapositives (tous les contenus, animations, tran
 présentateur (fenêtre publique), annuler/rétablir, .magpres réouvert à l'identique, .pptx exporté puis validé par
 python-pptx et LibreOffice et réimporté, import d'un .pptx fait avec python-pptx, PDF (1 à 6 par page, commentaires),
 images, téléphone 412 px au doigt (événements tactiles CDP) et pont `MAGOffice` simulé.
+Présentation, animations : calendrier comparé à PowerPoint (« avec » part avec le groupe, « après » à la fin de ce qui
+précède), délais, durées et répétitions lus dans les animations jouées (`getAnimations`), objets cachés au départ, trois
+diaporamas de suite dans la même page (un clic = une étape), .magpres, copie de sécurité (fermeture juste après Ctrl+S,
+récupération, fichier plus récent que la copie, copie impossible faute de place), ordre changé dans le volet, durée
+modifiée, Ctrl+D, copier-coller, diapositive dupliquée, fenêtre publique ; `<p:timing>` contrôlé (identifiants, cibles,
+déclencheurs, délais, répétitions), lu par LibreOffice (conversion .odp), réimporté à l'identique ; import d'un .pptx
+python-pptx au minutage écrit comme PowerPoint 365 (aller-retour, répétitions, lecture vidéo, déclencheur, boucle, plein écran).
+Présentation, vidéos : WebM VP9/Opus de 6 s et de 180 Mo (ffmpeg), Chromium lancé avec `--autoplay-policy=user-gesture-required` ;
+au clic / automatiquement / en cliquant dessus, clic sur la vidéo (pause sans avancer), commandes, Alt+P, flèches pendant la
+lecture, plein écran et rembobinage, mode présentateur (son dans la fenêtre publique, pause synchronisée), .magpres
+rouvert, appli rouverte, .pptx exporté, lu par LibreOffice et rouvert ; en 1366×768 et 412×915 au doigt.
 Texte : document de 9 à 10 pages (page de titre, table des matières, titres, tableau de 35 lignes à en-tête répété et
 cellules fusionnées, image habillée, 12 notes, en-tête de première page différent, section paysage), PDF (pages, signets,
 texte extractible), .docx validé par python-docx et LibreOffice (même nombre de pages) puis réimporté, .odt converti
