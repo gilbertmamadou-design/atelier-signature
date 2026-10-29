@@ -163,6 +163,16 @@ Formats de Texte : `.magdoc` (zip : `document.json`, `media/`, `thumb.jpg`) est 
 sont écrits et lus directement en XML (`tx-docx.js`, `tx-odt.js`, sans bibliothèque) ; PDF vectoriel (`tx-pdf.js`, jsPDF :
 chaque mot à sa place mesurée, polices incluses, signets des titres, liens, commentaires en notes PDF).
 
+### Texte : repères
+
+Raccourcis principaux : Ctrl+S / F12 (enregistrer, enregistrer sous), Ctrl+O, Ctrl+N, Ctrl+P, Ctrl+F / Ctrl+H
+(rechercher, remplacer), Ctrl+B/I/U, Ctrl+Maj+=  et Ctrl+= (exposant, indice), Ctrl+L/E/R/J (alignements),
+Ctrl+1/2/5 (interlignes), Ctrl+Alt+1/2/3 (Titres 1 à 3), Ctrl+Maj+N (Normal), Ctrl+Entrée (saut de page),
+Ctrl+Maj+Entrée (saut de colonne), Ctrl+Alt+F (note de bas de page), Ctrl+Alt+D (note de fin), Ctrl+Alt+M
+(commentaire), Ctrl+Maj+E (suivi des modifications), Ctrl+K (lien), F9 (mettre à jour les champs), F7 (orthographe),
+Maj+F3 (casse), Alt+Q (rechercher une commande), Ctrl+F1 (replier le ruban). Le panneau « Raccourcis » de l'appli
+(Fichier › À propos) donne la liste complète.
+
 ## API de `window.MAGPC` (shared/pc-shim.js)
 
 | Domaine | Fonctions |
