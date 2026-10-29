@@ -21,6 +21,7 @@ pc/
     ocr-worker.js          (si l'appli fait de l'OCR) copie de shared/ocr-worker.js
   shared/
     pc-shim.js           couche commune : window.MAGPC + window.MAGPrint (version PC)
+    folders.js           module commun « dossiers du PC mémorisés » (MAGPC.Folders), champ « modules » de pc-apps.json
     pc.css               toasts, dialogues, bandeau de mise à jour, dépôt, impression
     apps/<appli>.js      pont simulé propre à l'appli (MAGLecteur, MAGPdf…), raccourcis
     apps/<appli>.css     mise en page grand écran de l'appli
@@ -53,7 +54,7 @@ pc/
 | Actualités (`actualites`) | franceinfo et flux qui autorisent CORS | les autres médias sans relais |
 | Carnet (`notes`), Agenda (`agenda`), Contacts (`contacts`) | tout le contenu ; .ics/.vcf en import/export et « Ouvrir avec » ; rappels fenêtre ouverte | agenda/contacts du téléphone, synchronisation |
 | Calcul, QR, Météo, Ciel, Sentiers, Solaire | tout (QR : webcam, image collée ; Sentiers : préparation, GPX) | Sentiers : enregistrement GPS ; Solaire : boussole/inclinomètre, PVGIS sans relais |
-| Mélodie (`musique`), Ondes | dossier de musique du PC, podcasts CORS | téléchargements hors ligne d'Ondes |
+| Mélodie (`musique`), Ondes | plusieurs dossiers de musique du PC (laissés à leur place, liste mémorisée, relus à l'ouverture), podcasts CORS | téléchargements hors ligne d'Ondes |
 | Écran (`ecran`, page propre au PC) | vidéos de plusieurs dossiers du PC (miniatures, reprise, vu/non vu, sous-titres .srt/.vtt), « Ouvrir avec », liens YouTube/Vimeo/Dailymotion/PeerTube/Twitch/archive.org (lecteurs officiels intégrés), .mp4/.webm, flux .m3u8 | catalogues de l'APK (PeerTube, NASA, chaînes suivies, applis TV) ; AVI/WMV/FLV (signalés) |
 | Toile (`toile`, page propre au PC) | fonds recadrés à la taille de l'écran (mêmes traitements que l'APK) dans un dossier « Fonds Toile », que le diaporama de Windows fait défiler ; mise à jour incrémentale ; onglet « Images en ligne » (thèmes, sources libres, crédits) | changer le fond d'écran lui-même (impossible pour une page web), tuile, changement en arrière-plan |
 | Galerie, Scan, Dictaphone | dossier photos du PC (corbeille, EXIF, carte), scan d'images/PDF/webcam, micro + dictée | photos du téléphone, partage vers d'autres applis |
@@ -91,6 +92,7 @@ ne déclenche pas « pages build and deployment ».
      "workers": [],                                    // ex. ["ocr-worker.js"]
      "file_handlers": [{ "accept": { "text/plain": [".txt"] } }],   // facultatif : « Ouvrir avec »
      "styles": ["fenetres", "souris"],                 // feuilles communes de shared/apps/ (avant <id>.css)
+     "modules": ["folders"],                           // scripts communs de shared/ (après pc-shim.js, avant <id>.js), précachés
      "data": { "ls": ["notes."], "idb": ["carnet"], "note": "…" },  // pour « Exporter / importer mes données »
      "patches": [{ "from": "sur le téléphone", "to": "sur l'ordinateur", "count": 1 }] }
    ```
@@ -270,12 +272,46 @@ l'**origine** du site (pas au dossier de l'appli) : un id relatif comme `"./"` d
 proposait « Lecteur PDF »). `build-pc.py` (et `--check`) s'arrête si deux identifiants résolus sont identiques.
 Une appli installée avec l'ancien identifiant doit être désinstallée puis réinstallée.
 
+## Dossiers du PC mémorisés (shared/folders.js)
+
+Rangement, Écran, Mélodie, Galerie et Liseuse partagent `MAGPC.Folders` (`"modules": ["folders"]`) :
+
+- **Liste gardée** : les poignées `FileSystemDirectoryHandle` sont rangées telles quelles dans IndexedDB (clonage
+  structuré, jamais en JSON) et relues au démarrage. Chaque appli garde son enregistrement : Rangement `mag-pc` › `files` ›
+  `fichiers-racines`, Écran `ecran-pc` › `kv` › `racines`, Mélodie `melodie` › `kv` › `pc:dossiers`, Galerie `mag-pc` ›
+  `files` › `galerie-dossier`, Liseuse `mag-pc` › `files` (un enregistrement par dossier suivi). Mêmes bases et mêmes clés
+  quelle que soit la page (appli installée ou onglet : même origine) ; une nouvelle version du service worker ne touche pas
+  à IndexedDB (versions de bases inchangées). `navigator.storage.persist()` est demandé (sans fenêtre dans Edge/Chrome,
+  accordé d'office à une appli installée ou très utilisée) pour que le navigateur n'efface pas les données s'il manque de place.
+- **Accès** : Edge et Chrome remettent l'autorisation à « prompt » à chaque session. `F.checkAll()` (queryPermission) au
+  démarrage ; `F.reauth()`, pendant UN clic, appelle `requestPermission` pour tous les dossiers en attente, à la suite, en
+  revérifiant d'abord chacun (la fenêtre « Restaurer l'accès » de Chrome 122+ les rend tous d'un coup) ; si le navigateur
+  exige un nouveau clic (`SecurityError`), une petite fenêtre « Encore N dossiers » le demande. Un refus ou une fenêtre fermée
+  ne retire **jamais** rien de la liste. `F.ensure()` : même chose depuis une lecture (une seule demande à la fois).
+- **Ajout** : dossier déjà dans la liste, compris dans un autre (`resolve()`), ou qui en contient d'autres (fusion).
+  Ancien format (un seul dossier) repris une fois (`legacy`).
+- **Aide commune** `MAGPC.Folders.help()` : pourquoi l'accès est redemandé ; **« Toujours autoriser »** : depuis Chrome 122,
+  une appli **installée** garde l'accès une fois accordé, et dans un onglet la fenêtre propose « Autoriser à chaque visite »
+  (<https://developer.chrome.com/blog/persistent-permissions-for-the-file-system-access-api>) ; Edge (même moteur) selon sa
+  version, sans documentation de Microsoft ; réglage d'Edge qui efface les « cookies et données de site » à la fermeture.
+- `MAGPC.Folders.bar(F, {onGranted})` : bandeau flottant « Vos dossiers : … · Autoriser l'accès » pour les pages Android sans
+  place prévue (Galerie, Liseuse).
+
+**Mélodie** (`shared/apps/musique.js`) : « Ajouter un dossier » (menu ⋮, glisser un dossier), « Mes dossiers » (menu ⋮ et
+onglet Dossiers : retirer, relire, autoriser). Chaque morceau garde `{mpcHandle, mpcRoot, mpcRootId}` (`blob:<id>`). La
+bibliothèque (titres, artistes, pochettes, durées, dernière écoute) est celle de la page, gardée dans IndexedDB : elle s'affiche
+avant toute autorisation ; bandeau « Vos dossiers : Musique, OneDrive » + un bouton ; cliquer un titre demande l'accès pour
+tous. Accès accordé : les dossiers sont relus (nouveaux morceaux importés, morceau déplacé ou ancien format retrouvé par
+nom et taille, morceaux disparus retirés ; un morceau « Retiré » par l'utilisateur ne revient pas : `pc:retires`).
+**Galerie** : une fenêtre « Autoriser l'accès » au démarrage ; refus : bandeau, rien d'oublié. **Liseuse** : une seule demande
+pour tous les dossiers suivis ; un dossier non autorisé reste suivi (plus « Accès perdu »), bandeau.
+
 ## Rangement : plusieurs dossiers
 
 `shared/apps/fichiers.js` remplace, sans toucher à la page Android, le pilote `PcDrv` à un dossier par une liste de
 « racines » (`/Documents`, `/Images`, `/Images (2)` si deux dossiers ont le même nom) analysées ensemble : `roots()`,
 `root()`, `scan()` (toutes les racines), `pick()` (ajout). La liste est dans IndexedDB `mag-pc` › `files` › `fichiers-racines`
-(l'ancien `fichiers-dossier` du lot 1 est repris). Au démarrage, `queryPermission` ; si l'accès est à redemander :
+(l'ancien `fichiers-dossier` du lot 1 est repris ; logique commune `shared/folders.js`). Au démarrage, `queryPermission` ; si l'accès est à redemander :
 écran « Vos dossiers » et un bouton qui appelle `requestPermission` pour chacun (un clic). Un dossier déjà compris dans
 un autre (`resolve()`) n'est pas ajouté (« Déjà analysé », avec « Ouvrir ce dossier ») ; un dossier qui en contient un
 autre le remplace (fusion). Retirer un dossier ne supprime rien. Edge et Chrome refusent `C:\`, Windows, Program Files,
@@ -343,7 +379,10 @@ même identifiant d'installation (`/atelier-signature/pc/ecran/`) : l'appli déj
 
 **Mes vidéos.** Plusieurs dossiers (code repris de Rangement : poignées dans IndexedDB `ecran-pc` › `kv` › `racines`,
 `queryPermission` au démarrage, un clic « Autoriser l'accès » pour tous, dossier déjà compris → pas ajouté, dossier qui en
-contient un autre → fusion ; lecture seule, `showDirectoryPicker({mode:'read', startIn:'videos'})`). L'ancien dossier unique
+contient un autre → fusion ; lecture seule, `showDirectoryPicker({mode:'read', startIn:'videos'})` ; logique commune `shared/folders.js`).
+La liste des vidéos (nom, dossier, taille, date, poignées des fichiers et des sous-titres) est gardée dans `ecran-pc` › `kv` ›
+`bibliotheque` : au démarrage, la bibliothèque s'affiche tout de suite, même avant la réautorisation (bandeau « Vos dossiers :
+… » et un bouton) ; seule la lecture demande l'accès (pendant le clic, pour tous les dossiers). L'ancien dossier unique
 (`mag-pc` › `files` › `ecran-dossier`) est repris. Parcours récursif (14 niveaux ; dossiers cachés, `$RECYCLE.BIN`,
 `System Volume Information`… ignorés). Lisibles : `.mp4 .m4v .mov .webm .mkv .ogv .ogg` ; listés mais signalés « non lisible ici » :
 `.avi .wmv .flv .f4v .mpg .mpeg .m2ts .mts .vob .3gp .asf .rm .rmvb .divx…` (une page web ne peut pas lancer le lecteur de
@@ -418,7 +457,11 @@ service worker maître de la page, rechargement hors ligne, fonctions principale
 Android (pages `applis/` avec ponts simulés, sans `MAGPC`). Toile : comparer les zones gardées de `toile-worker.js`
 avec les fonctions de `WallpaperJob.java` compilées telles quelles (faux `android.graphics` en Java : `Bitmap`,
 `Rect`, `Canvas` bilinéaire) sur des images construites exprès (bordures, bandeau, logo, paysage, portrait).
-Autorisations « à redemander » : `queryPermission` simulé à `prompt` jusqu'au clic.
+Autorisations « à redemander » : `queryPermission` simulé à `prompt` jusqu'au clic ; aussi refus (`denied`), fenêtre fermée
+(`prompt`), et un dossier par demande avec clic « consommé » (fenêtre « Encore N dossiers »).
+Dossiers mémorisés (Mélodie, Écran, Galerie, Liseuse, Rangement) : ajout, rechargement complet, nouvelle version du service
+worker activée, bibliothèque affichée depuis le cache avant l'accès, un seul bouton, refus sans rien perdre, lecture qui
+demande l'accès, dossier imbriqué, fusion, retrait, ancien format repris, fichiers ajoutés ou supprimés sur le PC.
 Présentation : création de 8 diapositives (tous les contenus, animations, transitions, notes), diaporama et mode
 présentateur (fenêtre publique), annuler/rétablir, .magpres réouvert à l'identique, .pptx exporté puis validé par
 python-pptx et LibreOffice et réimporté, import d'un .pptx fait avec python-pptx, PDF (1 à 6 par page, commentaires),
