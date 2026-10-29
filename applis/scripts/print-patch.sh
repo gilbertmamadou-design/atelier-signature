@@ -9,6 +9,7 @@
 #  - MAGPrint.weatherWatch(lat, lng, lieu, actif) : surveillance du vent et des orages, même application fermée (toutes les 30 min)
 #  - MAGActualites (ActualitesBridge.java) : flux d'actualités en liste blanche, alertes infos et vigilance météo
 #  - MAGToile (ToileBridge.java) : Toile, « Images en ligne » (sources libres en liste blanche, tâche de fond WorkManager)
+#  - MAGOffice (OfficeBridge.java) : applis bureautiques (Présentation…), ouvrir / enregistrer sur place / enregistrer sous / partager
 set -e
 F=$(find android/app/src/main/java -name MainActivity.java | head -1)
 PKG=$(sed -n 's/^package \(.*\);/\1/p' "$F")
@@ -394,7 +395,7 @@ public class MainActivity extends BridgeActivity {
     private final java.util.List<Object> extraBridges = new java.util.ArrayList<Object>();
     private void loadExtraBridges(WebView wv) {
         String pkg = MainActivity.class.getPackage().getName();
-        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge", "ReseauBridge", "LecteurBridge", "PdfBridge", "SolaireBridge", "SocleBridge", "FichiersBridge", "ActualitesBridge", "ToileBridge" }) {
+        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge", "ReseauBridge", "LecteurBridge", "PdfBridge", "SolaireBridge", "SocleBridge", "FichiersBridge", "ActualitesBridge", "ToileBridge", "OfficeBridge" }) {
             try {
                 Class<?> k = Class.forName(pkg + "." + n);
                 Object o = k.getConstructor(android.app.Activity.class, WebView.class).newInstance(this, wv);
@@ -1837,6 +1838,12 @@ if [ "$APP" = "lecteur" ]; then
   addperm USE_BIOMETRIC
   addraw '<queries><intent><action android:name="android.intent.action.TTS_SERVICE" /></intent><intent><action android:name="android.intent.action.SEND" /><data android:mimeType="application/pdf" /></intent><intent><action android:name="android.intent.action.VIEW" /><data android:mimeType="application/pdf" /></intent><package android:name="fr.magformation13.pdf" /><package android:name="fr.magformation13.socle" /></queries>'
   addfilters '<intent-filter android:label="Ouvrir avec Lecteur PDF"><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.DEFAULT" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="content" /><data android:scheme="file" /><data android:mimeType="application/pdf" /><data android:mimeType="application/x-pdf" /></intent-filter><intent-filter android:label="Ouvrir avec Lecteur PDF"><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.DEFAULT" /><data android:scheme="content" /><data android:scheme="file" /><data android:host="*" /><data android:mimeType="application/octet-stream" /><data android:pathPattern=".*\\.pdf" /><data android:pathPattern=".*\\..*\\.pdf" /><data android:pathPattern=".*\\..*\\..*\\.pdf" /></intent-filter><intent-filter android:label="Ouvrir avec Lecteur PDF"><action android:name="android.intent.action.SEND" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="application/pdf" /></intent-filter>'
+fi
+# Présentation (Suite MAG bureautique) : pièces communes pc/shared/office et bibliothèques (scripts/office-deps.sh,
+# liste dans www-presentation/office-deps.txt), « Ouvrir avec » et « Partager » pour .pptx et .magpres (OfficeBridge.java).
+if [ "$APP" = "presentation" ]; then
+  bash scripts/office-deps.sh www-presentation
+  addfilters '<intent-filter android:label="Ouvrir avec Présentation"><action android:name="android.intent.action.VIEW" /><action android:name="android.intent.action.EDIT" /><category android:name="android.intent.category.DEFAULT" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="content" /><data android:scheme="file" /><data android:mimeType="application/vnd.openxmlformats-officedocument.presentationml.presentation" /><data android:mimeType="application/vnd.openxmlformats-officedocument.presentationml.slideshow" /><data android:mimeType="application/x-magpres" /></intent-filter><intent-filter android:label="Ouvrir avec Présentation"><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.DEFAULT" /><data android:scheme="content" /><data android:scheme="file" /><data android:host="*" /><data android:mimeType="application/octet-stream" /><data android:mimeType="application/zip" /><data android:pathPattern=".*\\.magpres" /><data android:pathPattern=".*\\..*\\.magpres" /><data android:pathPattern=".*\\..*\\..*\\.magpres" /><data android:pathPattern=".*\\.pptx" /><data android:pathPattern=".*\\..*\\.pptx" /></intent-filter><intent-filter android:label="Présentation"><action android:name="android.intent.action.SEND" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="application/vnd.openxmlformats-officedocument.presentationml.presentation" /><data android:mimeType="application/x-magpres" /></intent-filter>'
 fi
 # Atelier PDF : reconnaissance de texte hors ligne (ML Kit, modèle latin embarqué, sans Google Play Services),
 # mot de passe (PDFBox-Android, Apache 2.0), PDF reçus par « Partager » (depuis Lecteur PDF, Fichiers…) : PdfBridge.java,

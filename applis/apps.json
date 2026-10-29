@@ -254,5 +254,13 @@
   "name": "Actualités",
   "icons": "android-icons-actualites",
   "file": "Actualites.apk"
+ },
+ {
+  "app": "presentation",
+  "web": "www-presentation",
+  "appid": "fr.magformation13.presentation",
+  "name": "Présentation",
+  "icons": "android-icons-presentation",
+  "file": "Presentation.apk"
  }
 ]
