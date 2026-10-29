@@ -1,0 +1,141 @@
+{
+  "id": "/atelier-signature/pc/tableur/",
+  "name": "Tableur",
+  "short_name": "Tableur",
+  "description": "Tableur : formules, mises en forme, tableaux, graphiques, tableaux croisés, .xlsx, .ods, .csv et PDF",
+  "lang": "fr",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f7f9",
+  "theme_color": "#f6f7f9",
+  "categories": [
+    "productivity",
+    "utilities"
+  ],
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "launch_handler": {
+    "client_mode": [
+      "focus-existing",
+      "auto"
+    ]
+  },
+  "file_handlers": [
+    {
+      "action": "./",
+      "launch_type": "single-client",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ],
+      "accept": {
+        "application/x-magcalc": [
+          ".magcalc"
+        ]
+      }
+    },
+    {
+      "action": "./",
+      "launch_type": "single-client",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ],
+      "accept": {
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [
+          ".xlsx"
+        ]
+      }
+    },
+    {
+      "action": "./",
+      "launch_type": "single-client",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ],
+      "accept": {
+        "application/vnd.ms-excel": [
+          ".xls"
+        ]
+      }
+    },
+    {
+      "action": "./",
+      "launch_type": "single-client",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ],
+      "accept": {
+        "application/vnd.oasis.opendocument.spreadsheet": [
+          ".ods"
+        ]
+      }
+    },
+    {
+      "action": "./",
+      "launch_type": "single-client",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ],
+      "accept": {
+        "text/csv": [
+          ".csv"
+        ]
+      }
+    },
+    {
+      "action": "./",
+      "launch_type": "single-client",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ],
+      "accept": {
+        "text/tab-separated-values": [
+          ".tsv"
+        ]
+      }
+    }
+  ]
+}

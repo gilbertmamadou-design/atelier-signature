@@ -68,7 +68,10 @@ def vendor(conf):
             if not os.path.exists(src):
                 WARN.append('vendor : %s introuvable' % src)
                 continue
-            write(os.path.join(VENDOR, dest), read(src, 'rb'))
+            b = read(src, 'rb')
+            if dest.endswith('.js'):          # pas de carte de sources (fichier absent : erreur 404 dans la console)
+                b = re.sub(rb'\n//# sourceMappingURL=[^\n]*\s*$', b'\n', b)
+            write(os.path.join(VENDOR, dest), b)
             if v.get('licenseFrom'):          # licence du paquet recopiée telle quelle
                 lic = os.path.join(nm, v['package'], v['licenseFrom'])
                 if os.path.exists(lic):

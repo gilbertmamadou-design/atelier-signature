@@ -278,5 +278,13 @@
   "name": "Majordome",
   "icons": "android-icons-majordome",
   "file": "Majordome.apk"
+ },
+ {
+  "app": "tableur",
+  "web": "www-tableur",
+  "appid": "fr.magformation13.tableur",
+  "name": "Tableur",
+  "icons": "android-icons-tableur",
+  "file": "Tableur.apk"
  }
 ]

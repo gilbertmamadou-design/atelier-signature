@@ -568,6 +568,27 @@
       "extra": ["../shared/apps/agenda.js"],
       "patches": [],
       "data": { "ls": ["majordome:"], "note": "Le modèle vocal (IndexedDB « /vosk ») n'est pas exporté : il se réinstalle depuis les réglages." }
+    },
+    {
+      "id": "tableur",
+      "android": "tableur",
+      "office": true,
+      "name": "Tableur",
+      "short_name": "Tableur",
+      "description": "Tableur : formules, mises en forme, tableaux, graphiques, tableaux croisés, .xlsx, .ods, .csv et PDF",
+      "theme_color": "#f6f7f9",
+      "background_color": "#f6f7f9",
+      "vendor": ["jszip.min.js", "jspdf.umd.min.js", "exceljs.min.js", "xlsx.full.min.js", "pdf.min.js", "pdf.worker.min.js", "lucide-icons.js", "fonts/"],
+      "copies": { "tableur.css": "applis/www-tableur/tableur.css", "pres-shapes.js": "applis/www-presentation/pres-shapes.js", "tb-core.js": "applis/www-tableur/tb-core.js", "tb-format.js": "applis/www-tableur/tb-format.js", "tb-formula.js": "applis/www-tableur/tb-formula.js", "tb-engine.js": "applis/www-tableur/tb-engine.js", "tb-functions.js": "applis/www-tableur/tb-functions.js", "tb-json.js": "applis/www-tableur/tb-json.js", "tb-cf.js": "applis/www-tableur/tb-cf.js", "tb-data.js": "applis/www-tableur/tb-data.js", "tb-charts.js": "applis/www-tableur/tb-charts.js", "tb-grid.js": "applis/www-tableur/tb-grid.js", "tb-commands.js": "applis/www-tableur/tb-commands.js", "tb-actions.js": "applis/www-tableur/tb-actions.js", "tb-objects.js": "applis/www-tableur/tb-objects.js", "tb-io.js": "applis/www-tableur/tb-io.js", "tb-xlsx.js": "applis/www-tableur/tb-xlsx.js", "tb-ods.js": "applis/www-tableur/tb-ods.js", "tb-pdf.js": "applis/www-tableur/tb-pdf.js", "tb-templates.js": "applis/www-tableur/tb-templates.js", "tb-dialogs.js": "applis/www-tableur/tb-dialogs.js", "tb-panes.js": "applis/www-tableur/tb-panes.js", "tb-ui.js": "applis/www-tableur/tb-ui.js", "tb-app.js": "applis/www-tableur/tb-app.js" },
+      "file_handlers": [
+        { "accept": { "application/x-magcalc": [".magcalc"] } },
+        { "accept": { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"] } },
+        { "accept": { "application/vnd.ms-excel": [".xls"] } },
+        { "accept": { "application/vnd.oasis.opendocument.spreadsheet": [".ods"] } },
+        { "accept": { "text/csv": [".csv"] } },
+        { "accept": { "text/tab-separated-values": [".tsv"] } }
+      ],
+      "data": { "ls": ["tableur:", "office:"], "idb": ["office-tableur"], "note": "Les classeurs (.magcalc, .xlsx, .ods, .csv…) restent dans tes dossiers : seuls les réglages, les classeurs récents et l'enregistrement automatique sont dans le navigateur." }
     }
   ]
 }

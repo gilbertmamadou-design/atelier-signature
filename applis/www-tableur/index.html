@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
+<title>Tableur</title>
+<meta name="theme-color" content="#1E7B45">
+<meta name="description" content="Tableur : tableur hors ligne de la Suite MAG (formules, mises en forme, tableaux, graphiques, tableaux croisés, .xlsx, .ods, .csv, PDF)">
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="office/office.css">
+<link rel="stylesheet" href="tableur.css">
+</head>
+<body>
+<div id="app">
+  <header id="titlebar"></header>
+  <div id="ribbonHost"></div>
+  <div id="ctxbar" hidden></div>
+  <div id="fbar"></div>
+  <div id="main">
+    <section id="center">
+      <div id="gridHost" data-mpc-drop></div>
+    </section>
+    <aside id="pane" hidden></aside>
+  </div>
+  <div id="sheetbar"></div>
+  <footer id="status"></footer>
+</div>
+<div id="backstage"></div>
+<div id="dropHint">Déposer un classeur (.xlsx, .ods, .csv, .magcalc, .xls) pour l'ouvrir</div>
+<div id="printBox"></div>
+<noscript>Tableur a besoin de JavaScript.</noscript>
+<!-- bibliothèques (licences : dossier LICENSES / À propos) -->
+<script src="jszip.min.js"></script>
+<script src="lucide-icons.js"></script>
+<!-- pièces communes des applis bureautiques (pc/shared/office/) -->
+<script src="office/office-core.js"></script>
+<script src="office/office-ribbon.js"></script>
+<script src="office/office-files.js"></script>
+<script src="office/office-themes.js"></script>
+<script src="office/office-raster.js"></script>
+<script src="office/office-pdf.js"></script>
+<!-- formes : même fichier que Présentation -->
+<script src="pres-shapes.js"></script>
+<!-- Tableur -->
+<script src="tb-core.js"></script>
+<script src="tb-format.js"></script>
+<script src="tb-formula.js"></script>
+<script src="tb-engine.js"></script>
+<script src="tb-functions.js"></script>
+<script src="tb-json.js"></script>
+<script src="tb-cf.js"></script>
+<script src="tb-data.js"></script>
+<script src="tb-charts.js"></script>
+<script src="tb-grid.js"></script>
+<script src="tb-commands.js"></script>
+<script src="tb-actions.js"></script>
+<script src="tb-objects.js"></script>
+<script src="tb-io.js"></script>
+<script src="tb-xlsx.js"></script>
+<script src="tb-ods.js"></script>
+<script src="tb-pdf.js"></script>
+<script src="tb-templates.js"></script>
+<script src="tb-dialogs.js"></script>
+<script src="tb-panes.js"></script>
+<script src="tb-ui.js"></script>
+<script src="tb-app.js"></script>
+</body>
+</html>
