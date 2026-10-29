@@ -111,7 +111,7 @@
       "android": "fichiers",
       "name": "Rangement",
       "short_name": "Rangement",
-      "description": "Ce qui prend de la place dans un dossier du PC, doublons, gros fichiers",
+      "description": "Plusieurs dossiers du PC analysés ensemble : place occupée, doublons, gros fichiers, récents",
       "theme_color": "#1f5fbf",
       "background_color": "#1f5fbf",
       "vendor": [],
@@ -392,6 +392,20 @@
       ],
       "file_handlers": [{ "accept": { "image/jpeg": [".jpg", ".jpeg"], "image/png": [".png"], "image/webp": [".webp"] } }],
       "data": { "ls": ["galerie-"], "idb": ["galerie-pc"], "note": "Les photos restent dans leur dossier du PC : seuls les favoris et les réglages sont exportés." }
+    },
+    {
+      "id": "toile",
+      "android": "fonds",
+      "page": "pc/shared/toile.html",
+      "name": "Toile",
+      "short_name": "Toile",
+      "description": "Fonds d'écran recadrés à la taille de l'écran, que le diaporama de Windows fait défiler",
+      "theme_color": "#0f1116",
+      "background_color": "#0f1116",
+      "vendor": [],
+      "workers": ["toile-worker.js"],
+      "patches": [],
+      "data": { "ls": ["toile-pc:"], "idb": ["toile-pc"], "note": "Les fonds préparés sont dans le dossier de sortie (« Fonds Toile ») avec leur liste toile-manifest.json ; seuls les réglages et les choix par image sont exportés ici." }
     },
     {
       "id": "scan",

@@ -111,7 +111,9 @@ def icons(app, out):
 # ---------------------------------------------------------------- page
 def page(app, conf, apps_android):
     web = app.get('web') or 'www-' + app['android']
-    src = read(os.path.join(APPLIS, web, 'index.html'))
+    # « page » : page propre au PC (ex. Toile : pc/shared/toile.html), sinon la page Android applis/www-<appli>/index.html
+    src_rel = app['page'] if app.get('page') else 'applis/%s/index.html' % web
+    src = read(os.path.join(REPO, src_rel))
     out = src
     # 1. adaptations de libellés (téléphone → ordinateur…) ; une phrase Android modifiée = simple avertissement
     for p in app.get('patches', []):
@@ -135,11 +137,11 @@ def page(app, conf, apps_android):
         'apps': {apps_android[a['android']]['appid']: '../' + a['id'] + '/' for a in conf['apps'] if a['android'] in apps_android},
     }
     adapter = app.get('adapter', app['id'])
-    inj = ('\n<!-- Suite MAG sur PC : ajouté par pc/build-pc.py (source : applis/%s/index.html) -->\n'
+    inj = ('\n<!-- Suite MAG sur PC : ajouté par pc/build-pc.py (source : %s) -->\n'
            '<link rel="manifest" href="manifest.webmanifest">\n'
            '<link rel="icon" type="image/png" href="icon-192.png">\n'
            '<link rel="apple-touch-icon" href="icon-192.png">\n'
-           '<link rel="stylesheet" href="../shared/pc.css">\n' % web)
+           '<link rel="stylesheet" href="../shared/pc.css">\n' % src_rel)
     for c in app.get('styles', []):          # feuilles communes à plusieurs applis (ex. « fenetres » : feuilles et pages centrées)
         inj += '<link rel="stylesheet" href="../shared/apps/%s.css">\n' % c
     if os.path.exists(os.path.join(SHARED, 'apps', adapter + '.css')):
@@ -150,9 +152,9 @@ def page(app, conf, apps_android):
         inj += '<script src="../shared/apps/%s.js"></script>\n' % adapter
     m = re.search(r'<meta charset="?utf-8"?\s*/?>', out, re.I)
     if not m:
-        sys.exit('%s : <meta charset="utf-8"> introuvable' % web)
+        sys.exit('%s : <meta charset="utf-8"> introuvable' % src_rel)
     out = out[:m.end()] + inj + out[m.end():]
-    head = '<!-- FICHIER GÉNÉRÉ par pc/build-pc.py depuis applis/%s/index.html : ne pas modifier ici. -->\n' % web
+    head = '<!-- FICHIER GÉNÉRÉ par pc/build-pc.py depuis %s : ne pas modifier ici. -->\n' % src_rel
     return head + out
 
 

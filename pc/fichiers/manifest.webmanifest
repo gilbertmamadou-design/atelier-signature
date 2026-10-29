@@ -2,7 +2,7 @@
   "id": "/atelier-signature/pc/fichiers/",
   "name": "Rangement",
   "short_name": "Rangement",
-  "description": "Ce qui prend de la place dans un dossier du PC, doublons, gros fichiers",
+  "description": "Plusieurs dossiers du PC analysés ensemble : place occupée, doublons, gros fichiers, récents",
   "lang": "fr",
   "dir": "ltr",
   "start_url": "./",

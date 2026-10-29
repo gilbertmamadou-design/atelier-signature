@@ -1,0 +1,775 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Toile</title>
+<meta name="theme-color" content="#0f1116">
+<style>
+/* Toile sur PC : page propre au PC (pc/shared/toile.html), même style que l'appli Android Toile (applis/www-fonds).
+   Une page web ne peut pas changer le fond d'écran de Windows : Toile prépare les images à la taille de l'écran
+   dans un dossier « Fonds Toile », et le diaporama de Windows le fait défiler. */
+:root{
+  color-scheme:dark;
+  --bg:#0f1116;--bg2:#181b23;--bg3:#222632;--bg4:#2c3140;--line:#ffffff14;
+  --tx:#f2f3f7;--tx2:#b4b8c7;--tx3:#7d8294;
+  --acc:#8fb4ff;--acc2:#b79bff;--ok:#6fd6a4;--bad:#ff7b7b;--warn:#ffb35c;
+  --r:18px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button,select,input{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer;padding:0}
+svg{display:block}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+[hidden]{display:none!important}
+header{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(12px);padding:12px 18px 10px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line)}
+.logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:21px;white-space:nowrap}
+.logo svg{width:30px;height:30px}
+.logo small{font-weight:600;font-size:12px;color:var(--tx3);margin-left:2px}
+header .sp{flex:1}
+.pill{font-size:12.5px;color:var(--tx2);background:var(--bg2);border:1px solid var(--line);padding:6px 11px;border-radius:99px;display:flex;align-items:center;gap:7px;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--tx3);flex:none}
+.dot.on{background:var(--ok)}.dot.todo{background:var(--acc)}
+.hbtn{display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border-radius:12px;background:var(--bg2);border:1px solid var(--line);font-weight:600;font-size:13.5px;white-space:nowrap}
+.hbtn:hover{background:var(--bg3)}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;padding:14px 16px 40px;max-width:1500px;margin:0 auto}
+@media (min-width:980px){.layout{grid-template-columns:380px minmax(0,1fr);align-items:start;padding:18px 22px 40px}.side{position:sticky;top:72px;max-height:calc(100vh - 86px);overflow:auto;padding-right:4px}}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.card h3{margin:0 0 12px;font-size:12.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--tx3);font-weight:700;display:flex;align-items:center;gap:8px}
+.card h3 .n{width:20px;height:20px;border-radius:50%;background:var(--bg4);color:var(--tx);display:grid;place-items:center;font-size:11.5px;letter-spacing:0}
+.card h3 .n.ok{background:var(--ok);color:#10131c}
+.warn{background:#ffb35c1a;border-color:#ffb35c40;color:#ffd7a8;font-size:14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 14px;border-radius:13px;background:var(--bg3);border:1px solid var(--line);font-weight:600;font-size:14px;min-width:0;white-space:nowrap}
+.btn:hover{background:var(--bg4)}
+.btn:active{transform:scale(.98)}
+.btn.main{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#10131c;border:0}
+.btn.main:hover{filter:brightness(1.07)}
+.btn.big{padding:14px 20px;font-size:15.5px}
+.btn.sm{padding:7px 11px;font-size:13px;border-radius:10px}
+.btn[disabled]{opacity:.5;pointer-events:none}
+.row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.row .btn{flex:1}
+.row.col{flex-direction:column}
+.hint{font-size:12.5px;color:var(--tx3);margin-top:6px}
+/* Dossiers */
+.folder{display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--line)}
+.folder:first-child{border-top:0;padding-top:0}
+.folder .ico{width:40px;height:40px;border-radius:12px;background:#8fb4ff1f;color:var(--acc);display:flex;align-items:center;justify-content:center;flex:none}
+.folder .ico.out{background:#b79bff24;color:var(--acc2)}
+.folder .t{flex:1;min-width:0}
+.folder .t div:first-child{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.folder .t div+div{font-size:12.5px;color:var(--tx3)}
+.folder .t .lost{color:var(--warn)}
+.x{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;color:var(--tx3);flex:none}
+.x:hover{background:var(--bg3);color:var(--tx)}
+.emptyf{color:var(--tx3);font-size:13.5px;padding:2px 0 4px}
+/* Réglages */
+.set{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+.set:first-of-type{border-top:0;padding-top:2px}
+.set .t{flex:1;min-width:0}
+.set .t div:first-child{font-weight:600}
+.set .t div+div{font-size:12.5px;color:var(--tx3);margin-top:2px}
+.sw{position:relative;width:46px;height:28px;flex:none;cursor:pointer}
+.sw input{opacity:0;position:absolute;inset:0;margin:0;z-index:1;cursor:pointer}
+.sw span{position:absolute;inset:0;border-radius:99px;background:var(--bg4);transition:.2s}
+.sw span:after{content:"";position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#cfd3df;transition:.2s}
+.sw input:checked+span{background:var(--acc)}
+.sw input:checked+span:after{transform:translateX(18px);background:#fff}
+.sw input:focus-visible+span{outline:2px solid var(--acc);outline-offset:2px}
+.seg{display:flex;background:var(--bg3);border-radius:12px;padding:3px;gap:3px;margin-top:8px;flex-wrap:wrap}
+.seg button{flex:1 1 auto;padding:8px 6px;border-radius:9px;font-size:13px;font-weight:600;color:var(--tx2);text-align:center;line-height:1.2}
+.seg button:hover{color:var(--tx)}
+.seg[data-k="fit"] button{flex:1 1 45%}.seg[data-k="fit"] button[data-v="auto"]{flex-basis:100%}
+.seg button.on{background:var(--bg4);color:var(--tx);box-shadow:0 0 0 1px #ffffff1c inset}
+.block{padding:11px 0;border-top:1px solid var(--line)}
+.block .lab{display:flex;justify-content:space-between;font-weight:600;gap:8px}
+.block .lab span{color:var(--acc);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
+.res{display:flex;align-items:center;gap:8px;margin-top:8px}
+.res input{width:100%;min-width:0;padding:9px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-variant-numeric:tabular-nums;text-align:center}
+.res input:focus{outline:2px solid var(--acc);border-color:transparent}
+.res span{color:var(--tx3)}
+/* Travail */
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.step{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:10px 12px;font-size:13px;color:var(--tx2);display:flex;gap:9px;align-items:flex-start;min-width:0}
+.step b{display:block;color:var(--tx);font-size:13.5px}
+.step i{font-style:normal;width:22px;height:22px;border-radius:50%;background:var(--bg4);display:grid;place-items:center;font-weight:700;font-size:12px;flex:none;color:var(--tx)}
+.step.done i{background:var(--ok);color:#10131c}
+.step.cur{border-color:#8fb4ff66}
+@media (max-width:760px){.steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.bar .grow{flex:1;min-width:200px}
+.bar .t1{font-weight:700}
+.bar .t2{font-size:13px;color:var(--tx3)}
+.prog{height:8px;border-radius:8px;background:var(--bg4);overflow:hidden;margin-top:8px}
+.prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width .2s}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.chip{padding:7px 12px;border-radius:99px;background:var(--bg2);border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--tx2)}
+.chip.on{color:var(--tx);border-color:#8fb4ff66;background:#8fb4ff1a}
+.chip b{font-variant-numeric:tabular-nums;margin-left:3px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.it{background:var(--bg2);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.it.excl{opacity:.5}
+.it .th{aspect-ratio:16/10;background:var(--bg3) center/cover no-repeat;position:relative;cursor:zoom-in;display:grid;place-items:center;color:var(--tx3);font-size:12px}
+.it .th:hover{filter:brightness(1.08)}
+.badge{position:absolute;left:8px;top:8px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:99px;background:#000a;color:#fff;backdrop-filter:blur(6px)}
+.badge.new,.badge.changed{background:#8fb4ffe6;color:#10131c}
+.badge.ok{background:#6fd6a4e6;color:#10131c}
+.badge.err{background:#ff7b7be6;color:#10131c}
+.it .bd{padding:8px 10px 10px;display:flex;flex-direction:column;gap:6px}
+.it .nm{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.it .sb{font-size:11.5px;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.it .ctl{display:flex;gap:6px;align-items:center}
+.it select{flex:1;min-width:0;background:var(--bg3);border:1px solid var(--line);border-radius:9px;padding:5px 6px;font-size:12.5px;cursor:pointer}
+.it .ex{width:32px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--bg3);border:1px solid var(--line);color:var(--tx2);flex:none}
+.it .ex:hover{color:var(--tx)}
+.it .ex.on{color:var(--bad)}
+.empty{color:var(--tx3);font-size:14px;text-align:center;padding:40px 18px;background:var(--bg2);border:1px dashed var(--line);border-radius:var(--r)}
+.empty b{display:block;color:var(--tx);font-size:16px;margin-bottom:6px}
+.more{text-align:center;margin:14px 0}
+/* Aperçu avant / après */
+.viewer{position:fixed;inset:0;z-index:50;background:#07080bf2;display:flex;flex-direction:column;padding:14px}
+.viewer .top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.viewer .top .nm{flex:1;min-width:0;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.viewer .pv{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:14px}
+@media (max-width:820px){.viewer .pv{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) minmax(0,1fr)}}
+.viewer figure{margin:0;display:flex;flex-direction:column;gap:6px;min-height:0;min-width:0}
+.viewer figcaption{font-size:12px;color:var(--tx3);font-weight:600}
+.viewer .frame{flex:1;min-height:0;background:var(--bg2);border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.viewer .frame img{max-width:100%;max-height:100%;display:block}
+.viewer .frame.screen{border:3px solid #3a3f50}
+.viewer .meta{font-size:13px;color:var(--tx2);margin:10px 0 4px;min-height:18px}
+.viewer .ctrl{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.viewer .ctrl .seg{margin-top:0;flex:1;min-width:260px}
+.spin{width:22px;height:22px;border:2.5px solid var(--tx3);border-right-color:transparent;border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* Guide Windows */
+/* dialogues communs (pc.css) : toujours sombres, comme Toile */
+#mpc-root{--mpc-bg:#1d212b;--mpc-tx:#eef0f5;--mpc-tx2:#b4b8c7;--mpc-line:#ffffff24;--mpc-acc:#8fb4ff;--mpc-acc-tx:#10131c;--mpc-bad:#ff8a80}
+.guide ol{margin:6px 0 0;padding-left:22px}
+.guide li{margin:8px 0;color:var(--mpc-tx2)}
+.guide li b{color:var(--mpc-tx)}
+.guide .path{display:inline-block;background:var(--bg3);border:1px solid var(--line);border-radius:8px;padding:1px 7px;color:var(--tx);font-weight:600;font-size:13.5px}
+#toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,140%);width:min(560px,calc(100vw - 32px));background:#2b3042;border:1px solid #ffffff1f;color:var(--tx);padding:12px 14px;border-radius:14px;font-size:14px;box-shadow:0 10px 30px #0008;transition:transform .25s;z-index:80}
+#toast.on{transform:translate(-50%,0)}
+#toast.bad{border-color:#ff7b7b66}
+html.mag-pc ::-webkit-scrollbar{width:12px;height:12px}
+html.mag-pc ::-webkit-scrollbar-thumb{background:#8885;border-radius:8px;border:3px solid transparent;background-clip:content-box}
+html.mag-pc ::-webkit-scrollbar-track{background:transparent}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+<symbol id="i-sync" viewBox="0 0 24 24"><path d="M4 4v6h6M20 20v-6h-6"/><path d="M20 10a8 8 0 0 0-14.3-4.3L4 8m16 8-1.7 2.3A8 8 0 0 1 4 14"/></symbol>
+<symbol id="i-win" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-eyeoff" viewBox="0 0 24 24"><path d="M17.9 17.9A10.5 10.5 0 0 1 12 20c-7 0-11-8-11-8a19 19 0 0 1 5.1-5.9M9.9 4.2A10 10 0 0 1 12 4c7 0 11 8 11 8a19 19 0 0 1-2.2 3.2M1 1l22 22"/></symbol>
+<symbol id="i-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+<symbol id="i-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></symbol>
+<symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m10.8 12.2 9.2-9.2M17 6l3 3M14 9l2 2"/></symbol>
+</defs></svg>
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8fb4ff"/><stop offset="1" stop-color="#b79bff"/></linearGradient></defs><rect x="2" y="2" width="28" height="28" rx="8" fill="url(#lg)"/><path d="M8 22l5-6 3.5 4 3-3.5L24 22z" fill="#10131c"/><circle cx="12" cy="11" r="2.2" fill="#10131c"/></svg>
+    Toile<small>sur PC</small>
+  </div>
+  <div class="sp"></div>
+  <div class="pill" id="pill"><span class="dot" id="pillDot"></span><span id="pillTxt">Préparation…</span></div>
+  <button class="hbtn" id="bGuide" title="Faire défiler les fonds par Windows"><svg class="ic"><use href="#i-win"/></svg><span>Guide Windows</span></button>
+</header>
+
+<div class="layout">
+  <aside class="side">
+    <div class="card warn" id="noFs" hidden>Toile sur PC a besoin de <b>Microsoft Edge</b> ou de <b>Google Chrome</b> (accès aux dossiers du PC). Ouvrez cette page avec l'un d'eux.</div>
+    <div class="card warn" id="reauth" hidden>
+      <div style="display:flex;gap:10px;align-items:flex-start"><svg class="ic" style="margin-top:2px"><use href="#i-key"/></svg><div style="flex:1"><b>Windows redemande l'accès aux dossiers</b><div style="font-size:13px;margin-top:2px" id="reauthTxt"></div></div></div>
+      <div class="row"><button class="btn main" id="bReauth">Réautoriser (1 clic)</button></div>
+    </div>
+
+    <section class="card">
+      <h3><span class="n" id="n1">1</span>Photos source</h3>
+      <div id="srcList"></div>
+      <div class="row"><button class="btn" id="bAddSrc"><svg class="ic"><use href="#i-plus"/></svg>Ajouter un dossier</button></div>
+      <div class="set" style="margin-top:8px;border-top:1px solid var(--line);padding-top:11px">
+        <div class="t"><div>Inclure les sous-dossiers</div><div>Jusqu'à 4 niveaux, comme sur le téléphone</div></div>
+        <label class="sw"><input type="checkbox" data-k="sub" aria-label="Inclure les sous-dossiers"><span></span></label>
+      </div>
+      <div class="hint">Toile ne fait que <b>lire</b> ces dossiers : rien n'y est jamais écrit, déplacé ni supprimé.</div>
+    </section>
+
+    <section class="card">
+      <h3><span class="n" id="n2">2</span>Dossier de sortie</h3>
+      <div id="outBox"></div>
+      <div class="row col">
+        <button class="btn main" id="bMkOut"><svg class="ic"><use href="#i-plus"/></svg>Créer « Fonds Toile » dans…</button>
+        <button class="btn" id="bPickOut"><svg class="ic"><use href="#i-folder"/></svg>Choisir un dossier</button>
+      </div>
+      <div class="hint">Par exemple dans <b>Images</b>. Toile y écrit des fichiers <b>toile-….jpg</b> et la liste <b>toile-manifest.json</b> ; il ne touche à rien d'autre.</div>
+    </section>
+
+    <section class="card">
+      <h3>Écran</h3>
+      <div class="seg" data-k="preset" id="presets"></div>
+      <div class="res"><input id="rw" type="number" min="320" max="8192" inputmode="numeric" aria-label="Largeur en pixels"><span>×</span><input id="rh" type="number" min="240" max="8192" inputmode="numeric" aria-label="Hauteur en pixels"><span>px</span></div>
+      <div class="hint" id="resHint"></div>
+      <div class="block" style="margin-top:8px">
+        <div class="lab">Qualité JPEG <span id="qV"></span></div>
+        <input type="range" min="60" max="100" step="1" data-k="q" aria-label="Qualité JPEG">
+        <div class="hint">90 : très bonne qualité, fichiers de 0,5 à 1,5 Mo.</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>Recadrage</h3>
+      <div class="set">
+        <div class="t"><div>Retirer les bordures</div><div>Bandes noires, blanches ou unies autour de l'image</div></div>
+        <label class="sw"><input type="checkbox" data-k="borders" aria-label="Retirer les bordures"><span></span></label>
+      </div>
+      <div class="block" id="tolBlock">
+        <div class="lab">Sensibilité <span id="tolV"></span></div>
+        <input type="range" min="6" max="60" step="1" data-k="tol" aria-label="Sensibilité">
+        <div class="hint">Plus haut : retire aussi les bordures avec un léger dégradé ou du bruit.</div>
+      </div>
+      <div class="set">
+        <div class="t"><div>Couper les bandeaux de texte</div><div>Légende, titre ou signature sur une bande en haut ou en bas</div></div>
+        <label class="sw"><input type="checkbox" data-k="text" aria-label="Couper les bandeaux de texte"><span></span></label>
+      </div>
+      <div class="block">
+        <div class="lab">Rogner les bords <span id="trimV"></span></div>
+        <input type="range" min="0" max="12" step="1" data-k="trim" aria-label="Rogner les bords">
+        <div class="hint">Enlève un logo ou un filigrane placé dans un coin.</div>
+      </div>
+      <div class="block">
+        <div class="lab">Adapter à l'écran</div>
+        <div class="seg" data-k="fit"><button data-v="auto">Recadrer si besoin</button><button data-v="smart">Recadrage intelligent</button><button data-v="width">Pleine largeur</button><button data-v="center">Centré</button><button data-v="blur">Entière, fond flou</button></div>
+        <div class="hint" id="fitHint" style="margin-top:8px"></div>
+        <div class="hint">Réglage de toutes les images ; chaque image peut avoir le sien (menu sous la vignette).</div>
+      </div>
+    </section>
+  </aside>
+
+  <main class="work">
+    <div class="steps" id="steps"></div>
+    <div class="bar">
+      <button class="btn main big" id="bRun"><svg class="ic"><use href="#i-sync"/></svg>Mettre à jour les fonds</button>
+      <div class="grow" id="runBox"><div class="t1" id="runT1"></div><div class="t2" id="runT2"></div><div class="prog" id="prog" hidden><i></i></div></div>
+      <button class="btn" id="bCancel" hidden>Annuler</button>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div id="gridBox"></div>
+  </main>
+</div>
+
+<div class="viewer" id="viewer" hidden role="dialog" aria-modal="true" aria-label="Aperçu avant / après">
+  <div class="top">
+    <button class="hbtn" id="vPrev" aria-label="Image précédente"><svg class="ic"><use href="#i-left"/></svg></button>
+    <button class="hbtn" id="vNext" aria-label="Image suivante"><svg class="ic"><use href="#i-right"/></svg></button>
+    <div class="nm" id="vName"></div>
+    <button class="hbtn" id="vClose" aria-label="Fermer"><svg class="ic"><use href="#i-x"/></svg><span>Fermer</span></button>
+  </div>
+  <div class="pv">
+    <figure><figcaption>Avant · zone gardée</figcaption><div class="frame" id="vBefore"></div></figure>
+    <figure><figcaption id="vAfterCap">Après · sur l'écran</figcaption><div class="frame screen" id="vAfter"></div></figure>
+  </div>
+  <div class="meta" id="vMeta"></div>
+  <div class="ctrl">
+    <div class="seg" id="vFit"></div>
+    <button class="btn" id="vExcl"></button>
+  </div>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+(function () {
+  var M = window.MAGPC || null;
+  var $ = function (i) { return document.getElementById(i); };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var icon = function (n) { return '<svg class="ic"><use href="#i-' + n + '"/></svg>'; };
+  var pl = function (n, w, ws) { return n.toLocaleString('fr-FR') + ' ' + (n > 1 ? (ws || w + 's') : w); };
+  function toast(t, bad, ms) { var e = $('toast'); e.textContent = t; e.className = 'on' + (bad ? ' bad' : ''); clearTimeout(toast.t); toast.t = setTimeout(function () { e.className = ''; }, ms || (bad ? 5200 : 3400)); }
+  function fsz(b) { return b < 1048576 ? Math.max(1, Math.round(b / 1024)) + ' Ko' : (b / 1048576).toFixed(1).replace('.', ',') + ' Mo'; }
+
+  var PREFIX = 'toile-', MANIFEST = 'toile-manifest.json', OUTNAME = 'Fonds Toile';
+  var EXTS = /\.(jpe?g|png|webp|heic|heif|avif|bmp)$/i;
+  var FIT = { smart: "Garde la partie la plus détaillée de l'image.", center: "Garde le centre de l'image.", auto: "Ne recadre que si une bordure, un bandeau, un logo ou une écriture est détecté ; sinon l'image est gardée en pleine largeur.", width: "Garde toute la largeur de l'image : si elle est plus large que l'écran, le haut et le bas sont complétés par une version floutée ; si elle est plus haute, seul le haut ou le bas est recadré.", blur: "Montre toute l'image, le vide est rempli par une version floutée." };
+  var FITN = { auto: 'Recadrer si besoin', smart: 'Recadrage intelligent', width: 'Pleine largeur', center: 'Centré', blur: 'Entière, fond flou' };
+
+  /* ---------------- Réglages (localStorage « toile-pc:… ») ---------------- */
+  var LS = 'toile-pc:reglages';
+  var dpr = window.devicePixelRatio || 1;
+  var SCREEN = [Math.round(screen.width * dpr), Math.round(screen.height * dpr)];
+  var S = { sub: true, borders: true, tol: 24, text: false, trim: 0, fit: 'smart', w: SCREEN[0], h: SCREEN[1], q: 90 };
+  try { Object.assign(S, JSON.parse(localStorage.getItem(LS) || '{}')); } catch (e) { }
+  function saveS() { try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) { } }
+
+  /* ---------------- Poignées et choix par image (IndexedDB « toile-pc ») ---------------- */
+  var DB = (function () {
+    var p;
+    function open() { return p || (p = new Promise(function (res, rej) { var r = indexedDB.open('toile-pc', 1); r.onupgradeneeded = function () { r.result.createObjectStore('kv'); }; r.onsuccess = function () { res(r.result); }; r.onerror = function () { p = null; rej(r.error); }; })); }
+    function tx(mode, fn) { return open().then(function (d) { return new Promise(function (res, rej) { var t = d.transaction('kv', mode), q = fn(t.objectStore('kv')), out; if (q) q.onsuccess = function () { out = q.result; }; t.oncomplete = function () { res(out); }; t.onerror = function () { rej(t.error); }; }); }); }
+    return { get: function (k) { return tx('readonly', function (s) { return s.get(k); }).catch(function () { }); }, set: function (k, v) { return tx('readwrite', function (s) { return s.put(v, k); }).catch(function () { }); } };
+  })();
+  var SOURCES = [];     // {id, handle, ok}
+  var OUT = null;       // {handle, parent, ok}
+  var OVR = {};         // clé d'image → {fit, excl}
+  var ITEMS = [], MAN = null, OUTFILES = null, SKIP = {};
+  var FILTER = 'all', SHOWN = 120, RUN = null, LISTING = false, LAST = null;   // LAST : résumé de la dernière mise à jour, affiché jusqu'au prochain changement
+  function saveSources() { return DB.set('sources', SOURCES.map(function (s) { return { id: s.id, handle: s.handle }; })); }
+  function saveOut() { return DB.set('sortie', OUT ? { handle: OUT.handle, parent: OUT.parent || '' } : null); }
+  function saveOvr() { return DB.set('images', OVR); }
+
+  /* ---------------- Moteur (worker) ---------------- */
+  function Engine() {
+    var w = null, seq = 0, wait = {};
+    function start() {
+      w = new Worker('toile-worker.js');
+      w.onmessage = function (e) { var m = e.data, k = wait[m.id]; if (!k) return; delete wait[m.id]; if (m.ok) k.ok(m); else { var x = new Error(m.error); x.code = m.code; k.ko(x); } };
+      w.onerror = function (e) { var l = wait; wait = {}; Object.keys(l).forEach(function (k) { l[k].ko(new Error('moteur indisponible' + (e && e.message ? ' : ' + e.message : ''))); }); try { w.terminate(); } catch (x) { } w = null; };
+    }
+    return {
+      call: function (msg) { if (!w) start(); return new Promise(function (ok, ko) { var id = ++seq; wait[id] = { ok: ok, ko: ko }; msg.id = id; w.postMessage(msg); }); },
+      pending: function () { return Object.keys(wait).length; }
+    };
+  }
+  var ENG = Engine(), UIENG = Engine();      // traitement / aperçus et vignettes
+
+  /* ---------------- Utilitaires fichiers ---------------- */
+  function uid() { return 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  function hash(s) { var h = 0x811c9dc5; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return ('0000000' + h.toString(36)).slice(-7); }
+  function outName(it) {
+    var stem = it.name.replace(/\.[^.]+$/, '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'image';
+    return PREFIX + stem + '-' + hash(it.key) + '.jpg';
+  }
+  function effFit(it) { var o = OVR[it.key]; return (o && o.fit) || S.fit; }
+  function opts(it, extra) { return Object.assign({ sw: S.w, sh: S.h, tol: S.tol, borders: S.borders, text: S.text, trim: S.trim, fit: effFit(it), q: S.q }, extra || {}); }
+  function sig(it) { var o = opts(it); return [o.fit, o.borders ? 1 : 0, o.tol, o.text ? 1 : 0, o.trim, o.sw, o.sh, o.q].join('|'); }
+  async function perm(h, mode, ask) {
+    try {
+      if (await h.queryPermission({ mode: mode }) === 'granted') return true;
+      if (ask) return (await h.requestPermission({ mode: mode })) === 'granted';
+    } catch (e) { }
+    return false;
+  }
+  async function relation(a, b) {
+    try { if (await a.isSameEntry(b)) return 'same'; } catch (e) { }
+    try { if (await a.resolve(b)) return 'inside'; } catch (e) { }      // b est dans a
+    try { if (await b.resolve(a)) return 'contains'; } catch (e) { }    // b contient a
+    return null;
+  }
+
+  /* ---------------- Liste des images des dossiers source ---------------- */
+  async function listImages() {
+    var out = [];
+    for (var s of SOURCES) {
+      if (!s.ok) continue;
+      var walk = async function (dh, rel, depth) {
+        for await (var e of dh.entries()) {
+          if (out.length >= 5000) return;
+          var name = e[0], h = e[1];
+          if (name[0] === '.') continue;
+          if (h.kind === 'directory') {
+            if (depth <= 0) continue;
+            if (OUT && OUT.handle && await h.isSameEntry(OUT.handle).catch(function () { return false; })) continue;   // la sortie n'est jamais relue
+            await walk(h, rel + name + '/', depth - 1);
+          } else if (EXTS.test(name)) {
+            try { var f = await h.getFile(); out.push({ key: s.id + ':' + rel + name, src: s, rel: rel + name, name: name, size: f.size, mtime: f.lastModified, fh: h }); } catch (x) { }
+          }
+        }
+      };
+      try { await walk(s.handle, '', S.sub ? 4 : 0); }
+      catch (e) { s.ok = false; toast('« ' + s.handle.name + ' » : accès perdu, réautorisez-le', true); }
+    }
+    out.sort(function (a, b) { return a.name.localeCompare(b.name, 'fr', { sensitivity: 'base', numeric: true }) || a.key.localeCompare(b.key); });
+    out.forEach(function (it) { it.out = outName(it); });
+    return out;
+  }
+  async function readManifest() {
+    var m = { app: 'Toile (Suite MAG sur PC)', format: 1, prefix: PREFIX, items: {}, skipped: {} };
+    OUTFILES = new Set();
+    if (!OUT || !OUT.ok) return m;
+    try {
+      for await (var e of OUT.handle.entries()) if (e[1].kind === 'file') OUTFILES.add(e[0]);
+      if (OUTFILES.has(MANIFEST)) {
+        var j = JSON.parse(await (await (await OUT.handle.getFileHandle(MANIFEST)).getFile()).text());
+        if (j && j.items) { m.items = j.items; m.skipped = j.skipped || {}; }
+      }
+    } catch (e) { }
+    return m;
+  }
+  async function writeManifest() {
+    if (!OUT || !OUT.ok || !MAN) return;
+    MAN.updated = new Date().toISOString(); MAN.screen = S.w + '×' + S.h;
+    var fh = await OUT.handle.getFileHandle(MANIFEST, { create: true }), w = await fh.createWritable();
+    await w.write(new Blob([JSON.stringify(MAN, null, 1)], { type: 'application/json' })); await w.close();
+  }
+  function status(it) {
+    var o = OVR[it.key];
+    if (o && o.excl) return 'excl';
+    var sk = MAN && MAN.skipped[it.key];
+    if (sk && sk.size === it.size && sk.mtime === it.mtime) { it.msg = sk.msg; return 'err'; }
+    var e = MAN && MAN.items[it.out];
+    if (!e || e.src !== it.key || !OUTFILES || !OUTFILES.has(it.out)) return 'new';
+    if (e.size !== it.size || e.mtime !== it.mtime || e.sig !== sig(it)) return 'changed';
+    return 'ok';
+  }
+  async function refresh(quiet) {
+    if (LISTING) return; LISTING = true;
+    if (!quiet) { $('runT1').textContent = 'Lecture des dossiers…'; $('runT2').textContent = ''; }
+    try {
+      ITEMS = await listImages();
+      MAN = await readManifest();
+    } finally { LISTING = false; }
+    paint();
+  }
+
+  /* ---------------- Mettre à jour ---------------- */
+  async function ensure(ask) {
+    var lost = [];
+    for (var s of SOURCES) { s.ok = await perm(s.handle, 'read', ask); if (!s.ok) lost.push(s.handle.name); }
+    if (OUT) { OUT.ok = await perm(OUT.handle, 'readwrite', ask); if (!OUT.ok) lost.push(OUT.handle.name + ' (sortie)'); }
+    $('reauth').hidden = !lost.length;
+    $('reauthTxt').textContent = lost.length ? 'Un clic pour ' + (lost.length > 1 ? 'les ' + lost.length + ' dossiers' : 'le dossier') + ' : ' + lost.join(', ') + '.' : '';
+    return !lost.length;
+  }
+  async function run() {
+    if (RUN) return;
+    LAST = null; $('runT1').textContent = 'Vérification des accès…'; $('runT2').textContent = '';
+    if (!SOURCES.length) { toast("Ajoutez d'abord un dossier de photos (étape 1)", true); return; }
+    if (!OUT) { toast('Choisissez d\'abord le dossier de sortie (étape 2)', true); return; }
+    if (!await ensure(true)) { toast('Accès refusé : réautorisez les dossiers', true); paint(); return; }
+    RUN = { cancel: false, made: 0, upd: 0, del: 0, skip: 0, err: [] };
+    $('bRun').disabled = true; $('bCancel').hidden = false; $('prog').hidden = false; setProg(0);
+    $('runT1').textContent = 'Lecture des dossiers…'; $('runT2').textContent = '';
+    try {
+      ITEMS = await listImages();
+      MAN = await readManifest();
+      // 1. retirer de la sortie ce qui a disparu des sources ou a été exclu (seulement les fichiers créés par Toile, listés dans le manifeste)
+      var want = new Set(ITEMS.filter(function (it) { return status(it) !== 'excl'; }).map(function (it) { return it.out; }));
+      for (var n of Object.keys(MAN.items)) {
+        if (want.has(n)) continue;
+        if (n.indexOf(PREFIX) === 0 && /\.jpg$/i.test(n) && n !== MANIFEST) {
+          try { await OUT.handle.removeEntry(n); RUN.del++; } catch (e) { if (!e || e.name !== 'NotFoundError') { RUN.err.push(n + ' : ' + (e && e.message || e)); continue; } }
+        }
+        delete MAN.items[n]; OUTFILES.delete(n);
+      }
+      var keys = new Set(ITEMS.map(function (it) { return it.key; }));
+      Object.keys(MAN.skipped).forEach(function (k) { if (!keys.has(k)) delete MAN.skipped[k]; });
+      // 2. traiter les images nouvelles ou modifiées
+      var todo = ITEMS.filter(function (it) { var s = status(it); return s === 'new' || s === 'changed'; });
+      paint();
+      for (var i = 0; i < todo.length && !RUN.cancel; i++) {
+        var it = todo[i], was = MAN.items[it.out] ? 'upd' : 'made';
+        setProg(i / todo.length); $('runT1').textContent = 'Préparation des fonds : ' + (i + 1) + ' / ' + todo.length; $('runT2').textContent = it.rel;
+        try {
+          var f = await it.fh.getFile();
+          var o = opts(it);
+          var r = await ENG.call({ cmd: 'process', file: f, opt: o });
+          var fh = await OUT.handle.getFileHandle(it.out, { create: true }), w = await fh.createWritable();
+          await w.write(r.out); await w.close();
+          MAN.items[it.out] = { src: it.key, source: it.src.handle.name + '/' + it.rel, size: it.size, mtime: it.mtime, sig: sig(it), info: r.info, at: Date.now() };
+          delete MAN.skipped[it.key];
+          OUTFILES.add(it.out); RUN[was]++;
+        } catch (e) {
+          RUN.skip++;
+          var msg = (e && e.message) || String(e);
+          if (e && (e.code === 'heic' || e.code === 'decode')) MAN.skipped[it.key] = { size: it.size, mtime: it.mtime, msg: msg };
+          else RUN.err.push(it.name + ' : ' + msg);
+          it.msg = msg;
+        }
+        if (i % 10 === 9) await writeManifest().catch(function () { });
+        paintItem(it);
+      }
+      await writeManifest();
+      setProg(1);
+      var parts = [];
+      if (RUN.made) parts.push(pl(RUN.made, 'fond créé', 'fonds créés'));
+      if (RUN.upd) parts.push(pl(RUN.upd, 'mis à jour', 'mis à jour'));
+      if (RUN.del) parts.push(pl(RUN.del, 'retiré', 'retirés'));
+      if (RUN.skip) parts.push(pl(RUN.skip, 'image ignorée', 'images ignorées'));
+      LAST = { t1: RUN.cancel ? 'Arrêté' : 'Terminé', t2: (parts.join(' · ') || 'Tout était déjà à jour') + (RUN.cancel ? ' · le reste sera fait à la prochaine mise à jour' : '') };
+      toast((RUN.cancel ? 'Arrêté : ' : '') + (parts.join(', ') || 'Tout était déjà à jour'), RUN.err.length > 0);
+      if (RUN.err.length) setTimeout(function () { toast(RUN.err[0] + (RUN.err.length > 1 ? ' (et ' + (RUN.err.length - 1) + ' autre(s))' : ''), true, 7000); }, 3600);
+      DB.set('dernier', { at: Date.now(), made: RUN.made, upd: RUN.upd, del: RUN.del, skip: RUN.skip });
+    } catch (e) {
+      LAST = { t1: 'Mise à jour impossible', t2: (e && e.message) || String(e) };
+      toast('Mise à jour impossible : ' + ((e && e.message) || e), true);
+    }
+    RUN = null;
+    $('bRun').disabled = false; $('bCancel').hidden = true; setTimeout(function () { if (!RUN) $('prog').hidden = true; }, 1500);
+    paint();
+  }
+  function setProg(x) { $('prog').firstChild.style.width = Math.round(x * 100) + '%'; }
+  $('bRun').onclick = run;
+  $('bCancel').onclick = function () { if (RUN) { RUN.cancel = true; $('runT1').textContent = 'Arrêt après l\'image en cours…'; } };
+
+  /* ---------------- Dossiers : ajout, retrait, sortie ---------------- */
+  $('bAddSrc').onclick = async function () {
+    if (!window.showDirectoryPicker) return;
+    var h;
+    try { h = await window.showDirectoryPicker({ id: 'toile-source', mode: 'read', startIn: 'pictures' }); }
+    catch (e) { if (e && e.name !== 'AbortError') toast('Dossier refusé : ' + (e.message || e), true); return; }
+    if (OUT && await relation(OUT.handle, h) === 'same') { toast('Ce dossier est le dossier de sortie : choisissez un dossier de photos', true); return; }
+    var drop = [];
+    for (var s of SOURCES) {
+      var r = await relation(s.handle, h);
+      if (r === 'same') { toast('« ' + h.name + ' » est déjà dans la liste'); return; }
+      if (r === 'inside' && S.sub) { toast('« ' + h.name + ' » est déjà compris dans « ' + s.handle.name + ' » (sous-dossiers inclus)'); return; }
+      if (r === 'contains') drop.push(s);
+    }
+    if (drop.length) { SOURCES = SOURCES.filter(function (s) { return drop.indexOf(s) < 0; }); toast('« ' + h.name + ' » contient déjà ' + drop.map(function (s) { return '« ' + s.handle.name + ' »'; }).join(', ') + ' : dossiers fusionnés'); }
+    SOURCES.push({ id: uid(), handle: h, ok: true }); LAST = null;
+    await saveSources(); paintFolders(); refresh();
+  };
+  $('srcList').onclick = async function (e) {
+    var b = e.target.closest('[data-rm]'); if (!b) return;
+    var s = SOURCES.find(function (x) { return x.id === b.dataset.rm; }); if (!s) return;
+    SOURCES = SOURCES.filter(function (x) { return x !== s; }); LAST = null;
+    await saveSources(); paintFolders(); refresh();
+    toast('« ' + s.handle.name + ' » retiré : ses fonds seront enlevés de la sortie à la prochaine mise à jour (les photos ne sont pas touchées)', false, 5200);
+  };
+  async function setOut(h, parentName) {
+    for (var s of SOURCES) if (await relation(s.handle, h) === 'same') { toast('Le dossier de sortie doit être différent des dossiers de photos', true); return false; }
+    OUT = { handle: h, parent: parentName || '', ok: true }; LAST = null;
+    await saveOut(); paintFolders(); refresh();
+    for (var s2 of SOURCES) if (await relation(s2.handle, h) === 'inside') { toast('« ' + h.name + ' » est dans « ' + s2.handle.name + ' » : Toile ne relira jamais ses propres fonds', false, 5000); break; }
+    return true;
+  }
+  $('bMkOut').onclick = async function () {
+    if (!window.showDirectoryPicker) return;
+    var p;
+    try { p = await window.showDirectoryPicker({ id: 'toile-sortie', mode: 'readwrite', startIn: 'pictures' }); }
+    catch (e) { if (e && e.name !== 'AbortError') toast('Dossier refusé : ' + (e.message || e), true); return; }
+    try {
+      var h = await p.getDirectoryHandle(OUTNAME, { create: true });
+      if (await setOut(h, p.name)) toast('Dossier « ' + OUTNAME + ' » prêt dans « ' + p.name + ' »');
+    } catch (e) { toast('Création impossible : ' + (e.message || e), true); }
+  };
+  $('bPickOut').onclick = async function () {
+    if (!window.showDirectoryPicker) return;
+    var h;
+    try { h = await window.showDirectoryPicker({ id: 'toile-sortie', mode: 'readwrite', startIn: 'pictures' }); }
+    catch (e) { if (e && e.name !== 'AbortError') toast('Dossier refusé : ' + (e.message || e), true); return; }
+    setOut(h, '');
+  };
+  $('bReauth').onclick = async function () { if (await ensure(true)) { toast('Accès rétabli'); refresh(); } else toast('Accès toujours refusé pour au moins un dossier', true); paintFolders(); };
+
+  /* ---------------- Affichage ---------------- */
+  function paintFolders() {
+    $('srcList').innerHTML = SOURCES.length ? SOURCES.map(function (s) {
+      var n = ITEMS.filter(function (it) { return it.src === s; }).length;
+      return '<div class="folder"><div class="ico">' + icon('folder') + '</div><div class="t"><div>' + esc(s.handle.name) + '</div><div class="' + (s.ok ? '' : 'lost') + '">' + (s.ok ? (n ? pl(n, 'image') : 'lecture seule') : 'à réautoriser') + '</div></div><button class="x" data-rm="' + s.id + '" title="Retirer ce dossier de la liste (les photos ne sont pas touchées)" aria-label="Retirer « ' + esc(s.handle.name) + ' »">' + icon('x') + '</button></div>';
+    }).join('') : '<div class="emptyf">Aucun dossier : ajoutez celui (ou ceux) où sont vos photos.</div>';
+    $('outBox').innerHTML = OUT ? '<div class="folder"><div class="ico out">' + icon('folder') + '</div><div class="t"><div>' + esc(OUT.handle.name) + '</div><div class="' + (OUT.ok ? '' : 'lost') + '">' + (OUT.ok ? (OUT.parent ? 'dans « ' + esc(OUT.parent) + ' » · ' : '') + (OUTFILES ? pl([].filter.call(Array.from(OUTFILES), function (n) { return n.indexOf(PREFIX) === 0 && n !== MANIFEST; }).length, 'fond') : '') : 'à réautoriser') + '</div></div></div>'
+      : '<div class="emptyf">Pas encore choisi. Le plus simple : « Créer « Fonds Toile » dans… » puis choisir <b>Images</b>.</div>';
+    $('n1').classList.toggle('ok', SOURCES.length > 0); $('n1').textContent = SOURCES.length ? '✓' : '1';
+    $('n2').classList.toggle('ok', !!OUT); $('n2').textContent = OUT ? '✓' : '2';
+  }
+  function counts() {
+    var c = { all: ITEMS.length, todo: 0, ok: 0, excl: 0, err: 0 };
+    ITEMS.forEach(function (it) { var s = it.st = status(it); if (s === 'new' || s === 'changed') c.todo++; else c[s]++; });
+    return c;
+  }
+  function paint() {
+    paintFolders();
+    var c = counts();
+    $('chips').innerHTML = ITEMS.length ? [['all', 'Toutes'], ['todo', 'À traiter'], ['ok', 'À jour'], ['excl', 'Exclues'], ['err', 'Ignorées']].filter(function (x) { return x[0] === 'all' || c[x[0]]; })
+      .map(function (x) { return '<button class="chip' + (FILTER === x[0] ? ' on' : '') + '" data-f="' + x[0] + '">' + x[1] + '<b>' + c[x[0]] + '</b></button>'; }).join('') : '';
+    if (FILTER !== 'all' && !c[FILTER]) FILTER = 'all';
+    var st = [['Photos source', SOURCES.length ? pl(SOURCES.length, 'dossier') + ' · ' + pl(c.all, 'image') : 'à ajouter', SOURCES.length > 0],
+      ['Dossier de sortie', OUT ? '« ' + OUT.handle.name + ' »' : 'à choisir', !!OUT],
+      ['Mettre à jour', !ITEMS.length ? '—' : c.todo ? pl(c.todo, 'image') + ' à traiter' : 'tout est à jour', ITEMS.length > 0 && !c.todo],
+      ['Diaporama Windows', '<a href="#" id="stGuide" style="color:var(--acc)">voir le guide</a>', !!(OUT && ITEMS.length && !c.todo)]];
+    var cur = st.findIndex(function (x) { return !x[2]; });
+    $('steps').innerHTML = st.map(function (x, i) { return '<div class="step' + (x[2] ? ' done' : '') + (i === cur ? ' cur' : '') + '"><i>' + (x[2] ? '✓' : i + 1) + '</i><div style="min-width:0"><b>' + x[0] + '</b>' + x[1] + '</div></div>'; }).join('');
+    var g = $('stGuide'); if (g) g.onclick = function (e) { e.preventDefault(); guide(); };
+    $('pillDot').className = 'dot' + (ITEMS.length && !c.todo ? ' on' : c.todo ? ' todo' : '');
+    $('pillTxt').textContent = !ITEMS.length ? (SOURCES.length ? 'Aucune image' : 'Pas de photos') : c.todo ? pl(c.todo, 'fond') + ' à préparer' : pl(c.ok, 'fond') + ' à jour';
+    if (!RUN && !LISTING && LAST) { $('runT1').textContent = LAST.t1; $('runT2').textContent = LAST.t2; }
+    else if (!RUN && !LISTING) {
+      $('runT1').textContent = !SOURCES.length ? '1. Ajoutez un dossier de photos' : !OUT ? '2. Choisissez le dossier de sortie' : c.todo ? pl(c.todo, 'image') + ' à préparer' : ITEMS.length ? 'Tout est à jour' : 'Aucune image dans ces dossiers';
+      $('runT2').textContent = 'Écran ' + S.w + '×' + S.h + ' · JPEG ' + S.q + ' · ' + FITN[S.fit] + (c.excl ? ' · ' + pl(c.excl, 'exclue') : '') + (c.err ? ' · ' + pl(c.err, 'ignorée') : '');
+    }
+    $('bRun').disabled = !!RUN || !SOURCES.length || !OUT;
+    var list = ITEMS.filter(function (it) { return FILTER === 'all' || (FILTER === 'todo' ? it.st === 'new' || it.st === 'changed' : it.st === FILTER); });
+    if (!ITEMS.length) {
+      var lost = SOURCES.length && !SOURCES.some(function (s) { return s.ok; });
+      $('gridBox').innerHTML = '<div class="empty"><b>' + (!SOURCES.length ? 'Ajoutez vos photos' : lost ? 'Accès aux dossiers à réautoriser' : LISTING ? 'Lecture…' : 'Aucune image trouvée') + '</b>' + (!SOURCES.length ? 'Étape 1 : « Ajouter un dossier ». Toile lit les JPEG, PNG, WebP (et HEIC si le navigateur sait les décoder).' : 'Formats lus : JPEG, PNG, WebP, AVIF, BMP, HEIC (si le navigateur le décode).') + '</div>';
+      return;
+    }
+    $('gridBox').innerHTML = '<div class="grid" id="grid">' + list.slice(0, SHOWN).map(card).join('') + '</div>' + (list.length > SHOWN ? '<div class="more"><button class="btn" id="bMore">Afficher ' + Math.min(240, list.length - SHOWN) + ' de plus (' + (list.length - SHOWN) + ' restantes)</button></div>' : '');
+    var bm = $('bMore'); if (bm) bm.onclick = function () { SHOWN += 240; paint(); };
+    observe();
+  }
+  var BADGE = { new: 'Nouvelle', changed: 'Modifiée', ok: 'À jour', excl: 'Exclue', err: 'Ignorée' };
+  function card(it) {
+    var o = OVR[it.key] || {}, t = THUMB.get(it.key);
+    return '<div class="it' + (it.st === 'excl' ? ' excl' : '') + '" data-k="' + esc(it.key) + '"><div class="th" data-v="1" title="Aperçu avant / après" style="' + (t ? "background-image:url('" + t + "')" : '') + '">' + (t ? '' : t === '' ? 'aperçu indisponible' : '') +
+      '<span class="badge ' + it.st + '"' + (it.msg && it.st === 'err' ? ' title="' + esc(it.msg) + '"' : '') + '>' + BADGE[it.st] + '</span></div>' +
+      '<div class="bd"><div class="nm" title="' + esc(it.rel) + '">' + esc(it.name) + '</div><div class="sb">' + esc(it.st === 'err' && it.msg ? it.msg : it.src.handle.name + (it.rel.indexOf('/') > 0 ? ' › ' + it.rel.slice(0, it.rel.lastIndexOf('/')).split('/').join(' › ') : '') + ' · ' + fsz(it.size)) + '</div>' +
+      '<div class="ctl"><select data-fit aria-label="Ajustement de cette image"><option value="">Général (' + esc(FITN[S.fit]) + ')</option>' + Object.keys(FITN).map(function (k) { return '<option value="' + k + '"' + (o.fit === k ? ' selected' : '') + '>' + FITN[k] + '</option>'; }).join('') + '</select>' +
+      '<button class="ex' + (o.excl ? ' on' : '') + '" data-ex title="' + (o.excl ? 'Remettre cette image' : 'Exclure cette image') + '" aria-label="' + (o.excl ? 'Remettre' : 'Exclure') + ' ' + esc(it.name) + '">' + icon(o.excl ? 'eyeoff' : 'eye') + '</button></div></div></div>';
+  }
+  function paintItem(it) {
+    it.st = status(it);
+    var el = document.querySelector('.it[data-k="' + CSS.escape(it.key) + '"]'); if (!el) return;
+    var tmp = document.createElement('div'); tmp.innerHTML = card(it); el.replaceWith(tmp.firstChild);
+    observe();
+  }
+  $('chips').onclick = function (e) { var b = e.target.closest('[data-f]'); if (!b) return; FILTER = b.dataset.f; SHOWN = 120; paint(); };
+  function byKey(k) { return ITEMS.find(function (x) { return x.key === k; }); }
+  $('gridBox').addEventListener('change', function (e) {
+    var s = e.target.closest('[data-fit]'); if (!s) return;
+    var it = byKey(s.closest('.it').dataset.k); if (!it) return;
+    setOvr(it, { fit: s.value || undefined }); paintItem(it); paintCounts();
+  });
+  $('gridBox').addEventListener('click', function (e) {
+    var el = e.target.closest('.it'); if (!el) return;
+    var it = byKey(el.dataset.k); if (!it) return;
+    if (e.target.closest('[data-ex]')) { setOvr(it, { excl: !(OVR[it.key] || {}).excl }); paintItem(it); paintCounts(); toast(OVR[it.key] && OVR[it.key].excl ? '« ' + it.name + ' » exclue : son fond sera retiré à la prochaine mise à jour' : '« ' + it.name + ' » remise dans la liste'); return; }
+    if (e.target.closest('[data-v]')) openViewer(it);
+  });
+  function paintCounts() { var y = window.scrollY; paint(); window.scrollTo(0, y); }
+  function setOvr(it, ch) {
+    LAST = null;
+    var o = Object.assign({}, OVR[it.key] || {}, ch);
+    Object.keys(o).forEach(function (k) { if (o[k] === undefined || o[k] === false || o[k] === '') delete o[k]; });
+    if (Object.keys(o).length) OVR[it.key] = o; else delete OVR[it.key];
+    saveOvr();
+  }
+
+  /* ---------------- Vignettes (à l'écran seulement) ---------------- */
+  var THUMB = new Map(), IO = null;
+  function observe() {
+    if (!IO) IO = new IntersectionObserver(function (es) {
+      es.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        IO.unobserve(en.target);
+        var k = en.target.closest('.it').dataset.k, it = byKey(k);
+        if (!it || THUMB.has(k)) return;
+        THUMB.set(k, null);
+        it.fh.getFile().then(function (f) { return UIENG.call({ cmd: 'thumb', file: f, size: 240 }); })
+          .then(function (r) { var u = URL.createObjectURL(r.thumb); THUMB.set(k, u); document.querySelectorAll('.it[data-k="' + CSS.escape(k) + '"] .th').forEach(function (t) { t.style.backgroundImage = "url('" + u + "')"; t.firstChild && t.firstChild.nodeType === 3 && t.firstChild.remove(); }); })
+          .catch(function () { THUMB.set(k, ''); });
+      });
+    }, { rootMargin: '300px' });
+    document.querySelectorAll('.it .th').forEach(function (t) { var k = t.closest('.it').dataset.k; if (!THUMB.has(k)) IO.observe(t); });
+  }
+
+  /* ---------------- Aperçu avant / après ---------------- */
+  var VIT = null, VSEQ = 0, VURL = [];
+  function visible() { return ITEMS.filter(function (it) { return FILTER === 'all' || (FILTER === 'todo' ? it.st === 'new' || it.st === 'changed' : it.st === FILTER); }); }
+  async function openViewer(it) {
+    VIT = it; $('viewer').hidden = false; document.body.style.overflow = 'hidden';
+    var o = OVR[it.key] || {};
+    $('vName').textContent = it.src.handle.name + ' › ' + it.rel;
+    $('vFit').innerHTML = '<button data-v=""' + (!o.fit ? ' class="on"' : '') + '>Général</button>' + Object.keys(FITN).map(function (k) { return '<button data-v="' + k + '"' + (o.fit === k ? ' class="on"' : '') + '>' + FITN[k] + '</button>'; }).join('');
+    $('vExcl').innerHTML = icon(o.excl ? 'eye' : 'eyeoff') + (o.excl ? 'Remettre cette image' : 'Exclure cette image');
+    $('vAfterCap').textContent = 'Après · écran ' + S.w + '×' + S.h;
+    $('vBefore').innerHTML = $('vAfter').innerHTML = '<div class="spin"></div>'; $('vMeta').textContent = 'Calcul de l\'aperçu…';
+    var my = ++VSEQ;
+    try {
+      var f = await it.fh.getFile();
+      var r = await UIENG.call({ cmd: 'process', file: f, opt: opts(it, { out: false, preview: true }) });
+      if (my !== VSEQ) return;
+      VURL.forEach(URL.revokeObjectURL); VURL = [URL.createObjectURL(r.before), URL.createObjectURL(r.after)];
+      $('vBefore').innerHTML = '<img alt="Image d\'origine, zone gardée encadrée" src="' + VURL[0] + '">';
+      $('vAfter').innerHTML = '<img alt="Fond d\'écran obtenu" src="' + VURL[1] + '">';
+      var k = r.keep;
+      $('vMeta').innerHTML = '<b>' + esc(it.name) + '</b> · ' + r.ow + '×' + r.oh + (r.ss > 1 ? ' (lue au 1/' + r.ss + ')' : '') + ' → zone gardée ' + (k.r - k.l) + '×' + (k.b - k.t) + ' · ' + esc(r.info) + ' · <span style="color:var(--tx3)">' + esc(FITN[effFit(it)]) + '</span>';
+    } catch (e) {
+      if (my !== VSEQ) return;
+      $('vBefore').innerHTML = $('vAfter').innerHTML = '';
+      $('vMeta').textContent = (e && e.message) || String(e);
+    }
+  }
+  function closeViewer() { $('viewer').hidden = true; document.body.style.overflow = ''; VSEQ++; VIT = null; }
+  function step(d) { var L = visible(), i = L.indexOf(VIT); if (i < 0) return; var n = L[(i + d + L.length) % L.length]; if (n) openViewer(n); }
+  $('vClose').onclick = closeViewer;
+  $('vPrev').onclick = function () { step(-1); };
+  $('vNext').onclick = function () { step(1); };
+  $('vFit').onclick = function (e) { var b = e.target.closest('button'); if (!b || !VIT) return; setOvr(VIT, { fit: b.dataset.v || undefined }); paintItem(VIT); openViewer(VIT); };
+  $('vExcl').onclick = function () { if (!VIT) return; setOvr(VIT, { excl: !(OVR[VIT.key] || {}).excl }); paintItem(VIT); openViewer(VIT); };
+  document.addEventListener('keydown', function (e) {
+    if ($('viewer').hidden) return;
+    if (e.key === 'Escape') { e.preventDefault(); closeViewer(); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
+  }, true);
+
+  /* ---------------- Réglages : interface ---------------- */
+  function renderSettings() {
+    document.querySelectorAll('input[data-k]').forEach(function (i) { var k = i.dataset.k; if (i.type === 'checkbox') i.checked = !!S[k]; else i.value = S[k]; });
+    document.querySelectorAll('.seg[data-k="fit"] button').forEach(function (b) { b.classList.toggle('on', S.fit === b.dataset.v); });
+    $('tolV').textContent = S.tol; $('trimV').textContent = S.trim + ' %'; $('qV').textContent = S.q;
+    $('tolBlock').style.opacity = S.borders || S.fit === 'auto' ? 1 : .45;
+    $('fitHint').textContent = FIT[S.fit] || '';
+    var P = [['screen', 'Cet écran', SCREEN], ['fhd', '1920×1080', [1920, 1080]], ['qhd', '2560×1440', [2560, 1440]], ['uhd', '3840×2160', [3840, 2160]]];
+    $('presets').innerHTML = P.map(function (p) { return '<button data-w="' + p[2][0] + '" data-h="' + p[2][1] + '" class="' + (S.w === p[2][0] && S.h === p[2][1] ? 'on' : '') + '">' + p[1] + '</button>'; }).join('');
+    $('rw').value = S.w; $('rh').value = S.h;
+    $('resHint').textContent = 'Cet écran : ' + SCREEN[0] + '×' + SCREEN[1] + ' pixels réels (' + screen.width + '×' + screen.height + ' × zoom Windows ' + Math.round(dpr * 100) + ' %). Plusieurs écrans : prenez le plus grand.';
+  }
+  var setT;
+  function changed(reprev) { LAST = null; saveS(); renderSettings(); clearTimeout(setT); setT = setTimeout(function () { if (!RUN) paint(); if (reprev && VIT) openViewer(VIT); }, 250); }
+  document.querySelectorAll('input[data-k]').forEach(function (i) {
+    i.addEventListener(i.type === 'range' ? 'input' : 'change', function () {
+      var k = i.dataset.k; S[k] = i.type === 'checkbox' ? i.checked : +i.value;
+      changed(k !== 'q');
+      if (k === 'sub') refresh();
+    });
+  });
+  document.querySelector('.seg[data-k="fit"]').onclick = function (e) { var b = e.target.closest('button'); if (!b) return; S.fit = b.dataset.v; changed(true); };
+  $('presets').onclick = function (e) { var b = e.target.closest('button'); if (!b) return; S.w = +b.dataset.w; S.h = +b.dataset.h; changed(true); };
+  ['rw', 'rh'].forEach(function (id) {
+    $(id).addEventListener('change', function () {
+      var v = Math.round(+$(id).value);
+      if (!(v >= 240 && v <= 8192)) { toast('Entre 240 et 8192 pixels', true); renderSettings(); return; }
+      S[id === 'rw' ? 'w' : 'h'] = v; changed(true);
+    });
+  });
+
+  /* ---------------- Guide Windows ---------------- */
+  function guide() {
+    var where = OUT ? '« ' + esc(OUT.handle.name) + ' »' + (OUT.parent ? ' (dans « ' + esc(OUT.parent) + ' »)' : '') : '« ' + OUTNAME + ' »';
+    var html = '<div class="guide"><p>Une page web ne peut pas changer le fond d\'écran de Windows : c\'est Windows qui fait défiler le dossier ' + where + ' préparé par Toile. À régler une seule fois :</p><ol>' +
+      '<li>Ouvrez <span class="path">Paramètres</span> › <span class="path">Personnalisation</span> › <span class="path">Arrière-plan</span> (ou clic droit sur le bureau › <b>Personnaliser</b>).</li>' +
+      '<li>À « Personnaliser votre arrière-plan », choisissez <b>Diaporama</b>.</li>' +
+      '<li>À « Choisir un album photo pour un diaporama », cliquez <b>Parcourir</b>, ouvrez le dossier ' + where + ' et cliquez <b>Choisir ce dossier</b>.</li>' +
+      '<li>« Changer d\'image toutes les » : l\'intervalle voulu (1 minute à 1 jour ; 30 minutes est un bon début).</li>' +
+      '<li>Activez <b>Ordre aléatoire</b> (« Lire les images dans un ordre aléatoire »).</li>' +
+      '<li>« Choisir un ajustement pour l\'image de votre bureau » : <b>Remplir</b>. Les fonds sont déjà à la taille de l\'écran : rien n\'est déformé ni recoupé.</li>' +
+      '<li>Portable : activez « Laisser le diaporama s\'exécuter même sur batterie » si vous le souhaitez.</li></ol>' +
+      '<p style="font-size:13px;color:var(--mpc-tx2)">Écran de verrouillage : <span class="path">Personnalisation</span> › <span class="path">Écran de verrouillage</span> › <b>Diaporama</b> › Ajouter un dossier › le même dossier. Ensuite, il suffit de revenir dans Toile et de cliquer « Mettre à jour les fonds » quand vous ajoutez des photos : Windows prend les nouveaux fonds tout seul.</p></div>';
+    if (M && M.dialog) M.dialog({ title: 'Faire défiler les fonds par Windows', html: html, wide: true, buttons: [{ label: 'Compris', value: true, primary: true }] });
+    else alert(html.replace(/<[^>]+>/g, ''));
+  }
+  $('bGuide').onclick = guide;
+
+  /* ---------------- Démarrage ---------------- */
+  (async function boot() {
+    renderSettings();
+    if (!window.showDirectoryPicker || typeof OffscreenCanvas === 'undefined') {
+      $('noFs').hidden = false;
+      ['bAddSrc', 'bMkOut', 'bPickOut', 'bRun'].forEach(function (i) { $(i).disabled = true; });
+      paint(); return;
+    }
+    var src = await DB.get('sources'), out = await DB.get('sortie');
+    OVR = (await DB.get('images')) || {};
+    SOURCES = (src || []).filter(function (s) { return s && s.handle; }).map(function (s) { return { id: s.id, handle: s.handle, ok: false }; });
+    OUT = out && out.handle ? { handle: out.handle, parent: out.parent || '', ok: false } : null;
+    await ensure(false);
+    paint();
+    if (SOURCES.some(function (s) { return s.ok; })) refresh();
+    if (M) M.keys({ 'mod+u': function () { run(); }, 'f5': function () { if (!RUN) refresh(); } });
+  })();
+})();
+</script>
+</body>
+</html>
