@@ -33,7 +33,9 @@ pc/
     ecran-pc.html        page d'Écran sur PC (propre au PC) : vidéos du PC et liens vidéo
     apps/fenetres.css    commun : feuilles du bas en fenêtres centrées (champ « styles » de pc-apps.json)
     apps/souris.css      commun : curseurs, survol, barres de défilement
-    vendor/              bibliothèques (pdf.js, pdf-lib, jszip, tesseract, leaflet, jspdf, xlsx, hls.js) + LICENSES/ + VENDOR.json
+    office/              pièces communes des applis bureautiques (Présentation, puis Texte et Tableur), voir « Applis bureautiques »
+    vendor/              bibliothèques (pdf.js, pdf-lib, jszip, tesseract, leaflet, jspdf, xlsx, hls.js, PptxGenJS, KaTeX,
+                         icônes Lucide) + LICENSES/ + VENDOR.json
   hls-build.mjs          construit vendor/hls.min.js depuis les sources taguées de hls.js (si npm est injoignable)
   relais/worker.js       relais réseau personnel FACULTATIF (Cloudflare Worker), voir « Relais réseau »
 ```
@@ -55,6 +57,7 @@ pc/
 | Toile (`toile`, page propre au PC) | fonds recadrés à la taille de l'écran (mêmes traitements que l'APK) dans un dossier « Fonds Toile », que le diaporama de Windows fait défiler ; mise à jour incrémentale ; onglet « Images en ligne » (thèmes, sources libres, crédits) | changer le fond d'écran lui-même (impossible pour une page web), tuile, changement en arrière-plan |
 | Galerie, Scan, Dictaphone | dossier photos du PC (corbeille, EXIF, carte), scan d'images/PDF/webcam, micro + dictée | photos du téléphone, partage vers d'autres applis |
 | Coffre (`coffre`) | identique (PBKDF2 600 000 + AES-GCM 256, rien ne sort) | empreinte (mot de passe maître seulement) |
+| Présentation (`presentation`) | tout : édition, thèmes, masque, animations, diaporama et mode présentateur (2e fenêtre), .magpres, import/export .pptx, PDF, images, « Ouvrir avec » .pptx/.magpres, enregistrement sur place (File System Access) | — |
 | Petits Pas (`petitspas`), Carnet de chasse (`chasse`) | consultation, fiches, statistiques, exports | Petits Pas : sources officielles sans relais ; chasse : position GPS précise |
 
 **Écartées** (n'ont de sens que sur le téléphone) : Socle (accueil Android), Aube (réveil), Urgence, Mesure
@@ -125,6 +128,28 @@ ne déclenche pas « pages build and deployment ».
 - **Stockage** : l'origine est commune à toutes les applis PC (`gilbertmamadou-design.github.io`) :
   préfixer les clés `localStorage` et les bases IndexedDB par l'appli. Échanges entre applis : store `inbox`
   de la base `mag-pc` (voir `MAGLecteur.sendTo` → `MAGPdf.pending`).
+
+## Applis bureautiques (shared/office/)
+
+Présentation est la première des applis bureautiques (Texte et Tableur suivront). Ses pièces communes sont dans
+`pc/shared/office/` et servent **telles quelles** au PC et à l'APK (une seule source) :
+
+| Fichier | Rôle |
+|---|---|
+| `office-core.js` | `window.Office` : utilitaires, icônes Lucide (avec alias), dialogues, menus (feuille du bas sur téléphone), sélecteur de couleurs (couleurs du thème), raccourcis, polices |
+| `office-ribbon.js` | ruban à onglets (boutons, menus, listes, galeries, onglets contextuels, recherche de commande, mode compact, repli) |
+| `office-richtext.js` | texte riche (contentEditable) : nettoyage du collé, styles par plage, listes, reproduire la mise en forme, rechercher/remplacer |
+| `office-files.js` | ouvrir, enregistrer sur place, enregistrer sous, exporter, partager, « Ouvrir avec », récents, enregistrement automatique et récupération (IndexedDB) ; trois moteurs : `MAGPC` (PC), `MAGOffice` (APK, `applis/scripts/OfficeBridge.java`), navigateur |
+| `office-themes.js` | 16 thèmes (couleurs, polices), rôles de couleur, contrôle de contraste WCAG |
+| `office-pdf.js` | PDF avec jsPDF : pages, documents à distribuer (1 à 9 par page), pages de commentaires, texte |
+| `office-raster.js` | rendu d'un morceau de page en image (SVG `foreignObject` en `data:`), pour les exports et vignettes |
+| `office-history.js` | annuler / rétablir illimité (instantanés à partage de structure) |
+| `office.css` | jetons clair/sombre, dialogues, menus, ruban, tailles tactiles |
+
+Une appli bureautique a `"office": true` dans `pc-apps.json` : `build-pc.py` réécrit `"office/…"` en
+`"../shared/office/…"` et précache tout le dossier. Côté APK, `applis/www-<appli>/office-deps.txt` liste ce qu'il
+faut copier (pièces communes, bibliothèques, licences) : `applis/scripts/office-deps.sh`, lancé par `print-patch.sh`.
+Les fichiers propres à l'appli (`pres-*.js`, `pres.css`) sont des `copies` (même fichier que dans l'APK).
 
 ## API de `window.MAGPC` (shared/pc-shim.js)
 
@@ -316,5 +341,9 @@ de YouTube), serveur à requêtes partielles (Range) pour le lien direct, flux H
 pdf.js 3.11.174 (Apache-2.0) · pdf-lib 1.17.1 (MIT) · JSZip 3.10.1 (MIT ou GPL-3.0) ·
 tesseract.js-core 7.0.0 (Apache-2.0) · données françaises tessdata_fast 4.1.0 (Apache-2.0) ·
 Leaflet 1.9.4 (BSD-2-Clause) · jsPDF 2.5.1 (MIT) · SheetJS xlsx 0.18.5 (Apache-2.0) — mêmes versions que dans les APK.
+PptxGenJS 4.0.1 (MIT) : `dist/pptxgen.min.js` du tag v4.0.1 de github.com/gitbrent/PptxGenJS (identique au paquet npm,
+ligne `sourceMappingURL` retirée) · KaTeX 0.16.47 (MIT) : `dist/` du paquet (polices woff2 seulement) · Lucide 1.64.0
+(ISC) : `vendor/lucide-icons.js` généré par `shared/office/tools/lucide-build.py` depuis le dossier `icons/` du tag 1.64.0
+de github.com/lucide-icons/lucide (1999 icônes) — dans l'APK Présentation aussi, mêmes fichiers.
 hls.js 1.6.19 (Apache-2.0, PC seulement, avec eventemitter3 MIT, url-toolkit et common-media-library Apache-2.0) : construit
 depuis le tag v1.6.19 par `pc/hls-build.mjs` (registre npm injoignable) ; `--vendor` le remplace par le `dist/hls.min.js` npm.

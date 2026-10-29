@@ -1,0 +1,123 @@
+/* Service worker de « Présentation » (Suite MAG sur PC) : fichier GÉNÉRÉ par pc/build-pc.py depuis
+   pc/shared/sw-template.js — ne pas le modifier à la main.
+   - installation : tous les fichiers de l'appli et ses bibliothèques sont mis en cache (hors ligne) ;
+   - VERSION change dès qu'un fichier précaché change : le navigateur installe la nouvelle version,
+     la page affiche « Nouvelle version disponible » et l'active sur demande (message SKIP_WAITING) ;
+   - réponses : cache d'abord pour les fichiers précachés, réseau puis cache pour le reste (polices…). */
+'use strict';
+var VERSION = '627a4ce30c63';
+var APP = 'presentation';
+var CACHE = 'mag-pc-' + APP + '-' + VERSION, RUNTIME = 'mag-pc-' + APP + '-rt';
+var PRECACHE = [
+  "./",
+  "index.html",
+  "manifest.webmanifest",
+  "icon-192.png",
+  "icon-512.png",
+  "icon-maskable-512.png",
+  "../shared/pc-shim.js",
+  "../shared/pc.css",
+  "../shared/vendor/jszip.min.js",
+  "../shared/vendor/jspdf.umd.min.js",
+  "../shared/vendor/pptxgen.min.js",
+  "../shared/vendor/lucide-icons.js",
+  "../shared/vendor/katex/katex.min.js",
+  "../shared/vendor/katex/katex.min.css",
+  "../shared/vendor/katex/fonts/KaTeX_AMS-Regular.woff2",
+  "../shared/vendor/katex/fonts/KaTeX_Caligraphic-Bold.woff2",
+  "../shared/vendor/katex/fonts/KaTeX_Caligraphic-Regular.woff2",
+  "../shared/vendor/katex/fonts/KaTeX_Fraktur-Bold.woff2",
+  "../shared/vendor/katex/fonts/KaTeX_Fraktur-Regular.woff2",
+  "../shared/vendor/katex/fonts/KaTeX_Main-Bold.woff2",
+  "../shared/vendor/katex/fonts/KaTeX_Main-BoldItalic.woff2",
+  "../shared/vendor/katex/fonts/KaTeX_Main-Italic.woff2",
+  "../shared/vendor/katex/fonts/KaTeX_Main-Regular.woff2",
+  "../shared/vendor/katex/fonts/KaTeX_Math-BoldItalic.woff2",
+  "../shared/vendor/katex/fonts/KaTeX_Math-Italic.woff2",
+  "../shared/vendor/katex/fonts/KaTeX_SansSerif-Bold.woff2",
+  "../shared/vendor/katex/fonts/KaTeX_SansSerif-Italic.woff2",
+  "../shared/vendor/katex/fonts/KaTeX_SansSerif-Regular.woff2",
+  "../shared/vendor/katex/fonts/KaTeX_Script-Regular.woff2",
+  "../shared/vendor/katex/fonts/KaTeX_Size1-Regular.woff2",
+  "../shared/vendor/katex/fonts/KaTeX_Size2-Regular.woff2",
+  "../shared/vendor/katex/fonts/KaTeX_Size3-Regular.woff2",
+  "../shared/vendor/katex/fonts/KaTeX_Size4-Regular.woff2",
+  "../shared/vendor/katex/fonts/KaTeX_Typewriter-Regular.woff2",
+  "../shared/office/office-core.js",
+  "../shared/office/office-files.js",
+  "../shared/office/office-history.js",
+  "../shared/office/office-pdf.js",
+  "../shared/office/office-raster.js",
+  "../shared/office/office-ribbon.js",
+  "../shared/office/office-richtext.js",
+  "../shared/office/office-themes.js",
+  "../shared/office/office.css",
+  "pres-actions.js",
+  "pres-app.js",
+  "pres-charts.js",
+  "pres-editor.js",
+  "pres-io.js",
+  "pres-model.js",
+  "pres-pptx.js",
+  "pres-render.js",
+  "pres-shapes.js",
+  "pres-show.js",
+  "pres-templates.js",
+  "pres-ui.js",
+  "pres.css"
+];
+
+self.addEventListener('install', function (e) {
+  e.waitUntil(caches.open(CACHE).then(function (c) {
+    return Promise.all(PRECACHE.map(function (u) {
+      return fetch(new Request(u, { cache: 'reload' })).then(function (r) {
+        if (!r.ok) throw new Error(u + ' : ' + r.status);
+        return c.put(u, r);
+      });
+    }));
+  }).then(function () {
+    // première installation : rien à remplacer, on prend la main tout de suite
+    return self.registration.active ? null : self.skipWaiting();
+  }));
+});
+
+self.addEventListener('activate', function (e) {
+  e.waitUntil(caches.keys().then(function (keys) {
+    return Promise.all(keys.filter(function (k) { return k.indexOf('mag-pc-' + APP + '-') === 0 && k !== CACHE && k !== RUNTIME; }).map(function (k) { return caches.delete(k); }));
+  }).then(function () { return self.clients.claim(); }));
+});
+
+self.addEventListener('message', function (e) {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
+var SCOPE = self.registration.scope;
+function precached(url) {
+  var u = new URL(url); u.hash = ''; u.search = '';            // ?socle=… : même page
+  if (u.href === SCOPE || u.href === SCOPE + 'index.html') return SCOPE + 'index.html';
+  return PRECACHE_ABS[u.origin + u.pathname] ? u.origin + u.pathname : null;
+}
+var PRECACHE_ABS = {};
+PRECACHE.forEach(function (p) { PRECACHE_ABS[new URL(p, self.location.href).href] = 1; });
+
+self.addEventListener('fetch', function (e) {
+  var req = e.request;
+  if (req.method !== 'GET') return;
+  var url = new URL(req.url);
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') return;
+  var key = url.origin === self.location.origin ? precached(req.url) : null;
+  if (key || req.mode === 'navigate') {
+    var k = key || SCOPE + 'index.html';
+    e.respondWith(caches.open(CACHE).then(function (c) {
+      return c.match(k).then(function (hit) { return hit || fetch(req); });
+    }).catch(function () { return fetch(req); }));
+    return;
+  }
+  // polices Google, fichiers du même site non précachés : réseau, sinon copie gardée
+  if (url.origin === self.location.origin || /^https:\/\/fonts\.(googleapis|gstatic)\.com$/.test(url.origin)) {
+    e.respondWith(fetch(req).then(function (r) {
+      if (r && (r.ok || r.type === 'opaque')) { var cp = r.clone(); caches.open(RUNTIME).then(function (c) { c.put(req, cp); }); }
+      return r;
+    }).catch(function () { return caches.match(req).then(function (hit) { return hit || Response.error(); }); }));
+  }
+});

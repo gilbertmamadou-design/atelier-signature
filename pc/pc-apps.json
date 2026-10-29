@@ -9,6 +9,11 @@
     "tesseract/tesseract-core-simd-lstm.js": { "package": "tesseract.js-core", "version": "7.0.0", "from": "tesseract-core-simd-lstm.js", "license": "Apache-2.0", "licenseFile": "LICENSES/tesseract.js-core-Apache-2.0.txt" },
     "tesseract/tesseract-core-simd-lstm.wasm": { "package": "tesseract.js-core", "version": "7.0.0", "from": "tesseract-core-simd-lstm.wasm", "license": "Apache-2.0", "licenseFile": "LICENSES/tesseract.js-core-Apache-2.0.txt" },
     "tesseract/fra.traineddata": { "package": "tessdata_fast (github.com/tesseract-ocr/tessdata_fast, commit 8741641)", "version": "4.1.0", "from": null, "license": "Apache-2.0", "licenseFile": "LICENSES/tessdata_fast-Apache-2.0.txt" },
+    "pptxgen.min.js": { "package": "pptxgenjs", "version": "4.0.1", "from": "dist/pptxgen.min.js", "license": "MIT", "licenseFile": "LICENSES/pptxgenjs-MIT.txt", "note": "Copie prise au tag v4.0.1 de github.com/gitbrent/PptxGenJS (dist/pptxgen.min.js, identique au paquet npm), ligne sourceMappingURL retirée." },
+    "lucide-icons.js": { "package": "lucide (github.com/lucide-icons/lucide, tag 1.64.0, commit be09619)", "version": "1.64.0", "from": null, "license": "ISC", "licenseFile": "LICENSES/lucide-ISC.txt", "note": "Généré par pc/shared/office/tools/lucide-build.py depuis le dossier icons/ du dépôt (1999 icônes, tracés SVG seulement)." },
+    "katex/katex.min.js": { "package": "katex", "version": "0.16.47", "from": "dist/katex.min.js", "license": "MIT", "licenseFile": "LICENSES/katex-MIT.txt" },
+    "katex/katex.min.css": { "package": "katex", "version": "0.16.47", "from": null, "license": "MIT", "licenseFile": "LICENSES/katex-MIT.txt", "note": "dist/katex.min.css avec les seules polices woff2 dans @font-face (woff et ttf retirés)." },
+    "katex/fonts/": { "package": "katex", "version": "0.16.47", "from": null, "license": "MIT", "licenseFile": "LICENSES/katex-MIT.txt", "note": "dist/fonts/*.woff2 du paquet katex." },
     "leaflet.js": { "package": "leaflet", "version": "1.9.4", "from": "dist/leaflet.js", "license": "BSD-2-Clause", "licenseFile": "LICENSES/leaflet-BSD-2-Clause.txt" },
     "leaflet.css": { "package": "leaflet", "version": "1.9.4", "from": "dist/leaflet.css", "license": "BSD-2-Clause", "licenseFile": "LICENSES/leaflet-BSD-2-Clause.txt" },
     "jspdf.umd.min.js": { "package": "jspdf", "version": "2.5.1", "from": "dist/jspdf.umd.min.js", "license": "MIT", "licenseFile": "LICENSES/jspdf-MIT.txt" },
@@ -506,6 +511,23 @@
       ],
       "data": { "ls": ["chasse-"], "idb": ["chasse-photos"], "note": "☰ › Exporter et sauvegarder : même fichier que sur le téléphone (« Restaurer une sauvegarde » pour l'importer)." },
       "styles": ["souris"]
+    },
+    {
+      "id": "presentation",
+      "android": "presentation",
+      "office": true,
+      "name": "Présentation",
+      "short_name": "Présentation",
+      "description": "Diaporamas : thèmes, animations, mode présentateur, .pptx et PDF",
+      "theme_color": "#f6f7f9",
+      "background_color": "#f6f7f9",
+      "vendor": ["jszip.min.js", "jspdf.umd.min.js", "pptxgen.min.js", "lucide-icons.js", "katex/katex.min.js", "katex/katex.min.css", "katex/fonts/"],
+      "copies": { "pres.css": "applis/www-presentation/pres.css", "pres-shapes.js": "applis/www-presentation/pres-shapes.js", "pres-model.js": "applis/www-presentation/pres-model.js", "pres-charts.js": "applis/www-presentation/pres-charts.js", "pres-render.js": "applis/www-presentation/pres-render.js", "pres-editor.js": "applis/www-presentation/pres-editor.js", "pres-actions.js": "applis/www-presentation/pres-actions.js", "pres-show.js": "applis/www-presentation/pres-show.js", "pres-io.js": "applis/www-presentation/pres-io.js", "pres-pptx.js": "applis/www-presentation/pres-pptx.js", "pres-templates.js": "applis/www-presentation/pres-templates.js", "pres-ui.js": "applis/www-presentation/pres-ui.js", "pres-app.js": "applis/www-presentation/pres-app.js" },
+      "file_handlers": [
+        { "accept": { "application/x-magpres": [".magpres"] } },
+        { "accept": { "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx"] } }
+      ],
+      "data": { "ls": ["presentation:", "office:"], "idb": ["office-presentation"], "note": "Les fichiers .magpres et .pptx restent dans tes dossiers : seuls les réglages, les documents récents et l'enregistrement automatique sont dans le navigateur." }
     }
   ]
 }

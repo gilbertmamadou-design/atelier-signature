@@ -7,6 +7,7 @@
 
 Pour chaque appli de pc/pc-apps.json :
   applis/www-<web>/index.html  →  pc/<id>/index.html   (copie + injection du shim PC + adaptations de libellés)
+                                  (« office » : chemins office/ → ../shared/office/, pièces communes précachées)
                                   pc/<id>/manifest.webmanifest, icônes 192/512/maskable, sw.js
 Rien n'est écrit dans applis/ : les APK Android ne changent pas.
 Voir pc/README.md pour les conventions (ponts simulés, CSS, raccourcis…).
@@ -68,12 +69,35 @@ def vendor(conf):
     meta = {}
     for dest, v in sorted(conf['vendor'].items()):
         p = os.path.join(VENDOR, dest)
+        if dest.endswith('/'):              # dossier entier (ex. katex/fonts/) : une ligne par fichier
+            if not os.path.isdir(p):
+                WARN.append('bibliothèque manquante : pc/shared/vendor/' + dest)
+                continue
+            for f in vendor_dir(dest):
+                b = read(os.path.join(VENDOR, f), 'rb')
+                meta[f] = dict(v, size=len(b), sha256=sha(b))
+            continue
         if not os.path.exists(p):
             WARN.append('bibliothèque manquante : pc/shared/vendor/' + dest)
             continue
         b = read(p, 'rb')
         meta[dest] = dict(v, size=len(b), sha256=sha(b))
     write(os.path.join(VENDOR, 'VENDOR.json'), json.dumps(meta, ensure_ascii=False, indent=2) + '\n')
+
+
+def vendor_dir(dest):
+    """Fichiers d'un dossier de pc/shared/vendor (chemins relatifs à vendor/, triés)."""
+    out = []
+    for root, _, fs in os.walk(os.path.join(VENDOR, dest)):
+        for f in fs:
+            out.append(os.path.relpath(os.path.join(root, f), VENDOR).replace(os.sep, '/'))
+    return sorted(out)
+
+
+def office_files():
+    """Pièces communes des applis bureautiques (pc/shared/office, sans les outils de fabrication)."""
+    d = os.path.join(SHARED, 'office')
+    return sorted(f for f in os.listdir(d) if os.path.isfile(os.path.join(d, f)))
 
 
 # ---------------------------------------------------------------- icônes
@@ -131,6 +155,10 @@ def page(app, conf, apps_android):
             continue
         for q in ('"', "'"):
             out = out.replace(q + base + q, q + '../shared/vendor/' + base + q)
+    # 2 bis. applis bureautiques : pièces communes « office/x.js » de l'APK → ../shared/office/x.js (même source)
+    if app.get('office'):
+        for q in ('"', "'"):
+            out = out.replace(q + 'office/', q + '../shared/office/')
     # 3. injection dans <head> : manifeste, icônes, styles et scripts PC (avant tout le code de la page)
     pcconf = {
         'app': app['id'], 'name': app['name'], 'vendor': '../shared/vendor/', 'ocrWorker': 'ocr-worker.js', 'sw': 'sw.js',
@@ -253,7 +281,10 @@ def main():
         for ext in ('.js', '.css'):
             if os.path.exists(os.path.join(SHARED, 'apps', adapter + ext)):
                 files.append('../shared/apps/' + adapter + ext)
-        files += ['../shared/vendor/' + v for v in app.get('vendor', [])]
+        for v in app.get('vendor', []):
+            files += ['../shared/vendor/' + f for f in (vendor_dir(v) if v.endswith('/') else [v])]
+        if app.get('office'):
+            files += ['../shared/office/' + f for f in office_files()]
         files += app.get('workers', [])
         files += sorted(app.get('copies', {}))
         files += app.get('extra', [])

@@ -27,6 +27,225 @@
     "size": 97630,
     "sha256": "acc7e41455a80765b5fd9c7ee1b8078a6d160bbbca455aeae854de65c947d59e"
   },
+  "katex/fonts/KaTeX_AMS-Regular.woff2": {
+    "package": "katex",
+    "version": "0.16.47",
+    "from": null,
+    "license": "MIT",
+    "licenseFile": "LICENSES/katex-MIT.txt",
+    "note": "dist/fonts/*.woff2 du paquet katex.",
+    "size": 28076,
+    "sha256": "0cdd387c9590a1a9f9794560022dbb59654a7d86f187aa0c81495ad42d3a7308"
+  },
+  "katex/fonts/KaTeX_Caligraphic-Bold.woff2": {
+    "package": "katex",
+    "version": "0.16.47",
+    "from": null,
+    "license": "MIT",
+    "licenseFile": "LICENSES/katex-MIT.txt",
+    "note": "dist/fonts/*.woff2 du paquet katex.",
+    "size": 6912,
+    "sha256": "de7701e42cf1f4cf0b766c03fb27977207eee2f4fd5d76fa82188406da43ea4c"
+  },
+  "katex/fonts/KaTeX_Caligraphic-Regular.woff2": {
+    "package": "katex",
+    "version": "0.16.47",
+    "from": null,
+    "license": "MIT",
+    "licenseFile": "LICENSES/katex-MIT.txt",
+    "note": "dist/fonts/*.woff2 du paquet katex.",
+    "size": 6908,
+    "sha256": "5d53e70ad607c2352162dec9e0923fb54ecdafaccbf604cd8dcf7d00facb989b"
+  },
+  "katex/fonts/KaTeX_Fraktur-Bold.woff2": {
+    "package": "katex",
+    "version": "0.16.47",
+    "from": null,
+    "license": "MIT",
+    "licenseFile": "LICENSES/katex-MIT.txt",
+    "note": "dist/fonts/*.woff2 du paquet katex.",
+    "size": 11348,
+    "sha256": "74444efd593c005e3f4573b44524704c0af0a937fe911cca9e94068d0d140d3f"
+  },
+  "katex/fonts/KaTeX_Fraktur-Regular.woff2": {
+    "package": "katex",
+    "version": "0.16.47",
+    "from": null,
+    "license": "MIT",
+    "licenseFile": "LICENSES/katex-MIT.txt",
+    "note": "dist/fonts/*.woff2 du paquet katex.",
+    "size": 11316,
+    "sha256": "51814d270d06ff0255dba0799994fa4d8c84d11f09951d47595f4abb1f3602dc"
+  },
+  "katex/fonts/KaTeX_Main-Bold.woff2": {
+    "package": "katex",
+    "version": "0.16.47",
+    "from": null,
+    "license": "MIT",
+    "licenseFile": "LICENSES/katex-MIT.txt",
+    "note": "dist/fonts/*.woff2 du paquet katex.",
+    "size": 25324,
+    "sha256": "0f60d1b897938ec918c8ce073092411baf9438f6739465693ff18b0f9d20b021"
+  },
+  "katex/fonts/KaTeX_Main-BoldItalic.woff2": {
+    "package": "katex",
+    "version": "0.16.47",
+    "from": null,
+    "license": "MIT",
+    "licenseFile": "LICENSES/katex-MIT.txt",
+    "note": "dist/fonts/*.woff2 du paquet katex.",
+    "size": 16780,
+    "sha256": "99cd42a3c072d918f2f44984a807cf7aa16e13545fd0875fc07c6c65f99e715b"
+  },
+  "katex/fonts/KaTeX_Main-Italic.woff2": {
+    "package": "katex",
+    "version": "0.16.47",
+    "from": null,
+    "license": "MIT",
+    "licenseFile": "LICENSES/katex-MIT.txt",
+    "note": "dist/fonts/*.woff2 du paquet katex.",
+    "size": 16988,
+    "sha256": "97479ca6cce906abc961ecac96faa5f9ca2e61b8e7670d475826bcdee9a7c267"
+  },
+  "katex/fonts/KaTeX_Main-Regular.woff2": {
+    "package": "katex",
+    "version": "0.16.47",
+    "from": null,
+    "license": "MIT",
+    "licenseFile": "LICENSES/katex-MIT.txt",
+    "note": "dist/fonts/*.woff2 du paquet katex.",
+    "size": 26272,
+    "sha256": "c2342cd8b869e01752a9321dc17213fc40d4d04c79688c1d43f2cf316abd7866"
+  },
+  "katex/fonts/KaTeX_Math-BoldItalic.woff2": {
+    "package": "katex",
+    "version": "0.16.47",
+    "from": null,
+    "license": "MIT",
+    "licenseFile": "LICENSES/katex-MIT.txt",
+    "note": "dist/fonts/*.woff2 du paquet katex.",
+    "size": 16400,
+    "sha256": "dc47344dbb6cb5b655c8460d561f4df5f501b90c804ad3c6cec65fe322351ab1"
+  },
+  "katex/fonts/KaTeX_Math-Italic.woff2": {
+    "package": "katex",
+    "version": "0.16.47",
+    "from": null,
+    "license": "MIT",
+    "licenseFile": "LICENSES/katex-MIT.txt",
+    "note": "dist/fonts/*.woff2 du paquet katex.",
+    "size": 16440,
+    "sha256": "7af58c5ec8f132a2ddde9027c6d7814decce4d3b822a11192a42a20e2e973264"
+  },
+  "katex/fonts/KaTeX_SansSerif-Bold.woff2": {
+    "package": "katex",
+    "version": "0.16.47",
+    "from": null,
+    "license": "MIT",
+    "licenseFile": "LICENSES/katex-MIT.txt",
+    "note": "dist/fonts/*.woff2 du paquet katex.",
+    "size": 12216,
+    "sha256": "e99ae51144bf1232efcc1bfe5add36262c6866b0faab24fa75740e1b98577a62"
+  },
+  "katex/fonts/KaTeX_SansSerif-Italic.woff2": {
+    "package": "katex",
+    "version": "0.16.47",
+    "from": null,
+    "license": "MIT",
+    "licenseFile": "LICENSES/katex-MIT.txt",
+    "note": "dist/fonts/*.woff2 du paquet katex.",
+    "size": 12028,
+    "sha256": "00b26ac825e2095056396e0553b8ac26d3f8ad158c3826e28b4c45b385c4714a"
+  },
+  "katex/fonts/KaTeX_SansSerif-Regular.woff2": {
+    "package": "katex",
+    "version": "0.16.47",
+    "from": null,
+    "license": "MIT",
+    "licenseFile": "LICENSES/katex-MIT.txt",
+    "note": "dist/fonts/*.woff2 du paquet katex.",
+    "size": 10344,
+    "sha256": "68e8c73ef42afd3ccec58bf0fba302cce448938e7fc020a5e31f8a952eee1342"
+  },
+  "katex/fonts/KaTeX_Script-Regular.woff2": {
+    "package": "katex",
+    "version": "0.16.47",
+    "from": null,
+    "license": "MIT",
+    "licenseFile": "LICENSES/katex-MIT.txt",
+    "note": "dist/fonts/*.woff2 du paquet katex.",
+    "size": 9644,
+    "sha256": "036d4e95149b69ff9bcc0cd55771efeb25ffa3947293e69acd78d5ac328c684b"
+  },
+  "katex/fonts/KaTeX_Size1-Regular.woff2": {
+    "package": "katex",
+    "version": "0.16.47",
+    "from": null,
+    "license": "MIT",
+    "licenseFile": "LICENSES/katex-MIT.txt",
+    "note": "dist/fonts/*.woff2 du paquet katex.",
+    "size": 5468,
+    "sha256": "6b47c40166b6dbe21a5dfca7718413f2147fd2399be1ba605d8ad39cedf25dfe"
+  },
+  "katex/fonts/KaTeX_Size2-Regular.woff2": {
+    "package": "katex",
+    "version": "0.16.47",
+    "from": null,
+    "license": "MIT",
+    "licenseFile": "LICENSES/katex-MIT.txt",
+    "note": "dist/fonts/*.woff2 du paquet katex.",
+    "size": 5208,
+    "sha256": "d04c54219f9eaec6d4d4fd42dfb28785975a4794d6b2fc71e566b9cd6db842dd"
+  },
+  "katex/fonts/KaTeX_Size3-Regular.woff2": {
+    "package": "katex",
+    "version": "0.16.47",
+    "from": null,
+    "license": "MIT",
+    "licenseFile": "LICENSES/katex-MIT.txt",
+    "note": "dist/fonts/*.woff2 du paquet katex.",
+    "size": 3624,
+    "sha256": "73d591271b1604960cb10bb90fee021670af7297017e0e98480b332d11f51995"
+  },
+  "katex/fonts/KaTeX_Size4-Regular.woff2": {
+    "package": "katex",
+    "version": "0.16.47",
+    "from": null,
+    "license": "MIT",
+    "licenseFile": "LICENSES/katex-MIT.txt",
+    "note": "dist/fonts/*.woff2 du paquet katex.",
+    "size": 4928,
+    "sha256": "a4af7d414440a1c1790825cfb700cf9cf43b0f2c4b04f0ebc523011ad9853ec0"
+  },
+  "katex/fonts/KaTeX_Typewriter-Regular.woff2": {
+    "package": "katex",
+    "version": "0.16.47",
+    "from": null,
+    "license": "MIT",
+    "licenseFile": "LICENSES/katex-MIT.txt",
+    "note": "dist/fonts/*.woff2 du paquet katex.",
+    "size": 13568,
+    "sha256": "71d517d67827787cfabdf186914cc3358eda539e37931941f2b2fd4a21f68c0b"
+  },
+  "katex/katex.min.css": {
+    "package": "katex",
+    "version": "0.16.47",
+    "from": null,
+    "license": "MIT",
+    "licenseFile": "LICENSES/katex-MIT.txt",
+    "note": "dist/katex.min.css avec les seules polices woff2 dans @font-face (woff et ttf retirés).",
+    "size": 21805,
+    "sha256": "8df65ef1fd887e45cc8d626fc0c50108a77958a90b084afacf6696531b8bc8d7"
+  },
+  "katex/katex.min.js": {
+    "package": "katex",
+    "version": "0.16.47",
+    "from": "dist/katex.min.js",
+    "license": "MIT",
+    "licenseFile": "LICENSES/katex-MIT.txt",
+    "size": 272537,
+    "sha256": "a29d2961d3146de5949d78ac7c1a9d93ae54955bad22a6db4fbe836e88e8bf48"
+  },
   "leaflet.css": {
     "package": "leaflet",
     "version": "1.9.4",
@@ -44,6 +263,16 @@
     "licenseFile": "LICENSES/leaflet-BSD-2-Clause.txt",
     "size": 147552,
     "sha256": "db49d009c841f5ca34a888c96511ae936fd9f5533e90d8b2c4d57596f4e5641a"
+  },
+  "lucide-icons.js": {
+    "package": "lucide (github.com/lucide-icons/lucide, tag 1.64.0, commit be09619)",
+    "version": "1.64.0",
+    "from": null,
+    "license": "ISC",
+    "licenseFile": "LICENSES/lucide-ISC.txt",
+    "note": "Généré par pc/shared/office/tools/lucide-build.py depuis le dossier icons/ du dépôt (1999 icônes, tracés SVG seulement).",
+    "size": 617766,
+    "sha256": "8413f468b51f145cb66bc9b6ac70aa3c888a93bcab76f97987993f4ce50ff708"
   },
   "pdf-lib.min.js": {
     "package": "pdf-lib",
@@ -71,6 +300,16 @@
     "licenseFile": "LICENSES/pdfjs-dist-Apache-2.0.txt",
     "size": 1087212,
     "sha256": "feabdf309770ed24bba31a5467836cdc8cf639c705af27d52b585b041bb8527b"
+  },
+  "pptxgen.min.js": {
+    "package": "pptxgenjs",
+    "version": "4.0.1",
+    "from": "dist/pptxgen.min.js",
+    "license": "MIT",
+    "licenseFile": "LICENSES/pptxgenjs-MIT.txt",
+    "note": "Copie prise au tag v4.0.1 de github.com/gitbrent/PptxGenJS (dist/pptxgen.min.js, identique au paquet npm), ligne sourceMappingURL retirée.",
+    "size": 270970,
+    "sha256": "987e3da32f718a6a824893596a92ac2b86464797dc9cebd7a0f05360306071d7"
   },
   "tesseract/fra.traineddata": {
     "package": "tessdata_fast (github.com/tesseract-ocr/tessdata_fast, commit 8741641)",
