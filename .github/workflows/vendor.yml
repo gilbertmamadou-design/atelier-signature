@@ -37,5 +37,5 @@ jobs:
           git add pc/shared/vendor
           if git diff --cached --quiet; then echo "Rien de nouveau"; exit 0; fi
           git commit -m "Bibliothèques : mise à jour de pc/shared/vendor [skip ci]"
-          git pull --rebase
+          git pull --rebase --autostash
           git push
