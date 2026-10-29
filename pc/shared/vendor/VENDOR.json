@@ -1,4 +1,15 @@
 {
+  "exceljs.min.js": {
+    "package": "exceljs",
+    "version": "4.4.0",
+    "from": "dist/exceljs.min.js",
+    "license": "MIT",
+    "licenseFile": "LICENSES/exceljs-MIT.txt",
+    "licenseFrom": "LICENSE",
+    "note": "Lecture et écriture des .xlsx du Tableur (styles, fusions, volets, validation, MFC, notes, noms, tableaux). Mise à jour : changer la version ici et dans pc/package.json, puis Actions › « Mettre à jour les bibliothèques » (ou « npm install » dans pc/ puis python3 pc/build-pc.py --vendor=exceljs.min.js).",
+    "size": 947702,
+    "sha256": "7e49da68588e250dbb8bba190d2caa8ab3787cc0284bda1d8b2f805c4df742c9"
+  },
   "fonts/Caladea-Bold.ttf": {
     "package": "Liberation Fonts 2.1.5, Carlito 1.103, Caladea 1.002 (paquets Debian fonts-liberation2, fonts-crosextra-carlito, fonts-crosextra-caladea)",
     "version": "voir paquets",
