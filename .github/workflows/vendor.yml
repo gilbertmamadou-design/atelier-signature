@@ -1,0 +1,41 @@
+name: Mettre à jour les bibliothèques (pc/shared/vendor)
+
+# Recopie dans pc/shared/vendor/ les bibliothèques npm épinglées dans pc/package.json et pc/pc-apps.json,
+# puis enregistre le résultat sur main. Lancement : Actions › « Mettre à jour les bibliothèques » › Run workflow.
+# « fichiers » : liste séparée par des virgules (ex. exceljs.min.js) ou « toutes ».
+on:
+  workflow_dispatch:
+    inputs:
+      fichiers:
+        description: "Bibliothèques à recopier (ex. exceljs.min.js) ou « toutes »"
+        required: false
+        default: "toutes"
+
+permissions:
+  contents: write
+
+jobs:
+  vendor:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Installer les paquets épinglés
+        working-directory: pc
+        run: npm install --no-audit --no-fund
+      - name: Recopier dans pc/shared/vendor
+        env:
+          FICHIERS: ${{ github.event.inputs.fichiers }}
+        run: |
+          if [ -z "$FICHIERS" ] || [ "$FICHIERS" = "toutes" ]; then python3 pc/build-pc.py --vendor; else python3 pc/build-pc.py "--vendor=$FICHIERS"; fi
+      - name: Enregistrer
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pc/shared/vendor
+          if git diff --cached --quiet; then echo "Rien de nouveau"; exit 0; fi
+          git commit -m "Bibliothèques : mise à jour de pc/shared/vendor [skip ci]"
+          git pull --rebase
+          git push

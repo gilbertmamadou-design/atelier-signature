@@ -3,6 +3,7 @@
 
     python3 pc/build-pc.py                 # régénère pc/<appli>/ et le lanceur pc/index.html
     python3 pc/build-pc.py --vendor        # en plus, recopie les bibliothèques depuis pc/node_modules (après « npm ci » dans pc/)
+    python3 pc/build-pc.py --vendor=exceljs.min.js   # idem pour les seules bibliothèques nommées (séparées par des virgules)
     python3 pc/build-pc.py --check         # vérifie seulement que les fichiers générés sont à jour (code 1 sinon)
 
 Pour chaque appli de pc/pc-apps.json :
@@ -55,17 +56,23 @@ def sha(b):
 # ---------------------------------------------------------------- bibliothèques
 def vendor(conf):
     nm = os.path.join(PC, 'node_modules')
-    if '--vendor' in sys.argv:
+    arg = next((a for a in sys.argv if a == '--vendor' or a.startswith('--vendor=')), None)
+    if arg:
+        only = set(arg.split('=', 1)[1].split(',')) if '=' in arg else None
         if not os.path.isdir(nm):
             sys.exit('pc/node_modules absent : lancer « npm ci » dans pc/ (voir pc/package.json)')
         for dest, v in conf['vendor'].items():
-            if not v.get('from'):
+            if not v.get('from') or (only and dest not in only):
                 continue
             src = os.path.join(nm, v['package'], v['from'])
             if not os.path.exists(src):
                 WARN.append('vendor : %s introuvable' % src)
                 continue
             write(os.path.join(VENDOR, dest), read(src, 'rb'))
+            if v.get('licenseFrom'):          # licence du paquet recopiée telle quelle
+                lic = os.path.join(nm, v['package'], v['licenseFrom'])
+                if os.path.exists(lic):
+                    write(os.path.join(VENDOR, v['licenseFile']), read(lic, 'rb'))
     meta = {}
     for dest, v in sorted(conf['vendor'].items()):
         p = os.path.join(VENDOR, dest)
