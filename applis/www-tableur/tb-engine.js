@@ -935,9 +935,10 @@
      ===================================================================== */
   TB.newWorkbook = function (nSheets) { const wb = new Workbook(); for (let i = 0; i < (nSheets == null ? 1 : nSheets); i++) wb.addSheetRaw('Feuil' + (i + 1)); return wb; };
   /** Remplissage direct (modèles, import, essais) : pas de journal ; recalcul à la fin avec wb.finishLoad() */
-  WP.load = function (sh, r, c, x, sid) {
+  /** text : valeur lue dans un fichier (texte « =A*B » d'une cellule texte : jamais une formule) */
+  WP.load = function (sh, r, c, x, sid, text) {
     sh = this.sheet(sh);
-    if (typeof x === 'string' && x[0] === '=' && x.length > 1) { this.suspend++; addFormula(this, sh, r, c, P.fromUser ? (function (t) { try { return P.write(P.parse(t.slice(1), P.CANON), P.CANON); } catch (e) { return t.slice(1); } })(x) : x.slice(1)); this.suspend--; }
+    if (!text && typeof x === 'string' && x[0] === '=' && x.length > 1) { this.suspend++; addFormula(this, sh, r, c, P.fromUser ? (function (t) { try { return P.write(P.parse(t.slice(1), P.CANON), P.CANON); } catch (e) { return t.slice(1); } })(x) : x.slice(1)); this.suspend--; }
     else setVal(sh, r, c, x);
     if (sid != null) setSty(sh, r, c, sid);
     sh._ext = null;

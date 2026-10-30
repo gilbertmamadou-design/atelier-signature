@@ -464,8 +464,8 @@
                 const f = ODS.fromOds(fx);
                 const mc = +(A_(cel, 'table', 'number-matrix-columns-spanned') || 0), mr = +(A_(cel, 'table', 'number-matrix-rows-spanned') || 0);
                 if (f != null) { wb.loadFormula(sh, rr, col, f, sidEff, mc > 1 || mr > 1 ? { r1: rr, c1: col, r2: rr + Math.max(1, mr) - 1, c2: col + Math.max(1, mc) - 1 } : undefined); if (v !== null && typeof v !== 'string' || (typeof v === 'string' && v)) TB._setVal(sh, rr, col, typeof v === 'string' && /^(#[A-Z/0!?]+|Err:\d+)/.test(v) ? TB.E.VALUE : v); }
-                else { warnings.push('Formule non reprise en ' + sh.name + '!' + TB.addr(rr, col)); wb.load(sh, rr, col, v, sidEff); }
-              } else if (v !== null && v !== '' || sidEff) wb.load(sh, rr, col, v === '' ? null : v, sidEff);
+                else { warnings.push('Formule non reprise en ' + sh.name + '!' + TB.addr(rr, col)); wb.load(sh, rr, col, v, sidEff, true); }
+              } else if (v !== null && v !== '' || sidEff) wb.load(sh, rr, col, v === '' ? null : v, sidEff, true);
               // note
               const ann = Array.from(cel.children).find((x) => x.localName === 'annotation'); if (ann) { const au = ann.getElementsByTagNameNS(NS.dc, 'creator')[0]; sh.notes.set(TB.key(rr, col), { text: Array.from(ann.children).filter((x) => x.localName === 'p').map(textOf).join('\n'), author: au ? au.textContent : '' }); }
               // lien

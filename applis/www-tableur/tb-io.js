@@ -199,7 +199,7 @@
         if (c.s) { const f = c.s.font || {}; if (f.bold) st.b = true; if (f.italic) st.i = true; const fill = c.s.fgColor || (c.s.fill && c.s.fill.fgColor); if (fill && fill.rgb && c.s.patternType === 'solid') st.bg = '#' + String(fill.rgb).slice(-6).toUpperCase(); }
         const sid = Object.keys(st).length ? wb.styles.add(st) : undefined;
         if (c.f) { let f = String(c.f); try { f = TB.Formula.write(TB.Formula.parse(f)); wb.loadFormula(sh, a.r, a.c, f, sid); if (v !== null && v !== undefined) TB._setVal(sh, a.r, a.c, v); } catch (e) { wb.load(sh, a.r, a.c, v, sid); } }
-        else wb.load(sh, a.r, a.c, v, sid);
+        else wb.load(sh, a.r, a.c, v, sid, true);
       });
       (ws['!merges'] || []).forEach((m) => sh.merges.push({ r1: m.s.r, c1: m.s.c, r2: m.e.r, c2: m.e.c }));
       (ws['!cols'] || []).forEach((col, i) => { if (col && col.wpx) sh.colW[i] = Math.round(col.wpx); else if (col && col.wch) sh.colW[i] = Math.round(col.wch * 7 + 5); if (col && col.hidden) sh.hidC.add(i); });

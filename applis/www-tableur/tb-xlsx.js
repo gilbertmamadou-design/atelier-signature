@@ -330,14 +330,14 @@
               // formule que l'analyseur ne comprend pas : gardée telle quelle avec sa dernière valeur
               wb.loadFormula(sh, r, c, String(src).replace(/^=/, ''), s); if (res !== null) TB._setVal(sh, r, c, res);
               const fo = sh.fml.get(TB.key(r, c)); if (fo) fo.raw = String(src).replace(/^=/, '');
-            } else wb.load(sh, r, c, res, s);
+            } else wb.load(sh, r, c, res, s, true);
             return;
           }
           if (inArr(r, c)) { if (s !== undefined) wb.load(sh, r, c, null, s); return; }
           if (T === 5 && v && v.hyperlink) { const h = String(v.hyperlink); sh.links.set(TB.key(r, c), /^#/.test(h) ? { ref: h.slice(1) } : Object.assign({ url: h }, v.tooltip ? { tip: v.tooltip } : {})); }
           v = scalarIn(v);
           if (typeof v === 'string' && v.length > 32767) v = v.slice(0, 32767);
-          wb.load(sh, r, c, v, s);
+          wb.load(sh, r, c, v, s, true);
           if (cell.note && typeof cell.note === 'string') sh.notes.set(TB.key(r, c), { text: cell.note, author: '' });
         });
       }
@@ -534,8 +534,8 @@
             const g = ft && ft[1] === 'array' && fref ? TB.parseRange(fref[1].replace(/\$/g, '')) : null;
             if (cf != null) { wb.loadFormula(sh, r, c, cf, s, g && (g.r1 !== g.r2 || g.c1 !== g.c2) ? g : undefined); if (v !== null) TB._setVal(sh, r, c, v); const fo = sh.fml.get(TB.key(r, c)); if (fo && src) fo.raw = src; }
             else if (src) { wb.loadFormula(sh, r, c, src, s); if (v !== null) TB._setVal(sh, r, c, v); const fo = sh.fml.get(TB.key(r, c)); if (fo) fo.raw = src; }
-            else wb.load(sh, r, c, v, s);
-          } else if (v !== null || s !== undefined) wb.load(sh, r, c, v, s);
+            else wb.load(sh, r, c, v, s, true);
+          } else if (v !== null || s !== undefined) wb.load(sh, r, c, v, s, true);
         }
       }
       pos = end; nRows++;
