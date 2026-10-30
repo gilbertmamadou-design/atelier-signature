@@ -23,8 +23,11 @@
     const cache = new Map();
     tabs.forEach((t) => { t.style.width = '0px'; t.removeAttribute('data-lead'); });
     const rng = document.createRange();
-    tabs.forEach((t) => {
-      const p = t.closest('p'); if (!p) return;
+    // lectures puis écritures par « tour » (1re tabulation de chaque paragraphe, puis 2e…) : un recalcul de mise en page
+    // par tour au lieu d'un par paragraphe (en-têtes et pieds de 150 pages : 1 s → quelques ms)
+    const byP = new Map(); tabs.forEach((t) => { const p = t.closest('p'); if (!p) return; let l = byP.get(p); if (!l) byP.set(p, l = []); l.push(t); });
+    let maxK = 0; byP.forEach((l) => { if (l.length > maxK) maxK = l.length; });
+    const one = (t, p) => {
       let info = cache.get(p);
       if (!info) {
         const box = p.parentElement, br = box.getBoundingClientRect(), bs = getComputedStyle(box);
@@ -56,9 +59,12 @@
         w = stop.t === 'center' ? w - txt / 2 : w - txt;
         if (w < 1) w = 1;
       }
-      t.style.width = Math.max(1, w) + 'px';
-      if (stop.lead && stop.lead !== 'none') t.setAttribute('data-lead', stop.lead);
-    });
+      return [t, Math.max(1, w), stop.lead && stop.lead !== 'none' ? stop.lead : null];
+    };
+    for (let k = 0; k < maxK; k++) {
+      const writes = []; byP.forEach((list, p) => { if (list[k]) writes.push(one(list[k], p)); });
+      writes.forEach(([t, w, lead]) => { t.style.width = w + 'px'; if (lead) t.setAttribute('data-lead', lead); });
+    }
   };
 
   /* ---------------- mise en page ---------------- */

@@ -185,7 +185,8 @@
       lastPagesSig = sig;
       const doc = A.ed.view.state.doc; let need = false;
       doc.descendants((n) => { if (need) return false; if (n.type.name === 'toc' || (n.type.name === 'field' && /^(page|pages|ref|pageref|sectionpages)$/.test(n.attrs.f))) need = true; return !need; });
-      if (need && !A._refreshing) { A._refreshing = true; A.refreshFields(); A.layout.run(); A._refreshing = false; }
+      // second passage dans une tâche à part : l'interface reste réactive avec un gros document
+      if (need && !A._refreshing) { A._refreshing = true; setTimeout(() => { try { A.refreshFields(); A.layout.run(); } finally { A._refreshing = false; } A.updateStatus && A.updateStatus(); A.navRefresh && A.navRefresh(); }, 0); }
     }
     A.updateStatus && A.updateStatus(); A.renderComments && A.renderComments(); A.renderRuler && A.renderRuler(); A.navRefresh && A.navRefresh();
   };
@@ -214,12 +215,15 @@
   A.progress = progressToast;
   async function openBlob(blob, name, ref, opt) {
     opt = opt || {};
+    // barre de progression au-delà de 300 ms ; la lecture rend la main à l'interface régulièrement (O.yieldUi)
+    const prog = O.progress('Ouverture de « ' + name + ' »', { doneToast: false });
     try {
-      O.toast('Ouverture de « ' + name + ' »…', { ms: 8000 });
-      const r = await TX.IO.open(blob, name);
-      if (!opt.dirtyOk && A.dirty && !(await askSave())) return false;
+      const r = await TX.IO.open(blob, name, prog);
+      if (!opt.dirtyOk && A.dirty && !(await askSave())) { prog.end(); return false; }
       const writable = /^(magdoc|docx|odt|txt|md|html)$/.test(r.kind);
+      prog.text('Mise en page de « ' + name + ' »…'); prog(0, 0); await new Promise((ok) => setTimeout(ok, 30));
       A.setDoc(r.json, r.media, { name: writable ? name : O.baseName(name) + '.magdoc', ref: writable ? ref || null : null, kind: writable ? r.kind : 'magdoc' }, { info: r.info });
+      prog.end();
       if (!writable) A.dirty = true;
       await addRecent(blob, name, writable ? ref : null);
       A.closeBackstage();
@@ -227,7 +231,7 @@
       O.toast(msg || 'Document ouvert', { ms: msg ? 4500 : 1200 });
       if (r.warnings && r.warnings.length) setTimeout(() => O.toast(r.warnings.slice(0, 3).join(' · '), { bad: true, ms: 7000 }), 4600);
       return true;
-    } catch (e) { console.error(e); O.alert('Ouverture impossible', '<p>« ' + O.esc(name) + ' » n\'a pas pu être ouvert.</p><p class="o-hint">' + O.esc(e.message || String(e)) + '</p>'); return false; }
+    } catch (e) { prog.end(); (e && e.user ? console.warn : console.error)(e); O.alert('Ouverture impossible', '<p>« ' + O.esc(name) + ' » n\'a pas pu être ouvert.</p><p class="o-hint">' + O.esc(e.message || String(e)) + '</p>'); return false; }
   }
   A.openBlob = openBlob;
   C.open = async function () { const l = await F.open({ id: 'texte' }); if (!l.length) return; await openBlob(l[0].blob, l[0].name, l[0].ref); };
@@ -390,6 +394,8 @@
     else if (tab === 'options') h = '<h2>Options</h2><div class="o-form" style="max-width:560px"><label class="o-field"><span>Votre nom (commentaires, révisions, auteur des nouveaux documents)</span><input class="o-in" data-opt="auteur" value="' + O.esc(TX.userName()) + '"></label><label class="o-field half"><span>Apparence</span><select class="o-in" data-opt="ui"><option value="">Comme le système</option><option value="clair"' + (A.settings.ui === 'clair' ? ' selected' : '') + '>Claire</option><option value="sombre"' + (A.settings.ui === 'sombre' ? ' selected' : '') + '>Sombre</option></select></label><label class="o-check"><input type="checkbox" data-opt="spell"' + (A.settings.spell !== false ? ' checked' : '') + '><span>Vérifier l\'orthographe pendant la saisie (correcteur du navigateur, français)</span></label><label class="o-check"><input type="checkbox" data-opt="auto"' + (A.settings.auto !== false ? ' checked' : '') + '><span>Correction automatique (guillemets « », espaces insécables, listes, tirets…)</span></label></div><h3>Récupération</h3><p><button type="button" class="mini-btn" data-a="clearrec">' + O.icon('trash-2') + 'Vider la liste des récents</button></p>';
     else if (tab === 'about') h = aboutHtml();
     body.innerHTML = h;
+    // Suite MAG sur PC : version (jour de publication) et « Rechercher une mise à jour »
+    if (tab === 'about' && window.MAGPC && window.MAGPC.aboutBlock) { const h2 = body.querySelector('h2'); if (h2) h2.insertAdjacentElement('afterend', window.MAGPC.aboutBlock()); }
     fillPreviews(body);
     O.$$('[data-prop]', body).forEach((i) => i.addEventListener('change', () => { const p = Object.assign({}, A.attrs().props, { [i.dataset.prop]: i.value }); A.setAttr('props', p, 'Propriétés'); A.renderTitle(); }));
     O.$$('[data-opt]', body).forEach((i) => i.addEventListener('change', () => {
