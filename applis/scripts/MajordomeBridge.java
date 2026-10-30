@@ -106,8 +106,8 @@ public class MajordomeBridge {
         this.a = a; this.wv = wv; live = this; resumed = true;
         try {
             a.getApplication().registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks() {
-                public void onActivityResumed(Activity x) { if (x == MajordomeBridge.this.a) { resumed = true; live = MajordomeBridge.this; } }
-                public void onActivityPaused(Activity x) { if (x == MajordomeBridge.this.a) resumed = false; }
+                public void onActivityResumed(Activity x) { if (x == MajordomeBridge.this.a) { resumed = true; live = MajordomeBridge.this; MajordomeWallpaper.Voix.front = !(Build.VERSION.SDK_INT >= 24 && x.isInMultiWindowMode()); } }
+                public void onActivityPaused(Activity x) { if (x == MajordomeBridge.this.a) { resumed = false; MajordomeWallpaper.Voix.front = false; } }
                 public void onActivityCreated(Activity x, Bundle b) { }
                 public void onActivityStarted(Activity x) { }
                 public void onActivityStopped(Activity x) { }
@@ -285,11 +285,11 @@ public class MajordomeBridge {
             sr.setRecognitionListener(new RecognitionListener() {
                 public void onReadyForSpeech(Bundle b) { }
                 public void onBeginningOfSpeech() { }
-                public void onRmsChanged(float db) { emit("level", obj("v", Math.max(0, Math.min(1, (db + 2) / 12.0)))); }
+                public void onRmsChanged(float db) { double v = Math.max(0, Math.min(1, (db + 2) / 12.0)); emit("level", obj("v", v)); MajordomeWallpaper.Voix.mic(a, v); }
                 public void onBufferReceived(byte[] b) { }
                 public void onEndOfSpeech() { }
-                public void onError(int err) { if (got[0]) return; got[0] = true; if (err == SpeechRecognizer.ERROR_NO_MATCH || err == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) emit("result", obj("text", "")); else emit("error", obj("msg", "Reconnaissance d'Android : erreur " + err + (err == SpeechRecognizer.ERROR_NETWORK || err == SpeechRecognizer.ERROR_NETWORK_TIMEOUT ? " (pas de pack hors ligne français : installez-le, ou utilisez Vosk)" : ""))); }
-                public void onResults(Bundle b) { if (got[0]) return; got[0] = true; ArrayList<String> l = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION); emit("result", obj("text", l != null && !l.isEmpty() ? l.get(0) : "")); }
+                public void onError(int err) { MajordomeWallpaper.Voix.end("listen"); if (got[0]) return; got[0] = true; if (err == SpeechRecognizer.ERROR_NO_MATCH || err == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) emit("result", obj("text", "")); else emit("error", obj("msg", "Reconnaissance d'Android : erreur " + err + (err == SpeechRecognizer.ERROR_NETWORK || err == SpeechRecognizer.ERROR_NETWORK_TIMEOUT ? " (pas de pack hors ligne français : installez-le, ou utilisez Vosk)" : ""))); }
+                public void onResults(Bundle b) { MajordomeWallpaper.Voix.end("listen"); if (got[0]) return; got[0] = true; ArrayList<String> l = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION); emit("result", obj("text", l != null && !l.isEmpty() ? l.get(0) : "")); }
                 public void onPartialResults(Bundle b) { ArrayList<String> l = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION); if (l != null && !l.isEmpty()) emit("partial", obj("text", l.get(0))); }
                 public void onEvent(int t, Bundle b) { }
             });
@@ -340,7 +340,7 @@ public class MajordomeBridge {
                 } catch (Throwable t) { send("error", obj("msg", "Modèle vocal illisible : " + t.getMessage() + ". Réinstallez-le.")); }
             } }).start();
         }
-        static void cancelCommand() { synchronized (LOCK) { if (cmdRec != null) { try { cmdRec.close(); } catch (Throwable t) { } cmdRec = null; } } send("end", "{}"); }
+        static void cancelCommand() { synchronized (LOCK) { if (cmdRec != null) { try { cmdRec.close(); } catch (Throwable t) { } cmdRec = null; } } send("end", "{}"); MajordomeWallpaper.Voix.end("listen"); }
         static void setWake(Context c, boolean on, String[] w) {
             ctx = c.getApplicationContext(); wakeOn = on; if (w != null && w.length > 0) words = w;
             if (on) { try { Model m = model(ctx); synchronized (LOCK) { if (wakeRec == null) wakeRec = new Recognizer(m, 16000.0f); } ensure(); } catch (Throwable t) { send("error", obj("msg", "Écoute continue impossible : " + t.getMessage())); } }
@@ -370,16 +370,21 @@ public class MajordomeBridge {
                 rec = new AudioRecord(MediaRecorder.AudioSource.VOICE_RECOGNITION, rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, Math.max(min, 8192) * 2);
                 if (rec.getState() != AudioRecord.STATE_INITIALIZED) throw new Exception("micro occupé ou refusé");
                 rec.startRecording();
-                short[] buf = new short[1600]; long lastLvl = 0;
+                short[] buf = new short[1600]; double lp1 = 0, lp2 = 0;
                 while (true) {
                     Recognizer c, w; boolean wake;
                     synchronized (LOCK) { c = cmdRec; w = wakeRec; wake = wakeOn && !wakePaused && !Ecoute.paused; }
                     if (c == null && (!wake || w == null)) break;
-                    int n = rec.read(buf, 0, buf.length);
+                    int n = rec.read(buf, 0, c != null ? 800 : buf.length);
                     if (n <= 0) continue;
                     long now = System.currentTimeMillis();
                     if (c != null) {
-                        if (now - lastLvl > 70) { lastLvl = now; double s = 0; for (int i = 0; i < n; i += 4) s += (double) buf[i] * buf[i]; double rms = Math.sqrt(s / (n / 4.0)) / 32768.0; send("level", obj("v", Math.min(1, rms * 9))); }
+                        // niveau (RMS) et 3 bandes par filtres passe-bas du premier ordre (≈ 400 Hz et 2 kHz à 16 kHz) : quelques opérations par échantillon
+                        double s = 0, sl = 0, sh = 0;
+                        for (int i = 0; i < n; i++) { double x = buf[i]; lp1 += 0.145 * (x - lp1); lp2 += 0.55 * (x - lp2); double hi = x - lp2; s += x * x; sl += lp1 * lp1; sh += hi * hi; }
+                        double rms = Math.sqrt(s / n) / 32768.0, v = Math.min(1, rms * 9), lo = Math.min(1, Math.sqrt(sl / n) / 32768.0 * 11), hb = Math.min(1, Math.sqrt(sh / n) / 32768.0 * 22), mid = Math.max(0, Math.min(1, v - (lo + hb) * 0.5));
+                        try { send("level", new JSONObject().put("v", Math.round(v * 1000) / 1000.0).put("b", new JSONArray().put(Math.round(lo * 1000) / 1000.0).put(Math.round(mid * 1000) / 1000.0).put(Math.round(hb * 1000) / 1000.0)).toString()); } catch (Exception e) { }
+                        MajordomeWallpaper.Voix.mic(ctx, v);
                         String done = null; boolean end = false;
                         synchronized (LOCK) {
                             if (cmdRec == c) {
@@ -389,7 +394,7 @@ public class MajordomeBridge {
                                 if (end) { try { c.close(); } catch (Throwable t) { } cmdRec = null; }
                             }
                         }
-                        if (end) deliver(done == null ? "" : done, cmdFromWake);
+                        if (end) { MajordomeWallpaper.Voix.end("listen"); deliver(done == null ? "" : done, cmdFromWake); }
                         continue;
                     }
                     if (holding || now < holdUntil) continue;
@@ -411,7 +416,7 @@ public class MajordomeBridge {
                 send("error", obj("msg", "Micro indisponible : " + t.getMessage()));
             } finally {
                 if (rec != null) { try { rec.stop(); } catch (Throwable t) { } rec.release(); }
-                send("level", obj("v", 0));
+                send("level", obj("v", 0)); MajordomeWallpaper.Voix.end("listen");
             }
         }
         /** Mot de réveil entendu : page ouverte → elle écoute ; sinon le service écoute la commande lui-même */
@@ -539,6 +544,7 @@ public class MajordomeBridge {
     // Voix (TextToSpeech)
     // =====================================================================
     private TextToSpeech tts; private boolean ttsOk = false; private final ArrayList<String[]> ttsQ = new ArrayList<>();
+    private final java.util.Map<String, String[]> ttsText = new java.util.concurrent.ConcurrentHashMap<>();   // texte et débit de chaque phrase (enveloppe de Voix)
     private void ttsInit() {
         if (tts != null) return;
         tts = new TextToSpeech(a.getApplicationContext(), new TextToSpeech.OnInitListener() { public void onInit(int st) {
@@ -546,10 +552,12 @@ public class MajordomeBridge {
             if (!ttsOk) { for (String[] q : ttsQ) emit("spoken", obj("id", q[2])); ttsQ.clear(); return; }
             tts.setLanguage(Locale.FRANCE);
             tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
-                public void onStart(String id) { MajordomeWallpaper.voice(true); }
-                public void onDone(String id) { MajordomeWallpaper.voice(false); emit("spoken", obj("id", id)); }
-                @SuppressWarnings("deprecation") public void onError(String id) { MajordomeWallpaper.voice(false); emit("spoken", obj("id", id)); }
-                public void onRangeStart(String id, int s, int e, int f) { MajordomeWallpaper.voice(true); emit("boundary", "{}"); }
+                public void onStart(String id) { String[] u = ttsText.get(id); MajordomeWallpaper.Voix.speakStart(a, u != null ? u[0] : "", u != null ? Float.parseFloat(u[1]) : 1f); }
+                public void onDone(String id) { ttsText.remove(id); MajordomeWallpaper.Voix.end("speak"); emit("spoken", obj("id", id)); }
+                @SuppressWarnings("deprecation") public void onError(String id) { ttsText.remove(id); MajordomeWallpaper.Voix.end("speak"); emit("spoken", obj("id", id)); }
+                public void onStop(String id, boolean interrupted) { ttsText.remove(id); MajordomeWallpaper.Voix.end("speak"); }
+                // mot prononcé (Android 8+) : la page et Voix en tirent une enveloppe syllabique
+                public void onRangeStart(String id, int s, int e, int f) { MajordomeWallpaper.Voix.word(s, e); try { emit("boundary", new JSONObject().put("s", s).put("e", e).toString()); } catch (Exception x) { emit("boundary", "{}"); } }
             });
             for (String[] q : ttsQ) sayNow(q[0], q[1], q[2]); ttsQ.clear();
         } });
@@ -583,10 +591,11 @@ public class MajordomeBridge {
             tts.setSpeechRate((float) o.optDouble("rate", 1));
             tts.setPitch((float) o.optDouble("pitch", 1));
             Bundle p = new Bundle(); p.putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, (float) Math.max(0.05, Math.min(1, o.optDouble("volume", 1))));
+            ttsText.put(id, new String[]{ text, String.valueOf((float) o.optDouble("rate", 1)) });
             tts.speak(text, TextToSpeech.QUEUE_ADD, p, id);
         } catch (Throwable t) { emit("spoken", obj("id", id)); }
     }
-    @JavascriptInterface public void shush() { ui.post(new Runnable() { public void run() { if (tts != null) tts.stop(); } }); }
+    @JavascriptInterface public void shush() { ui.post(new Runnable() { public void run() { if (tts != null) tts.stop(); ttsText.clear(); MajordomeWallpaper.Voix.end("speak"); } }); }
 
     // =====================================================================
     // Minuteurs, réveils, rappels (AlarmManager)

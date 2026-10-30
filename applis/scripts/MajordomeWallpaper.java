@@ -6,11 +6,13 @@ package __PKG__;
 //  - pause complète quand le fond n'est pas visible (écran éteint, appli ouverte par-dessus : onVisibilityChanged)
 //  - 15 images/s au repos, 30 pendant 4 s après un toucher ou pendant que Majordome parle, 8 en économie d'énergie ;
 //    « Supprimer les animations » d'Android : une image fixe
-//  - pulse quand Majordome parle (appel direct dans le même processus, depuis la synthèse vocale de MajordomeBridge)
+//  - réagit au son quand Majordome écoute ou parle (Voix : niveau du micro, ou enveloppe syllabique de la voix
+//    de synthèse) : gonflement, halo et dispersion des particules ; même niveau envoyé à Socle (voir Voix)
 //  - réglages (couleur, densité, vitesse, pulsation) dans Majordome › Réglages › Fond d'écran animé
 // Sphere : les calculs de la sphère, sans Android (aussi utilisés pour l'image du widget, et testables sur PC).
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -34,10 +36,111 @@ public class MajordomeWallpaper extends WallpaperService {
     static final String[] COLOR_IDS = { "turquoise", "bleu", "violet", "vert", "ambre", "blanc" };
     static final int[] COLORS = { 0xFF46D9C2, 0xFF7DC8FF, 0xFF9680FF, 0xFF60FFA0, 0xFFFFC46B, 0xFFE6F0F0 };
 
-    static volatile boolean speaking = false;
-    static volatile long voiceAt = 0;
-    /** Majordome parle (début / fin d'une phrase) : la sphère du fond d'écran pulse */
-    static void voice(boolean on) { speaking = on; voiceAt = SystemClock.uptimeMillis(); }
+    /**
+     * Niveau sonore de Majordome pendant qu'il écoute ou parle, lissé (attaque rapide, relâche douce), ≈ 20 valeurs/s :
+     *  - écoute : niveau du micro mesuré par MajordomeBridge (Vosk ou reconnaissance d'Android) ;
+     *  - parole : la synthèse d'Android ne donne pas son niveau sonore ; enveloppe construite à partir des mots
+     *    annoncés (onRangeStart), des syllabes estimées (groupes de voyelles) et de la ponctuation (pauses) ;
+     *    sans annonce de mots (moteurs anciens) : rythme syllabique régulier.
+     * Utilisé par le fond d'écran animé (même processus) et envoyé à Socle (diffusion explicite vers
+     * fr.magformation13.socle, protégée par la permission « signature » WIDGET, ≈ 18 valeurs/s au plus,
+     * seulement pendant l'écoute ou la parole, et pas quand Majordome occupe tout l'écran : Socle est alors caché).
+     * Rien n'est enregistré : un seul nombre entre 0 et 1.
+     */
+    static final class Voix {
+        static final String ACTION = "fr.magformation13.MJ_VOICE", PERM = "fr.magformation13.permission.WIDGET", SOCLE = "fr.magformation13.socle";
+        static volatile String state = "idle";
+        static volatile float level = 0;
+        static volatile long at = 0;
+        static volatile boolean front = false;   // page Majordome au premier plan et en plein écran
+        private static Context app; private static Handler h;
+        private static float mic = 0, env = 0; private static long micAt = 0;
+        private static String text = ""; private static float rate = 1; private static long spkT = 0, quietUntil = 0; private static int words = 0;
+        private static final java.util.ArrayList<double[]> syl = new java.util.ArrayList<double[]>();   // début, durée, force
+        private static long sentAt = 0; private static float sentV = -1; private static String sentS = "idle";
+        private static final Runnable TICK = new Runnable() { public void run() { tick(); } };
+
+        static synchronized void mic(Context c, double v) {
+            init(c); mic = (float) Math.pow(Math.max(0, Math.min(1, v)), 0.75); micAt = SystemClock.uptimeMillis();
+            if (!"listen".equals(state)) { state = "listen"; start(); }
+        }
+        static synchronized void speakStart(Context c, String t, float r) {
+            init(c); text = t == null ? "" : t; rate = Math.max(0.4f, Math.min(3f, r)); spkT = SystemClock.uptimeMillis(); words = 0; syl.clear(); quietUntil = 0;
+            if (!"speak".equals(state)) { state = "speak"; start(); }
+        }
+        static synchronized void word(int s, int e) {
+            if (!"speak".equals(state)) return;
+            long now = SystemClock.uptimeMillis();
+            String t = text; s = Math.max(0, Math.min(t.length(), s)); e = Math.max(s, Math.min(t.length(), e));
+            if (e <= s) { int k = s; while (k < t.length() && !Character.isWhitespace(t.charAt(k)) && ".,;:!?".indexOf(t.charAt(k)) < 0) k++; e = Math.max(s + 1, Math.min(t.length(), k)); }
+            String w = t.substring(s, Math.min(e, t.length()));
+            int n = Math.max(1, syllables(w)); double per = Math.max(90, Math.min(360, 175 / rate));
+            double t0 = now;
+            if (!syl.isEmpty()) { double[] l = syl.get(syl.size() - 1); t0 = Math.max(now, l[0] + l[1] * 0.8); }
+            for (int k = 0; k < n; k++) syl.add(new double[]{ t0 + k * per, per * 0.95, k == 0 ? 1 : 0.78 });
+            String after = t.substring(Math.min(t.length(), e), Math.min(t.length(), e + 3)).trim();
+            if (after.startsWith(".") || after.startsWith("!") || after.startsWith("?") || after.startsWith("…")) quietUntil = (long) (t0 + n * per + 320);
+            else if (after.startsWith(",") || after.startsWith(";") || after.startsWith(":")) quietUntil = (long) (t0 + n * per + 170);
+            words++;
+        }
+        /** Fin de l'écoute (« listen ») ou de la parole (« speak ») : retour au repos, Socle prévenu une fois */
+        static synchronized void end(String what) {
+            if (!what.equals(state)) return;
+            state = "idle"; syl.clear(); mic = 0;
+        }
+        /** Pour le fond d'écran : niveau courant (0 si rien n'a bougé depuis 0,6 s) */
+        static float now() { return !"idle".equals(state) || SystemClock.uptimeMillis() - at < 600 ? level : 0; }
+
+        static int syllables(String w) {
+            String x = w.toLowerCase(java.util.Locale.FRENCH).replaceAll("[^a-zàâäéèêëîïôöùûüÿœæ]", "");
+            if (x.isEmpty()) return 0;
+            int n = 0; boolean in = false;
+            for (int i = 0; i < x.length(); i++) { boolean v = "aeiouyàâäéèêëîïôöùûüÿœæ".indexOf(x.charAt(i)) >= 0; if (v && !in) n++; in = v; }
+            if (n > 1 && x.matches(".*[^aeiouy]e(s|nt)?$")) n--;
+            return Math.max(1, n);
+        }
+        private static void init(Context c) { if (app == null && c != null) app = c.getApplicationContext(); if (h == null) h = new Handler(Looper.getMainLooper()); }
+        private static void start() { h.removeCallbacks(TICK); h.post(TICK); }
+        private static double voiceTarget(long now) {
+            double v = 0; boolean any = false;
+            for (int k = 0; k < syl.size(); k++) {
+                double[] q = syl.get(k); double ph = (now - q[0]) / q[1];
+                if (ph < 0) { any = true; continue; }
+                if (ph > 1) continue;
+                any = true; v = Math.max(v, q[2] * Math.pow(Math.sin(Math.PI * ph), 0.6));
+            }
+            while (!syl.isEmpty() && now - syl.get(0)[0] > syl.get(0)[1]) syl.remove(0);
+            if (any) return 0.16 + v * 0.84;
+            if (now < quietUntil) return 0.05;
+            if (words == 0 && now - spkT > 350) { double s = now - spkT; return 0.3 + 0.45 * Math.pow(Math.abs(Math.sin(s / 105.0)), 0.8) * (0.65 + 0.35 * Math.sin(s / 430.0)); }
+            return 0.16;
+        }
+        private static void tick() {
+            String st; float v; boolean more;
+            synchronized (Voix.class) {
+                long now = SystemClock.uptimeMillis();
+                double target;
+                if ("listen".equals(state)) { if (now - micAt > 260) mic *= 0.6f; target = mic; }
+                else if ("speak".equals(state)) target = voiceTarget(now);
+                else target = 0;
+                env += (target - env) * (target > env ? ("listen".equals(state) ? 0.76 : 0.81) : ("listen".equals(state) ? 0.20 : 0.34));
+                if (env < 0.003) env = 0;
+                level = env; at = now; st = state; v = env;
+                more = !"idle".equals(state) || env > 0.01;
+            }
+            send(st, v, !more);
+            if (more) h.postDelayed(TICK, 50);
+        }
+        /** Socle : seulement s'il peut être à l'écran (Majordome pas en plein écran), sans répéter une valeur inchangée */
+        private static void send(String st, float v, boolean last) {
+            long now = SystemClock.uptimeMillis();
+            boolean change = !st.equals(sentS) || last;
+            if (!change && (front || now - sentAt < 50 || (Math.abs(v - sentV) < 0.015 && now - sentAt < 400))) return;
+            if (front && !last && !"idle".equals(st)) return;
+            sentAt = now; sentV = v; sentS = st;
+            try { app.sendBroadcast(new Intent(ACTION).setPackage(SOCLE).putExtra("s", st).putExtra("v", Math.round(v * 1000) / 1000f), PERM); } catch (Throwable t) { }
+        }
+    }
 
     // ---------- Réglages ----------
     static JSONObject settings(Context c) {
@@ -151,10 +254,11 @@ public class MajordomeWallpaper extends WallpaperService {
             if (!visible) return;
             long now = SystemClock.uptimeMillis();
             double dt = last == 0 ? 0.033 : Math.min(0.2, (now - last) / 1000.0); last = now;
-            boolean talk = pulse && (speaking || now - voiceAt < 600);
-            double target = 0;
-            if (talk) { double s = now - voiceAt; target = 0.35 + 0.3 * Math.abs(Math.sin(s / 95.0)) * (0.6 + 0.4 * Math.sin(s / 410.0)); }
-            level += (target - level) * 0.2;
+            // son de Majordome (écoute ou parole) : niveau déjà lissé par Voix, suivi ici sans retard
+            float vx = pulse ? Voix.now() : 0;
+            boolean talk = vx > 0.005 || (pulse && !"idle".equals(Voix.state));
+            double target = vx;
+            level += (target - level) * (target > level ? 0.7 : 0.3);
             burst *= 0.9;
             rot += dt * 0.25 * speed * (talk ? 1.6 : 1);
             // léger déplacement vers le dernier toucher, qui revient doucement au centre
@@ -171,9 +275,9 @@ public class MajordomeWallpaper extends WallpaperService {
                         paint.setShader(bg);
                         c.drawRect(0, 0, W, H, paint); paint.setShader(null);
                     }
-                    float m = Math.min(W, H), radius = (float) (m * 0.30 * (1 + 0.025 * Math.sin((now - t0) / 1000.0 * 1.1) + level * 0.18 + burst * 0.2));
+                    float m = Math.min(W, H), radius = (float) (m * 0.30 * (1 + 0.025 * Math.sin((now - t0) / 1000.0 * 1.1) + level * 0.30 + burst * 0.2));
                     float cx = W / 2f + (0.5f - offX) * m * 0.12f + shiftX * W, cy = H * 0.42f + shiftY * H;
-                    drawSphere(c, sphere, buf, paint, color, still ? 0 : (now - t0) / 1000.0 * speed, still ? 0.6 : rot, still ? 0 : 0.05 + level * 0.25 + burst * 0.3, cx, cy, radius, (float) (level * 0.25 + burst * 0.2));
+                    drawSphere(c, sphere, buf, paint, color, still ? 0 : (now - t0) / 1000.0 * speed, still ? 0.6 : rot, still ? 0 : 0.05 + level * 0.32 + burst * 0.3, cx, cy, radius, (float) (level * 0.38 + burst * 0.2));
                 }
             } catch (Throwable t) { }
             finally { if (c != null) try { sh.unlockCanvasAndPost(c); } catch (Throwable t) { } }
