@@ -123,7 +123,7 @@
       → {doc, repaired} ; doc = null si rien n'est lisible */
   O.parseXmlLenient = function (s) {
     // déclarations DOCTYPE retirées : jamais utiles dans un fichier Office, et une entité externe ferait charger une adresse
-    const P = (x) => new DOMParser().parseFromString(/<!DOCTYPE/i.test(x.slice(0, 2000)) ? x.replace(/<!DOCTYPE[^\[>]*(\[[\s\S]*?\])?\s*>/i, '') : x, 'application/xml');
+    const P = (x) => new DOMParser().parseFromString(/<!DOCTYPE/i.test(x.slice(0, 2000)) ? x.replace(/<!DOCTYPE[^\[>]*(\[[\s\S]*?\])?\s*>/i, '').replace(/&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);)[A-Za-z_][\w.-]*;/g, '') : x, 'application/xml');
     const bad = (d) => d.getElementsByTagName('parsererror').length > 0 || !d.documentElement;
     let d = P(s); if (!bad(d)) return { doc: d, repaired: false };
     // fin incomplète retirée ; balise fermante en trop ignorée ; éléments restés ouverts refermés au bon endroit
