@@ -1,0 +1,115 @@
+<!-- FICHIER GÉNÉRÉ par pc/build-pc.py depuis pc/shared/fond-jarvis/index.html : ne pas modifier ici. -->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<!-- Suite MAG sur PC : ajouté par pc/build-pc.py (source : pc/shared/fond-jarvis/index.html) -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="../shared/pc.css">
+<script>window.MAGPC_CONF={"app": "fond-jarvis", "name": "Fond Jarvis", "vendor": "../shared/vendor/", "ocrWorker": "ocr-worker.js", "sw": "sw.js", "office": false, "apps": {"fr.magformation13.lecteur": "../lecteur/", "fr.magformation13.pdf": "../pdf/", "fr.magformation13.budget": "../budget/", "fr.magformation13.liseuse": "../liseuse/", "fr.magformation13.fichiers": "../fichiers/", "fr.magformation13.actualites": "../actualites/", "fr.magformation13.carnet": "../notes/", "fr.magformation13.agenda": "../agenda/", "fr.magformation13.contacts": "../contacts/", "fr.magformation13.calcul": "../calcul/", "fr.magformation13.qr": "../qr/", "fr.magformation13.meteo": "../meteo/", "fr.magformation13.ciel": "../ciel/", "fr.magformation13.sentiers": "../sentiers/", "fr.magformation13.solaire": "../solaire/", "fr.magformation13.musique": "../musique/", "fr.magformation13.ondes": "../ondes/", "fr.magformation13.ecran": "../ecran/", "fr.magformation13.galerie": "../galerie/", "fr.magformation13.toile": "../toile/", "fr.magformation13.scan": "../scan/", "fr.magformation13.dicta": "../dicta/", "fr.magformation13.coffre": "../coffre/", "fr.magformation13.petitspas": "../petitspas/", "fr.magformation13.chasse": "../chasse/", "fr.magformation13.presentation": "../presentation/", "fr.magformation13.texte": "../texte/", "fr.magformation13.majordome": "../majordome/", "fr.magformation13.tableur": "../tableur/"}, "aboutButton": false, "installPill": false};</script>
+<script src="../shared/pc-shim.js"></script>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#030a12">
+<title>Fond Jarvis</title>
+<!--
+  Fond d'écran animé et interactif (HUD) de la Suite MAG sur PC.
+  Même page pour :
+    - Lively Wallpaper (paquet fond-jarvis-lively.zip : LivelyInfo.json + LivelyProperties.json) ;
+    - le navigateur (https://…/atelier-signature/pc/fond-jarvis/, page générée par pc/build-pc.py).
+  Source : pc/shared/fond-jarvis/ (voir pc/README.md, « Fond Jarvis »).
+  Création originale : aucune marque ni élément d'une œuvre existante.
+-->
+<link rel="stylesheet" href="fj.css">
+</head>
+<body>
+<canvas id="bg" aria-hidden="true"></canvas>
+<canvas id="fx" aria-hidden="true"></canvas>
+
+<main id="hud" data-layout="complet">
+  <div id="free" aria-hidden="true"></div>
+
+  <section class="col" id="colL">
+    <article class="pan" id="pClock" aria-label="Horloge">
+      <header><span class="tag">Horloge</span><span class="meta" id="clkZone"></span></header>
+      <div class="clk">
+        <svg class="dial" id="clkDial" viewBox="0 0 120 120" aria-hidden="true"></svg>
+        <div class="clk-tx">
+          <div class="time" id="clkTime">--:--</div>
+          <div class="date" id="clkDate"></div>
+          <div class="week"><span id="clkWeek"></span><span class="bat" id="clkBat" hidden></span></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="pan" id="pWx" aria-label="Météo">
+      <header><span class="tag">Météo</span><span class="meta" id="wxWhere">…</span></header>
+      <div class="wx-now" id="wxNow"><p class="muted">Chargement de la météo…</p></div>
+      <div class="wx-days" id="wxDays"></div>
+    </article>
+
+    <article class="pan" id="pAgenda" aria-label="Agenda" hidden>
+      <header><span class="tag">Agenda</span><span class="meta" id="agSrc"></span></header>
+      <ul class="ag" id="agList"></ul>
+    </article>
+  </section>
+
+  <section id="stage" aria-label="Assistant">
+    <div id="orbBox">
+      <canvas id="orb" aria-hidden="true"></canvas>
+      <button type="button" id="orbHit" aria-label="Parler à l'assistant"></button>
+    </div>
+    <div id="name" aria-hidden="true"><b id="aiName">Majordome</b><span id="aiState">En ligne</span></div>
+  </section>
+
+  <section id="dock">
+    <div id="say" role="log" aria-live="polite" hidden></div>
+    <form id="bar" autocomplete="off">
+      <span class="pfx" aria-hidden="true">&gt;</span>
+      <input id="q" type="text" spellcheck="false" enterkeyhint="send" aria-label="Commande pour l'assistant">
+      <button type="button" id="mic" class="ib" title="Parler" aria-label="Parler"></button>
+      <button type="submit" id="go" class="ib" title="Envoyer" aria-label="Envoyer"></button>
+      <button type="button" id="gear" class="ib" aria-label="Réglages du fond d'écran" title="Réglages du fond"></button>
+    </form>
+    <div id="timers" aria-live="polite"></div>
+    <nav id="keys" aria-label="Raccourcis"></nav>
+  </section>
+
+  <section class="col" id="colR">
+    <article class="pan" id="pSys" aria-label="Système" hidden>
+      <header><span class="tag">Système</span><span class="meta" id="sysName"></span></header>
+      <div class="gauges" id="gauges"></div>
+      <div class="net" id="net" hidden>
+        <canvas id="netCv" aria-hidden="true"></canvas>
+        <div class="net-tx"><span>↓ <b id="netDown">–</b></span><span>↑ <b id="netUp">–</b></span></div>
+      </div>
+      <div class="batrow" id="batRow" hidden></div>
+    </article>
+
+    <article class="pan" id="pNews" aria-label="Actualités">
+      <header><span class="tag">Actualités</span><span class="meta" id="newsMeta">franceinfo</span></header>
+      <ol class="news" id="newsList"></ol>
+    </article>
+
+    <article class="pan" id="pMusic" aria-label="Musique en cours" hidden>
+      <header><span class="tag">Musique</span><span class="meta" id="muType"></span></header>
+      <div class="mu"><img id="muArt" alt="" hidden><div class="mu-tx"><b id="muTitle"></b><span id="muArtist"></span></div><div class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></div></div>
+    </article>
+  </section>
+</main>
+
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="sheet" role="dialog" aria-modal="true" aria-labelledby="shTitle" hidden></div>
+
+<script src="fj-version.js"></script>
+<script src="mj-nlu.js"></script>
+<script src="mj-orb.js"></script>
+<script src="fj-icons.js"></script>
+<script src="fj-hud.js"></script>
+<script src="fj-app.js"></script>
+<script src="fj-jarvis.js"></script>
+</body>
+</html>

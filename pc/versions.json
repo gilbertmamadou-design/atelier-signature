@@ -1,7 +1,7 @@
 {
  "_lanceur": {
   "date": "2026-10-30",
-  "v": "7d179ddd21cc"
+  "v": "b2da0111e7c4"
  },
  "actualites": {
   "date": "2026-10-30",
@@ -46,6 +46,14 @@
  "fichiers": {
   "date": "2026-10-30",
   "v": "47ce0b4caa10"
+ },
+ "fond-jarvis": {
+  "date": "2026-10-30",
+  "v": "f229b7787a96"
+ },
+ "fond-jarvis:lively": {
+  "date": "2026-10-30",
+  "v": "16b14b3356c1"
  },
  "galerie": {
   "date": "2026-10-30",
