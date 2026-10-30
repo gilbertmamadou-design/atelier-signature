@@ -834,23 +834,7 @@
     var c = answer({ say: 'Voici le lien vers ' + label + '.', html: '<p>' + esc(label) + '</p><div class="row"><a class="btn pri" href="' + esc(url) + '" target="_blank" rel="noopener" style="text-decoration:none">Ouvrir ' + esc(label) + '</a></div>' });
     return c.done;
   }
-  H.open_app = function (p) {
-    if (p.unknown) {
-      if (p.near) return ask('Je ne connais pas l\'appli « ' + p.unknown + ' ». Vouliez-vous dire ' + p.near.name + ' ?', 'yesno', { yes: 'Ouvrir ' + p.near.name }).then(function (ok) { if (ok) return H.open_app(p.near); answer('D\'accord.'); });
-      return answer('Je ne connais pas l\'appli « ' + p.unknown + ' ».').done;
-    }
-    if (p.id === 'majordome') return answer('Je suis déjà là.').done;
-    if (PC) {
-      var apps = (window.MAGPC.conf && window.MAGPC.conf.apps) || {}, url = apps[p.pkg];
-      if (!url) return answer(p.name + ' n\'existe pas dans la Suite sur PC' + (p.id === 'echafaudage' ? ' : c\'est une appli du téléphone.' : '.')).done;
-      return openLink(url, p.name);
-    }
-    if (P && P.homeLaunch) {
-      if (P.homeInstalled && P.homeInstalled(p.pkg) !== '1') return answer('L\'appli ' + p.name + ' n\'est pas installée sur ce téléphone.').done;
-      P.homeLaunch(p.pkg, ''); return answer(ack('J\'ouvre ' + p.name + '.')).done;
-    }
-    return answer('Je ne peux pas ouvrir ' + p.name + ' ici.').done;
-  };
+  // H.open_app, H.open_sys, H.domo : mj-applis.js (Suite, toutes les applis du téléphone, raccourcis du système)
   /* --- Climatisation : Majordome ne pilote pas la clim Panasonic (pas d'API officielle, pas d'infrarouge sur le téléphone).
      Il ouvre l'appli officielle Panasonic Comfort Cloud (com.panasonic.ACCsmart, visible grâce à <queries> du manifeste),
      ou propose le Play Store si elle manque ; pour un réglage, il renvoie honnêtement vers Alexa ou Comfort Cloud. */
@@ -1107,7 +1091,7 @@
     ['Agenda', ['Qu\'est-ce que j\'ai aujourd\'hui ?', 'Qu\'est-ce que j\'ai demain ?', 'Mon prochain rendez-vous', 'Ajoute un rendez-vous chez le dentiste jeudi à 14 h']],
     ['Notes et listes', ['Note : commander les vis de 6', 'Ajoute du pain à la liste de courses', 'Lis ma liste de courses', 'Enlève le pain de la liste', 'Lis mes notes']],
     ['Budget (jamais de solde lu)', ['J\'ai dépensé 45 euros de carburant sur le compte courant', 'J\'ai payé 12,50 € au restaurant par carte']],
-    ['Applis et sites', ['Ouvre Présentation', 'Ouvre le tableur', 'Ouvre le lecteur PDF', 'Ouvre Rangement', 'Ouvre YouTube'].concat(PC ? ['Plein écran'] : [])],
+    ['Applis et sites', ['Ouvre Présentation', 'Ouvre le tableur', 'Ouvre le lecteur PDF', 'Ouvre Rangement', 'Ouvre YouTube'].concat(ANDROID ? ['Ouvre WhatsApp', 'Lance Waze', 'Ouvre le GPS', 'Ouvre l\'appareil photo', 'Ouvre les paramètres Wi-Fi', 'Ouvre le Play Store'] : []).concat(PC ? ['Plein écran'] : [])],
     ['Climatisation' + (ANDROID ? '' : ' (sur le téléphone seulement)'), ['Ouvre la clim', 'Ouvre Comfort Cloud']],
     ['Musique', ['Mets de la musique', 'Pause', 'Chanson suivante', 'Morceau précédent']],
     ['Téléphone' + (ANDROID ? '' : ' (sur le téléphone seulement)'), ['Appelle Paul', 'Envoie un SMS à Paul : j\'arrive dans 10 minutes', 'Allume la lampe', 'Monte le son', 'Mode silencieux', 'Ne pas déranger', 'Active le Wi-Fi', 'Ouvre le Bluetooth', 'Niveau de batterie']],
@@ -1372,6 +1356,6 @@
   MJ.S = S; MJ.AL = function () { return AL; };
   MJ._ = { H: H, answer: answer, ask: ask, errorReply: errorReply, openSheet: openSheet, closeSheet: closeSheet, curSheet: function () { return curSheet; }, esc: esc, J: J, lsGet: lsGet, lsSet: lsSet, uid: uid, now: now, cap: cap, deacc: deacc,
     S: S, saveS: saveS, toast: toast, card: card, withSir: withSir, sir: sir, ack: ack, dur: dur, hm: hm, hmSay: hmSay, addAlarm: addAlarm, removeAlarm: removeAlarm, setAL: function (l) { AL = l; saveAL(); renderTimers(); },
-    HELP: HELP, settingsSheet: settingsSheet, handle: handle, ANDROID: ANDROID, PC: PC, B: B, P: P, KEY: KEY, WMO: WMO, weatherData: weatherData, vigilanceData: vigilanceData, speaking: speaking };
+    HELP: HELP, openLink: openLink, settingsSheet: settingsSheet, handle: handle, ANDROID: ANDROID, PC: PC, B: B, P: P, KEY: KEY, WMO: WMO, weatherData: weatherData, vigilanceData: vigilanceData, speaking: speaking };
   if (MJ.onReady) try { MJ.onReady(); } catch (e) { console.warn(e); } MJ.LS = function () { return LS; }; MJ.orb = orb; MJ.ask = ask; MJ.speakText = speechText; MJ.refresh = refreshInfo;
 })();
