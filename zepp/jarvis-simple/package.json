@@ -1,0 +1,16 @@
+{
+  "name": "jarvis-simple",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cadran « Jarvis Simple » (secours) pour Amazfit T-Rex 3 — Zepp OS (watchface)",
+  "scripts": {
+    "build": "zeus build",
+    "preview": "zeus preview",
+    "images": "python3 outils/generer.py",
+    "test": "node --test test/*.test.mjs"
+  },
+  "devDependencies": {
+    "@zeppos/device-types": "4.0.0"
+  },
+  "type": "module"
+}
