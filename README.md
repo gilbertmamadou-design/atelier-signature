@@ -9,3 +9,5 @@ Bibliothèque incluse : [qrcode-generator](https://github.com/kazuhikoarase/qrco
 ## Applis Android personnelles
 
 Le dossier [`applis/`](applis/) contient des applications Android personnelles (écran d'accueil, galerie, agenda, notes, scan, mesure…), fabriquées automatiquement en APK par GitHub Actions : voir [`applis/README.md`](applis/README.md) et l'onglet **Releases**. La page d'émargement ci-dessus n'est pas concernée.
+
+Le dossier [`zepp/jarvis/`](zepp/jarvis/README.md) contient la mini-appli Zepp OS « Jarvis » (montre Amazfit T-Rex 3), reliée à l'appli Majordome ; elle est fabriquée par GitHub Actions (Zeus CLI) et publiée dans **Releases** (`jarvis-montre-…`).

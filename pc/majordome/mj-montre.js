@@ -66,7 +66,7 @@
   /* ---------------- Vigilance orange / rouge (après chaque lecture de la vigilance) ---------------- */
   function vigAlert(v, at) {
     if (!v || v.lv < 3) return null;
-    return { key: ymd(at || Date.now()) + ':' + v.lv + ':' + (v.list || []).join(','), title: 'Vigilance ' + v.col + (v.dep && v.dep.name ? ' · ' + v.dep.name : ''), text: (v.dep ? v.dep.name + ' : ' : '') + (v.list || []).join(', ') + '. Prudence.' };
+    return { key: ymd(at || Date.now()) + ':' + v.lv + ':' + (v.list || []).join(','), title: 'Vigilance ' + v.col, text: (v.dep ? v.dep.name + ' : ' : '') + (v.list || []).join(', ') + '. Prudence.' };
   }
   MJ.onVigilance = function (v) {
     if (!ON) return;
