@@ -376,7 +376,7 @@
         const fn = notesIn(b.dom);
         let off = delta;   // décalage déjà appliqué à ce paragraphe
         let first = 0;     // première ligne de la page courante
-        let i = 0;
+        let i = 0, moved = false;   // déjà passé à la page suivante : ne plus recommencer (sinon pages sans fin)
         while (i < lines.length) {
           const ln = lines[i], top = ln.boxTop + off, bottom = ln.boxBottom + off;
           const lnNotes = fn.filter((x) => x.y + off > top - 0.5 && x.y + off <= bottom + 0.5);
@@ -389,8 +389,8 @@
           if (wc && k - first === 1 && first === 0 && lines.length > 1) k = first;          // orpheline : 1 seule ligne en bas de page
           else if (wc && lines.length - k === 1 && k - first >= 2) k--;                       // veuve : 1 seule ligne en haut de la page suivante
           if (k === first && first === 0) {
-            if (top - (lines[0].boxTop + off) < 1 && (b.top <= page.contentTop + 1)) { addNotes(page, lnNotes); page.used = Math.max(page.used, bottom); i++; continue; }   // déjà en haut de page : on laisse
-            const before = delta; moveToNext(b); off += delta - before; first = 0; i = 0; continue;
+            if (moved || (top - (lines[0].boxTop + off) < 1 && (b.top <= page.contentTop + 1))) { addNotes(page, lnNotes); page.used = Math.max(page.used, bottom); i++; continue; }   // déjà en haut de page : on laisse
+            const before = delta; moveToNext(b); moved = true; off += delta - before; first = 0; i = 0; continue;
           }
           if (k === first) { addNotes(page, lnNotes); page.used = Math.max(page.used, bottom); i++; continue; }   // la ligne est déjà en haut de page
           const pos = lineStartPos(lines[k]);

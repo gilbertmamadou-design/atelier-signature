@@ -1140,7 +1140,7 @@
                   const fd = desc(fb, 'drawing')[0], fp = desc(fb, 'pict')[0];
                   let alt = null; if (fd) alt = await readDrawing(fd, rc); else if (fp) alt = await readVml(fp, rc);
                   const k2 = await keepOf(c, rc, n.attrs.keep.w, n.attrs.keep.h);
-                  if (alt && alt.type === 'image' && n.attrs.kind === 'textbox') { k2.sig = 'ole'; alt.attrs.keep = k2; n = alt; }
+                  if (alt && alt.type === 'image' && n.attrs.kind === 'textbox') { k2.sig = 'ole'; ['w', 'h', 'wrap', 'al', 'x', 'y'].forEach((k) => { if (n.attrs[k] != null) alt.attrs[k] = n.attrs[k]; }); alt.attrs.keep = k2; n = alt; }   // taille et place : celles du choix (le repli VML d'un groupe est en unités du groupe)
                   else { k2.sig = n.attrs.keep.sig; n.attrs.keep = k2; }
                 }
                 if (n) inl.push(n);
@@ -1253,8 +1253,10 @@
       if (im) {
         const rid = im.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id') || im.getAttribute('r:id');
         const m = await mediaOf(rc.rels, rid, rc.base); if (!m) return null;
-        const style = (shape && shape.getAttribute('style')) || '';
-        const g = (k) => { const mm = new RegExp(k + ':\\s*([\\d.]+)(pt|in|px)?').exec(style); if (!mm) return null; return +mm[1] * ({ in: 72, px: 0.75 }[mm[2]] || 1); };
+        // image dans un groupe VML : la taille de la forme est en unités du groupe (coordsize) ; celle du groupe est en points
+        const grp = desc(el, 'group')[0];
+        const style = ((grp && shape && grp.contains(shape) ? grp : shape) || { getAttribute: () => '' }).getAttribute('style') || '';
+        const g = (k) => { const mm = new RegExp('(?:^|;)\\s*' + k + ':\\s*([\\d.]+)(pt|in|px|cm|mm)?').exec(style); if (!mm) return null; return +mm[1] * ({ in: 72, px: 0.75, cm: 28.35, mm: 2.835 }[mm[2]] || 1); };
         if (rc.part && /WordPictureWatermark|watermark/i.test((shape && shape.getAttribute('id')) || '')) { rc.wm = { m, scale: 60 }; return null; }
         return { type: 'image', attrs: { m, w: g('width') || 100, h: g('height') || 100, alt: (shape && shape.getAttribute('alt')) || '' } };
       }
