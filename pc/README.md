@@ -13,6 +13,7 @@ pc/
   pc-apps.json           liste des applis PC, bibliothèques, adaptations de libellés
   package.json           versions des bibliothèques (npm), pour --vendor
   index.html             lanceur « Suite MAG sur PC »          (généré)
+  versions.json          empreinte et date de chaque appli (« Version du JJ/MM »)   (généré, publié)
   <appli>/               une appli par dossier                  (généré, ne pas modifier)
     index.html             copie de applis/www-<appli>/index.html + injections PC
     manifest.webmanifest   installable, standalone, file_handlers (.pdf…)
@@ -79,8 +80,11 @@ python3 pc/build-pc.py --vendor   # en plus : recopie les bibliothèques depuis 
 
 Le script ne touche jamais `applis/` : les APK ne changent pas. Il affiche `ATTENTION` quand une phrase à adapter
 n'est plus trouvée dans la page Android (elle a été réécrite) : mettre à jour `pc-apps.json`.
-Le déploiement est celui de GitHub Pages (racine de `main`) : pousser suffit. Attention, un commit `[skip ci]`
-ne déclenche pas « pages build and deployment ».
+Le déploiement est celui de GitHub Pages (racine de `main`) : pousser suffit. Chaque envoi (`git push`) déclenche
+« pages build and deployment » sur le dernier commit envoyé, `[skip ci]` compris (constaté le 30/10/2026 : `[skip ci]`
+n'évite que le workflow des APK). Vérifier la publication : API REST
+`GET /repos/<dépôt>/actions/runs?per_page=30`, run « pages build and deployment » dont `head_sha` = `main`, `conclusion`
+= `success`.
 
 ## Ajouter une appli
 
@@ -174,6 +178,19 @@ Présentation, Texte et Tableur sont les applis bureautiques. Leurs pièces comm
 | `office-history.js` | annuler / rétablir illimité (instantanés à partage de structure) |
 | `office.css` | jetons clair/sombre, dialogues, menus, ruban, tailles tactiles |
 
+Fichiers réels (audit d'octobre 2026) — aides communes de `office-core.js` :
+
+| Aide | Rôle |
+|---|---|
+| `O.progress(libellé)` | barre de progression (affichée au-delà de 300 ms ; `prog(i, n)`, `prog.text()`, `prog.end()`) : ouverture, enregistrement, PDF |
+| `O.yieldUi(ms)` | rend la main à l'interface (au plus toutes les `ms`, 40 par défaut) pendant une lecture ou une écriture longue |
+| `O.openZip(données)` | archive .docx/.xlsx/.odt : lecture normale, sinon récupération des parties lisibles d'une archive tronquée (en-têtes locaux, `DecompressionStream`) ; fichier protégé par mot de passe (`O.isEncryptedOffice`) : message clair |
+| `O.parseXmlLenient(xml)` | XML tronqué ou mal fermé complété (balises refermées au bon endroit) plutôt qu'abandonné |
+| `O.unviewableImage(type)`, `O.placeholderImage()`, `O.sniffImage(octets)` | EMF / WMF / TIFF / SVM : montrées par un cadre « Image EMF — conservée telle quelle », jamais converties ni perdues à l'enregistrement ; type reconnu d'après le contenu |
+
+`pres-charts.js` (servi aussi à Texte) : `P.chartFromXml(chartSpace)` et `P.smartFromXml(dataModel, disposition)`, lecture des
+graphiques et SmartArt Office (Présentation et Texte).
+
 Une appli bureautique a `"office": true` dans `pc-apps.json` : `build-pc.py` réécrit `"office/…"` en
 `"../shared/office/…"` et précache tout le dossier. Côté APK, `applis/www-<appli>/office-deps.txt` liste ce qu'il
 faut copier (pièces communes, bibliothèques, licences) : `applis/scripts/office-deps.sh`, lancé par `print-patch.sh`.
@@ -221,6 +238,50 @@ Ctrl+Maj+Entrée (saut de colonne), Ctrl+Alt+F (note de bas de page), Ctrl+Alt+D
 (commentaire), Ctrl+Maj+E (suivi des modifications), Ctrl+K (lien), F9 (mettre à jour les champs), F7 (orthographe),
 Maj+F3 (casse), Alt+Q (rechercher une commande), Ctrl+F1 (replier le ruban). Le panneau « Raccourcis » de l'appli
 (Fichier › À propos) donne la liste complète.
+
+### Texte : fichiers Word réels
+
+- **Gardé tel quel** (`keep` sur les nœuds `image` et `drawing`) : graphiques (`c:chart`, classeur incorporé), SmartArt
+  (`dgm`), groupes (`wpg`), zones de dessin, objets OLE (`w:object`), dessins VML. À l'import : XML d'origine + parties liées
+  (relations suivies, types de `[Content_Types].xml`) rangées dans les médias (donc dans le .magdoc) ; affichage d'après
+  les données (graphique : valeurs en cache ; SmartArt : textes) ou cadre « … (conservé tel quel) ». À l'export .docx :
+  parties recopiées sous un nouveau nom, relations et `wp:docPr` renumérotés, taille mise à jour si l'objet a été
+  redimensionné ; un graphique ou SmartArt modifié dans Texte est réécrit à la manière de Texte (image).
+- **Images** : EMF / WMF / TIFF (et SVM de LibreOffice) affichées par un cadre, gardées telles quelles (.docx, .odt) ; SVG
+  écrit avec son image PNG de repli (`a:blip` + `asvg:svgBlip`) comme Word ; PDF et impression ne s'arrêtent plus sur une
+  image illisible. RTF : `\emfblip` / `\wmetafile` gardés (en-tête « placeable » ajouté au WMF).
+- **Champs et formulaires** : `HYPERLINK` (lien sur le texte affiché), `FORMCHECKBOX` → ☒ / ☐, `FORMTEXT` / `FORMDROPDOWN` et
+  contrôles de contenu → leur texte ; sommaire : paragraphes du bloc qui ne sont pas des entrées (titre « Sommaire »…) gardés.
+  `w:altChunk` (HTML, RTF, texte) repris. Texte inséré puis supprimé (`w:ins` > `w:del`) : supprimé.
+- **Fichiers abîmés** : archive tronquée → parties lisibles récupérées ; XML mal fermé → complété ; partie principale
+  absente, fichier vide, aléatoire, .doc, protégé par mot de passe → message en français (`e.user`, `console.warn`).
+- **Gros documents** : lecture découpée (main rendue toutes les 40 ms) et barre de progression ; tabulations calculées par
+  « tours » de lecture puis d'écriture (un recalcul de mise en page par tour, plus un par paragraphe) ; vignette limitée à
+  la 1re page ; second passage des champs dans une tâche à part. Reste une mise en page complète d'un seul tenant
+  (≈ 0,2-0,4 s pour 150 pages sur la machine d'essai).
+- **Mise en page** : un paragraphe déjà passé à la page suivante (avec ses paragraphes « solidaires ») n'y repasse plus,
+  même s'il ne tient toujours pas (sinon pages créées sans fin et onglet figé) ; image de repli VML d'un groupe (SmartArt
+  enregistré par LibreOffice) : taille prise sur le groupe ou sur le choix DrawingML, pas sur la forme (unités du groupe).
+
+### Tableur : fichiers Excel réels
+
+- **Formules non calculables ici** (fonction inconnue : `MAFONCTION()`, `WEBSERVICE`, `CUBEVALUE`… ; lien vers un autre
+  classeur `[1]Feuille!A1` ; syntaxe non comprise) : `WP.markOpaque()` garde la dernière valeur calculée (`f.keep`), la
+  formule d'origine est réécrite telle quelle (`f.raw`, `_xlfn.` compris) ; avertissement à l'ouverture ; une saisie dans
+  la cellule la remplace. Gardé aussi dans le .magcalc (`raw`).
+- **Liens externes** (`xl/externalLinks/`) et **macros** (`xl/vbaProject.bin`, jamais exécutées) gardés (`wb.keep`) :
+  réécrits dans le .xlsx ; un .xlsm reste un .xlsm (type `macroEnabled`, Excel refuse sinon), « Enregistrer sous » propose
+  .xlsm ; enregistré en .xlsx, les macros sont retirées avec un avertissement. `.xltx` : type modèle.
+- **Codes d'erreur** écrits en anglais dans le fichier (`#N/A`, `#NAME?`…), jamais traduits (`#NOM?` rendait le fichier invalide).
+- **Dessins sans préfixe** (`<wsDr xmlns=…>` d'openpyxl et d'outils de rapport) : préfixés `xdr:`/`a:` avant ExcelJS, qui
+  s'arrêtait sur tout le classeur. Une partie secondaire illisible (dessin, note, tableau, croisé) est retirée et le reste
+  s'ouvre ; dernier recours : SheetJS (valeurs, formules) ; XML abîmé complété (`O.parseXmlLenient`).
+- **Très grandes feuilles** (XML > 4 Mo, ≈ 40 000 lignes et plus) : cellules lues par `bigAside`/`bigLoad` (expressions
+  régulières, par morceaux, formules partagées décalées avec `P.shift`, styles retrouvés par une ligne témoin 1 048 576 lue
+  par ExcelJS) et écrites par `bigWrite` (chaînes en ligne) ; conversion, recalcul (`finishLoadAsync`, par lots de 3 000),
+  écriture .ods et PDF découpés ; barre de progression (`O.progress`). 200 000 lignes × 8 colonnes + 200 000 formules :
+  ouverture ≈ 7 s sans tâche de plus de 110 ms, .xlsx ≈ 10 s (≈ 0,4 s au plus), .ods ≈ 12 s (0,15 s au plus) ; .magcalc
+  ≈ 3 s avec ≈ 0,8 s d'un tenant (`JSON.stringify`).
 
 ### Tableur : repères
 
@@ -466,9 +527,27 @@ l'en-tête `Origin`. Si la liste `HOSTS` change, la changer aussi dans `MAGPC.ne
 ## Hors ligne et mises à jour
 
 `sw.js` précache la page, le shim, l'adaptateur et les bibliothèques de l'appli. Sa `VERSION` est l'empreinte de
-tous ces fichiers : toute modification publiée installe une nouvelle version en arrière-plan, et la page affiche
-« Nouvelle version disponible » (bouton « Mettre à jour » → activation et rechargement). Les polices Google de
-l'Atelier sont gardées en cache après la première visite.
+tous ces fichiers (page, copies `tx-*`/`tb-*`/`pres-*`, pièces communes `shared/office/`, bibliothèques, modules,
+workers) : toute modification publiée change l'empreinte. Les polices Google de l'Atelier sont gardées en cache après la
+première visite.
+
+- **Date de version** : `pc/versions.json` (généré, à publier) garde pour chaque appli son empreinte et le jour où elle a
+  changé (`build-pc.py` met la date du jour, heure de Paris, seulement quand l'empreinte change : `--check` reste stable).
+  `sw.js` porte `DATE` et répond au message `{type:'VERSION'}` par `{app, version, date}`.
+- **Arrivée d'une mise à jour** : le navigateur revérifie `sw.js` à chaque ouverture (et `MAGPC.update()` toutes les heures,
+  et au retour sur la fenêtre après 10 min). Appli **fermée** : la nouvelle version s'installe et s'active d'elle-même
+  (rien à faire). Appli **ouverte** : la nouvelle version attend ; bandeau « Nouvelle version disponible · version du
+  JJ/MM » (« Plus tard » / « Mettre à jour » → `SKIP_WAITING`, rechargement, puis « Mise à jour installée : version du
+  JJ/MM »). L'activation supprime les caches `mag-pc-<appli>-<ancienne version>` ; IndexedDB, `localStorage`, poignées de
+  dossiers et fichiers mémorisées ne sont jamais touchés.
+- **Voir sa version** : bouton **ⓘ** en bas à gauche de chaque appli (≥ 900 px de large) → « À propos » : version du
+  JJ/MM/AAAA, code de version, « Rechercher une mise à jour » (`MAGPC.checkUpdate()` : « Vous avez la dernière version »,
+  ou bandeau), « Toutes les applis ». Présentation, Texte et Tableur : Fichier › À propos (`MAGPC.aboutBlock()`).
+- **Lanceur** (`pc/index.html`, page sans service worker : toujours la dernière publication, cache HTTP de GitHub Pages
+  10 min) : « Version du JJ/MM » sur chaque tuile, date de la Suite, bouton **« Rechercher les mises à jour »** qui fait
+  vérifier toutes les applis déjà ouvertes sur ce PC (`getRegistrations()`, `update()`, message `VERSION`) : « à jour »,
+  « Mise à jour prête » (appli ouverte : cliquer « Mettre à jour » dans sa fenêtre) ou « N appli(s) mise(s) à jour à
+  l'instant » ; il recharge la page si `versions.json` publié est plus récent que la page affichée.
 
 ## Tests
 
@@ -543,6 +622,33 @@ service worker, « Ouvrir avec » .xlsx, Ctrl+S dans le fichier d'origine, récu
 Écran : vidéos de test faites avec ffmpeg en VP9/Opus (le Chromium de Playwright n'a ni H.264 ni AAC : un .mp4 H.264 y sert
 à vérifier « Codec non pris en charge »), `.srt` en Windows-1252, faux lecteurs intégrés (page qui répond au `postMessage`
 de YouTube), serveur à requêtes partielles (Range) pour le lien direct, flux HLS fMP4, second serveur sans CORS.
+
+Audit « fichiers réels » de Texte et Tableur (30/10/2026, hors dépôt : corpus et bancs dans le dossier d'essais) :
+- **Corpus synthétique** fabriqué exprès (`mk_texte.py`, `mk_tableur.py`) : .docx écrit « comme Word » en XML (styles
+  personnalisés, numérotation multiniveau liée aux titres, tableau fusionné et imbriqué à largeurs fixes, PNG / JPEG flottant /
+  TIFF / EMF / WMF ancré / SVG, zone de texte, forme, groupe, SmartArt, graphique avec classeur incorporé, en-têtes et pieds
+  par section, paysage, deux colonnes, notes, champs TOC / PAGE / DATE / REF / HYPERLINK, signets, liens, révisions,
+  commentaires et réponse, contrôles de contenu, formulaires hérités, altChunk, équation, polices absentes, accents et
+  emoji) et ses dérivés LibreOffice (.odt, .docx, .doc, .rtf), document de 150 pages, document à 58 Mo de photos, textes
+  UTF-8 / UTF-16 / Windows-1252, Markdown ; classeur « comme Excel » (formules de 24 sortes dont fonction inconnue, lien
+  externe et WEBSERVICE avec valeurs en cache, noms, tableau structuré, 8 mises en forme conditionnelles, 4 validations,
+  notes, lien, fusion, volets, plan, feuilles masquée et très masquée, protection, image, 3 graphiques, mise en page),
+  .xlsm (vrai `vbaProject.bin`), dates 1904, formats personnalisés, 200 000 lignes, 5 CSV (; , tabulation, UTF-8 avec BOM,
+  UTF-16, Windows-1252, champ sur deux lignes), dérivés LibreOffice (.ods, .xlsx, .xls) ; 13 fichiers abîmés (vide,
+  aléatoire, tronqué, XML invalide, partie absente, relations ou styles illisibles, image manquante, graphique invalide).
+- **Fichiers publics de test** (gardés hors dépôt) : Apache POI `test-data` (Apache-2.0 : 130 .docx, 368 .xlsx/.xlsm/.ods,
+  dont fichiers de fuzzing et chiffrés), LibreOffice `sw/qa/extras/ooxmlexport/data` et `sc/qa/unit/data/xlsx` (MPL-2.0,
+  SmartArt, graphiques, contrôles de contenu, tableaux croisés, mises en forme conditionnelles), python-docx (MIT).
+- **Banc** (`tx-run.js`, `tb-run.js`) : pour chaque fichier, dans `/pc/texte/` ou `/pc/tableur/` (1366×768) : ouverture
+  (durée, tâches longues `PerformanceObserver('longtask')`, barre de progression), contenu comparé au XML source (mots du
+  corps, des en-têtes, notes et commentaires ; cellules : valeurs littérales et valeurs en cache, présence des formules),
+  .magdoc / .magcalc rouvert à l'identique, export au même format relu par python-docx / openpyxl, LibreOffice (PDF : nombre
+  de pages ; classeur recalculé par LibreOffice comparé aux valeurs de Tableur), export rouvert, .odt / .ods, PDF,
+  impression, console.
+- **Essais de non-régression** : Texte `t9.js` (fichiers réalistes, abîmés, protégés, gros document), Tableur `t15.js`
+  (classeur réaliste, macros, 1904, CSV, abîmés, protégés, 60 000 lignes lues et écrites sans tâche de plus de 0,25 s / 0,4 s),
+  PC `t-maj.js` (mises à jour des 29 applis : v1 → v2 → v3 servies à la même adresse, bandeau, « Rechercher une mise à jour »,
+  caches, données IndexedDB / localStorage / fichiers mémorisés intactes, hors ligne après la mise à jour, lanceur).
 
 ## Licences des bibliothèques (shared/vendor/LICENSES)
 
