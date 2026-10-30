@@ -575,6 +575,25 @@
       "data": { "ls": ["majordome:"], "note": "Le modèle vocal (IndexedDB « /vosk ») n'est pas exporté : il se réinstalle depuis les réglages." }
     },
     {
+      "id": "fond-jarvis",
+      "android": "majordome",
+      "page": "pc/shared/fond-jarvis/index.html",
+      "icon": "pc/shared/fond-jarvis/icon-512.png",
+      "name": "Fond Jarvis",
+      "short_name": "Fond Jarvis",
+      "description": "Fond d'écran animé (Lively Wallpaper ou plein écran) : sphère, horloge, météo, titres, système, raccourcis, et l'assistant qui répond",
+      "theme_color": "#030a12",
+      "background_color": "#030a12",
+      "vendor": [],
+      "pcconf": { "aboutButton": false, "installPill": false },
+      "copies": { "fj.css": "pc/shared/fond-jarvis/fj.css", "fj-icons.js": "pc/shared/fond-jarvis/fj-icons.js", "fj-hud.js": "pc/shared/fond-jarvis/fj-hud.js", "fj-app.js": "pc/shared/fond-jarvis/fj-app.js", "fj-jarvis.js": "pc/shared/fond-jarvis/fj-jarvis.js", "mj-nlu.js": "applis/www-majordome/mj-nlu.js", "mj-orb.js": "applis/www-majordome/mj-orb.js" },
+      "extra": ["fj-version.js", "../shared/apps/majordome.js", "../shared/apps/agenda.js"],
+      "raw": { "guide.html": "pc/shared/fond-jarvis/guide.html", "apercu.jpg": "pc/shared/fond-jarvis/thumbnail.jpg" },
+      "lively": { "zip": "fond-jarvis-lively.zip", "files": { "index.html": "pc/shared/fond-jarvis/index.html", "fj.css": "pc/shared/fond-jarvis/fj.css", "fj-icons.js": "pc/shared/fond-jarvis/fj-icons.js", "fj-hud.js": "pc/shared/fond-jarvis/fj-hud.js", "fj-app.js": "pc/shared/fond-jarvis/fj-app.js", "fj-jarvis.js": "pc/shared/fond-jarvis/fj-jarvis.js", "LivelyInfo.json": "pc/shared/fond-jarvis/LivelyInfo.json", "LivelyProperties.json": "pc/shared/fond-jarvis/LivelyProperties.json", "thumbnail.jpg": "pc/shared/fond-jarvis/thumbnail.jpg", "preview.gif": "pc/shared/fond-jarvis/preview.gif", "LISEZ-MOI.txt": "pc/shared/fond-jarvis/LISEZ-MOI.txt", "agenda/vide.ics": "pc/shared/fond-jarvis/agenda/vide.ics", "mj-nlu.js": "applis/www-majordome/mj-nlu.js", "mj-orb.js": "applis/www-majordome/mj-orb.js" } },
+      "patches": [],
+      "data": { "ls": ["fond-jarvis:"], "note": "Réglages, raccourcis, agenda importé et minuteurs du fond. Le fond installé dans Lively a son propre stockage (réglages de Lively › Personnaliser) : il n'est pas concerné par cet export." }
+    },
+    {
       "id": "tableur",
       "android": "tableur",
       "office": true,

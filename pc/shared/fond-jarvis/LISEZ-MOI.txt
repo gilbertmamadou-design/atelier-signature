@@ -1,0 +1,24 @@
+Fond Jarvis — Suite MAG sur PC
+==============================
+
+Fond d'écran animé et interactif pour Lively Wallpaper (Windows 10 et 11).
+
+Installer
+  1. Installez Lively Wallpaper (gratuit) depuis le Microsoft Store :
+     https://apps.microsoft.com/detail/9ntm2qc6qws7  (éditeur : rocksdanister)
+  2. Ouvrez Lively, puis glissez ce fichier .zip dans sa fenêtre (Bibliothèque).
+  3. Cliquez sur la vignette « Fond Jarvis (Suite MAG) » : le fond s'affiche.
+
+Régler
+  - Dans Lively : clic droit sur la vignette › Personnaliser (thème, disposition,
+    ville, seuil de vent, voix, nom de l'assistant, zone libre pour les icônes…).
+  - Sur le fond : bouton ⚙ en bas à droite (raccourcis, agenda .ics, voix…).
+  - Pour taper des commandes : Lively › Paramètres › Fond d'écran ›
+    Périphérique d'interaction › cocher « Clavier ». Puis Ctrl+Espace.
+
+Guide complet : https://gilbertmamadou-design.github.io/atelier-signature/pc/fond-jarvis/guide.html
+Dernière version : https://gilbertmamadou-design.github.io/atelier-signature/pc/fond-jarvis/fond-jarvis-lively.zip
+
+Réseau utilisé : Open-Meteo (météo), franceinfo (titres), et une fois par jour
+la date de la dernière version du fond. Rien d'autre ne sort de l'ordinateur.
+Création originale (aucune marque ni élément d'une œuvre existante).

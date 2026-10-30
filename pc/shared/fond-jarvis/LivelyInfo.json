@@ -1,0 +1,17 @@
+{
+  "AppVersion": "2.2.1.0",
+  "Title": "Fond Jarvis (Suite MAG)",
+  "Thumbnail": "thumbnail.jpg",
+  "Preview": "preview.gif",
+  "Desc": "HUD animé : sphère de particules, anneaux, circuits, horloge, météo (Open-Meteo), titres franceinfo, système (CPU, RAM, GPU, réseau), musique en cours, raccourcis, et l'assistant qui répond au clavier. Réglages : clic droit › Personnaliser, ou ⚙ en bas à droite.",
+  "Author": "Suite MAG sur PC",
+  "License": "Création originale pour la Suite MAG sur PC",
+  "Contact": "https://gilbertmamadou-design.github.io/atelier-signature/pc/fond-jarvis/guide.html",
+  "Type": 1,
+  "FileName": "index.html",
+  "Arguments": "--system-information --system-nowplaying --pause-event true",
+  "IsAbsolutePath": false,
+  "Id": null,
+  "Tags": ["hud", "horloge", "météo", "assistant", "système"],
+  "Version": 1
+}

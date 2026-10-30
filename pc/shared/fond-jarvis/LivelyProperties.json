@@ -1,0 +1,18 @@
+{
+  "titre": { "type": "label", "value": "Fond Jarvis · Suite MAG" },
+  "theme": { "type": "dropdown", "text": "Thème", "value": 0, "items": ["Cyan", "Bleu", "Vert", "Ambre", "Rouge"] },
+  "layout": { "type": "dropdown", "text": "Disposition", "value": 0, "items": ["Complet", "Épuré (horloge, sphère, raccourcis)", "Sphère seule"] },
+  "city": { "type": "textbox", "text": "Ville de la météo (vide : position détectée)", "value": "" },
+  "windLimit": { "type": "slider", "text": "Seuil de vent chantier (km/h)", "value": 45, "min": 20, "max": 90, "step": 1 },
+  "assistantName": { "type": "textbox", "text": "Nom de l'assistant", "value": "Majordome" },
+  "voiceOn": { "type": "checkbox", "text": "Réponse à voix haute", "value": true },
+  "freeLeft": { "type": "slider", "text": "Zone libre à gauche, pour les icônes (px)", "value": 140, "min": 0, "max": 600, "step": 10 },
+  "textScale": { "type": "slider", "text": "Taille du texte (%)", "value": 100, "min": 70, "max": 160, "step": 5 },
+  "effects": { "type": "slider", "text": "Intensité des effets (%)", "value": 70, "min": 0, "max": 100, "step": 5 },
+  "reduceMotion": { "type": "checkbox", "text": "Réduire les animations", "value": false },
+  "fpsMax": { "type": "slider", "text": "Images par seconde (maximum)", "value": 30, "min": 10, "max": 30, "step": 5 },
+  "batterySaver": { "type": "checkbox", "text": "Économie sur batterie (portable)", "value": true },
+  "newsCount": { "type": "slider", "text": "Nombre de titres d'actualité", "value": 7, "min": 5, "max": 10, "step": 1 },
+  "icsFile": { "type": "folderDropdown", "text": "Agenda (.ics)", "value": "vide.ics", "folder": "agenda", "filter": "*.ics" },
+  "openSettings": { "type": "button", "text": "Raccourcis et autres réglages", "value": "Ouvrir sur le fond" }
+}

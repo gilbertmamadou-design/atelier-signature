@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fond Jarvis : installation</title>
+<style>
+  :root { --bg: #f6f8fa; --card: #fff; --tx: #17212b; --tx2: #4d5b68; --acc: #0a7ea4; --line: #d8e0e6; --warn: #a15c00; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #071019; --card: #0c1a26; --tx: #e3f3fa; --tx2: #9db3c2; --acc: #3fe0ff; --line: #1d3344; --warn: #ffb43b; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--tx); font: 17px/1.55 "Segoe UI", system-ui, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 24px 16px 60px; }
+  h1 { font-size: 30px; margin: 8px 0 4px; } h2 { font-size: 21px; margin: 34px 0 10px; color: var(--acc); }
+  .sub { color: var(--tx2); margin: 0 0 18px; }
+  img.hero { width: 100%; border-radius: 10px; border: 1px solid var(--line); display: block; }
+  ol.steps { counter-reset: s; list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+  ol.steps > li { counter-increment: s; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px 14px 62px; position: relative; }
+  ol.steps > li::before { content: counter(s); position: absolute; left: 16px; top: 14px; width: 32px; height: 32px; border-radius: 50%; background: var(--acc); color: var(--bg); font-weight: 700; display: grid; place-items: center; }
+  .btn { display: inline-block; background: var(--acc); color: var(--bg); text-decoration: none; font-weight: 600; padding: 9px 16px; border-radius: 8px; margin: 6px 8px 0 0; }
+  .btn.alt { background: transparent; color: var(--acc); border: 1px solid var(--acc); }
+  .note { border-left: 4px solid var(--warn); background: var(--card); padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 12px 0; }
+  kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 1px 6px; font: 14px Consolas, monospace; background: var(--card); }
+  b.ui { color: var(--acc); }
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; font-size: 15.5px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--acc); }
+  code { font: 14.5px Consolas, monospace; }
+  ul li { margin: 4px 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Fond Jarvis</h1>
+  <p class="sub">Un fond d'écran animé pour Windows : horloge, météo, actualités, état du PC, raccourcis, et l'assistant qui vous répond. Guide en 5 minutes.</p>
+  <img class="hero" src="apercu.jpg" alt="Aperçu du fond d'écran : sphère de particules entourée d'anneaux, panneaux horloge, météo, système et actualités">
+
+  <h2>Installer (une seule fois)</h2>
+  <ol class="steps">
+    <li><b>Installer Lively Wallpaper</b>, application gratuite (logiciel libre) qui affiche une page web en fond d'écran.<br>
+      <a class="btn" href="https://apps.microsoft.com/detail/9ntm2qc6qws7" target="_blank" rel="noopener">Ouvrir Lively dans le Microsoft Store</a><br>
+      <small>Vérifiez que l'éditeur est <b>rocksdanister</b> et que l'appli est <b>gratuite</b> (il existe des copies payantes au nom proche, comme « Lively Wallpaper Metro »). Cliquez <b class="ui">Obtenir</b>, puis ouvrez Lively.</small></li>
+    <li><b>Télécharger le fond</b> (fichier .zip, à ne pas décompresser) :<br>
+      <a class="btn" href="fond-jarvis-lively.zip">Télécharger fond-jarvis-lively.zip</a></li>
+    <li><b>Glisser le .zip dans la fenêtre de Lively</b> (page <b class="ui">Bibliothèque</b>). La vignette « Fond Jarvis (Suite MAG) » apparaît.<br>
+      <small>Autre façon : bouton <b class="ui">Ajouter</b> (+) › <b class="ui">Sélectionner un fichier</b> › choisir le .zip.</small></li>
+    <li><b>Cliquer sur la vignette</b> (ou clic droit › <b class="ui">Définir comme fond d'écran</b>). Le fond s'affiche derrière les icônes du bureau.</li>
+    <li><b>Activer le clavier</b> pour parler à l'assistant au clavier : Lively › <b class="ui">Paramètres</b> (roue dentée) › <b class="ui">Fond d'écran</b> › <b class="ui">Périphérique d'interaction</b> › cochez <b class="ui">Clavier</b>. La souris marche déjà.</li>
+  </ol>
+
+  <h2>Plusieurs écrans</h2>
+  <p>Dans Lively, l'icône d'écran en haut (<b class="ui">Choisir l'écran</b>) puis <b class="ui">Sélectionner la disposition du fond d'écran</b> :</p>
+  <ul>
+    <li><b>Écran</b> : un fond par écran (vous choisissez l'écran avant de cliquer la vignette). Chaque écran a ses propres réglages : par exemple « Complet » sur le grand écran, « Sphère seule » sur le portable.</li>
+    <li><b>Dupliquer</b> : le même fond sur chaque écran.</li>
+    <li><b>Étendre</b> : un seul fond à cheval sur tous les écrans (déconseillé ici : la sphère tomberait entre deux écrans).</li>
+  </ul>
+
+  <h2>Régler</h2>
+  <ul>
+    <li><b>Dans Lively</b> : clic droit sur la vignette › <b class="ui">Personnaliser</b> : thème (cyan, bleu, vert, ambre, rouge), disposition (Complet, Épuré, Sphère seule), ville de la météo, seuil de vent chantier, voix, nom de l'assistant (« Jarvis » par exemple), zone libre à gauche pour les icônes, taille du texte, intensité des effets, animations réduites, images par seconde, économie sur batterie, nombre de titres, agenda (.ics).</li>
+    <li><b>Sur le fond</b> : le bouton <b class="ui">⚙</b> au bout de la barre de commande ouvre tous les réglages, dont l'éditeur de <b>raccourcis</b> (ajouter, retirer, renommer, choisir l'icône).</li>
+    <li><b>Icônes du bureau cachées ?</b> Augmentez la <b>zone libre à gauche</b> (140 px par défaut, une colonne d'icônes fait environ 80 px).</li>
+  </ul>
+
+  <h2>Parler à l'assistant</h2>
+  <ul>
+    <li>Cliquez la <b>sphère</b>, ou faites <kbd>Ctrl</kbd> + <kbd>Espace</kbd> quand le bureau est affiché, puis tapez : « quelle heure est-il », « quel temps fait-il demain », « minuteur de 10 minutes », « combien font 15 % de 240 », « les titres », « ajoute du pain à la liste de courses », « ouvre le tableur », « ouvre les paramètres Wi-Fi », « thème vert », « aide »…</li>
+    <li>Il répond <b>par écrit</b> et <b>à voix haute</b> (voix française de Windows). Pas de son ? Lively › Paramètres › <b class="ui">Son</b> : volume au-dessus de 0. Par défaut, Lively ne joue le son que quand le bureau est au premier plan.</li>
+    <li><b>À la voix</b> : dans Lively, le fond d'écran n'a pas accès au micro. Le bouton micro ouvre <b>Majordome</b> (Suite MAG), qui écoute hors ligne. Dans le navigateur (version ci-dessous), le micro du fond marche si le modèle vocal est installé dans Majordome.</li>
+  </ul>
+
+  <h2>Raccourcis possibles</h2>
+  <table>
+    <tr><th>Type</th><th>Exemples</th><th>Ce qui s'ouvre</th></tr>
+    <tr><td>Applis de la Suite MAG</td><td>Texte, Tableur, Présentation, Lecteur PDF, Rangement, Écran, Actualités, Majordome…</td><td>Le navigateur par défaut, sur l'appli</td></tr>
+    <tr><td>Sites</td><td><code>https://…</code></td><td>Le navigateur par défaut</td></tr>
+    <tr><td>Réglages de Windows (documentés par Microsoft)</td><td><code>ms-settings:</code>, <code>ms-settings:network-wifi</code>, <code>…:bluetooth</code>, <code>…:display</code>, <code>…:sound</code>, <code>…:powersleep</code>, <code>…:batterysaver</code>, <code>…:windowsupdate</code></td><td>Paramètres de Windows, à la bonne page</td></tr>
+    <tr><td>Applis de Windows (documentées)</td><td><code>mailto:</code>, <code>ms-photos:</code>, <code>ms-windows-store://home</code>, <code>msnweather://forecast</code></td><td>Courrier, Photos, Store, Météo</td></tr>
+    <tr><td>Applis de Windows (courantes, non documentées)</td><td><code>ms-clock:</code>, <code>calculator:</code>, <code>ms-screenclip:</code></td><td>Horloge, Calculatrice, Capture d'écran</td></tr>
+    <tr><td>À essayer</td><td><code>file:///C:/</code></td><td>Explorateur (selon la version de Lively)</td></tr>
+  </table>
+  <p class="note"><b>Impossible depuis une page web</b> (Lively compris) : lancer un programme .exe quelconque, éteindre, redémarrer, verrouiller ou mettre en veille Windows, régler le volume. Pour verrouiller : <kbd>Windows</kbd> + <kbd>L</kbd>. Le raccourci « Alimentation et veille » ouvre la page de réglages correspondante.</p>
+
+  <h2>Batterie et performances</h2>
+  <ul>
+    <li>Lively met le fond <b>en pause</b> quand une appli est en plein écran (réglage par défaut) : le fond ne consomme alors presque rien.</li>
+    <li>Sur un portable débranché, le fond passe à 15 images par seconde et allège la sphère (réglage « Économie sur batterie »).</li>
+    <li>Encore trop gourmand ? Réglez <b>Images par seconde</b> sur 15 ou 10, ou cochez <b>Réduire les animations</b>.</li>
+  </ul>
+
+  <h2>Sans Lively</h2>
+  <p>Le même fond s'ouvre comme une page web (plein écran avec <kbd>F11</kbd>), dans la Suite MAG sur PC. Là, il partage avec Majordome et Agenda (même navigateur) les notes, listes, l'agenda et le modèle vocal.</p>
+  <a class="btn alt" href="./">Ouvrir la version web</a> <a class="btn alt" href="../">Toutes les applis de la Suite</a>
+
+  <h2>Mettre à jour</h2>
+  <p>Le fond vérifie une fois par jour si une nouvelle version existe (⚙ › <b>À propos</b>). Pour l'installer : téléchargez le nouveau .zip, supprimez l'ancienne vignette dans Lively (clic droit › <b class="ui">Supprimer</b>) et glissez le nouveau .zip. Les réglages faits dans le panneau ⚙ sont gardés.</p>
+
+  <h2>Problèmes fréquents</h2>
+  <ul>
+    <li><b>Écran noir</b> : Lively › Paramètres › <b class="ui">Fond d'écran</b> : moteur web <b>WebView2</b> (par défaut). WebView2 est fourni avec Windows ; s'il manque, Lively propose de l'installer.</li>
+    <li><b>Météo « Position inconnue »</b> : saisissez votre ville (Personnaliser › Ville de la météo).</li>
+    <li><b>Les touches ne font rien</b> : cochez <b>Clavier</b> (étape 5) et cliquez d'abord sur le bureau.</li>
+    <li><b>Pas de jauges CPU / RAM</b> : elles n'existent que dans Lively (données fournies par Lively). Dans le navigateur, le panneau Système est masqué.</li>
+  </ul>
+  <p class="sub" style="margin-top:30px">Création originale de la Suite MAG sur PC. Données utilisées : Open-Meteo (météo), franceinfo (titres). Rien d'autre ne quitte l'ordinateur.</p>
+</main>
+</body>
+</html>
