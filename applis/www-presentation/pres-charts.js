@@ -120,6 +120,45 @@
     return s + '</svg>';
   };
 
+  /* ---------------- lecture des graphiques et SmartArt Office (pptx, docx) ---------------- */
+  const xk = (n, name) => n ? Array.from(n.children).filter((c) => c.localName === name) : [];
+  const x1 = (n, name) => n ? Array.from(n.children).find((c) => c.localName === name) || null : null;
+  const xd = (n, name) => n ? Array.from(n.getElementsByTagNameNS('*', name)) : [];
+  const xnum = (v, d) => { const x = parseFloat(v); return isNaN(x) ? d : x; };
+  /** <c:chartSpace> (XML DrawingML) → modèle de graphique, d'après les valeurs en cache ; null si le type n'est pas géré */
+  P.chartFromXml = function (cx) {
+    const pa = xd(cx, 'plotArea')[0]; if (!pa) return null;
+    const types = ['barChart', 'bar3DChart', 'lineChart', 'line3DChart', 'areaChart', 'pieChart', 'pie3DChart', 'doughnutChart', 'scatterChart'];
+    const tn = Array.from(pa.children).find((c) => types.indexOf(c.localName) >= 0); if (!tn) return null;
+    const ch = P.newChart('bar');
+    const dirN = x1(tn, 'barDir'), grp = x1(tn, 'grouping');
+    const stacked = grp && /stacked/i.test(grp.getAttribute('val'));
+    if (/bar/i.test(tn.localName)) ch.kind = dirN && dirN.getAttribute('val') === 'bar' ? (stacked ? 'stackedH' : 'barH') : (stacked ? 'stacked' : 'bar');
+    else if (/line/i.test(tn.localName)) ch.kind = 'line'; else if (/area/i.test(tn.localName)) ch.kind = 'area'; else if (/doughnut/i.test(tn.localName)) ch.kind = 'doughnut'; else if (/pie/i.test(tn.localName)) ch.kind = 'pie'; else ch.kind = 'scatter';
+    const vals = (n) => { const c = n && (xd(n, 'numCache')[0] || xd(n, 'strCache')[0]); if (!c) return []; const out = []; xd(c, 'pt').forEach((p) => { out[+p.getAttribute('idx')] = x1(p, 'v') ? x1(p, 'v').textContent : ''; }); return out; };
+    const sers = xk(tn, 'ser');
+    ch.series = sers.map((s, i) => { const tx = x1(s, 'tx'); const name = tx ? xd(tx, 'v').map((v) => v.textContent).join('') || xd(tx, 't').map((v) => v.textContent).join('') : 'Série ' + (i + 1); return { name, values: vals(x1(s, 'val') || x1(s, 'yVal')).map((v) => xnum(v, 0)) }; });
+    const cats = vals(sers[0] && (x1(sers[0], 'cat') || x1(sers[0], 'xVal')));
+    ch.cats = cats.length ? cats.map(String) : (ch.series[0] ? ch.series[0].values.map((_, i) => String(i + 1)) : []);
+    const ti = xd(cx, 'title')[0]; ch.title = ti ? xd(ti, 't').map((x) => x.textContent).join('') : '';
+    const lg = xd(cx, 'legend')[0]; const lp = lg && xd(lg, 'legendPos')[0]; ch.legend = !lg ? 'none' : lp ? ({ b: 'bottom', t: 'top', r: 'right', l: 'right', tr: 'right' }[lp.getAttribute('val')] || 'bottom') : 'right';
+    ch.labels = xd(tn, 'showVal').some((x) => x.getAttribute('val') === '1') || xd(tn, 'showPercent').some((x) => x.getAttribute('val') === '1');
+    if (ch.kind === 'pie' || ch.kind === 'doughnut') ch.labels = xd(tn, 'showPercent').some((x) => x.getAttribute('val') === '1') || ch.labels;
+    return ch;
+  };
+  /** Données d'un SmartArt (dataModel) et identifiant de disposition → modèle SmartArt (textes et niveaux) */
+  P.smartFromXml = function (dm, layoutId) {
+    const pts = {}; xd(dm, 'pt').forEach((p) => { const t = p.getAttribute('type') || 'node'; pts[p.getAttribute('modelId')] = { t, text: xd(p, 't').filter((x) => x.namespaceURI && /drawingml\/2006\/main/.test(x.namespaceURI)).map((x) => x.textContent).join('') }; });
+    const kidsOf = {}; xd(dm, 'cxn').forEach((c) => { if ((c.getAttribute('type') || 'parOf') !== 'parOf') return; const s = c.getAttribute('srcId'); (kidsOf[s] = kidsOf[s] || []).push({ id: c.getAttribute('destId'), o: +(c.getAttribute('srcOrd') || 0) }); });
+    const root = Object.keys(pts).find((k) => pts[k].t === 'doc'); const items = [];
+    const walk = (id, lv) => (kidsOf[id] || []).sort((a, b) => a.o - b.o).forEach((k) => { const p = pts[k.id]; if (!p || p.t !== 'node') return; items.push({ text: p.text, level: Math.min(3, lv) }); walk(k.id, lv + 1); });
+    if (root) walk(root, 0);
+    if (!items.length) Object.values(pts).forEach((p) => { if (p.t === 'node' && p.text) items.push({ text: p.text, level: 0 }); });
+    const L = String(layoutId || '');
+    const kind = /cycle/i.test(L) ? 'cycle' : /hierarchy|orgChart/i.test(L) ? 'hierarchy' : /chevron/i.test(L) ? 'chevron' : /pyramid/i.test(L) ? 'pyramid' : /process|arrow/i.test(L) ? 'process' : /list/i.test(L) ? 'list' : 'blocks';
+    return items.length ? { kind, palette: 'accent', items } : null;
+  };
+
   /* ---------------- SmartArt ---------------- */
   P.SMART_KINDS = [['process', 'Processus', 'arrow-right-left'], ['chevron', 'Chevrons', 'chevrons-right'], ['cycle', 'Cycle', 'refresh-cw'], ['hierarchy', 'Hiérarchie', 'network'], ['list', 'Liste verticale', 'list'], ['blocks', 'Liste en blocs', 'layout-grid'], ['pyramid', 'Pyramide', 'triangle'], ['venn', 'Venn', 'circles-intersect'], ['radial', 'Radial', 'circle-dot'], ['timeline', 'Chronologie', 'milestone'], ['steps', 'Étapes numérotées', 'list-ordered']];
   P.newSmart = (kind) => ({ kind: kind || 'process', palette: 'accent', items: [{ text: 'Préparer', level: 0 }, { text: 'Réaliser', level: 0 }, { text: 'Vérifier', level: 0 }, { text: 'Améliorer', level: 0 }] });

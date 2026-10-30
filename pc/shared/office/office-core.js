@@ -38,8 +38,138 @@
   O.extOf = (n) => ((String(n || '').match(/\.([a-z0-9]+)$/i) || [])[1] || '').toLowerCase();
   O.baseName = (n) => String(n || '').replace(/\.[a-z0-9]+$/i, '');
   O.safeName = (n, ext) => { n = String(n || '').replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_').trim() || 'document'; if (ext && !n.toLowerCase().endsWith(ext)) n += ext; return n.length > 140 ? n.slice(0, 130) + (ext || '') : n; };
-  O.MIME = { pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml', bmp: 'image/bmp', mp4: 'video/mp4', webm: 'video/webm', ogv: 'video/ogg', mov: 'video/quicktime', m4v: 'video/mp4', mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg', m4a: 'audio/mp4', aac: 'audio/aac', opus: 'audio/ogg', flac: 'audio/flac', txt: 'text/plain', json: 'application/json', zip: 'application/zip', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', magpres: 'application/x-magpres', csv: 'text/csv', html: 'text/html', emf: 'image/x-emf', wmf: 'image/x-wmf', tif: 'image/tiff', tiff: 'image/tiff' };
+  O.MIME = { pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml', bmp: 'image/bmp', mp4: 'video/mp4', webm: 'video/webm', ogv: 'video/ogg', mov: 'video/quicktime', m4v: 'video/mp4', mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg', m4a: 'audio/mp4', aac: 'audio/aac', opus: 'audio/ogg', flac: 'audio/flac', txt: 'text/plain', json: 'application/json', zip: 'application/zip', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', magpres: 'application/x-magpres', csv: 'text/csv', html: 'text/html', emf: 'image/x-emf', wmf: 'image/x-wmf', tif: 'image/tiff', tiff: 'image/tiff', svm: 'image/x-svm' };
   O.mimeOf = (n, d) => O.MIME[O.extOf(n)] || d || 'application/octet-stream';
+  /** Images que le navigateur ne sait pas afficher (EMF / WMF de Word ou PowerPoint, TIFF…) : gardées telles quelles
+      à l'enregistrement, montrées par un cadre (O.placeholderImage) */
+  O.unviewableImage = (type) => /(^|\/)(x-)?(emf|wmf|wmz|emz|svm)$|tiff?$|x-pict|x-wpg|^image\/x-ms-bmp-rle$/i.test(String(type || ''));
+  /** Type d'une image d'après ses premiers octets (fichiers sans extension, extension trompeuse) ; null si inconnu */
+  O.sniffImage = function (u8) {
+    if (!u8 || u8.length < 12) return null;
+    const s = (a, b) => String.fromCharCode.apply(null, u8.subarray(a, b));
+    if (u8[0] === 0x89 && s(1, 4) === 'PNG') return 'image/png';
+    if (u8[0] === 0xFF && u8[1] === 0xD8) return 'image/jpeg';
+    if (s(0, 3) === 'GIF') return 'image/gif';
+    if (s(0, 4) === 'RIFF' && s(8, 12) === 'WEBP') return 'image/webp';
+    if (s(0, 2) === 'BM') return 'image/bmp';
+    if ((u8[0] === 0x49 && u8[1] === 0x49 && u8[2] === 42) || (u8[0] === 0x4D && u8[1] === 0x4D && u8[3] === 42)) return 'image/tiff';
+    if (s(0, 6) === 'VCLMTF') return 'image/x-svm';
+    if (u8.length > 44 && u8[0] === 1 && u8[1] === 0 && u8[2] === 0 && u8[3] === 0 && s(40, 44) === ' EMF') return 'image/x-emf';
+    if ((u8[0] === 0xD7 && u8[1] === 0xCD && u8[2] === 0xC6 && u8[3] === 0x9A) || (u8[0] === 1 && u8[1] === 0 && u8[2] === 9 && u8[3] === 0)) return 'image/x-wmf';
+    const head = s(0, Math.min(u8.length, 300)); if (/<svg[\s>]/.test(head) || /^\s*<\?xml[\s\S]*<svg/.test(head)) return 'image/svg+xml';
+    return null;
+  };
+  O.imageKind = (type) => { const t = String(type || ''); return /emf/i.test(t) ? 'EMF' : /wmf/i.test(t) ? 'WMF' : /tif/i.test(t) ? 'TIFF' : /svm/i.test(t) ? 'SVM' : /pict/i.test(t) ? 'PICT' : (t.split('/')[1] || 'image').toUpperCase(); };
+  const phCache = {};
+  /** Cadre SVG (data: URL) à la place d'une image illisible ou d'un objet non affiché ; w, h en pixels (proportions seulement) */
+  O.placeholderImage = function (label, sub, w, h) {
+    w = Math.max(60, Math.round(w || 320)); h = Math.max(30, Math.round(h || 180));
+    const k = label + '|' + sub + '|' + w + 'x' + h; if (phCache[k]) return phCache[k];
+    const fs = Math.max(9, Math.min(18, Math.round(Math.min(w / 14, h / 4))));
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '"><rect x="1" y="1" width="' + (w - 2) + '" height="' + (h - 2) + '" fill="#F1F3F5" stroke="#868E96" stroke-width="1.5" stroke-dasharray="6 4"/>' +
+      '<path d="M' + (w / 2 - fs) + ' ' + (h / 2 - fs * 1.6) + 'h' + 2 * fs + 'v' + 1.4 * fs + 'h' + -2 * fs + 'z" fill="none" stroke="#868E96" stroke-width="1.5"/>' +
+      '<text x="50%" y="' + (h / 2 + fs * 0.9) + '" text-anchor="middle" font-family="Arial,sans-serif" font-size="' + fs + '" fill="#495057" font-weight="bold">' + O.esc(label) + '</text>' +
+      (sub && h > fs * 4 ? '<text x="50%" y="' + (h / 2 + fs * 2.3) + '" text-anchor="middle" font-family="Arial,sans-serif" font-size="' + Math.round(fs * 0.75) + '" fill="#868E96">' + O.esc(sub) + '</text>' : '') + '</svg>';
+    return (phCache[k] = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg));
+  };
+  /* ---------------- fichiers abîmés : archive et XML ---------------- */
+  /** Fichier Office protégé par mot de passe (conteneur OLE avec « EncryptedPackage ») */
+  O.isEncryptedOffice = function (u8) {
+    if (!(u8[0] === 0xD0 && u8[1] === 0xCF && u8[2] === 0x11 && u8[3] === 0xE0)) return false;
+    const pat = [69, 0, 110, 0, 99, 0, 114, 0, 121, 0, 112, 0, 116, 0, 101, 0, 100, 0, 80, 0, 97, 0, 99, 0, 107, 0, 97, 0, 103, 0, 101, 0]; // « EncryptedPackage » en UTF-16
+    const n = Math.min(u8.length, 1 << 20);
+    outer: for (let i = 0; i < n - pat.length; i++) { if (u8[i] !== 69) continue; for (let k = 1; k < pat.length; k++) if (u8[i + k] !== pat[k]) continue outer; return true; }
+    return false;
+  };
+  O.ENCRYPTED_MSG = 'Ce fichier est protégé par un mot de passe. Ouvrez-le dans Word, Excel ou LibreOffice, retirez le mot de passe (Fichier › Informations › Protéger), enregistrez-le, puis rouvrez-le ici.';
+  /** Archive zip (.docx, .xlsx, .odt…) : lecture normale, sinon récupération des fichiers lisibles d'une archive tronquée
+      ou abîmée (en-têtes locaux). → {zip, repaired, lost} ; erreur en français si rien n'est lisible. */
+  O.openZip = async function (data) {
+    const u8 = data instanceof Uint8Array ? data : new Uint8Array(data instanceof Blob ? await data.arrayBuffer() : data);
+    if (O.isEncryptedOffice(u8)) { const e = new Error(O.ENCRYPTED_MSG); e.user = true; throw e; }
+    try { return { zip: await window.JSZip.loadAsync(u8), repaired: false, lost: [] }; }
+    catch (e0) {
+      const z = new window.JSZip(); const lost = []; let found = 0;
+      const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+      for (let i = 0; i + 30 <= u8.length; i++) {
+        if (u8[i] !== 0x50 || u8[i + 1] !== 0x4B || u8[i + 2] !== 3 || u8[i + 3] !== 4) continue;
+        const flags = dv.getUint16(i + 6, true), method = dv.getUint16(i + 8, true); let csize = dv.getUint32(i + 18, true);
+        const nl = dv.getUint16(i + 26, true), xl = dv.getUint16(i + 28, true), start = i + 30 + nl + xl;
+        if (start > u8.length) break;
+        const name = new TextDecoder(flags & 0x800 ? 'utf-8' : 'utf-8').decode(u8.subarray(i + 30, i + 30 + nl));
+        if (!name || /\/$/.test(name)) { i = start - 1; continue; }
+        if ((flags & 8) || !csize) { // taille inconnue (descripteur) : jusqu'à l'en-tête suivant
+          let j = start; while (j + 4 <= u8.length && !(u8[j] === 0x50 && u8[j + 1] === 0x4B && (u8[j + 2] === 3 || u8[j + 2] === 1 || u8[j + 2] === 7))) j++; csize = j - start;
+        }
+        const raw = u8.subarray(start, Math.min(u8.length, start + csize)); const whole = start + csize <= u8.length;
+        try {
+          let out;
+          if (method === 0) out = raw;
+          else if (method === 8 && typeof DecompressionStream !== 'undefined') {
+            const ds = new DecompressionStream('deflate-raw'); const w = ds.writable.getWriter(); w.write(raw).catch(() => { }); w.close().catch(() => { });
+            const chunks = []; const rd = ds.readable.getReader();
+            try { for (;;) { const r = await rd.read(); if (r.done) break; chunks.push(r.value); } } catch (e) { if (!chunks.length) throw e; } // données tronquées : début gardé
+            let n = 0; chunks.forEach((c) => { n += c.length; }); out = new Uint8Array(n); n = 0; chunks.forEach((c) => { out.set(c, n); n += c.length; });
+          } else { lost.push(name); continue; }
+          z.file(name, out); found++; if (!whole) lost.push(name + ' (incomplet)');
+        } catch (e) { lost.push(name); }
+        i = start + Math.max(0, csize) - 1;
+      }
+      if (!found) { const e = new Error('Le fichier est abîmé ou incomplet : son contenu n\'est pas lisible (' + (e0 && e0.message || 'archive illisible') + ').'); e.user = true; throw e; }
+      return { zip: z, repaired: true, lost };
+    }
+  };
+  /** XML lu avec tolérance : un document tronqué ou mal fermé est complété (balises refermées, fin incomplète retirée).
+      → {doc, repaired} ; doc = null si rien n'est lisible */
+  O.parseXmlLenient = function (s) {
+    // déclarations DOCTYPE retirées : jamais utiles dans un fichier Office, et une entité externe ferait charger une adresse
+    const P = (x) => new DOMParser().parseFromString(/<!DOCTYPE/i.test(x.slice(0, 2000)) ? x.replace(/<!DOCTYPE[^\[>]*(\[[\s\S]*?\])?\s*>/i, '') : x, 'application/xml');
+    const bad = (d) => d.getElementsByTagName('parsererror').length > 0 || !d.documentElement;
+    let d = P(s); if (!bad(d)) return { doc: d, repaired: false };
+    // fin incomplète retirée ; balise fermante en trop ignorée ; éléments restés ouverts refermés au bon endroit
+    let t = String(s); const lt = t.lastIndexOf('<'), gt = t.lastIndexOf('>'); if (lt > gt) t = t.slice(0, lt);
+    const stack = []; const re = /<(\/?)([A-Za-z_][\w.:-]*)((?:[^>"']|"[^"]*"|'[^']*')*?)(\/?)>|<!\[CDATA\[[\s\S]*?\]\]>|<!--[\s\S]*?-->|<\?[\s\S]*?\?>/g;
+    let m, out = '', last = 0;
+    while ((m = re.exec(t))) {
+      out += t.slice(last, m.index); last = re.lastIndex;
+      if (!m[2]) { out += m[0]; continue; }
+      if (m[1]) { const k = stack.lastIndexOf(m[2]); if (k < 0) continue; while (stack.length > k + 1) out += '</' + stack.pop() + '>'; stack.pop(); out += m[0]; }
+      else { if (!m[4]) stack.push(m[2]); out += m[0]; }
+    }
+    out += t.slice(last).replace(/[<&][^>;]*$/, '');
+    const fixed = out + stack.reverse().map((n) => '</' + n + '>').join('');
+    d = P(fixed); if (!bad(d)) return { doc: d, repaired: true };
+    return { doc: null, repaired: true };
+  };
+  /** Rend la main au navigateur (dessin, saisie) pendant un long traitement : au plus toutes les `ms` millisecondes */
+  let lastYield = 0;
+  O.yieldUi = function (ms) {
+    const now = performance.now(); if (now - lastYield < (ms || 40)) return null;
+    return new Promise((r) => { const ch = new MessageChannel(); ch.port1.onmessage = () => { lastYield = performance.now(); r(); }; ch.port2.postMessage(0); });
+  };
+  /** Barre de progression d'une opération longue (ouverture, export) : affichée au-delà de 300 ms, donc toujours visible
+      au-delà de 2 s. prog(i, n) avance ; prog(0, 0, true) termine ; prog.text('…') change le libellé. */
+  O.progress = function (label, opt) {
+    opt = opt || {};
+    let bar = null, last = 0, done = false; const t0 = Date.now();
+    const show = () => {
+      if (!bar) { bar = O.h('div', { cls: 'o-prog', role: 'progressbar', 'aria-label': label, 'aria-valuemin': '0', 'aria-valuemax': '100' }); bar.innerHTML = '<span></span><b><i></i></b>'; O.layer().appendChild(bar); }
+      return bar;
+    };
+    const timer = setTimeout(() => { if (!done) { show().querySelector('span').textContent = label; bar.classList.add('ind'); } }, opt.delay == null ? 300 : opt.delay);
+    const f = (i, n, end) => {
+      if (end) { done = true; clearTimeout(timer); if (bar) { bar.remove(); bar = null; } if (opt.doneToast !== false && Date.now() - t0 > 1500) O.toast('Terminé', { ms: 600 }); return; }
+      if (done || (Date.now() - last < 100 && i < n)) return; last = Date.now();
+      if (Date.now() - t0 < (opt.delay == null ? 300 : opt.delay) && !bar) return;
+      const b = show(), pc = n ? Math.round(Math.min(n, i) / n * 100) : 0;
+      b.classList.toggle('ind', !n);
+      b.querySelector('span').textContent = f.label + (n ? ' ' + pc + ' %' : '');
+      b.querySelector('i').style.width = (n ? pc : 100) + '%'; b.setAttribute('aria-valuenow', pc);
+    };
+    f.label = label; f.text = (t) => { f.label = t; if (bar) bar.querySelector('span').textContent = t; };
+    f.end = () => f(0, 0, true);
+    return f;
+  };
   /** Dossier des bibliothèques : à côté de la page (APK) ou pc/shared/vendor/ (Suite MAG sur PC) */
   O.vendor = (window.MAGPC_CONF && window.MAGPC_CONF.vendor) || '';
   const scripts = {};
