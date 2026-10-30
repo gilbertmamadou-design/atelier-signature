@@ -10,6 +10,7 @@ Pour chaque appli de pc/pc-apps.json :
   applis/www-<web>/index.html  →  pc/<id>/index.html   (copie + injection du shim PC + adaptations de libellés)
                                   (« office » : chemins office/ → ../shared/office/, pièces communes précachées)
                                   pc/<id>/manifest.webmanifest, icônes 192/512/maskable, sw.js
+  « lively » (Fond Jarvis)       →  pc/<id>/<paquet>.zip à glisser dans Lively Wallpaper, fj-version.js / .json
 Rien n'est écrit dans applis/ : les APK Android ne changent pas.
 Voir pc/README.md pour les conventions (ponts simulés, CSS, raccourcis…).
 """
@@ -114,6 +115,8 @@ def office_files():
 # ---------------------------------------------------------------- icônes
 def icons(app, out):
     src = os.path.join(APPLIS, 'www-' + app['android'] if 'web' not in app else app['web'], 'icon-512.png')
+    if app.get('icon'):                     # icône propre à la page PC (ex. Fond Jarvis : pc/shared/fond-jarvis/icon-512.png)
+        src = os.path.join(REPO, app['icon'])
     if not os.path.exists(src):
         src = os.path.join(APPLIS, 'android-icons-' + app['android'], 'mipmap-xxxhdpi', 'ic_launcher.png')
     try:
@@ -178,8 +181,9 @@ def page(app, conf, apps_android):
     # 3. injection dans <head> : manifeste, icônes, styles et scripts PC (avant tout le code de la page)
     pcconf = {
         'app': app['id'], 'name': app['name'], 'vendor': '../shared/vendor/', 'ocrWorker': 'ocr-worker.js', 'sw': 'sw.js', 'office': bool(app.get('office')),
-        'apps': {apps_android[a['android']]['appid']: '../' + a['id'] + '/' for a in conf['apps'] if a['android'] in apps_android},
+        'apps': apps_map(conf, apps_android),
     }
+    pcconf.update(app.get('pcconf', {}))   # options du shim propres à l'appli (ex. Fond Jarvis : pas de bouton ⓘ ni « Installer »)
     adapter = app.get('adapter', app['id'])
     inj = ('\n<!-- Suite MAG sur PC : ajouté par pc/build-pc.py (source : %s) -->\n'
            '<link rel="manifest" href="manifest.webmanifest">\n'
@@ -202,6 +206,59 @@ def page(app, conf, apps_android):
     out = out[:m.end()] + inj + out[m.end():]
     head = '<!-- FICHIER GÉNÉRÉ par pc/build-pc.py depuis %s : ne pas modifier ici. -->\n' % src_rel
     return head + out
+
+
+def apps_map(conf, apps_android):
+    """Identifiant Android → dossier PC. Plusieurs pages PC peuvent partager une appli Android (Fond Jarvis et Majordome) :
+    la première de pc-apps.json garde l'identifiant."""
+    m = {}
+    for a in conf['apps']:
+        if a['android'] in apps_android:
+            m.setdefault(apps_android[a['android']]['appid'], '../' + a['id'] + '/')
+    return m
+
+
+# ---------------------------------------------------------------- paquet Lively Wallpaper
+ZIP_DATE = (2026, 1, 1, 0, 0, 0)          # date fixe des entrées : même contenu = même .zip (--check stable)
+
+
+def lively_package(app, out_dir):
+    """« lively » : paquet .zip à glisser dans Lively Wallpaper (LivelyInfo.json à la racine), fabriqué depuis les sources.
+    Les fichiers sont copiés tels quels (page sans le shim de la Suite). fj-version.js (empreinte et date du paquet) est
+    écrit dans le paquet et dans le dossier de l'appli ; fj-version.json permet au paquet installé de voir qu'une
+    nouvelle version est publiée."""
+    import io
+    import zipfile
+    L = app['lively']
+    files = {dest: read(os.path.join(REPO, src), 'rb') for dest, src in L['files'].items()}
+    if 'LivelyInfo.json' not in files:
+        sys.exit('%s : LivelyInfo.json manquant dans « lively.files »' % app['id'])
+    for n in ('LivelyInfo.json', 'LivelyProperties.json'):
+        if n in files:
+            json.loads(files[n].decode('utf-8-sig'))      # JSON valide, sinon arrêt
+    h = hashlib.sha256()
+    for k in sorted(files):
+        h.update(k.encode()); h.update(files[k])
+    v = h.hexdigest()[:12]
+    date = version_date(app['id'] + ':lively', v)
+    vjs = ('/* GÉNÉRÉ par pc/build-pc.py : version du fond (paquet Lively et page de la Suite). */\nwindow.FJ_BUILD = %s;\n'
+           % json.dumps({'v': v, 'date': date})).encode()
+    vname = L.get('versionFile', 'fj-version.js')
+    files[vname] = vjs
+    write(os.path.join(out_dir, vname), vjs)
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, 'w') as z:
+        for k in sorted(files):
+            zi = zipfile.ZipInfo(k, date_time=ZIP_DATE)
+            zi.compress_type = zipfile.ZIP_STORED if k.endswith(('.gif', '.jpg', '.png')) else zipfile.ZIP_DEFLATED
+            zi.create_system = 0
+            zi.external_attr = 0o644 << 16
+            z.writestr(zi, files[k], compresslevel=9)
+    zb = buf.getvalue()
+    write(os.path.join(out_dir, L['zip']), zb)
+    write(os.path.join(out_dir, vname.replace('.js', '.json')), json.dumps(
+        {'v': v, 'date': date, 'zip': L['zip'], 'size': len(zb), 'sha256': sha(zb)}, ensure_ascii=False, indent=1) + '\n')
+    return v
 
 
 def app_id(app, conf):
@@ -332,6 +389,11 @@ def main():
         # copies : fichiers communs avec l'APK (ex. Toile : applis/www-fonds/en-ligne.js → pc/toile/toile-en-ligne.js)
         for dest, src_rel in sorted(app.get('copies', {}).items()):
             write(os.path.join(out_dir, dest), '/* COPIE GÉNÉRÉE par pc/build-pc.py depuis %s : ne pas modifier ici. */\n' % src_rel + read(os.path.join(REPO, src_rel)))
+        # paquet Lively (zip) et fichiers bruts (guide…) : publiés, pas précachés
+        if app.get('lively'):
+            lively_package(app, out_dir)
+        for dest, src_rel in sorted(app.get('raw', {}).items()):
+            write(os.path.join(out_dir, dest), read(os.path.join(REPO, src_rel), 'rb'))
         files = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png',
                  '../shared/pc-shim.js', '../shared/pc.css']
         files += ['../shared/apps/%s.css' % c for c in app.get('styles', [])]
@@ -351,7 +413,7 @@ def main():
         versions[app['id']] = v
         write(os.path.join(out_dir, 'sw.js'), sw)
     write(os.path.join(PC, 'index.html'), launcher(conf, versions, apps_android))
-    keep = set(a['id'] for a in conf['apps']) | {'_lanceur'}
+    keep = set(a['id'] for a in conf['apps']) | {'_lanceur'} | set(a['id'] + ':lively' for a in conf['apps'] if a.get('lively'))
     VERSIONS = {k: v for k, v in sorted(VERSIONS.items()) if k in keep}
     write(VERSIONS_FILE, json.dumps(VERSIONS, ensure_ascii=False, indent=1, sort_keys=True) + '\n')
     # identifiants des manifestes : tous différents une fois résolus sur l'origine du site
