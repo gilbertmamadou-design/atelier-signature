@@ -275,6 +275,9 @@
     // gros classeurs : avancement et main rendue à l'interface toutes les 1000 lignes (O.yieldUi)
     const totalRows = book.worksheets.reduce((n, w, i) => n + (bigSheets[i] ? bigSheets[i].rows : ((w._rows || []).length || 0)), 0) || 1; let doneRows = 0;
     const progress = opt.progress || null;
+    // dates 1904 (classeurs Mac) : date1904="1" ou "true" ; ExcelJS ne reconnaît que le premier
+    const exD1904 = !!(book.properties && book.properties.date1904);
+    const d1904 = exD1904 || /date1904="(1|true)"/.test(z.file('xl/workbook.xml') ? (await z.file('xl/workbook.xml').async('string')).slice(0, 3000) : '');
     for (const [si, ws] of book.worksheets.entries()) {
       const sh = wb.addSheetRaw(String(ws.name || ('Feuil' + (si + 1))).slice(0, 31));
       if (ws.state === 'hidden') sh.hidden = 1; else if (ws.state === 'veryHidden') sh.hidden = 2;
@@ -325,7 +328,7 @@
               const g = fv.shareType === 'array' && fv.ref ? TB.parseRange(String(fv.ref).replace(/\$/g, '')) : null;
               wb.loadFormula(sh, r, c, cf, s, g && (g.r1 !== g.r2 || g.c1 !== g.c2) ? g : undefined);
               if (res !== null) TB._setVal(sh, r, c, res);
-              const fo = sh.fml.get(TB.key(r, c)); if (fo) fo.raw = String(src).replace(/^=/, '');
+              const fo = sh.fml.get(TB.key(r, c)); if (fo) { fo.raw = String(src).replace(/^=/, ''); if (!g || (g.r1 === g.r2 && g.c1 === g.c2)) { fo.ii = true; fo.c0 = res; } }
             } else if (src) {
               // formule que l'analyseur ne comprend pas : gardée telle quelle avec sa dernière valeur
               wb.loadFormula(sh, r, c, String(src).replace(/^=/, ''), s); if (res !== null) TB._setVal(sh, r, c, res);
@@ -335,7 +338,10 @@
           }
           if (inArr(r, c)) { if (s !== undefined) wb.load(sh, r, c, null, s); return; }
           if (T === 5 && v && v.hyperlink) { const h = String(v.hyperlink); sh.links.set(TB.key(r, c), /^#/.test(h) ? { ref: h.slice(1) } : Object.assign({ url: h }, v.tooltip ? { tip: v.tooltip } : {})); }
+          const wasDate = v instanceof Date;
           v = scalarIn(v);
+          // classeur en dates 1904 : date au format personnalisé non reconnue comme date par ExcelJS → numéro de série 1900
+          if (typeof v === 'number' && d1904 && ((wasDate && !exD1904) || (!wasDate && cell.numFmt && TB.Fmt && TB.Fmt.isDate && TB.Fmt.isDate(cell.numFmt)))) v += 1462;
           if (typeof v === 'string' && v.length > 32767) v = v.slice(0, 32767);
           wb.load(sh, r, c, v, s, true);
           if (cell.note && typeof cell.note === 'string') sh.notes.set(TB.key(r, c), { text: cell.note, author: '' });
@@ -532,7 +538,7 @@
               else { const m0 = shared.get(si2[1]); if (m0 && m0.cf) { try { cf = P.write(P.shift(P.parse(m0.cf, P.CANON), r - m0.r, c - m0.c), P.CANON); } catch (e) { cf = null; } } }
             } else if (src) cf = canon(src);
             const g = ft && ft[1] === 'array' && fref ? TB.parseRange(fref[1].replace(/\$/g, '')) : null;
-            if (cf != null) { wb.loadFormula(sh, r, c, cf, s, g && (g.r1 !== g.r2 || g.c1 !== g.c2) ? g : undefined); if (v !== null) TB._setVal(sh, r, c, v); const fo = sh.fml.get(TB.key(r, c)); if (fo && src) fo.raw = src; }
+            if (cf != null) { wb.loadFormula(sh, r, c, cf, s, g && (g.r1 !== g.r2 || g.c1 !== g.c2) ? g : undefined); if (v !== null) TB._setVal(sh, r, c, v); const fo = sh.fml.get(TB.key(r, c)); if (fo) { if (src) fo.raw = src; if (!g || (g.r1 === g.r2 && g.c1 === g.c2)) { fo.ii = true; fo.c0 = v; } } }
             else if (src) { wb.loadFormula(sh, r, c, src, s); if (v !== null) TB._setVal(sh, r, c, v); const fo = sh.fml.get(TB.key(r, c)); if (fo) fo.raw = src; }
             else wb.load(sh, r, c, v, s, true);
           } else if (v !== null || s !== undefined) wb.load(sh, r, c, v, s, true);

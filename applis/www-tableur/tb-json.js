@@ -38,6 +38,7 @@
     const out = JSON.parse(JSON.stringify(o)); out.cells = cells; out.runs = runs.filter((x) => x[2].length > 1);
     // texte d'origine des formules gardées telles quelles (fonction inconnue, lien vers un autre classeur)
     const raw = []; sh.fml.forEach((f) => { if (f.raw && (f.keep || TB.opaqueReason && TB.opaqueReason(wb, f))) raw.push([f.r, f.c, f.raw]); }); if (raw.length) out.raw = raw;
+    const ii = []; sh.fml.forEach((f) => { if (f.ii) ii.push([f.r, f.c]); }); if (ii.length) out.ii = ii;
     runs.forEach((x) => { if (x[2].length === 1) cells.push([x[1], x[0], x[2][0]]); });
     return out;
   };
@@ -66,6 +67,7 @@
       }
     } finally { wb.suspend--; }
     (o.raw || []).forEach(([r, c, x]) => { const f = sh.fml.get(TB.key(r, c)); if (f) f.raw = x; });
+    (o.ii || []).forEach(([r, c]) => { const f = sh.fml.get(TB.key(r, c)); if (f) { f.ii = true; f.c0 = sh.get(r, c); } });
     sh.merges = o.merges || []; sh.freeze = o.freeze || { r: 0, c: 0 }; sh.cf = o.cf || []; sh.dv = o.dv || []; sh.af = o.af || null; sh.tables = o.tables || []; sh.objs = o.objs || []; sh.sparks = o.sparks || [];
     (o.notes || []).forEach(([r, c, v]) => sh.notes.set(TB.key(r, c), v)); (o.links || []).forEach(([r, c, v]) => sh.links.set(TB.key(r, c), v)); (o.threads || []).forEach(([r, c, v]) => sh.threads.set(TB.key(r, c), v));
     sh.protect = o.protect || null; sh.print = o.print || {}; sh.sel = o.sel || null; sh.collapsedR = o.collapsedR || null; sh.pivots = o.pivots || [];

@@ -399,6 +399,13 @@
     try { v = ev(f.ast, cx); } catch (e) { if (e && e.circ) { v = 0; f.circ = true; } else { console.warn('Calcul', f.sh.name + '!' + TB.addr(f.r, f.c), e); v = E.VALUE; } }
     if (v instanceof Lambda) v = E.CALC;
     if (v === MISSING) v = 0;
+    // formule d'un ancien classeur (f.ii : ni matricielle ni « tableau dynamique ») qui renvoie une plage : intersection
+    // implicite comme Excel avant 365 (=A:A*2 en ligne 5 → A5*2) ; sinon la dernière valeur calculée par le fichier
+    if (f.ii && !f.arr && ((v instanceof Ref && !v.single()) || (v instanceof Arr && !v.single()))) {
+      if (v instanceof Ref) { const g = v; v = g.c1 === g.c2 && f.r >= g.r1 && f.r <= g.r2 ? g.v(f.r - g.r1, 0) : g.r1 === g.r2 && f.c >= g.c1 && f.c <= g.c2 ? g.v(0, f.c - g.c1) : E.VALUE; if (v === null) v = 0; }
+      else if (f.c0 !== undefined && f.c0 !== null) v = f.c0;
+      else if (v.w === 1 && f.r < v.h) v = v.v(f.r, 0); else if (v.h === 1 && f.c < v.w) v = v.v(0, f.c);
+    }
     if (f.arr) { writeArray(this, f, v); return; }
     if (v instanceof Ref3) v = E.VALUE;
     if (v instanceof Ref) { if (v.single()) { v = v.v(0, 0); if (v === null) v = 0; } else v = v.toArr(true); }
