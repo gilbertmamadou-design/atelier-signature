@@ -267,6 +267,8 @@
     else if (tab === 'options') h = '<h2>Options</h2><div class="o-form" style="max-width:560px"><label class="o-field"><span>Votre nom (commentaires, auteur des nouvelles présentations)</span><input class="o-in" data-opt="auteur" value="' + O.esc(localStorage.getItem('presentation:auteur') || '') + '"></label><label class="o-field half"><span>Apparence</span><select class="o-in" data-opt="ui"><option value="">Comme le système</option><option value="clair"' + (A.settings.ui === 'clair' ? ' selected' : '') + '>Claire</option><option value="sombre"' + (A.settings.ui === 'sombre' ? ' selected' : '') + '>Sombre</option></select></label><label class="o-check"><input type="checkbox" data-opt="spell"' + (A.settings.spell !== false ? ' checked' : '') + '><span>Vérifier l\'orthographe pendant la saisie</span></label><label class="o-check"><input type="checkbox" data-opt="snap"' + (A.settings.snap !== false ? ' checked' : '') + '><span>Magnétisme des objets</span></label></div><h3>Récupération</h3><p><button type="button" class="mini-btn" data-a="clearrec">' + O.icon('trash-2') + 'Vider la liste des récents</button></p>';
     else if (tab === 'about') h = aboutHtml();
     body.innerHTML = h;
+    // Suite MAG sur PC : version (jour de publication) et « Rechercher une mise à jour »
+    if (tab === 'about' && window.MAGPC && window.MAGPC.aboutBlock) { const h2 = body.querySelector('h2'); if (h2) h2.insertAdjacentElement('afterend', window.MAGPC.aboutBlock()); }
     fillPreviews(body);
     O.$$('[data-prop]', body).forEach((i) => i.addEventListener('change', () => { A.doc[i.dataset.prop] = i.value; A.change('Propriétés', { noThumbs: true }); A.renderTitle(); }));
     O.$$('[data-opt]', body).forEach((i) => i.addEventListener('change', () => {

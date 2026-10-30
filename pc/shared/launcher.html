@@ -27,6 +27,13 @@ h2{font-size:15px;text-transform:uppercase;letter-spacing:1.2px;color:var(--tx2)
 .tile b{display:block;font-size:18px}
 .tile small{display:block;color:var(--tx2);font-size:14px;line-height:1.35;margin-top:2px}
 .tile .go{font-size:28px;color:var(--tx2)}
+.tile .ver{display:block;font-style:normal;font-size:12.5px;color:var(--tx2);margin-top:4px}
+.tile .ver.up{color:var(--acc);font-weight:650}
+.tile .ver.old{color:#b35c00;font-weight:650}
+@media (prefers-color-scheme:dark){.tile .ver.old{color:#ffb35c}}
+.majbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 14px;margin:0 0 6px}
+.majbar span{color:var(--tx2);font-size:14.5px}
+.majbar b{color:var(--tx)}
 .cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 @media (max-width:720px){.cols{grid-template-columns:1fr}}
 .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px 20px}
@@ -72,6 +79,7 @@ footer a,.card a{color:var(--acc)}
   </header>
 
   <h2>Applis (<!--NB-->)</h2>
+  <div class="majbar"><span>Suite MAG sur PC · <b>Version du <!--DATE--></b> · <span id="majMsg">chaque appli indique sa version ; une nouvelle version s'installe toute seule et l'appli propose « Mettre à jour ».</span></span><button class="btn" id="majBtn" type="button">Rechercher les mises à jour</button></div>
   <div class="grid">
 <!--TUILES-->
   </div>
@@ -118,11 +126,12 @@ footer a,.card a{color:var(--acc)}
     </ul></div>
     <div class="card"><h3>Hors ligne et mises à jour</h3><ul>
       <li>Après une première ouverture avec internet, chaque appli fonctionne sans connexion.</li>
-      <li>Quand une nouvelle version est publiée, un message « Nouvelle version disponible » propose de mettre à jour.</li>
+      <li>Quand une nouvelle version est publiée, un message « Nouvelle version disponible » propose de mettre à jour. Chaque appli affiche sa version (bouton <b>ⓘ</b> en bas à gauche, ou Fichier › À propos dans Présentation, Texte et Tableur) et propose « Rechercher une mise à jour ».</li>
+      <li>Ici, « Rechercher les mises à jour » vérifie toutes les applis déjà ouvertes sur cet ordinateur : chaque tuile indique « À jour » ou « Mise à jour prête ».</li>
       <li>Les données restent dans le navigateur de cet ordinateur : elles ne passent pas d'Edge à Chrome (voir « Mes données »).</li>
     </ul></div>
   </div>
-  <footer>Versions : <!--VERSIONS-->. Les applis Android restent disponibles dans l'onglet Releases du dépôt.</footer>
+  <footer>Suite MAG sur PC, version du <!--DATE-->. Codes de version : <!--VERSIONS-->. Les applis Android restent disponibles dans l'onglet Releases du dépôt.</footer>
 </div>
 <dialog id="dlg" aria-labelledby="dT">
   <button class="x" type="button" id="dX" aria-label="Fermer">×</button>
@@ -133,6 +142,54 @@ footer a,.card a{color:var(--acc)}
     <input type="file" id="dFile" accept=".json,application/json" hidden></div>
   <div class="msg" id="dMsg"></div>
 </dialog>
+<script>
+/* Lanceur : versions publiées (pc/versions.json, écrites par build-pc.py) et versions installées sur ce PC (service worker
+   de chaque appli déjà ouverte, interrogé par message VERSION) ; « Rechercher les mises à jour » les fait toutes vérifier. */
+(function () {
+  'use strict';
+  var PUB = /*VERSIONS*/{};
+  var fr = function (d) { var m = /^(\d{4})-(\d\d)-(\d\d)$/.exec(d || ''); return m ? m[3] + '/' + m[2] : ''; };
+  function ask(sw) {
+    return new Promise(function (ok) { if (!sw) return ok(null); var ch = new MessageChannel(), t = setTimeout(function () { ok(null); }, 1500); ch.port1.onmessage = function (e) { clearTimeout(t); ok(e.data); }; try { sw.postMessage({ type: 'VERSION' }, [ch.port2]); } catch (e) { clearTimeout(t); ok(null); } });
+  }
+  function appOf(reg) { var m = /\/pc\/([^\/]+)\/$/.exec(reg.scope); return m ? m[1] : null; }
+  async function scan(update) {
+    if (!('serviceWorker' in navigator)) return { n: 0 };
+    var regs = await navigator.serviceWorker.getRegistrations(), n = 0, ready = 0, done = 0, todo = [];
+    for (var i = 0; i < regs.length; i++) {
+      var reg = regs[i], id = appOf(reg), pub = PUB.apps && PUB.apps[id]; if (!id || !pub) continue;
+      n++;
+      var before = await ask(reg.active);
+      if (update) {
+        try { await reg.update(); } catch (e) { }
+        // téléchargement de la nouvelle version : une appli fermée l'active aussitôt, une appli ouverte la garde en attente
+        for (var w = 0; w < 120 && reg.installing; w++) await new Promise(function (r) { setTimeout(r, 250); });
+        await new Promise(function (r) { setTimeout(r, 300); });
+      }
+      var cur = await ask(reg.active), next = await ask(reg.waiting);
+      var el = document.querySelector('.tw[data-app="' + id + '"] .ver'); if (!el) continue;
+      if (next && next.version !== (cur && cur.version)) { el.className = 'ver up'; el.textContent = 'Mise à jour prête (version du ' + fr(next.date) + ') : dans l\'appli ouverte, cliquez « Mettre à jour »'; ready++; }
+      else if (cur && cur.version === pub.v) { el.className = 'ver'; el.textContent = 'Version du ' + fr(pub.date) + ' · à jour'; if (before && before.version !== cur.version) done++; }
+      else if (cur) { el.className = 'ver old'; el.textContent = 'Installée : version du ' + fr(cur.date || '') + ' · nouvelle version du ' + fr(pub.date); todo.push(id); }
+    }
+    return { n: n, ready: ready, done: done, old: todo.length };
+  }
+  var btn = document.getElementById('majBtn'), msg = document.getElementById('majMsg');
+  if (btn) btn.addEventListener('click', async function () {
+    btn.disabled = true; msg.textContent = 'Vérification…';
+    try {
+      // la page du lanceur elle-même : version publiée la plus récente ?
+      var fresh = null; try { var r = await fetch('versions.json', { cache: 'no-store' }); if (r.ok) fresh = await r.json(); } catch (e) { }
+      var res = await scan(true);
+      var newer = fresh && Object.keys(PUB.apps || {}).some(function (k) { return fresh[k] && fresh[k].v !== PUB.apps[k].v; });
+      if (newer) { msg.textContent = 'Une nouvelle version de la Suite vient d\'être publiée : rechargement…'; setTimeout(function () { location.reload(); }, 1200); return; }
+      msg.textContent = !res.n ? 'Aucune appli encore ouverte sur cet ordinateur : chaque appli se met à jour à sa première ouverture.' : res.ready ? res.ready + ' appli(s) ouverte(s) ont une mise à jour prête : cliquez « Mettre à jour » dans leur fenêtre.' + (res.done ? ' ' + res.done + ' autre(s) mise(s) à jour à l\'instant.' : '') : res.old ? res.old + ' appli(s) n\'ont pas pu se mettre à jour : ouvrez-les avec internet.' : res.done ? res.done + ' appli(s) mise(s) à jour à l\'instant. Tout est à jour (' + res.n + ' appli(s) sur cet ordinateur).' : 'Tout est à jour (' + res.n + ' appli(s) installée(s) sur cet ordinateur).';
+    } catch (e) { msg.textContent = 'Vérification impossible (hors ligne ?).'; }
+    btn.disabled = false;
+  });
+  scan(false).catch(function () { });
+})();
+</script>
 <script>
 /* Lanceur : export / import des données de chaque appli (même origine que les applis : le lanceur lit leur
    localStorage et leurs bases IndexedDB) et adresse du relais réseau facultatif (clé « mag-pc-relais »). */

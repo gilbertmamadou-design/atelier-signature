@@ -36,7 +36,15 @@
 #mpc-update small{color:var(--mpc-tx2)}
 #mpc-update button{font:inherit;font-weight:650;min-height:38px;padding:0 14px;border-radius:10px;border:1px solid var(--mpc-line);background:transparent;color:var(--mpc-tx);cursor:pointer}
 #mpc-update button.go{background:var(--mpc-acc);border-color:var(--mpc-acc);color:var(--mpc-acc-tx)}
-#mpc-install{position:fixed;left:16px;bottom:16px;z-index:2147483300;display:flex;gap:2px;background:var(--mpc-bg);border:1px solid var(--mpc-line);border-radius:99px;box-shadow:0 4px 14px #0004;padding:3px}
+#mpc-about{position:fixed;left:14px;bottom:14px;z-index:2147483300;width:28px;height:28px;border-radius:50%;border:1px solid var(--mpc-line);background:var(--mpc-bg);color:var(--mpc-tx2);font:italic 700 15px/1 Georgia,'Times New Roman',serif;cursor:pointer;opacity:.6;box-shadow:0 2px 8px #0003;padding:0;transition:opacity .15s}
+#mpc-about:hover,#mpc-about:focus-visible{opacity:1;color:var(--mpc-acc);border-color:var(--mpc-acc)}
+#mpc-about:focus-visible{outline:2px solid var(--mpc-acc);outline-offset:2px}
+@media (max-width:899px),print{#mpc-about{display:none}}
+:fullscreen #mpc-about{display:none}
+.mpc-verblock{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-top:10px;font-size:14px}
+.mpc-verblock button{font:inherit;font-weight:650;min-height:32px;padding:0 12px;border-radius:9px;border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer}
+.mpc-verblock .m{opacity:.8}
+#mpc-install{position:fixed;left:52px;bottom:16px;z-index:2147483300;display:flex;gap:2px;background:var(--mpc-bg);border:1px solid var(--mpc-line);border-radius:99px;box-shadow:0 4px 14px #0004;padding:3px}
 #mpc-install button{font:inherit;font-size:13.5px;font-weight:650;border:0;background:transparent;color:var(--mpc-tx);min-height:32px;padding:0 12px;border-radius:99px;cursor:pointer}
 #mpc-install button.go{color:var(--mpc-acc)}
 #mpc-install button:hover{background:#7f7f7f1f}

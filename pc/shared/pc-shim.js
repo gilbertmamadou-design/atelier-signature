@@ -692,22 +692,121 @@
   /* ---------------- Service worker : hors ligne et mises à jour ---------------- */
   var swReady = null;
   M.sw = { reg: null };
+  /** Version d'un service worker (actif par défaut) : {app, version, date} ou null */
+  function swVersion(sw) {
+    sw = sw || navigator.serviceWorker && navigator.serviceWorker.controller;
+    return new Promise(function (ok) {
+      if (!sw) return ok(null);
+      var ch = new MessageChannel(), t = setTimeout(function () { ok(null); }, 2000);
+      ch.port1.onmessage = function (e) { clearTimeout(t); ok(e.data || null); };
+      try { sw.postMessage({ type: 'VERSION' }, [ch.port2]); } catch (e) { clearTimeout(t); ok(null); }
+    });
+  }
+  var frDate = function (d, long) { var m = /^(\d{4})-(\d\d)-(\d\d)$/.exec(d || ''); return m ? m[3] + '/' + m[2] + (long ? '/' + m[1] : '') : ''; };
+  M.frDate = frDate;
+  /** Version de l'appli affichée : {version, date, label: « Version du 30/10 »} */
+  M.versionInfo = function () { return swVersion().then(function (v) { return v ? { version: v.version, date: v.date, label: 'Version du ' + frDate(v.date) } : null; }); };
   function showUpdate(w) {
     if (!w || M.sw.shown) return; M.sw.shown = true;
     whenBody(function () {
       var b = document.createElement('div'); b.id = 'mpc-update'; b.setAttribute('role', 'alert');
       b.innerHTML = '<span><b>Nouvelle version disponible</b><small>' + esc(M.conf.name || '') + '</small></span><button type="button" class="later">Plus tard</button><button type="button" class="go">Mettre à jour</button>';
       UI().appendChild(b); requestAnimationFrame(function () { b.classList.add('on'); });
-      b.querySelector('.later').onclick = function () { b.remove(); };
-      b.querySelector('.go').onclick = function () {
-        b.querySelector('.go').textContent = 'Mise à jour…';
-        M.sw.reloading = true;
-        var wt = (M.sw.reg && M.sw.reg.waiting) || w;
-        wt.postMessage({ type: 'SKIP_WAITING' });
-        setTimeout(function () { location.reload(); }, 4000);
-      };
+      swVersion(w).then(function (v) { if (v && v.date) b.querySelector('small').textContent = (M.conf.name || '') + ' · version du ' + frDate(v.date); });
+      b.querySelector('.later').onclick = function () { b.remove(); M.sw.shown = false; };
+      b.querySelector('.go').onclick = function () { M.applyUpdate(w); };
     });
   }
+  /** Active la version en attente et recharge (les données de l'appli ne sont pas touchées : IndexedDB, localStorage) */
+  M.applyUpdate = function (w) {
+    var b = document.getElementById('mpc-update'); if (b) b.querySelector('.go').textContent = 'Mise à jour…';
+    M.sw.reloading = true;
+    var wt = (M.sw.reg && M.sw.reg.waiting) || w;
+    swVersion().then(function (v) { try { sessionStorage.setItem('mpc-maj', JSON.stringify({ from: v && v.version, at: Date.now() })); } catch (e) { } if (wt) wt.postMessage({ type: 'SKIP_WAITING' }); });
+    setTimeout(function () { location.reload(); }, 4000);
+  };
+  /** Recherche d'une mise à jour : 'update' (prête, bandeau affiché), 'latest', 'offline' */
+  M.checkUpdate = function () {
+    var reg = M.sw.reg; if (!reg) return Promise.resolve('offline');
+    if (reg.waiting) { showUpdate(reg.waiting); return Promise.resolve('update'); }
+    return reg.update().then(function () {
+      return new Promise(function (ok) {
+        var t0 = Date.now();
+        (function wait() {
+          if (reg.waiting) { showUpdate(reg.waiting); return ok('update'); }
+          if (!reg.installing || Date.now() - t0 > 30000) return ok(reg.installing ? 'update' : 'latest');
+          setTimeout(wait, 250);
+        })();
+      });
+    }, function () { return navigator.onLine === false ? 'offline' : 'offline'; });
+  };
+  /** Fenêtre « À propos » : nom, version (jour de publication), rechercher une mise à jour */
+  M.about = function () {
+    return M.versionInfo().then(function (v) {
+      var html = '<p><b>' + esc(M.conf.name || '') + '</b> · Suite MAG sur PC</p><p id="mpc-ab-v">' + (v ? 'Version du ' + esc(frDate(v.date, true)) + ' <small class="mpc-small">(code ' + esc(v.version) + ')</small>' : 'Version : inconnue (appli ouverte sans service worker)') + '</p><p class="mpc-small" id="mpc-ab-m">Les mises à jour arrivent toutes seules quand l\'ordinateur est connecté : l\'appli propose alors « Mettre à jour ». Vos documents et réglages restent sur cet ordinateur.</p>';
+      return M.dialog({ title: 'À propos', html: html, cls: 'mpc-about-dlg', buttons: [
+        { label: 'Toutes les applis', value: 'suite', onClick: function () { M.nativeOpen ? M.nativeOpen('../') : window.open('../'); } },
+        { label: 'Rechercher une mise à jour', value: 'maj', primary: true, onClick: function (close, el) { M.aboutCheck(el.querySelector('#mpc-ab-m'), close); return false; } },
+        { label: 'Fermer', value: null }] });
+    });
+  };
+  /** Recherche de mise à jour avec message dans un élément (fenêtre À propos, panneau des applis bureautiques) */
+  M.aboutCheck = function (el, close) {
+    if (el) el.textContent = 'Recherche d\'une nouvelle version…';
+    return M.checkUpdate().then(function (r) {
+      if (r === 'update') { if (el) el.textContent = 'Nouvelle version téléchargée : cliquez « Mettre à jour » (en bas à droite).'; if (close) setTimeout(function () { close(null); }, 900); }
+      else if (r === 'latest') { if (el) el.textContent = 'Vous avez la dernière version.'; }
+      else if (el) el.textContent = 'Recherche impossible : pas de connexion internet (l\'appli marche quand même hors ligne).';
+      return r;
+    });
+  };
+  /** Ligne de version à placer dans un « À propos » existant (applis bureautiques) : élément HTML */
+  M.aboutBlock = function () {
+    var d = document.createElement('div'); d.className = 'mpc-verblock';
+    d.innerHTML = '<span class="v">Version : …</span> <button type="button">Rechercher une mise à jour</button> <span class="m" role="status"></span>';
+    M.versionInfo().then(function (v) { d.querySelector('.v').textContent = v ? 'Suite MAG sur PC · version du ' + frDate(v.date, true) + ' (code ' + v.version + ')' : 'Suite MAG sur PC'; });
+    d.querySelector('button').onclick = function () { M.aboutCheck(d.querySelector('.m')); };
+    return d;
+  };
+  // après une mise à jour appliquée : message « Mise à jour installée (version du …) »
+  try {
+    var maj = sessionStorage.getItem('mpc-maj');
+    if (maj) {
+      sessionStorage.removeItem('mpc-maj'); maj = JSON.parse(maj);
+      if (Date.now() - (maj.at || 0) < 120000) setTimeout(function () { M.versionInfo().then(function (v) { if (v && v.version !== maj.from) M.toast('Mise à jour installée : ' + v.label.toLowerCase().replace(/^version/, 'version'), { ms: 4500 }); }); }, 800);
+    }
+  } catch (e) { }
+  // bouton ⓘ (version, mises à jour) en bas à gauche, sauf applis bureautiques (dans Fichier › À propos)
+  if (!CONF.office && CONF.aboutButton !== false) whenBody(function () {
+    var a = document.createElement('button'); a.type = 'button'; a.id = 'mpc-about'; a.setAttribute('aria-label', 'Version et mises à jour'); a.title = 'Version et mises à jour';
+    a.textContent = 'i'; a.onclick = function () { M.about(); };
+    UI().appendChild(a);
+    M.versionInfo().then(function (v) { if (v) a.title = v.label + ' · rechercher une mise à jour'; });
+    // coin libre : jamais par-dessus un bouton, un lien ou un champ de l'appli (bas-gauche, bas-droite, haut-droite, haut-gauche)
+    var CORNERS = [{ left: '14px', bottom: '14px' }, { right: '14px', bottom: '14px' }, { right: '14px', top: '56px' }, { left: '14px', top: '56px' }];
+    var busy = function (el) {
+      if (!el || !el.closest) return false;
+      if (el.closest('button,a,input,select,textarea,label,[role=button],[role=tab],[tabindex],[contenteditable=true],canvas,video,iframe')) return true;
+      // cadre d'un champ de saisie (zone de recherche…) : petit élément qui contient un champ
+      for (var x = el; x && x !== document.body; x = x.parentElement) { var r = x.getBoundingClientRect(); if (r.width * r.height > innerWidth * innerHeight * 0.15) break; if (x.querySelector('input,textarea,select')) return true; }
+      return false;
+    };
+    function place() {
+      if (innerWidth < 900) return;
+      a.style.display = ''; a.style.visibility = 'hidden';
+      var found = false;
+      for (var i = 0; i < CORNERS.length && !found; i++) {
+        a.style.left = a.style.right = a.style.top = a.style.bottom = '';
+        Object.keys(CORNERS[i]).forEach(function (k) { a.style[k] = CORNERS[i][k]; });
+        var r = a.getBoundingClientRect(), pts = [[r.left - 3, r.top - 3], [r.right + 3, r.bottom + 3], [r.left + r.width / 2, r.top + r.height / 2], [r.right + 3, r.top - 3], [r.left - 3, r.bottom + 3]];
+        found = pts.every(function (q) { var e = document.elementFromPoint(Math.max(0, Math.min(innerWidth - 1, q[0])), Math.max(0, Math.min(innerHeight - 1, q[1]))); return !e || e === a || !busy(e); });
+      }
+      a.style.display = found ? '' : 'none';   // aucun coin libre : version visible dans le lanceur
+      a.style.visibility = '';
+    }
+    setTimeout(place, 1500); setTimeout(place, 5000);
+    var rt = null; window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(place, 400); });
+  });
   M.update = function () { return M.sw.reg ? M.sw.reg.update().catch(function () { }) : Promise.resolve(); };
   if ('serviceWorker' in navigator && CONF.sw !== false && (location.protocol === 'https:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname))) {
     swReady = navigator.serviceWorker.register(CONF.sw || 'sw.js').then(function (reg) {

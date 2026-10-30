@@ -13,6 +13,7 @@ Pour chaque appli de pc/pc-apps.json :
 Rien n'est écrit dans applis/ : les APK Android ne changent pas.
 Voir pc/README.md pour les conventions (ponts simulés, CSS, raccourcis…).
 """
+import datetime
 import hashlib
 import html
 import json
@@ -176,7 +177,7 @@ def page(app, conf, apps_android):
             out = out.replace(q + 'office/', q + '../shared/office/')
     # 3. injection dans <head> : manifeste, icônes, styles et scripts PC (avant tout le code de la page)
     pcconf = {
-        'app': app['id'], 'name': app['name'], 'vendor': '../shared/vendor/', 'ocrWorker': 'ocr-worker.js', 'sw': 'sw.js',
+        'app': app['id'], 'name': app['name'], 'vendor': '../shared/vendor/', 'ocrWorker': 'ocr-worker.js', 'sw': 'sw.js', 'office': bool(app.get('office')),
         'apps': {apps_android[a['android']]['appid']: '../' + a['id'] + '/' for a in conf['apps'] if a['android'] in apps_android},
     }
     adapter = app.get('adapter', app['id'])
@@ -231,6 +232,29 @@ def manifest(app, conf):
     return json.dumps(m, ensure_ascii=False, indent=2) + '\n'
 
 
+# ---------------------------------------------------------------- dates de version
+# pc/versions.json : pour chaque appli, l'empreinte publiée et le jour où elle a changé (« Version du JJ/MM » affichée
+# dans l'appli et le lanceur). Une empreinte inchangée garde sa date : --check reste stable d'un jour à l'autre.
+VERSIONS_FILE = None
+VERSIONS = {}
+
+
+def today():
+    try:
+        from zoneinfo import ZoneInfo
+        return datetime.datetime.now(ZoneInfo('Europe/Paris')).date().isoformat()
+    except Exception:
+        return datetime.date.today().isoformat()
+
+
+def version_date(key, h):
+    old = VERSIONS.get(key) or {}
+    if old.get('v') == h and old.get('date'):
+        return old['date']
+    VERSIONS[key] = {'v': h, 'date': today()}
+    return VERSIONS[key]['date']
+
+
 def service_worker(app, conf, out_dir, files):
     """sw.js : liste à précacher + VERSION = empreinte de tous ces fichiers (toute modification = nouvelle version)."""
     h = hashlib.sha256()
@@ -245,33 +269,49 @@ def service_worker(app, conf, out_dir, files):
         else:
             WARN.append('%s : fichier à précacher absent : %s' % (app['id'], rel))
     v = h.hexdigest()[:12]
-    return (tpl.replace('__VERSION__', v).replace('__APP__', app['id']).replace('__NAME__', app['name'])
+    date = version_date(app['id'], v)
+    return (tpl.replace('__VERSION__', v).replace('__DATE__', date).replace('__APP__', app['id']).replace('__NAME__', app['name'])
             .replace('__PRECACHE__', json.dumps(files, indent=2))), v
 
 
 GENERATED = {}
 
 
+def fr_date(iso):
+    y, m, d = iso.split('-')
+    return '%s/%s/%s' % (d, m, y)
+
+
 def launcher(conf, versions, apps_android):
     tiles, data = [], {}
+    vinfo = {a['id']: {'v': versions.get(a['id'], ''), 'date': (VERSIONS.get(a['id']) or {}).get('date', ''), 'name': a['name']} for a in conf['apps']}
     for a in conf['apps']:
         d = a.get('data')
         if d:
             data[a['id']] = {'name': a['name'], 'ls': d.get('ls', []), 'idb': d.get('idb', []), 'note': d.get('note', '')}
         tiles.append(
-            '<div class="tw"><a class="tile" href="%(id)s/"><img src="%(id)s/icon-192.png" alt="" width="64" height="64">'
-            '<span class="tx"><b>%(name)s</b><small>%(desc)s</small></span><span class="go" aria-hidden="true">›</span></a>%(dat)s</div>'
-            % {'id': a['id'], 'name': html.escape(a['name']), 'desc': html.escape(a.get('description', '')),
+            '<div class="tw" data-app="%(id)s"><a class="tile" href="%(id)s/"><img src="%(id)s/icon-192.png" alt="" width="64" height="64">'
+            '<span class="tx"><b>%(name)s</b><small>%(desc)s</small><i class="ver" title="Code de version %(v)s">Version du %(date)s</i></span><span class="go" aria-hidden="true">›</span></a>%(dat)s</div>'
+            % {'id': a['id'], 'name': html.escape(a['name']), 'desc': html.escape(a.get('description', '')), 'v': vinfo[a['id']]['v'], 'date': fr_date(vinfo[a['id']]['date'])[:5] if vinfo[a['id']]['date'] else '',
                'dat': ('<button class="dat" type="button" data-app="%s">⇅ Exporter / importer mes données</button>' % a['id']) if d else ''})
     tpl = read(os.path.join(SHARED, 'launcher.html'))
+    # date du lanceur : la plus récente des applis et du modèle du lanceur
+    lh = hashlib.sha256((tpl + json.dumps(conf['apps'], sort_keys=True, ensure_ascii=False)).encode()).hexdigest()[:12]
+    ldate = max([version_date('_lanceur', lh)] + [v['date'] for v in vinfo.values() if v['date']])
     return (tpl.replace('<!--TUILES-->', '\n'.join(tiles))
+            .replace('/*VERSIONS*/{}', json.dumps({'apps': vinfo, 'date': ldate}, ensure_ascii=False).replace('</', '<\\/'))
+            .replace('<!--DATE-->', fr_date(ldate))
             .replace('/*DONNEES*/{}', json.dumps(data, ensure_ascii=False).replace('</', '<\\/'))
             .replace('<!--NB-->', str(len(conf['apps'])))
             .replace('<!--VERSIONS-->', html.escape(', '.join('%s %s' % (a['name'], versions.get(a['id'], '')) for a in conf['apps']))))
 
 
 def main():
+    global VERSIONS_FILE, VERSIONS
     conf = json.loads(read(os.path.join(PC, 'pc-apps.json')))
+    VERSIONS_FILE = os.path.join(PC, 'versions.json')
+    if os.path.exists(VERSIONS_FILE):
+        VERSIONS = json.loads(read(VERSIONS_FILE))
     apps_android = {a['app']: a for a in json.loads(read(os.path.join(APPLIS, 'apps.json')))}
     vendor(conf)
     versions = {}
@@ -311,6 +351,9 @@ def main():
         versions[app['id']] = v
         write(os.path.join(out_dir, 'sw.js'), sw)
     write(os.path.join(PC, 'index.html'), launcher(conf, versions, apps_android))
+    keep = set(a['id'] for a in conf['apps']) | {'_lanceur'}
+    VERSIONS = {k: v for k, v in sorted(VERSIONS.items()) if k in keep}
+    write(VERSIONS_FILE, json.dumps(VERSIONS, ensure_ascii=False, indent=1, sort_keys=True) + '\n')
     # identifiants des manifestes : tous différents une fois résolus sur l'origine du site
     from urllib.parse import urljoin
     ids = {}
