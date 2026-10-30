@@ -112,6 +112,7 @@
     const node = P.renderSlide(A.doc, s, { mode: 'thumb', index: i });
     return node;
   };
+  let thumbGen = 0;
   A.renderThumbs = function (force) {
     if (!thumbsEl || !A.doc) return;
     if (force) thumbCache.clear();
@@ -140,7 +141,7 @@
       thumbsEl.innerHTML = h;
     }
     const bw = (O.$('.th-box', thumbsEl) || { clientWidth: 170 }).clientWidth || 170;
-    const k = bw / W;
+    const k = bw / W, todo = [];
     O.$$('.th', thumbsEl).forEach((t) => {
       const i = +t.dataset.i, s = A.doc.slides[i]; if (!s) return;
       t.classList.toggle('on', i === A.cur);
@@ -152,12 +153,29 @@
       const sig = JSON.stringify(s) + '#' + i;
       const box = t.querySelector('.th-box');
       if (thumbCache.get(s.id) === sig && box.firstChild && box._k === k) return;
-      thumbCache.set(s.id, sig);
-      const node = A.thumbNode(s, i);
-      node.style.transform = 'scale(' + k + ')'; box._k = k;
-      box.innerHTML = ''; box.appendChild(node);
-      P.fitAll(node, A.doc, O.clone(s));
+      todo.push({ t, s, i, sig, box });
     });
+    // gros fichier : les miniatures proches de la diapositive courante d'abord, les autres par petits lots (l'interface reste fluide)
+    const draw = (it) => {
+      thumbCache.set(it.s.id, it.sig);
+      const node = A.thumbNode(it.s, it.i);
+      node.style.transform = 'scale(' + k + ')'; it.box._k = k;
+      it.box.innerHTML = ''; it.box.appendChild(node);
+      P.fitAll(node, A.doc, O.clone(it.s));
+    };
+    const gen = ++thumbGen;
+    todo.sort((a, b) => Math.abs(a.i - A.cur) - Math.abs(b.i - A.cur));
+    const later = todo.length > 14 ? todo.splice(10) : [];
+    todo.forEach(draw);
+    if (later.length) {
+      const step = () => {
+        if (gen !== thumbGen) return;
+        const t0 = performance.now();
+        while (later.length && performance.now() - t0 < 24) { const it = later.shift(); if (it.t.isConnected && A.doc.slides[it.i] === it.s) draw(it); }
+        if (later.length) setTimeout(step, 0);
+      };
+      setTimeout(step, 0);
+    }
     const on = thumbsEl.querySelector('.th.on'); if (on && !thumbsEl._noScroll) { const r = on.getBoundingClientRect(), pr = thumbsEl.getBoundingClientRect(); if (r.top < pr.top || r.bottom > pr.bottom || r.left < pr.left || r.right > pr.right) on.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
   };
   function countSec(sec) { const secs = A.doc.sections || []; const i0 = sec.at ? P.slideIndex(A.doc, sec.at) : 0; let i1 = A.doc.slides.length; secs.forEach((x) => { const j = P.slideIndex(A.doc, x.at); if (j > i0 && j < i1) i1 = j; }); return Math.max(0, i1 - i0); }

@@ -13,21 +13,22 @@
     em: [['pulse', 'Impulsion'], ['spin', 'Rotation'], ['grow', 'Agrandir / réduire'], ['teeter', 'Bascule'], ['blink', 'Clignotement'], ['colorPulse', 'Éclat de couleur']],
     out: [['disappear', 'Disparaître'], ['fadeOut', 'Fondu'], ['flyOut', 'Sortie brusque'], ['floatOut', 'Flottant'], ['zoomOut', 'Zoom'], ['wipeOut', 'Balayer'], ['shrinkTurn', 'Réduire et tourner']]
   };
-  P.ANIMS.media = [['play', 'Lecture']];
+  // commandes média, comme PowerPoint : Lecture (playFrom), Pause (togglePause : met en pause ou reprend), Arrêt (stop)
+  P.ANIMS.media = [['play', 'Lecture'], ['pause', 'Pause'], ['stop', 'Arrêt']];
   P.ANIM_DIRS = { fly: 1, float: 1, wipe: 1, flyOut: 1, floatOut: 1, wipeOut: 1 };
-  P.animName = (a) => { const l = P.ANIMS[a.cat] || []; const x = l.find((k) => k[0] === a.fx); return x ? x[1] : a.fx; };
+  P.animName = (a) => { const l = P.ANIMS[a.cat] || []; const x = l.find((k) => k[0] === (a.fx || 'play')); return x ? x[1] : a.fx; };
   /** Durée réelle d'un effet (s), répétitions comprises */
   P.animDur = function (a, slide) {
-    if (a.cat === 'media') { const e = (slide && P.findEl(slide, a.el)) || {}; return Math.max(0, (+e.end || +e.mediaDur || 0) - (+e.start || 0)); }
+    if (a.cat === 'media') { if ((a.fx || 'play') !== 'play') return 0; const e = (slide && P.findEl(slide, a.el)) || {}; return Math.max(0, (+e.end || +e.mediaDur || 0) - (+a.from || +e.start || 0)); }
     if (a.fx === 'appear' || a.fx === 'disappear') return 0;
     return (+a.dur || 0.5) * (a.fx === 'bounce' ? 1.6 : a.fx === 'spin' ? 1.5 : 1) * Math.max(1, +a.repeat || 1);
   };
-  /** Étapes d'animation d'une diapo : [{auto:bool, items:[{a, t0}]}] (t0 en secondes depuis le début de l'étape).
+  /** Regroupe une suite d'animations en étapes [{auto:bool, items:[{a, t0}]}] (t0 en secondes depuis le début de l'étape).
       Comme PowerPoint : « avec la précédente » part en même temps que le groupe en cours (son propre délai en plus),
       « après la précédente » ouvre un nouveau groupe à la fin de tout ce qui précède dans l'étape. */
-  P.animSteps = function (slide) {
+  function groupSteps(list, slide) {
     const steps = []; let cur = null, subStart = 0, end = 0;
-    (slide.anims || []).forEach((a) => {
+    list.forEach((a) => {
       if (a.start === 'click' || !cur) { cur = { auto: a.start !== 'click', items: [] }; steps.push(cur); subStart = 0; end = 0; }
       if (a.start === 'after' && cur.items.length) subStart = end;
       const t0 = subStart + (+a.delay || 0);
@@ -35,6 +36,15 @@
       end = Math.max(end, t0 + P.animDur(a, slide));
     });
     return steps;
+  }
+  /** Étapes de la séquence principale (clics sur la diapositive) */
+  P.animSteps = (slide) => groupSteps((slide.anims || []).filter((a) => !a.trigger), slide);
+  /** Séquences déclenchées par un clic sur un objet : {id de l'objet: étapes} ; chaque clic sur l'objet joue l'étape suivante */
+  P.triggerSteps = function (slide) {
+    const by = {};
+    (slide.anims || []).forEach((a) => { if (a.trigger) (by[a.trigger] = by[a.trigger] || []).push(a); });
+    Object.keys(by).forEach((k) => { by[k] = groupSteps(by[k].map((a, i) => i === 0 && a.start !== 'click' ? Object.assign({}, a, { start: 'click' }) : a), slide); });
+    return by;
   };
   function kf(a, e, W, H) {
     const dir = a.dir || 'b', dur = (a.dur || 0.5) * 1000;
@@ -67,26 +77,56 @@
       default: return [[{ opacity: 0 }, { opacity: 1 }], dur];
     }
   }
-  /** Prépare l'état initial (objets à entrée animée cachés) et joue une étape */
+  /** Nœuds visés par une animation : l'objet, ou les paragraphes de son texte (a.para), ou sa forme sans le texte (a.bg) */
+  P.animNodes = function (root, a) {
+    const n = root.querySelector('.el[data-id="' + a.el + '"]'); if (!n) return [];
+    if (a.para) {
+      if (!n._paras) { const inn = n.querySelector('.el-tx-in'); n._paras = inn ? P.paraNodes(inn) : []; }
+      return n._paras.slice(a.para[0], a.para[1] + 1);
+    }
+    return [n];
+  };
+  /** Prépare l'état initial : comme PowerPoint, un objet (ou un paragraphe) dont le premier effet est une entrée est caché
+      au départ ; les déclencheurs (clic sur un objet) comptent après la séquence principale. */
   P.animPrepare = function (root, slide) {
-    (slide.anims || []).forEach((a) => {
-      const n = root.querySelector('.el[data-id="' + a.el + '"]'); if (!n) return;
-      if (a.cat === 'in' && !n.dataset.animInit) { n.dataset.animInit = 1; n.style.visibility = 'hidden'; }
+    const list = (slide.anims || []).filter((a) => !a.trigger).concat((slide.anims || []).filter((a) => a.trigger));
+    const first = new Map();
+    list.forEach((a) => { if (a.cat === 'media') return; const k = P.animTarget(a); if (!first.has(k)) first.set(k, a); });
+    first.forEach((a) => {
+      if (a.cat !== 'in') return;
+      P.animNodes(root, a).forEach((n) => {
+        if (n.dataset.animInit) return; n.dataset.animInit = 1; n.style.visibility = 'hidden';
+        // la forme seule (a.bg) : son texte garde son propre état ; un paragraphe de liste : ses sous-paragraphes aussi
+        if (a.bg) O.$$('.el-tx-in', n).forEach((x) => { x.style.visibility = 'visible'; });
+        if (n.tagName === 'LI') O.$$(':scope > ul, :scope > ol', n).forEach((x) => { x.style.visibility = 'visible'; });
+      });
     });
+    P.triggerIds(slide).forEach((id) => { const n = root.querySelector('.el[data-id="' + id + '"]'); if (n) n.classList.add('trig'); });
+  };
+  /** Commande d'une vidéo ou d'un son : lecture (depuis a.from), pause (bascule, comme « togglePause »), arrêt */
+  P.mediaCmd = function (box, a) {
+    const fx = a.fx || 'play', m = medOf(box);
+    if (fx === 'play') { if (m && a.from > 0) { try { m.currentTime = +a.from; m.dataset.done = ''; } catch (e) { } } P.mediaPlayBox(box); }
+    else if (fx === 'pause') P.mediaToggleBox(box);
+    else if (fx === 'stop' && m) { P.mediaPauseBox(box); try { m.currentTime = +m.dataset.start || 0; } catch (e) { } box.classList.remove('vfull'); if (box._finish) box._finish(); if (box._show && box._show.onMedia) box._show.onMedia({ id: box.dataset.id, act: 'seek', t: m.currentTime }); }
   };
   function playOne(root, slide, a, delay, doc, instant) {
-    const n = root.querySelector('.el[data-id="' + a.el + '"]'); if (!n) return Promise.resolve();
-    if (a.cat === 'media') { // étape « Lecture » d'une vidéo ou d'un son (seulement dans un vrai diaporama, pas dans l'aperçu de l'éditeur)
-      if (!instant && root.closest('.show-stage')) { const t = setTimeout(() => { if (root.isConnected) P.mediaPlayBox(n); }, delay * 1000); (root._timers = root._timers || []).push(t); }
+    const nodes = P.animNodes(root, a); if (!nodes.length) return Promise.resolve();
+    if (a.cat === 'media') { // commande d'une vidéo ou d'un son (seulement dans un vrai diaporama, pas dans l'aperçu de l'éditeur)
+      // fenêtre publique : pause et arrêt viennent du présentateur (sinon la bascule serait faite deux fois)
+      const follow = root.closest('[data-follower]') && (a.fx || 'play') !== 'play';
+      if (!instant && !follow && root.closest('.show-stage')) { const t = setTimeout(() => { if (root.isConnected) P.mediaCmd(nodes[0], a); }, delay * 1000); (root._timers = root._timers || []).push(t); }
       return Promise.resolve();
     }
     const e = P.findEl(slide, a.el) || { x: 0, y: 0, w: 100, h: 100 };
     const [frames, dur, easing, fill] = kf(a, e, doc.size.w, doc.size.h);
-    if (a.cat === 'in') n.style.visibility = 'visible';
-    if (instant) { if (a.cat === 'out') n.style.visibility = 'hidden'; return Promise.resolve(); }
-    const anim = n.animate(frames, { duration: Math.max(1, dur), delay: delay * 1000, easing: easing || 'ease', fill: fill || 'both', iterations: a.repeat || 1 });
-    n._anims = (n._anims || []).concat(anim);
-    return anim.finished.then(() => { if (a.cat === 'out') n.style.visibility = 'hidden'; if (a.cat !== 'em' || !fill) anim.cancel(); if (a.cat === 'in') n.style.visibility = 'visible'; }).catch(() => { });
+    return Promise.all(nodes.map((n) => {
+      if (a.cat === 'in') n.style.visibility = 'visible';
+      if (instant) { if (a.cat === 'out') n.style.visibility = 'hidden'; return Promise.resolve(); }
+      const anim = n.animate(frames, { duration: Math.max(1, dur), delay: delay * 1000, easing: easing || 'ease', fill: fill || 'both', iterations: a.repeat || 1 });
+      n._anims = (n._anims || []).concat(anim);
+      return anim.finished.then(() => { if (a.cat === 'out') n.style.visibility = 'hidden'; if (a.cat !== 'em' || !fill) anim.cancel(); if (a.cat === 'in') n.style.visibility = 'visible'; }).catch(() => { });
+    }));
   }
   P.animPlayStep = function (root, slide, step, doc, instant) {
     return Promise.all(step.items.map((it) => playOne(root, slide, it.a, it.t0, doc, instant)));
@@ -172,12 +212,17 @@
         const tt = total(); if (seek && !seek._drag && tt > 0) seek.value = Math.round(O.clamp((m.currentTime - st) / tt, 0, 1) * 1000);
         if (vt) vt.textContent = fmtT(m.currentTime - st) + (tt > 0 ? ' / ' + fmtT(tt) : '');
       };
+      // « Masquer pendant la non-lecture » (PowerPoint : showWhenStopped="0") : invisible avant la lecture et après la fin
+      const hide = m.dataset.hide === '1';
+      if (hide) { box.classList.add('vhide'); m.addEventListener('play', () => box.classList.remove('vhide')); }
       const finish = () => {
         box.classList.remove('vfull');
         m.dataset.done = '1';
         if (m.dataset.rewind === '1') { try { m.currentTime = st; } catch (e) { } }
+        if (hide) box.classList.add('vhide');
         upd();
       };
+      box._finish = finish;
       m.addEventListener('loadedmetadata', () => { if (st && m.currentTime < st) { try { m.currentTime = st; } catch (e) { } } upd(); });
       m.addEventListener('timeupdate', () => { if (end && m.currentTime >= end && !m.paused) { if (m.loop) { m.currentTime = st; } else { m.pause(); finish(); } } upd(); });
       ['play', 'pause', 'volumechange', 'seeked'].forEach((ev) => m.addEventListener(ev, upd));
@@ -206,11 +251,12 @@
     opt = opt || {};
     const S = this; S.doc = doc; S.host = host; S.i = -1; S.step = 0; S.ink = {}; S.blackMode = null;
     const stage = O.h('div', { cls: 'show-stage' }); host.appendChild(stage);
+    if (opt.follower) stage.dataset.follower = '1';
     const ink = O.h('canvas', { cls: 'show-ink' }); host.appendChild(ink);
     const black = O.h('div', { cls: 'show-black' }); host.appendChild(black);
     const laser = O.h('div', { cls: 'show-laser' }); host.appendChild(laser);
     S.stage = stage; S.inkCanvas = ink; S.laserEl = laser; S.blackEl = black;
-    let cur = null, steps = [], busy = Promise.resolve(), timer = null, slideStart = 0;
+    let cur = null, steps = [], busy = Promise.resolve(), timer = null, slideStart = 0, trig = {}, trigPos = {};
     S.fit = function () {
       const W = doc.size.w, H = doc.size.h, hw = host.clientWidth, hh = host.clientHeight;
       const k = Math.min(hw / W, hh / H); S.k = k;
@@ -257,7 +303,7 @@
         clearTimeout(timer);
         const prev = cur, back = opt2.back;
         const n = render(i);
-        S.i = i; S.step = 0; steps = P.animSteps(doc.slides[i]); slideStart = Date.now();
+        S.i = i; S.step = 0; steps = P.animSteps(doc.slides[i]); trig = P.triggerSteps(doc.slides[i]); trigPos = {}; slideStart = Date.now();
         if (opt2.toEnd) { for (const st of steps) await P.animPlayStep(n, doc.slides[i], st, doc, true); S.step = steps.length; }
         cur = n;
         S.emit();
@@ -296,13 +342,28 @@
       if (S.ended) { S.ended = false; const e = host.querySelector('.show-end'); if (e) e.remove(); S.emit(); return; }
       busy = busy.then(async () => {
         if (S.step > (steps[0] && steps[0].auto ? 1 : 0)) { // revenir d'une étape : on rejoue la diapo jusqu'à l'étape précédente
-          const target = S.step - 1; const n = render(S.i); for (let k = 0; k < target; k++) await P.animPlayStep(n, doc.slides[S.i], steps[k], doc, true); stopMedia(cur); cur.remove(); cur = n; S.step = target; S.emit(); return;
+          const target = S.step - 1; const n = render(S.i); trigPos = {}; for (let k = 0; k < target; k++) await P.animPlayStep(n, doc.slides[S.i], steps[k], doc, true); stopMedia(cur); cur.remove(); cur = n; S.step = target; S.emit(); return;
         }
         const vis = S.visible(); let pv = vis.slice().reverse().find((x) => x < S.i);
         if (pv == null) { if (doc.settings.loop) pv = vis[vis.length - 1]; else return; }
         S.go(pv, { back: true, toEnd: true });
       });
       return busy;
+    };
+    /** Objet déclencheur sous le pointeur (l'objet cliqué ou un groupe qui le contient), ou null */
+    S.triggerAt = function (target) {
+      if (!cur || !target || !target.closest) return null;
+      let n = target.closest('.el[data-id]');
+      while (n && cur.contains(n)) { if (trig[n.dataset.id]) return n.dataset.id; n = n.parentElement && n.parentElement.closest('.el[data-id]'); }
+      return null;
+    };
+    /** Clic sur un objet déclencheur : joue l'étape suivante de sa séquence (qui recommence une fois finie), sans avancer le diaporama */
+    S.trigger = function (id, quiet) {
+      const st = trig[id]; if (!st || !st.length || !cur || S.ended) return false;
+      let k = trigPos[id] || 0; if (k >= st.length) k = 0; trigPos[id] = k + 1;
+      P.animPlayStep(cur, doc.slides[S.i], st[k], doc);
+      if (!quiet && opt.onTrigger) opt.onTrigger(id);
+      return true;
     };
     S.showEnd = function () { S.ended = true; clearTimeout(timer); const e = O.h('div', { cls: 'show-end' }, 'Fin du diaporama. Cliquez pour quitter.'); host.appendChild(e); S.emit(); };
     S.setBlack = function (m) { S.blackMode = m; black.className = 'show-black' + (m ? ' on' : '') + (m === 'white' ? ' white' : ''); S.emit(); };
@@ -315,7 +376,7 @@
       if (st.black !== S.blackMode) S.setBlack(st.black);
       if (st.i !== S.i) { await S.go(st.i, { toEnd: false, instant: false }); await busy; }
       while (S.step < st.step && S.step < steps.length) { const s2 = steps[S.step]; S.step++; await P.animPlayStep(cur, doc.slides[S.i], s2, doc); }
-      if (st.step < S.step) { const n = render(S.i); for (let k = 0; k < st.step; k++) await P.animPlayStep(n, doc.slides[S.i], steps[k], doc, true); stopMedia(cur); cur.remove(); cur = n; S.step = st.step; }
+      if (st.step < S.step) { const n = render(S.i); trigPos = {}; for (let k = 0; k < st.step; k++) await P.animPlayStep(n, doc.slides[S.i], steps[k], doc, true); stopMedia(cur); cur.remove(); cur = n; S.step = st.step; }
     };
     S.destroy = function () { clearTimeout(timer); stopMedia(cur); O.$$('audio,video', document.body).forEach((m) => { if (m.parentNode === document.body) { m.pause(); m.remove(); } }); host.innerHTML = ''; };
     S.current = () => cur;
@@ -363,7 +424,8 @@
       onState: (st) => { post({ type: 'state', st }); updatePresenter(st); updateNum(st); if (rehearse) rehearseTick(st); },
       // mode présentateur : le son vient de la fenêtre publique ; ce que le présentateur fait sur une vidéo y est refait
       muteMedia: () => !!(A.presenterMode && A.audienceWin && !A.audienceWin.closed),
-      onMedia: (m) => post(Object.assign({ type: 'media' }, m))
+      onMedia: (m) => post(Object.assign({ type: 'media' }, m)),
+      onTrigger: (id) => post({ type: 'trigger', id })
     });
     A.show = show;
     attachInput(A.presenterMode ? document.querySelector('#presenter .pr-cur') : host);
@@ -463,11 +525,14 @@
     if (inputAbort) inputAbort.abort();
     inputAbort = new AbortController();
     const sig = { signal: inputAbort.signal };
-    let stroke = null, swipe = null, mediaTap = null;
+    let stroke = null, swipe = null, mediaTap = null, trigTap = null;
     host.addEventListener('pointerdown', (e) => {
       if (!A.showing || e.button === 2) return;
       if (e.target.closest('.show-bar, iframe, .show-grid, button, input, .vctl, .show-end')) { if (e.target.closest('.show-end')) A.endShow(); return; }
       // vidéo ou son : le clic (ou le toucher) va d'abord à la vidéo, et ne fait pas avancer le diaporama
+      // objet déclencheur (« au clic sur… ») : joue sa séquence, sans faire avancer le diaporama
+      const tg = !tools.mode && show.triggerAt(e.target);
+      if (tg) { trigTap = { id: tg, x: e.clientX, y: e.clientY }; return; }
       const mb = !tools.mode && e.target.closest('.show-stage .el-video, .show-stage .el-audio');
       if (mb) { mediaTap = { box: mb, x: e.clientX, y: e.clientY }; return; }
       const p = show.toSlide(e.clientX, e.clientY);
@@ -484,6 +549,7 @@
       if (tools.mode === 'laser') { show.setLaser(true, p, A.doc.settings.laser); post({ type: 'laser', on: true, p, c: A.doc.settings.laser }); }
     }, sig);
     const up = (e) => {
+      if (trigTap) { const t = trigTap; trigTap = null; if (Math.hypot(e.clientX - t.x, e.clientY - t.y) < 24) show.trigger(t.id); return; }
       if (mediaTap) { const t = mediaTap; mediaTap = null; if (Math.hypot(e.clientX - t.x, e.clientY - t.y) < 24) { show.mediaToggle(t.box); t.box.classList.add('ctl-on'); clearTimeout(t.box._ctlT); t.box._ctlT = setTimeout(() => t.box.classList.remove('ctl-on'), 3000); } return; }
       if (stroke) { if (stroke.p.length > 1) { show.addStroke(stroke); post({ type: 'ink', i: show.i, st: stroke }); A._lastInk = show.ink; } stroke = null; return; }
       if (!swipe) return;
@@ -492,7 +558,7 @@
       if (Math.hypot(dx, dy) < 12 && Date.now() - s.t < 600 && !A.presenterMode) show.next();
       else if (A.presenterMode && Math.hypot(dx, dy) < 12) show.next();
     };
-    host.addEventListener('pointerup', up, sig); host.addEventListener('pointercancel', () => { stroke = null; swipe = null; mediaTap = null; }, sig);
+    host.addEventListener('pointerup', up, sig); host.addEventListener('pointercancel', () => { stroke = null; swipe = null; mediaTap = null; trigTap = null; }, sig);
     host.addEventListener('contextmenu', (e) => { if (!A.showing) return; e.preventDefault(); toolAction('menu', { getBoundingClientRect: () => ({ left: e.clientX, right: e.clientX, top: e.clientY, bottom: e.clientY }) }); }, sig);
     host.addEventListener('wheel', (e) => { if (!A.showing || e.target.closest('.show-grid, .pr-notes')) return; e.preventDefault(); if (e.deltaY > 0) show.next(); else if (e.deltaY < 0) show.prev(); }, { passive: false, signal: inputAbort.signal });
   }
@@ -615,6 +681,7 @@
       if (d.type === 'ink-clear') { sh.ink[d.i] = []; sh.redrawInk(); }
       if (d.type === 'laser') sh.setLaser(d.on, d.p, d.c);
       if (d.type === 'media') sh.mediaApply(d);
+      if (d.type === 'trigger') sh.trigger(d.id, true);
       if (d.type === 'end') { sh.destroy(); host.innerHTML = '<div style="color:#999;font:16px system-ui;display:flex;align-items:center;justify-content:center;height:100%">Diaporama terminé. Vous pouvez fermer cette fenêtre.</div>'; setTimeout(() => window.close(), 1500); }
     };
     c.postMessage({ type: 'hello' });

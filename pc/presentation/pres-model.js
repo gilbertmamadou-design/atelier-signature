@@ -157,7 +157,7 @@
     slide.layout = layout; slide.elements = out;
     // les animations d'éléments disparus sont retirées
     const ids = new Set(); P.walk(slide.elements, (e) => ids.add(e.id));
-    slide.anims = (slide.anims || []).filter((a) => ids.has(a.el));
+    slide.anims = (slide.anims || []).filter((a) => ids.has(a.el) && (!a.trigger || ids.has(a.trigger)));
   };
   P.layoutKind = (slide) => slide.layout === 'title' ? 'title' : slide.layout === 'section' || slide.layout === 'bigNumber' || slide.layout === 'quote' ? 'section' : 'content';
 
@@ -170,30 +170,93 @@
   /** Copie d'un objet (nouveaux identifiants) ; map, si donné, reçoit ancien id → nouvel id (objet et enfants) */
   P.cloneEl = function (e, map) { const c = O.clone(e); P.walk([c], (x) => { const n = P.uid(); if (map) map[x.id] = n; x.id = n; }); return c; };
   /** Animations des objets copiés (map : ancien id → nouvel id), dans l'ordre d'origine, comme PowerPoint */
-  P.animsFor = (anims, map) => (anims || []).filter((a) => map[a.el]).map((a) => Object.assign({}, a, { id: P.uid('a'), el: map[a.el] }));
+  P.animsFor = (anims, map) => (anims || []).filter((a) => map[a.el]).map((a) => { const c = Object.assign({}, a, { id: P.uid('a'), el: map[a.el] }); if (c.trigger) { if (map[c.trigger]) c.trigger = map[c.trigger]; else delete c.trigger; } if (c.para) c.para = c.para.slice(); return c; });
   /* ---------------- Vidéos et sons : démarrage (comme PowerPoint) ----------------
      e.play : 'seq' (au clic, dans la séquence des clics : une étape « Lecture » dans les animations),
      'auto' (automatiquement à l'affichage de la diapositive), 'click' (en cliquant dessus seulement).
      Les anciens fichiers n'avaient que e.autoplay : sans lecture automatique, la vidéo démarre au clic. */
   P.isMediaEl = (e) => !!e && (e.type === 'video' || e.type === 'audio');
   P.mediaStart = (e) => (e.play === 'seq' || e.play === 'auto' || e.play === 'click') ? e.play : (e.autoplay ? 'auto' : 'seq');
+  /* L'étape « Lecture » gérée par le réglage « Démarrer : au clic » est la lecture dans la séquence principale ;
+     les autres commandes (pause, arrêt, lecture depuis un déclencheur) sont des animations ordinaires. */
+  P.isSeqPlay = (a) => a.cat === 'media' && (a.fx || 'play') === 'play' && !a.trigger;
   P.syncMedia = function (slide) {
     slide.anims = slide.anims || [];
     const seen = new Set();
     P.walk(slide.elements, (e) => {
       if (!P.isMediaEl(e)) return;
       const m = P.mediaStart(e); e.play = m; e.autoplay = m === 'auto'; seen.add(e.id);
-      const has = slide.anims.some((a) => a.cat === 'media' && a.el === e.id);
+      const has = slide.anims.some((a) => P.isSeqPlay(a) && a.el === e.id);
       if (m === 'seq' && !has) slide.anims.push({ id: P.uid('a'), el: e.id, cat: 'media', fx: 'play', start: 'click', delay: 0, dur: 0 });
-      if (m !== 'seq' && has) slide.anims = slide.anims.filter((a) => !(a.cat === 'media' && a.el === e.id));
+      if (m !== 'seq' && has) slide.anims = slide.anims.filter((a) => !(P.isSeqPlay(a) && a.el === e.id));
     });
     slide.anims = slide.anims.filter((a) => a.cat !== 'media' || seen.has(a.el));
     return slide;
   };
+  /* ---------------- Paragraphes d'un texte (animation « par paragraphe », comme PowerPoint) ----------------
+     Un paragraphe = un bloc du HTML : <div>, <p>, <h1>…, <blockquote> sans bloc à l'intérieur, chaque <li>, ou une suite
+     de contenu en ligne entre deux blocs. C'est le découpage de l'import (un <a:p> = un bloc) et de l'export (IO.htmlRuns).
+     a.para = [premier, dernier] (indices à partir de 0) ; sans a.para, l'animation vise l'objet entier. */
+  const BLOCK = /^(DIV|P|H\d|BLOCKQUOTE)$/;
+  P.paraWalk = function (root, cb) {
+    function list(n) {
+      Array.from(n.childNodes).forEach((li) => {
+        if (li.nodeType !== 1) return;
+        if (li.tagName === 'LI') { cb({ node: li }); Array.from(li.children).forEach((sub) => { if (sub.tagName === 'UL' || sub.tagName === 'OL') list(sub); }); }
+        else if (li.tagName === 'UL' || li.tagName === 'OL') list(li);
+      });
+    }
+    function walk(node) {
+      let inline = [];
+      const flush = () => { if (inline.some((x) => x.nodeType === 1 || /\S/.test(x.textContent.replace(/​/g, '')))) cb({ nodes: inline }); inline = []; };
+      Array.from(node.childNodes).forEach((n) => {
+        if (n.nodeType === 1 && BLOCK.test(n.tagName)) { flush(); if (n.querySelector('div,p,ul,ol')) walk(n); else cb({ node: n }); }
+        else if (n.nodeType === 1 && (n.tagName === 'UL' || n.tagName === 'OL')) { flush(); list(n); }
+        else if (n.nodeType === 1 || n.nodeType === 3) inline.push(n);
+      });
+      flush();
+    }
+    if (root) walk(root);
+  };
+  const paraCache = new Map();
+  /** Paragraphes d'un texte HTML : [{text}] (aperçu dans le volet Animation, contrôle des indices) */
+  P.paraList = function (html) {
+    html = html || '';
+    if (paraCache.has(html)) return paraCache.get(html);
+    const d = document.createElement('div'); d.innerHTML = html; const out = [];
+    P.paraWalk(d, (p) => out.push({ text: (p.node ? p.node.textContent : p.nodes.map((x) => x.textContent).join('')).replace(/​/g, '').replace(/\s+/g, ' ').trim() }));
+    if (paraCache.size > 400) paraCache.clear();
+    paraCache.set(html, out);
+    return out;
+  };
+  /** Nœuds des paragraphes d'un texte affiché (.el-tx-in) ; le contenu en ligne isolé est enveloppé pour être animé */
+  P.paraNodes = function (inner) {
+    const out = [];
+    P.paraWalk(inner, (p) => {
+      if (p.node) { out.push(p.node); return; }
+      const w = document.createElement('div'); w.className = 'pp-wrap';
+      p.nodes[0].parentNode.insertBefore(w, p.nodes[0]); p.nodes.forEach((x) => w.appendChild(x)); out.push(w);
+    });
+    return out;
+  };
+  /** Le paragraphe visé existe-t-il encore ? (un fichier peut viser un paragraphe supprimé depuis) */
+  P.animParaOk = function (slide, a) {
+    if (!a.para) return true;
+    const e = P.findEl(slide, a.el); if (!e || !e.html) return false;
+    return a.para[0] < P.paraList(e.html).length;
+  };
+  P.animTarget = (a) => a.el + (a.para ? '¶' + a.para[0] + '-' + a.para[1] : a.bg ? '¶bg' : '');
+  /** Objets qui déclenchent des animations au clic (« Déclencheur : au clic sur… ») */
+  P.triggerIds = (slide) => Array.from(new Set((slide.anims || []).filter((a) => a.trigger).map((a) => a.trigger)));
+  /** Animations à retirer avec des objets supprimés (objet animé ou déclencheur) */
+  P.dropAnimsOf = function (slide, ids) {
+    const gone = new Set(ids);
+    slide.anims = (slide.anims || []).filter((a) => !gone.has(a.el) && !(a.trigger && gone.has(a.trigger)));
+  };
   P.cloneSlide = function (s) {
     const c = O.clone(s); const map = {};
     c.id = P.uid('s'); P.walk(c.elements, (x) => { const n = P.uid(); map[x.id] = n; x.id = n; });
-    c.anims = (c.anims || []).map((a) => Object.assign({}, a, { id: P.uid('a'), el: map[a.el] || a.el }));
+    c.anims = (c.anims || []).map((a) => Object.assign({}, a, { id: P.uid('a'), el: map[a.el] || a.el }, a.trigger ? { trigger: map[a.trigger] || a.trigger } : null));
     P.walk(c.elements, (x) => { if (x.conn) { if (x.conn.a && map[x.conn.a.el]) x.conn.a.el = map[x.conn.a.el]; if (x.conn.b && map[x.conn.b.el]) x.conn.b.el = map[x.conn.b.el]; } });
     c.comments = [];
     return c;

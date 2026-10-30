@@ -113,7 +113,7 @@
     if (!ids.length) { if (A.sel.length) O.toast('Élément verrouillé'); return; }
     const rm = (list) => { for (let i = list.length - 1; i >= 0; i--) { if (ids.indexOf(list[i].id) >= 0) { const e = list[i]; if (e.ph && A.view !== 'master' && !(label === 'Couper')) { /* un espace réservé vidé revient à son invite */ if (e.type === 'text' && !RT.isEmpty(e.html)) { e.html = ''; continue; } } list.splice(i, 1); } else if (list[i].children) rm(list[i].children); } };
     rm(s.elements);
-    s.anims = (s.anims || []).filter((a) => ids.indexOf(a.el) < 0);
+    P.dropAnimsOf(s, ids); // animations de l'objet, et celles qu'il déclenchait au clic
     A.sel = []; A.tableSel = null; A.change(label || 'Supprimer');
   };
   C.duplicate = function () {
@@ -523,7 +523,7 @@
       ...(isV && !yt ? [{ id: 'full', type: 'check', label: 'Lire en plein écran', value: !!e.full }] : []),
       { id: 'loop', type: 'check', label: 'En boucle jusqu\'à l\'arrêt', value: !!e.loop },
       ...(!yt ? [{ id: 'rewind', type: 'check', label: 'Rembobiner après la lecture', value: !!e.rewind }] : []),
-      ...(isV && !yt ? [{ id: 'muted', type: 'check', label: 'Sans le son', value: !!e.muted }] : []),
+      ...(isV && !yt ? [{ id: 'muted', type: 'check', label: 'Sans le son', value: !!e.muted }, { id: 'hideStopped', type: 'check', label: 'Masquer pendant la non-lecture', value: !!e.hideStopped }] : []),
       ...(!isV ? [{ id: 'hide', type: 'check', label: 'Masquer l\'icône pendant le diaporama', value: !!e.hideInShow }, { id: 'across', type: 'check', label: 'Continuer sur les diapositives suivantes', value: !!e.across }] : []),
       { id: 'start', type: 'number', label: 'Début (secondes)', value: e.start || 0, min: 0, half: true },
       ...(isV && !yt ? [{ id: 'end', type: 'number', label: 'Fin (secondes, 0 = jusqu\'au bout)', value: e.end || 0, min: 0, half: true }] : []),
@@ -531,7 +531,7 @@
     ]).then((r) => {
       if (!r) return;
       e.play = r.play; e.autoplay = r.play === 'auto'; e.loop = r.loop;
-      if ('full' in r) e.full = r.full; if ('rewind' in r) e.rewind = r.rewind; if ('muted' in r) e.muted = r.muted;
+      if ('full' in r) e.full = r.full; if ('rewind' in r) e.rewind = r.rewind; if ('muted' in r) e.muted = r.muted; if ('hideStopped' in r) { if (r.hideStopped) e.hideStopped = true; else delete e.hideStopped; }
       if ('hide' in r) { e.hideInShow = r.hide; e.across = r.across; } e.start = r.start || 0; if ('end' in r) e.end = r.end || 0; if (r.url && P.ytId(r.url)) e.url = r.url;
       if (A.view !== 'master') P.syncMedia(A.slide());
       A.change('Options du média');

@@ -79,6 +79,9 @@
       await addRecent(blob);
       A.closeBackstage();
       if (r.kind === 'pptx' && !opt.quiet) O.toast('Présentation PowerPoint importée. Enregistrer (Ctrl+S) réécrit le .pptx ; « Enregistrer sous » propose aussi le format .magpres, plus complet.', { ms: 5000 });
+      // animations qui visent un paragraphe disparu (texte raccourci après la pose des animations) : clics sans effet
+      const bad = (r.notes || []).find((x) => x.kind === 'badPara');
+      if (bad && !opt.quiet) setTimeout(() => O.toast(bad.count + ' animation' + (bad.count > 1 ? 's visent' : ' vise') + ' un paragraphe qui n\'existe plus (diapositive' + (bad.slides.length > 1 ? 's ' : ' ') + bad.slides.join(', ') + ') : texte modifié après la pose des animations. Ces clics n\'affichent rien.', { bad: true, ms: 15000, action: { label: 'Retirer ces étapes', fn: () => C.cleanAnims() } }), 5200);
       return true;
     } catch (e) { prog(1, 1, true); console.error(e); O.alert('Ouverture impossible', '<p>« ' + O.esc(name) + ' » n\'a pas pu être ouvert.</p><p class="o-hint">' + O.esc(e.message || String(e)) + '</p>'); return false; }
   }
@@ -176,9 +179,22 @@
       await F.share(b, name);
     } catch (e) { O.toast('Partage impossible : ' + e.message, { bad: true }); }
   };
+  /** Avancement d'une opération longue : barre de progression (après 300 ms, donc toujours visible au-delà de 2 s) */
   function progressToast(label) {
-    let last = 0;
-    return (i, n, done) => { if (done) { O.toast('Terminé', { ms: 600 }); return; } if (Date.now() - last < 250 && i < n) return; last = Date.now(); O.toast(label + (n ? ' ' + Math.min(n, i + 1) + '/' + n : ''), { ms: 4000 }); };
+    let last = 0, bar = null;
+    const t0 = Date.now();
+    const show = () => {
+      if (!bar) { bar = O.h('div', { cls: 'pres-prog', role: 'progressbar', 'aria-label': label, 'aria-valuemin': '0', 'aria-valuemax': '100' }); bar.innerHTML = '<span></span><b><i></i></b>'; document.body.appendChild(bar); }
+      return bar;
+    };
+    return (i, n, done) => {
+      if (done) { if (bar) { bar.remove(); bar = null; } O.toast('Terminé', { ms: 600 }); return; }
+      if (Date.now() - last < 120 && i < n) return; last = Date.now();
+      if (Date.now() - t0 < 300 && !bar) return;
+      const b = show(), pc = n ? Math.round(Math.min(n, i + 1) / n * 100) : 0;
+      b.querySelector('span').textContent = label + (n ? ' ' + Math.min(n, i + 1) + '/' + n : '');
+      b.querySelector('i').style.width = pc + '%'; b.setAttribute('aria-valuenow', pc);
+    };
   }
   /* ---------------- récents ---------------- */
   async function addRecent(blob) {

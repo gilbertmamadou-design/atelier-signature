@@ -100,6 +100,9 @@ button{font:inherit;color:inherit}
 .an-it .l{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .an-it .bar{height:6px;border-radius:3px;background:var(--o-acc2);opacity:.6}
 .an-it[draggable=true]{cursor:grab}
+.an-it.bad{border-style:dashed;opacity:.75}.an-it.bad .l{text-decoration:line-through}
+.an-trig{display:flex;align-items:center;gap:6px;margin:10px 0 2px;font-size:12.5px;font-weight:600;color:var(--o-tx2)}.an-trig svg{width:15px;height:15px;color:#E8A400}
+.an-warn{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:7px;background:#E677001f;border:1px solid #E6770066;font-size:12.5px;margin:6px 0}.an-warn svg{flex:none;width:16px;height:16px;color:var(--o-warn)}.an-warn span{flex:1}
 /* commentaires */
 .cm{border:1px solid var(--o-line);border-radius:9px;padding:8px 10px;margin:8px 0;background:var(--o-bg)}
 .cm.done{opacity:.6}
@@ -225,6 +228,8 @@ button{font:inherit;color:inherit}
 /* diaporama : vidéos et sons (commandes à taille constante à l'écran : --k = échelle de la diapositive) */
 .mode-show .el-video,.mode-show .el-audio{cursor:pointer}
 .mode-show .el-video video{pointer-events:none}
+.show-stage .sl .el.vhide{visibility:hidden}
+.show-stage .sl .el.trig{cursor:pointer}
 .sl .vplay{position:absolute;left:50%;top:50%;width:calc(64px / var(--k,1));height:calc(64px / var(--k,1));transform:translate(-50%,-50%);border-radius:50%;background:#000a;color:#fff;display:flex;align-items:center;justify-content:center;pointer-events:none;transition:opacity .2s}
 .sl .vplay .oi{width:45%;height:45%;margin-left:6%}
 .sl .el-video.playing .vplay{opacity:0}
@@ -427,3 +432,8 @@ button{font:inherit;color:inherit}
 #printBox .pg.ho{flex-direction:column;align-items:stretch;justify-content:flex-start;padding:10mm}
 /* trieuse : le zoom de la diapositive n'a pas de sens */
 .view-sorter #stZm,.view-sorter #zoomRange,.view-sorter #stZp,.view-sorter #zoomVal,.view-sorter #stFit{display:none}
+
+/* barre de progression (ouverture d'un gros fichier, exports) */
+.pres-prog{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:9000;background:var(--o-bg2,#fff);color:var(--o-tx,#222);border:1px solid var(--o-line,#ccc);border-radius:10px;box-shadow:0 6px 24px #0003;padding:10px 14px;width:min(420px,calc(100vw - 32px));font:500 13.5px system-ui;display:flex;flex-direction:column;gap:8px}
+.pres-prog b{display:block;height:6px;border-radius:3px;background:#8884;overflow:hidden}
+.pres-prog i{display:block;height:100%;width:0;background:var(--o-acc,#1971C2);transition:width .15s}

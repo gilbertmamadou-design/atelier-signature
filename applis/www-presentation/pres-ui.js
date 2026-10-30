@@ -78,12 +78,63 @@
     s.anims = s.anims || [];
     A.sel.forEach((id, k) => {
       const ex = s.anims.filter((a) => a.el === id && a.cat !== 'media');
-      if (replace !== false && ex.length) { const a = ex[ex.length - 1]; a.cat = cat; a.fx = fx; if (!P.ANIM_DIRS[fx]) delete a.dir; else a.dir = a.dir || (cat === 'out' ? 'b' : 'b'); A.animSel = a.id; }
+      if (replace !== false && ex.length) { const cur = selAnim(), base = cur && cur.el === id && cur.cat !== 'media' ? cur : ex[ex.length - 1]; series(s, base).forEach((a) => { a.cat = cat; a.fx = fx; if (!P.ANIM_DIRS[fx]) delete a.dir; else a.dir = a.dir || 'b'; }); A.animSel = base.id; }
       else { const a = { id: P.uid('a'), el: id, cat, fx, start: k === 0 ? 'click' : 'with', delay: 0, dur: fx === 'appear' || fx === 'disappear' ? 0 : 0.5 }; if (P.ANIM_DIRS[fx]) a.dir = 'b'; s.anims.push(a); A.animSel = a.id; }
     });
     A.change('Animation'); A.cmd.previewAnim(A.animSel);
   };
-  C.animProp = function (k, v) { const a = selAnim(); if (!a) return; a[k] = v; A.change('Animation'); };
+  /** Effet « par paragraphe » : les animations sœurs (même objet, même effet, chacune sur un paragraphe), réglées ensemble */
+  const series = (s, a) => !a ? [] : a.para ? (s.anims || []).filter((x) => x.el === a.el && x.para && x.cat === a.cat && x.fx === a.fx && (x.trigger || '') === (a.trigger || '')) : [a];
+  A.animSeries = series;
+  // effet, durée, direction, répétitions : pour toute la série (comme PowerPoint) ; démarrage et délai : pour l'étape choisie
+  C.animProp = function (k, v) { const a = selAnim(); if (!a) return; (/^(fx|dur|dir|repeat)$/.test(k) ? series(A.slide(), a) : [a]).forEach((x) => { x[k] = v; if (k === 'fx' && !P.ANIM_DIRS[v]) delete x.dir; }); A.change('Animation'); };
+  /** Texte animé : objet entier, ou un paragraphe après l'autre (« Options d'effet > Séquence », comme PowerPoint) */
+  A.isTextAnim = (a) => { if (!a || a.cat === 'media') return false; const e = P.findEl(A.slide(), a.el); return !!e && (e.type === 'text' || e.type === 'shape') && !!e.html && !RT.isEmpty(e.html); };
+  C.textSeq = function (mode) {
+    const s = A.slide(), a = selAnim(); if (!A.isTextAnim(a)) return;
+    const e = P.findEl(s, a.el), sr = series(s, a);
+    if (mode === 'para') {
+      if (a.para) return;
+      const paras = P.paraList(e.html).map((x, i) => ({ i, text: x.text })).filter((x) => x.text); // paragraphes vides ignorés, comme PowerPoint
+      if (!paras.length) return;
+      const news = paras.map((x, k) => Object.assign({}, a, { id: k === 0 ? a.id : P.uid('a'), para: [x.i, x.i], start: k === 0 ? a.start : 'click', delay: k === 0 ? a.delay : 0 }));
+      s.anims.splice(s.anims.indexOf(a), 1, ...news);
+      A.animSel = news[0].id; A.change('Effets du texte : par paragraphe');
+    } else {
+      if (!a.para) return;
+      const first = sr[0], keep = Object.assign({}, first); delete keep.para;
+      s.anims = s.anims.filter((x) => sr.indexOf(x) < 0 || x === first); s.anims.splice(s.anims.indexOf(first), 1, keep);
+      A.animSel = keep.id; A.change('Effets du texte : tout à la fois');
+    }
+  };
+  /** Déclencheur : séquence des clics (tid vide) ou « au clic sur » un objet de la diapositive */
+  C.animTrigger = function (tid) {
+    const s = A.slide(), a = selAnim(); if (!a) return;
+    series(s, a).forEach((x) => {
+      if (tid) x.trigger = tid; else delete x.trigger;
+      if (x.cat === 'media' && (x.fx || 'play') === 'play') { const e = P.findEl(s, x.el); if (e) { e.play = tid ? 'click' : 'seq'; e.autoplay = false; } }
+    });
+    P.syncMedia(s); A.change('Déclencheur');
+  };
+  /** Commandes d'une vidéo ou d'un son (Pause, Arrêt) ajoutées aux animations ; « Lecture » suit le réglage « Démarrer » */
+  C.addMediaCmd = function (fx) {
+    const s = A.slide(); const els = A.selEls().filter(P.isMediaEl); if (!els.length) return;
+    if (fx === 'play') { C.setMediaStart('seq', els); return; }
+    els.forEach((e) => { const a = { id: P.uid('a'), el: e.id, cat: 'media', fx, start: 'click', delay: 0, dur: 0 }; s.anims.push(a); A.animSel = a.id; });
+    A.change('Animation');
+  };
+  /** Retire les animations qui visent un paragraphe disparu (étapes sans effet) */
+  C.cleanAnims = function (onlyCur) {
+    let n = 0;
+    (onlyCur ? [A.slide()] : A.doc.slides).forEach((s) => { const k = (s.anims || []).length; s.anims = (s.anims || []).filter((a) => P.animParaOk(s, a)); n += k - s.anims.length; });
+    if (!n) { O.toast('Aucune étape sans effet'); return; }
+    A.animSel = null; A.change('Retirer les étapes sans effet'); O.toast(n + ' étape' + (n > 1 ? 's' : '') + ' sans effet retirée' + (n > 1 ? 's' : ''));
+  };
+  /** Nom court d'un objet (volet Animation, déclencheurs) */
+  A.elLabel = function (s, el) {
+    if (!el) return '(objet supprimé)';
+    return el.name || (el.html ? RT.textOf(el.html).replace(/\s+/g, ' ').trim().slice(0, 30) : '') || { image: 'Image', shape: 'Forme', text: 'Zone de texte', chart: 'Graphique', table: 'Tableau', icon: 'Icône', video: 'Vidéo', smartart: 'SmartArt', equation: 'Équation', group: 'Groupe', line: 'Ligne', audio: 'Son' }[el.type] || el.type;
+  };
   C.animMove = function (dir) { const s = A.doc.slides[A.cur], a = selAnim(); if (!a) return; const i = s.anims.indexOf(a), j = i + dir; if (j < 0 || j >= s.anims.length) return; s.anims.splice(i, 1); s.anims.splice(j, 0, a); A.change('Ordre des animations'); };
   C.animDel = function () { const s = A.doc.slides[A.cur], a = selAnim(); if (!a) return; s.anims.splice(s.anims.indexOf(a), 1);
     if (a.cat === 'media') { const e = P.findEl(s, a.el); if (e) { e.play = 'click'; e.autoplay = false; } } /* plus d'étape « Lecture » : la vidéo se lance en cliquant dessus */ A.animSel = null; A.change('Supprimer l\'animation'); };
@@ -322,9 +373,9 @@
   TABS.push({ id: 'animations', label: 'Animations', groups: [
     { label: 'Aperçu', items: [{ icon: 'eye', label: 'Aperçu', size: 'lg', disabled: () => !((A.doc.slides[A.cur] || {}).anims || []).length, on: () => A.cmd.previewAnim() }] },
     { label: 'Animation', items: [{ type: 'gallery', id: 'anims', w: 64, h: 52, title: 'Animations', items: () => animGallery(), current: () => { const a = selAnim(); return a ? a.cat + ':' + a.fx : null; }, on: (c, it) => { const p = it.id.split(':'); C.addAnim(p[0], p[1], true); }, groups: () => [{ label: 'Entrée', items: animGallery().filter((x) => /^in:/.test(x.id)) }, { label: 'Emphase', items: animGallery().filter((x) => /^em:/.test(x.id)) }, { label: 'Sortie', items: animGallery().filter((x) => /^out:/.test(x.id)) }] },
-      { type: 'menu', icon: 'move', label: 'Options d\'effet', size: 'lg', disabled: () => { const a = selAnim(); return !a || !P.ANIM_DIRS[a.fx]; }, items: () => [['b', 'Par le bas'], ['l', 'Par la gauche'], ['r', 'Par la droite'], ['t', 'Par le haut']].map((d) => ({ label: d[1], checked: (selAnim() || {}).dir === d[0], on: () => C.animProp('dir', d[0]) })) }] },
-    { label: 'Animation avancée', items: [{ type: 'menu', icon: 'sparkles', label: 'Ajouter une animation', size: 'lg', disabled: () => !hasSel(), items: () => [{ head: 'Entrée' }].concat(P.ANIMS.in.map((x) => ({ label: x[1], on: () => C.addAnim('in', x[0], false) }))).concat([{ head: 'Emphase' }]).concat(P.ANIMS.em.map((x) => ({ label: x[1], on: () => C.addAnim('em', x[0], false) }))).concat([{ head: 'Sortie' }]).concat(P.ANIMS.out.map((x) => ({ label: x[1], on: () => C.addAnim('out', x[0], false) }))) },
-      { type: 'col', items: [{ icon: 'list-video', label: 'Volet Animation', active: () => A.pane === 'anim', on: () => A.openPane(A.pane === 'anim' ? null : 'anim') }, { icon: 'trash-2', label: 'Supprimer l\'animation', disabled: () => !selAnim(), on: () => C.animDel() }] }] },
+      { type: 'menu', icon: 'move', label: 'Options d\'effet', size: 'lg', disabled: () => { const a = selAnim(); return !a || (!P.ANIM_DIRS[a.fx] && !A.isTextAnim(a)); }, items: () => { const a = selAnim() || {}; let it = []; if (P.ANIM_DIRS[a.fx]) it = [{ head: 'Direction' }].concat([['b', 'Par le bas'], ['l', 'Par la gauche'], ['r', 'Par la droite'], ['t', 'Par le haut']].map((d) => ({ label: d[1], checked: a.dir === d[0], on: () => C.animProp('dir', d[0]) }))); if (A.isTextAnim(a)) it = it.concat([{ head: 'Séquence' }, { label: 'Comme un seul objet', checked: !a.para, on: () => C.textSeq('whole') }, { label: 'Par paragraphe', checked: !!a.para, on: () => C.textSeq('para') }]); return it; } }] },
+    { label: 'Animation avancée', items: [{ type: 'menu', icon: 'sparkles', label: 'Ajouter une animation', size: 'lg', disabled: () => !hasSel(), items: () => [{ head: 'Entrée' }].concat(P.ANIMS.in.map((x) => ({ label: x[1], on: () => C.addAnim('in', x[0], false) }))).concat([{ head: 'Emphase' }]).concat(P.ANIMS.em.map((x) => ({ label: x[1], on: () => C.addAnim('em', x[0], false) }))).concat([{ head: 'Sortie' }]).concat(P.ANIMS.out.map((x) => ({ label: x[1], on: () => C.addAnim('out', x[0], false) }))).concat(A.selEls().some(P.isMediaEl) ? [{ head: 'Média' }].concat(P.ANIMS.media.map((x) => ({ label: x[1], on: () => C.addMediaCmd(x[0]) }))) : []) },
+      { type: 'col', items: [{ icon: 'list-video', label: 'Volet Animation', active: () => A.pane === 'anim', on: () => A.openPane(A.pane === 'anim' ? null : 'anim') }, { type: 'menu', icon: 'zap', label: 'Déclencheur', disabled: () => !selAnim(), items: () => { const s = A.slide(), a = selAnim() || {}, objs = []; P.walk(s.elements, (e) => { if (!e.fromLayout && e.id !== a.el) objs.push(e); }); return [{ label: 'Séquence des clics', checked: !a.trigger, on: () => C.animTrigger('') }, { head: 'Au clic sur' }].concat(objs.map((e) => ({ label: A.elLabel(s, e), checked: a.trigger === e.id, on: () => C.animTrigger(e.id) }))); } }, { icon: 'trash-2', label: 'Supprimer l\'animation', disabled: () => !selAnim(), on: () => C.animDel() }] }] },
     { label: 'Minutage', items: [{ type: 'col', items: [
       { type: 'select', id: 'astart', width: 170, title: 'Démarrer', options: () => [['click', 'Au clic'], ['with', 'Avec la précédente'], ['after', 'Après la précédente']], value: () => (selAnim() || {}).start || '', disabled: () => !selAnim(), on: (c, v) => C.animProp('start', v) },
       { type: 'num', id: 'adur', icon: 'timer', label: 'Durée', unit: 's', step: 0.1, min: 0, max: 60, width: 56, value: () => (selAnim() || {}).dur, disabled: () => !selAnim(), on: (c, v) => C.animProp('dur', v) },
@@ -589,13 +640,26 @@
     const list = s.anims || [], a = selAnim();
     let h = '<p style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0"><button type="button" class="mini-btn pri" data-act="play">' + O.icon('play') + 'Lire tout</button><button type="button" class="mini-btn" data-act="playone"' + (a ? '' : ' disabled') + '>' + O.icon('play') + 'Lire la sélection</button></p>';
     if (!list.length) h += '<p class="o-hint">Aucune animation. Sélectionnez un objet puis choisissez un effet dans l\'onglet Animations.</p>';
-    let click = 0;
-    h += '<div class="an-list">' + list.map((x) => { if (x.start === 'click') click++; const el = P.findEl(s, x.el); const lab = el ? (el.name || (el.html ? RT.textOf(el.html).slice(0, 30) : '') || { image: 'Image', shape: 'Forme', text: 'Zone de texte', chart: 'Graphique', table: 'Tableau', icon: 'Icône', video: 'Vidéo', smartart: 'SmartArt', equation: 'Équation', group: 'Groupe', line: 'Ligne', audio: 'Son' }[el.type] || el.type) : '(objet supprimé)'; return '<div class="an-it' + (a && a.id === x.id ? ' on' : '') + '" data-a="' + x.id + '" draggable="true"><span class="n">' + (x.start === 'click' ? click : '') + '</span>' + O.icon(x.start === 'click' ? 'mouse-pointer-click' : x.start === 'after' ? 'clock' : 'link') + '<i class="k ' + x.cat + '"></i><span class="l">' + O.esc(lab) + ' · ' + O.esc(P.animName(x)) + '</span><span class="bar" style="width:' + Math.max(6, Math.min(60, (x.dur || 0.5) * 20)) + 'px;margin-left:' + Math.min(30, (x.delay || 0) * 10) + 'px"></span></div>'; }).join('') + '</div>';
+    const broken = list.filter((x) => !P.animParaOk(s, x)).length;
+    if (broken) h += '<div class="an-warn">' + O.icon('triangle-alert') + '<span>' + broken + ' étape' + (broken > 1 ? 's visent' : ' vise') + ' un paragraphe qui n\'existe plus (texte modifié après coup) : rien ne s\'affiche à ce clic.</span><button type="button" class="mini-btn" data-act="clean">Retirer</button></div>';
+    const item = (x, n) => {
+      const el = P.findEl(s, x.el); let lab = A.elLabel(s, el);
+      if (x.para) { const ps = el && el.html ? P.paraList(el.html) : []; const pt = ps[x.para[0]]; lab = pt ? '¶' + (x.para[0] + 1) + (x.para[1] > x.para[0] ? '–' + (x.para[1] + 1) : '') + ' ' + (pt.text || '(vide)').slice(0, 28) : lab + ' · ¶' + (x.para[0] + 1) + ' (paragraphe absent)'; }
+      const ok = P.animParaOk(s, x);
+      return '<div class="an-it' + (a && a.id === x.id ? ' on' : '') + (ok ? '' : ' bad') + '" data-a="' + x.id + '" draggable="true" title="' + O.esc(lab) + '"><span class="n">' + (n || '') + '</span>' + O.icon(x.start === 'click' ? 'mouse-pointer-click' : x.start === 'after' ? 'clock' : 'link') + '<i class="k ' + x.cat + '"></i><span class="l">' + O.esc(lab) + ' · ' + O.esc(P.animName(x)) + '</span><span class="bar" style="width:' + Math.max(6, Math.min(60, (x.dur || 0.5) * 20)) + 'px;margin-left:' + Math.min(30, (x.delay || 0) * 10) + 'px"></span></div>';
+    };
+    const numbered = (arr) => { let click = 0; return arr.map((x, i) => item(x, x.start === 'click' || (i === 0 && x.trigger) ? ++click : 0)).join(''); };
+    const main = list.filter((x) => !x.trigger);
+    h += '<div class="an-list">' + numbered(main) + '</div>';
+    P.triggerIds(s).forEach((tid) => { h += '<div class="an-trig">' + O.icon('zap') + 'Déclencheur : au clic sur « ' + O.esc(A.elLabel(s, P.findEl(s, tid))) + ' »</div><div class="an-list">' + numbered(list.filter((x) => x.trigger === tid)) + '</div>'; });
     if (a) {
       const fx = P.ANIMS[a.cat] || [];
-      h += '<div class="fp-sec">' + row('Effet', '<select data-s="fx">' + fx.map((f) => '<option value="' + f[0] + '"' + (f[0] === a.fx ? ' selected' : '') + '>' + f[1] + '</option>').join('') + '</select>') + row('Démarrer', '<select data-s="start"><option value="click"' + (a.start === 'click' ? ' selected' : '') + '>Au clic</option><option value="with"' + (a.start === 'with' ? ' selected' : '') + '>Avec la précédente</option><option value="after"' + (a.start === 'after' ? ' selected' : '') + '>Après la précédente</option></select>') +
+      const objs = []; P.walk(s.elements, (e) => { if (!e.fromLayout && e.id !== a.el) objs.push(e); });
+      h += '<div class="fp-sec">' + row('Effet', '<select data-s="fx">' + fx.map((f) => '<option value="' + f[0] + '"' + (f[0] === (a.fx || 'play') ? ' selected' : '') + '>' + f[1] + '</option>').join('') + '</select>') + row('Démarrer', '<select data-s="start"><option value="click"' + (a.start === 'click' ? ' selected' : '') + '>Au clic</option><option value="with"' + (a.start === 'with' ? ' selected' : '') + '>Avec la précédente</option><option value="after"' + (a.start === 'after' ? ' selected' : '') + '>Après la précédente</option></select>') +
         (P.ANIM_DIRS[a.fx] ? row('Direction', '<select data-s="dir">' + [['b', 'Par le bas'], ['l', 'Par la gauche'], ['r', 'Par la droite'], ['t', 'Par le haut']].map((d) => '<option value="' + d[0] + '"' + ((a.dir || 'b') === d[0] ? ' selected' : '') + '>' + d[1] + '</option>').join('') + '</select>') : '') +
-        row('Durée (s)', nm('dur', a.dur, 0.1, 0, 60)) + row('Délai (s)', nm('delay', a.delay || 0, 0.1, 0, 60)) + row('Répéter', nm('repeat', a.repeat || 1, 1, 1, 20)) +
+        (A.isTextAnim(a) ? row('Effets du texte', '<select data-s="textseq"><option value="whole"' + (a.para ? '' : ' selected') + '>Tout à la fois</option><option value="para"' + (a.para ? ' selected' : '') + '>Par paragraphe</option></select>') : '') +
+        row('Déclencheur', '<select data-s="trigger"><option value="">Séquence des clics</option>' + objs.map((e) => '<option value="' + e.id + '"' + (a.trigger === e.id ? ' selected' : '') + '>Au clic sur : ' + O.esc(A.elLabel(s, e)) + '</option>').join('') + '</select>') +
+        (a.cat === 'media' ? '' : row('Durée (s)', nm('dur', a.dur, 0.1, 0, 60))) + row('Délai (s)', nm('delay', a.delay || 0, 0.1, 0, 60)) + (a.cat === 'media' ? '' : row('Répéter', nm('repeat', a.repeat || 1, 1, 1, 20))) +
         '<p style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" class="mini-btn" data-act="up">' + O.icon('arrow-up') + 'Plus tôt</button><button type="button" class="mini-btn" data-act="down">' + O.icon('arrow-down') + 'Plus tard</button><button type="button" class="mini-btn" data-act="del">' + O.icon('trash-2') + 'Supprimer</button></p></div>';
     }
     bd.innerHTML = h;
@@ -605,7 +669,7 @@
       it.addEventListener('dragover', (e) => e.preventDefault());
       it.addEventListener('drop', (e) => { e.preventDefault(); const id = e.dataTransfer.getData('text/x-anim'); const from = list.findIndex((q) => q.id === id), to = list.findIndex((q) => q.id === it.dataset.a); if (from < 0 || to < 0 || from === to) return; const [m] = list.splice(from, 1); list.splice(to, 0, m); A.change('Ordre des animations'); });
     });
-    bindPane(bd, { select: (k, v) => C.animProp(k, v), num: (k, v) => C.animProp(k, v), act: (k) => { if (k === 'play') A.cmd.previewAnim(); if (k === 'playone' && a) A.cmd.previewAnim(a.id); if (k === 'up') C.animMove(-1); if (k === 'down') C.animMove(1); if (k === 'del') C.animDel(); } });
+    bindPane(bd, { select: (k, v) => { if (k === 'textseq') C.textSeq(v); else if (k === 'trigger') C.animTrigger(v); else C.animProp(k, v); }, num: (k, v) => C.animProp(k, v), act: (k) => { if (k === 'play') A.cmd.previewAnim(); if (k === 'playone' && a) A.cmd.previewAnim(a.id); if (k === 'up') C.animMove(-1); if (k === 'down') C.animMove(1); if (k === 'del') C.animDel(); if (k === 'clean') C.cleanAnims(true); } });
   }
   function paneComments(bd) {
     const s = A.doc.slides[A.cur]; const list = (s && s.comments) || [];

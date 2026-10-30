@@ -30,7 +30,7 @@
   function htmlRuns(html, base, t, scale) {
     scale = scale || 1;
     const d = document.createElement('div'); d.innerHTML = html || '';
-    const paras = [];
+    const paras = []; let src = -1; // src : numéro du paragraphe d'origine (bloc du HTML, voir P.paraWalk)
     function inlineRuns(node, ctx, out) {
       node.childNodes.forEach((n) => {
         if (n.nodeType === 3) { const tx = n.textContent.replace(/​/g, ''); if (tx) out.push({ text: tx, ctx: Object.assign({}, ctx) }); return; }
@@ -66,15 +66,18 @@
       if (s.fontSize) c.size = ptOf(s.fontSize, c.size) || c.size;
       if (s.color) c.color = T.resolve(s.color, t) || c.color;
       const runs = []; inlineRuns(node, c, runs);
+      // un <br> final ne fait pas de ligne de plus (contentEditable le met dans les paragraphes vides)
+      if (runs.length && runs[runs.length - 1].br) runs.pop();
+      src++;
       // découpe aux <br>
       let cur = [];
-      const push = () => { paras.push({ runs: cur, ctx: c, list }); cur = []; };
+      const push = () => { paras.push({ runs: cur, ctx: c, list, src }); cur = []; };
       runs.forEach((r) => { if (r.br) push(); else cur.push(r); });
       push();
     }
     function walk(node, ctx, level, listType) {
       let inline = [];
-      const flush = () => { if (!inline.length) return; const w = document.createElement('div'); inline.forEach((x) => w.appendChild(x.cloneNode(true))); para(w, ctx, listType ? { type: listType, level } : null); inline = []; };
+      const flush = () => { if (!inline.some((x) => x.nodeType === 1 || /\S/.test(x.textContent.replace(/\u200b/g, '')))) { inline = []; return; } const w = document.createElement('div'); inline.forEach((x) => w.appendChild(x.cloneNode(true))); para(w, ctx, listType ? { type: listType, level } : null); inline = []; };
       Array.from(node.childNodes).forEach((n) => {
         if (n.nodeType === 1 && /^(DIV|P|H\d|BLOCKQUOTE)$/.test(n.tagName)) { flush(); if (n.querySelector('div,p,ul,ol')) walk(n, Object.assign({}, ctx, n.style.textAlign ? { align: n.style.textAlign } : {}), level, listType); else para(n, ctx, null); }
         else if (n.nodeType === 1 && (n.tagName === 'UL' || n.tagName === 'OL')) {
@@ -89,7 +92,7 @@
               O.$$(':scope > ul, :scope > ol', li).forEach((sub) => { const w = document.createElement('div'); w.appendChild(sub.cloneNode(true)); walk(w, lc, level + 1, type); });
             } else if (li.nodeType === 1 && (li.tagName === 'UL' || li.tagName === 'OL')) { const w = document.createElement('div'); w.appendChild(li.cloneNode(true)); walk(w, ctx, level + 1, type); }
           });
-        } else inline.push(n);
+        } else if (n.nodeType === 1 || n.nodeType === 3) inline.push(n);
       });
       flush();
     }
@@ -126,6 +129,7 @@
         out.push({ text: c.upper ? r.text.toLocaleUpperCase('fr') : r.text, options: o });
       });
     });
+    out._src = paras.map((p) => p.src); // <a:p> écrit n → paragraphe d'origine
     return out;
   }
   IO.htmlRuns = htmlRuns;
@@ -180,7 +184,14 @@
     const c0 = e.crop || { l: 0, t: 0, r: 0, b: 0 }, fx = e.fx || {};
     const plain = !e.mask && !fx.bright && !fx.contrast && (fx.sat == null || fx.sat === 100) && !fx.gray && !fx.sepia && !fx.blur && (fx.alpha == null || fx.alpha >= 1) && !c0.l && !c0.t && !c0.r && !c0.b && !e.flipH && !e.flipV;
     if (plain && /^image\/(png|jpe?g|gif)$/.test(blob.type)) return { data: await O.blobToDataURL(blob), transparent: blob.type !== 'image/jpeg' };
-    const bm = await createImageBitmap(blob);
+    let bm;
+    try { bm = await createImageBitmap(blob); } catch (er) {
+      // image que le navigateur ne sait pas lire (EMF / WMF venus de PowerPoint…) : gardée telle quelle, sans rognage ni effet
+      const sub = /wmf/.test(blob.type) ? 'wmf' : /emf/.test(blob.type) ? 'emf' : /tif/.test(blob.type) ? 'tiff' : null;
+      if (!sub) throw er;
+      const d = await O.blobToDataURL(blob);
+      return { data: 'data:image/' + sub + ';base64,' + d.slice(d.indexOf(',') + 1), transparent: true };
+    }
     const sw = bm.width * (1 - c0.l - c0.r), sh = bm.height * (1 - c0.t - c0.b);
     const k = Math.min(1, 2400 / Math.max(sw, sh));
     const cw = Math.max(1, Math.round(sw * k)), ch = Math.max(1, Math.round(sh * k));
@@ -361,10 +372,15 @@
   const PRESET = { appear: 1, fade: 10, fly: 2, float: 42, zoom: 53, wipe: 22, split: 16, bounce: 26, growTurn: 31, swivel: 19, disappear: 1, fadeOut: 10, flyOut: 2, floatOut: 42, zoomOut: 53, wipeOut: 22, shrinkTurn: 31, pulse: 26, spin: 8, grow: 6, teeter: 32, blink: 35, colorPulse: 27 };
   const SUB = { b: 4, l: 8, r: 2, t: 1 };
   /** Animations et lecture des médias → <p:timing>. spidsOf(id) : identifiants de forme d'un objet (plusieurs pour un groupe
-      ou un SmartArt, exportés en pièces séparées). media : [{el, spid, kind:'video'|'audio', play, loop, full, dur}] */
-  function animXml(list, spidsOf, media) {
+      ou un SmartArt, exportés en pièces séparées). media : [{el, spid, kind:'video'|'audio', play, loop, full, dur}].
+      paraOf(a) : cibles « paragraphe » d'une animation de texte (['5|p2-2'], indices des <a:p> écrits), [] si le paragraphe
+      n'existe plus. spKinds : {spid: 'sp'|'pic'|…} (liste de construction <p:bldLst>). */
+  function animXml(list, spidsOf, media, paraOf, spKinds) {
     let id = 2; const nid = () => ++id;
-    const tgt = (sp) => '<p:tgtEl><p:spTgt spid="' + sp + '"/></p:tgtEl>';
+    paraOf = paraOf || (() => []); spKinds = spKinds || {};
+    // cible : « 5 » (forme entière), « 5|p2-3 » (paragraphes 2 à 3 du texte), « 5|bg » (la forme sans son texte)
+    const spTgt = (sp) => { const k = String(sp).split('|'); if (!k[1]) return '<p:spTgt spid="' + k[0] + '"/>'; if (k[1] === 'bg') return '<p:spTgt spid="' + k[0] + '"><p:bg/></p:spTgt>'; const r = /^p(\d+)-(\d+)$/.exec(k[1]); return '<p:spTgt spid="' + k[0] + '"><p:txEl><p:pRg st="' + r[1] + '" end="' + r[2] + '"/></p:txEl></p:spTgt>'; };
+    const tgt = (sp) => '<p:tgtEl>' + spTgt(sp) + '</p:tgtEl>';
     const setVis = (sp, val, delay) => '<p:set><p:cBhvr><p:cTn id="' + nid() + '" dur="1" fill="hold"><p:stCondLst><p:cond delay="' + (delay || 0) + '"/></p:stCondLst></p:cTn>' + tgt(sp) + '<p:attrNameLst><p:attrName>style.visibility</p:attrName></p:attrNameLst></p:cBhvr><p:to><p:strVal val="' + val + '"/></p:to></p:set>';
     const effect = (sp, tr, filter, dur) => '<p:animEffect transition="' + tr + '" filter="' + filter + '"><p:cBhvr><p:cTn id="' + nid() + '" dur="' + dur + '"/>' + tgt(sp) + '</p:cBhvr></p:animEffect>';
     const anim = (sp, attr, from, to, dur) => '<p:anim calcmode="lin" valueType="num"><p:cBhvr additive="base"><p:cTn id="' + nid() + '" dur="' + dur + '" fill="hold"/>' + tgt(sp) + '<p:attrNameLst><p:attrName>' + attr + '</p:attrName></p:attrNameLst></p:cBhvr><p:tavLst><p:tav tm="0"><p:val><p:strVal val="' + from + '"/></p:val></p:tav><p:tav tm="100000"><p:val><p:strVal val="' + to + '"/></p:val></p:tav></p:tavLst></p:anim>';
@@ -404,15 +420,19 @@
     }
     const medOf = {}; (media || []).forEach((m) => { medOf[m.el] = m; });
     const cmd = (sp, c, dur) => '<p:cmd type="call" cmd="' + c + '"><p:cBhvr><p:cTn id="' + nid() + '" dur="' + dur + '" fill="hold"/>' + tgt(sp) + '</p:cBhvr></p:cmd>';
-    // lecture automatique : un effet « Lecture » en tête, lancé avec la diapositive (comme « Démarrer : automatiquement »)
-    const auto = (media || []).filter((m) => m.play === 'auto').map((m) => ({ cat: 'media', fx: 'play', el: m.el, start: 'with', delay: 0, _auto: true }));
-    const all = auto.concat((list || []).filter((a) => a.cat !== 'media' || (medOf[a.el] && medOf[a.el].play === 'seq')));
-    const items = all.filter((a) => spidsOf(a.el).length);
-    let body = '';
-    if (items.length) {
-      // groupes « au clic », sous-groupes « après »
+    // constructions (<p:bldLst>) : un groupe par forme et par façon (objet entier / par paragraphe), comme PowerPoint
+    const grp = {}, bld = [];
+    const grpOf = (sp) => {
+      const k = String(sp).split('|'), key = k[0] + (k[1] && k[1] !== 'bg' ? '|p' : '');
+      if (grp[key] == null) { grp[key] = Object.keys(grp).filter((x) => x.split('|')[0] === k[0]).length; if (spKinds[k[0]] === 'sp') bld.push('<p:bldP spid="' + k[0] + '" grpId="' + grp[key] + '"' + (k[1] && k[1] !== 'bg' ? ' build="p"' : ' animBg="1"') + '/>'); }
+      return grp[key];
+    };
+    const targets = (a) => a.para ? paraOf(a) : a.bg ? spidsOf(a.el).slice(0, 1).map((x) => x + '|bg') : spidsOf(a.el);
+    /** Étapes « au clic » d'une séquence → <p:par> ; auto : la première étape part seule (avec la diapositive) */
+    function clicksXml(items, canAuto) {
+      let body = '';
       const clicks = [];
-      items.forEach((a) => { if (a.start === 'click' || !clicks.length) clicks.push({ auto: a.start !== 'click', subs: [] }); const c = clicks[clicks.length - 1]; if (a.start === 'after' || !c.subs.length) c.subs.push({ items: [] }); c.subs[c.subs.length - 1].items.push(a); });
+      items.forEach((a) => { if (a.start === 'click' || !clicks.length) clicks.push({ auto: canAuto && a.start !== 'click', subs: [] }); const c = clicks[clicks.length - 1]; if (a.start === 'after' || !c.subs.length) c.subs.push({ items: [] }); c.subs[c.subs.length - 1].items.push(a); });
       clicks.forEach((c) => {
         let t0 = 0, inner = '';
         c.subs.forEach((sb) => {
@@ -421,35 +441,56 @@
             const dl = Math.round((+a.delay || 0) * 1000);
             const nt0 = k === 0 && sb === c.subs[0] ? (c.auto ? (a.start === 'after' ? 'afterEffect' : 'withEffect') : 'clickEffect') : (a.start === 'after' ? 'afterEffect' : 'withEffect');
             if (a.cat === 'media') {
-              const m = medOf[a.el], d = Math.max(1, Math.round((m.dur || 0) * 1000));
-              sx += '<p:par><p:cTn id="' + nid() + '" presetID="1" presetClass="mediacall" presetSubtype="0" fill="hold" nodeType="' + nt0 + '"><p:stCondLst><p:cond delay="' + dl + '"/></p:stCondLst><p:childTnLst>' + cmd(m.spid, 'playFrom(' + (m.start || 0).toFixed(1) + ')', d) + '</p:childTnLst></p:cTn></p:par>';
-              subEnd = Math.max(subEnd, dl + (m.dur ? d : 0));
+              const m = medOf[a.el], fx = a.fx || 'play', from = +a.from || +m.start || 0;
+              const d = fx === 'play' ? Math.max(1, Math.round((m.dur || 0) * 1000)) : 1;
+              const c2 = fx === 'play' ? 'playFrom(' + from.toFixed(1) + ')' : fx === 'stop' ? 'stop' : 'togglePause';
+              sx += '<p:par><p:cTn id="' + nid() + '" presetID="' + (fx === 'play' ? 1 : fx === 'stop' ? 3 : 2) + '" presetClass="mediacall" presetSubtype="0" fill="hold" nodeType="' + nt0 + '"><p:stCondLst><p:cond delay="' + dl + '"/></p:stCondLst><p:childTnLst>' + cmd(m.spid, c2, d) + '</p:childTnLst></p:cTn></p:par>';
+              subEnd = Math.max(subEnd, dl + (fx === 'play' && m.dur ? d : 0));
               return;
             }
             const cls = a.cat === 'in' ? 'entr' : a.cat === 'out' ? 'exit' : 'emph';
             const rep = Math.max(1, Math.round(+a.repeat || 1));
-            spidsOf(a.el).forEach((sp, j) => {
+            a._t.forEach((sp, j) => {
               const nt = j === 0 ? nt0 : 'withEffect';
-              sx += '<p:par><p:cTn id="' + nid() + '" presetID="' + (PRESET[a.fx] || 10) + '" presetClass="' + cls + '" presetSubtype="' + (P.ANIM_DIRS[a.fx] ? SUB[a.dir || 'b'] || 0 : 0) + '"' + (rep > 1 ? ' repeatCount="' + rep * 1000 + '"' : '') + ' fill="hold" nodeType="' + nt + '"><p:stCondLst><p:cond delay="' + dl + '"/></p:stCondLst><p:childTnLst>' + behaviors(a, sp) + '</p:childTnLst></p:cTn></p:par>';
+              sx += '<p:par><p:cTn id="' + nid() + '" presetID="' + (PRESET[a.fx] || 10) + '" presetClass="' + cls + '" presetSubtype="' + (P.ANIM_DIRS[a.fx] ? SUB[a.dir || 'b'] || 0 : 0) + '"' + (rep > 1 ? ' repeatCount="' + rep * 1000 + '"' : '') + ' fill="hold" grpId="' + grpOf(sp) + '" nodeType="' + nt + '"><p:stCondLst><p:cond delay="' + dl + '"/></p:stCondLst><p:childTnLst>' + behaviors(a, sp) + '</p:childTnLst></p:cTn></p:par>';
             });
             subEnd = Math.max(subEnd, dl + Math.round(P.animDur(a) * 1000));
           });
           inner += '<p:par><p:cTn id="' + nid() + '" fill="hold"><p:stCondLst><p:cond delay="' + t0 + '"/></p:stCondLst><p:childTnLst>' + sx + '</p:childTnLst></p:cTn></p:par>';
           t0 += subEnd;
         });
-        body += '<p:par><p:cTn id="' + nid() + '" fill="hold"><p:stCondLst><p:cond delay="indefinite"/>' + (c.auto ? '<p:cond evt="onBegin" delay="0"><p:tn val="2"/></p:cond>' : '') + '</p:stCondLst><p:childTnLst>' + inner + '</p:childTnLst></p:cTn></p:par>';
+        // séquence principale : chaque étape attend son clic ; déclencheur : la 1re part au clic sur l'objet, les suivantes aux clics suivants
+        body += '<p:par><p:cTn id="' + nid() + '" fill="hold"><p:stCondLst><p:cond delay="' + (canAuto || c !== clicks[0] ? 'indefinite' : '0') + '"/>' + (c.auto ? '<p:cond evt="onBegin" delay="0"><p:tn val="2"/></p:cond>' : '') + '</p:stCondLst><p:childTnLst>' + inner + '</p:childTnLst></p:cTn></p:par>';
       });
+      return body;
     }
-    // clic sur la vidéo : lecture / pause (déclencheur que PowerPoint met sur chaque média), et nœuds média (boucle, plein écran)
+    // effets exportables : cible présente (objet, paragraphe encore là), média connu
+    const usable = (a) => { if (a.cat === 'media') return !!medOf[a.el] && (!P.isSeqPlay(a) || medOf[a.el].play === 'seq'); a._t = targets(a); return a._t.length > 0; };
+    // lecture automatique : un effet « Lecture » en tête, lancé avec la diapositive (comme « Démarrer : automatiquement »)
+    const auto = (media || []).filter((m) => m.play === 'auto').map((m) => ({ cat: 'media', fx: 'play', el: m.el, start: 'with', delay: 0, _auto: true }));
+    const items = auto.concat((list || []).filter((a) => !a.trigger)).filter(usable);
+    const body = items.length ? clicksXml(items, true) : '';
+    // déclencheurs : une séquence interactive par objet cliqué
+    const trigIds = []; (list || []).forEach((a) => { if (a.trigger && trigIds.indexOf(a.trigger) < 0) trigIds.push(a.trigger); });
     let trig = '', nodes = '';
-    (media || []).forEach((m) => {
-      trig += '<p:seq concurrent="1" nextAc="seek"><p:cTn id="' + nid() + '" restart="whenNotActive" fill="hold" evtFilter="cancelBubble" nodeType="interactiveSeq"><p:stCondLst><p:cond evt="onClick" delay="0">' + tgt(m.spid) + '</p:cond></p:stCondLst><p:endSync evt="end" delay="0"><p:rtn val="all"/></p:endSync><p:childTnLst><p:par><p:cTn id="' + nid() + '" fill="hold"><p:stCondLst><p:cond delay="0"/></p:stCondLst><p:childTnLst><p:par><p:cTn id="' + nid() + '" fill="hold"><p:stCondLst><p:cond delay="0"/></p:stCondLst><p:childTnLst><p:par><p:cTn id="' + nid() + '" presetID="2" presetClass="mediacall" presetSubtype="0" fill="hold" nodeType="clickEffect"><p:stCondLst><p:cond delay="0"/></p:stCondLst><p:childTnLst>' + cmd(m.spid, 'togglePause', 1) + '</p:childTnLst></p:cTn></p:par></p:childTnLst></p:cTn></p:par></p:childTnLst></p:cTn></p:par></p:childTnLst></p:cTn><p:nextCondLst><p:cond evt="onClick" delay="0">' + tgt(m.spid) + '</p:cond></p:nextCondLst></p:seq>';
-      const tag = m.kind === 'audio' ? 'audio' : 'video';
-      nodes += '<p:' + tag + (tag === 'video' && m.full ? ' fullScrn="1"' : '') + '><p:cMediaNode vol="80000"' + (m.muted ? ' mute="1"' : '') + '><p:cTn id="' + nid() + '"' + (m.loop ? ' repeatCount="indefinite"' : '') + ' fill="hold" display="0"><p:stCondLst><p:cond delay="indefinite"/></p:stCondLst></p:cTn>' + tgt(m.spid) + '</p:cMediaNode></p:' + tag + '>';
+    const own = new Set();
+    trigIds.forEach((tid) => {
+      const tsp = spidsOf(tid)[0]; if (!tsp) return;
+      const its = list.filter((a) => a.trigger === tid).filter(usable).map((a, i) => i === 0 && a.start !== 'click' ? Object.assign({}, a, { start: 'click', _t: a._t }) : a);
+      if (!its.length) return;
+      if (medOf[tid]) own.add(tid);
+      trig += '<p:seq concurrent="1" nextAc="seek"><p:cTn id="' + nid() + '" restart="whenNotActive" fill="hold" evtFilter="cancelBubble" nodeType="interactiveSeq"><p:stCondLst><p:cond evt="onClick" delay="0">' + tgt(tsp) + '</p:cond></p:stCondLst><p:endSync evt="end" delay="0"><p:rtn val="all"/></p:endSync><p:childTnLst>' + clicksXml(its, false) + '</p:childTnLst></p:cTn><p:nextCondLst><p:cond evt="onClick" delay="0">' + tgt(tsp) + '</p:cond></p:nextCondLst></p:seq>';
     });
+    // clic sur la vidéo : lecture / pause (déclencheur que PowerPoint met sur chaque média), et nœuds média (boucle, plein écran)
+    (media || []).forEach((m) => {
+      if (!own.has(m.el)) trig += '<p:seq concurrent="1" nextAc="seek"><p:cTn id="' + nid() + '" restart="whenNotActive" fill="hold" evtFilter="cancelBubble" nodeType="interactiveSeq"><p:stCondLst><p:cond evt="onClick" delay="0">' + tgt(m.spid) + '</p:cond></p:stCondLst><p:endSync evt="end" delay="0"><p:rtn val="all"/></p:endSync><p:childTnLst><p:par><p:cTn id="' + nid() + '" fill="hold"><p:stCondLst><p:cond delay="0"/></p:stCondLst><p:childTnLst><p:par><p:cTn id="' + nid() + '" fill="hold"><p:stCondLst><p:cond delay="0"/></p:stCondLst><p:childTnLst><p:par><p:cTn id="' + nid() + '" presetID="2" presetClass="mediacall" presetSubtype="0" fill="hold" nodeType="clickEffect"><p:stCondLst><p:cond delay="0"/></p:stCondLst><p:childTnLst>' + cmd(m.spid, 'togglePause', 1) + '</p:childTnLst></p:cTn></p:par></p:childTnLst></p:cTn></p:par></p:childTnLst></p:cTn></p:par></p:childTnLst></p:cTn><p:nextCondLst><p:cond evt="onClick" delay="0">' + tgt(m.spid) + '</p:cond></p:nextCondLst></p:seq>';
+      const tag = m.kind === 'audio' ? 'audio' : 'video';
+      nodes += '<p:' + tag + (tag === 'video' && m.full ? ' fullScrn="1"' : '') + '><p:cMediaNode vol="80000"' + (m.muted ? ' mute="1"' : '') + (m.hide ? ' showWhenStopped="0"' : '') + '><p:cTn id="' + nid() + '"' + (m.loop ? ' repeatCount="indefinite"' : '') + ' fill="hold" display="0"><p:stCondLst><p:cond delay="indefinite"/></p:stCondLst></p:cTn>' + tgt(m.spid) + '</p:cMediaNode></p:' + tag + '>';
+    });
+    (list || []).forEach((a) => { delete a._t; });
     if (!body && !trig && !nodes) return '';
     const main = body ? '<p:seq concurrent="1" nextAc="seek"><p:cTn id="2" dur="indefinite" nodeType="mainSeq"><p:childTnLst>' + body + '</p:childTnLst></p:cTn><p:prevCondLst><p:cond evt="onPrev" delay="0"><p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:prevCondLst><p:nextCondLst><p:cond evt="onNext" delay="0"><p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:nextCondLst></p:seq>' : '';
-    return '<p:timing><p:tnLst><p:par><p:cTn id="1" dur="indefinite" restart="never" nodeType="tmRoot"><p:childTnLst>' + main + trig + nodes + '</p:childTnLst></p:cTn></p:par></p:tnLst></p:timing>';
+    return '<p:timing><p:tnLst><p:par><p:cTn id="1" dur="indefinite" restart="never" nodeType="tmRoot"><p:childTnLst>' + main + trig + nodes + '</p:childTnLst></p:cTn></p:par></p:tnLst>' + (bld.length ? '<p:bldLst>' + bld.join('') + '</p:bldLst>' : '') + '</p:timing>';
   }
   IO.toPptx = async function (doc, progress) {
     if (!window.PptxGenJS) await O.loadScript(O.vendor + 'pptxgen.min.js');
@@ -515,9 +556,18 @@
         const add = (x) => { Object.keys(spid).forEach((k) => { if (k === x.id || k.startsWith(x.id + '-')) out.push(spid[k]); }); (x.children || []).forEach(add); };
         if (e) add(e); return out;
       };
-      const media = []; P.walk(s.elements, (e) => { if (P.isMediaEl(e) && spid[e.id]) media.push({ el: e.id, spid: spid[e.id], kind: e.type, play: P.mediaStart(e), loop: !!e.loop, full: !!e.full, muted: !!e.muted, start: +e.start || 0, dur: Math.max(0, (+e.end || +e.mediaDur || 0) - (+e.start || 0)) }); });
+      const media = []; P.walk(s.elements, (e) => { if (P.isMediaEl(e) && spid[e.id]) media.push({ el: e.id, spid: spid[e.id], kind: e.type, play: P.mediaStart(e), loop: !!e.loop, full: !!e.full, muted: !!e.muted, hide: !!e.hideStopped, start: +e.start || 0, dur: Math.max(0, (+e.end || +e.mediaDur || 0) - (+e.start || 0)) }); });
+      // nature des formes écrites (<p:sp>, <p:pic>…) : liste de construction
+      const spKinds = {}; xml.replace(/<p:(sp|pic|graphicFrame|cxnSp)>\s*<p:nv\w+Pr>\s*<p:cNvPr id="(\d+)"/g, (mm, k, id) => { spKinds[id] = k; return mm; });
+      // animation par paragraphe : indices des <a:p> écrits pour ce texte (un bloc coupé par des <br> en donne plusieurs)
+      const paraOf = (a) => {
+        const e = P.findEl(s, a.el); const sp0 = e && spid[e.id]; if (!sp0 || !e.html || RT.isEmpty(e.html)) return [];
+        const src = (htmlRuns(e.html, { size: 18 }, t)._src) || [];
+        const i0 = src.indexOf(a.para[0]), i1 = src.lastIndexOf(a.para[1]);
+        return i0 < 0 || i1 < i0 ? [] : [sp0 + '|p' + i0 + '-' + i1];
+      };
       const tr = trXml(s.transition, s.advance);
-      const tm = animXml(s.anims || [], spidsOf, media);
+      const tm = animXml(s.anims || [], spidsOf, media, paraOf, spKinds);
       if (tr || tm) {
         const at = xml.indexOf('</p:clrMapOvr>');
         const ins = tr + tm;
@@ -526,6 +576,8 @@
       if (s.hidden && !/<p:sld[^>]* show="0"/.test(xml)) xml = xml.replace(/<p:sld\b/, '<p:sld show="0"');
       zip.file(f, xml);
     }
+    // images EMF / WMF gardées telles quelles : types MIME attendus par PowerPoint
+    { const ct = zip.file('[Content_Types].xml'); if (ct) { const x = await ct.async('string'); const y = x.replace('ContentType="image/emf"', 'ContentType="image/x-emf"').replace('ContentType="image/wmf"', 'ContentType="image/x-wmf"'); if (y !== x) zip.file('[Content_Types].xml', y); } }
     // propriétés du diaporama : boucle
     if (doc.settings.loop) { const pp = zip.file('ppt/presProps.xml'); if (pp) { let x = await pp.async('string'); if (/<p:showPr/.test(x)) x = x.replace(/<p:showPr\b/, '<p:showPr loop="1"'); else x = x.replace(/<p:presentationPr([^>]*)>/, '<p:presentationPr$1><p:showPr loop="1" showNarration="1"><p:present/><p:sldAll/></p:showPr>'); zip.file('ppt/presProps.xml', x); } }
     const out = await zip.generateAsync({ type: 'blob', mimeType: O.MIME.pptx, compression: 'DEFLATE' });
@@ -735,9 +787,14 @@
     const W = Math.round(num(attr(sz, 'cx'), 12192000) / EMU_PX), H = Math.round(num(attr(sz, 'cy'), 6858000) / EMU_PX);
     const doc = P.newDoc({ empty: true }); doc.size = { w: W, h: H, name: (P.SIZES.find((s) => s.w === W && s.h === H) || { id: 'custom' }).id };
     const blobs = {};
+    const badPara = []; // diapositives dont une animation vise un paragraphe qui n'existe plus (texte modifié après coup)
     const mediaCache = {};
+    // l'interface reste fluide pendant l'import d'un gros fichier : on rend la main régulièrement (barre de progression)
+    let lastYield = performance.now();
+    const breathe = async () => { if (performance.now() - lastYield > 40) { await new Promise((r) => setTimeout(r, 0)); lastYield = performance.now(); } };
     async function media(target, name) {
       if (mediaCache[target]) return mediaCache[target];
+      await breathe();
       const f = zip.file(target); if (!f) return null;
       const ab = await f.async('arraybuffer'); const b = new Blob([ab], { type: O.mimeOf(target) });
       const id = 'm' + O.uid(); blobs[id] = b; doc.media[id] = { name: name || target.split('/').pop(), mime: b.type };
@@ -1014,6 +1071,7 @@
     }
     for (let i = 0; i < slideFiles.length; i++) {
       progress && progress(i, slideFiles.length);
+      await breathe();
       const f = slideFiles[i]; const zf = zip.file(f); if (!zf) continue;
       const x = parseXml(await zf.async('string'));
       const rels = await readRels(zip, f);
@@ -1067,7 +1125,20 @@
           });
           return any ? best / 1000 : 0;
         };
-        const inTrigger = (c) => { for (let q = c.parentElement; q && q !== timing; q = q.parentElement) if (q.localName === 'cTn' && q.getAttribute('nodeType') === 'interactiveSeq') return true; return false; };
+        // séquence d'un effet : principale, ou déclencheur (« au clic sur » un objet : interactiveSeq)
+        const seqOf = (c) => { for (let q = c.parentElement; q && q !== timing; q = q.parentElement) if (q.localName === 'cTn' && /^(mainSeq|interactiveSeq)$/.test(q.getAttribute('nodeType') || '')) return q; return null; };
+        const trigOf = new Map(); // séquence → id de l'objet déclencheur (null : séquence ignorée)
+        const triggerOf = (seq) => {
+          if (!seq || seq.getAttribute('nodeType') !== 'interactiveSeq') return undefined;
+          if (trigOf.has(seq)) return trigOf.get(seq);
+          const cd = kid(kid(seq, 'stCondLst'), 'cond'), st = cd && desc(cd, 'spTgt')[0];
+          const tid = st ? ctx.spid[st.getAttribute('spid')] : null, te = tid && P.findEl(s, tid);
+          // clic sur une vidéo ou un son qui ne fait que « lecture / pause » de ce même média : c'est le comportement natif ici
+          const effs = desc(seq, 'cTn').filter((c) => c.getAttribute('presetClass'));
+          const native = te && P.isMediaEl(te) && effs.length && effs.every((c) => { const cm = desc(c, 'cmd')[0], t2 = desc(c, 'spTgt')[0]; return c.getAttribute('presetClass') === 'mediacall' && cm && /^(togglePause|pause|play)/.test(cm.getAttribute('cmd') || '') && t2 && ctx.spid[t2.getAttribute('spid')] === tid; });
+          const v = tid && !native ? tid : null; trigOf.set(seq, v); return v;
+        };
+        const paraCount = (id) => { const e = P.findEl(s, id); return e && e.html ? P.paraList(e.html).length : 0; };
         let seenClick = false;
         desc(timing, 'cTn').filter((c) => c.getAttribute('presetClass')).forEach((c) => {
           const cls = c.getAttribute('presetClass');
@@ -1075,16 +1146,29 @@
           const cond = kid(kid(c, 'stCondLst'), 'cond') || desc(c, 'cond')[0];
           const delay = cond ? num(cond.getAttribute('delay'), 0) / 1000 || 0 : 0;
           const start = nt === 'withEffect' ? 'with' : nt === 'afterEffect' ? 'after' : 'click';
-          if (inTrigger(c)) return; // déclencheurs (clic sur un objet) : la lecture / pause au clic sur la vidéo est native ici
-          if (nt === 'clickEffect') seenClick = true;
+          const seq = seqOf(c), trig = triggerOf(seq);
+          if (trig === null) return; // déclencheur natif (lecture / pause au clic sur le média) ou objet introuvable
+          if (!trig && nt === 'clickEffect') seenClick = true;
           const sp = desc(c, 'spTgt')[0]; if (!sp) return;
           const el = ctx.spid[sp.getAttribute('spid')]; if (!el) return;
-          if (cls === 'mediacall') { // « Lecture » d'une vidéo ou d'un son
-            const cm = desc(c, 'cmd')[0]; if (!cm || !/^playFrom/.test(cm.getAttribute('cmd') || '')) return;
+          // cible : un paragraphe du texte (txEl/pRg), la forme sans son texte (bg), ou l'objet entier
+          const pRg = desc(sp, 'pRg')[0], part = {};
+          if (pRg) { const a0 = Math.max(0, Math.round(num(pRg.getAttribute('st'), 0))), a1 = Math.max(a0, Math.round(num(pRg.getAttribute('end'), a0))); part.para = [a0, a1]; if (a0 >= paraCount(el)) badPara.push(i + 1); }
+          else if (kid(sp, 'bg')) part.bg = true;
+          if (trig) part.trigger = trig;
+          if (cls === 'mediacall') { // commande d'une vidéo ou d'un son : lecture, pause, arrêt
+            const cm = desc(c, 'cmd')[0], cmd = cm ? cm.getAttribute('cmd') || '' : '';
             const me = P.findEl(s, el); if (!me || !P.isMediaEl(me)) return;
-            const cd = desc(cm, 'cTn')[0], d = cd ? num(cd.getAttribute('dur'), 0) : 0; if (d > 1 && !me.mediaDur) me.mediaDur = O.round(d / 1000, 2);
-            if (!seenClick && start !== 'click' && !s.anims.length) { me.play = 'auto'; return; }
-            me.play = 'seq'; s.anims.push({ id: P.uid('a'), el, cat: 'media', fx: 'play', start, delay, dur: 0 });
+            const fx = /^(playFrom|play|resume)/.test(cmd) ? 'play' : /^(togglePause|pause)/.test(cmd) ? 'pause' : /^stop/.test(cmd) ? 'stop' : null; if (!fx) return;
+            if (fx === 'play') {
+              const cd = desc(cm, 'cTn')[0], d = cd ? num(cd.getAttribute('dur'), 0) : 0; if (d > 1 && !me.mediaDur) me.mediaDur = O.round(d / 1000, 2);
+              const from = /playFrom\(([\d.]+)\)/.exec(cmd); if (from && +from[1] > 0) part.from = +from[1];
+              if (!trig) {
+                if (!seenClick && start !== 'click' && !s.anims.some((x) => !x.trigger)) { me.play = 'auto'; return; }
+                me.play = 'seq';
+              }
+            }
+            s.anims.push(Object.assign({ id: P.uid('a'), el, cat: 'media', fx, start, delay, dur: 0 }, part));
             return;
           }
           if (!/entr|exit|emph/.test(cls)) return;
@@ -1092,7 +1176,7 @@
           const cat = cls === 'entr' ? 'in' : cls === 'exit' ? 'out' : 'em';
           const fx = cat === 'in' ? PRE_IN[pid] || 'fade' : cat === 'out' ? PRE_OUT[pid] || 'fadeOut' : PRE_EM[pid] || 'pulse';
           const T = total(c), k = fx === 'bounce' ? 1.6 : fx === 'spin' ? 1.5 : 1;
-          const a = { id: P.uid('a'), el, cat, fx, start, delay, dur: fx === 'appear' || fx === 'disappear' ? 0 : O.round(T / k, 2) || 0.5 };
+          const a = Object.assign({ id: P.uid('a'), el, cat, fx, start, delay, dur: fx === 'appear' || fx === 'disappear' ? 0 : O.round(T / k, 2) || 0.5 }, part);
           const rc = c.getAttribute('repeatCount'); if (rc && rc !== 'indefinite' && num(rc, 1000) >= 2000) a.repeat = Math.round(num(rc, 1000) / 1000);
           const sub = DIRS[+c.getAttribute('presetSubtype')]; if (P.ANIM_DIRS[fx] && sub) a.dir = sub;
           s.anims.push(a);
@@ -1103,6 +1187,7 @@
           const ct = kid(mn, 'cTn'); if (ct && ct.getAttribute('repeatCount') === 'indefinite') me.loop = true;
           if (mn.getAttribute('mute') === '1') me.muted = true;
           if (mn.parentElement && mn.parentElement.getAttribute('fullScrn') === '1') me.full = true;
+          if (mn.getAttribute('showWhenStopped') === '0') me.hideStopped = true;
         });
       }
       // médias sans « Lecture » dans la séquence : lus en cliquant dessus (comme dans PowerPoint)
@@ -1119,6 +1204,8 @@
     if (core) { const cx = parseXml(await core.async('string')); const ti = desc(cx, 'title')[0], cr = desc(cx, 'creator')[0]; if (ti) doc.title = ti.textContent; if (cr) doc.author = cr.textContent; }
     if (!doc.slides.length) doc.slides.push(P.newSlide(doc, 'title'));
     void t;
-    return { doc: IO.upgrade(doc), blobs };
+    const notes = [];
+    if (badPara.length) { const sl = Array.from(new Set(badPara)); notes.push({ kind: 'badPara', count: badPara.length, slides: sl }); }
+    return { doc: IO.upgrade(doc), blobs, notes };
   };
 })();
