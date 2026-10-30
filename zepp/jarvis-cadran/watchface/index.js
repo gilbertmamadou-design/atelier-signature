@@ -16,12 +16,17 @@ import { launchApp } from '@zos/router'
 import { Time } from '@zos/sensor'
 import { DISPOSITION as D, ANIM, JARVIS, salutation } from '../shared/cadran'
 
-// @zos/ui (API 2.0 et plus, comme l'exemple officiel zeppos-samples/watchface/3.0) ; hmUI (global historique) en secours
+// @zos/ui (API 2.0 et plus, comme l'exemple officiel zeppos-samples/watchface/3.0), complété clé par clé par hmUI
+// (global historique des cadrans) : les types officiels v4 de @zos/ui ne déclarent ni IMG_TIME, ni IMG_CLICK, ni data_type
 const H = typeof hmUI !== 'undefined' ? hmUI : null
-const champ = (nom) => (ui && ui[nom]) || (H && H[nom]) || {}
+const champ = (nom) => Object.assign({}, (H && H[nom]) || {}, (ui && ui[nom]) || {})
 const widget = champ('widget'), niveau = champ('show_level'), donnee = champ('data_type'), align = champ('align')
 const prop = champ('prop'), evt = champ('event'), anim = champ('anim_status')
-const creer = (type, o) => (ui && ui.createWidget ? ui.createWidget(type, o) : H.createWidget(type, o))
+/** Crée un widget ; un widget inconnu de ce micrologiciel est ignoré au lieu d'arrêter tout le cadran */
+const creer = (type, o) => {
+  if (type === undefined) return null
+  try { return ui && ui.createWidget ? ui.createWidget(type, o) : H.createWidget(type, o) } catch (e) { return null }
+}
 
 const NORMAL = niveau.ONLY_NORMAL
 const AOD = niveau.ONAL_AOD
@@ -92,10 +97,11 @@ WatchFace({
     })
     creer(widget.IMG, { x: s.x, y: s.y, w: s.w, h: s.h, src: img('sphere_aod.png'), show_level: AOD })
     const jouer = () => {
+      if (!sphere) return
       try { sphere.setProperty(prop.ANIM_STATUS, anim.STOP) } catch (e) {}
       try { sphere.setProperty(prop.ANIM_STATUS, anim.START) } catch (e) {}
     }
-    const arreter = () => { try { sphere.setProperty(prop.ANIM_STATUS, anim.STOP) } catch (e) {} }
+    const arreter = () => { if (sphere) try { sphere.setProperty(prop.ANIM_STATUS, anim.STOP) } catch (e) {} }
 
     // ---------- salutation selon l'heure (Bonjour / Bonsoir, comme Socle)
     const salut = creer(widget.IMG, { x: D.salut.x, y: D.salut.y, w: D.salut.w, h: D.salut.h, src: img('salut/0.png'), show_level: NORMAL })
@@ -104,7 +110,7 @@ WatchFace({
       let h = new Date().getHours()
       try { h = horloge.getHours() } catch (e) {}
       const i = salutation(h)
-      if (i !== actuel) { actuel = i; try { salut.setProperty(prop.SRC, img('salut/' + i + '.png')) } catch (e) {} }
+      if (i !== actuel && salut) { actuel = i; try { salut.setProperty(prop.SRC, img('salut/' + i + '.png')) } catch (e) {} }
     }
     try { horloge = new Time(); horloge.onPerMinute(majSalut) } catch (e) {}
     majSalut()
@@ -139,7 +145,7 @@ WatchFace({
       const z = D.zones[nom]
       if (z.ouvre === 'jarvis') {
         const t = creer(widget.IMG, { x: z.x, y: z.y, w: z.w, h: z.h, src: img('zone/' + nom + '.png'), show_level: NORMAL })
-        try { t.addEventListener(evt.CLICK_UP, ouvrirJarvis) } catch (e) {}
+        if (t) try { t.addEventListener(evt.CLICK_UP, ouvrirJarvis) } catch (e) {}
       } else if (donnee[z.ouvre] !== undefined) {
         creer(widget.IMG_CLICK, { x: z.x, y: z.y, w: z.w, h: z.h, src: img('zone/' + nom + '.png'), type: donnee[z.ouvre], show_level: NORMAL })
       }

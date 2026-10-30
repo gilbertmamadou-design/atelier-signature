@@ -84,3 +84,36 @@ test('salutation changée à la minute selon l\'heure', () => {
   J.heure = 6; J.minutes.forEach((f) => f())
   assert.equal(s.o.src, 'images/salut/0.png')
 })
+
+test('micrologiciel sans data_type dans @zos/ui : repli clé par clé sur hmUI, aucun plantage', async () => {
+  // @zos/ui factice privé de data_type et de IMG_CLICK, hmUI global les fournit
+  const zos = await import('./zos-factice.mjs?m=ui')
+  globalThis.hmUI = { data_type: TYPES, widget: { IMG_CLICK: 'w:IMG_CLICK' } }
+  const sauf = { dt: zos.default.data_type, clic: zos.default.widget.IMG_CLICK }
+  delete zos.default.data_type; delete zos.default.widget.IMG_CLICK
+  const avant = J.widgets.length
+  let d2 = null
+  globalThis.WatchFace = (o) => { d2 = o }
+  await import('../watchface/index.js?repli')
+  d2.build()
+  const nouveaux = J.widgets.slice(avant)
+  assert.equal(nouveaux.filter((w) => w.type === 'w:IMG_CLICK').length, 5)
+  assert.equal(nouveaux.filter((w) => w.type === 'w:TEXT_IMG').length, 9)
+  zos.default.data_type = sauf.dt; zos.default.widget.IMG_CLICK = sauf.clic; delete globalThis.hmUI
+})
+
+test('widget inconnu du micrologiciel : ignoré, le reste du cadran est créé', async () => {
+  const zos = await import('./zos-factice.mjs?m=ui')
+  const sauf = zos.default.widget.IMG_ANIM
+  delete zos.default.widget.IMG_ANIM
+  const avant = J.widgets.length
+  let d3 = null
+  globalThis.WatchFace = (o) => { d3 = o }
+  await import('../watchface/index.js?sans-anim')
+  d3.build()
+  const nouveaux = J.widgets.slice(avant)
+  assert.equal(nouveaux.filter((w) => w.type === 'w:IMG_ANIM').length, 0)
+  assert.ok(nouveaux.some((w) => w.type === 'w:IMG_TIME'))
+  nouveaux.find((w) => w.type === 'w:WIDGET_DELEGATE').o.resume_call()   // sans sphère : pas d'erreur
+  zos.default.widget.IMG_ANIM = sauf
+})
