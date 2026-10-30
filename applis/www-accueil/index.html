@@ -199,6 +199,66 @@ body:not(.edit) .pempty{display:none}
 .mjoffer .y{background:var(--acc);color:var(--acc-d)}
 .mjoffer .n{background:rgba(255,255,255,.1)}
 body.edit .mjoffer{display:none}
+/* Page Jarvis plein écran (panneau Majordome en taille « Plein écran ») : interface d'instruments sobre, couleurs de Majordome */
+.page.jvpage{padding:0;overflow-x:hidden}
+.page.jvpage>.grid{display:block;height:100%}
+.page.jvpage>.grid>.tile:not(.full){margin:10px 12px}
+body.edit .page.jvpage{padding-top:calc(var(--st) + 10px)}
+body.edit .page.jvpage>.grid{height:calc(100% - 40px)}
+.tile.full{height:100%;min-height:100%;border:0;border-radius:0;padding:calc(var(--st) + 8px) 14px calc(var(--nb) + 100px);-webkit-backdrop-filter:none;backdrop-filter:none;
+  background:radial-gradient(ellipse 80% 45% at 50% 42%,rgba(12,48,52,.5),transparent 70%),repeating-linear-gradient(0deg,rgba(127,230,210,.035) 0 1px,transparent 1px 34px),repeating-linear-gradient(90deg,rgba(127,230,210,.035) 0 1px,transparent 1px 34px),rgba(3,9,13,.86)}
+.page.nodock .tile.full{padding-bottom:calc(var(--nb) + 30px)}
+.tile.full:active{transform:none}
+body.edit .tile.full{animation:none}
+.jv{display:flex;flex-direction:column;height:100%;gap:9px;min-height:0;text-shadow:none}
+.jvtop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex:none}
+.jvtime{font-size:clamp(46px,15vw,76px);font-weight:200;line-height:.95;letter-spacing:-1px;font-variant-numeric:tabular-nums;color:#eafffb}
+.jvdate{font-size:14.5px;color:rgba(214,247,240,.78);margin-top:6px}
+.jl{display:block;font:600 10px/1.2 ui-monospace,"Roboto Mono",monospace;letter-spacing:1.5px;color:rgba(127,230,210,.78);text-transform:uppercase;font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jvbat{min-width:96px;text-align:right;padding-top:6px}
+.jvbat b{display:block;font-size:20px;font-weight:300;font-variant-numeric:tabular-nums;margin-top:3px}
+.jvbat .jb{height:3px;background:rgba(127,230,210,.16);margin-top:5px;border-radius:2px;overflow:hidden}
+.jvbat .jb i{display:block;height:100%;background:#46d9c2}
+.jvbat.low .jb i{background:#ff6b6b}
+.jvorb{position:relative;flex:1 1 auto;min-height:130px;cursor:pointer}
+.jvorb canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.jvhello{text-align:center;flex:none;margin-top:-4px}
+.jvhello b{display:block;font-size:22px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#eafffb}
+.jvhello span{display:block;font-size:13.5px;color:rgba(214,247,240,.75);margin-top:2px}
+.jvhello em{display:inline-flex;align-items:center;gap:5px;font-style:normal;font-size:11.5px;color:#7fe6d2;margin-top:5px;font-weight:600}
+.jvhello em svg{width:13px;height:13px}
+.jv.listen .jvhello em{color:#60ffa0}
+.jvdlg{flex:none;border-left:2px solid rgba(70,217,194,.6);padding:4px 0 4px 10px;font-size:13px;line-height:1.35;min-width:0}
+.jvdlg div{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.jvdlg .q{color:rgba(214,247,240,.72)}
+.jvdlg .a{color:#eafffb;margin-top:3px}
+.jvdlg .jl{display:inline;margin-right:6px}
+.jvcards{flex:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.jc{position:relative;min-width:0;background:rgba(6,18,22,.62);border:1px solid rgba(127,230,210,.15);border-radius:5px;padding:8px 10px 9px;text-align:left;color:#eafffb}
+.jc:before,.jc:after{content:"";position:absolute;width:9px;height:9px;pointer-events:none}
+.jc:before{left:-1px;top:-1px;border-left:2px solid #46d9c2;border-top:2px solid #46d9c2}
+.jc:after{right:-1px;bottom:-1px;border-right:2px solid rgba(70,217,194,.55);border-bottom:2px solid rgba(70,217,194,.55)}
+.jc.w2{grid-column:span 2}
+.jc b{display:flex;align-items:center;gap:6px;font-size:17px;font-weight:500;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.jc b svg{width:18px;height:18px;color:#7fe6d2}
+.jc span{display:block;font-size:12px;color:rgba(214,247,240,.74);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jc .lv{font-weight:600}
+.jc .lv.ok{color:#6fe3b4}.jc .lv.warn{color:#ffc46b}.jc .lv.bad{color:#ff7d7d}
+.jhue{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
+.jhue button{flex:1 1 0;min-width:0;padding:7px 6px;border-radius:4px;border:1px solid rgba(127,230,210,.25);font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:rgba(214,247,240,.85)}
+.jhue button.on{background:rgba(70,217,194,.22);border-color:#46d9c2;color:#eafffb}
+.jhue button.off{flex-grow:1.4;background:rgba(255,107,107,.14);border-color:rgba(255,125,125,.5)}
+.jnews{display:block;width:100%;text-align:left;font-size:12.5px;line-height:1.3;color:#eafffb;padding:4px 0;border-top:1px solid rgba(127,230,210,.1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jnews:first-of-type{border-top:0;margin-top:3px}
+.jstn{display:none;color:#ffc46b}
+body.station .jstn{display:block}
+body.station.stnight .jvcards,body.station.stnight .jvdlg,body.station.stnight .jvhello span,body.station.stnight .jvhello em{display:none}
+body.station.stnight .jvtime{font-size:clamp(64px,24vw,120px);color:rgba(190,240,230,.6)}
+body.station.stnight .jvdate,body.station.stnight .jvbat{opacity:.5}
+body.station.stnight .tile.full{background:#000}
+body.jvcur #dock{display:none}
+body.jvcur:not(.edit) #dots{bottom:calc(var(--nb) + 10px)}
+.jvopt .sect{margin-left:0}
 
 /* Barre de recherche */
 #dock{position:fixed;left:12px;right:12px;bottom:calc(var(--nb) + 10px);z-index:5}
@@ -306,7 +366,7 @@ input[type=range]{width:100%;accent-color:var(--acc)}
     var s=JSON.parse(localStorage.getItem('socle-snap')||'null');
     if(!s || !s.h || Math.abs((s.w||0)-window.innerWidth)>2) return;
     if(s.css) document.documentElement.setAttribute('style', s.css);
-    var p=document.getElementById('pages'); p.innerHTML=s.h; p.classList.add('snap');
+    var p=document.getElementById('pages'); p.innerHTML=s.h; p.classList.add('snap'); if(s.jv) document.body.classList.add('jvcur');
     var d=new Date(), t=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
     var tm=p.querySelector('.t-clock .time'); if(tm) tm.textContent=t;
     window.__snap=1;
@@ -464,6 +524,7 @@ function clone(o){ return JSON.parse(JSON.stringify(o)); }
 function cleanTile(t){
   if(!t || typeof t!=='object' || !TYPES[t.t]) return null;
   t.w = t.w===2 ? 2 : 1; t.h = t.h===2 ? 2 : 0;
+  if(t.full){ if(t.t==='mjpanel'){ t.full=1; t.w=2; t.h=2; } else delete t.full; }
   if(t.t==='app' && typeof t.k!=='string') return null;
   if(t.t==='contact' && !t.uri && !t.num) return null;
   if(t.t==='link' && !/^https?:\/\//i.test(String(t.url||''))) return null;
@@ -474,6 +535,16 @@ function cleanPages(c){
   if(!pg) return null;
   pg = pg.filter(Array.isArray).slice(0,9).map(function(p){ return p.map(cleanTile).filter(Boolean).slice(0,40); });
   return pg.length ? pg : null;
+}
+/* Page Jarvis plein écran : cartes affichées, barre de recherche masquée, retour sur Socle après la réponse, mode Station, pièces favorites */
+var JVC=['time','wx','ev','al','tm','hue','news','bat','dlg'];
+function jvConf(j){
+  j=(j && typeof j==='object' && !Array.isArray(j)) ? j : {};
+  var c=(j.cards && typeof j.cards==='object') ? j.cards : {}, o={cards:{}};
+  JVC.forEach(function(k){ o.cards[k]=c[k]===false||c[k]===0 ? 0 : 1; });
+  o.nodock=j.nodock===0||j.nodock===false ? 0 : 1; o.back=j.back===0||j.back===false ? 0 : 1; o.station=j.station ? 1 : 0;
+  o.rooms=Array.isArray(j.rooms) ? j.rooms.filter(function(x){ return typeof x==='string'; }).slice(0,3) : null;
+  return o;
 }
 function restoreNotes(n){ if(n && typeof n==='object') Object.keys(n).forEach(function(k){ if(/^socle-note/.test(k) && lsGet(k)==null) lsSet(k, String(n[k])); }); }
 function loadConf(){
@@ -491,6 +562,7 @@ function loadConf(){
   if(o.city && (typeof o.city!=='object' || !isFinite(o.city.lat) || !isFinite(o.city.lon))) o.city=null;
   if(typeof o.accent!=='string') o.accent='auto';
   o.opacity=Math.max(20,Math.min(90,+o.opacity||55)); if(o.cols!==5) o.cols=4;
+  o.jv=jvConf(o.jv);
   return o;
 }
 var confFixed=false;
@@ -699,7 +771,7 @@ function tileBody(cfg){
 }
 /* Une tuile en erreur n'empêche jamais l'affichage des autres : elle se signale et l'erreur part au journal */
 function tileHtml(cfg, p, idx){
-  var w = (cfg.w===2 ? ' w2' : '')+(cfg.h===2 ? ' h2' : ''), body='', tp=TYPES[cfg.t]||{};
+  var w = (cfg.w===2 ? ' w2' : '')+(cfg.h===2 ? ' h2' : '')+(cfg.full ? ' full' : ''), body='', tp=TYPES[cfg.t]||{};
   try{ body=tileBody(cfg); }
   catch(e){ logErr('Tuile « '+(tp.n||cfg.t)+' » : '+(e&&e.message||e)); body='<div class="hd">'+ic(tp.i||'info')+esc(tp.n||'Tuile')+'</div><div class="terr">Indisponible pour le moment</div>'; }
   var ed = '<div class="ed"><button data-ed="left" aria-label="Avant">'+ic('left')+'</button><button data-ed="size" aria-label="Taille">'+ic('size')+'</button><button data-ed="right" aria-label="Après">'+ic('right')+'</button><button class="x" data-ed="del" aria-label="Retirer">'+ic('x')+'</button></div>';
@@ -720,21 +792,23 @@ function ensurePages(){
 function renderPage(p){
   var pg=pageEls()[p]; if(!pg || !C.pages[p]) return;
   var n=C.pages.length;
-  pg.querySelector('.phd').innerHTML='<span class="sh">'+(n>1?'Page '+(p+1)+' sur '+n:'Page principale')+'</span>'+(n>1?'<button data-pg="del" data-p="'+p+'">'+ic('trash')+'Supprimer la page</button>':'');
+  var jvp=isJvPage(p); pg.classList.toggle('jvpage', jvp); pg.classList.toggle('nodock', jvp && !!C.jv.nodock);
+  pg.querySelector('.phd').innerHTML='<span class="sh">'+(n>1?(p===0?'Page principale':'Page '+(p+1))+' sur '+n:'Page principale')+'</span>'+(p>0?'<button data-pg="main" data-p="'+p+'">'+ic('star')+'Principale</button>':'')+(n>1?'<button data-pg="del" data-p="'+p+'">'+ic('trash')+'Supprimer</button>':'');
   pg.querySelector('.grid').innerHTML=(p===0?mjOfferHtml():'')+C.pages[p].map(function(c,i){ return tileHtml(c,p,i); }).join('')+(C.pages[p].length?'':'<div class="pempty">Page vide : touche <b>Ajouter</b> pour y mettre une appli, un contact, un site ou un panneau.</div>');
   mjOrbSync();
 }
 function mjBtn(){ var b=$('bMj'); if(b) b.toggleAttribute('hidden', !(C.mjBtn!==false && app(MJ))); }
-function render(){ mjBtn(); ensurePages(); for(var p=0;p<C.pages.length;p++) renderPage(p); snapSoon(); }
+function render(){ mjBtn(); ensurePages(); for(var p=0;p<C.pages.length;p++) renderPage(p); snapSoon(); jvChrome(); }
 /* Démarrage : la page affichée d'abord, les autres juste après (l'écran apparaît plus tôt) */
 function renderProgressive(done){
-  ensurePages(); renderPage(CP);
+  ensurePages(); renderPage(CP); jvChrome();
   var q=[]; for(var p=0;p<C.pages.length;p++) if(p!==CP) q.push(p);
   (function next(){ if(!q.length){ if(done) done(); return; } setTimeout(safe(function(){ renderPage(q.shift()); next(); },'Rendu'), 0); })();
 }
 function refresh(type){
   document.querySelectorAll('.tile[data-t="'+type+'"]').forEach(function(el){
     var cfg=C.pages[+el.dataset.p]&&C.pages[+el.dataset.p][+el.dataset.i]; if(!cfg || cfg.t!==type) return;
+    if(cfg.full && el.classList.contains('full') && el.querySelector('.jv')){ jvUpdate(el, cfg); return; }   // page Jarvis : texte mis à jour, la sphère reste en place
     var tmp=document.createElement('div'); tmp.innerHTML=tileHtml(cfg, +el.dataset.p, +el.dataset.i); el.replaceWith(tmp.firstChild);
   });
   if(type==='mjpanel') mjOrbSync();
@@ -744,10 +818,10 @@ function dots(){
   $('dots').innerHTML = n>1 ? C.pages.map(function(_,i){ return '<i'+(i===CP?' class="on"':'')+'></i>'; }).join('') : '';
 }
 function curPage(){ return pageEls()[CP] || pageEls()[0] || home; }
-function goPage(p, smooth){ CP=Math.max(0,Math.min(C.pages.length-1,p)); home.scrollTo({left:CP*home.clientWidth, behavior:smooth?'smooth':'auto'}); dots(); }
+function goPage(p, smooth){ CP=Math.max(0,Math.min(C.pages.length-1,p)); home.scrollTo({left:CP*home.clientWidth, behavior:smooth?'smooth':'auto'}); dots(); jvChrome(); }
 home.addEventListener('scroll', function(){
   var p=Math.round(home.scrollLeft/Math.max(1,home.clientWidth));
-  if(p!==CP && p>=0 && p<C.pages.length){ CP=p; dots(); }
+  if(p!==CP && p>=0 && p<C.pages.length){ CP=p; dots(); jvChrome(); }
 }, {passive:true});
 window.addEventListener('resize', function(){ goPage(CP,false); });
 /* Notes rapides : chaque tuile a sa propre note */
@@ -764,7 +838,7 @@ function saveSnap(){
   var h=pe.children[0].outerHTML;   // la page principale suffit : c'est elle qui s'affiche au démarrage
   if(h.length>900000) h=h.replace(/src="data:[^"]{2000,}"/g,'src=""');   // trop lourd : on garde la mise en page, sans les grandes images
   if(h===lastSnap) return; lastSnap=h;
-  lsSet('socle-snap', JSON.stringify({h:h, w:window.innerWidth, css:document.documentElement.getAttribute('style')||'', at:Date.now()}));
+  lsSet('socle-snap', JSON.stringify({h:h, w:window.innerWidth, css:document.documentElement.getAttribute('style')||'', jv:isJvPage(0)&&C.jv.nodock?1:0, at:Date.now()}));
 }
 
 /* Horloge */
@@ -1171,7 +1245,7 @@ function mjHtml(cfg){
   var la=d.last&&d.last.a&&Date.now()-d.last.at<6*3600000?'<div class="sub" style="overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">'+esc(d.last.a)+'</div>':'<div class="sub">'+(d.wake?'J\'écoute : dites « '+nm+' »':'Appui long : parler')+'</div>';
   return hd+la+nx+'<button class="mini" data-act="mj-listen">'+ic('mic')+'Parler</button>';
 }
-function mjListen(){ if(A && app(MJ)) A.homeLaunchWith(MJ, JSON.stringify({listen:1})); }
+function mjListen(back){ if(A && app(MJ)) A.homeLaunchWith(MJ, JSON.stringify(back?{listen:1,back:1}:{listen:1})); }
 
 /* Panneau Majordome (2×2) : sphère de particules légère, nom choisi dans Majordome (« Jarvis »), salutation selon l'heure,
    résumé (minuteur, réveil, rendez-vous, météo et vent, rappel, dernière réponse). Aucune requête réseau : la météo est celle
@@ -1193,14 +1267,15 @@ function mjpRows(d){
 function mjpHtml(cfg){
   var d=wd(MJ)||{}, nm=esc(mjName()), big=cfg.h===2, wide=cfg.w===2;
   if(!app(MJ)) return '<div class="hd">'+ic('orb')+nm+'</div>'+missing('Majordome');
+  if(cfg.full) return jvHtml(cfg);
   var rows=wide?mjpRows(d).slice(0,big?5:2):[];
   var la=big && d.last && d.last.a && Date.now()-d.last.at<3*3600000 ? '<div class="mjq">« '+esc(d.last.a)+' »</div>' : '';
   return '<div class="mjp"><div class="mjo" aria-hidden="true"><canvas class="mjorb"></canvas></div><div class="tt"><div class="nm">'+nm+'</div><div class="gr">'+esc(mjGreet(d))+'</div>'+
     '<div class="ht">'+ic('mic')+(d.wake?'Touchez ou dites « '+nm+' »':'Touchez pour parler')+'</div></div></div>'+
     (rows.length?'<div class="mjl">'+rows.map(function(x){ return '<div>'+ic(x[0])+'<span><b>'+esc(x[1])+'</b>'+(x[2]?' · '+esc(x[2]):'')+'</span></div>'; }).join('')+'</div>':(big?'<div class="empty">Rien de prévu : demandez « Quel temps fait-il ? » ou « Réveille-moi à 7 h ».</div>':''))+la;
 }
-function mjMenu(){
-  var nm=esc(mjName());
+function mjMenu(tile){
+  var nm=esc(mjName()), tc=tileCfg(tile), full=!!(tc && tc.full), tp=tile?+tile.dataset.p:-1;
   openSheet('<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">'+ic('orb',' style="width:26px;height:26px;color:#7fe6d2"')+'<h2 style="margin:0">'+nm+'</h2></div><div class="menu">'+
     '<button data-mj="listen">'+ic('mic')+'Parler à '+nm+'</button>'+
     '<button data-mj="routine">'+ic('sun')+'Routine « Bonjour »</button>'+
@@ -1208,10 +1283,13 @@ function mjMenu(){
     '<button data-mj="note">'+ic('note')+'Note</button>'+
     (mjHue(wd(MJ)||{})?'<button data-mj="hueoff">'+ic('bulb')+'Éteindre toutes les lumières</button>':'')+
     '<button data-mj="settings">'+ic('tool')+'Réglages de '+nm+'</button>'+
+    (full?'<button data-mj="jvset">'+ic('orb')+'Page '+nm+' : cartes et options</button>'+(tp>0?'<button data-mj="jvmain">'+ic('star')+'En faire la page principale</button>':''):'')+
     '<button data-mj="edit">'+ic('grid')+'Modifier l\'écran</button></div>','mj');
   $('sbody').onclick=safe(function(e){
-    var b=e.target.closest('[data-mj]'); if(!b) return; var m=b.dataset.mj; closeSheet(); $('sbody').onclick=null;
+    var b=e.target.closest('[data-mj]'); if(!b || Date.now()-sheetAt<450) return; var m=b.dataset.mj; closeSheet(); $('sbody').onclick=null;   // le relâcher d'un appui long ne choisit rien
     if(m==='edit'){ startEdit(); return; }
+    if(m==='jvset'){ jvSettings(); return; }
+    if(m==='jvmain'){ setMainPage(tp); return; }
     if(!A || !app(MJ)) return;
     if(m==='hueoff'){ hueOff(); return; }
     var o={listen:{listen:1},routine:{routine:'matin'},timer:{timer:1},note:{note:1},settings:{settings:1}}[m];
@@ -1266,6 +1344,7 @@ function mjOrbPts(){
 }
 function mjOrbSync(){
   var all=[].slice.call(document.querySelectorAll('#pages canvas.mjorb'));
+  all.forEach(function(c){ c.__big=c.classList.contains('jvbig'); });
   if(MJO.io) MJO.cv.forEach(function(c){ if(!c.isConnected) MJO.io.unobserve(c); });
   MJO.cv=all;
   if(!all.length){ if(MJO.raf){ cancelAnimationFrame(MJO.raf); MJO.raf=0; } return; }
@@ -1283,10 +1362,11 @@ function mjOrbKick(){
 function mjOrbFrame(now){
   MJO.raf=0;
   if(MJO.reduce || !mjOrbOn()) return;   // en pause : la boucle s'arrête complètement
-  if(now-MJO.last >= (now-MJO.act>15000 ? 80 : 30)){ MJO.last=now; MJO.frames++; MJO.cv.forEach(function(c){ if(c.__on && c.isConnected) mjOrbDraw(c, now); }); }
+  if(now-MJO.last >= (MJO.slow ? 125 : now-MJO.act>15000 ? 80 : 30)){ MJO.last=now; MJO.frames++; MJO.cv.forEach(function(c){ if(c.__on && c.isConnected) mjOrbDraw(c, now); }); }
   MJO.raf=requestAnimationFrame(mjOrbFrame);
 }
 function mjOrbDraw(c, now){
+  if(c.__big) return jvOrbDraw(c, now);
   var w=c.clientWidth, h=c.clientHeight; if(!w || !h) return;
   var dpr=Math.min(2, window.devicePixelRatio||1), bw=Math.round(w*dpr), bh=Math.round(h*dpr);
   if(c.width!==bw || c.height!==bh){ c.width=bw; c.height=bh; }
@@ -1300,6 +1380,205 @@ function mjOrbDraw(c, now){
     var k=1.9/(2.6-z2), dp=(z2+1)/2, sz=(1.2+dp*2)*sm;
     x.fillStyle='rgba(70,217,194,'+(.2+dp*.75).toFixed(2)+')';
     x.fillRect(cx+x1*R*k-sz/2, cy+y1*R*k-sz/2, sz, sz);
+  }
+  x.globalCompositeOperation='source-over';
+}
+
+/* ---------- Page Jarvis plein écran ----------
+   Le panneau Majordome en taille « Plein écran » occupe toute une page (on glisse vers les autres pages comme d'habitude).
+   Au centre, la grande sphère (même rendu que dans Majordome : ~420 points, halo, couleurs d'état, pulsation), autour des
+   cartes discrètes (heure, météo et vent avec le seuil de chantier, rendez-vous, réveil, minuteurs, lumières Hue,
+   3 titres, batterie) et le dernier échange avec Jarvis. Aucune requête réseau de plus : météo de Socle, résumés publiés
+   par Majordome et Actualités (widgetPut), réveil et agenda d'Android. Toucher la sphère : Majordome s'ouvre en écoute
+   et revient sur Socle après sa réponse ; appui long : le menu Jarvis. Mise à jour du texte sans recréer la sphère. */
+function isFull(t){ return t && t.t==='mjpanel' && t.full; }
+function isJvPage(p){ return !!(C.pages[p] && C.pages[p].some(isFull)); }
+function jvFullPage(){ for(var p=0;p<C.pages.length;p++) if(isJvPage(p)) return p; return -1; }
+var jvBarHidden=false;
+function jvChrome(){
+  var on=isJvPage(CP) && !!C.jv.nodock;
+  document.body.classList.toggle('jvcur', on);
+  /* Barre d'état (où Android affiche l'heure) : masquée sur la page Jarvis si elle ne l'est pas déjà partout */
+  var bar=on && !C.hideBar;
+  if(bar!==jvBarHidden && A && A.homeStatusBar){ jvBarHidden=bar; A.homeStatusBar(bar || !!C.hideBar); }
+  stationApply();
+}
+function setMainPage(p){
+  if(!(p>0) || !C.pages[p]) return;
+  C.pages.unshift(C.pages.splice(p,1)[0]); save(); render(); goPage(0, true); closeSheet();
+  toast('Page principale : elle s\'affiche au bouton d\'accueil');
+}
+function jvAddPage(){
+  if(!app(MJ)){ toast('Installe Majordome pour utiliser cette page'); return; }
+  var ex=jvFullPage(); if(ex>=0){ closeSheet(); endEdit(); goPage(ex, true); toast('La page '+mjName()+' existe déjà'); return; }
+  if(C.pages.length>=9){ toast('9 pages au maximum'); return; }
+  var at=Math.min(CP+1, C.pages.length); C.pages.splice(at,0,[{t:'mjpanel',w:2,h:2,full:1}]); C.mjOffer=1;
+  save(); closeSheet(); endEdit(); render(); goPage(at, true);
+  toast('Page '+mjName()+' ajoutée · appui long › « En faire la page principale »');
+}
+function jvTime(){ var d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+function jvDate(){ var x=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}); return x.charAt(0).toUpperCase()+x.slice(1); }
+function jvIn(t){ var m=Math.max(0,Math.round((t-Date.now())/60000)); return m<60 ? 'dans '+Math.max(1,m)+' min' : 'dans '+Math.floor(m/60)+' h '+String(m%60).padStart(2,'0'); }
+function jvNews(){
+  var a=app(ACTU)?wd(ACTU):null, l=a&&Array.isArray(a.top)?a.top.slice(0,3).map(function(x){ return {t:x.t||'', s:x.t||'', src:x.src||''}; }):[];
+  if(!l.length){ var d=wd(MJ)||{}; if(Array.isArray(d.news)) l=d.news.slice(0,3).map(function(x){ return {t:String(x.t||x||''), m:1}; }); }
+  return l.filter(function(x){ return x.t; });
+}
+function jvRooms(h){
+  var r=h && Array.isArray(h.rooms) ? h.rooms : [], f=C.jv.rooms;
+  if(f && f.length){ var o=f.map(function(id){ return r.filter(function(x){ return x.id===id; })[0]; }).filter(Boolean); if(o.length) return o; }
+  return r.slice(0,3);
+}
+function jvParts(cfg){
+  var d=wd(MJ)||{}, k=C.jv.cards, nm=mjName(), P={};
+  /* Haut : grande heure et date, batterie */
+  var b=k.bat?batInfo():{level:-1};
+  P.top=(k.time?'<div style="min-width:0"><div class="jvtime">'+jvTime()+'</div><div class="jvdate">'+esc(jvDate())+'</div></div>':'<div></div>')+
+    (b.level>=0?'<div class="jvbat'+(b.level<=15&&!b.plugged?' low':'')+'" data-act="jv-bat"><i class="jl">'+(b.plugged?'En charge':'Batterie')+'</i><b>'+b.level+' %</b><div class="jb"><i style="width:'+b.level+'%"></i></div><i class="jl jstn">Station</i></div>':'');
+  P.hello='<b>'+esc(nm)+'</b><span>'+esc(mjGreet(d))+'</span><em>'+ic('mic')+(d.wake?'Touchez ou dites « '+esc(nm)+' »':'Touchez la sphère pour parler')+'</em>';
+  /* Dialogue : dernière question et dernière réponse (publiées par Majordome) */
+  var la=d.last && d.last.a && Date.now()-d.last.at<12*3600000 ? d.last : null;
+  P.dlg=!k.dlg ? '' : la ? (la.q?'<div class="q"><i class="jl">Vous</i>« '+esc(la.q)+' »</div>':'')+'<div class="a"><i class="jl">'+esc(nm)+'</i>'+esc(la.a)+'</div>' : '<div class="q"><i class="jl">'+esc(nm)+'</i>Demandez par exemple « Quel temps fait-il ? » ou « Minuteur 10 minutes ».</div>';
+  /* Cartes */
+  var c=[], w2=[];
+  if(k.wx){
+    if(W && W.current){ var x=W.current, wm=wmo(x.weather_code,x.is_day), lim=+d.windLimit||45, g=Math.max(x.wind_gusts_10m||0, x.wind_speed_10m||0), lv=g>=lim?'bad':g>=lim*.75?'warn':'ok';
+      c.push('<div class="jc" data-act="jv-wx"><i class="jl">Météo · '+esc(C.city?C.city.name:'')+'</i><b>'+ic(wm[1])+Math.round(x.temperature_2m)+'° <small style="font-size:12px;color:rgba(214,247,240,.7);font-weight:400">'+esc(wm[0])+'</small></b><span>Vent '+Math.round(x.wind_speed_10m)+' km/h · raf. '+Math.round(x.wind_gusts_10m||0)+'</span><span class="lv '+lv+'">Chantier : '+(lv==='bad'?'au-delà du seuil':lv==='warn'?'prudence':'vent OK')+' ('+lim+')</span></div>'); }
+    else c.push('<div class="jc" data-act="jv-wx"><i class="jl">Météo</i><b>'+ic('cloud')+'—</b><span>'+(C.city?'Chargement…':'Touchez pour choisir la ville')+'</span></div>');
+  }
+  if(k.ev){ var ev=null; if(A){ var l=null; try{ l=J(A.homeAgenda(7),null); }catch(e){} ev=l&&l.length?(l.filter(function(z){ return !z.all; })[0]||l[0]):null; }
+    c.push('<div class="jc"'+(ev?' data-ev="'+esc(ev.id)+'"':' data-act="jv-cal"')+'><i class="jl">Rendez-vous</i><b>'+ic('cal')+esc(ev?ev.title:'Rien de prévu')+'</b><span>'+esc(ev?evWhen(ev):'dans les 7 jours')+'</span></div>'); }
+  if(k.al){ var al=alarmInfo(); c.push('<div class="jc" data-act="jv-al"><i class="jl">Réveil</i><b>'+ic('alarm')+(al.at?hm(al.at):'—')+'</b><span>'+(al.at?esc(dayLabel(al.at)):'aucun réveil prévu')+'</span></div>'); }
+  if(k.tm){ var now=Date.now(), tl=(Array.isArray(d.timers)?d.timers:(d.timer?[d.timer]:[])).filter(function(t){ return t && t.at>now; }).slice(0,3);
+    c.push('<div class="jc" data-act="jv-mj"><i class="jl">Minuteurs'+(tl.length>1?' · '+tl.length:'')+'</i><b data-jvt="'+(tl[0]?tl[0].at:0)+'">'+ic('clock')+(tl[0]?jvIn(tl[0].at):'Aucun')+'</b><span>'+(tl.length?esc(tl.map(function(t){ return (t.label||'Minuteur')+' '+hm(t.at); }).join(' · ')):'« Minuteur 10 minutes »')+'</span></div>'); }
+  if(k.hue){ var h=mjHue(d);
+    if(h){ var rs=jvRooms(h), st=h.err?(h.err==='unauthorized'?'pont à rejumeler':'pont injoignable'):h.on==null?'…':h.on?h.on+' allumée'+(h.on>1?'s':'')+(h.total?' sur '+h.total:''):'tout est éteint';
+      w2.push('<div class="jc w2"><i class="jl">Lumières</i><b>'+ic('bulb')+esc(st)+'</b><div class="jhue"><button class="off" data-act="jv-hueoff">Tout éteindre</button>'+rs.map(function(r){ return '<button data-act="jv-room" data-room="'+esc(r.id)+'"'+(r.on?' class="on"':'')+'>'+esc(r.name||'Pièce')+'</button>'; }).join('')+'</div></div>'); }
+    else c.push('<div class="jc" data-act="jv-mj"><i class="jl">Lumières</i><b>'+ic('bulb')+'Hue</b><span>Jumelez le pont dans '+esc(nm)+'</span></div>'); }
+  if(k.news){ var n=jvNews(); w2.push('<div class="jc w2"><i class="jl">Actualités</i>'+(n.length?n.map(function(x){ return x.m?'<button class="jnews" data-act="jv-news">'+esc(x.t)+'</button>':'<button class="jnews" data-actus="'+esc(x.s)+'">'+esc(x.t)+'</button>'; }).join(''):'<span>Demandez « les titres » à '+esc(nm)+' ou ouvrez Actualités</span>')+'</div>'); }
+  if(c.length%2) c[c.length-1]=c[c.length-1].replace('class="jc"','class="jc w2"');
+  P.cards=c.concat(w2).join('');
+  return P;
+}
+function jvHtml(cfg){
+  var P=jvParts(cfg);
+  return '<div class="jv"><div class="jvtop">'+P.top+'</div><div class="jvorb" data-act="jv-listen" aria-label="Parler à '+esc(mjName())+'"><canvas class="mjorb jvbig"></canvas></div><div class="jvhello" data-act="jv-listen">'+P.hello+'</div>'+
+    '<div class="jvdlg"'+(P.dlg?'':' hidden')+' data-act="jv-mj">'+P.dlg+'</div><div class="jvcards">'+P.cards+'</div></div>';
+}
+function jvUpdate(el, cfg){
+  var P=jvParts(cfg);
+  [['.jvtop','top'],['.jvhello','hello'],['.jvdlg','dlg'],['.jvcards','cards']].forEach(function(x){ var e=el.querySelector(x[0]); if(e && e.innerHTML!==P[x[1]]) e.innerHTML=P[x[1]]; if(x[1]==='dlg' && e) e.hidden=!P.dlg; });
+}
+/* Toutes les 15 s : heure, date et compte à rebours seulement (aucun appel à Android) */
+function jvTick(){
+  if(document.hidden) return;
+  document.querySelectorAll('.tile.full .jvtime').forEach(function(e){ var t=jvTime(); if(e.textContent!==t) e.textContent=t; });
+  document.querySelectorAll('.tile.full .jvdate').forEach(function(e){ var t=jvDate(); if(e.textContent!==t) e.textContent=t; });
+  document.querySelectorAll('.tile.full [data-jvt]').forEach(function(e){ var at=+e.dataset.jvt; if(at>Date.now()) e.lastChild.textContent=jvIn(at); else if(at) refresh('mjpanel'); });
+}
+function jvAct(k, el){
+  var tl=el.closest('.tile');
+  if(k==='jv-listen'){
+    if(!A || !app(MJ)) return;
+    var jv=tl && tl.querySelector('.jv'); if(jv) jv.classList.add('listen');
+    MJO.burst=.45; MJO.st='listen'; MJO.stAt=performance.now(); MJO.act=performance.now(); mjOrbKick();
+    if(MJO.reduce) MJO.cv.forEach(function(c){ if(c.__big && c.__on) mjOrbDraw(c, performance.now()); });
+    if(navigator.vibrate) navigator.vibrate(12);
+    setTimeout(function(){ mjListen(!!C.jv.back); }, MJO.reduce ? 0 : 260);   // la sphère pulse, puis Majordome écoute
+    setTimeout(function(){ if(jv) jv.classList.remove('listen'); MJO.st='idle'; }, 2200);
+    return;
+  }
+  if(k==='jv-mj'){ var m=app(MJ); if(m) launch(m); return; }
+  if(k==='jv-news'){ if(A && app(MJ)) A.homeLaunchWith(MJ, JSON.stringify({cmd:'les titres', back:C.jv.back?1:undefined})); return; }
+  if(k==='jv-wx'){ if(C.city) weatherSheet(); else locateMe(); return; }
+  if(k==='jv-cal'){ openRole('calendar','calendar',''); return; }
+  if(k==='jv-al'){ var aube=magApp('clock'); if(aube && C.preferMag) launch(aube); else if(A) A.homeOpen('alarms',''); return; }
+  if(k==='jv-bat'){ if(A) A.homeOpen('battery',''); return; }
+  if(k==='jv-hueoff'){ if(A) hueOff(); return; }
+  if(k==='jv-room'){
+    if(!A || !A.homeWidgetCall) return;
+    if(A.homeWidgetCall(MJ,'hue_room',el.dataset.room||'')){ el.classList.toggle('on'); hueAt=Date.now(); setTimeout(safe(function(){ wdata(MJ); refresh('mjpanel'); },'Lumières'), 2500); }
+    else toast('Pont Hue indisponible');
+  }
+}
+function jvSettings(){
+  var k=C.jv.cards, nm=esc(mjName()), jp=jvFullPage(), h=mjHue(wd(MJ)||{}), rooms=h&&Array.isArray(h.rooms)?h.rooms:[], fav=jvRooms(h).map(function(r){ return r.id; });
+  var sw=function(id,t,sub,on){ return '<div class="row"><div class="t"><div>'+t+'</div>'+(sub?'<div>'+sub+'</div>':'')+'</div><label class="sw"><input type="checkbox" data-jo="'+id+'"'+(on?' checked':'')+'><span></span></label></div>'; };
+  var L={time:'Grande heure et date',wx:'Météo et vent (seuil de chantier)',ev:'Prochain rendez-vous',al:'Prochain réveil',tm:'Minuteurs en cours',hue:'Lumières Hue',news:'3 titres d\'actualité',bat:'Batterie',dlg:'Dernier échange avec '+nm};
+  var html='<div class="jvopt"><h2>Page '+nm+'</h2>'+
+    (jp>0?'<button class="pbtn main" data-jm="1" style="width:100%;margin-bottom:6px">'+ic('star')+'En faire la page principale</button>':jp===0?'<div class="empty" style="margin:0 0 6px">C\'est la page principale : le bouton d\'accueil y revient.</div>':'')+
+    '<div class="sect">Cartes affichées</div>'+JVC.map(function(c){ return sw('c.'+c, L[c], '', k[c]); }).join('')+
+    (rooms.length?'<div class="sect">Pièces favorites (3 au plus)</div>'+rooms.map(function(r){ return '<div class="row"><div class="t"><div>'+esc(r.name||'Pièce')+'</div></div><label class="sw"><input type="checkbox" data-room2="'+esc(r.id)+'"'+(fav.indexOf(r.id)>=0?' checked':'')+'><span></span></label></div>'; }).join(''):'')+
+    '<div class="sect">Options</div>'+
+    sw('nodock','Masquer la barre de recherche ici', nm+' affiche l\'heure ; glisser vers le haut ouvre toujours la liste des applis', C.jv.nodock)+
+    sw('back','Revenir sur Socle après la réponse','Toucher la sphère ouvre '+nm+' en écoute, puis revient ici', C.jv.back)+
+    sw('station','Station '+nm+' (en charge)','Branché : cette page reste affichée, écran allumé, luminosité réduite la nuit. Se coupe dès que le téléphone est débranché. Idéal avec l\'écoute continue « seulement en charge » de '+nm+'.', C.jv.station)+
+    '</div>';
+  openSheet(html,'jvset');
+  $('sbody').onchange=safe(function(e){
+    var i=e.target; if(i.dataset.jo){ var o=i.dataset.jo; if(o.indexOf('c.')===0) C.jv.cards[o.slice(2)]=i.checked?1:0; else C.jv[o]=i.checked?1:0; }
+    if(i.dataset.room2){ var f=jvRooms(mjHue(wd(MJ)||{})).map(function(r){ return r.id; }).filter(function(x){ return x!==i.dataset.room2; }); if(i.checked) f.push(i.dataset.room2); if(f.length>3){ f=f.slice(-3); } C.jv.rooms=f; }
+    save(); render(); if(i.dataset.jo==='station') stationCheck(); if(i.dataset.room2) jvSettings();
+  },'Page Jarvis');
+  $('sbody').onclick=function(e){ if(e.target.closest('[data-jm]')){ $('sbody').onclick=null; $('sbody').onchange=null; setMainPage(jvFullPage()); } };
+}
+/* Station Jarvis : téléphone branché et option active → la page Jarvis reste affichée, écran maintenu allumé
+   (FLAG_KEEP_SCREEN_ON, seulement tant que Socle est à l'écran sur cette page), luminosité très basse de 22 h à 7 h,
+   horloge de veille. Android prévient Socle au branchement et au débranchement (SocleBridge) ; relecture toutes les minutes en secours. */
+var STN={on:false, keep:false, bright:-1};
+function stnNight(){ var h=new Date().getHours(); return h>=22 || h<7; }
+function stationCheck(plugged){
+  if(plugged==null) plugged=!!(C.jv.station && batInfo().plugged);
+  var want=!!(A && C.jv.station && plugged && jvFullPage()>=0);
+  if(want && !STN.on){ STN.on=true; if(!sheetType && !$('drawer').classList.contains('on') && !document.body.classList.contains('edit')) goPage(jvFullPage(), false); }
+  else if(!want && STN.on) STN.on=false;
+  stationApply();
+}
+function stationApply(){
+  var on=STN.on && !document.hidden && CP===jvFullPage(), night=on && stnNight();
+  document.body.classList.toggle('station', on); document.body.classList.toggle('stnight', night);
+  MJO.slow=night;
+  if(!A) return;
+  if(STN.keep!==on && A.keepScreen){ STN.keep=on; try{ A.keepScreen(on); }catch(e){} }
+  var br=night?0.02:-1; if(STN.bright!==br && A.setBright){ STN.bright=br; try{ A.setBright(br); }catch(e){} }
+}
+window.accueilPower=safe(function(p){ if(C.jv.station) stationCheck(!!p); else if(STN.on) stationCheck(false); },'Charge');
+/* Sphère grand format : rendu de Majordome (points sur une spirale de Fibonacci, perspective, bruit lisse, halo, couleur d'état,
+   pulsation au toucher) et anneaux d'instruments discrets. Même boucle, même limite d'images et mêmes pauses que le petit panneau. */
+var JVCOL={idle:[70,217,194], listen:[96,255,160]};
+MJO.col=JVCOL.idle.slice(); MJO.st='idle'; MJO.burst=0; MJO.slow=false;
+function jvPts(){
+  if(MJO.big) return MJO.big;
+  var N=420, GA=Math.PI*(3-Math.sqrt(5)), l=[];
+  for(var i=0;i<N;i++){ var y=1-i/(N-1)*2, r=Math.sqrt(1-y*y), th=GA*i; l.push([Math.cos(th)*r, y, Math.sin(th)*r, Math.random()*6.283, .6+Math.random()*.8]); }
+  return (MJO.big=l);
+}
+function jvOrbDraw(c, now){
+  var w=c.clientWidth, h=c.clientHeight; if(!w || !h) return;
+  var dpr=Math.min(2, window.devicePixelRatio||1), bw=Math.round(w*dpr), bh=Math.round(h*dpr);
+  if(c.width!==bw || c.height!==bh){ c.width=bw; c.height=bh; }
+  var x=c.getContext('2d'); if(!x) return;
+  var rd=MJO.reduce, t=(now-MJO.t0)/1000, P=jvPts(), tg=JVCOL[MJO.st]||JVCOL.idle, col=MJO.col, dim=MJO.slow?.45:1;
+  for(var k=0;k<3;k++) col[k]=rd?tg[k]:col[k]+(tg[k]-col[k])*.12;
+  var lv=MJO.burst; MJO.burst*=.9; if(MJO.burst<.005) MJO.burst=0;
+  var m=Math.min(w,h), R=m*.33*(1+(rd?0:.025*Math.sin(t*1.1))+lv*.22), cx=w/2, cy=h/2;
+  var rot=rd?.6:t*.25*(MJO.st==='listen'?1.8:1), cr=Math.cos(rot), sr=Math.sin(rot), ct=Math.cos(.35), st=Math.sin(.35), rgb=(col[0]|0)+','+(col[1]|0)+','+(col[2]|0);
+  x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,w,h);
+  var g=x.createRadialGradient(cx,cy,R*.2,cx,cy,R*1.6); g.addColorStop(0,'rgba('+rgb+','+((.1+lv*.25)*dim).toFixed(3)+')'); g.addColorStop(1,'rgba('+rgb+',0)'); x.fillStyle=g; x.fillRect(0,0,w,h);
+  /* anneaux : cercle fin, graduations, 3 arcs qui tournent lentement */
+  x.strokeStyle='rgba('+rgb+','+(.22*dim).toFixed(3)+')'; x.lineWidth=1;
+  x.beginPath(); x.arc(cx,cy,m*.44,0,6.2832); x.stroke();
+  x.beginPath(); for(var a=0;a<72;a++){ var an=a/72*6.2832, r1=m*.455, r2=m*(a%6?.468:.482); x.moveTo(cx+Math.cos(an)*r1, cy+Math.sin(an)*r1); x.lineTo(cx+Math.cos(an)*r2, cy+Math.sin(an)*r2); } x.stroke();
+  x.strokeStyle='rgba('+rgb+','+(.5*dim).toFixed(3)+')'; x.lineWidth=2;
+  var ro=rd?0:-t*.12; for(var s2=0;s2<3;s2++){ x.beginPath(); x.arc(cx,cy,m*.41,ro+s2*2.094,ro+s2*2.094+.9); x.stroke(); }
+  x.globalCompositeOperation='lighter';
+  var amp=.05+lv*.28;
+  for(var i=0;i<P.length;i++){
+    var p=P[i], n=rd?0:Math.sin(t*p[4]*2.1+p[3])*Math.sin(p[1]*4+t*1.3)*amp;
+    var px=p[0]*(1+n), py=p[1]*(1+n), pz=p[2]*(1+n), x1=px*cr+pz*sr, z1=-px*sr+pz*cr, y1=py*ct-z1*st, z2=py*st+z1*ct;
+    var kk=1.9/(2.6-z2), dp=(z2+1)/2, sz=(.8+dp*1.7)*1.1;
+    x.fillStyle='rgba('+rgb+','+((.18+dp*.72)*dim).toFixed(3)+')';
+    x.fillRect(cx+x1*R*kk-sz/2, cy+y1*R*kk-sz/2, sz, sz);
   }
   x.globalCompositeOperation='source-over';
 }
@@ -1453,14 +1732,17 @@ function wxDetailHtml(cfg){
 $('pages').addEventListener('click', safe(function(e){
   if(document.body.classList.contains('edit')){
     longFired=false;
-    var pb=e.target.closest('[data-pg]'); if(pb){ delPage(+pb.dataset.p); return; }
+    var pb=e.target.closest('[data-pg]'); if(pb){ if(pb.dataset.pg==='main') setMainPage(+pb.dataset.p); else delPage(+pb.dataset.p); return; }
     var eb=e.target.closest('[data-ed]'); if(!eb) return;
     var tl=eb.closest('.tile'), p=+tl.dataset.p, i=+tl.dataset.i, k=eb.dataset.ed, t=C.pages[p], go=-1;
     if(!t || !t[i]) return;
     /* Avant / après : au bord de la page, la tuile passe sur la page voisine */
     if(k==='left'){ if(i>0){ var x=t[i]; t[i]=t[i-1]; t[i-1]=x; } else if(p>0){ C.pages[p-1].push(t.splice(i,1)[0]); go=p-1; } }
     if(k==='right'){ if(i<t.length-1){ var y=t[i]; t[i]=t[i+1]; t[i+1]=y; } else if(p<C.pages.length-1){ C.pages[p+1].unshift(t.splice(i,1)[0]); go=p+1; } else toast('Ajoute une page pour y déplacer la tuile'); }
-    if(k==='size'){ var tp=TYPES[t[i].t]||{}; if(t[i].w!==2){ t[i].w=2; t[i].h=0; } else if(tp.tall && t[i].h!==2){ t[i].h=2; } else { t[i].w=1; t[i].h=0; } }
+    if(k==='size'){ var tp=TYPES[t[i].t]||{};
+      if(t[i].full){ delete t[i].full; t[i].w=1; t[i].h=0; }
+      else if(t[i].t==='mjpanel' && t[i].w===2 && t[i].h===2){ t[i].full=1; toast(mjName()+' en plein écran'+(t.length>1?' : les autres tuiles de la page passent en dessous':'')); }
+      else if(t[i].w!==2){ t[i].w=2; t[i].h=0; } else if(tp.tall && t[i].h!==2){ t[i].h=2; } else { t[i].w=1; t[i].h=0; } }
     if(k==='del'){ var gone=t.splice(i,1)[0]; if(gone && gone.t==='note' && gone.nid) try{ localStorage.removeItem(noteKey(gone)); }catch(er){} }
     save(); render(); if(go>=0) goPage(go, true); return;
   }
@@ -1504,6 +1786,7 @@ $('pages').addEventListener('click', safe(function(e){
     if(k2==='sol-new') A.homeLaunchWith(SOL, JSON.stringify({'new':1}));
     if(k2==='pres-new') A.homeLaunchWith(PRES, JSON.stringify({'new':1}));
     if(k2==='mj-listen') mjListen();
+    if(k2.indexOf('jv-')===0){ jvAct(k2, act); return; }
     if(k2==='texte-new') A.homeLaunchWith(TEXTE, JSON.stringify({'new':1}));
     if(k2==='tableur-new') A.homeLaunchWith(TABLEUR, JSON.stringify({'new':1}));
     if(k2==='cof-open'){ var c4=app(COF); if(c4) launch(c4); }
@@ -1547,7 +1830,7 @@ $('pages').addEventListener('click', safe(function(e){
   if(tp==='nextev') openRole('calendar','calendar','');
   if(tp==='device' && A) A.homeOpen('storage','');
   if(tp==='wxdetail'){ if(C.city) weatherSheet(); else locateMe(); }
-  if(tp==='mjpanel'){ mjListen(); return; }
+  if(tp==='mjpanel'){ if(!(cfg && cfg.full)) mjListen(); return; }
   var tmap={camera:PHOTO,scandoc:SCANP,mesure:MESURE,backup:SAUVE,video:ECRAN,sos:URG,coffre:COF,qrcode:QRP,livre:LIS,budget:BUD,dicta:DIC,meteoapp:MET,reseau:RES,lecteur:LEC,solaire:SOL,presentation:PRES,texte:TEXTE,tableur:TABLEUR,majordome:MJ,actu:ACTU}; if(tmap[tp]){ var ap2=app(tmap[tp]); if(ap2) launch(ap2); }
 }, 'Toucher'));
 
@@ -1565,7 +1848,7 @@ home.addEventListener('touchstart', function(e){
       var mjp=tStart.target.closest && tStart.target.closest('.tile[data-t="mjpanel"]');
       if(ap){ var a=byKey(ap.dataset.app); if(a) appMenu(a, true); }
       else if(mjt && app(MJ)) mjListen();
-      else if(mjp && app(MJ)) mjMenu();
+      else if(mjp && app(MJ)) mjMenu(mjp);
       else startEdit();
       if(navigator.vibrate) navigator.vibrate(18);
     }, 550);
@@ -1627,7 +1910,7 @@ $('bAddTile').onclick=safe(function(){
   var mine=Object.keys(TYPES).filter(function(k){ return !TYPES[k].pick && panels.indexOf(k)<0; });
   var h='<h2>Ajouter à la page '+(Math.min(CP,C.pages.length-1)+1)+'</h2>'+
     '<div class="sect" style="margin-left:0">Raccourcis</div><div class="menu">'+['app','contact','link'].map(btn).join('')+'</div>'+
-    '<div class="sect" style="margin-left:0">Panneaux d\'information</div><div class="menu">'+panels.map(btn).join('')+'</div>'+
+    '<div class="sect" style="margin-left:0">Panneaux d\'information</div><div class="menu"><button data-add="jvpage"'+(app(MJ)?'':' style="opacity:.5"')+'>'+ic('orb')+'<span style="flex:1;text-align:left">'+esc(mjName())+' : page plein écran (sphère, heure, météo, journée)'+(app(MJ)?'':'<br><small style="color:var(--tx3)">Appli non installée</small>')+'</span></button>'+panels.map(btn).join('')+'</div>'+
     '<div class="sect" style="margin-left:0">Tuiles de mes applis</div><div class="menu">'+mine.map(btn).join('')+'</div>'+
     '<div class="empty">Astuce : en mode modification, ⤢ change la taille d\'une tuile, ‹ › la déplacent (et la font passer d\'une page à l\'autre).</div>';
   openSheet(h,'add');
@@ -1886,6 +2169,7 @@ $('sbody').addEventListener('click', safe(function(e){
   if(k==='app'){ appPicker(); return; }
   if(k==='contact'){ contactPicker(); return; }
   if(k==='link'){ linkForm(); return; }
+  if(k==='jvpage'){ jvAddPage(); return; }
   var cfg={t:k,w:TYPES[k].w}; if(TYPES[k].h) cfg.h=TYPES[k].h; if(k==='note') cfg.nid=newId(); if(k==='mjpanel') C.mjOffer=1;
   addTile(cfg);
 }, 'Ajouter'));
@@ -1943,6 +2227,7 @@ function boot1(){
   requestAnimationFrame(function(){ readyNative(); });
   setTimeout(safe(function(){ if(cached && checkApps(true)) render(); refreshMag(); pollMedia(); },'Démarrage'), 350);
   setTimeout(safe(function(){ hueTick(true); },'Lumières'), 1500);
+  if(C.jv.station) setTimeout(safe(function(){ stationCheck(); },'Station'), 1200);
   setTimeout(safe(function(){ if(C.city) fetchWeather(false); else refresh('weather'); },'Météo'), 900);
   setTimeout(safe(autoLocate,'Position'), 4000);
   /* Une seule fois : la météo de l'horloge suit ma position (si la position est refusée, la ville choisie reste) */
@@ -1951,13 +2236,19 @@ function boot1(){
 }
 theme();
 requestAnimationFrame(function(){ setTimeout(safe(boot1,'Démarrage'), 0); });
-setInterval(safe(function(){ if(!document.hidden){ refresh('clock'); } },'Horloge'), 15000);
+setInterval(safe(function(){ if(!document.hidden){ refresh('clock'); jvTick(); } },'Horloge'), 15000);
+/* Station : relecture de la charge (secours si Android n'a pas prévenu), passage nuit / jour, retour sur la page Jarvis après 90 s sans toucher */
+setInterval(safe(function(){
+  if(document.hidden || (!C.jv.station && !STN.on)) return;
+  stationCheck();
+  var jp=jvFullPage(); if(STN.on && jp>=0 && CP!==jp && !sheetType && !$('drawer').classList.contains('on') && !document.body.classList.contains('edit') && performance.now()-MJO.act>90000) goPage(jp, true);
+},'Station'), 60000);
 setInterval(safe(function(){ hueTick(false); },'Lumières'), 60000);
 setInterval(safe(function(){ pollMedia(); if(!document.hidden) document.querySelectorAll('[data-since]').forEach(function(el){ el.textContent=mt(Date.now()-el.dataset.since); }); },'Musique'), 1000);
 setInterval(safe(function(){ if(!document.hidden){ ['battery','alarm','agenda','nextev','device','mjpanel'].forEach(refresh); fetchWeather(false); } },'Mise à jour'), 120000);
 document.addEventListener('visibilitychange', safe(function(){
-  if(!document.hidden){ window.accueilResume(); MJO.act=performance.now(); mjOrbKick(); }
-  else { endEdit(); saveSnap(); persistW(); if(MJO.raf){ cancelAnimationFrame(MJO.raf); MJO.raf=0; } }   // on quitte l'accueil : instantané et cache pour le prochain démarrage
+  if(!document.hidden){ window.accueilResume(); MJO.act=performance.now(); mjOrbKick(); if(C.jv.station || STN.on) stationCheck(); }
+  else { endEdit(); saveSnap(); persistW(); if(MJO.raf){ cancelAnimationFrame(MJO.raf); MJO.raf=0; } stationApply(); }   // on quitte l'accueil : instantané et cache pour le prochain démarrage
 },'Visibilité'));
 })();
 </script>

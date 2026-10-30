@@ -110,6 +110,18 @@ public class SocleBridge {
             };
             if (Build.VERSION.SDK_INT >= 33) app.registerReceiver(r, f, Context.RECEIVER_NOT_EXPORTED); else app.registerReceiver(r, f);
         } catch (Throwable t) { log(app, "Suivi des installations indisponible : " + t); }
+        // Station Jarvis : la page est prévenue tout de suite au branchement / débranchement du chargeur
+        try {
+            IntentFilter pf = new IntentFilter();
+            pf.addAction(Intent.ACTION_POWER_CONNECTED); pf.addAction(Intent.ACTION_POWER_DISCONNECTED);
+            BroadcastReceiver pr = new BroadcastReceiver() {
+                @Override public void onReceive(Context c, Intent i) {
+                    SocleBridge s = current.get();
+                    if (s != null) s.js("window.accueilPower&&accueilPower(" + (Intent.ACTION_POWER_CONNECTED.equals(i.getAction()) ? 1 : 0) + ")");
+                }
+            };
+            if (Build.VERSION.SDK_INT >= 33) app.registerReceiver(pr, pf, Context.RECEIVER_NOT_EXPORTED); else app.registerReceiver(pr, pf);
+        } catch (Throwable t) { log(app, "Suivi de la charge indisponible : " + t); }
         app.registerComponentCallbacks(new ComponentCallbacks2() {
             @Override public void onTrimMemory(int level) {
                 if (level == TRIM_MEMORY_UI_HIDDEN || level < TRIM_MEMORY_RUNNING_LOW) return;
