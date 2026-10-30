@@ -495,7 +495,7 @@
     ['reseau', 'Réseau', 'fr.magformation13.reseau', /\b(reseau|appli reseau)\b/],
     ['solaire', 'Solaire', 'fr.magformation13.solaire', /\b(solaire|panneaux solaires)\b/],
     ['sentiers', 'Sentiers', 'fr.magformation13.sentiers', /\b(sentiers?|randonnee|rando)\b/],
-    ['reveil', 'Aube', 'fr.magformation13.reveil', /\b(aube|appli reveil)\b/],
+    ['reveil', 'Aube', 'fr.magformation13.reveil', /\b(aube|appli reveil|reveil)\b/],
     ['urgence', 'Urgence', 'fr.magformation13.urgence', /\b(urgence|sos)\b/],
     ['mesure', 'Mesure', 'fr.magformation13.mesure', /\b(mesure|niveau a bulle|sonometre)\b/],
     ['fonds', 'Toile', 'fr.magformation13.toile', /\b(toile|fonds? d ecran)\b/],
@@ -519,6 +519,230 @@
   ];
   function findApp(s) { for (var i = 0; i < APPS.length; i++) if (APPS[i][3].test(s)) return { id: APPS[i][0], name: APPS[i][1], pkg: APPS[i][2] }; return null; }
   function findSite(s) { for (var i = 0; i < SITES.length; i++) if (SITES[i][0].test(s)) return { name: SITES[i][1], url: SITES[i][2] }; return null; }
+
+  /* ---------------- Toutes les applis du téléphone ----------------
+     ctx.apps : [{ label, pkg, cls }] (liste des applis lançables, MajordomeBridge.appList) ;
+     ctx.aliases : [{ say, name, pkg, cls, url }] (« Quand je dis… ouvre… », réglages).
+     Correspondance tolérante : accents, majuscules, articles, espaces (« you tube », « face book »), clé phonétique
+     française simple (« ouatsap » ≈ « whatsapp »), distance d'édition, et table d'alias des grandes applis
+     (fautes typiques de Vosk : « jimail » → Gmail, « maps » → Google Maps). Les applis de la Suite gardent la priorité. */
+  function akey(s) { return deacc(s).replace(/[^a-z0-9+]+/g, ' ').replace(/\+/g, ' plus ').replace(/\s+/g, ' ').trim(); }
+  function squash(s) { return akey(s).replace(/ /g, ''); }
+  /** Clé phonétique française simplifiée (type phonex) : « whatsapp », « ouatsap », « watsap » → « uatsap » */
+  function phon(s) {
+    s = squash(s);
+    if (!s) return '';
+    s = s.replace(/ph/g, 'f').replace(/wh/g, 'w').replace(/th/g, 't').replace(/sch/g, 'ch').replace(/sh/g, 'ch')
+      .replace(/gu(?=[eiy])/g, 'g').replace(/g(?=[eiy])/g, 'j').replace(/ck/g, 'k').replace(/qu/g, 'k').replace(/q/g, 'k')
+      .replace(/c(?=[eiy])/g, 's').replace(/c(?!h)/g, 'k').replace(/x/g, 'ks').replace(/z/g, 's')
+      .replace(/eau/g, 'o').replace(/au/g, 'o').replace(/oo/g, 'u').replace(/ou/g, 'u').replace(/w/g, 'u')
+      .replace(/ee|ea/g, 'i').replace(/y/g, 'i').replace(/ai|ei|ay|ey/g, 'e').replace(/oe|eu/g, 'e')
+      .replace(/(an|en|am|em)(?=[^aeiouy]|$)/g, 'A').replace(/(on|om)(?=[^aeiouy]|$)/g, 'O').replace(/(in|im|un|ain|ein)(?=[^aeiouy]|$)/g, 'I')
+      .replace(/h/g, '').replace(/(er|et|ez)$/, 'e').replace(/([a-zA-Z])\1+/g, '$1');
+    if (s.length > 3) s = s.replace(/[stdxe]$/, '');
+    return s;
+  }
+  // mots sans valeur pour reconnaître une appli (« Google Maps » ≈ « maps », « Mes Comptes BNP » ≈ « BNP »)
+  var AGEN = /^(google|microsoft|samsung|mon|ma|mes|my|app|appli|application|mobile|lite|officiel|officielle|android|the|le|la|les|l|de|du|des|d|pour|by|et|go|fr|france)$/;
+  function acore(k) { var w = k.split(' ').filter(function (x) { return !AGEN.test(x); }); return w.length ? w.join(' ') : k; }
+  /* Alias des grandes applis (en France). [id, nom, paquets, alias entendus, site (PC), groupe (libellés)]
+     Un groupe (« le GPS », « la banque », « la musique », « les mails ») vise plusieurs applis : s'il y en a plusieurs, on demande laquelle. */
+  var KNOWN = [
+    ['whatsapp', 'WhatsApp', ['com.whatsapp', 'com.whatsapp.w4b'], ['whatsapp', 'watsap', 'ouatsap', 'wasap', 'what sap', 'whatsapp business', 'ouats app', 'wat sap'], 'https://web.whatsapp.com/'],
+    ['youtube', 'YouTube', ['com.google.android.youtube'], ['youtube', 'you tube', 'youtub', 'iou tube'], 'https://www.youtube.com/'],
+    ['ytmusic', 'YouTube Music', ['com.google.android.apps.youtube.music'], ['youtube music', 'you tube music', 'youtube musique'], 'https://music.youtube.com/'],
+    ['facebook', 'Facebook', ['com.facebook.katana', 'com.facebook.lite'], ['facebook', 'face book', 'fesse bouc', 'fessebouc', 'facebouc', 'fesse book'], 'https://www.facebook.com/'],
+    ['messenger', 'Messenger', ['com.facebook.orca'], ['messenger', 'messengeur', 'facebook messenger'], 'https://www.messenger.com/'],
+    ['instagram', 'Instagram', ['com.instagram.android'], ['instagram', 'insta', 'instagramme', 'instagrame'], 'https://www.instagram.com/'],
+    ['gmail', 'Gmail', ['com.google.android.gm'], ['gmail', 'jimail', 'g mail', 'gi mail', 'jimel', 'gemail', 'gmaille', 'jimaille', 'gee mail', 'jemail', 'j mail'], 'https://mail.google.com/'],
+    ['maps', 'Google Maps', ['com.google.android.apps.maps'], ['google maps', 'maps', 'google map', 'map', 'mapse', 'gogol maps', 'gougueule maps', 'google maps'], 'https://www.google.com/maps'],
+    ['waze', 'Waze', ['com.waze'], ['waze', 'ouaze', 'waz', 'wase', 'ouaise', 'ouez', 'oueze', 'ouaize'], 'https://www.waze.com/fr/live-map/'],
+    ['spotify', 'Spotify', ['com.spotify.music'], ['spotify', 'spotifaille', 'spoti', 'spotifai', 'spote ifaille', 'spotifie'], 'https://open.spotify.com/'],
+    ['deezer', 'Deezer', ['deezer.android.app'], ['deezer', 'dizeur', 'deezeur', 'di zeur', 'dizer', 'dizzer'], 'https://www.deezer.com/'],
+    ['netflix', 'Netflix', ['com.netflix.mediaclient'], ['netflix', 'nette flix', 'netflixe', 'netflics', 'net flix'], 'https://www.netflix.com/'],
+    ['disney', 'Disney+', ['com.disney.disneyplus'], ['disney plus', 'disney', 'disnet plus'], 'https://www.disneyplus.com/'],
+    ['primevideo', 'Prime Video', ['com.amazon.avod.thirdpartyclient'], ['prime video', 'amazon prime video', 'amazon prime', 'prime'], 'https://www.primevideo.com/'],
+    ['amazon', 'Amazon', ['com.amazon.mShop.android.shopping'], ['amazon', 'amazone'], 'https://www.amazon.fr/'],
+    ['leboncoin', 'leboncoin', ['fr.leboncoin'], ['leboncoin', 'le bon coin', 'bon coin'], 'https://www.leboncoin.fr/'],
+    ['vinted', 'Vinted', ['fr.vinted'], ['vinted', 'vintede', 'vintid', 'vainted'], 'https://www.vinted.fr/'],
+    ['doctolib', 'Doctolib', ['fr.doctolib.www'], ['doctolib', 'docto lib', 'doctolibe', 'doctolibre'], 'https://www.doctolib.fr/'],
+    ['ameli', 'ameli', ['fr.cnamts.it.activity'], ['ameli', 'amelie', 'compte ameli', 'mon ameli', 'securite sociale', 'la secu'], 'https://www.ameli.fr/'],
+    ['sncf', 'SNCF Connect', ['com.vsct.vsc.mobileapp'], ['sncf connect', 'sncf', 'sncf connecte', 'la sncf', 'train', 'les trains'], 'https://www.sncf-connect.com/'],
+    ['tiktok', 'TikTok', ['com.zhiliaoapp.musically'], ['tiktok', 'tik tok', 'tic tac', 'tic toc', 'tictoc', 'tique toque'], 'https://www.tiktok.com/'],
+    ['snapchat', 'Snapchat', ['com.snapchat.android'], ['snapchat', 'snap', 'snap chat', 'snape chat'], 'https://www.snapchat.com/'],
+    ['telegram', 'Telegram', ['org.telegram.messenger'], ['telegram', 'telegramme'], 'https://web.telegram.org/'],
+    ['signal', 'Signal', ['org.thoughtcrime.securesms'], ['signal'], ''],
+    ['linkedin', 'LinkedIn', ['com.linkedin.android'], ['linkedin', 'linked in', 'linkdine', 'linkedine', 'linkdin', 'lincdine'], 'https://www.linkedin.com/'],
+    ['x', 'X (Twitter)', ['com.twitter.android'], ['twitter', 'touiteur', 'x twitter'], 'https://x.com/'],
+    ['outlook', 'Outlook', ['com.microsoft.office.outlook'], ['outlook', 'out look', 'aoutlouk', 'outlouk'], 'https://outlook.live.com/'],
+    ['teams', 'Teams', ['com.microsoft.teams'], ['teams', 'microsoft teams', 'tims', 'times'], 'https://teams.microsoft.com/'],
+    ['zoom', 'Zoom', ['us.zoom.videomeetings'], ['zoom', 'zoum'], 'https://zoom.us/'],
+    ['uber', 'Uber', ['com.ubercab'], ['uber', 'ubeur', 'uber taxi'], 'https://m.uber.com/'],
+    ['ubereats', 'Uber Eats', ['com.ubercab.eats'], ['uber eats', 'uber its', 'ubeur eats', 'uber eat'], 'https://www.ubereats.com/fr'],
+    ['deliveroo', 'Deliveroo', ['com.deliveroo.orderapp'], ['deliveroo', 'delivrou', 'deliverou'], 'https://deliveroo.fr/'],
+    ['blablacar', 'BlaBlaCar', ['com.comuto'], ['blablacar', 'bla bla car', 'blabla car'], 'https://www.blablacar.fr/'],
+    ['drive', 'Google Drive', ['com.google.android.apps.docs'], ['drive', 'google drive', 'draive'], 'https://drive.google.com/'],
+    ['gphotos', 'Google Photos', ['com.google.android.apps.photos'], ['google photos', 'google photo'], 'https://photos.google.com/'],
+    ['chrome', 'Chrome', ['com.android.chrome'], ['chrome', 'google chrome', 'crome'], ''],
+    ['firefox', 'Firefox', ['org.mozilla.firefox'], ['firefox', 'fire fox', 'faille fox'], ''],
+    ['lydia', 'Lydia', ['com.lydia'], ['lydia', 'lidia'], ''],
+    ['paypal', 'PayPal', ['com.paypal.android.p2pmobile'], ['paypal', 'pay pal', 'paypale', 'pai pal'], 'https://www.paypal.com/'],
+    ['revolut', 'Revolut', ['com.revolut.revolut'], ['revolut', 'revolute', 'revolutte'], ''],
+    ['ca', 'Ma Banque (Crédit Agricole)', ['fr.creditagricole.androidapp'], ['credit agricole', 'le credit agricole'], 'https://www.credit-agricole.fr/'],
+    ['bnp', 'BNP Paribas', ['net.bnpparibas.mescomptes'], ['bnp', 'bnp paribas', 'mes comptes bnp', 'b n p'], 'https://mabanque.bnpparibas/'],
+    ['sg', 'Société Générale', ['mobi.societegenerale.mobile.lappli'], ['societe generale', 'la societe generale', 'l appli societe generale'], 'https://particuliers.sg.fr/'],
+    ['lbp', 'La Banque Postale', ['com.fullsix.android.labanquepostale.accountaccess'], ['banque postale', 'la banque postale'], 'https://www.labanquepostale.fr/'],
+    ['bourso', 'BoursoBank', ['com.boursorama.android.clients'], ['boursorama', 'bourso', 'boursobank', 'boursorama banque'], 'https://www.boursobank.com/'],
+    ['ce', 'Caisse d\'Épargne', ['fr.caisseepargne.android.mobilebanking'], ['caisse d epargne', 'caisse epargne'], 'https://www.caisse-epargne.fr/'],
+    ['bp', 'Banque Populaire', ['fr.banquepopulaire.cyberplus'], ['banque populaire', 'la banque populaire'], 'https://www.banquepopulaire.fr/'],
+    ['cm', 'Crédit Mutuel', ['com.cm_prod.bad'], ['credit mutuel', 'le credit mutuel'], 'https://www.creditmutuel.fr/'],
+    ['lcl', 'LCL', ['fr.lcl.android.customerarea'], ['lcl', 'l c l', 'elle c elle'], 'https://www.lcl.fr/'],
+    // groupes
+    ['gps', 'GPS', ['com.google.android.apps.maps', 'com.waze'], ['gps', 'le gps', 'j p s', 'navigation', 'guidage', 'itineraire', 'navigation gps', 'mon gps'], '', /\b(maps|waze|mappy|citymapper|here we ?go|coyote|sygic|tomtom|navigation)\b/],
+    ['banque', 'banque', ['fr.creditagricole.androidapp', 'net.bnpparibas.mescomptes', 'mobi.societegenerale.mobile.lappli', 'com.fullsix.android.labanquepostale.accountaccess', 'com.boursorama.android.clients', 'fr.caisseepargne.android.mobilebanking', 'fr.banquepopulaire.cyberplus', 'com.cm_prod.bad', 'fr.lcl.android.customerarea'], ['banque', 'la banque', 'ma banque', 'mon appli bancaire', 'appli bancaire', 'appli de la banque', 'appli banque', 'compte bancaire', 'mon compte bancaire'], '', /\b(banque|bank|bnp|credit agricole|credit mutuel|cic|lcl|boursorama|boursobank|caisse d epargne|societe generale|fortuneo|n26|revolut|monabanq|hello bank|qonto|shine)\b/],
+    ['musique', 'musique', ['fr.magformation13.musique', 'com.spotify.music', 'deezer.android.app', 'com.google.android.apps.youtube.music'], ['musique', 'la musique', 'appli de musique', 'appli musique', 'lecteur audio'], '', /\b(melodie|spotify|deezer|youtube music|soundcloud|qobuz|apple music|amazon music|musique|music)\b/],
+    ['mail', 'mails', ['com.google.android.gm', 'com.microsoft.office.outlook'], ['mail', 'mails', 'e mail', 'e mails', 'email', 'emails', 'courriel', 'courriels', 'boite mail', 'boite mails', 'boite e mail', 'boite aux lettres', 'boite de reception', 'mes mails', 'messagerie electronique'], '', /\b(gmail|outlook|mail|mails|courriel|yahoo mail|thunderbird|proton ?mail|k 9)\b/]
+  ];
+  var KNOWN_N = null;
+  function knownPrep() {
+    if (KNOWN_N) return KNOWN_N;
+    KNOWN_N = KNOWN.map(function (k) { return { id: k[0], name: k[1], pkgs: k[2], al: k[3].map(function (a) { return { s: squash(a), p: phon(a) }; }), web: k[4] || '', group: k[5] || null, nk: squash(k[1]) }; });
+    return KNOWN_N;
+  }
+  /** Entrée connue pour un nom entendu (alias exact, à la phonétique près, ou presque) */
+  function findKnown(what) {
+    var s = squash(what), p = phon(what), best = null, bs = 0;
+    if (!s) return null;
+    knownPrep().forEach(function (k) {
+      k.al.forEach(function (a) {
+        var sc = a.s === s ? 1 : (a.p === p && p.length >= 3) ? 0.96 : (s.length >= 5 && a.s.length >= 5) ? 1 - lev(p, a.p) / Math.max(p.length, a.p.length) : 0;
+        if (sc > bs) { bs = sc; best = k; }
+      });
+    });
+    return bs >= 0.84 ? best : null;
+  }
+  function appPrep(apps) {
+    if (apps._mj) return apps._mj;
+    var seen = {}, out = [];
+    apps.forEach(function (a) {
+      if (!a || !a.pkg || !a.label) return;
+      var k = akey(a.label), full = akey(String(a.label).split(/\s[-–:|]\s|\s\(/)[0]);
+      if (seen[k]) return; seen[k] = 1;
+      var core = acore(full);
+      out.push({ a: a, k: k, s: k.replace(/ /g, ''), p: phon(k), fs: full.replace(/ /g, ''), core: core, cs: core.replace(/ /g, ''), cp: phon(core), w: full.split(' ') });
+    });
+    try { Object.defineProperty(apps, '_mj', { value: out, enumerable: false }); } catch (e) { }
+    return out;
+  }
+  function appScore(x, s, p, words, hc) {
+    if (!s) return 0;
+    if (s === x.s || s === x.fs) return 1;
+    if (p.length >= 3 && p === x.p) return 0.96;
+    if (s === x.cs || hc === x.cs) return 0.93;
+    if (p.length >= 3 && p === x.cp) return 0.9;
+    var sc = 0;
+    // mot entier du libellé (« maps » dans « Google Maps », « sncf » dans « SNCF Connect »)
+    if (s.length >= 4 && words.length && words.every(function (w) { return x.w.indexOf(w) >= 0; })) sc = 0.82;
+    if (s.length >= 4 && x.cs.length >= 4) {
+      var d = lev(p, x.cp), m = Math.max(p.length, x.cp.length), d2 = lev(s, x.cs), m2 = Math.max(s.length, x.cs.length);
+      sc = Math.max(sc, (1 - d / m) * 0.9, (1 - d2 / m2) * 0.9);
+    }
+    return sc;
+  }
+  /** Nom à dire : le libellé, ou le nom complet connu quand le libellé n'en est que la fin (« Maps » → « Google Maps ») */
+  function pub(a) {
+    var name = a.label, k = akey(a.label);
+    knownPrep().forEach(function (e) { if (!e.group && e.pkgs.indexOf(a.pkg) >= 0) { var n = akey(e.name); if (n !== k && n.slice(-k.length - 1) === ' ' + k) name = e.name; } });
+    return { ext: true, name: name, pkg: a.pkg, cls: a.cls || '' };
+  }
+  /** Applis installées qui correspondent à « what » → { list: [{name, pkg, cls, score}], known } (list triée, la meilleure d'abord) */
+  function matchApps(what, apps) {
+    var s = squash(what), p = phon(what), words = akey(what).split(' ').filter(Boolean), kn = findKnown(what), hc = acore(akey(what)).replace(/ /g, '');
+    var res = [];
+    if (apps && apps.length) {
+      appPrep(apps).forEach(function (x) {
+        var sc = appScore(x, s, p, words, hc);
+        if (kn) {
+          // groupe (« la banque ») : toutes ses applis à égalité, même si un libellé contient le mot (« Ma Banque »)
+          if (kn.pkgs.indexOf(x.a.pkg) >= 0) sc = kn.group ? 0.9 : Math.max(sc, 0.97);
+          else if (kn.group && kn.group.test(x.k)) sc = 0.88;
+          else if (!kn.group && (x.s === kn.nk || x.cs === squash(acore(akey(kn.name))))) sc = Math.max(sc, 0.95);
+        }
+        if (sc > 0) res.push({ x: x, sc: sc });
+      });
+    }
+    var rank = function (r) { var i = kn ? kn.pkgs.indexOf(r.x.a.pkg) : -1; return i < 0 ? 99 : i; };
+    res.sort(function (a, b) { return b.sc - a.sc || rank(a) - rank(b) || a.x.k.length - b.x.k.length; });
+    return { list: res.map(function (r) { var o = pub(r.x.a); o.score = +r.sc.toFixed(3); return o; }), known: kn };
+  }
+  /** Choix final : une appli, plusieurs (ambiguïté) ou aucune (avec la plus proche) */
+  function pickApp(what, apps) {
+    var m = matchApps(what, apps), l = m.list, best = l[0];
+    if (best && best.score >= 0.78) {
+      var tie = l.filter(function (a) { return a.score >= 0.78 && a.score >= best.score - (m.known && m.known.group ? 0.015 : 0.03); });
+      if (best.score >= 0.95 && !(m.known && m.known.group)) tie = l.filter(function (a) { return a.score >= best.score - 0.005; });
+      if (tie.length > 1) return { choices: tie.slice(0, 4).map(function (a) { return { ext: true, name: a.name, pkg: a.pkg, cls: a.cls }; }), known: m.known };
+      return { app: best, known: m.known };
+    }
+    return { near: best && best.score >= 0.5 ? best : null, known: m.known };
+  }
+  /* Raccourcis du système (intents standard d'Android) */
+  var SYS = [
+    ['dialer', 'le téléphone', /^(telephone|l appli telephone|appli telephone|appels|journal d appels|journal des appels|historique des appels|clavier telephonique|composeur|numeroteur)$/],
+    ['sms', 'les messages', /^(messages|message|sms|messagerie|messagerie sms|textos?|messages texte)$/],
+    ['clock', 'l\'horloge', /^(horloge|reveil|reveils|alarmes?|pendule|appli horloge|appli reveil)$/],
+    ['store', 'le Play Store', /^(play store|playstore|google play|google play store|play|store|magasin d applications|magasin d applis|boutique d applications|plait store|ple store|plaie store|pleistore|plays store|app store)$/],
+    ['browser', 'le navigateur', /^(navigateur|navigateur internet|navigateur web|internet|web)$/],
+    ['camera', 'l\'appareil photo', /^(appareil photo|camera|appareil|photo)$/],
+    ['gallery', 'la galerie', /^(galerie|galerie photos?)$/],
+    ['calendar', 'l\'agenda', /^(agenda|calendrier)$/],
+    ['contacts', 'les contacts', /^(contacts?|repertoire)$/],
+    ['calculator', 'la calculatrice', /^(calculatrice|calculette)$/],
+    ['email', 'la messagerie', /^(mails?|e mails?|emails?|courriels?|boite mail|boite aux lettres|boite de reception)$/]
+  ];
+  // appli de la Suite absente → raccourci du système équivalent
+  var SUITE_SYS = { photo: 'camera', galerie: 'gallery', agenda: 'calendar', contacts: 'contacts', calcul: 'calculator', reveil: 'clock', musique: 'music' };
+  var SETSUB = [
+    ['wifi', 'Wi-Fi', /\b(wifi|wi fi|wlan)\b/], ['bluetooth', 'Bluetooth', /\b(bluetooth|blue tooth|bluetouth)\b/],
+    ['battery', 'batterie', /\b(batteries?|economie d energie|economiseur|autonomie)\b/], ['display', 'affichage', /\b(affichage|ecran|luminosite|fond d ecran)\b/],
+    ['sound', 'son', /\b(son|sons|sonneries?|volume|audio)\b/], ['apps', 'applications', /\b(applis|applications|apps)\b/],
+    ['location', 'localisation', /\b(localisation|position|gps)\b/], ['storage', 'stockage', /\b(stockage|memoire)\b/],
+    ['security', 'sécurité', /\b(securite|verrouillage|empreintes?)\b/], ['a11y', 'accessibilité', /\baccessibilite\b/],
+    ['date', 'date et heure', /\b(date|heure|date et heure)\b/], ['lang', 'langue', /\b(langues?|clavier)\b/],
+    ['network', 'réseau', /\b(reseaux?|donnees mobiles|connexions?|internet)\b/], ['nfc', 'NFC', /\bnfc\b/],
+    ['airplane', 'mode avion', /\bmode avion\b/]
+  ];
+  // commandes domotiques que « ouvre » ne doit pas avaler (seules les lumières Hue sont pilotées)
+  var DOMO = /^(?:le |la |les |l |mon |ma |mes )?(portails?|portes?(?: d entree| du garage| de garage| de la maison)?|garage|volets?(?: roulants?)?|stores?(?: bannes?)?|fenetres?|rideaux?|baie vitree|velux|serrure|barrieres?|portillon|vanne|robinet|four|frigo|lave linge|lave vaisselle|aspirateur|tele|television|tv|chauffage|chaudiere|radiateurs?)(?:\s.*)?$/;
+  function aliasHit(t, aliases) {
+    if (!aliases || !aliases.length) return null;
+    var rest = t.replace(/^(?:ouvre|ouvrir|ouvrez|lance|lancer|lancez|demarre|demarrer|va dans|va sur|aller sur|aller dans|affiche|montre moi|passe sur|bascule sur|mets|met|je veux|emmene moi sur|direction)\s+/, '');
+    var strip = function (x) { return akey(x).replace(/^(?:l appli |l application |le |la |les |l |mon |ma |mes |un |une )+/, ''); };
+    var r0 = strip(rest), s0 = r0.replace(/ /g, ''), p0 = phon(r0);
+    for (var i = 0; i < aliases.length; i++) {
+      var al = aliases[i]; if (!al || !al.say) continue;
+      var a = strip(al.say), as = a.replace(/ /g, '');
+      if (as && (as === s0 || (p0.length >= 3 && phon(a) === p0))) return al;
+    }
+    return null;
+  }
+  function aliasResult(al) {
+    if (al.url) return ['website', { name: al.name, url: al.url, alias: true }];
+    for (var i = 0; i < APPS.length; i++) if (APPS[i][2] === al.pkg) return ['open_app', { id: APPS[i][0], name: APPS[i][1], pkg: APPS[i][2], sys: SUITE_SYS[APPS[i][0]], alias: true }];
+    return ['open_app', { ext: true, name: al.name, pkg: al.pkg, cls: al.cls || '', alias: true }];
+  }
+  /** « Ouvre les paramètres (Wi-Fi…) » : réglages du téléphone ; « tes réglages », « les options » : ceux de Majordome */
+  function settingsCmd(t, names) {
+    if (!/\b(reglages|parametres|options|preferences)\b/.test(t)) return null;
+    if (!/^(?:ouvre|ouvrir|ouvrez|affiche|montre|montre moi|va dans|va sur|aller dans|lance|passe dans|emmene moi dans)\b/.test(t) && !/^(?:les |mes )?(?:reglages|parametres)\b/.test(t)) return null;
+    var nm = (names || []).filter(function (n) { return /^[a-z ]+$/.test(n); }).join('|');
+    if (/\b(tes|vos|ton|votre) (reglages|parametres|options|preferences)\b/.test(t) || /\boptions\b/.test(t) ||
+      new RegExp('\\b(reglages|parametres|preferences) (?:de |du |d )(?:l )?(majordome|jarvis|assistant|appli|application' + (nm ? '|' + nm : '') + ')\\b').test(t) ||
+      /\b(reglages|parametres) (?:de |du |des |d )(?:la |l )?(montre|ecoute|voix|reconnaissance vocale|routines?|maison|lumieres|hue)\b/.test(t) || /\b(reglages|parametres) (de|du)$/.test(t)) return ['settings', { panel: '' }];
+    for (var i = 0; i < SETSUB.length; i++) if (SETSUB[i][2].test(t.replace(/\b(reglages|parametres)\b/g, ' '))) return ['open_sys', { what: 'settings', sub: SETSUB[i][0], name: 'les paramètres ' + SETSUB[i][1] }];
+    if (/\b(reglages|parametres)\b/.test(t)) return ['open_sys', { what: 'settings', sub: '', name: 'les paramètres' }];
+    return null;
+  }
 
   /* ---------------- Lumières (Philips Hue, pont du réseau local : mj-maison.js) ----------------
      → { intent: 'light', p: { act, target, full, all, bri, dir, ct, color, scene, sceneFull, delay, at, ask } }
@@ -781,6 +1005,9 @@
     if (/^(ca va|comment ca va|comment vas tu|comment allez vous|tu vas bien|vous allez bien|la forme)$/.test(t)) return R('greet', { kind: 'howareyou' });
     if (/^(qui es tu|qui etes vous|tu es qui|c est quoi ton nom|comment tu t appelles|comment vous appelez vous|quel est ton nom|tu t appelles comment|presente toi)$/.test(t)) return R('greet', { kind: 'who' });
     if (/^(tu es la|t es la|es tu la|vous etes la|tu m entends|tu m ecoutes|test|test test|essai)$/.test(t)) return R('greet', { kind: 'here' });
+    // --- alias personnels : « Quand je dis… ouvre… » (réglages), avant tout le reste ---
+    var alh = aliasHit(t, ctx.aliases);
+    if (alh) { var ar = aliasResult(alh); return R(ar[0], ar[1]); }
     // --- climatisation (ouvrir Comfort Cloud ; réglage : réponse honnête) ---
     var cl = parseClim(t);
     if (cl) return R('clim', cl);
@@ -800,6 +1027,8 @@
       if (k === 'aigu') return R('voice', { pitch: more ? 1 : -1 });
     }
     if (/\b(change (de |ta )?voix|autre voix|une autre voix)\b/.test(t)) return R('settings', { panel: 'voix' });
+    var stc = settingsCmd(t, (ctx.names || []).map(deacc));
+    if (stc) return R(stc[0], stc[1]);
     if (/\b(ouvre|affiche|montre)\b.*\b(tes |les |mes )?(reglages|parametres|options)\b/.test(t) && !/\b(wifi|wi fi|bluetooth|telephone|son|volume|batterie)\b/.test(t)) return R('settings', { panel: '' });
     if ((m = /^(?:appelle moi|appelez moi|tu peux m appeler|tu m appelles|dorenavant appelle moi|maintenant appelle moi) (.+)$/.exec(t))) {
       var who = m[1];
@@ -1029,25 +1258,49 @@
       txt2 = txt2.replace(/^(?:que |qu'|qu’|de |ceci |:\s*)/i, '');
       return R('note_add', { text: txt2 });
     }
-    // --- ouvrir une appli, un site ---
-    if ((m = /^(?:ouvre|ouvrir|ouvrez|lance|lancer|lancez|demarre|demarrer|va dans|va sur|aller sur|aller dans|affiche|montre moi|passe sur|bascule sur|je veux|j ai besoin de|emmene moi sur|direction) (?:l appli |l application |le logiciel |le site (?:de |du |des |d )?|le site |le |la |les |l |mon |ma |mes |un |une )*(.+)$/.exec(t))) {
-      var what = m[1];
+    // --- ouvrir une appli (Suite, puis toutes celles du téléphone), un raccourci du système, un site ---
+    var apps = ctx.apps && ctx.apps.length ? ctx.apps : null;
+    if ((m = /^(?:ouvre moi|lance moi|ouvre|ouvrir|ouvrez|lance|lancer|lancez|demarre|demarrer|demarrez|va dans|va sur|aller sur|aller dans|affiche|montre moi|passe sur|bascule sur|je veux|j ai besoin de|emmene moi sur|direction|mets|met) (?:l appli |l application |l app |le logiciel |le site (?:de |du |des |d )?|le site |le |la |les |l |mon |ma |mes |un |une )*(.+)$/.exec(t))) {
+      var what = m[1], whatO = orig(P, m.index + m[0].length - what.length);
+      var weak = /^(mets|met) /.test(t);   // « mets X » : seulement pour une appli ou un site reconnus
+      if (DOMO.test(what) && !/\bsite\b/.test(t)) { var dr = t.replace(/^(?:ouvre moi|lance moi|ouvre|ouvrir|ouvrez|lance|lancer|lancez|demarre|demarrer|demarrez|va dans|va sur|aller sur|aller dans|affiche|montre moi|passe sur|bascule sur|je veux|j ai besoin de|emmene moi sur|direction|mets|met) /, ''); return R('domo', { what: orig(P, t.length - dr.length), open: !weak }); }
       var site0 = /\bsite\b/.test(t) ? findSite(what) : null;
       if (site0) return R('website', site0);
-      if (/^(reglages|parametres)$/.test(what)) return R('settings', { panel: '' });
-      var ap = findApp(what);
-      if (ap && !(ap.id === 'qr' && !/\b(qr|q r)\b/.test(what))) return R('open_app', ap);
+      if (/^(reglages|parametres)$/.test(what)) return R('open_sys', { what: 'settings', sub: '', name: 'les paramètres' });
+      var pk = pickApp(what, apps), ap = findApp(what);
+      if (ap && !(ap.id === 'qr' && !/\b(qr|q r)\b/.test(what))) {
+        // la Suite d'abord ; sauf si son nom ne couvre qu'une partie de la demande et qu'une appli installée y répond
+        // exactement (« Google Agenda », « Prime Video », « Microsoft Word »)
+        var apx = null; for (var ai = 0; ai < APPS.length; ai++) if (APPS[ai][0] === ap.id) apx = APPS[ai][3].exec(what);
+        var partial = apx && squash(apx[0]) !== squash(what);
+        if (partial && pk.app && pk.app.score >= 0.93 && !/^fr\.magformation13\./.test(pk.app.pkg)) return R('open_app', pk.app);
+        if (SUITE_SYS[ap.id]) ap.sys = SUITE_SYS[ap.id];
+        if (pk.app && pk.app.score >= 0.9 && !/^fr\.magformation13\./.test(pk.app.pkg)) ap.alt = pk.app;   // si la Suite manque (« Word » sans Texte)
+        return R('open_app', ap);
+      }
+      for (var si = 0; si < SYS.length; si++) if (SYS[si][2].test(what)) {
+        if (SYS[si][0] === 'email' && (pk.app || pk.choices)) break;
+        return R('open_sys', { what: SYS[si][0], name: SYS[si][1] });
+      }
+      if (pk.app && !(weak && pk.app.score < 0.97)) return R('open_app', pk.app);
+      if (pk.choices && !weak) return R('open_app', { choices: pk.choices, heard: whatO, group: !!(pk.known && pk.known.group) });
       var site = findSite(what);
       if (site) return R('website', site);
-      if (/\bsite\b/.test(t)) return R('website', { unknown: orig(P, m.index + m[0].length - what.length) });
-      var near = null, nd = 3;
-      APPS.forEach(function (a) { var d = lev(what, deacc(a[1])); if (d < nd) { nd = d; near = { id: a[0], name: a[1], pkg: a[2] }; } });
-      return R('open_app', { unknown: orig(P, m.index + m[0].length - what.length), near: near });
+      if (!weak) {
+        if (/\bsite\b/.test(t)) return R('website', { unknown: orig(P, m.index + m[0].length - what.length) });
+        if (pk.known && pk.known.id === 'mail') return R('open_sys', { what: 'email', name: 'la messagerie' });
+        var near = null, nd = 3;
+        APPS.forEach(function (a) { var d = lev(what, deacc(a[1])); if (d < nd) { nd = d; near = { id: a[0], name: a[1], pkg: a[2] }; } });
+        if (!near && pk.near) near = { ext: true, name: pk.near.name, pkg: pk.near.pkg, cls: pk.near.cls };
+        var kn = pk.known ? { id: pk.known.id, name: pk.known.name, web: pk.known.web, pkg: pk.known.pkgs[0], group: !!pk.known.group } : null;
+        return R('open_app', { unknown: whatO, near: near, known: kn, apps: !!apps });
+      }
     }
-    if (/^(?:youtube|wikipedia|leboncoin|le bon coin|doctolib)$/.test(t)) return R('website', findSite(t));
-    // une appli seule : « présentation », « le tableur »
+    if (/^(?:youtube|wikipedia|leboncoin|le bon coin|doctolib)$/.test(t) && !(apps && pickApp(t, apps).app)) return R('website', findSite(t));
+    // une appli seule : « présentation », « le tableur », « WhatsApp » (nom exact d'une appli installée)
     var only = /^(?:l appli |l application |le |la |les |l )?(.+)$/.exec(t), ap2 = only && only[1].split(' ').length <= 3 ? findApp(only[1]) : null;
     if (ap2 && ap2.id !== 'photo' && ap2.id !== 'calcul') return R('open_app', ap2);
+    if (apps && only && only[1].split(' ').length <= 3) { var pk2 = pickApp(only[1], apps); if (pk2.app && pk2.app.score >= 0.95) return R('open_app', pk2.app); }
     // --- heure simple après coup (« il est quelle heure à … ») ---
     if (/\bheure\b/.test(t) && /\b(quel|quelle)\b/.test(t)) return R('time');
     var sg = null;
@@ -1077,7 +1330,7 @@
 
   var NLU = {
     parse: parse, prep: prep, numberize: numberize, tokenize: tokenize, findWhen: findWhen, durations: durations, calcExpr: calcExpr,
-    convert: convert, parseClim: parseClim, parseLight: parseLight, lightTarget: lightTarget, colorWord: colorWord, nextFete: nextFete, easter: easter, findApp: findApp, findSite: findSite, APPS: APPS, SITES: SITES, EXAMPLES: EXAMPLES,
+    convert: convert, parseClim: parseClim, parseLight: parseLight, lightTarget: lightTarget, colorWord: colorWord, nextFete: nextFete, easter: easter, findApp: findApp, findSite: findSite, APPS: APPS, SITES: SITES, KNOWN: KNOWN, SYS: SYS, SETSUB: SETSUB, phon: phon, akey: akey, matchApps: matchApps, pickApp: pickApp, findKnown: findKnown, EXAMPLES: EXAMPLES,
     suggest: suggest, spell: spell, yesNo: yesNo, deacc: deacc, num: num, DN: DN, UNITS: UNITS, MONTHS: MONTHS, WDAYS: WDAYS, startOfDay: startOfDay, addDays: addDays
   };
   root.MJNLU = NLU;
