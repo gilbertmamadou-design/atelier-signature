@@ -59,7 +59,7 @@ pc/
 | Toile (`toile`, page propre au PC) | fonds recadrés à la taille de l'écran (mêmes traitements que l'APK) dans un dossier « Fonds Toile », que le diaporama de Windows fait défiler ; mise à jour incrémentale ; onglet « Images en ligne » (thèmes, sources libres, crédits) | changer le fond d'écran lui-même (impossible pour une page web), tuile, changement en arrière-plan |
 | Galerie, Scan, Dictaphone | dossier photos du PC (corbeille, EXIF, carte), scan d'images/PDF/webcam, micro + dictée | photos du téléphone, partage vers d'autres applis |
 | Coffre (`coffre`) | identique (PBKDF2 600 000 + AES-GCM 256, rien ne sort) | empreinte (mot de passe maître seulement) |
-| Présentation (`presentation`) | tout : édition, thèmes, masque, animations, vidéos et sons (démarrer au clic, automatiquement ou en cliquant dessus, plein écran, boucle, rembobiner), diaporama et mode présentateur (2e fenêtre), .magpres, import/export .pptx, PDF, images, « Ouvrir avec » .pptx/.magpres, enregistrement sur place (File System Access) | — |
+| Présentation (`presentation`) | tout : édition, thèmes, masque, animations (objet entier ou paragraphe par paragraphe, déclencheurs « au clic sur » un objet), vidéos et sons (démarrer au clic, automatiquement ou en cliquant dessus, lecture / pause / arrêt dans les animations, plein écran, masquer pendant la non-lecture, boucle, rembobiner), diaporama et mode présentateur (2e fenêtre), .magpres, import/export .pptx, PDF, images, « Ouvrir avec » .pptx/.magpres, enregistrement sur place (File System Access) | — |
 | Texte (`texte`) | tout : traitement de texte paginé (sections, en-têtes et pieds, notes, tableaux, images habillées, styles, listes, table des matières, suivi des modifications, commentaires, publipostage CSV), .magdoc, .docx et .odt (ouvrir et enregistrer), .rtf/.txt/.md/.html, PDF à signets, « Ouvrir avec » .docx/.magdoc/.odt/.rtf/.txt/.md, enregistrement sur place, PDF envoyé à l'Atelier PDF | — |
 | Majordome (`majordome`) | assistant vocal à commandes (sans IA) : reconnaissance hors ligne Vosk (WebAssembly), mot de réveil fenêtre ouverte, Ctrl+Espace, saisie au clavier ; heure, calculs, conversions, minuteurs, rappels, météo et vent (Open-Meteo), titres franceinfo, agenda (celui d'Agenda sur PC), notes et listes, dépense ajoutée dans Budget (après confirmation, jamais de solde lu), ouverture des applis de la Suite et des sites connus ; pour une appli du téléphone (« lance WhatsApp »), réponse honnête et proposition de son site s'il existe (web.whatsapp.com, open.spotify.com…), pause / suivant de Mélodie | appels, SMS, lampe, volume du système, modes, Wi-Fi / Bluetooth ; lumières Philips Hue (une page web ne peut pas joindre le pont Hue : certificat auto-signé, contenu mixte, protection du réseau local des navigateurs ; expliqué dans l'appli) ; vigilance MeteoAlarm sans relais ; alarmes appli fermée |
 | Tableur (`tableur`) | tout : tableur (formules en français ou en anglais, plus de 330 fonctions, tableaux dynamiques, mises en forme conditionnelles, tableaux, tris et filtres, tableaux croisés, graphiques), .magcalc, .xlsx et .ods (ouvrir et enregistrer), .xls (lecture), .csv/.tsv, .html, PDF, « Ouvrir avec » .xlsx/.xls/.ods/.csv/.tsv/.magcalc, enregistrement sur place, PDF envoyé à l'Atelier PDF | — |
@@ -189,6 +189,28 @@ Texte ajoute deux bibliothèques communes, prêtes pour Tableur :
 Formats de Texte : `.magdoc` (zip : `document.json`, `media/`, `thumb.jpg`) est le format complet ; `.docx` et `.odt`
 sont écrits et lus directement en XML (`tx-docx.js`, `tx-odt.js`, sans bibliothèque) ; PDF vectoriel (`tx-pdf.js`, jsPDF :
 chaque mot à sa place mesurée, polices incluses, signets des titres, liens, commentaires en notes PDF).
+
+### Présentation : animations d'un .pptx
+
+- **Cible** d'une animation (`slide.anims[]`) : l'objet entier, un ou plusieurs paragraphes de son texte (`para: [début, fin]`,
+  `<p:txEl><p:pRg>`), ou la forme sans son texte (`bg`, `<p:bg/>`). Un paragraphe = un bloc du HTML (`Pres.paraWalk`), le même
+  découpage que l'import (un `<a:p>` = un bloc) et l'export (`IO.htmlRuns`, qui note pour chaque `<a:p>` écrit le bloc d'origine).
+- **Départ caché** : comme PowerPoint, un objet ou un paragraphe dont le premier effet est une entrée est caché au départ ;
+  les paragraphes non animés restent visibles.
+- **Déclencheurs** (`trigger: id de l'objet`, `interactiveSeq`) : chaque clic sur l'objet joue l'étape suivante de sa séquence,
+  qui recommence une fois finie ; le diaporama n'avance pas ; la fenêtre publique suit. La lecture / pause au clic sur une
+  vidéo, que PowerPoint écrit pour chaque média, reste le comportement natif (rien n'est ajouté aux animations).
+- **Médias** : `cat: 'media'`, `fx` = `play` (`playFrom(x)`, `from`), `pause` (`togglePause`), `stop`. La lecture de la séquence
+  principale suit le réglage « Démarrer : au clic » ; les autres commandes sont des animations ordinaires. « Masquer pendant
+  la non-lecture » = `hideStopped` (`showWhenStopped="0"`).
+- **Paragraphe disparu** (texte raccourci après la pose des animations) : l'étape est gardée sans effet, comme LibreOffice,
+  avec un avertissement et « Retirer ces étapes » (volet Animation aussi) ; l'export ne l'écrit pas (fichier valide).
+- **Export** : liste de construction (`bldP build="p"` pour un texte animé par paragraphe, `animBg="1"` pour une forme),
+  `grpId`, une séquence interactive par objet déclencheur ; images EMF / WMF gardées telles quelles (`image/x-emf`).
+- **Éditeur** : volet Animation (« ¶2 texte… », section par déclencheur, « Effets du texte : tout à la fois / par paragraphe »,
+  « Déclencheur »), ruban (Options d'effet > Séquence, Déclencheur, Ajouter une animation > Média).
+- **Gros fichiers** : barre de progression à l'ouverture, la main est rendue à l'interface toutes les 40 ms, miniatures
+  dessinées par lots (les plus proches d'abord).
 
 ### Texte : repères
 
@@ -477,6 +499,20 @@ Présentation, vidéos : WebM VP9/Opus de 6 s et de 180 Mo (ffmpeg), Chromium la
 au clic / automatiquement / en cliquant dessus, clic sur la vidéo (pause sans avancer), commandes, Alt+P, flèches pendant la
 lecture, plein écran et rembobinage, mode présentateur (son dans la fenêtre publique, pause synchronisée), .magpres
 rouvert, appli rouverte, .pptx exporté, lu par LibreOffice et rouvert ; en 1366×768 et 412×915 au doigt.
+Présentation, animations par paragraphe et déclencheurs : .pptx synthétique (python-pptx, `<p:timing>` écrit à la main) avec
+« Apparaître » paragraphe par paragraphe (`txEl`/`pRg`, `bldP build="p"`), fondu, entrée brusque, balayer, sortie et emphase
+sur des paragraphes, avec / après, délais et durées (lus par `getAnimations`), forme sans son texte (`<p:bg/>`), départ
+automatique (`onBegin`), `charRg` (objet entier), paragraphe visé qui n'existe plus (étape sans effet, avertissement,
+« Retirer ces étapes »), déclencheurs au clic sur une forme (`interactiveSeq`, étapes successives, le diaporama n'avance pas),
+commandes média (`playFrom(1.0)`, `togglePause`, `stop`) dans la séquence et dans un déclencheur, vidéo masquée pendant la
+non-lecture (`showWhenStopped="0"`) ; même découpage en paragraphes à l'affichage et à l'export ; volet Animation
+(« ¶1 … », « Effets du texte : tout à la fois / par paragraphe », déclencheur), ruban (Options d'effet > Séquence,
+Déclencheur, commandes Média), Ctrl+Z ; .magpres rouvert à l'identique ; .pptx exporté (cibles, textes des paragraphes visés,
+liste de construction, séquences interactives, commandes, `showWhenStopped`), lu par LibreOffice (paragraphes visés,
+séquences interactives, commandes) et réimporté à l'identique ; en 1366×768 et 412×915 au doigt. Essai local sur un
+gros diaporama réel (hors dépôt, rien de son contenu ici) : clics par diapositive d'après le XML,
+visibilité de chaque paragraphe à chaque étape, vidéos lues au clic, pause / reprise au clic sur la vidéo, import sans
+tâche de plus de 200 ms, barre de progression, aller-retour .magpres et .pptx.
 Texte : document de 9 à 10 pages (page de titre, table des matières, titres, tableau de 35 lignes à en-tête répété et
 cellules fusionnées, image habillée, 12 notes, en-tête de première page différent, section paysage), PDF (pages, signets,
 texte extractible), .docx validé par python-docx et LibreOffice (même nombre de pages) puis réimporté, .odt converti
