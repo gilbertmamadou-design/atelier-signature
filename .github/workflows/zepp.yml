@@ -35,23 +35,27 @@ jobs:
           ZEUS: ${{ github.event.inputs.zeus || 'latest' }}
         run: |
           npm install -g "@zeppos/zeus-cli@${ZEUS}" --no-audit --no-fund
-          npm view "@zeppos/zeus-cli@${ZEUS}" name version license
           npm install --no-audit --no-fund
-          npm ls --depth=0 || true
+          mkdir -p ../out
+          { echo "Construction de Jarvis : $(date -u +%FT%TZ), commit ${GITHUB_SHA}"
+            echo "Zeus CLI : $(npm ls -g @zeppos/zeus-cli --depth=0 | grep zeus-cli), licence $(node -p "require('$(npm root -g)/@zeppos/zeus-cli/package.json').license")"
+            echo "zml : $(node -p "const p=require('./node_modules/@zeppos/zml/package.json'); p.version + ', licence ' + p.license")"
+            echo "Node : $(node -v)"; } | tee ../out/jarvis-construction.txt
       - name: zeus build
         run: |
-          CI=1 zeus build < /dev/null
+          set -o pipefail
+          CI=1 zeus build < /dev/null 2>&1 | tee -a ../out/jarvis-construction.txt
           ls -la dist
       - name: Paquets et QR
         env:
           REPO: ${{ github.repository }}
           TAG: jarvis-montre-${{ github.run_number }}
         run: |
-          mkdir -p ../out
+          set -o pipefail
           ZAB=$(ls -t dist/*.zab | head -1)
           cp "$ZAB" ../out/jarvis-trex3.zab
-          python3 - <<'PY'
-          import io, json, zipfile, os
+          python3 - <<'PY' | tee -a ../out/jarvis-construction.txt
+          import io, json, zipfile, os, hashlib
           def walk(data, depth=0, path=''):
               src = zipfile.ZipFile(io.BytesIO(data)); out = io.BytesIO(); dst = zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED)
               for i in src.infolist():
@@ -67,8 +71,22 @@ jobs:
                           print('  ' * depth + '    → packageInfo.mode = preview')
                   dst.writestr(i, b)
               dst.close(); return out.getvalue()
-          d = open('../out/jarvis-trex3.zab', 'rb').read()
-          open('../out/jarvis-trex3-apercu.zab', 'wb').write(walk(d))
+          # .zab : un .zpk nommé par son md5, et manifest.json qui répète ce md5 ; on les recalcule après la modification
+          src = zipfile.ZipFile('../out/jarvis-trex3.zab'); ren = {}; parts = []
+          for i in src.infolist():
+              b = src.read(i.filename)
+              if i.filename.endswith('.zpk'):
+                  b = walk(b, 1, i.filename + ' › '); m = hashlib.md5(b).hexdigest(); ren[i.filename[:-4]] = m; parts.append((m + '.zpk', b))
+              elif i.filename != 'manifest.json': parts.append((i.filename, b))
+          man = json.loads(src.read('manifest.json'))
+          for z in man.get('zpks', []):
+              old = z['name'][:-4]
+              if old in ren: z['name'] = ren[old] + '.zpk'; z['md5'] = ren[old]
+          out = zipfile.ZipFile('../out/jarvis-trex3-apercu.zab', 'w', zipfile.ZIP_DEFLATED)
+          for n, b in parts: out.writestr(n, b)
+          out.writestr('manifest.json', json.dumps(man, separators=(',', ':')))
+          out.close()
+          print('manifest de la variante « preview » :', json.dumps(man))
           z = zipfile.ZipFile('../out/jarvis-trex3.zab')
           zpk = [n for n in z.namelist() if n.endswith('.zpk')]
           if zpk: open('../out/jarvis-trex3.zpk', 'wb').write(z.read(zpk[0]))
@@ -93,3 +111,4 @@ jobs:
             zepp/out/jarvis-trex3.zpk
             zepp/out/jarvis-qr.png
             zepp/out/jarvis-qr.txt
+            zepp/out/jarvis-construction.txt
