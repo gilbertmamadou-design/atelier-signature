@@ -3,9 +3,11 @@
    - installation : tous les fichiers de l'appli et ses bibliothèques sont mis en cache (hors ligne) ;
    - VERSION change dès qu'un fichier précaché change : le navigateur installe la nouvelle version,
      la page affiche « Nouvelle version disponible » et l'active sur demande (message SKIP_WAITING) ;
+   - message VERSION : répond {app, version, date} (« Version du JJ/MM » de l'appli et du lanceur) ;
    - réponses : cache d'abord pour les fichiers précachés, réseau puis cache pour le reste (polices…). */
 'use strict';
-var VERSION = '74dcd9895fd1';
+var VERSION = '42740a50a2ff';
+var DATE = '2026-10-30';          // jour de publication de cette version (« Version du JJ/MM » dans l'appli et le lanceur)
 var APP = 'agenda';
 var CACHE = 'mag-pc-' + APP + '-' + VERSION, RUNTIME = 'mag-pc-' + APP + '-rt';
 var PRECACHE = [
@@ -44,6 +46,8 @@ self.addEventListener('activate', function (e) {
 
 self.addEventListener('message', function (e) {
   if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
+  // version de ce service worker (page de l'appli, lanceur) : réponse sur le port fourni
+  if (e.data && e.data.type === 'VERSION' && e.ports && e.ports[0]) e.ports[0].postMessage({ app: APP, version: VERSION, date: DATE });
 });
 
 var SCOPE = self.registration.scope;

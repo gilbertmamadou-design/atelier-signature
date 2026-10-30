@@ -186,14 +186,14 @@
     tab: { inline: true, group: 'inline', atom: true, selectable: false, parseDOM: [{ tag: 'span.tx-tab' }], toDOM: () => ['span', { class: 'tx-tab' }, '\t'] },
     image: {
       inline: true, group: 'inline', atom: true, draggable: true,
-      attrs: { m: { default: null }, src: { default: null }, w: { default: 100 }, h: { default: 100 }, alt: { default: '' }, title: { default: null }, wrap: { default: 'inline' }, al: { default: 'left' }, x: { default: 0 }, y: { default: 0 }, crop: { default: null }, rot: { default: 0 }, fh: { default: false }, fv: { default: false }, bd: { default: null }, sha: { default: null }, dec: { default: false }, link: { default: null } },
+      attrs: { m: { default: null }, src: { default: null }, w: { default: 100 }, h: { default: 100 }, alt: { default: '' }, title: { default: null }, wrap: { default: 'inline' }, al: { default: 'left' }, x: { default: 0 }, y: { default: 0 }, crop: { default: null }, rot: { default: 0 }, fh: { default: false }, fv: { default: false }, bd: { default: null }, sha: { default: null }, dec: { default: false }, link: { default: null }, keep: { default: null } },
       parseDOM: [{ tag: 'img', getAttrs: (d) => { try { const a = JSON.parse(d.getAttribute('data-a') || 'null'); if (a) return a; } catch (e) { } return { src: d.getAttribute('src'), m: d.getAttribute('data-m') || null, alt: d.getAttribute('alt') || '', w: r2((+d.getAttribute('width') || d.width || 160) * 0.75), h: r2((+d.getAttribute('height') || d.height || 120) * 0.75) }; } }],
       toDOM: (node) => ['img', { 'data-m': node.attrs.m, 'data-a': JSON.stringify(node.attrs), src: node.attrs.src || '', alt: node.attrs.alt || '', width: Math.round(node.attrs.w * PX), height: Math.round(node.attrs.h * PX) }]
     },
     // objets dessinés : forme, zone de texte, icône, graphique, SmartArt
     drawing: {
       inline: true, group: 'inline', atom: true, draggable: true,
-      attrs: { kind: { default: 'shape' }, shape: { default: 'rect' }, adj: { default: null }, w: { default: 144 }, h: { default: 96 }, wrap: { default: 'square' }, al: { default: 'left' }, x: { default: 0 }, y: { default: 0 }, rot: { default: 0 }, fill: { default: 't:accent1' }, line: { default: null }, html: { default: '' }, va: { default: 'middle' }, pad: { default: 7.2 }, icon: { default: null }, chart: { default: null }, smart: { default: null }, alt: { default: '' }, color: { default: null } },
+      attrs: { kind: { default: 'shape' }, shape: { default: 'rect' }, adj: { default: null }, w: { default: 144 }, h: { default: 96 }, wrap: { default: 'square' }, al: { default: 'left' }, x: { default: 0 }, y: { default: 0 }, rot: { default: 0 }, fill: { default: 't:accent1' }, line: { default: null }, html: { default: '' }, va: { default: 'middle' }, pad: { default: 7.2 }, icon: { default: null }, chart: { default: null }, smart: { default: null }, alt: { default: '' }, color: { default: null }, keep: { default: null } },
       parseDOM: [{ tag: 'span.tx-draw', getAttrs: (d) => { try { return JSON.parse(d.getAttribute('data-d') || '{}'); } catch (e) { return {}; } } }],
       toDOM: (node) => ['span', { class: 'tx-draw', 'data-d': JSON.stringify(node.attrs) }]
     },

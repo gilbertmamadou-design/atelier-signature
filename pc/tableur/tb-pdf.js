@@ -127,6 +127,7 @@
       for (const p of L.pages) {
         pageNo++; pageOfSheet++;
         if (opt.progress) opt.progress(pageNo, total);
+        await O.yieldUi(100);   // longues feuilles : l'interface reste réactive pendant l'export
         if (!doc) doc = new J({ unit: 'pt', format: [PW, PH].sort((a, b) => a - b), orientation: PW > PH ? 'landscape' : 'portrait', compress: true });
         else doc.addPage([PW, PH].sort((a, b) => a - b), PW > PH ? 'landscape' : 'portrait');
         const rowsAll = p.trows.concat(p.rows), colsAll = p.tcols.concat(p.cols);

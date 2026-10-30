@@ -23,17 +23,26 @@
 
   /* ---------------- détection, ouverture ---------------- */
   async function head(blob, n) { const b = new Uint8Array(await blob.slice(0, n || 2048).arrayBuffer()); let s = ''; for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return s; }
-  IO.open = async function (blob, name) {
+  IO.open = async function (blob, name, progress) {
     const ext = O.extOf(name), h = await head(blob, 4096);
+    const user = (m) => { const e = new Error(m); e.user = true; return e; };
     if (h.slice(0, 2) === 'PK') {
-      const z = await window.JSZip.loadAsync(blob);
-      if (z.file('document.json')) return Object.assign(await fromMagdoc(z), { kind: 'magdoc' });
-      if (z.file('word/document.xml')) return Object.assign(await TX.Docx.read(z), { kind: 'docx' });
-      if (z.file('content.xml')) return Object.assign(await TX.Odt.read(z), { kind: 'odt' });
-      throw new Error('Archive zip non reconnue (ni .docx, ni .odt, ni .magdoc)');
+      // archive abîmée ou tronquée : on récupère ce qui est lisible (O.openZip), avec un avertissement
+      const oz = await O.openZip(blob), z = oz.zip;
+      const rep = (r) => { if (oz.repaired) r.warnings = ['Fichier abîmé ou incomplet : ce qui était lisible a été repris' + (oz.lost.length ? ' (' + oz.lost.length + ' partie(s) perdue(s))' : '') + '. Vérifiez le document, puis enregistrez-le sous un autre nom.'].concat(r.warnings || []); return r; };
+      if (z.file('document.json')) return rep(Object.assign(await fromMagdoc(z), { kind: 'magdoc' }));
+      if (z.file('word/document.xml') || Object.keys(z.files).some((n) => /^word\/document\d*\.xml$/i.test(n))) return rep(Object.assign(await TX.Docx.read(z, progress), { kind: 'docx' }));
+      if (z.file('content.xml')) return rep(Object.assign(await TX.Odt.read(z, progress), { kind: 'odt' }));
+      if (z.file('word/_rels/document.xml.rels') || z.file('[Content_Types].xml') && /wordprocessingml/.test(await z.file('[Content_Types].xml').async('string'))) throw user('Ce document Word est abîmé : son texte principal (word/document.xml) est absent ou illisible. Essayez « Ouvrir et réparer » dans Word, ou une copie plus ancienne.');
+      throw user('Ce fichier n\'est pas un document reconnu (ni .docx, ni .odt, ni .magdoc).');
     }
     if (/^\{\\rtf/.test(h.trimStart())) return Object.assign(IO.fromRtf(await textOf(blob, true)), { kind: 'rtf' });
-    if (/^\xD0\xCF\x11\xE0/.test(h)) throw new Error('Ancien format Word (.doc) : ouvrez-le dans LibreOffice et enregistrez-le en .docx ou .odt');
+    if (/^\xD0\xCF\x11\xE0/.test(h)) {
+      if (O.isEncryptedOffice(new Uint8Array(await blob.slice(0, 1 << 20).arrayBuffer()))) throw user(O.ENCRYPTED_MSG);
+      throw user('Ancien format Word (.doc) : ouvrez-le dans Word ou LibreOffice et enregistrez-le en .docx (ou .odt), puis rouvrez-le ici.');
+    }
+    if (!blob.size) throw user('Le fichier est vide (0 octet).');
+    if (/^(docx|docm|dotx|odt|magdoc)$/.test(ext)) throw user('Ce fichier « .' + ext + ' » est abîmé : ce n\'est pas une archive lisible (téléchargement interrompu, copie incomplète ?).');
     const text = await textOf(blob);
     if (ext === 'md' || ext === 'markdown') return Object.assign(IO.fromMarkdown(text), { kind: 'md' });
     if (ext === 'html' || ext === 'htm' || ext === 'xhtml' || /^\s*(<!doctype html|<html)/i.test(text)) return Object.assign(IO.fromHtml(text), { kind: 'html' });
@@ -366,7 +375,7 @@
         if (m) {
           i += m[0].length; const w = m[1], arg = m[2] != null ? +m[2] : null;
           if (st.skip && w !== 'bin') continue;
-          if (st.dest === 'pict') { if (w === 'pngblip') pict.type = 'image/png'; else if (w === 'jpegblip') pict.type = 'image/jpeg'; else if (w === 'emfblip' || w === 'wmetafile') pict.type = null; else if (w === 'picwgoal') pict.w = arg; else if (w === 'pichgoal') pict.h = arg; else if (w === 'picscalex') pict.sx = arg; else if (w === 'picscaley') pict.sy = arg; continue; }
+          if (st.dest === 'pict') { if (w === 'pngblip') pict.type = 'image/png'; else if (w === 'jpegblip') pict.type = 'image/jpeg'; else if (w === 'emfblip') pict.type = 'image/x-emf'; else if (w === 'wmetafile') { pict.type = 'image/x-wmf'; pict.wmf = true; } else if (w === 'picwgoal') pict.w = arg; else if (w === 'pichgoal') pict.h = arg; else if (w === 'picscalex') pict.sx = arg; else if (w === 'picscaley') pict.sy = arg; continue; }
           switch (w) {
             case 'fonttbl': st.dest = 'fonttbl'; break;
             case 'colortbl': st.dest = 'colortbl'; colorBuf = { r: 0, g: 0, b: 0, any: false }; break;
@@ -430,8 +439,11 @@
       pushText(txt);
     }
     function finishPict() {
-      if (!pict.type) { warnings.indexOf('Images WMF/EMF ignorées') < 0 && warnings.push('Images WMF/EMF ignorées'); pict = null; return; }
-      const hex = pict.hex.join('').replace(/\s+/g, ''); const u = new Uint8Array(hex.length / 2); for (let k = 0; k < u.length; k++) u[k] = parseInt(hex.substr(k * 2, 2), 16);
+      if (!pict.type) { warnings.indexOf('Certaines images du RTF sont dans un format non pris en charge') < 0 && warnings.push('Certaines images du RTF sont dans un format non pris en charge'); pict = null; return; }
+      const hex = pict.hex.join('').replace(/\s+/g, ''); let u = new Uint8Array(hex.length / 2); for (let k = 0; k < u.length; k++) u[k] = parseInt(hex.substr(k * 2, 2), 16);
+      // \\wmetafile : WMF sans en-tête « placeable » → en-tête ajouté (taille d'après picwgoal/pichgoal) pour que Word et LibreOffice le relisent
+      if (pict.wmf && !(u[0] === 0xD7 && u[1] === 0xCD)) { const W = Math.round((pict.w || 1440) * 1440 / 1440), H = Math.round((pict.h || 1440)); const hd = new Uint8Array(22); const dv = new DataView(hd.buffer); dv.setUint32(0, 0x9AC6CDD7, true); dv.setInt16(10, W, true); dv.setInt16(12, H, true); dv.setUint16(14, 1440, true); let x = 0; for (let k = 0; k < 10; k++) x ^= dv.getUint16(k * 2, true); dv.setUint16(20, x, true); const v = new Uint8Array(22 + u.length); v.set(hd); v.set(u, 22); u = v; }
+      if (O.unviewableImage(pict.type) && warnings.indexOf('Images EMF/WMF : montrées par un cadre, gardées telles quelles à l\'enregistrement .docx') < 0) warnings.push('Images EMF/WMF : montrées par un cadre, gardées telles quelles à l\'enregistrement .docx');
       const id = TX.uid('m'); media[id] = new Blob([u], { type: pict.type }); info[id] = { name: 'image', type: pict.type };
       const w = (pict.w || 2880) / 20 * (pict.sx || 100) / 100, h = (pict.h || 2160) / 20 * (pict.sy || 100) / 100;
       runs.push(B.image(id, Math.round(w * 10) / 10, Math.round(h * 10) / 10));

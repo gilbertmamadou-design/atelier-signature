@@ -1030,26 +1030,8 @@
       rows.forEach((r) => { while (r.cells.length < cols.length) r.cells.push({ html: '', hidden: true }); });
       return { type: 'table', cols, rows, tstyle: { id: 'medium', accent: 1, header: !tp || tp.getAttribute('firstRow') === '1', banded: !tp || tp.getAttribute('bandRow') === '1', firstCol: tp && tp.getAttribute('firstCol') === '1', lastRow: tp && tp.getAttribute('lastRow') === '1' } };
     }
-    function chartOf(cx) {
-      const pa = desc(cx, 'plotArea')[0]; if (!pa) return null;
-      const types = ['barChart', 'bar3DChart', 'lineChart', 'line3DChart', 'areaChart', 'pieChart', 'pie3DChart', 'doughnutChart', 'scatterChart'];
-      const tn = Array.from(pa.children).find((c) => types.indexOf(c.localName) >= 0); if (!tn) return null;
-      const ch = P.newChart('bar');
-      const dirN = kid(tn, 'barDir'), grp = kid(tn, 'grouping');
-      const stacked = grp && /stacked/i.test(grp.getAttribute('val'));
-      if (/bar/i.test(tn.localName)) ch.kind = dirN && dirN.getAttribute('val') === 'bar' ? (stacked ? 'stackedH' : 'barH') : (stacked ? 'stacked' : 'bar');
-      else if (/line/i.test(tn.localName)) ch.kind = 'line'; else if (/area/i.test(tn.localName)) ch.kind = 'area'; else if (/doughnut/i.test(tn.localName)) ch.kind = 'doughnut'; else if (/pie/i.test(tn.localName)) ch.kind = 'pie'; else ch.kind = 'scatter';
-      const vals = (n) => { const c = n && (desc(n, 'numCache')[0] || desc(n, 'strCache')[0]); if (!c) return []; const out = []; desc(c, 'pt').forEach((p) => { out[+p.getAttribute('idx')] = kid(p, 'v') ? kid(p, 'v').textContent : ''; }); return out; };
-      const sers = kids(tn, 'ser');
-      ch.series = sers.map((s, i) => { const tx = kid(s, 'tx'); const name = tx ? desc(tx, 'v').map((v) => v.textContent).join('') || desc(tx, 't').map((v) => v.textContent).join('') : 'Série ' + (i + 1); return { name, values: vals(kid(s, 'val') || kid(s, 'yVal')).map((v) => num(v, 0)) }; });
-      const cats = vals(sers[0] && (kid(sers[0], 'cat') || kid(sers[0], 'xVal')));
-      ch.cats = cats.length ? cats.map(String) : (ch.series[0] ? ch.series[0].values.map((_, i) => String(i + 1)) : []);
-      const ti = desc(cx, 'title')[0]; ch.title = ti ? desc(ti, 't').map((x) => x.textContent).join('') : '';
-      const lg = desc(cx, 'legend')[0]; const lp = lg && desc(lg, 'legendPos')[0]; ch.legend = !lg ? 'none' : lp ? ({ b: 'bottom', t: 'top', r: 'right', l: 'right', tr: 'right' }[lp.getAttribute('val')] || 'bottom') : 'right';
-      ch.labels = desc(tn, 'showVal').some((x) => x.getAttribute('val') === '1') || desc(tn, 'showPercent').some((x) => x.getAttribute('val') === '1');
-      if (ch.kind === 'pie' || ch.kind === 'doughnut') ch.labels = desc(tn, 'showPercent').some((x) => x.getAttribute('val') === '1') || ch.labels;
-      return ch;
-    }
+    // lecture commune avec Texte (pres-charts.js)
+    const chartOf = (cx) => P.chartFromXml(cx);
     /* ----- diapositives ----- */
     const slideFiles = sldIds.map((s) => presRels[rattr(s, 'id')]).filter(Boolean).map((r) => r.target);
     const slideIdByFile = {}; const ourIds = slideFiles.map(() => P.uid('s')); slideFiles.forEach((f, i) => { slideIdByFile[f] = ourIds[i]; });

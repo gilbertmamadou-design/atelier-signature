@@ -124,6 +124,25 @@
 
   /* ---------------- normalisation du paquet (fichiers d'autres logiciels) ----------------
      ExcelJS attend des cibles relatives et des noms de parties « à la Excel » (xl/commentsN.xml, vmlDrawingN.vml). */
+  const PFX = { 'http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing': 'xdr', 'http://schemas.openxmlformats.org/drawingml/2006/main': 'a', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships': 'r', 'http://schemas.openxmlformats.org/drawingml/2006/chart': 'c', 'http://schemas.openxmlformats.org/drawingml/2006/picture': 'pic' };
+  /** XML de dessin réécrit avec les préfixes d'Excel (éléments et attributs) ; null si illisible */
+  function reprefix(x) {
+    const d = new DOMParser().parseFromString(x, 'application/xml'); if (d.getElementsByTagName('parsererror').length) return null;
+    const out = document.implementation.createDocument(null, null, null);
+    const copy = (n) => {
+      if (n.nodeType === 3 || n.nodeType === 4) return out.createTextNode(n.data);
+      if (n.nodeType !== 1) return null;
+      const ns = n.namespaceURI, p = PFX[ns] || n.prefix;
+      const e = ns ? out.createElementNS(ns, (p ? p + ':' : '') + n.localName) : out.createElement(n.localName);
+      Array.from(n.attributes).forEach((a) => { if (a.name === 'xmlns' || /^xmlns:/.test(a.name)) return; if (a.namespaceURI) e.setAttributeNS(a.namespaceURI, (PFX[a.namespaceURI] || a.prefix || 'ns') + ':' + a.localName, a.value); else e.setAttribute(a.name, a.value); });
+      Array.from(n.childNodes).forEach((c) => { const k = copy(c); if (k) e.appendChild(k); });
+      return e;
+    };
+    const root = copy(d.documentElement);
+    Object.keys(PFX).forEach((ns) => root.setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:' + PFX[ns], ns));
+    out.appendChild(root);
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + new XMLSerializer().serializeToString(out);
+  }
   async function normalize(z) {
     const ren = {}; let nv = 0;
     Object.keys(z.files).forEach((n) => {
@@ -132,6 +151,14 @@
       else if (/^xl\/drawings\/[^/]+\.vml$/i.test(n) && !/^xl\/drawings\/vmlDrawing\d+\.vml$/i.test(n)) ren[n] = 'xl/drawings/vmlDrawing' + (900 + (++nv)) + '.vml';
     });
     for (const [a, b] of Object.entries(ren)) { const d = await z.file(a).async('uint8array'); z.remove(a); z.file(b, d); }
+    // dessins écrits sans préfixe (espace de noms par défaut : openpyxl, outils de rapport…) : ExcelJS n'y reconnaît rien
+    // et s'arrêtait sur tout le classeur → préfixes habituels d'Excel (xdr:, a:, r:, c:)
+    for (const n of Object.keys(z.files)) {
+      if (!/^xl\/drawings\/drawing\d+\.xml$/i.test(n)) continue;
+      const x = await z.file(n).async('string');
+      if (/<xdr:wsDr\b/.test(x)) continue;
+      const y = reprefix(x); if (y) z.file(n, y);
+    }
     // règles de mise en forme qui pointent vers un style différentiel absent (fichiers de LibreOffice) : styles vides ajoutés
     try {
       let maxDxf = -1;
@@ -203,19 +230,56 @@
     await normalize(z);
     const comments = await readComments(z).catch(() => ({}));
     const rawNames = await readNames(z).catch(() => []);
-    const buf = await z.generateAsync({ type: 'arraybuffer', compression: 'STORE' });
-    const book = new E.Workbook();
-    await book.xlsx.load(buf);
     const warnings = [];
+    const bigSheets = await bigAside(z, opt.progress);   // très grandes feuilles : cellules lues à part, par morceaux
+    let buf = await z.generateAsync({ type: 'arraybuffer', compression: 'STORE' });
+    let book = new E.Workbook();
+    try { await book.xlsx.load(buf); }
+    catch (e1) {
+      // une partie secondaire illisible (dessin, note, tableau…) ne doit pas empêcher d'ouvrir les données : on la retire
+      console.warn('ExcelJS', e1);
+      // d'abord : parties XML abîmées (tronquées, mal fermées) complétées au mieux
+      try {
+        const z1 = await JSZip.loadAsync(buf); let fixedN = 0;
+        for (const n of Object.keys(z1.files)) { if (!/\.(xml|rels)$/i.test(n)) continue; const x = await z1.file(n).async('string'); const r = O.parseXmlLenient(x); if (r.repaired && r.doc) { z1.file(n, '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + new XMLSerializer().serializeToString(r.doc)); fixedN++; } }
+        if (fixedN) { const b2 = await z1.generateAsync({ type: 'arraybuffer', compression: 'STORE' }); book = new E.Workbook(); await book.xlsx.load(b2); buf = b2; warnings.push('Une partie du classeur était abîmée : ce qui était lisible a été repris. Vérifiez les données.'); }
+        else throw e1;
+      } catch (e15) {
+      const strip = [/^xl\/drawings\//i, /^xl\/charts\//i, /^xl\/comments/i, /^xl\/tables\//i, /^xl\/threadedComments\//i, /^xl\/pivot/i];
+      let ok = false;
+      for (let k = 1; k <= strip.length && !ok; k++) {
+        const z2 = await JSZip.loadAsync(buf); const gone = [];
+        Object.keys(z2.files).forEach((n) => { if (strip.slice(0, k).some((re) => re.test(n))) { z2.remove(n); gone.push(n); } });
+        for (const n of Object.keys(z2.files)) if (/^xl\/worksheets\/_rels\/.*\.rels$/i.test(n)) { const x = await z2.file(n).async('string'); z2.file(n, x.replace(/<Relationship\b[^>]*Target="[^"]*(drawings|charts|comments|tables|threadedComments|pivot)[^"]*"[^>]*\/>/gi, '')); }
+        for (const n of Object.keys(z2.files)) if (/^xl\/worksheets\/[^/]+\.xml$/i.test(n)) { const x = await z2.file(n).async('string'); z2.file(n, x.replace(/<(drawing|legacyDrawing|tableParts)\b[^>]*\/>|<tableParts\b[\s\S]*?<\/tableParts>/g, '')); }
+        try { book = new E.Workbook(); await book.xlsx.load(await z2.generateAsync({ type: 'arraybuffer', compression: 'STORE' })); ok = true; warnings.push('Une partie du classeur était illisible (' + (k <= 2 ? 'images ou graphiques' : k <= 3 ? 'notes' : 'tableaux') + ') : les données ont été ouvertes sans elle.'); }
+        catch (e2) { console.warn('ExcelJS', k, e2); }
+      }
+      if (!ok) { // dernier recours : valeurs et formules par SheetJS
+        let r;
+        try { r = await TB.IO.readSheetJS(new Uint8Array(buf), 'xlsx'); } catch (e3) { const e = new Error('Ce classeur Excel est abîmé et n\'a pas pu être lu (' + ((e1 && e1.message) || 'partie illisible') + '). Essayez « Ouvrir et réparer » dans Excel.'); e.user = true; throw e; }
+        r.warnings = ['Classeur en partie illisible : seules les valeurs, formules et mises en forme simples ont été reprises.'].concat(r.warnings || []);
+        return r;
+      }
+      }
+    }
     const wb = new TB.Workbook();
     const tc = readTheme(book._themes && (book._themes.theme1 || Object.values(book._themes)[0]));
     THEME = tc ? themeIdx(tc) : null;
     if (tc && tc.join() !== TB.THEMES.classique.c.join()) wb.themeColors = tc;
     const sCache = new Map();
-    const sid = (style) => { if (!style || !Object.keys(style).length) return undefined; const k = JSON.stringify(style); let id = sCache.get(k); if (id === undefined) { id = wb.styles.add(styleIn(style)); sCache.set(k, id); } return id || undefined; };
+    const sObj = new WeakMap();
+    const sid = (style) => { if (!style) return undefined; const hit = sObj.get(style); if (hit !== undefined) return hit === -1 ? undefined : hit; const id0 = sid0(style); sObj.set(style, id0 === undefined ? -1 : id0); return id0; };
+    const sid0 = (style) => { if (!style || !Object.keys(style).length) return undefined; const k = JSON.stringify(style); let id = sCache.get(k); if (id === undefined) { id = wb.styles.add(styleIn(style)); sCache.set(k, id); } return id || undefined; };
     const media = {};
     let nCells = 0;
-    book.worksheets.forEach((ws, si) => {
+    // gros classeurs : avancement et main rendue à l'interface toutes les 1000 lignes (O.yieldUi)
+    const totalRows = book.worksheets.reduce((n, w, i) => n + (bigSheets[i] ? bigSheets[i].rows : ((w._rows || []).length || 0)), 0) || 1; let doneRows = 0;
+    const progress = opt.progress || null;
+    // dates 1904 (classeurs Mac) : date1904="1" ou "true" ; ExcelJS ne reconnaît que le premier
+    const exD1904 = !!(book.properties && book.properties.date1904);
+    const d1904 = exD1904 || /date1904="(1|true)"/.test(z.file('xl/workbook.xml') ? (await z.file('xl/workbook.xml').async('string')).slice(0, 3000) : '');
+    for (const [si, ws] of book.worksheets.entries()) {
       const sh = wb.addSheetRaw(String(ws.name || ('Feuil' + (si + 1))).slice(0, 31));
       if (ws.state === 'hidden') sh.hidden = 1; else if (ws.state === 'veryHidden') sh.hidden = 2;
       const pr = ws.properties || {};
@@ -239,7 +303,13 @@
       // cellules
       const arrays = [];
       const inArr = (r, c) => arrays.some((g) => r >= g.r1 && r <= g.r2 && c >= g.c1 && c <= g.c2 && !(r === g.r1 && c === g.c1));
-      ws.eachRow({ includeEmpty: true }, (row, rn) => {
+      const bigS = bigSheets[si] || null;
+      const rowsArr = bigS ? [] : ws._rows || [];
+      if (bigS) { await bigLoad(bigS, ws, sh, wb, sid, book, progress, doneRows, totalRows); doneRows += bigS.rows; }
+      for (let ri = 0; ri < rowsArr.length; ri++) {
+        if (!(ri % 1000)) { await O.yieldUi(); if (progress) progress(doneRows + ri, totalRows); }
+        const row = rowsArr[ri]; if (!row) continue;
+        const rn = row.number || ri + 1;
         const r = rn - 1;
         if (row.height != null && Math.abs(row.height - (pr.defaultRowHeight || 15)) > 0.01 && row.customHeight !== false) sh.rowH[r] = pxOfPt(row.height);
         if (row.hidden) sh.hidR.add(r);
@@ -259,17 +329,26 @@
               const g = fv.shareType === 'array' && fv.ref ? TB.parseRange(String(fv.ref).replace(/\$/g, '')) : null;
               wb.loadFormula(sh, r, c, cf, s, g && (g.r1 !== g.r2 || g.c1 !== g.c2) ? g : undefined);
               if (res !== null) TB._setVal(sh, r, c, res);
-            } else wb.load(sh, r, c, res, s);
+              const fo = sh.fml.get(TB.key(r, c)); if (fo) { fo.raw = String(src).replace(/^=/, ''); if (!g || (g.r1 === g.r2 && g.c1 === g.c2)) { fo.ii = true; fo.c0 = res; } }
+            } else if (src) {
+              // formule que l'analyseur ne comprend pas : gardée telle quelle avec sa dernière valeur
+              wb.loadFormula(sh, r, c, String(src).replace(/^=/, ''), s); if (res !== null) TB._setVal(sh, r, c, res);
+              const fo = sh.fml.get(TB.key(r, c)); if (fo) fo.raw = String(src).replace(/^=/, '');
+            } else wb.load(sh, r, c, res, s, true);
             return;
           }
           if (inArr(r, c)) { if (s !== undefined) wb.load(sh, r, c, null, s); return; }
           if (T === 5 && v && v.hyperlink) { const h = String(v.hyperlink); sh.links.set(TB.key(r, c), /^#/.test(h) ? { ref: h.slice(1) } : Object.assign({ url: h }, v.tooltip ? { tip: v.tooltip } : {})); }
+          const wasDate = v instanceof Date;
           v = scalarIn(v);
+          // classeur en dates 1904 : date au format personnalisé non reconnue comme date par ExcelJS → numéro de série 1900
+          if (typeof v === 'number' && d1904 && ((wasDate && !exD1904) || (!wasDate && cell.numFmt && TB.Fmt && TB.Fmt.isDate && TB.Fmt.isDate(cell.numFmt)))) v += 1462;
           if (typeof v === 'string' && v.length > 32767) v = v.slice(0, 32767);
-          wb.load(sh, r, c, v, s);
+          wb.load(sh, r, c, v, s, true);
           if (cell.note && typeof cell.note === 'string') sh.notes.set(TB.key(r, c), { text: cell.note, author: '' });
         });
-      });
+      }
+      doneRows += rowsArr.length;
       (comments[si] || []).forEach(([a, t, au]) => { const p = TB.parseAddr(a); if (p) sh.notes.set(TB.key(p.r, p.c), { text: t.replace(new RegExp('^' + (au || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ':\\s*'), ''), author: au || '' }); });
       // fusions
       ((ws.model && ws.model.merges) || []).forEach((m) => { const g = TB.parseRange(m); if (g) sh.merges.push(g); });
@@ -345,7 +424,7 @@
       sh.print = pz;
       // protection
       const sp = ws.sheetProtection; if (sp && sp.sheet) sh.protect = { hash: null, file: true, allow: { formatCells: sp.formatCells === false, formatColumns: sp.formatColumns === false, formatRows: sp.formatRows === false, insertRows: sp.insertRows === false, deleteRows: sp.deleteRows === false, sort: sp.sort === false, autoFilter: sp.autoFilter === false } };
-    });
+    }
     // noms
     rawNames.forEach((n) => {
       if (/^_xlnm\./i.test(n.n)) return; if (n.hidden && /^_/.test(n.n)) return;
@@ -361,10 +440,162 @@
     THEME = null;
     if (await hasCharts(z)) { try { (await TB.XlsxCharts.read(z, wb)).forEach((w) => warnings.push(w)); } catch (e) { warnings.push('Graphiques non repris : ' + e.message); } }
     if (z.file('xl/pivotCache/pivotCacheDefinition1.xml')) warnings.push('Tableaux croisés dynamiques repris comme valeurs (recréez-les avec Données › Tableau croisé).');
-    if (Object.keys(z.files).some((n) => /^xl\/vbaProject\.bin$/i.test(n))) warnings.push('Les macros (VBA) ne sont pas prises en charge et ne seront pas enregistrées.');
-    wb.finishLoad();
+    // parties gardées telles quelles pour l'enregistrement : liens vers d'autres classeurs, macros (jamais exécutées)
+    try {
+      const keep = {};
+      const wx = z.file('xl/workbook.xml') ? await z.file('xl/workbook.xml').async('string') : '';
+      const wr = z.file('xl/_rels/workbook.xml.rels') ? await z.file('xl/_rels/workbook.xml.rels').async('string') : '';
+      const ids = []; (/<externalReferences>([\s\S]*?)<\/externalReferences>/.exec(wx) || ['', ''])[1].replace(/r:id="([^"]+)"/g, (m0, id) => { ids.push(id); return m0; });
+      const ext = [];
+      for (const id of ids) {
+        const m = new RegExp('<Relationship\\b[^>]*Id="' + id + '"[^>]*/>').exec(wr); const t = m && /Target="([^"]+)"/.exec(m[0]); if (!t) continue;
+        const path = t[1].replace(/^\/?(xl\/)?/, 'xl/'); const f = z.file(path); if (!f) continue;
+        const rp = path.replace(/([^/]+)$/, '_rels/$1.rels');
+        ext.push({ xml: await f.async('string'), rels: z.file(rp) ? await z.file(rp).async('string') : null });
+      }
+      if (ext.length) { keep.ext = ext; warnings.push('Liens vers d\'autres classeurs : les dernières valeurs connues sont affichées (pas de mise à jour) et les liens sont gardés à l\'enregistrement .xlsx.'); }
+      const vb = z.file('xl/vbaProject.bin');
+      if (vb) { keep.vba = O.bytesToB64(await vb.async('uint8array')); warnings.push('Ce classeur contient des macros (VBA) : elles ne sont jamais exécutées ici. Elles sont gardées si vous enregistrez en .xlsm, perdues en .xlsx.'); }
+      if (keep.ext || keep.vba) wb.keep = keep;
+    } catch (e) { console.warn('parties gardées', e); }
+
+    await wb.finishLoadAsync(progress ? (i, n) => progress(totalRows + i, totalRows + n) : null);
+    if (wb.opaque && wb.opaque.n) warnings.push(wb.opaque.n + ' formule(s) ' + (wb.opaque.fn.size ? 'avec des fonctions inconnues ici (' + Array.from(wb.opaque.fn).slice(0, 4).join(', ') + ')' : 'non calculables ici (liens vers d\'autres classeurs…)') + ' : la dernière valeur calculée est gardée, et la formule est réécrite telle quelle.');
     return { wb, warnings: Array.from(new Set(warnings)) };
   };
+  /* ---------- très grandes feuilles (plus de 4 Mo de XML) : lues ici par morceaux plutôt que par ExcelJS, qui fige
+     l'interface plusieurs secondes. ExcelJS lit le reste du classeur (styles, fusions, validations, mises en forme…) et une
+     ligne témoin (1 048 576) qui porte chaque style utilisé, pour retrouver les styles des cellules. ---------- */
+  const BIG_XML = 4 * 1024 * 1024;
+  const xdec = (t) => t.indexOf('&') < 0 && t.indexOf('_x') < 0 ? t : t.replace(/&(lt|gt|amp|quot|apos|#x[0-9a-fA-F]+|#\d+);/g, (m0, e) => e === 'lt' ? '<' : e === 'gt' ? '>' : e === 'amp' ? '&' : e === 'quot' ? '"' : e === 'apos' ? "'" : String.fromCodePoint(e[1] === 'x' ? parseInt(e.slice(2), 16) : +e.slice(1))).replace(/_x([0-9A-Fa-f]{4})_/g, (m0, h) => String.fromCharCode(parseInt(h, 16)));
+  const colName = (c) => { let s = ''; c++; while (c > 0) { const m = (c - 1) % 26; s = String.fromCharCode(65 + m) + s; c = Math.floor((c - 1) / 26); } return s; };
+  async function bigAside(z, progress) {
+    const out = {};
+    const wx = z.file('xl/workbook.xml') ? await z.file('xl/workbook.xml').async('string') : '';
+    const wr = z.file('xl/_rels/workbook.xml.rels') ? await z.file('xl/_rels/workbook.xml.rels').async('string') : '';
+    const rel = {}; wr.replace(/<Relationship\b[^>]*>/g, (t) => { const id = /Id="([^"]+)"/.exec(t), tg = /Target="([^"]+)"/.exec(t); if (id && tg) rel[id[1]] = tg[1].replace(/^\/?(xl\/)?/, 'xl/'); return t; });
+    const sheets = []; wx.replace(/<sheet\b[^>]*>/g, (t) => { const id = /r:id="([^"]+)"/.exec(t) || /\bid="([^"]+)"/.exec(t); sheets.push(id ? rel[id[1]] : null); return t; });
+    for (let si = 0; si < sheets.length; si++) {
+      const f = sheets[si] && z.file(sheets[si]); if (!f) continue;
+      const size = f._data && f._data.uncompressedSize; if (!(size > BIG_XML)) continue;
+      const x = await f.async('string'); const a = x.indexOf('<sheetData'); const b = x.lastIndexOf('</sheetData>'); if (a < 0 || b < 0) continue;
+      const a2 = x.indexOf('>', a) + 1; if (x[a2 - 2] === '/') continue;
+      const sd = x.slice(a2, b);
+      // styles utilisés (balayage par morceaux)
+      const st = new Set(); const CH = 2000000;
+      for (let i = 0; i < sd.length; i += CH) { sd.slice(i, i + CH + 20).replace(/<c\b[^>]*?\ss="(\d+)"/g, (m0, k) => { st.add(+k); return m0; }); await O.yieldUi(); }
+      const styles = Array.from(st);
+      const probe = '<row r="1048576">' + styles.map((k, i) => '<c r="' + colName(i) + '1048576" s="' + k + '"/>').join('') + '</row>';
+      z.file(sheets[si], x.slice(0, a2) + probe + x.slice(b));
+      let rows = 0; for (let i = sd.indexOf('<row'); i >= 0; i = sd.indexOf('<row', i + 4)) rows++;
+      out[si] = { sd, styles, rows };
+    }
+    if (Object.keys(out).length) { const sst = await readSst(z); Object.keys(out).forEach((k) => { out[k].sst = sst; }); }
+    void progress;
+    return out;
+  }
+  async function readSst(z) {
+    const f = z.file('xl/sharedStrings.xml'); if (!f) return [];
+    const x = await f.async('string'); const out = []; const re = /<si>([\s\S]*?)<\/si>|<si\/>/g; let m, n = 0;
+    while ((m = re.exec(x))) { const inner = (m[1] || '').replace(/<rPh\b[\s\S]*?<\/rPh>/g, ''); let t = ''; inner.replace(/<t\b[^>]*>([\s\S]*?)<\/t>|<t\b[^>]*\/>/g, (a0, v) => { t += v ? xdec(v) : ''; return a0; }); out.push(t); if (!(++n % 20000)) await O.yieldUi(); }
+    return out;
+  }
+  async function bigLoad(B, ws, sh, wb, sid, book, progress, done0, total) {
+    const sst = B.sst || [];
+    // styles des cellules : ligne témoin lue par ExcelJS
+    const smap = new Map(), dateSt = new Set();
+    const probe = ws._rows && ws._rows[1048575];
+    B.styles.forEach((k, i) => { const cell = probe && probe.getCell(i + 1); const st = cell ? cell.style : null; const id = sid(st); smap.set(k, id); if (st && st.numFmt && TB.Fmt && TB.Fmt.isDate && TB.Fmt.isDate(st.numFmt)) dateSt.add(k); });
+    if (ws._rows) ws._rows.length = Math.min(ws._rows.length, 1048575);
+    const d1904 = !!(book.properties && book.properties.date1904);
+    const sd = B.sd, reRow = /<row\b([^>]*?)(\/>|>)/g, reC = /<c\b([^>]*?)(\/>|>([\s\S]*?)<\/c>)/g;
+    const shared = new Map();
+    let pos = 0, nRows = 0, t0 = performance.now();
+    while (true) {
+      reRow.lastIndex = pos; const m = reRow.exec(sd); if (!m) break;
+      const at = m[1], rr = /\br="(\d+)"/.exec(at); const r = (rr ? +rr[1] : nRows + 1) - 1;
+      let end = m[2] === '/>' ? reRow.lastIndex : sd.indexOf('</row>', reRow.lastIndex); if (end < 0) end = sd.length;
+      const ht = /\bht="([\d.]+)"/.exec(at); if (ht && /customHeight="(1|true)"/.test(at)) sh.rowH[r] = pxOfPt(+ht[1]);
+      if (/\bhidden="(1|true)"/.test(at)) sh.hidR.add(r);
+      const ol = /outlineLevel="(\d+)"/.exec(at); if (ol && +ol[1]) sh.outR[r] = +ol[1];
+      if (m[2] === '>') {
+        const body = sd.slice(reRow.lastIndex, end); reC.lastIndex = 0; let c0 = -1, cm;
+        while ((cm = reC.exec(body))) {
+          const ca = cm[1], ref = /\br="([A-Z]+)(\d+)"/.exec(ca); let c;
+          if (ref) { c = 0; for (let i = 0; i < ref[1].length; i++) c = c * 26 + ref[1].charCodeAt(i) - 64; c--; } else c = c0 + 1; c0 = c;
+          const sm = /\bs="(\d+)"/.exec(ca), sk = sm ? +sm[1] : 0, s = sm ? smap.get(sk) : undefined;
+          const tm = /\bt="(\w+)"/.exec(ca), t = tm ? tm[1] : 'n';
+          const inner = cm[3] || '';
+          const vm = /<v>([\s\S]*?)<\/v>/.exec(inner);
+          let v = null;
+          if (t === 'inlineStr') { let x = ''; inner.replace(/<t\b[^>]*>([\s\S]*?)<\/t>/g, (a0, y) => { x += xdec(y); return a0; }); v = x; }
+          else if (vm) { const raw = vm[1]; v = t === 's' ? (sst[+raw] != null ? sst[+raw] : '') : t === 'b' ? raw === '1' : t === 'e' ? (TB.errOf(raw) || TB.E.VALUE) : t === 'str' ? xdec(raw) : t === 'd' ? dateToSerial(new Date(raw)) : +raw; if (typeof v === 'number' && d1904 && dateSt.has(sk)) v += 1462; }
+          const fm = /<f\b([^>]*?)(?:\/>|>([\s\S]*?)<\/f>)/.exec(inner);
+          if (fm) {
+            const fa = fm[1], ft = /\bt="(\w+)"/.exec(fa), si2 = /\bsi="(\d+)"/.exec(fa), fref = /\bref="([^"]+)"/.exec(fa);
+            let src = fm[2] != null ? xdec(fm[2]) : null, cf = null;
+            if (ft && ft[1] === 'shared' && si2) {
+              if (src) { cf = canon(src); shared.set(si2[1], { cf, r, c }); }
+              else { const m0 = shared.get(si2[1]); if (m0 && m0.cf) { try { cf = P.write(P.shift(P.parse(m0.cf, P.CANON), r - m0.r, c - m0.c), P.CANON); } catch (e) { cf = null; } } }
+            } else if (src) cf = canon(src);
+            const g = ft && ft[1] === 'array' && fref ? TB.parseRange(fref[1].replace(/\$/g, '')) : null;
+            if (cf != null) { wb.loadFormula(sh, r, c, cf, s, g && (g.r1 !== g.r2 || g.c1 !== g.c2) ? g : undefined); if (v !== null) TB._setVal(sh, r, c, v); const fo = sh.fml.get(TB.key(r, c)); if (fo) { if (src) fo.raw = src; if (!g || (g.r1 === g.r2 && g.c1 === g.c2)) { fo.ii = true; fo.c0 = v; } } }
+            else if (src) { wb.loadFormula(sh, r, c, src, s); if (v !== null) TB._setVal(sh, r, c, v); const fo = sh.fml.get(TB.key(r, c)); if (fo) fo.raw = src; }
+            else wb.load(sh, r, c, v, s, true);
+          } else if (v !== null || s !== undefined) wb.load(sh, r, c, v, s, true);
+        }
+      }
+      pos = end; nRows++;
+      if (!(nRows % 500) && performance.now() - t0 > 25) { if (progress) progress(done0 + nRows, total); await O.yieldUi(0); t0 = performance.now(); }
+    }
+    B.sd = null;
+  }
+  const BIG_CELLS = 50000;   // au-delà (≈ 5 000 lignes × 10 colonnes), écriture directe par morceaux : ExcelJS figerait l'interface
+  const xesc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+  /** Cellules des très grandes feuilles écrites directement en XML (chaînes en ligne), styles retrouvés par la ligne témoin */
+  async function bigWrite(buf, plans, progress) {
+    const z = await JSZip.loadAsync(buf);
+    for (const pl of plans) {
+      const path = 'xl/worksheets/sheet' + (pl.si + 1) + '.xml'; const f = z.file(path); if (!f) continue;
+      let x = await f.async('string');
+      // ligne témoin : style Tableur → numéro de style du fichier
+      const map = new Map(); const pm = /<row\b[^>]*\br="1048576"[^>]*>([\s\S]*?)<\/row>/.exec(x);
+      if (pm) { const cs = pm[1].match(/<c\b[^>]*>/g) || []; cs.forEach((c) => { const m = /\br="([A-Z]+)1048576"/.exec(c), sm = /\bs="(\d+)"/.exec(c); if (!m) return; let k = 0; for (let i = 0; i < m[1].length; i++) k = k * 26 + m[1].charCodeAt(i) - 64; map.set(pl.styles[k - 1], sm ? sm[1] : '0'); }); x = x.replace(pm[0], ''); }
+      // lignes déjà écrites par ExcelJS (hauteurs, notes, liens) : fusionnées avec les nôtres
+      const theirs = new Map(); const sdm = /<sheetData\/>|<sheetData>([\s\S]*?)<\/sheetData>/.exec(x);
+      if (sdm && sdm[1]) sdm[1].replace(/<row\b([^>]*?)(?:\/>|>([\s\S]*?)<\/row>)/g, (a0, at, cells) => { const r = /\br="(\d+)"/.exec(at); if (r) theirs.set(+r[1], { at, cells: cells || '' }); return a0; });
+      const { sh, ext } = pl; const parts = []; let t0 = performance.now();
+      const sAttr = (st) => (st !== undefined && map.has(st) ? ' s="' + map.get(st) + '"' : '');
+      const val = (v) => v instanceof TB.Err ? [' t="e"', '<v>' + v.e + '</v>'] : typeof v === 'boolean' ? [' t="b"', '<v>' + (v ? 1 : 0) + '</v>'] : typeof v === 'number' ? (isFinite(v) ? ['', '<v>' + v + '</v>'] : [' t="e"', '<v>#NUM!</v>']) : v == null ? ['', ''] : null;
+      for (let r = 0; r <= ext.r; r++) {
+        let cells = '';
+        for (let c = 0; c <= ext.c; c++) {
+          const k = TB.key(r, c); if (sh.notes.has(k) || sh.links.has(k) || (sh.threads && sh.threads.has(k))) continue;
+          const fo = sh.formula(r, c), v = sh.get(r, c), st = sh.ownStyle(r, c), ref = TB.addr(r, c);
+          if (fo && fo.arrChild) { if (st !== undefined) cells += '<c r="' + ref + '"' + sAttr(st) + '/>'; continue; }
+          if (fo) {
+            const src = fo.keep && fo.keep.raw && fo.keep.src === fo.src ? fo.keep.raw : fileF(fo.src, sh, r, c);
+            const g = fo.arr || (sh.spills && sh.spills.get(k)); let rv = v; if (rv && typeof rv === 'object' && !(rv instanceof TB.Err)) rv = null;
+            const vv = val(rv) || [' t="str"', '<v>' + xesc(rv) + '</v>'];
+            cells += '<c r="' + ref + '"' + sAttr(st) + vv[0] + '><f' + (g && (g.r1 !== g.r2 || g.c1 !== g.c2) ? ' t="array" ref="' + TB.rangeStr(g) + '"' : '') + '>' + xesc(src) + '</f>' + vv[1] + '</c>';
+          } else if (v !== null) {
+            const vv = val(v);
+            cells += vv ? '<c r="' + ref + '"' + sAttr(st) + vv[0] + '>' + vv[1] + '</c>' : '<c r="' + ref + '"' + sAttr(st) + ' t="inlineStr"><is><t xml:space="preserve">' + xesc(v) + '</t></is></c>';
+          } else if (st !== undefined) cells += '<c r="' + ref + '"' + sAttr(st) + '/>';
+        }
+        const th = theirs.get(r + 1);
+        if (th) { theirs.delete(r + 1); const all = (cells + th.cells).match(/<c\b[^>]*?(?:\/>|>[\s\S]*?<\/c>)/g) || []; const col = (c) => { const m = /\br="([A-Z]+)/.exec(c); let k = 0; for (let i = 0; i < m[1].length; i++) k = k * 26 + m[1].charCodeAt(i) - 64; return k; }; all.sort((a, b) => col(a) - col(b)); parts.push('<row' + th.at + '>' + all.join('') + '</row>'); }
+        else if (cells) parts.push('<row r="' + (r + 1) + '">' + cells + '</row>');
+        if (!(r % 500) && performance.now() - t0 > 25) { if (progress) progress(r, ext.r + 1); await O.yieldUi(0); t0 = performance.now(); }
+      }
+      theirs.forEach((th, rn) => { if (rn !== 1048576) parts.push('<row' + th.at + '>' + th.cells + '</row>'); });
+      const sd = '<sheetData>' + parts.join('') + '</sheetData>';
+      x = sdm ? x.slice(0, sdm.index) + sd + x.slice(sdm.index + sdm[0].length) : x;
+      x = x.replace(/<dimension ref="[^"]*"\/>/, '<dimension ref="A1:' + TB.addr(ext.r, ext.c) + '"/>');
+      z.file(path, x); await O.yieldUi(0);
+    }
+    return z.generateAsync({ type: 'uint8array', compression: 'STORE' });
+  }
   async function hasCharts(z) { return Object.keys(z.files).some((n) => /^xl\/charts\/chart\d+\.xml$/i.test(n)); }
 
   const CF_OPS_IN = { greaterThan: 'gt', lessThan: 'lt', greaterThanOrEqual: 'ge', lessThanOrEqual: 'le', equal: 'eq', notEqual: 'ne', between: 'between', notBetween: 'notBetween' };
@@ -436,6 +667,7 @@
     book.views = [{ x: 0, y: 0, width: 20000, height: 12000, firstSheet: 0, activeTab: Math.max(0, wb.sheets.indexOf(wb.cur)), visibility: 'visible' }];
     const sCache = new Map(); const styleOf = (id) => { let s = sCache.get(id); if (!s) { s = styleOut(wb.styles.get(id)); sCache.set(id, s); } return s; };
     const extra = []; // tableaux, par feuille
+    const bigPlans = [];
     let charts = 0;
     for (let si = 0; si < wb.sheets.length; si++) {
       const sh = wb.sheets[si];
@@ -474,9 +706,10 @@
         if (!f && v === null && s === undefined && !sh.notes.has(k) && !sh.links.has(k)) return;
         const cell = ws.getCell(r + 1, c + 1);
         if (s !== undefined) cell.style = styleOf(s);
-        const res = (x) => x instanceof TB.Err ? { error: TB.errText(x) } : x;
+        const res = (x) => x instanceof TB.Err ? { error: x.e } : x;   // codes d'erreur du format (#N/A, #NAME?…), jamais traduits
         if (f) {
-          const src = fileF(f.src, sh, r, c);
+          // formule gardée telle quelle (fonction inconnue, lien vers un autre classeur) : texte et valeur d'origine
+          const src = f.keep && f.keep.raw && f.keep.src === f.src ? f.keep.raw : fileF(f.src, sh, r, c);
           const g = f.arr || (sh.spills && sh.spills.get(k));
           let rv = v; if (rv && typeof rv === 'object' && !(rv instanceof TB.Err)) rv = null;
           if (g && (g.r1 !== g.r2 || g.c1 !== g.c2)) { cell.value = { formula: src, result: res(rv), shareType: 'array', ref: TB.rangeStr(g) }; }
@@ -492,7 +725,13 @@
         const n = sh.notes.get(k); if (n) cell.note = { texts: [{ font: { bold: true, size: 9, name: 'Tahoma' }, text: (n.author ? n.author + ':\n' : '') }, { font: { size: 9, name: 'Tahoma' }, text: n.text || '' }].filter((x) => x.text), margins: { insetmode: 'auto' } };
         const th = sh.threads && sh.threads.get(k); if (!n && th && th.items && th.items.length) cell.note = th.items.map((m) => (m.author ? m.author + ' : ' : '') + m.text).join('\n');
       };
-      for (let r = 0; r <= ext.r; r++) for (let c = 0; c <= ext.c; c++) outCell(r, c);
+      if ((ext.r + 1) * (ext.c + 1) > BIG_CELLS) {
+        // très grande feuille : cellules écrites à part, par morceaux (bigWrite) ; ExcelJS n'écrit que notes et liens
+        const used = new Set(); const plan = { si, sh, ext, used, ws };
+        for (let r = 0; r <= ext.r; r++) { if (!(r % 2000)) await O.yieldUi(); for (let c = 0; c <= ext.c; c++) { const k = TB.key(r, c); if (sh.notes.has(k) || sh.links.has(k) || (sh.threads && sh.threads.has(k))) outCell(r, c); else { const st = sh.ownStyle(r, c); if (st !== undefined) used.add(st); } } }
+        plan.styles = Array.from(used); plan.styles.forEach((id, i) => { ws.getCell(1048576, i + 1).style = styleOf(id); });
+        bigPlans.push(plan);
+      } else for (let r = 0; r <= ext.r; r++) { if (!(r % 3000)) await O.yieldUi(); for (let c = 0; c <= ext.c; c++) outCell(r, c); }
       void arrSkip;
       // fusions
       sh.merges.forEach((m) => { try { ws.mergeCells(m.r1 + 1, m.c1 + 1, m.r2 + 1, m.c2 + 1); } catch (e) { warn.push('Fusion ' + TB.rangeStr(m) + ' : ' + e.message); } });
@@ -540,8 +779,9 @@
       if (sh.tables.length) extra.push({ si, tables: sh.tables });
     }
     let out = await book.xlsx.writeBuffer();
+    if (bigPlans.length) out = await bigWrite(out, bigPlans, opt.progress);
     // ajouts au paquet : tableaux, noms
-    out = await patchPackage(out, wb, extra, warn); void charts;
+    out = await patchPackage(out, wb, extra, warn, opt); void charts;
     return { blob: new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), warn: Array.from(new Set(warn)) };
   };
 
@@ -554,14 +794,14 @@
     if (!ext && !before) return sx;
     return sx.replace('</worksheet>', () => before + ext + '</worksheet>');
   }
-  async function patchPackage(buf, wb, extra, warn) {
+  async function patchPackage(buf, wb, extra, warn, extraOpt) {
     const z = await JSZip.loadAsync(buf);
     let ct = await z.file('[Content_Types].xml').async('string');
     let tid = 0;
     // ExcelJS place l'extLst de la feuille (barres de données) avant dataValidations : on la remet à la fin (ordre du schéma)
     for (let si = 0; si < wb.sheets.length; si++) {
       const sp = 'xl/worksheets/sheet' + (si + 1) + '.xml'; if (!z.file(sp)) continue;
-      const sx = await z.file(sp).async('string'); const fixed = moveExt(sx, '');
+      const sx = await z.file(sp).async('string'); if (sx.indexOf('<extLst') < 0) continue; const fixed = moveExt(sx, '');
       if (fixed !== sx) z.file(sp, fixed);
     }
     for (const { si, tables } of extra) {
@@ -602,7 +842,39 @@
       z.file('xl/workbook.xml', x);
     }
     if (wb.sheets.some((s) => s.objs.some((o) => o.type === 'chart'))) { try { const r = await TB.XlsxCharts.write(z, wb); if (r.skipped) warn.push(r.skipped + ' graphique(s) sans données non exporté(s)'); } catch (e) { console.warn(e); warn.push('Graphiques non exportés : ' + e.message); } }
+    await keepOut(z, wb, extraOpt, warn);
     return z.generateAsync({ type: 'uint8array', compression: 'DEFLATE', compressionOptions: { level: 6 }, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  }
+  /** Parties gardées à l'import (liens externes, macros) et type du fichier selon son extension (.xlsm, .xltx) :
+      un .xlsm réécrit doit rester un classeur « avec macros », sinon Excel refuse de l'ouvrir */
+  async function keepOut(z, wb, opt, warn) {
+    const K = wb.keep || {}, target = String((opt && opt.fileName) || wb.fileName || '');
+    const macro = /\.xlsm$/i.test(target), tpl = /\.xltx$/i.test(target);
+    let ct = await z.file('[Content_Types].xml').async('string');
+    let wx = await z.file('xl/workbook.xml').async('string');
+    let rels = await z.file('xl/_rels/workbook.xml.rels').async('string');
+    const RT = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/';
+    if (K.ext && K.ext.length && !/<externalReferences>/.test(wx)) {
+      const refs = [];
+      K.ext.forEach((e, i) => {
+        const p = 'xl/externalLinks/externalLink' + (i + 1) + '.xml', id = 'rIdXl' + (i + 1);
+        z.file(p, e.xml); if (e.rels) z.file('xl/externalLinks/_rels/externalLink' + (i + 1) + '.xml.rels', e.rels);
+        rels = rels.replace('</Relationships>', () => '<Relationship Id="' + id + '" Type="' + RT + 'externalLink" Target="externalLinks/externalLink' + (i + 1) + '.xml"/></Relationships>');
+        ct = ct.replace('</Types>', () => '<Override PartName="/' + p + '" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.externalLink+xml"/></Types>');
+        refs.push('<externalReference r:id="' + id + '"/>');
+      });
+      if (!/xmlns:r=/.test(wx.slice(0, 800))) wx = wx.replace('<workbook ', () => '<workbook xmlns:r="' + RT.replace(/\/$/, '') + '" ');
+      wx = wx.replace('</sheets>', () => '</sheets><externalReferences>' + refs.join('') + '</externalReferences>');
+    }
+    if (macro && K.vba) {
+      z.file('xl/vbaProject.bin', O.b64ToBytes(K.vba));
+      rels = rels.replace('</Relationships>', () => '<Relationship Id="rIdVba1" Type="http://schemas.microsoft.com/office/2006/relationships/vbaProject" Target="vbaProject.bin"/></Relationships>');
+      if (!/Extension="bin"/.test(ct)) ct = ct.replace('</Types>', () => '<Default Extension="bin" ContentType="application/vnd.ms-office.vbaProject"/></Types>');
+    } else if (K.vba && !macro) warn.push('Les macros (VBA) ne sont pas incluses dans un .xlsx : enregistrez en .xlsm pour les garder.');
+    const MAIN = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml';
+    if (macro) ct = ct.replace(MAIN, 'application/vnd.ms-excel.sheet.macroEnabled.main+xml');
+    else if (tpl) ct = ct.replace(MAIN, 'application/vnd.openxmlformats-officedocument.spreadsheetml.template.main+xml');
+    z.file('[Content_Types].xml', ct); z.file('xl/workbook.xml', wx); z.file('xl/_rels/workbook.xml.rels', rels);
   }
   X._styleIn = styleIn; X._styleOut = styleOut; X._cfIn = cfIn; X._cfOut = cfOut;
 })();

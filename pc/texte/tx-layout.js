@@ -24,8 +24,11 @@
     const cache = new Map();
     tabs.forEach((t) => { t.style.width = '0px'; t.removeAttribute('data-lead'); });
     const rng = document.createRange();
-    tabs.forEach((t) => {
-      const p = t.closest('p'); if (!p) return;
+    // lectures puis écritures par « tour » (1re tabulation de chaque paragraphe, puis 2e…) : un recalcul de mise en page
+    // par tour au lieu d'un par paragraphe (en-têtes et pieds de 150 pages : 1 s → quelques ms)
+    const byP = new Map(); tabs.forEach((t) => { const p = t.closest('p'); if (!p) return; let l = byP.get(p); if (!l) byP.set(p, l = []); l.push(t); });
+    let maxK = 0; byP.forEach((l) => { if (l.length > maxK) maxK = l.length; });
+    const one = (t, p) => {
       let info = cache.get(p);
       if (!info) {
         const box = p.parentElement, br = box.getBoundingClientRect(), bs = getComputedStyle(box);
@@ -57,9 +60,12 @@
         w = stop.t === 'center' ? w - txt / 2 : w - txt;
         if (w < 1) w = 1;
       }
-      t.style.width = Math.max(1, w) + 'px';
-      if (stop.lead && stop.lead !== 'none') t.setAttribute('data-lead', stop.lead);
-    });
+      return [t, Math.max(1, w), stop.lead && stop.lead !== 'none' ? stop.lead : null];
+    };
+    for (let k = 0; k < maxK; k++) {
+      const writes = []; byP.forEach((list, p) => { if (list[k]) writes.push(one(list[k], p)); });
+      writes.forEach(([t, w, lead]) => { t.style.width = w + 'px'; if (lead) t.setAttribute('data-lead', lead); });
+    }
   };
 
   /* ---------------- mise en page ---------------- */
@@ -371,7 +377,7 @@
         const fn = notesIn(b.dom);
         let off = delta;   // décalage déjà appliqué à ce paragraphe
         let first = 0;     // première ligne de la page courante
-        let i = 0;
+        let i = 0, moved = false;   // déjà passé à la page suivante : ne plus recommencer (sinon pages sans fin)
         while (i < lines.length) {
           const ln = lines[i], top = ln.boxTop + off, bottom = ln.boxBottom + off;
           const lnNotes = fn.filter((x) => x.y + off > top - 0.5 && x.y + off <= bottom + 0.5);
@@ -384,8 +390,8 @@
           if (wc && k - first === 1 && first === 0 && lines.length > 1) k = first;          // orpheline : 1 seule ligne en bas de page
           else if (wc && lines.length - k === 1 && k - first >= 2) k--;                       // veuve : 1 seule ligne en haut de la page suivante
           if (k === first && first === 0) {
-            if (top - (lines[0].boxTop + off) < 1 && (b.top <= page.contentTop + 1)) { addNotes(page, lnNotes); page.used = Math.max(page.used, bottom); i++; continue; }   // déjà en haut de page : on laisse
-            const before = delta; moveToNext(b); off += delta - before; first = 0; i = 0; continue;
+            if (moved || (top - (lines[0].boxTop + off) < 1 && (b.top <= page.contentTop + 1))) { addNotes(page, lnNotes); page.used = Math.max(page.used, bottom); i++; continue; }   // déjà en haut de page : on laisse
+            const before = delta; moveToNext(b); moved = true; off += delta - before; first = 0; i = 0; continue;
           }
           if (k === first) { addNotes(page, lnNotes); page.used = Math.max(page.used, bottom); i++; continue; }   // la ligne est déjà en haut de page
           const pos = lineStartPos(lines[k]);

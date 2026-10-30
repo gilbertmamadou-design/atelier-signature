@@ -54,10 +54,16 @@
     const clipOf = (y0, y1) => { // pages traversées par un élément (fond d'un paragraphe coupé)
       const list = []; pages.forEach((p, i) => { const top = Math.max(y0, p.top), bot = Math.min(y1, p.top + p.H); if (bot > top + 0.5) list.push({ i, top, bot }); }); return list;
     };
+    // opt.only : pages voulues (vignette : la première seulement) ; les autres éléments ne sont pas mesurés en détail
+    const only = opt.only || null, wanted = (b) => !only || only.has(pageAt(b.y)) || only.has(pageAt(b.y + b.h));
+    const lastY = only ? Math.max(...Array.from(only).map((i) => pages[i] ? pages[i].top + pages[i].H : 0)) : Infinity;
+    let ek = 0, past = 0, curRoot = null;
     for (const el of els) {
-      const cs = getComputedStyle(el); if (!visible(cs)) continue;
+      if (!only && !(++ek % 200)) await O.yieldUi(150);   // gros documents : l'interface reste réactive pendant l'export
+      const rt = roots.find((x) => x && x.contains(el)); if (rt !== curRoot) { curRoot = rt; past = 0; } else if (past > 60) continue;   // pages voulues dépassées (ordre du document)
       const r = el.getBoundingClientRect(); if (!r.width && !r.height) continue;
-      const b = toP(r);
+      const b = toP(r); if (b.y > lastY) past++; else past = 0; if (!wanted(b)) continue;
+      const cs = getComputedStyle(el); if (!visible(cs)) continue;
       // images
       if (el.classList.contains('tx-img') && el.querySelector('img')) { push(pageAt(b.y + b.h / 2), { k: 'img', el, kind: 'img', box: b, pi: pageAt(b.y + b.h / 2) }); continue; }
       if (el.classList.contains('tx-drw-g') || (el.classList.contains('tx-math') && el.querySelector('.katex'))) { push(pageAt(b.y + b.h / 2), { k: 'img', el, kind: el.classList.contains('tx-math') ? 'math' : 'svg', box: b, pi: pageAt(b.y + b.h / 2) }); if (el.classList.contains('tx-math')) continue; }
@@ -97,9 +103,12 @@
     const rng = document.createRange();
     for (const root of roots) {
       const tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: (n) => { const p = n.parentElement; if (!p || p.closest(SKIP) || p.closest('.tx-wm') || p.closest('.tx-tab') || p.closest('.katex') || p.closest('.tx-math-src') && false) return NodeFilter.FILTER_REJECT; return /\S/.test(n.data) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; } });
-      let n;
+      let n, tk = 0, tpast = 0;
       while ((n = tw.nextNode())) {
-        const pe = n.parentElement, cs = getComputedStyle(pe); if (!visible(cs)) continue;
+        if (!only && !(++tk % 200)) await O.yieldUi(150);
+        const pe = n.parentElement;
+        if (only) { if (tpast > 60) break; const pb = toP(pe.getBoundingClientRect()); if (pb.y > lastY) tpast++; else tpast = 0; if (!wanted(pb)) continue; }
+        const cs = getComputedStyle(pe); if (!visible(cs)) continue;
         let hidden = false; for (let x = pe; x && x !== root; x = x.parentElement) { const c2 = x === pe ? cs : getComputedStyle(x); if (c2.display === 'none' || c2.visibility === 'hidden') { hidden = true; break; } } if (hidden) continue;
         const fam = P.familyOf(cs.fontFamily), size = parseFloat(cs.fontSize), b = parseInt(cs.fontWeight, 10) >= 600, it = cs.fontStyle === 'italic' || cs.fontStyle === 'oblique';
         const color = colorOf(cs.color) || '#000000', tt = cs.textTransform, sc = cs.fontVariantCaps === 'small-caps' || cs.fontVariant === 'small-caps';
@@ -171,7 +180,8 @@
   async function rasterize(it, scale, A) {
     const el = it.el, b = it.box;
     if (it.kind === 'img') {
-      const img = el.querySelector('img'); await (img.decode ? img.decode().catch(() => { }) : null);
+      const img = el.querySelector('img'); if (!img) return null; await (img.decode ? img.decode().catch(() => { }) : null);
+      if (!img.complete || !img.naturalWidth) return null;   // image illisible (format inconnu, fichier abîmé) : rien plutôt qu'un export qui échoue
       const er = el.getBoundingClientRect(), s = A.layout.scale || 1;
       // dimensions de l'image affichée (sans rotation)
       const cw = el.offsetWidth, ch = el.offsetHeight;
@@ -181,7 +191,7 @@
       const tf = getComputedStyle(el).transform; if (tf && tf !== 'none') { const m = new DOMMatrix(tf); x.transform(m.a, m.b, m.c, m.d, 0, 0); }
       x.scale(k, k); x.translate(-cw / 2, -ch / 2);
       const inner = el.querySelector('.tx-img-in'); x.beginPath(); x.rect(0, 0, inner.offsetWidth, inner.offsetHeight); x.clip();
-      x.drawImage(img, img.offsetLeft, img.offsetTop, img.offsetWidth, img.offsetHeight);
+      try { x.drawImage(img, img.offsetLeft, img.offsetTop, img.offsetWidth, img.offsetHeight); } catch (e) { console.warn('image', e); return null; }
       const ol = parseFloat(getComputedStyle(el).outlineWidth) || 0; if (ol && getComputedStyle(el).outlineStyle !== 'none') { x.strokeStyle = getComputedStyle(el).outlineColor; x.lineWidth = ol; x.strokeRect(ol / 2, ol / 2, cw - ol, ch - ol); }
       const alpha = /png|gif|svg|webp/.test((TX.media.blobs[(img.closest('[data-m]') || {}).dataset && 0] || {}).type || img.src.slice(0, 30)) || /^data:image\/(png|gif|svg)|blob:/.test(img.src) && /png|svg|gif/.test(img.getAttribute('src'));
       return { url: c.toDataURL(alpha ? 'image/png' : 'image/jpeg', 0.9), w: b.w, h: b.h, x: b.x, y: b.y, fmt: alpha ? 'PNG' : 'JPEG' };
@@ -344,7 +354,7 @@
   P.thumb = async function (A, width) {
     width = width || 240;
     const L = A.layout; if (!L.pages.length || L.mode !== 'page') return '';
-    const col = await P.collect(A, { thumb: true }); const p = L.pages[0], list = col.pages[0];
+    const col = await P.collect(A, { thumb: true, only: new Set([0]) }); const p = L.pages[0], list = col.pages[0];
     const k = width / (p.W / PX), c = document.createElement('canvas'); c.width = width; c.height = Math.round(p.H / PX * k);
     const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.scale(k, k);
     list.forEach((o) => { if (o.k === 'rect') { x.fillStyle = o.fill; x.globalAlpha = o.op || 1; x.fillRect(o.x, o.y, o.w, o.h); x.globalAlpha = 1; } });

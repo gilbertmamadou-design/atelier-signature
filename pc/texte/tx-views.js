@@ -9,12 +9,17 @@
 
   /* ---------------- médias (images du document) ---------------- */
   const M = TX.media = { blobs: {}, urls: {}, info: {} };
-  M.url = (id) => { if (!id) return ''; if (M.urls[id]) return M.urls[id]; const b = M.blobs[id]; if (!b) return ''; return (M.urls[id] = URL.createObjectURL(b)); };
+  M.url = (id) => {
+    if (!id) return ''; if (M.urls[id]) return M.urls[id]; const b = M.blobs[id]; if (!b) return '';
+    // EMF / WMF / TIFF : le navigateur ne sait pas les dessiner → cadre à la place, fichier gardé tel quel à l'enregistrement
+    if (O.unviewableImage(b.type)) return (M.urls[id] = O.placeholderImage('Image ' + O.imageKind(b.type), 'conservée telle quelle (non affichable ici)', 400, 220));
+    return (M.urls[id] = URL.createObjectURL(b));
+  };
   M.add = function (blob, name, info) {
     for (const k in M.blobs) if (M.blobs[k] === blob) return k;
     const id = TX.uid('m'); M.blobs[id] = blob; M.info[id] = Object.assign({ name: name || 'image', type: blob.type }, info || {}); return id;
   };
-  M.reset = function (blobs, info) { Object.values(M.urls).forEach((u) => { try { URL.revokeObjectURL(u); } catch (e) { } }); M.blobs = blobs || {}; M.urls = {}; M.info = info || {}; };
+  M.reset = function (blobs, info) { Object.values(M.urls).forEach((u) => { try { if (/^blob:/.test(u)) URL.revokeObjectURL(u); } catch (e) { } }); M.blobs = blobs || {}; M.urls = {}; M.info = info || {}; };
   M.dataUrl = async (id) => M.blobs[id] ? O.blobToDataURL(M.blobs[id]) : '';
   /** Médias utilisés par un JSON de document (corps, en-têtes, notes) */
   M.used = function (json) { const s = new Set(); JSON.stringify(json, (k, v) => { if ((k === 'm' || k === 'media') && typeof v === 'string' && M.blobs[v]) s.add(v); return v; }); return s; };

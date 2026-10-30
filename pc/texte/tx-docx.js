@@ -152,6 +152,12 @@
     catch (e) { return null; } finally { host.remove(); }
   }
   D._renderPng = renderToPng; D._mathPng = mathPng;
+  /** PNG de repli d'un SVG, à 2× la taille affichée */
+  async function svgPng(blob, wPt, hPt) {
+    const url = URL.createObjectURL(blob);
+    try { const im = new Image(); im.src = url; await im.decode(); const c = document.createElement('canvas'); c.width = Math.max(2, Math.round((wPt || 100) * 8 / 3)); c.height = Math.max(2, Math.round((hPt || 100) * 8 / 3)); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); return await new Promise((ok) => c.toBlob(ok, 'image/png')); }
+    catch (e) { return null; } finally { URL.revokeObjectURL(url); }
+  }
   async function toPngBlob(blob) {
     const url = URL.createObjectURL(blob);
     try { const im = new Image(); im.src = url; await im.decode(); const c = document.createElement('canvas'); c.width = im.naturalWidth || 300; c.height = im.naturalHeight || 150; c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); return await new Promise((ok) => c.toBlob(ok, 'image/png')); }
@@ -206,12 +212,48 @@
       let file = mediaDone.get(key);
       if (!file) {
         let blob = await getBlob(); if (!blob) return null;
-        let ext = { 'image/png': 'png', 'image/jpeg': 'jpeg', 'image/gif': 'gif', 'image/bmp': 'bmp' }[blob.type];
+        // formats que Word lit tels quels (EMF / WMF / TIFF venus d'un .docx) : jamais convertis, jamais perdus
+        let ext = { 'image/png': 'png', 'image/jpeg': 'jpeg', 'image/gif': 'gif', 'image/bmp': 'bmp', 'image/x-emf': 'emf', 'image/emf': 'emf', 'image/x-wmf': 'wmf', 'image/wmf': 'wmf', 'image/tiff': 'tiff', 'image/svg+xml': 'svg' }[blob.type];
+        if (blob.type === 'image/x-svm') { // format propre à LibreOffice, illisible par Word : cadre à la place
+          try { blob = await toPngBlob(await (await fetch(O.placeholderImage('Image SVM', 'format LibreOffice', 400, 220))).blob()); ext = 'png'; warn.add('Les images au format SVM (LibreOffice) sont remplacées par un cadre dans le .docx.'); } catch (e) { return null; }
+        }
+        if (!ext && O.unviewableImage(blob.type)) ext = O.imageKind(blob.type).toLowerCase();
         if (!ext) { blob = await toPngBlob(blob); ext = 'png'; if (!blob) return null; }
         file = 'media/image' + (++mediaN) + '.' + ext; ctypes.add(ext);
         z.file('word/' + file, blob); mediaDone.set(key, file);
       }
       return addRel(bucket, 'image', file);
+    }
+    /* objets gardés tels quels à l'import (graphiques, SmartArt, groupes, objets OLE…) : parties recopiées sous un
+       nouveau nom, relations renumérotées ; null si une pièce manque ou si l'objet a été modifié dans Texte */
+    const overrides = []; let keepN = 0;
+    const relPath = (fromDir, to) => { const a = fromDir.split('/').filter(Boolean), b = to.split('/'); let i = 0; while (i < a.length && i < b.length - 1 && a[i] === b[i]) i++; return '../'.repeat(a.length - i) + b.slice(i).join('/'); };
+    const sigOf = (a) => a.kind === 'chart' ? JSON.stringify(a.chart) : a.kind === 'smart' ? JSON.stringify(a.smart) : a.kind === 'textbox' || a.kind === 'shape' ? a.html : 'ole';
+    async function keepXml(k, bucket, a) {
+      if (!k || !k.xml || (k.sig && a && sigOf(a) !== k.sig && !(k.sig === 'ole' && !a.kind))) return null;
+      const done = new Map();
+      async function part(path) {
+        const e = k.parts[path]; if (!e) return null; if (done.has(path)) return done.get(path);
+        const blob = TX.media.blobs[e.m]; if (!blob) return null;
+        const dir = path.replace(/[^/]+$/, ''), np = dir + path.slice(dir.length).replace(/(\.[^.]+)?$/, (x) => '_k' + (++keepN) + (x || ''));
+        done.set(path, np);
+        const rl = [];
+        for (const r of e.rels) { let t = r.t; if (!r.ext) { const n2 = await part(r.t); if (!n2) continue; t = relPath(dir, n2); } rl.push('<Relationship Id="' + esc(r.id) + '" Type="' + esc(r.type) + '" Target="' + esc(t) + '"' + (r.ext ? ' TargetMode="External"' : '') + '/>'); }
+        z.file(np, blob);
+        if (rl.length) z.file(dir + '_rels/' + np.slice(dir.length) + '.rels', XML + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + rl.join('') + '</Relationships>');
+        overrides.push(['/' + np, e.ct || 'application/octet-stream']);
+        return np;
+      }
+      const map = {};
+      for (const rid of Object.keys(k.rels || {})) {
+        const r = k.rels[rid]; let target;
+        if (r.ext) target = r.t; else { const np = await part(r.t); if (!np) return null; target = relPath('word/', np); }
+        const id = 'rId' + (++relN + 20); bucket.push('<Relationship Id="' + id + '" Type="' + esc(r.type) + '" Target="' + esc(target) + '"' + (r.ext ? ' TargetMode="External"' : '') + '/>'); map[rid] = id;
+      }
+      let x = k.xml.replace(/(\sr:[A-Za-z]+=")([^"]*)(")/g, (m0, p1, id, p3) => (map[id] ? p1 + map[id] + p3 : m0));
+      x = x.replace(/(<wp:docPr\b[^>]*?\sid=")(\d+)(")/g, (m0, p1, id, p3) => p1 + (++drawN + 1000) + p3);
+      if (a && k.w && a.w && (Math.abs(a.w - k.w) > 0.5 || Math.abs(a.h - k.h) > 0.5)) x = x.replace(/(<wp:extent\s+cx=")\d+("\s+cy=")\d+/, (m0, p1, p2) => p1 + emu(a.w) + p2 + emu(a.h));
+      return '<w:r>' + x + '</w:r>';
     }
     /* listes : abstractNum + num */
     const absXml = [], numXml = []; const absOf = {}, cur = {}; let numN = 0;
@@ -341,18 +383,29 @@
       const crop = a.crop && (a.crop.l || a.crop.t || a.crop.r || a.crop.b) ? '<a:srcRect l="' + Math.round((a.crop.l || 0) * 100000) + '" t="' + Math.round((a.crop.t || 0) * 100000) + '" r="' + Math.round((a.crop.r || 0) * 100000) + '" b="' + Math.round((a.crop.b || 0) * 100000) + '"/>' : '';
       const ln = a.bd && a.bd.s && a.bd.s !== 'none' ? '<a:ln w="' + emu(a.bd.w || 1) + '"><a:solidFill><a:srgbClr val="' + fillHex(a.bd.c || '#000000', theme) + '"/></a:solidFill>' + (a.bd.s === 'dashed' ? '<a:prstDash val="dash"/>' : a.bd.s === 'dotted' ? '<a:prstDash val="sysDot"/>' : '') + '</a:ln>' : '';
       const id = ++drawN;
-      return '<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="' + id + '" name="Image ' + id + '" descr="' + esc(a.alt || '') + '"/><pic:cNvPicPr><a:picLocks noChangeAspect="1"/></pic:cNvPicPr></pic:nvPicPr><pic:blipFill><a:blip r:embed="' + rid + '"/>' + crop + '<a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm' + (a.rot ? ' rot="' + Math.round(a.rot * 60000) + '"' : '') + (a.fh ? ' flipH="1"' : '') + (a.fv ? ' flipV="1"' : '') + '><a:off x="0" y="0"/><a:ext cx="' + emu(w) + '" cy="' + emu(h) + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom>' + ln + '</pic:spPr></pic:pic></a:graphicData></a:graphic>';
+      return '<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="' + id + '" name="Image ' + id + '" descr="' + esc(a.alt || '') + '"/><pic:cNvPicPr><a:picLocks noChangeAspect="1"/></pic:cNvPicPr></pic:nvPicPr><pic:blipFill><a:blip r:embed="' + rid + '"' + (a.svgRid ? '><a:extLst><a:ext uri="{96DAC541-7B7A-43D3-8B79-37D633B846F1}"><asvg:svgBlip xmlns:asvg="http://schemas.microsoft.com/office/drawing/2016/SVG/main" r:embed="' + a.svgRid + '"/></a:ext></a:extLst></a:blip>' : '/>') + crop + '<a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm' + (a.rot ? ' rot="' + Math.round(a.rot * 60000) + '"' : '') + (a.fh ? ' flipH="1"' : '') + (a.fv ? ' flipV="1"' : '') + '><a:off x="0" y="0"/><a:ext cx="' + emu(w) + '" cy="' + emu(h) + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom>' + ln + '</pic:spPr></pic:pic></a:graphicData></a:graphic>';
     }
     function docPr(a, name) { const id = ++drawN; return '<wp:docPr id="' + id + '" name="' + esc(name + ' ' + id) + '" descr="' + esc(a.alt || '') + '"' + (a.dec ? '' : '') + '>' + (a.link ? '' : '') + '</wp:docPr><wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr>'; }
     function drawingInline(rid, w, h, alt, a) { return '<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="' + emu(w) + '" cy="' + emu(h) + '"/><wp:effectExtent l="0" t="0" r="0" b="0"/>' + docPr({ alt }, 'Image') + graphicPic(rid, w, h, Object.assign({ alt }, a || {})) + '</wp:inline></w:drawing>'; }
     async function imageXml(a, bucket) {
-      const rid = await mediaRel(bucket, 'm:' + (a.m || a.src), async () => { if (a.m && TX.media.blobs[a.m]) return TX.media.blobs[a.m]; if (a.src) { try { return await (await fetch(a.src)).blob(); } catch (e) { return null; } } return null; });
+      if (a.keep && a.keep.xml) { const k = await keepXml(a.keep, bucket, a); if (k) return k; }
+      const getB = async () => { if (a.m && TX.media.blobs[a.m]) return TX.media.blobs[a.m]; if (a.src) { try { return await (await fetch(a.src)).blob(); } catch (e) { return null; } } return null; };
+      const b0 = await getB();
+      let rid, svgRid = null;
+      if (b0 && b0.type === 'image/svg+xml') {
+        // SVG : Word attend une image PNG de repli dans a:blip et le SVG dans l'extension svgBlip
+        svgRid = await mediaRel(bucket, 'm:' + (a.m || a.src), async () => b0);
+        rid = await mediaRel(bucket, 'svgpng:' + (a.m || a.src), async () => svgPng(b0, a.w, a.h));
+        if (!rid) { rid = svgRid; svgRid = null; }
+      } else rid = await mediaRel(bucket, 'm:' + (a.m || a.src), async () => b0);
       if (!rid) { warn.add('Une image introuvable n\'a pas été enregistrée.'); return ''; }
+      if (svgRid) a = Object.assign({}, a, { svgRid });
       if (!a.wrap || a.wrap === 'inline') return '<w:r>' + drawingInline(rid, a.w, a.h, a.alt, a) + '</w:r>';
       const p = anchorPos(a);
       return '<w:r><w:drawing>' + p.open + '<wp:extent cx="' + emu(a.w) + '" cy="' + emu(a.h) + '"/><wp:effectExtent l="0" t="0" r="0" b="0"/>' + p.wrap + docPr(a, 'Image') + graphicPic(rid, a.w, a.h, a) + '</wp:anchor></w:drawing></w:r>';
     }
     async function drawingXml(a, bucket) {
+      if (a.keep && a.keep.xml) { const k = await keepXml(a.keep, bucket, a); if (k) return k; }
       const P = window.Pres;
       const isGeom = (a.kind === 'shape' || a.kind === 'textbox') && (!P || !P.SHAPES || P.SHAPES.some((s) => s.id === a.shape) || a.kind === 'textbox');
       if (!isGeom) {
@@ -444,7 +497,7 @@
           tc += '</w:tcPr>';
           if (c.cont) { x += '<w:tc>' + tc + '<w:p/></w:tc>'; continue; }
           let inner = await blocksXml(cell, bucket, state, true);
-          if (!/<w:p[ >]|<w:p\/>/.test(inner.slice(-200)) || /<\/w:tbl>$/.test(inner)) inner += '<w:p/>';
+          if (!/(<\/w:p>|<w:p\/>)\s*$/.test(inner)) inner += '<w:p/>';   // une cellule finit par un paragraphe (sinon : un de plus à chaque aller-retour)
           x += '<w:tc>' + tc + inner + '</w:tc>';
         }
         x += '</w:tr>';
@@ -602,10 +655,11 @@
     z.file('_rels/.rels', XML + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="' + REL + 'officeDocument" Target="word/document.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/><Relationship Id="rId3" Type="' + REL + 'extended-properties" Target="docProps/app.xml"/></Relationships>');
     const WM = 'application/vnd.openxmlformats-officedocument.wordprocessingml.';
     let ct = '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>';
-    ctypes.forEach((e) => { ct += '<Default Extension="' + e + '" ContentType="image/' + (e === 'jpeg' ? 'jpeg' : e) + '"/>'; });
+    ctypes.forEach((e) => { ct += '<Default Extension="' + e + '" ContentType="' + ({ emf: 'image/x-emf', wmf: 'image/x-wmf', svg: 'image/svg+xml', tif: 'image/tiff', tiff: 'image/tiff' }[e] || 'image/' + e) + '"/>'; });
     ct += '<Override PartName="/word/document.xml" ContentType="' + WM + 'document.main+xml"/><Override PartName="/word/styles.xml" ContentType="' + WM + 'styles+xml"/><Override PartName="/word/settings.xml" ContentType="' + WM + 'settings+xml"/><Override PartName="/word/numbering.xml" ContentType="' + WM + 'numbering+xml"/><Override PartName="/word/footnotes.xml" ContentType="' + WM + 'footnotes+xml"/><Override PartName="/word/endnotes.xml" ContentType="' + WM + 'endnotes+xml"/><Override PartName="/word/fontTable.xml" ContentType="' + WM + 'fontTable+xml"/><Override PartName="/word/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>';
     if (ckeys.length) ct += '<Override PartName="/word/comments.xml" ContentType="' + WM + 'comments+xml"/><Override PartName="/word/commentsExtended.xml" ContentType="' + WM + 'commentsExtended+xml"/>';
     Object.values(partFile).forEach((f) => { ct += '<Override PartName="/word/' + f.file + '" ContentType="' + WM + (f.kind === 'hdr' ? 'header' : 'footer') + '+xml"/>'; });
+    overrides.forEach(([pn, c]) => { ct += '<Override PartName="' + esc(pn) + '" ContentType="' + esc(c) + '"/>'; });
     z.file('[Content_Types].xml', XML + ct + '</Types>');
     const blob = await z.generateAsync({ type: 'blob', mimeType: O.MIME.docx, compression: 'DEFLATE' });
     return { blob, warn: Array.from(warn) };
@@ -673,15 +727,16 @@
   const parseXml = (s) => new DOMParser().parseFromString(s, 'application/xml');
   const twp = (v) => v == null ? null : r2(+v / 20);
 
-  D.read = async function (z) {
+  D.read = async function (z, progress) {
     const warnings = new Set();
-    const rd = async (p) => { const f = z.file(p); return f ? parseXml(await f.async('string')) : null; };
+    // XML abîmé (tronqué, mal fermé) : complété au mieux plutôt qu'abandonné (O.parseXmlLenient)
+    const rd = async (p) => { const f = z.file(p); if (!f) return null; let x; try { x = await f.async('string'); } catch (e) { warnings.add('Une partie du document est illisible (' + p + ').'); return null; } const r = O.parseXmlLenient(x); if (r.repaired) warnings.add(r.doc ? 'Une partie du document était abîmée (' + p.replace(/^word\//, '') + ') : ce qui était lisible a été repris.' : 'Une partie du document est illisible (' + p.replace(/^word\//, '') + ').'); return r.doc; };
     const relsOf = async (p) => { const d = await rd(p.replace(/([^/]+)$/, '_rels/$1.rels')); const m = {}; if (d) desc(d, 'Relationship').forEach((r) => { m[r.getAttribute('Id')] = { t: r.getAttribute('Target'), type: r.getAttribute('Type') || '', ext: r.getAttribute('TargetMode') === 'External' }; }); return m; };
     // document principal (rels racine)
-    let main = 'word/document.xml';
-    const root = await rd('_rels/.rels'); if (root) { const r = desc(root, 'Relationship').find((x) => /officeDocument$/.test(x.getAttribute('Type') || '')); if (r) main = r.getAttribute('Target').replace(/^\//, ''); }
+    let main = z.file('word/document.xml') ? 'word/document.xml' : (Object.keys(z.files).find((n) => /^word\/document\d*\.xml$/i.test(n)) || 'word/document.xml');
+    const root = await rd('_rels/.rels'); if (root) { const r = desc(root, 'Relationship').find((x) => /officeDocument$/.test(x.getAttribute('Type') || '')); if (r && z.file(r.getAttribute('Target').replace(/^\//, ''))) main = r.getAttribute('Target').replace(/^\//, ''); }
     const base = main.replace(/[^/]+$/, '');
-    const docX = await rd(main); if (!docX) throw new Error('document.xml introuvable');
+    const docX = await rd(main); if (!docX || !kid(docX.documentElement, 'body')) { const e = new Error('Ce document Word est abîmé : son texte principal est illisible. Essayez « Ouvrir et réparer » dans Word, ou une copie plus ancienne.'); e.user = true; throw e; }
     const rels = await relsOf(main);
     const relTarget = (r) => { if (!r) return null; let t = r.t; if (/^\//.test(t)) return t.slice(1); const parts = (base + t).split('/'); const out = []; parts.forEach((p) => { if (p === '..') out.pop(); else if (p !== '.') out.push(p); }); return out.join('/'); };
     const byType = (re) => { const k = Object.keys(rels).find((id) => re.test(rels[id].type)); return k ? relTarget(rels[k]) : null; };
@@ -867,10 +922,35 @@
       const key = 'p:' + path; if (media[key]) return media[key].id;
       const f = z.file(path); if (!f) return null;
       let blob = await f.async('blob'); const ext = O.extOf(path);
-      if (/^(emf|wmf)$/.test(ext)) { warnings.add('Certaines images au format EMF/WMF ne peuvent pas être affichées.'); }
       blob = new Blob([blob], { type: O.mimeOf(path, 'image/png') });
+      if (O.unviewableImage(blob.type)) warnings.add('Images ' + O.imageKind(blob.type) + ' : montrées par un cadre ici, gardées telles quelles à l\'enregistrement .docx.');
       const id = TX.uid('m'); media[key] = { id, blob }; return id;
     };
+    /* objets non gérés (graphiques, SmartArt, groupes, objets OLE, formes VML…) : XML d'origine et parties liées
+       (graphique, classeur incorporé, données du SmartArt…) gardés tels quels, réécrits à l'enregistrement .docx */
+    let ctMap = null;
+    const ctOf = async (path) => {
+      if (!ctMap) { ctMap = { ov: {}, def: {} }; const x = await rd('[Content_Types].xml'); if (x) { desc(x, 'Override').forEach((o) => { ctMap.ov[String(o.getAttribute('PartName') || '').replace(/^\//, '')] = o.getAttribute('ContentType'); }); desc(x, 'Default').forEach((d) => { ctMap.def[String(d.getAttribute('Extension') || '').toLowerCase()] = d.getAttribute('ContentType'); }); } }
+      return ctMap.ov[path] || ctMap.def[O.extOf(path)] || O.mimeOf(path, 'application/octet-stream');
+    };
+    const resolveIn = (dir, t) => { if (/^\//.test(t)) return t.slice(1); const out = []; (dir + t).split('/').forEach((p) => { if (p === '..') out.pop(); else if (p !== '.') out.push(p); }); return out.join('/'); };
+    const keptPart = {};
+    async function keepPart(path, out, depth) {
+      if (out.parts[path] || depth > 6) return; const f = z.file(path); if (!f) return;
+      let id = keptPart[path];
+      if (!id) { const blob = new Blob([await f.async('uint8array')], { type: await ctOf(path) }); id = keptPart[path] = TX.uid('m'); media['k:' + path] = { id, blob }; }
+      const e = out.parts[path] = { m: id, ct: media['k:' + path].blob.type, rels: [] };
+      const rx = await rd(path.replace(/([^/]+)$/, '_rels/$1.rels'));
+      if (rx) for (const r of desc(rx, 'Relationship')) { const ext = r.getAttribute('TargetMode') === 'External'; const t = r.getAttribute('Target') || ''; const tgt = ext ? t : resolveIn(path.replace(/[^/]+$/, ''), t); e.rels.push({ id: r.getAttribute('Id'), type: r.getAttribute('Type') || '', t: tgt, ext }); if (!ext) await keepPart(tgt, out, (depth || 0) + 1); }
+    }
+    const RNS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+    async function keepOf(el, rc, w, h) {
+      const out = { xml: new XMLSerializer().serializeToString(el), rels: {}, parts: {}, w, h };
+      const ids = new Set(); [el].concat(Array.from(el.getElementsByTagName('*'))).forEach((n) => { Array.from(n.attributes || []).forEach((at) => { if (at.namespaceURI === RNS) ids.add(at.value); }); });
+      for (const rid of ids) { const r = rc.rels[rid]; if (!r) continue; if (r.ext) out.rels[rid] = { type: r.type, t: r.t, ext: true }; else { const path = resolveIn(rc.base, r.t); out.rels[rid] = { type: r.type, t: path }; await keepPart(path, out, 0); } }
+      return out;
+    }
+    const partXml = async (keep, rid) => { const r = keep.rels[rid]; if (!r || r.ext) return null; return rd(r.t); };
     /* commentaires */
     const comments = {}, cmtMap = {};
     const cmX = byType(/\/comments$/) ? await rd(byType(/\/comments$/)) : null;
@@ -899,21 +979,51 @@
     async function readBlocks(container, rc) {
       const out = [];
       const sects = rc.sects;
-      for (const el of kids(container)) {
-        const ln = el.localName;
+      const list = kids(container);
+      for (let i = 0; i < list.length; i++) {
+        const el = list[i], ln = el.localName;
+        // gros documents : avancement et main rendue à l'interface (au plus toutes les 40 ms)
+        if (rc.top && progress) progress(i, list.length);
+        await O.yieldUi();
         if (ln === 'p') { const r = await readPara(el, rc); out.push(...r.blocks); if (r.sect && sects) { sects.push({ blocks: out.splice(0), sect: r.sect }); } }
         else if (ln === 'tbl') out.push(await readTable(el, rc));
-        else if (ln === 'sdt') { const sc = kid(el, 'sdtContent'); const gal = desc(el, 'docPartGallery')[0]; const isToc = gal && /Table of (Contents|Figures)/i.test(att(gal, 'val') || ''); if (isToc) { const instr = desc(sc, 'instrText').map((x) => x.textContent).join(''); out.push(tocFromInstr(instr, sc)); } else if (sc) { const sub = await readBlocks(sc, Object.assign({}, rc, { sects: sects })); out.push(...sub); } }
-        else if (ln === 'customXml' || ln === 'smartTag') out.push(...await readBlocks(el, rc));
+        else if (ln === 'sdt') {
+          const sc = kid(el, 'sdtContent'); const gal = desc(el, 'docPartGallery')[0]; const isToc = gal && /Table of (Contents|Figures)/i.test(att(gal, 'val') || '') && /TOC/.test(desc(sc, 'instrText').map((x) => x.textContent).join(''));
+          if (isToc) {
+            const instr = desc(sc, 'instrText').map((x) => x.textContent).join(''); const t = tocFromInstr(instr, sc);
+            // paragraphes du bloc qui ne sont pas des entrées de la table (titre « Sommaire » d'un autre style…) : gardés
+            for (const p of kids(sc, 'p')) { const ps = desc(p, 'pStyle')[0], sv = ps ? att(ps, 'val') || '' : ''; if (/^(TOC|TM)\d|^(TableofFigures|Tabledesillustrations)$/i.test(sv) || desc(p, 'fldChar').length || desc(p, 'instrText').length) continue; const txt = desc(p, 't').map((x) => x.textContent).join(''); if (!txt.trim() || txt === t.attrs.title) continue; out.push(...(await readPara(p, rc)).blocks); }
+            out.push(t);
+          } else if (sc) { const sub = await readBlocks(sc, Object.assign({}, rc, { sects: sects, top: false })); out.push(...sub); }
+        }
+        else if (ln === 'altChunk') out.push(...await readAltChunk(el, rc));
+        else if (ln === 'customXml' || ln === 'smartTag') out.push(...await readBlocks(el, Object.assign({}, rc, { top: false })));
         else if (ln === 'sectPr' && sects) { sects.push({ blocks: out.splice(0), sect: el }); }
         else if (ln === 'bookmarkStart' || ln === 'bookmarkEnd') { /* ignoré hors paragraphe */ }
       }
       return out;
     }
+    /** Contenu importé tel quel par Word (altChunk) : HTML, RTF ou texte → blocs */
+    async function readAltChunk(el, rc) {
+      const rid = el.getAttributeNS(RNS, 'id') || el.getAttribute('r:id'); const r = rc.rels[rid]; if (!r || r.ext) return [];
+      const path = resolveIn(rc.base, r.t), f = z.file(path); if (!f) return [];
+      try {
+        const buf = await f.async('uint8array'); const blob = new Blob([buf]); const ext = O.extOf(path);
+        let res = null;
+        if (/^(html?|xhtml|mht|mhtml)$/.test(ext)) res = TX.IO.fromHtml(await TX.IO.textOf(blob));
+        else if (ext === 'rtf') res = TX.IO.fromRtf(await TX.IO.textOf(blob, true));
+        else if (ext === 'txt') res = TX.IO.fromText(await TX.IO.textOf(blob));
+        if (!res) { warnings.add('Un contenu incorporé (' + ext + ') n\'a pas pu être repris.'); return []; }
+        Object.keys(res.media || {}).forEach((id) => { media['a:' + id] = { id, blob: res.media[id] }; });
+        const blocks = []; (res.json.content || []).forEach((sec) => (sec.content || []).forEach((b) => blocks.push(b)));
+        warnings.add('Un contenu incorporé (altChunk) a été repris dans le document.');
+        return blocks;
+      } catch (e) { warnings.add('Un contenu incorporé n\'a pas pu être repris.'); return []; }
+    }
     function tocFromInstr(instr, sc) {
       const m = /TOC\s+(.*)/i.exec(instr || ''); const sw = m ? m[1] : '';
       const lv = /\\o\s+"(\d)-(\d)"/.exec(sw); const c = /\\c\s+"([^"]+)"/.exec(sw);
-      const title = sc ? (kids(sc, 'p').map((p) => { const ps = desc(p, 'pStyle')[0]; return ps && /TOCHeading|EnttedetabledesmatiresTitre|TOC ?Heading/i.test(att(ps, 'val') || '') ? desc(p, 't').map((t) => t.textContent).join('') : null; }).find(Boolean) || null) : null;
+      const title = sc ? (kids(sc, 'p').map((p) => { const ps = desc(p, 'pStyle')[0]; return ps && /TOC ?Heading|En-?t[eê]tedetabledesmati[eè]res/i.test(att(ps, 'val') || '') ? desc(p, 't').map((t) => t.textContent).join('') : null; }).find(Boolean) || null) : null;
       return { type: 'toc', attrs: { kind: c ? 'tof' : 'toc', levels: lv ? +lv[2] : 3, label: c ? c[1] : 'Figure', title } };
     }
     /* paragraphe : runs, champs, liens, révisions, commentaires */
@@ -936,7 +1046,7 @@
         const m = rToMarks(r);
         if (r.cs && charIds[r.cs]) { m.shift(); m.unshift({ type: 'cs', attrs: { id: charIds[r.cs] } }); } else if (r.cs) m.shift();
         if (rc.link) m.push({ type: 'link', attrs: { href: rc.link } });
-        if (rc.ins) m.push({ type: 'ins', attrs: rc.ins }); if (rc.del) m.push({ type: 'del', attrs: rc.del });
+        if (rc.del) m.push({ type: 'del', attrs: rc.del }); else if (rc.ins) m.push({ type: 'ins', attrs: rc.ins });   // inséré puis supprimé = supprimé
         rc.open.forEach((id) => m.push({ type: 'cmt', attrs: { id } }));
         return m;
       };
@@ -971,14 +1081,20 @@
           const ln = c.localName;
           if (ln === 'fldChar') {
             const t = att(c, 'fldCharType');
-            if (t === 'begin') st.fstack.push({ instr: '', res: [], sep: false, start: inl.length });
+            if (t === 'begin') st.fstack.push({ instr: '', res: [], sep: false, start: inl.length, ff: kid(c, 'ffData') });
             else if (t === 'separate') { const f = st.fstack[st.fstack.length - 1]; if (f) f.sep = true; }
             else if (t === 'end') {
               const f = st.fstack.pop();
               if (f) {
                 const resText = inl.slice(f.start).map((x) => x.text || '').join('');
                 const node = fieldFrom(f.instr, resText, rp);
-                if (node && node.type !== 'keep') { inl.splice(f.start); if (node.type === 'toc') { splitBlock(node); } else inl.push(node); }
+                if (/^\s*FORMCHECKBOX/i.test(f.instr)) { // case à cocher d'un formulaire Word : ☒ / ☐
+                  const cb = f.ff && desc(f.ff, 'checkBox')[0]; const ck = cb ? (kid(cb, 'checked') ? onoff(kid(cb, 'checked')) : kid(cb, 'default') ? onoff(kid(cb, 'default')) : false) : false;
+                  inl.splice(f.start); pushText(ck ? '☒' : '☐', baseMarks(rp)); warnings.add('Champs de formulaire Word (cases à cocher, zones de texte, listes) : repris comme texte.');
+                } else if (node && node.type === 'hlink') { // champ HYPERLINK : lien sur le texte affiché
+                  inl.slice(f.start).forEach((x) => { if (x.type === 'text' || x.type === 'image') x.marks = (x.marks || []).filter((m) => m.type !== 'link').concat({ type: 'link', attrs: { href: node.href } }); });
+                } else if (node && node.type !== 'keep') { inl.splice(f.start); if (node.type === 'toc') { splitBlock(node); } else inl.push(node); }
+                else if (/^\s*FORM(TEXT|DROPDOWN)/i.test(f.instr)) warnings.add('Champs de formulaire Word (cases à cocher, zones de texte, listes) : repris comme texte.');
               }
             }
             continue;
@@ -1000,8 +1116,38 @@
             if (custom) st.customMark = inl.length - 1;
           }
           else if (ln === 'drawing') { const n = await readDrawing(c, rc); if (n) inl.push(n); }
-          else if (ln === 'pict' || ln === 'object') { const n = await readVml(c, rc); if (n) inl.push(n); }
-          else if (ln === 'AlternateContent') { const ch = kid(c, 'Choice'); const fb = kid(c, 'Fallback'); const src = ch && desc(ch, 'drawing')[0] ? ch : fb; if (src) { const d = desc(src, 'drawing')[0]; if (d) { const n = await readDrawing(d, rc); if (n) inl.push(n); } else { const pc = desc(src, 'pict')[0]; if (pc) { const n = await readVml(pc, rc); if (n) inl.push(n); } } } }
+          else if (ln === 'pict' || ln === 'object') {
+            const wm0 = rc.wm; let n = await readVml(c, rc);
+            if (ln === 'object' || (!n && rc.wm === wm0 && !desc(c, 'textpath').length && (desc(c, 'shape').length || desc(c, 'group').length || desc(c, 'rect').length || desc(c, 'line').length || desc(c, 'oval').length || desc(c, 'roundrect').length))) {
+              // objet incorporé (OLE : feuille Excel, Visio…) ou dessin VML : gardé tel quel, aperçu si possible
+              const st = (desc(c, 'shape')[0] || desc(c, 'rect')[0] || desc(c, 'group')[0] || c).getAttribute('style') || '';
+              const g = (k) => { const mm = new RegExp(k + ':\\s*([\\d.]+)(pt|in|px|cm|mm)?').exec(st); return mm ? +mm[1] * ({ in: 72, px: 0.75, cm: 28.35, mm: 2.835 }[mm[2]] || 1) : null; };
+              const keep = await keepOf(c, rc, g('width') || 100, g('height') || 60);
+              if (n && n.type === 'image') { n.attrs.keep = keep; keep.sig = 'ole'; }
+              else { const html = '<p><b>' + (ln === 'object' ? 'Objet incorporé' : 'Dessin') + '</b> (conservé tel quel)</p>'; keep.sig = html; n = { type: 'drawing', attrs: { kind: 'textbox', shape: 'rect', w: keep.w, h: keep.h, wrap: 'inline', fill: '#F1F3F5', line: { w: 0.75, c: '#868E96' }, html, va: 'middle', keep } }; }
+              warnings.add('Objets incorporés et dessins anciens (VML) : montrés par un cadre ou leur aperçu, gardés tels quels dans le .docx.');
+            }
+            if (n) inl.push(n);
+          }
+          else if (ln === 'AlternateContent') {
+            const ch = kid(c, 'Choice'); const fb = kid(c, 'Fallback'); const src = ch && desc(ch, 'drawing')[0] ? ch : fb;
+            if (src) {
+              const d = desc(src, 'drawing')[0];
+              if (d) {
+                let n = await readDrawing(d, rc);
+                // objet récent (graphique 2016 « chartex », groupe…) avec une image de repli : l'image est montrée, et le bloc
+                // entier (choix + repli) est gardé pour l'enregistrement, comme Word l'a écrit
+                if (n && n.attrs && n.attrs.keep && src === ch && fb) {
+                  const fd = desc(fb, 'drawing')[0], fp = desc(fb, 'pict')[0];
+                  let alt = null; if (fd) alt = await readDrawing(fd, rc); else if (fp) alt = await readVml(fp, rc);
+                  const k2 = await keepOf(c, rc, n.attrs.keep.w, n.attrs.keep.h);
+                  if (alt && alt.type === 'image' && n.attrs.kind === 'textbox') { k2.sig = 'ole'; ['w', 'h', 'wrap', 'al', 'x', 'y'].forEach((k) => { if (n.attrs[k] != null) alt.attrs[k] = n.attrs[k]; }); alt.attrs.keep = k2; n = alt; }   // taille et place : celles du choix (le repli VML d'un groupe est en unités du groupe)
+                  else { k2.sig = n.attrs.keep.sig; n.attrs.keep = k2; }
+                }
+                if (n) inl.push(n);
+              } else { const pc = desc(src, 'pict')[0]; if (pc) { const n = await readVml(pc, rc); if (n) inl.push(n); } }
+            }
+          }
           else if (ln === 'annotationRef' || ln === 'footnoteRef' || ln === 'endnoteRef' || ln === 'separator' || ln === 'continuationSeparator' || ln === 'commentReference' || ln === 'lastRenderedPageBreak') { /* rien */ }
         }
         // marque personnalisée d'une note : le texte qui suit l'appel
@@ -1033,13 +1179,16 @@
         case 'MERGEFIELD': { const nm = (/^"([^"]+)"|^(\S+)/.exec(rest) || []); return F('merge', { name: nm[1] || nm[2] || 'champ' }); }
         case 'REF': case 'PAGEREF': case 'NOTEREF': { const t = (/^(\S+)/.exec(rest) || [0, ''])[1]; const kind = k === 'NOTEREF' ? 'note' : /^_Toc|^_Ref/.test(t) ? 'heading' : 'bookmark'; return F('ref', { ref: { kind: kind === 'note' ? 'bookmark' : kind, id: t, word: 1 }, show: k === 'PAGEREF' ? 'page' : /\\r/.test(rest) ? 'number' : /\\p/.test(rest) ? 'above' : 'text' }); }
         case 'TOC': return tocFromInstr(s, null);
-        case 'HYPERLINK': return { type: 'keep' };
+        case 'HYPERLINK': { const u = /^"([^"]*)"/.exec(rest) || /^(\S+)/.exec(rest); const an = /\\l\s+"([^"]+)"/.exec(rest); const href = an ? (u && u[1] && !/^\\/.test(u[1]) ? u[1] + '#' + an[1] : '#' + an[1]) : (u && !/^\\/.test(u[1]) ? u[1] : null); return href ? { type: 'hlink', href } : { type: 'keep' }; }
         default: return { type: 'keep' };
       }
     }
+    /** Paragraphes d'une zone de texte, y compris dans des contrôles de contenu (pages de garde de Word) */
+    const parasOf = (n) => { const out = []; kids(n).forEach((c) => { if (c.localName === 'p') out.push(c); else if (c.localName === 'sdt') { const sc = kid(c, 'sdtContent'); if (sc) out.push(...parasOf(sc)); } else if (c.localName === 'customXml' || c.localName === 'smartTag') out.push(...parasOf(c)); }); return out; };
     /* images DrawingML */
     async function readDrawing(dr, rc) {
       const inline = kid(dr, 'inline'), anchor = kid(dr, 'anchor'), box = inline || anchor; if (!box) return null;
+      const gd = desc(box, 'graphicData')[0], uri = gd ? gd.getAttribute('uri') || '' : '';
       const ext = kid(box, 'extent'); const w = r2((+ext.getAttribute('cx') || 0) / 12700), h = r2((+ext.getAttribute('cy') || 0) / 12700);
       const dp = kid(box, 'docPr'); const alt = dp ? (dp.getAttribute('descr') || dp.getAttribute('title') || '') : '';
       const a = { w: w || 100, h: h || 100, alt, wrap: 'inline', al: 'left', x: 0, y: 0 };
@@ -1049,7 +1198,7 @@
         if (ph) { const al = kid(ph, 'align'), off = kid(ph, 'posOffset'); if (al) a.al = { left: 'left', center: 'center', right: 'right', inside: 'left', outside: 'right' }[al.textContent] || 'left'; else if (off) { a.x = r2(+off.textContent / 12700); a.al = 'left'; if (ph.getAttribute('relativeFrom') === 'page') a.x = r2(a.x - (rc.pgMl || 70.9)); } }
         if (pv) { const off = kid(pv, 'posOffset'); if (off) a.y = r2(+off.textContent / 12700); if (pv.getAttribute('relativeFrom') !== 'paragraph' && pv.getAttribute('relativeFrom') !== 'line') a.y = Math.max(0, Math.min(a.y, 40)); }
       }
-      const pic = desc(box, 'pic')[0];
+      const pic = /\/picture$/.test(uri) || !uri ? desc(box, 'pic')[0] : null;
       if (pic) {
         const blip = desc(pic, 'blip')[0]; const rid = blip && (blip.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'embed') || blip.getAttribute('r:embed'));
         const ext2 = blip && desc(blip, 'svgBlip')[0]; const rid2 = ext2 && (ext2.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'embed'));
@@ -1060,20 +1209,39 @@
         const hl = dp && kid(dp, 'hlinkClick'); if (hl) { const r = rc.rels[hl.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id')]; if (r) a.link = r.t; }
         return { type: 'image', attrs: Object.assign({ m }, a) };
       }
-      const wsp = desc(box, 'wsp')[0];
+      const wsp = /wordprocessingShape$/.test(uri) || !uri ? desc(box, 'wsp')[0] : null;
       if (wsp) {
         const sp = kid(wsp, 'spPr'), prst = sp && desc(sp, 'prstGeom')[0];
         const fillN = sp && kid(sp, 'solidFill'), lnN = sp && kid(sp, 'ln');
         const clr = (n) => { if (!n) return null; const s = desc(n, 'srgbClr')[0]; if (s) return '#' + s.getAttribute('val').toUpperCase(); const sc = desc(n, 'schemeClr')[0]; if (sc) { const v = sc.getAttribute('val'); const role = { tx1: 'tx1', bg1: 'bg1', tx2: 'tx2', bg2: 'bg2', dk1: 'tx1', lt1: 'bg1', dk2: 'tx2', lt2: 'bg2' }[v] || v; return 't:' + role; } return null; };
         const txbx = desc(wsp, 'txbxContent')[0];
-        const html = txbx ? kids(txbx, 'p').map((p) => { const jc = desc(p, 'jc')[0]; const al = jc ? { center: 'center', right: 'right', both: 'justify' }[att(jc, 'val')] : null; return '<p' + (al ? ' style="text-align:' + al + '"' : '') + '>' + kids(p).filter((r) => r.localName === 'r').map((r) => { const rp = rprOf(kid(r, 'rPr')); const t = O.esc(desc(r, 't').map((x) => x.textContent).join('')); if (!t) return ''; let s = ''; if (rp.c && /^#/.test(rp.c)) s += 'color:' + rp.c + ';'; if (rp.sz) s += 'font-size:' + rp.sz + 'pt;'; let h = s ? '<span style="' + s + '">' + t + '</span>' : t; if (rp.b) h = '<b>' + h + '</b>'; if (rp.i) h = '<i>' + h + '</i>'; if (rp.u) h = '<u>' + h + '</u>'; return h; }).join('') + '</p>'; }).join('') : '';
+        const html = txbx ? parasOf(txbx).map((p) => { const jc = desc(p, 'jc')[0]; const al = jc ? { center: 'center', right: 'right', both: 'justify' }[att(jc, 'val')] : null; return '<p' + (al ? ' style="text-align:' + al + '"' : '') + '>' + kids(p).filter((r) => r.localName === 'r').map((r) => { const rp = rprOf(kid(r, 'rPr')); const t = O.esc(desc(r, 't').map((x) => x.textContent).join('')); if (!t) return ''; let s = ''; if (rp.c && /^#/.test(rp.c)) s += 'color:' + rp.c + ';'; if (rp.sz) s += 'font-size:' + rp.sz + 'pt;'; let h = s ? '<span style="' + s + '">' + t + '</span>' : t; if (rp.b) h = '<b>' + h + '</b>'; if (rp.i) h = '<i>' + h + '</i>'; if (rp.u) h = '<u>' + h + '</u>'; return h; }).join('') + '</p>'; }).join('') : '';
         const isTb = kid(wsp, 'cNvSpPr') && kid(wsp, 'cNvSpPr').getAttribute('txBox') === '1';
         const xf = sp && desc(sp, 'xfrm')[0];
-        return { type: 'drawing', attrs: Object.assign({}, a, { kind: isTb || (txbx && (!prst || prst.getAttribute('prst') === 'rect') && !fillN) ? 'textbox' : 'shape', shape: prst ? prst.getAttribute('prst') : 'rect', fill: sp && kid(sp, 'noFill') ? null : (clr(fillN) || (isTb ? null : 't:accent1')), line: lnN && !kid(lnN, 'noFill') ? { w: r2((+lnN.getAttribute('w') || 12700) / 12700), c: clr(kid(lnN, 'solidFill')) || '#000000' } : null, html, rot: xf && xf.getAttribute('rot') ? Math.round(+xf.getAttribute('rot') / 60000) : 0, va: (() => { const bp = kid(wsp, 'bodyPr'); const an = bp && bp.getAttribute('anchor'); return an === 't' ? 'top' : an === 'b' ? 'bottom' : 'middle'; })() }) };
+        // zone de texte qui contient plus que du texte (graphique, image, tableau) : affichée simplifiée, gardée telle quelle
+        const rich = txbx && (desc(txbx, 'drawing').length || desc(txbx, 'tbl').length || desc(txbx, 'pict').length || desc(txbx, 'object').length);
+        let keepTb = null; if (rich) { keepTb = await keepOf(dr, rc, a.w, a.h); keepTb.sig = html; warnings.add('Zones de texte avec images, graphiques ou tableaux : montrées simplifiées, gardées telles quelles dans le .docx.'); }
+        return { type: 'drawing', attrs: Object.assign({}, a, keepTb ? { keep: keepTb } : {}, { kind: isTb || (txbx && (!prst || prst.getAttribute('prst') === 'rect') && !fillN) ? 'textbox' : 'shape', shape: prst ? prst.getAttribute('prst') : 'rect', fill: sp && kid(sp, 'noFill') ? null : (clr(fillN) || (isTb ? null : 't:accent1')), line: lnN && !kid(lnN, 'noFill') ? { w: r2((+lnN.getAttribute('w') || 12700) / 12700), c: clr(kid(lnN, 'solidFill')) || '#000000' } : null, html, rot: xf && xf.getAttribute('rot') ? Math.round(+xf.getAttribute('rot') / 60000) : 0, va: (() => { const bp = kid(wsp, 'bodyPr'); const an = bp && bp.getAttribute('anchor'); return an === 't' ? 'top' : an === 'b' ? 'bottom' : 'middle'; })() }) };
       }
-      if (desc(box, 'chart').length) warnings.add('Les graphiques Word ne sont pas importés (remplacés par un cadre).');
-      if (desc(box, 'wgp').length || desc(box, 'grpSp').length) warnings.add('Certains groupes d\'objets dessinés ne sont pas importés.');
-      return { type: 'drawing', attrs: Object.assign({}, a, { kind: 'textbox', shape: 'rect', fill: null, line: { w: 0.75, c: '#999999' }, html: '<p>' + O.esc(alt || 'Objet non importé') + '</p>' }) };
+      // graphique, SmartArt, groupe, zone de dessin… : affiché au mieux, gardé tel quel pour l'enregistrement .docx
+      const keep = await keepOf(dr, rc, a.w, a.h);
+      const P = window.Pres;
+      if (/\/chart$/.test(uri) && P && P.chartFromXml) {
+        const cn = desc(gd, 'chart')[0]; const rid = cn && cn.getAttributeNS(RNS, 'id');
+        let chart = null; try { const cx = rid && await partXml(keep, rid); chart = cx ? P.chartFromXml(cx) : null; } catch (e) { chart = null; }
+        if (chart) { keep.sig = JSON.stringify(chart); warnings.add('Graphiques : affichés d\'après leurs données, gardés tels quels dans le .docx (une modification du graphique le remplace par une image).'); return { type: 'drawing', attrs: Object.assign({}, a, { kind: 'chart', chart, fill: null, keep }) }; }
+      }
+      if (/\/diagram$/.test(uri) && P && P.smartFromXml) {
+        const ri = desc(gd, 'relIds')[0]; let smart = null;
+        try { const dm = ri && await partXml(keep, ri.getAttributeNS(RNS, 'dm')); const lo = ri && await partXml(keep, ri.getAttributeNS(RNS, 'lo')); smart = dm ? P.smartFromXml(dm, lo && lo.documentElement ? lo.documentElement.getAttribute('uniqueId') : '') : null; } catch (e) { smart = null; }
+        if (smart) { keep.sig = JSON.stringify(smart); warnings.add('SmartArt : affichés d\'après leur texte, gardés tels quels dans le .docx.'); return { type: 'drawing', attrs: Object.assign({}, a, { kind: 'smart', smart, fill: null, keep }) }; }
+      }
+      const label = /\/chart$|chartex/.test(uri) ? 'Graphique' : /diagram$/.test(uri) ? 'SmartArt' : /Group$/.test(uri) ? 'Groupe d\'objets' : /Canvas$/.test(uri) ? 'Zone de dessin' : /ink/i.test(uri) ? 'Dessin à main levée' : 'Objet';
+      const texts = desc(box, 'txbxContent').map((t) => parasOf(t).map((p) => desc(p, 't').map((x) => x.textContent).join('')).filter(Boolean).join(' / ')).filter(Boolean);
+      const html = '<p><b>' + O.esc(label) + '</b> (conservé tel quel)</p>' + texts.map((t) => '<p>' + O.esc(t) + '</p>').join('') + (alt ? '<p>' + O.esc(alt) + '</p>' : '');
+      keep.sig = html;
+      warnings.add('Certains objets (' + label.toLowerCase() + '…) sont montrés par un cadre et gardés tels quels dans le .docx.');
+      return { type: 'drawing', attrs: Object.assign({}, a, { kind: 'textbox', shape: 'rect', fill: '#F1F3F5', line: { w: 0.75, c: '#868E96' }, html, va: 'middle', keep }) };
     }
     async function readVml(el, rc) {
       const im = desc(el, 'imagedata')[0];
@@ -1086,13 +1254,15 @@
       if (im) {
         const rid = im.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id') || im.getAttribute('r:id');
         const m = await mediaOf(rc.rels, rid, rc.base); if (!m) return null;
-        const style = (shape && shape.getAttribute('style')) || '';
-        const g = (k) => { const mm = new RegExp(k + ':\\s*([\\d.]+)(pt|in|px)?').exec(style); if (!mm) return null; return +mm[1] * ({ in: 72, px: 0.75 }[mm[2]] || 1); };
+        // image dans un groupe VML : la taille de la forme est en unités du groupe (coordsize) ; celle du groupe est en points
+        const grp = desc(el, 'group')[0];
+        const style = ((grp && shape && grp.contains(shape) ? grp : shape) || { getAttribute: () => '' }).getAttribute('style') || '';
+        const g = (k) => { const mm = new RegExp('(?:^|;)\\s*' + k + ':\\s*([\\d.]+)(pt|in|px|cm|mm)?').exec(style); if (!mm) return null; return +mm[1] * ({ in: 72, px: 0.75, cm: 28.35, mm: 2.835 }[mm[2]] || 1); };
         if (rc.part && /WordPictureWatermark|watermark/i.test((shape && shape.getAttribute('id')) || '')) { rc.wm = { m, scale: 60 }; return null; }
         return { type: 'image', attrs: { m, w: g('width') || 100, h: g('height') || 100, alt: (shape && shape.getAttribute('alt')) || '' } };
       }
       const txb = desc(el, 'txbxContent')[0];
-      if (txb) { return { type: 'drawing', attrs: { kind: 'textbox', shape: 'rect', w: 144, h: 72, wrap: 'square', fill: null, line: { w: 0.75, c: '#000000' }, html: kids(txb, 'p').map((p) => '<p>' + O.esc(desc(p, 't').map((t) => t.textContent).join('')) + '</p>').join('') } }; }
+      if (txb) { return { type: 'drawing', attrs: { kind: 'textbox', shape: 'rect', w: 144, h: 72, wrap: 'square', fill: null, line: { w: 0.75, c: '#000000' }, html: parasOf(txb).map((p) => '<p>' + O.esc(desc(p, 't').map((t) => t.textContent).join('')) + '</p>').join('') } }; }
       return null;
     }
     /* tableaux */
@@ -1115,13 +1285,15 @@
       }
       const grid = kids(kid(el, 'tblGrid'), 'gridCol').map((g) => Math.round(twp(att(g, 'w')) * TX.PX));
       const rows = []; const vm = {}; // vMerge : colonne → cellule ouverte
-      kids(el, 'tr').forEach((tr) => {
+      // lignes et cellules dans des contrôles de contenu (section répétée de Word) ou du customXml : aplaties
+      const flat = (n, name) => { const out = []; kids(n).forEach((c) => { if (c.localName === name) out.push(c); else if (c.localName === 'sdt') { const sc = kid(c, 'sdtContent'); if (sc) out.push(...flat(sc, name)); } else if (c.localName === 'customXml' || c.localName === 'smartTag') out.push(...flat(c, name)); }); return out; };
+      flat(el, 'tr').forEach((tr) => {
         const trp = kid(tr, 'trPr');
         const ra = { hdr: !!(trp && kid(trp, 'tblHeader') && onoff(kid(trp, 'tblHeader'))), h: null, hr: null, cs: !!(trp && kid(trp, 'cantSplit') && onoff(kid(trp, 'cantSplit'))) };
         const th = trp && kid(trp, 'trHeight'); if (th) { ra.h = twp(att(th, 'val')); ra.hr = att(th, 'hRule') === 'exact' ? 'exact' : null; }
         const gb = trp && kid(trp, 'gridBefore'); let col = gb ? +att(gb, 'val') : 0;
         const cells = [];
-        rows.push({ attrs: ra, cells, tcs: kids(tr).filter((c) => c.localName === 'tc' || c.localName === 'sdt' || c.localName === 'customXml').map((c) => c.localName === 'tc' ? c : desc(c, 'tc')[0]).filter(Boolean), col0: col });
+        rows.push({ attrs: ra, cells, tcs: flat(tr, 'tc'), col0: col });
       });
       for (const row of rows) {
         let col = row.col0;
@@ -1139,7 +1311,7 @@
             const td = kid(tcp, 'textDirection'); if (td) ca.dir = /btLr/.test(att(td, 'val')) ? 'btLr' : /tbRl/.test(att(td, 'val')) ? 'tbRl' : null;
             if (kid(tcp, 'noWrap')) ca.nw = true;
           }
-          const content = await readBlocks(tc, Object.assign({}, rc, { sects: null }));
+          const content = await readBlocks(tc, Object.assign({}, rc, { sects: null, top: false }));
           const cell = { type: 'table_cell', attrs: ca, content: content.filter((b) => b.type !== 'page_break' && b.type !== 'col_break').length ? content.filter((b) => b.type !== 'page_break' && b.type !== 'col_break') : [B.p('Normal', '')] };
           if (vmv === 'restart') vm[col] = cell; else for (let j = 0; j < span; j++) delete vm[col + j];
           row.cells.push(cell); col += span;
@@ -1191,7 +1363,7 @@
     const bodyEl = kid(docX.documentElement, 'body');
     // marge gauche de la dernière section (positions d'images relatives à la page)
     const lastSp = kid(bodyEl, 'sectPr'); const lm = lastSp && kid(lastSp, 'pgMar');
-    const rcMain = { rels, base, open: new Set(), restarted: {}, sects, pgMl: lm ? twp(att(lm, 'left')) : 70.9 };
+    const rcMain = { rels, base, open: new Set(), restarted: {}, sects, pgMl: lm ? twp(att(lm, 'left')) : 70.9, top: true };
     const rest = await readBlocks(bodyEl, rcMain);
     if (rest.length) sects.push({ blocks: rest, sect: null });
     const sections = [];

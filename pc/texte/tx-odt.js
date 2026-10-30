@@ -119,9 +119,9 @@
     async function picture(key, getBlob) {
       if (media.has(key)) return media.get(key);
       let blob = await getBlob(); if (!blob) return null;
-      let ext = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/svg+xml': 'svg', 'image/webp': 'png', 'image/bmp': 'bmp' }[blob.type] || 'png';
+      let ext = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/svg+xml': 'svg', 'image/webp': 'png', 'image/bmp': 'bmp', 'image/x-emf': 'emf', 'image/emf': 'emf', 'image/x-wmf': 'wmf', 'image/wmf': 'wmf', 'image/tiff': 'tif' }[blob.type] || 'png';
       if (blob.type === 'image/webp') { try { const u = URL.createObjectURL(blob); const im = new Image(); im.src = u; await im.decode(); const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight; c.getContext('2d').drawImage(im, 0, 0); blob = await new Promise((ok) => c.toBlob(ok, 'image/png')); URL.revokeObjectURL(u); } catch (e) { return null; } }
-      const path = 'Pictures/image' + (++imgN) + '.' + ext; z.file(path, blob); manifest.push('<manifest:file-entry manifest:full-path="' + path + '" manifest:media-type="' + (ext === 'jpg' ? 'image/jpeg' : ext === 'svg' ? 'image/svg+xml' : 'image/' + ext) + '"/>');
+      const path = 'Pictures/image' + (++imgN) + '.' + ext; z.file(path, blob); manifest.push('<manifest:file-entry manifest:full-path="' + path + '" manifest:media-type="' + (ext === 'jpg' ? 'image/jpeg' : ext === 'svg' ? 'image/svg+xml' : ext === 'emf' ? 'image/x-emf' : ext === 'wmf' ? 'image/x-wmf' : ext === 'tif' ? 'image/tiff' : 'image/' + ext) + '"/>');
       media.set(key, path); return path;
     }
     const comments = attrs.comments || {};
@@ -401,9 +401,9 @@
 
   D.read = async function (z) {
     const warnings = new Set();
-    const rd = async (p) => { const f = z.file(p); return f ? new DOMParser().parseFromString(await f.async('string'), 'application/xml') : null; };
+    const rd = async (p) => { const f = z.file(p); if (!f) return null; const r = O.parseXmlLenient(await f.async('string')); if (r.repaired) warnings.add(r.doc ? 'Une partie du document était abîmée (' + p + ') : ce qui était lisible a été repris.' : 'Une partie du document est illisible (' + p + ').'); return r.doc; };
     const content = await rd('content.xml'), stylesX = await rd('styles.xml'), metaX = await rd('meta.xml');
-    if (!content) throw new Error('content.xml introuvable');
+    if (!content) { const e = new Error('Ce document OpenDocument est abîmé : son contenu (content.xml) est illisible.'); e.user = true; throw e; }
     const settings = TX.defaultSettings(); settings.styleSet = 'import';
     /* propriétés de style */
     const tp = (el) => { const r = {}; if (!el) return r; const g = (q) => A(el, q);
@@ -497,7 +497,7 @@
     Object.keys(styles).forEach((k) => { const st = styles[k]; if (st._list) { const L = listFor(st._list); if (L) st.p.li = { id: L, l: 0 }; delete st._list; } });
     /* médias */
     const media = {};
-    const mediaOf = async (href) => { if (!href) return null; href = href.replace(/^\.\//, ''); if (media['p:' + href]) return media['p:' + href].id; const f = z.file(href); if (!f) return null; const blob = new Blob([await f.async('blob')], { type: O.mimeOf(href, 'image/png') }); const id = TX.uid('m'); media['p:' + href] = { id, blob }; if (/\.(svm|wmf|emf)$/i.test(href)) warnings.add('Certaines images (SVM/WMF/EMF) ne peuvent pas être affichées.'); return id; };
+    const mediaOf = async (href) => { if (!href) return null; href = href.replace(/^\.\//, ''); if (media['p:' + href]) return media['p:' + href].id; const f = z.file(href); if (!f) return null; const u8 = await f.async('uint8array'); const blob = new Blob([u8], { type: O.sniffImage(u8) || O.mimeOf(href, 'image/png') }); const id = TX.uid('m'); media['p:' + href] = { id, blob }; if (O.unviewableImage(blob.type)) warnings.add('Images ' + O.imageKind(blob.type) + ' : montrées par un cadre ici, gardées telles quelles à l\'enregistrement.'); return id; };
     /* révisions */
     const changes = {};
     const tc = content.getElementsByTagNameNS(NSU.text, 'tracked-changes')[0];
@@ -571,7 +571,9 @@
     }
     async function frame(n) {
       const w = len(A(n, 'svg:width')) || 100, h = len(A(n, 'svg:height')) || 100;
-      const img = kidQ(n, 'draw:image'), tb = kidQ(n, 'draw:text-box');
+      const imgs = Array.from(n.children).filter((c) => c.localName === 'image'); const tb = kidQ(n, 'draw:text-box');
+      let img = imgs[0] || null;
+      if (imgs.length > 1) for (const im of imgs) { const mm = await mediaOf(A(im, 'xlink:href')); const b = mm && Object.values(media).find((x) => x.id === mm); if (b && !O.unviewableImage(b.blob.type)) { img = im; break; } }
       const anchor = A(n, 'text:anchor-type'); const gp = autoGraphic[A(n, 'draw:style-name')];
       const wrapA = gp ? A(gp, 'style:wrap') : null; const hp = gp ? A(gp, 'style:horizontal-pos') : null;
       const a = { w, h, wrap: anchor === 'as-char' ? 'inline' : ({ parallel: 'square', dynamic: 'square', left: 'square', right: 'square', none: 'topBottom', 'run-through': (gp && A(gp, 'style:run-through') === 'background') ? 'behind' : 'front' }[wrapA] || 'square'), al: hp === 'center' ? 'center' : hp === 'right' ? 'right' : 'left', x: anchor === 'as-char' ? 0 : (hp === 'from-left' ? len(A(n, 'svg:x')) || 0 : 0), y: anchor === 'as-char' ? 0 : Math.max(0, len(A(n, 'svg:y')) || 0) };

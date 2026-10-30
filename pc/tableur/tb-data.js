@@ -130,9 +130,16 @@
     return rows;
   };
   D.guessSep = function (text) {
-    const lines = text.split(/\r?\n/).filter((l) => l.trim()).slice(0, 20);
+    // enregistrements entiers (un champ entre guillemets peut contenir un saut de ligne ou le séparateur d'un autre format)
+    let sample = String(text).slice(0, 30000); if (text.length > 30000) { const nl = sample.lastIndexOf('\n'); if (nl > 0) sample = sample.slice(0, nl); }
     let best = ';', bs = -1;
-    for (const s of [';', ',', '\t', '|']) { const counts = lines.map((l) => D.splitCsv(l, s, '"')[0].length - 1); const mn = Math.min(...counts), avg = counts.reduce((a, b) => a + b, 0) / (counts.length || 1); const sc = mn > 0 ? avg + (counts.every((x) => x === counts[0]) ? 100 : 0) : 0; if (sc > bs) { bs = sc; best = s; } }
+    for (const s of [';', ',', '\t', '|']) {
+      const rows = D.splitCsv(sample, s, '"').filter((r) => r.length > 1 || (r[0] || '').trim()).slice(0, 40);
+      const counts = rows.map((r) => r.length - 1); if (!counts.length) continue;
+      const mn = Math.min(...counts), avg = counts.reduce((a, b) => a + b, 0) / counts.length;
+      const sc = mn > 0 ? avg + (counts.every((x) => x === counts[0]) ? 100 : 0) : 0;
+      if (sc > bs) { bs = sc; best = s; }
+    }
     return best;
   };
   /** octets → texte : UTF-8 (avec ou sans BOM), UTF-16, sinon Windows-1252 */

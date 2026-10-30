@@ -84,14 +84,15 @@
   window.addEventListener('pagehide', () => { if (A.wb) A.autosave(); });
 
   /* ---------------- ouvrir ---------------- */
-  function progress(label) { let last = 0; return (i, n) => { if (Date.now() - last < 300) return; last = Date.now(); O.toast(label + (n ? ' ' + Math.min(100, Math.round(i / n * 100)) + ' %' : '…'), { ms: 3000 }); }; }
-  A.progress = progress;
+  // barre de progression commune (O.progress : visible au-delà de 300 ms) ; withProg la retire à la fin, même en cas d'erreur
+  function progress(label) { return O.progress(label + '…'); }
+  async function withProg(label, fn) { const pg = progress(label); try { return await fn(pg); } finally { pg.end(); } }
+  A.progress = progress; A.withProg = withProg;
   async function openBlob(blob, name, ref, opt) {
     opt = opt || {};
     try {
       if (!opt.dirtyOk && A.dirty && !(await askSave())) return false;
-      O.toast('Ouverture de « ' + name + ' »…', { ms: 8000 });
-      const r = await TB.IO.open(blob, name, { progress: progress('Lecture'), wizard: !opt.noWizard });
+      const r = await withProg('Ouverture de « ' + name + ' »', (pg) => TB.IO.open(blob, name, { progress: pg, wizard: !opt.noWizard }));
       if (!r) return false;
       const writable = /^(magcalc|xlsx|ods|csv|tsv)$/.test(r.kind);
       A.setWorkbook(r.wb, { name: writable ? name : O.baseName(name) + '.xlsx', ref: writable ? ref || null : null, kind: writable ? r.kind : 'xlsx' }, { dirty: !writable });
@@ -101,7 +102,7 @@
       O.toast(msg || 'Classeur ouvert', { ms: msg ? 4500 : 1200 });
       if (r.warnings && r.warnings.length) setTimeout(() => O.toast(r.warnings.slice(0, 3).join(' · '), { bad: true, ms: 7000 }), 4600);
       return true;
-    } catch (e) { console.error(e); O.alert('Ouverture impossible', '<p>« ' + O.esc(name) + ' » n\'a pas pu être ouvert.</p><p class="o-hint">' + O.esc(e.message || String(e)) + '</p>'); return false; }
+    } catch (e) { (e && e.user ? console.warn : console.error)(e); O.alert('Ouverture impossible', '<p>« ' + O.esc(name) + ' » n\'a pas pu être ouvert.</p><p class="o-hint">' + O.esc(e.message || String(e)) + '</p>'); return false; }
   }
   A.openBlob = openBlob;
   C.open = async function () { const l = await F.open({ id: 'tableur' }); if (!l.length) return; await openBlob(l[0].blob, l[0].name, l[0].ref); };
@@ -119,9 +120,10 @@
   A.importCsv = async function () { const l = await F.pickMedia('.csv,.txt,.tsv,.prn,text/csv,text/plain', false); if (!l.length) return; const r = await TB.IO.csvWizard(l[0], l[0].name, { into: true }); if (r && D.afterCsvInto) D.afterCsvInto(r); };
 
   /* ---------------- enregistrer, exporter ---------------- */
-  async function buildBlob(kind) {
+  async function buildBlob(kind, fileName) {
     if (A.grid.edit) A.grid.commitEdit(null);
-    const r = await TB.IO.save(kind, A.wb, { name: A.docName(), progress: progress('Création du fichier'), sheet: A.wb.cur, thumb: await thumb() });
+    const th = await thumb();
+    const r = await withProg('Création du fichier', (pg) => TB.IO.save(kind, A.wb, { name: A.docName(), fileName: fileName || (A.file && A.file.kind === kind ? A.file.name : '') || '', progress: pg, sheet: A.wb.cur, thumb: th }));
     if (r.warn && r.warn.length) O.toast(r.warn.join(' ; '), { bad: true, ms: 6500 });
     return r.blob;
   }
@@ -130,17 +132,18 @@
     const kind = A.file.kind || 'magcalc';
     if (A.file.ref && F.canWrite(A.file.ref) && A.KINDS[kind] && A.KINDS[kind].write) {
       if ((kind === 'csv' || kind === 'tsv') && A.wb.sheets.length > 1 && !A._csvWarned) { A._csvWarned = true; O.toast('CSV : seule la feuille active est enregistrée', { ms: 3000 }); }
-      try { const b = await buildBlob(kind); await F.write(A.file.ref, b, A.file.name); A.dirty = false; A.renderTitle(); O.toast('Enregistré', { ms: 1200 }); await addRecent(b, A.file.name, A.file.ref); A.autosave(); return true; }
+      try { const b = await buildBlob(kind, A.file.name); await F.write(A.file.ref, b, A.file.name); A.dirty = false; A.renderTitle(); O.toast('Enregistré', { ms: 1200 }); await addRecent(b, A.file.name, A.file.ref); A.autosave(); return true; }
       catch (e) { if (e && e.code === 'perm') O.toast('Autorisation refusée : choisissez un emplacement', { bad: true }); else O.toast('Enregistrement impossible : ' + (e.message || e), { bad: true }); }
     }
     return C.saveAs(A.KINDS[kind] && A.KINDS[kind].write ? kind : 'magcalc');
   };
   C.saveAs = async function (kind) {
     kind = kind || 'magcalc'; const K = A.KINDS[kind];
-    const name = O.safeName(A.docName(), K.ext);
+    // un classeur avec macros reste un .xlsm (Excel refuse un .xlsm sans le type « avec macros », et l'inverse)
+    const name = O.safeName(A.docName(), kind === 'xlsx' && A.wb.keep && A.wb.keep.vba && /\.xlsm$/i.test((A.file && A.file.name) || '') ? '.xlsm' : K.ext);
     try {
-      const b = await buildBlob(kind);
-      const r = await F.saveAs(b, name, { types: [K.type], mime: K.mime, id: 'tableur' });
+      const b = await buildBlob(kind, name);
+      const r = await F.saveAs(b, name, { types: [/\.xlsm$/i.test(name) ? T('Classeur Excel avec macros', 'application/vnd.ms-excel.sheet.macroEnabled.12', ['.xlsm']) : K.type], mime: /\.xlsm$/i.test(name) ? 'application/vnd.ms-excel.sheet.macroEnabled.12' : K.mime, id: 'tableur' });
       if (!r.ok) { if (r.err) O.toast('Enregistrement impossible : ' + r.err, { bad: true }); return false; }
       A.file = { name: r.name || name, ref: r.ref, kind, recentId: A.file.recentId };
       A.dirty = false; A.renderTitle();
@@ -153,7 +156,7 @@
     const K = A.KINDS[kind];
     try {
       let b;
-      if (kind === 'pdf') b = await TB.Pdf.export(A.wb, Object.assign({ sheets: 'active' }, opt || {}), progress('Création du PDF'));
+      if (kind === 'pdf') b = await withProg('Création du PDF', (pg) => TB.Pdf.export(A.wb, Object.assign({ sheets: 'active', progress: pg }, opt || {})));
       else b = await buildBlob(kind);
       const r = await F.export(b, O.safeName(A.docName(), K.ext), { types: [K.type], mime: K.mime });
       if (r && r.ok && kind === 'pdf') A.lastPdf = { blob: b, name: O.safeName(A.docName(), '.pdf') };
@@ -164,7 +167,7 @@
     const M = window.MAGPC; let w = null;
     if (M) { try { w = M.nativeOpen('about:blank'); } catch (e) { } }
     try {
-      const b = await TB.Pdf.export(A.wb, Object.assign({ sheets: 'active' }, opt || {}), progress('Création du PDF')); const name = O.safeName(A.docName(), '.pdf');
+      const b = await withProg('Création du PDF', (pg) => TB.Pdf.export(A.wb, Object.assign({ sheets: 'active', progress: pg }, opt || {}))); const name = O.safeName(A.docName(), '.pdf');
       if (M) { await M.db.put('inbox', { id: M.uid('i'), to: 'fr.magformation13.pdf', name, blob: b, at: Date.now() }); const u = new URL((M.conf && M.conf.apps && M.conf.apps['fr.magformation13.pdf']) || '../pdf/', location.href).href; if (w) w.location.href = u; else M.nativeOpen(u); O.toast('Ouverture dans l\'Atelier PDF…'); return; }
       if (O.isAndroid) { await F.share(b, name); O.toast('Choisissez « Atelier PDF » dans la liste'); return; }
       await F.export(b, name, { types: [A.KINDS.pdf.type], mime: 'application/pdf' });
@@ -172,7 +175,7 @@
   };
   C.print = async function (opt) {
     try {
-      const b = await TB.Pdf.export(A.wb, Object.assign({ sheets: 'active' }, opt || {}), progress('Préparation de l\'impression'));
+      const b = await withProg('Préparation de l\'impression', (pg) => TB.Pdf.export(A.wb, Object.assign({ sheets: 'active', progress: pg }, opt || {})));
       const r = await F.printPdf(b, O.safeName(A.docName(), '.pdf'));
       if (!r) { const u = URL.createObjectURL(b); window.open(u, '_blank'); setTimeout(() => URL.revokeObjectURL(u), 120000); }
     } catch (e) { console.error(e); O.toast('Impression impossible : ' + e.message, { bad: true }); }
@@ -251,6 +254,8 @@
     else if (tab === 'options') h = '<h2>Options</h2><div class="o-form" style="max-width:600px"><label class="o-field"><span>Votre nom (commentaires, notes, auteur des nouveaux classeurs)</span><input class="o-in" data-opt="auteur" value="' + O.esc(A.userName()) + '"></label><label class="o-field half"><span>Apparence</span><select class="o-in" data-opt="ui"><option value="">Comme le système</option><option value="clair"' + (A.settings.ui === 'clair' ? ' selected' : '') + '>Claire</option><option value="sombre"' + (A.settings.ui === 'sombre' ? ' selected' : '') + '>Sombre</option></select></label><label class="o-field half"><span>Noms des fonctions</span><select class="o-in" data-opt="fn"><option value="fr"' + (TB.loc.fn === 'fr' ? ' selected' : '') + '>Français (SOMME, SI, RECHERCHEV…)</option><option value="en"' + (TB.loc.fn === 'en' ? ' selected' : '') + '>Anglais (SUM, IF, VLOOKUP…)</option></select></label><label class="o-field half"><span>Séparateurs</span><select class="o-in" data-opt="sep"><option value="fr"' + (TB.loc.sep === 'fr' ? ' selected' : '') + '>« ; » entre arguments, virgule décimale (1,5)</option><option value="en"' + (TB.loc.sep === 'en' ? ' selected' : '') + '>« , » entre arguments, point décimal (1.5)</option></select></label><p class="o-hint">Les formules sont toujours acceptées avec les noms français ou anglais. Les fichiers .xlsx et .ods gardent leur écriture standard.</p><label class="o-check"><input type="checkbox" data-opt="autoComplete"' + (A.settings.autoComplete !== false ? ' checked' : '') + '><span>Saisie semi-automatique des valeurs de la colonne</span></label><label class="o-check"><input type="checkbox" data-opt="autoLink"' + (A.settings.autoLink !== false ? ' checked' : '') + '><span>Transformer les adresses web et e-mail en liens</span></label><label class="o-check"><input type="checkbox" data-opt="iter"' + (A.wb.settings.iter ? ' checked' : '') + '><span>Calcul itératif (références circulaires, 100 itérations, écart 0,001)</span></label></div><h3>Listes personnalisées (recopie incrémentée et tri)</h3><textarea class="o-in" rows="5" data-opt="lists" style="max-width:600px" placeholder="Une liste par ligne, éléments séparés par des virgules : Nord, Est, Sud, Ouest">' + O.esc(TB.Data.userLists().map((l) => l.join(', ')).join('\n')) + '</textarea><h3>Récents</h3><p><button type="button" class="mini-btn" data-a="clearrec">' + O.icon('trash-2') + 'Vider la liste des récents</button></p>';
     else if (tab === 'about') h = aboutHtml();
     body.innerHTML = h;
+    // Suite MAG sur PC : version (jour de publication) et « Rechercher une mise à jour »
+    if (tab === 'about' && window.MAGPC && window.MAGPC.aboutBlock) { const h2 = body.querySelector('h2'); if (h2) h2.insertAdjacentElement('afterend', window.MAGPC.aboutBlock()); }
     O.$$('[data-pv]', body).forEach((pv) => TB.Templates.preview(pv, pv.dataset.pv));
     O.$$('[data-prop]', body).forEach((i) => i.addEventListener('change', () => { A.wb.props[i.dataset.prop] = i.value; A.dirty = true; A.renderTitle(); }));
     O.$$('[data-opt]', body).forEach((i) => i.addEventListener('change', () => {
