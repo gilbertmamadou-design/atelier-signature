@@ -12,7 +12,7 @@
   --bg:#070b14;--bg2:#0d1422;--bg3:#152034;--bg4:#1d2b44;--line:#7ff3d61f;--line2:#7ff3d63d;
   --tx:#e9f4f6;--tx2:#a9bfc6;--tx3:#6f8791;
   --acc:#46d9c2;--acc2:#2bb8a3;--onacc:#03221d;--vio:#9a86ff;--ok:#62f0a0;--warn:#ffc35c;--bad:#ff5c73;
-  --r:16px;--safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);
+  --r:16px;--safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);--safe-l:env(safe-area-inset-left,0px);--safe-r:env(safe-area-inset-right,0px);
   --mono:ui-monospace,"Cascadia Mono","Consolas","Roboto Mono",monospace;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -27,39 +27,62 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
   radial-gradient(ellipse at 50% 38%,#12324044 0,transparent 60%),
   linear-gradient(#7ff3d608 1px,transparent 1px) 0 0/34px 34px,
   linear-gradient(90deg,#7ff3d608 1px,transparent 1px) 0 0/34px 34px}
-#app{position:fixed;inset:0;display:grid;grid-template-rows:auto 1fr auto;padding-top:var(--safe-t)}
+#app{position:fixed;inset:0;display:grid;grid-template-rows:auto minmax(0,1fr) auto;grid-template-columns:minmax(0,1fr);padding:var(--safe-t) var(--safe-r) 0 var(--safe-l)}
+#app>*{min-width:0}
 /* barre du haut */
-header{display:flex;align-items:center;gap:6px;padding:8px 8px 6px 14px}
-header h1{flex:1;margin:0;font-size:17px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;display:flex;align-items:center;gap:10px;min-width:0}
-header h1 i{width:9px;height:9px;border-radius:50%;background:var(--acc);box-shadow:0 0 10px var(--acc);flex:none}
-header h1 span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+header{display:flex;align-items:center;gap:2px;padding:6px 8px 2px;min-width:0}
+header .sp{flex:1;min-width:0}
+#topbar{max-width:760px;margin:0 auto;width:100%}
 .ib{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--tx2);position:relative}
 .ib:hover{background:var(--bg3);color:var(--tx)}
 .ib:active{background:var(--bg4)}
 .ib .dot{position:absolute;top:7px;right:7px;width:8px;height:8px;border-radius:50%;background:var(--warn)}
-#chips{display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 4px}
-.chip{font:600 11px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--tx2);border:1px solid var(--line2);border-radius:20px;padding:5px 9px;display:inline-flex;align-items:center;gap:6px}
+#chips{display:flex;gap:5px 6px;flex-wrap:wrap;justify-content:center;padding:0 12px 4px;min-width:0}
+.chip{flex:none;white-space:nowrap;font:600 10.5px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--tx2);border:1px solid var(--line2);border-radius:20px;padding:5px 9px;display:inline-flex;align-items:center;gap:6px}
 .chip b{width:6px;height:6px;border-radius:50%;background:var(--tx3)}
 .chip.on b{background:var(--ok);box-shadow:0 0 6px var(--ok)}
 .chip.warn b{background:var(--warn)}
 .chip.bad b{background:var(--bad)}
 button.chip{cursor:pointer}
 /* scène */
-main{display:grid;grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr);min-height:0;overflow:hidden}
-#stage{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:0}
-#orbBox{position:relative;width:min(70vw,34vh,420px);aspect-ratio:1;cursor:pointer;margin-top:4px}
-#orb{position:absolute;inset:0;width:100%;height:100%}
-#ring{position:absolute;inset:-4%;border-radius:50%;pointer-events:none}
+main{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);min-height:0;overflow:hidden}
+#stage{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-height:0;min-width:0;padding:0 12px}
+#core{display:flex;flex-direction:column;align-items:center;width:100%;min-width:0}
+/* sphère centrée, environ 78 % de la largeur du téléphone (limitée par la hauteur sur les écrans courts) */
+#orbBox{position:relative;width:min(78vw,calc((100vh - var(--safe-t) - var(--safe-b)) * .40),460px);aspect-ratio:1;cursor:pointer;margin:4px auto 0;flex:none;z-index:0}
+#orb{position:absolute;left:-16%;top:-16%;width:132%;height:132%;pointer-events:none}
+#ring{position:absolute;inset:-3%;border-radius:50%;pointer-events:none;transform:scale(calc(1 + var(--lv,0) * .045));transition:transform .08s linear}
 #ring svg{width:100%;height:100%;overflow:visible}
 #ring circle{fill:none;stroke:var(--line2);stroke-width:.4}
 #ring .tick{stroke:var(--acc);stroke-width:.6;opacity:.55}
-#status{margin-top:4px;font:600 12px/1.2 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--acc);min-height:16px;text-align:center}
-#heard{margin:8px 18px 0;min-height:22px;font-size:17px;color:var(--tx);text-align:center;max-width:640px}
+#who{margin-top:6px;text-align:center;max-width:100%;position:relative;z-index:1}
+#title{display:block;margin:0;font-size:22px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;line-height:1.15;padding-left:.2em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#greet{display:block;font-size:14px;color:var(--tx2);margin-top:1px}
+#status{margin-top:5px;font:600 11.5px/1.2 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--acc);min-height:15px;text-align:center;position:relative;z-index:1}
+#heard{margin:6px 6px 0;min-height:20px;font-size:16px;color:var(--tx);text-align:center;max-width:620px;position:relative;z-index:1;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+#heard:empty{min-height:0;margin:0}
+/* informations du moment : heure, météo et vent, prochain rendez-vous, lumières */
+#moment{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;width:100%;max-width:560px;margin:8px auto 0;position:relative;z-index:1}
+.mo{min-width:0;text-align:center;background:linear-gradient(180deg,#0f1828e6,#0b1220e6);border:1px solid var(--line2);border-radius:14px;padding:7px 8px 8px;color:var(--tx)}
+.mo:hover{border-color:var(--acc)}
+.mo i{display:block;font:600 9.5px/1.2 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--tx3);font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mo b{display:block;font-size:16px;font-weight:600;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mo b.big{font-size:20px;font-weight:300;letter-spacing:.04em;font-variant-numeric:tabular-nums}
+.mo span{display:block;font-size:12px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mo span.warn{color:var(--warn)}.mo span.bad{color:var(--bad)}
+/* dernier échange (avant la première question de la séance) */
+#last{width:100%;max-width:560px;margin:8px auto 0;text-align:center;font-size:14px;color:var(--tx2);border:1px dashed var(--line2);border-radius:14px;padding:7px 12px}
+#last .k{font:600 9.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--tx3);margin-bottom:4px}
+#last q{display:block;color:var(--tx2);font-style:italic;quotes:"« " " »"}
+#last p{margin:2px 0 0;color:var(--tx);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 #heard.partial{color:var(--tx2);font-style:italic}
 /* réponses */
-#side{min-height:0;overflow:auto;padding:4px 14px 10px;-webkit-overflow-scrolling:touch}
-#cards{display:flex;flex-direction:column;gap:10px;max-width:680px;margin:0 auto}
-.card{background:linear-gradient(180deg,#0f1828f2,#0b1220f2);border:1px solid var(--line2);border-radius:var(--r);padding:12px 14px;position:relative;animation:pop .22s ease-out}
+#side{min-height:0;min-width:0;overflow:auto;padding:4px 12px 10px;-webkit-overflow-scrolling:touch}
+#cards{display:flex;flex-direction:column;gap:10px;max-width:560px;margin:0 auto}
+#cards:empty{display:none}
+.card{background:linear-gradient(180deg,#0f1828f2,#0b1220f2);border:1px solid var(--line2);border-radius:var(--r);padding:12px 14px;position:relative;animation:pop .22s ease-out;text-align:center;overflow-wrap:anywhere}
+.card ul,.card ol,.card .hist,.card table{text-align:left}
+.card .row{justify-content:center}
 .card:before{content:"";position:absolute;left:-1px;top:14px;width:3px;height:18px;border-radius:2px;background:var(--acc)}
 .card.q{background:none;border-style:dashed;padding:8px 12px;color:var(--tx2)}
 .card.q:before{display:none}
@@ -81,14 +104,15 @@ main{display:grid;grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr
 .wx b{display:block;color:var(--tx);font-size:14px}
 @keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 /* minuteurs */
-#timers{display:flex;gap:8px;overflow:auto;padding:0 14px 6px;max-width:100%}
+#timers{display:flex;gap:8px;overflow:auto;padding:0 12px 6px;max-width:100%;justify-content:safe center}
+#timers:empty{display:none}
 .tm{flex:none;display:flex;align-items:center;gap:8px;border:1px solid var(--line2);border-radius:14px;padding:6px 8px 6px 12px;background:var(--bg2)}
 .tm b{font:600 16px var(--mono);color:var(--acc)}
 .tm small{color:var(--tx2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tm.ring{border-color:var(--warn);animation:blink 1s infinite}
 @keyframes blink{50%{background:#3a2c0a}}
 /* saisie */
-footer{padding:6px 12px calc(10px + var(--safe-b));display:flex;align-items:center;gap:10px;max-width:760px;width:100%;margin:0 auto}
+footer{padding:6px 12px calc(8px + var(--safe-b));display:flex;align-items:center;gap:10px;max-width:600px;width:100%;margin:0 auto}
 #ask{flex:1;display:flex;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--line2);border-radius:26px;padding:3px 4px 3px 16px;min-width:0}
 #ask:focus-within{border-color:var(--acc)}
 #q{flex:1;min-width:0;background:none;border:0;outline:0;height:44px;font-size:16px}
@@ -137,26 +161,43 @@ input[type=range]{width:160px;accent-color:var(--acc)}
 #toast{position:fixed;left:50%;bottom:calc(92px + var(--safe-b));transform:translate(-50%,20px);background:var(--bg4);border:1px solid var(--line2);color:var(--tx);padding:10px 16px;border-radius:12px;opacity:0;pointer-events:none;transition:.2s;z-index:40;max-width:90vw;font-size:14px}
 #toast.on{opacity:1;transform:translate(-50%,0)}
 /* grand écran : sphère à gauche, réponses à droite */
+/* grand écran et paysage : sphère centrée dans la colonne de gauche ; informations du moment et échanges à droite */
+@media (min-width:900px), (orientation:landscape) and (max-height:560px){
+  main{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"core moment" "core side";column-gap:10px;max-width:1240px;width:100%;margin:0 auto}
+  #stage{display:contents}
+  #core{grid-area:core;justify-content:center;min-height:0;overflow:auto;padding:0 12px}
+  #moment{grid-area:moment;margin:10px auto 0;padding:0 12px;max-width:560px}
+  #side{grid-area:side;padding-top:8px}
+}
 @media (min-width:900px){
-  main{grid-template-columns:minmax(380px,1fr) minmax(400px,560px);grid-template-rows:minmax(0,1fr);gap:8px}
-  #side{padding-top:14px}
-  #orbBox{width:min(40vw,56vh,460px)}
+  #orbBox{width:min(36vw,52vh,440px)}
   .sheet{left:50%;right:auto;bottom:50%;width:min(620px,92vw);transform:translate(-50%,60%) scale(.98);opacity:0;border-radius:20px;border-bottom:1px solid var(--line2);max-height:84vh;transition:transform .2s,opacity .2s;pointer-events:none}
   .sheet.on{transform:translate(-50%,50%);opacity:1;pointer-events:auto}
 }
-@media (max-height:520px) and (orientation:landscape){ main{grid-template-columns:1fr 1fr} #orbBox{width:min(40vw,52vh)} }
+@media (max-height:560px) and (orientation:landscape){
+  #orbBox{width:min(40vw,calc(100vh - 236px - var(--safe-t) - var(--safe-b)))}
+  #greet{display:none}#title{font-size:18px}
+  #moment{gap:5px;margin-top:6px}
+  .mo{padding:4px 6px}.mo b{font-size:14px}.mo b.big{font-size:16px}.mo span{font-size:11px}
+  #chips{padding-bottom:2px}
+}
+/* écrans courts (clavier ouvert, petits téléphones) : cartes du moment sur une ligne */
+@media (max-height:700px) and (orientation:portrait){
+  #moment{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+  .mo{padding:5px 3px}.mo i{font-size:8.5px;letter-spacing:.06em}.mo b{font-size:13px}.mo b.big{font-size:15px}.mo span{display:none}
+  #title{font-size:18px}#greet{display:none}
+}
 @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
 </style>
 </head>
 <body>
 <div id="bgfx"></div>
 <div id="app">
-  <div>
+  <div id="topbar">
     <header>
-      <h1><i></i><span id="title">Majordome</span></h1>
       <button class="ib" id="bHome" aria-label="Maison : lumières" title="Maison : lumières"><svg class="ic" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3z"/></svg></button>
       <button class="ib" id="bLists" aria-label="Notes et listes" title="Notes et listes"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg></button>
-      <button class="ib" id="bHist" aria-label="Historique" title="Historique"><svg class="ic" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg></button>
+      <span class="sp" aria-hidden="true"></span><button class="ib" id="bHist" aria-label="Historique" title="Historique"><svg class="ic" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg></button>
       <button class="ib" id="bHelp" aria-label="Aide : ce que je sais faire" title="Ce que je sais faire"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/></svg></button>
       <button class="ib" id="bSet" aria-label="Réglages" title="Réglages"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><i class="dot" id="setDot" hidden></i></button>
     </header>
@@ -164,14 +205,19 @@ input[type=range]{width:160px;accent-color:var(--acc)}
   </div>
   <main>
     <section id="stage">
+      <div id="core">
       <div id="orbBox" role="button" tabindex="0" aria-label="Parler à l'assistant">
         <canvas id="orb"></canvas>
         <div id="ring"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="49"/><circle cx="50" cy="50" r="45.5" stroke-dasharray="1 3.2"/><g id="ticks"></g></svg></div>
       </div>
+      <div id="who"><h1 id="title">Majordome</h1><span id="greet"></span></div>
       <div id="status" aria-live="polite">Prêt</div>
       <div id="heard" aria-live="polite"></div>
+      </div>
+      <div id="moment" aria-label="En ce moment"></div>
     </section>
     <section id="side">
+      <div id="last" hidden></div>
       <div id="cards" aria-live="polite"></div>
     </section>
   </main>
