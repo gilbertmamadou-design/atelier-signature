@@ -10,10 +10,12 @@ package __PKG__;
 //  - Minuteurs, réveils, rappels : AlarmManager (setAlarmClock / setExactAndAllowWhileIdle), notification plein écran, redémarrage.
 //  - Téléphone : appel et SMS (toujours après confirmation dans la page), volume, sonnerie / ne pas déranger, panneaux Wi-Fi
 //    et Bluetooth (Android impose de passer par eux), touches multimédia.
+//  - Ouvrir n'importe quelle appli (« Ouvre WhatsApp ») : liste MAIN/LAUNCHER en cache (appList), lancement (appLaunch)
+//    et raccourcis du système par intents standard (sysOpen), en respectant les règles d'Android hors premier plan.
 //  - Montre connectée (Amazfit T-Rex 3) : notifications courtes recopiées par l'appli Zepp, et serveur local 127.0.0.1
 //    à jeton pour la mini-appli Zepp OS « Jarvis » (zepp/jarvis/), voir « Montre connectée » plus bas.
 // Événements vers la page : window.majordomeEvent(type, json). Codes de requête 6600 à 6619 ; notifications 6620 à 6640,
-// 6630 + 0..1023 (alarmes), 7700 à 7710 (montre) ; PendingIntent 6680 à 6692 (montre).
+// 6630 + 0..1023 (alarmes), 7700 à 7710 (montre), 7720 (ouvrir une appli) ; PendingIntent 6680 à 6692 (montre), 6900 (ouvrir une appli).
 
 import android.Manifest;
 import android.app.Activity;
@@ -24,12 +26,15 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.content.pm.ServiceInfo;
 import android.media.AudioAttributes;
 import android.media.AudioFormat;
@@ -45,6 +50,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.provider.AlarmClock;
+import android.provider.MediaStore;
 import android.provider.Settings;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
@@ -68,7 +75,10 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -80,7 +90,8 @@ public class MajordomeBridge {
     static final int N_WAKE = 6620, N_CMD = 6621, N_ALARM_BASE = 6630;
     static final String CH_WAKE = "mj_ecoute", CH_ALARM = "mj_alarme", CH_RAPPEL = "mj_rappel", CH_CMD = "mj_commande";
     static final String CH_WATCH = "mj_montre", CH_LINK = "mj_montre_liaison";
-    static final int N_WATCH_BASE = 7700, N_LINK = 7710;   // au-delà des notifications d'alarme (6630 + 0..1023)
+    static final int N_WATCH_BASE = 7700, N_LINK = 7710;
+    static final int N_OPEN = 7720, PI_OPEN = 6900;   // « ouvre WhatsApp » hors premier plan : notification à toucher   // au-delà des notifications d'alarme (6630 + 0..1023)
 
     static volatile MajordomeBridge live;
     static volatile boolean resumed;
@@ -105,10 +116,11 @@ public class MajordomeBridge {
             });
         } catch (Throwable t) { }
         takeIntent(a.getIntent());
+        watchPackages(a.getApplicationContext());
     }
 
     // ---------- Cycle de vie (appelé par MainActivity) ----------
-    public void onResume() { resumed = true; live = this; emit("perm", "{}"); }
+    public void onResume() { resumed = true; live = this; emit("perm", "{}"); refreshApps(a.getApplicationContext()); }
     public void onPermissions(int code) { emit("perm", "{}"); }
     public void onIntent(Intent i) { takeIntent(i); }
     public void onResult(int code, int res, Intent data) {
@@ -760,6 +772,146 @@ public class MajordomeBridge {
             try { if (url != null && url.startsWith("https://")) a.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); }
             catch (Throwable t) { toast("Impossible d'ouvrir le lien"); }
         } });
+    }
+
+    // =====================================================================
+    // Ouvrir n'importe quelle appli (« Ouvre WhatsApp ») et les raccourcis du système
+    // =====================================================================
+    // Liste des applis lançables : queryIntentActivities(MAIN/LAUNCHER), visibles sur Android 11+ grâce à
+    // <queries><intent> MAIN/LAUNCHER du manifeste (pas besoin de QUERY_ALL_PACKAGES). Libellé, paquet, activité.
+    // Gardée en mémoire ; effacée à chaque installation / désinstallation / mise à jour (récepteur inscrit tant que
+    // Majordome tourne : Android ne livre plus ces diffusions aux récepteurs du manifeste) et refaite au retour dans Majordome.
+    static volatile String appsCache = null;
+    static volatile boolean pkgRx = false;
+    static String appsJson(Context c) {
+        JSONArray out = new JSONArray();
+        try {
+            PackageManager pm = c.getPackageManager();
+            List<ResolveInfo> l = pm.queryIntentActivities(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0);
+            ArrayList<JSONObject> rows = new ArrayList<>();
+            for (ResolveInfo r : l) {
+                if (r.activityInfo == null) continue;
+                String pkg = r.activityInfo.packageName;
+                if (pkg.equals(c.getPackageName())) continue;
+                CharSequence lb = r.loadLabel(pm);
+                String label = lb == null ? "" : lb.toString().replaceAll("\\s+", " ").trim();
+                if (label.isEmpty()) continue;
+                rows.add(new JSONObject().put("label", label).put("pkg", pkg).put("cls", r.activityInfo.name));
+            }
+            Collections.sort(rows, new Comparator<JSONObject>() { public int compare(JSONObject x, JSONObject y) { return x.optString("label").compareToIgnoreCase(y.optString("label")); } });
+            for (JSONObject o : rows) out.put(o);
+        } catch (Throwable t) { }
+        return out.toString();
+    }
+    static void watchPackages(Context c) {
+        if (pkgRx) return;
+        pkgRx = true;
+        try {
+            BroadcastReceiver rx = new BroadcastReceiver() { public void onReceive(Context x, Intent i) { appsCache = null; } };
+            IntentFilter f = new IntentFilter();
+            f.addAction(Intent.ACTION_PACKAGE_ADDED); f.addAction(Intent.ACTION_PACKAGE_REMOVED); f.addAction(Intent.ACTION_PACKAGE_CHANGED); f.addAction(Intent.ACTION_PACKAGE_REPLACED);
+            f.addDataScheme("package");
+            if (Build.VERSION.SDK_INT >= 33) c.registerReceiver(rx, f, Context.RECEIVER_EXPORTED); else c.registerReceiver(rx, f);
+        } catch (Throwable t) { pkgRx = false; }
+    }
+    static void refreshApps(final Context c) { new Thread(new Runnable() { public void run() { appsCache = appsJson(c); } }).start(); }
+    @JavascriptInterface public String appList() {
+        String s = appsCache;
+        if (s == null) { s = appsJson(a.getApplicationContext()); appsCache = s; }
+        return s;
+    }
+    /** Démarre l'activité d'une autre appli. Majordome au premier plan : tout de suite. Hors premier plan (écoute continue,
+     *  montre) : Android bloque sans le dire les lancements depuis l'arrière-plan, sauf avec « Affichage par-dessus » ;
+     *  sinon notification à toucher (comme pour les commandes de l'écoute continue). → ok | notif | none | err */
+    static String startOrNotify(Context c, Intent i, String name) {
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        MajordomeBridge b = live;
+        boolean front = b != null && resumed, overlay = Build.VERSION.SDK_INT < 23 || Settings.canDrawOverlays(c);
+        if (front || overlay) {
+            try { if (front) b.a.startActivity(i); else c.startActivity(i); return "ok"; }
+            catch (ActivityNotFoundException e) { return "none"; }
+            catch (Throwable t) { if (front) return "err"; }
+        }
+        try {
+            channels(c);
+            PendingIntent pi = PendingIntent.getActivity(c, PI_OPEN, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+            Notification.Builder n = nb(c, CH_CMD).setSmallIcon(c.getApplicationInfo().icon).setContentTitle(Lien.clip("Ouvrir " + name, Lien.TITLE_MAX))
+                .setContentText("Touchez pour ouvrir " + name).setAutoCancel(true).setContentIntent(pi).setCategory(Notification.CATEGORY_RECOMMENDATION);
+            ((NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE)).notify(N_OPEN, n.build());
+            return "notif";
+        } catch (Throwable t) { return "err"; }
+    }
+    /** Ouvre une appli installée (paquet + activité de la liste, ou l'activité de lancement du paquet). Sans confirmation. */
+    @JavascriptInterface public String appLaunch(String pkg, String cls, String name) {
+        if (pkg == null || pkg.isEmpty()) return "err";
+        Context c = a.getApplicationContext();
+        PackageManager pm = c.getPackageManager();
+        Intent i = null;
+        if (cls != null && !cls.isEmpty()) {
+            Intent j = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER).setComponent(new ComponentName(pkg, cls));
+            if (j.resolveActivity(pm) != null) i = j;
+        }
+        if (i == null) i = pm.getLaunchIntentForPackage(pkg);
+        if (i == null) { appsCache = null; return "absent"; }
+        i.addFlags(Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+        return startOrNotify(c, i, name == null || name.isEmpty() ? pkg : name);
+    }
+    /** Raccourcis du système par intents standard : paramètres (et sous-pages), appareil photo, téléphone, messages,
+     *  agenda, horloge, galerie, contacts, calculatrice, navigateur, messagerie, musique, Play Store. */
+    @JavascriptInterface public String sysOpen(String what, String sub, String name) {
+        Context c = a.getApplicationContext();
+        Intent i = sysIntent(c, what == null ? "" : what, sub == null ? "" : sub);
+        if (i == null) return "none";
+        return startOrNotify(c, i, name == null || name.isEmpty() ? "l'appli" : name);
+    }
+    static Intent selector(String cat) { return Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, cat); }
+    static String settingsAction(String sub) {
+        switch (sub) {
+            case "wifi": return Settings.ACTION_WIFI_SETTINGS;
+            case "bluetooth": return Settings.ACTION_BLUETOOTH_SETTINGS;
+            case "battery": return Intent.ACTION_POWER_USAGE_SUMMARY;
+            case "display": return Settings.ACTION_DISPLAY_SETTINGS;
+            case "sound": return Settings.ACTION_SOUND_SETTINGS;
+            case "apps": return Settings.ACTION_APPLICATION_SETTINGS;
+            case "location": return Settings.ACTION_LOCATION_SOURCE_SETTINGS;
+            case "storage": return Settings.ACTION_INTERNAL_STORAGE_SETTINGS;
+            case "security": return Settings.ACTION_SECURITY_SETTINGS;
+            case "a11y": return Settings.ACTION_ACCESSIBILITY_SETTINGS;
+            case "date": return Settings.ACTION_DATE_SETTINGS;
+            case "lang": return Settings.ACTION_LOCALE_SETTINGS;
+            case "network": return Settings.ACTION_WIRELESS_SETTINGS;
+            case "nfc": return Settings.ACTION_NFC_SETTINGS;
+            case "airplane": return Settings.ACTION_AIRPLANE_MODE_SETTINGS;
+            default: return Settings.ACTION_SETTINGS;
+        }
+    }
+    static Intent sysIntent(Context c, String what, String sub) {
+        PackageManager pm = c.getPackageManager();
+        Intent i;
+        switch (what) {
+            case "settings":
+                i = new Intent(settingsAction(sub));
+                if (i.resolveActivity(pm) == null) i = new Intent(Settings.ACTION_SETTINGS);
+                return i;
+            case "camera":
+                i = new Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA);
+                return i.resolveActivity(pm) != null ? i : new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+            case "dialer": return new Intent(Intent.ACTION_DIAL);
+            case "sms": return selector(Intent.CATEGORY_APP_MESSAGING);
+            case "calendar": return selector(Intent.CATEGORY_APP_CALENDAR);
+            case "clock": return new Intent(AlarmClock.ACTION_SHOW_ALARMS);
+            case "gallery": return selector(Intent.CATEGORY_APP_GALLERY);
+            case "contacts": return selector(Intent.CATEGORY_APP_CONTACTS);
+            case "calculator": return selector(Intent.CATEGORY_APP_CALCULATOR);
+            case "browser": return selector(Intent.CATEGORY_APP_BROWSER);
+            case "email": return selector(Intent.CATEGORY_APP_EMAIL);
+            case "music": return selector(Intent.CATEGORY_APP_MUSIC);
+            case "maps": return selector(Intent.CATEGORY_APP_MAPS);
+            case "store":
+                i = pm.getLaunchIntentForPackage("com.android.vending");
+                return i != null ? i : new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps"));
+            default: return null;
+        }
     }
 
     // ---------- Autorisations ----------
