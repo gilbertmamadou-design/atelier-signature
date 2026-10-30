@@ -63,6 +63,7 @@ pc/
 | Présentation (`presentation`) | tout : édition, thèmes, masque, animations (objet entier ou paragraphe par paragraphe, déclencheurs « au clic sur » un objet), vidéos et sons (démarrer au clic, automatiquement ou en cliquant dessus, lecture / pause / arrêt dans les animations, plein écran, masquer pendant la non-lecture, boucle, rembobiner), diaporama et mode présentateur (2e fenêtre), .magpres, import/export .pptx, PDF, images, « Ouvrir avec » .pptx/.magpres, enregistrement sur place (File System Access) | — |
 | Texte (`texte`) | tout : traitement de texte paginé (sections, en-têtes et pieds, notes, tableaux, images habillées, styles, listes, table des matières, suivi des modifications, commentaires, publipostage CSV), .magdoc, .docx et .odt (ouvrir et enregistrer), .rtf/.txt/.md/.html, PDF à signets, « Ouvrir avec » .docx/.magdoc/.odt/.rtf/.txt/.md, enregistrement sur place, PDF envoyé à l'Atelier PDF | — |
 | Majordome (`majordome`) | assistant vocal à commandes (sans IA) : reconnaissance hors ligne Vosk (WebAssembly), mot de réveil fenêtre ouverte, Ctrl+Espace, saisie au clavier ; heure, calculs, conversions, minuteurs, rappels, météo et vent (Open-Meteo), titres franceinfo, agenda (celui d'Agenda sur PC), notes et listes, dépense ajoutée dans Budget (après confirmation, jamais de solde lu), ouverture des applis de la Suite et des sites connus ; pour une appli du téléphone (« lance WhatsApp »), réponse honnête et proposition de son site s'il existe (web.whatsapp.com, open.spotify.com…), pause / suivant de Mélodie | appels, SMS, lampe, volume du système, modes, Wi-Fi / Bluetooth ; lumières Philips Hue (une page web ne peut pas joindre le pont Hue : certificat auto-signé, contenu mixte, protection du réseau local des navigateurs ; expliqué dans l'appli) ; vigilance MeteoAlarm sans relais ; alarmes appli fermée |
+| Fond Jarvis (`fond-jarvis`, page propre au PC) | fond d'écran animé pour **Lively Wallpaper** (paquet `fond-jarvis-lively.zip`) ou en page plein écran : sphère de Majordome, anneaux, circuits, horloge, météo, titres, système (Lively), musique en cours (Lively), raccourcis, assistant au clavier (analyseur de Majordome) | lancer un .exe, éteindre ou verrouiller Windows, micro dans Lively |
 | Tableur (`tableur`) | tout : tableur (formules en français ou en anglais, plus de 330 fonctions, tableaux dynamiques, mises en forme conditionnelles, tableaux, tris et filtres, tableaux croisés, graphiques), .magcalc, .xlsx et .ods (ouvrir et enregistrer), .xls (lecture), .csv/.tsv, .html, PDF, « Ouvrir avec » .xlsx/.xls/.ods/.csv/.tsv/.magcalc, enregistrement sur place, PDF envoyé à l'Atelier PDF | — |
 | Petits Pas (`petitspas`), Carnet de chasse (`chasse`) | consultation, fiches, statistiques, exports | Petits Pas : sources officielles sans relais ; chasse : position GPS précise |
 
@@ -160,6 +161,35 @@ Même page que l'APK (`applis/www-majordome` : `mj-nlu.js` analyse des commandes
 - **Mélodie** : « pause », « suivant »… passent par `BroadcastChannel('mag-media')`, écouté par `shared/apps/musique.js`.
 - Voix : `speechSynthesis` du navigateur (voix françaises de Windows, vitesse, hauteur, volume) ; minuteurs et rappels dans la page.
 - Réglages, historique, notes, listes, minuteurs : `localStorage` `majordome:*` (exportables par le lanceur, sauf le modèle).
+
+## Fond Jarvis (fond d'écran animé)
+
+Source : `pc/shared/fond-jarvis/` (page `index.html`, `fj.css`, `fj-icons.js`, `fj-hud.js`, `fj-app.js`, `fj-jarvis.js`,
+`LivelyInfo.json`, `LivelyProperties.json`, `agenda/vide.ics`, `thumbnail.jpg`, `preview.gif`, `icon-512.png`, `guide.html`).
+Sphère et analyseur : `applis/www-majordome/mj-orb.js` et `mj-nlu.js` (copies, inchangés). Entrée de `pc-apps.json` :
+`page`, `icon` (icône propre), `pcconf` (ni bouton ⓘ ni « Installer » sur un fond d'écran), `raw` (fichiers publiés tels quels,
+non précachés : guide, aperçu) et `lively` (paquet).
+
+- **Paquet Lively** : `build-pc.py` fabrique `pc/fond-jarvis/fond-jarvis-lively.zip` (entrées à date fixe : même contenu, même
+  fichier ; `LivelyInfo.json` à la racine, type 1 = page web locale, `Arguments` = `--system-information --system-nowplaying
+  --pause-event true`), `fj-version.js` (empreinte et date, dans le paquet et la page) et `fj-version.json` (le paquet installé le
+  lit une fois par jour pour signaler une nouvelle version). Le paquet contient la page (pas une adresse) : d'après le code de
+  Lively (`WallpaperLibraryFactory`, `Lively.Player.WebView2/Form1.cs`), un fond « adresse web » n'a ni `LivelyProperties.json`
+  ni valeurs envoyées au chargement, et resterait noir hors ligne au démarrage.
+- **Lively** sert la page sur `https://<empreinte>.localhost/` (WebView2, `SetVirtualHostNameToFolderMapping`) : `FJ.mode =
+  'lively'`. Stockage propre à Lively (et à chaque écran en mode « Écran ») : pas de partage avec la Suite ouverte dans Edge.
+  Liens : `window.open` dans un clic → Lively les passe à Windows (`Process.Start`), protocoles `ms-settings:` compris ; une
+  navigation dans la page remplacerait le fond. Pas de micro (aucune autorisation prévue par le lecteur), clavier à activer dans
+  Lively.
+- **Suite** (`FJ.mode = 'suite'`) : même origine que Majordome, Agenda (`agenda-pc.v1`, via `shared/apps/agenda.js`), notes et
+  listes (`majordome:listes`), modèle vocal Vosk (pont `shared/apps/majordome.js`, chargé au premier clic sur le micro) ; mise à
+  jour du service worker appliquée sans bandeau.
+- **Énergie** : une seule boucle d'images (`FJ.loop`, 30 i/s au plus, 15 sur batterie, 10 en animations réduites) ; la sphère de
+  Majordome y passe (requestAnimationFrame redirigé), toile en résolution réduite ; anneaux lents dessinés une fois dans le fond
+  fixe, anneaux tournants en vectoriel sur un calque limité à la scène, impulsions effacées par zones ; arrêt complet quand Lively
+  met en pause ou que la page est cachée. Réseau : météo toutes les 30 min, titres toutes les 20 min.
+- Réglages : `localStorage` `fond-jarvis:*` ; une valeur de `LivelyProperties.json` déjà reçue n'écrase pas un choix fait depuis
+  dans le panneau ⚙ (`fond-jarvis:lively`).
 
 ## Applis bureautiques (shared/office/)
 
