@@ -392,6 +392,7 @@
   };
   /** Évalue une formule et range le résultat (propagation d'une matrice) */
   WP.evalCell = function (f, iter) {
+    if (f.keep && f.keep.src === f.src) { setVal(f.sh, f.r, f.c, f.keep.v); return; }   // dernière valeur connue (voir markOpaque)
     const cx = { wb: this, sh: f.sh, r: f.r, c: f.c, f, env: null, depth: 0 };
     let v;
     if (!iter && f.circ) { f.circ = false; if (this.circAll) this.circAll.delete(f); }
@@ -942,5 +943,43 @@
     sh._ext = null;
   };
   WP.loadFormula = function (sh, r, c, canon, sid, arr) { sh = this.sheet(sh); this.suspend++; addFormula(this, sh, r, c, canon, arr); this.suspend--; if (sid != null) setSty(sh, r, c, sid); sh._ext = null; };
-  WP.finishLoad = function () { this.rebuild(); this.recalcAll(); this.undoStack = []; this.redoStack = []; };
+  /** Formules que Tableur ne sait pas calculer (fonction inconnue, lien vers un autre classeur, syntaxe non comprise) :
+      la dernière valeur calculée par l'autre tableur est gardée (f.keep), la formule est réécrite telle quelle à l'enregistrement.
+      Une modification de la cellule la remplace ; sans valeur en cache, l'erreur reste (#NOM?, #REF!). */
+  TB.opaqueReason = function (wb, f) {
+    if (f.err) return 'syntaxe';
+    let why = null;
+    P.walk(f.ast, (n) => {
+      if (why) return;
+      if (n.t === 'fn' && !TB.FN[n.n] && !wb.findName(n.n, f.sh)) why = 'fn:' + n.n;
+      else if ((n.t === 'ref' || n.t === 'area') && n.sh && /^\[|\.xls[xmb]?\]|^'?\[|:\\|^https?:/i.test(String(n.sh))) why = 'lien';
+    });
+    return why;
+  };
+  WP.markOpaque = function () {
+    const found = { fn: new Set(), lien: 0, syntaxe: 0, n: 0, sansValeur: 0 };
+    this.sheets.forEach((sh) => sh.fml.forEach((f) => {
+      const why = TB.opaqueReason(this, f); if (!why) { f.keep = null; return; }
+      const v = sh.get(f.r, f.c);
+      if (v === null || v === undefined || (f.arr && (f.arr.r1 !== f.arr.r2 || f.arr.c1 !== f.arr.c2))) { found.sansValeur++; return; }
+      f.keep = { v, src: f.src, raw: f.raw || (f.keep && f.keep.raw) || null, why };
+      found.n++; if (/^fn:/.test(why)) found.fn.add(why.slice(3)); else found[why]++;
+    }));
+    this.opaque = found;
+    return found;
+  };
+  WP.finishLoad = function () { this.rebuild(); this.markOpaque(); this.recalcAll(); this.undoStack = []; this.redoStack = []; };
+  /** Même chose par morceaux, la main rendue à l'interface (gros classeurs : 200 000 formules) ; progress(i, n) facultatif */
+  WP.finishLoadAsync = async function (progress) {
+    const O = window.Office, Y = () => (O && O.yieldUi ? O.yieldUi() : null);
+    this.single.clear(); this.bucket.clear(); this.colDeps.clear(); this.rowDeps.clear(); this.volatile.clear(); this._nameAst = new Map();
+    let k = 0;
+    for (const sh of this.sheets) { sh._ext = null; for (const f of sh.fml.values()) { f.deps = null; register(this, f); if (!(++k % 4000)) await Y(); } }
+    this.markOpaque(); await Y();
+    const all = this.allFormulas(); all.forEach((f) => { f.st = DIRTY; });
+    // le calcul en profondeur traite les précédents d'une formule quel que soit le morceau : découpage sans effet sur les résultats
+    const step = 3000;
+    for (let i = 0; i < all.length; i += step) { this.runCalc(all.slice(i, i + step)); if (progress) progress(i, all.length); await Y(); }
+    this.undoStack = []; this.redoStack = [];
+  };
 })(typeof window !== 'undefined' ? window : globalThis);

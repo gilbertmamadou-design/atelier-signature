@@ -251,6 +251,7 @@
       sh.merges.forEach((m) => { mergeStart.set(TB.key(m.r1, m.c1), m); for (let r = m.r1; r <= m.r2; r++) for (let cc = m.c1; cc <= m.c2; cc++) if (r !== m.r1 || cc !== m.c1) covered.add(TB.key(r, cc)); });
       let emptyRun = 0; const flushEmpty = () => { if (emptyRun) { out.push('<table:table-row table:style-name="' + roOf(sh.defH * 0.75 * 96 / 72) + '"' + (emptyRun > 1 ? ' table:number-rows-repeated="' + emptyRun + '"' : '') + '><table:table-cell' + (nC > 1 ? ' table:number-columns-repeated="' + nC + '"' : '') + '/></table:table-row>'); emptyRun = 0; } };
       for (let r = 0; r < nR; r++) {
+        if (!(r % 1500)) await window.Office.yieldUi();   // grandes feuilles : l'interface reste réactive pendant l'écriture
         const cells = []; let any = false;
         for (let cc = 0; cc < nC; cc++) {
           const k = TB.key(r, cc);
@@ -351,8 +352,10 @@
   const A_ = (el, ns, n) => el.getAttributeNS(NS[ns], n);
   ODS.read = async function (z) {
     const warnings = [];
-    const parse = async (name) => { const f = z.file(name); if (!f) return null; return new DOMParser().parseFromString(await f.async('string'), 'application/xml'); };
-    const doc = await parse('content.xml'); if (!doc) throw new Error('content.xml absent');
+    // XML abîmé (tronqué, mal fermé) : complété au mieux (Office.parseXmlLenient), avec un avertissement
+    const parse = async (name) => { const f = z.file(name); if (!f) return null; const r = window.Office.parseXmlLenient(await f.async('string')); if (r.repaired) ODS._warn.push(r.doc ? 'Une partie du classeur était abîmée (' + name + ') : ce qui était lisible a été repris.' : 'Une partie du classeur est illisible (' + name + ').'); return r.doc; };
+    ODS._warn = warnings;
+    const doc = await parse('content.xml'); if (!doc) { const e = new Error('Ce classeur OpenDocument est abîmé : son contenu (content.xml) est illisible.'); e.user = true; throw e; }
     const sdoc = await parse('styles.xml'); const setd = await parse('settings.xml');
     // styles
     const dataStyles = {}, cellStyles = {}, colStyles = {}, rowStyles = {}, tblStyles = {};

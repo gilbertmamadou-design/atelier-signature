@@ -15,8 +15,19 @@
     let kind = kindOf(name);
     // contenu réel (un .xls peut être un .xlsx renommé, un CSV peut s'appeler .xls…)
     const zip = buf[0] === 0x50 && buf[1] === 0x4B, ole = buf[0] === 0xD0 && buf[1] === 0xCF;
-    if (zip) { const z = await JSZip.loadAsync(buf); if (z.file('workbook.json')) kind = 'magcalc'; else if (z.file('xl/workbook.xml')) kind = 'xlsx'; else if (z.file('content.xml')) kind = 'ods'; IO._zip = z; }
-    else if (ole) kind = 'xls';
+    const user = (m) => { const e = new Error(m); e.user = true; return e; };
+    if (!buf.length) throw user('Le fichier est vide (0 octet).');
+    let repaired = null;
+    if (zip) {
+      // archive abîmée ou tronquée : ce qui est lisible est repris (O.openZip), avec un avertissement
+      const oz = await O.openZip(buf), z = oz.zip; if (oz.repaired) repaired = oz.lost;
+      if (z.file('workbook.json')) kind = 'magcalc'; else if (z.file('xl/workbook.xml')) kind = 'xlsx'; else if (z.file('content.xml')) kind = 'ods';
+      else if (Object.keys(z.files).some((n) => /^xl\/worksheets\//.test(n))) throw user('Ce classeur Excel est abîmé : sa partie principale (xl/workbook.xml) est absente. Essayez « Ouvrir et réparer » dans Excel, ou une copie plus ancienne.');
+      else throw user('Ce fichier n\'est pas un classeur reconnu (ni .xlsx, ni .ods, ni .magcalc).');
+      IO._zip = z;
+    }
+    else if (ole) { if (O.isEncryptedOffice(buf)) throw user(O.ENCRYPTED_MSG); kind = 'xls'; }
+    else if (/^(xlsx|xlsm|xltx|ods|magcalc)$/.test(O.extOf(name)) && !/^[\s\S]{0,4000}<table/i.test(TB.Data.decode(buf.subarray(0, 4000)).text) && /[\x00-\x08\x0E-\x1F]/.test(TB.Data.decode(buf.subarray(0, 2000)).text)) throw user('Ce fichier « .' + O.extOf(name) + ' » est abîmé : ce n\'est pas une archive lisible (téléchargement interrompu, copie incomplète ?).');
     else if (/^(xlsx|ods|magcalc)$/.test(kind)) { const t = TB.Data.decode(buf).text; kind = /<table/i.test(t.slice(0, 4000)) ? 'html' : 'csv'; }
     if (kind === 'xls' && !ole && !zip) { const t = TB.Data.decode(buf).text; kind = /<table/i.test(t.slice(0, 4000)) ? 'html' : 'csv'; }
     let r;
@@ -24,7 +35,7 @@
       case 'magcalc': r = await IO.readMagcalc(IO._zip || await JSZip.loadAsync(buf)); break;
       case 'xlsx': r = await TB.Xlsx.read(IO._zip || await JSZip.loadAsync(buf), opt); break;
       case 'ods': r = await TB.Ods.read(IO._zip || await JSZip.loadAsync(buf)); break;
-      case 'xls': r = await IO.readSheetJS(buf, 'xls'); break;
+      case 'xls': try { r = await IO.readSheetJS(buf, 'xls'); } catch (e) { const x = new Error('Ce classeur .xls est abîmé ou d\'un format trop ancien (' + e.message + '). Ouvrez-le dans Excel ou LibreOffice et enregistrez-le en .xlsx.'); x.user = true; throw x; } break;
       case 'html': r = IO.readHtml(TB.Data.decode(buf).text); kind = 'html'; break;
       default: {
         const res = opt.wizard === false ? IO.csvAuto(buf, name) : await IO.csvWizard(buf, name, {});
@@ -33,6 +44,8 @@
     }
     IO._zip = null;
     r.kind = kind;
+    if (repaired) (r.warnings = r.warnings || []).unshift('Fichier abîmé ou incomplet : ce qui était lisible a été repris' + (repaired.length ? ' (' + repaired.length + ' partie(s) perdue(s))' : '') + '. Vérifiez le classeur, puis enregistrez-le sous un autre nom.');
+    if (kind !== 'xlsx' && r.wb && r.wb.opaque && r.wb.opaque.n) (r.warnings = r.warnings || []).push(r.wb.opaque.n + ' formule(s) non calculables ici' + (r.wb.opaque.fn.size ? ' (' + Array.from(r.wb.opaque.fn).slice(0, 4).join(', ') + ')' : '') + ' : la dernière valeur calculée est gardée.');
     if (r.wb) { r.wb.fileName = name; }
     return r;
   };
@@ -171,7 +184,10 @@
   IO.readSheetJS = async function (buf, kind) {
     if (!window.XLSX) await O.loadScript(O.vendor + 'xlsx.full.min.js');
     const X = window.XLSX;
-    const book = X.read(buf, { type: 'array', cellFormula: true, cellStyles: true, cellNF: true, cellDates: false, sheetStubs: false });
+    // SheetJS signale sur la console chaque enregistrement .xls qu'il ignore (« Missing Info for XLS Record ») : bruit sans conséquence
+    const ce = console.error; let book;
+    console.error = function (m) { if (/Missing Info for XLS Record|Unrecognized ExtProp|Bad uncompressed size/i.test(String(m))) return; return ce.apply(console, arguments); };
+    try { book = X.read(buf, { type: 'array', cellFormula: true, cellStyles: true, cellNF: true, cellDates: false, sheetStubs: false }); } finally { console.error = ce; }
     const wb = new TB.Workbook(); const warnings = [];
     book.SheetNames.forEach((n, si) => {
       const ws = book.Sheets[n]; const sh = wb.addSheetRaw(n.slice(0, 31));
