@@ -18,6 +18,12 @@ Toutes ces données viennent de la montre elle-même. Le cadran ne demande rien 
 - la sphère ouvre la mini-appli Jarvis, si elle est installée ;
 - la météo, le cœur, les pas, le soleil et l'altitude ouvrent les applis de la montre correspondantes.
 
+## Écran noir avec la version 1.0.0 (corrigé en 1.1.0)
+
+La 1.0.0 copiait les constantes de Zepp OS (`ui.widget`, `show_level`, `data_type`…) avec `Object.assign`. Sur la montre, ces constantes sont natives et non énumérables : la copie donnait des objets vides, aucun widget n'était créé, et l'écran restait noir.
+La 1.1.0 lit chaque constante directement, comme l'exemple officiel. Elle crée d'abord une base noire, le fond et l'heure (avec une heure en texte si `IMG_TIME` manque), et isole chaque bloc dans un `try/catch`.
+En cas de doute, essayez d'abord le cadran de secours « Jarvis Simple » (`zepp/jarvis-simple`).
+
 ## Installer
 
 Il suffit de scanner `jarvis-cadran-qr.png` (Releases, « Cadran Jarvis ») avec **Zepp › Profil › T-Rex 3 › Mode développeur › scan**.

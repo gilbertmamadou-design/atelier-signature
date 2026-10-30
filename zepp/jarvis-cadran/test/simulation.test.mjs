@@ -65,14 +65,14 @@ test('zones météo, cœur, pas, soleil, altitude : IMG_CLICK vers les applis sy
   assert.deepEqual(types, ['WEATHER_CURRENT', 'HEART', 'STEP', 'SUN_RISE', 'ALTIMETER'].map((n) => dt[n]).sort())
   for (const w of de('IMG_CLICK')) assert.equal(w.o.show_level, NORMAL)
 })
-const TYPES = { BATTERY: 100, STEP: 101, HEART: 102, WEATHER: 103, WEATHER_CURRENT: 104, WIND: 105, SUN_RISE: 106, SUN_SET: 107, ALTITUDE: 108, ALTIMETER: 109 }   // valeurs du Zepp OS factice
+const TYPES = { BATTERY: 100, STEP: 101, HEART: 102, WEATHER_CURRENT: 103, WIND: 104, SUN_RISE: 105, SUN_SET: 106, ALTITUDE: 107, ALTIMETER: 108 }   // valeurs du Zepp OS factice (liste de la doc data_type : pas de WEATHER)
 
 test('données système affichées : météo, vent, cœur, pas, batterie, soleil, altitude, pression', () => {
   const dt = TYPES
   const t = de('TEXT_IMG').map((w) => w.o.type).sort((a, b) => a - b)
   assert.deepEqual(t, [dt.WEATHER_CURRENT, dt.WIND, dt.HEART, dt.STEP, dt.BATTERY, dt.SUN_RISE, dt.SUN_SET, dt.ALTITUDE, dt.ALTIMETER].sort((a, b) => a - b))
   const lv = de('IMG_LEVEL').map((w) => [w.o.type, w.o.image_array.length]).sort()
-  assert.deepEqual(lv, [[dt.BATTERY, 11], [dt.WEATHER, 29]].sort())
+  assert.deepEqual(lv, [[dt.BATTERY, 11], [dt.WEATHER_CURRENT, 29]].sort())
   for (const w of de('TEXT_IMG')) assert.equal(w.o.font_array.length, 10)
 })
 
@@ -86,11 +86,7 @@ test('salutation changée à la minute selon l\'heure', () => {
 })
 
 test('micrologiciel sans data_type dans @zos/ui : repli clé par clé sur hmUI, aucun plantage', async () => {
-  // @zos/ui factice privé de data_type et de IMG_CLICK, hmUI global les fournit
-  const zos = await import('./zos-factice.mjs?m=ui')
-  globalThis.hmUI = { data_type: TYPES, widget: { IMG_CLICK: 'w:IMG_CLICK' } }
-  const sauf = { dt: zos.default.data_type, clic: zos.default.widget.IMG_CLICK }
-  delete zos.default.data_type; delete zos.default.widget.IMG_CLICK
+  J.opts = { sansDataType: true }
   const avant = J.widgets.length
   let d2 = null
   globalThis.WatchFace = (o) => { d2 = o }
@@ -99,13 +95,11 @@ test('micrologiciel sans data_type dans @zos/ui : repli clé par clé sur hmUI, 
   const nouveaux = J.widgets.slice(avant)
   assert.equal(nouveaux.filter((w) => w.type === 'w:IMG_CLICK').length, 5)
   assert.equal(nouveaux.filter((w) => w.type === 'w:TEXT_IMG').length, 9)
-  zos.default.data_type = sauf.dt; zos.default.widget.IMG_CLICK = sauf.clic; delete globalThis.hmUI
+  J.opts = {}
 })
 
 test('widget inconnu du micrologiciel : ignoré, le reste du cadran est créé', async () => {
-  const zos = await import('./zos-factice.mjs?m=ui')
-  const sauf = zos.default.widget.IMG_ANIM
-  delete zos.default.widget.IMG_ANIM
+  J.opts = { inconnus: ['IMG_ANIM'] }
   const avant = J.widgets.length
   let d3 = null
   globalThis.WatchFace = (o) => { d3 = o }
@@ -115,5 +109,27 @@ test('widget inconnu du micrologiciel : ignoré, le reste du cadran est créé',
   assert.equal(nouveaux.filter((w) => w.type === 'w:IMG_ANIM').length, 0)
   assert.ok(nouveaux.some((w) => w.type === 'w:IMG_TIME'))
   nouveaux.find((w) => w.type === 'w:WIDGET_DELEGATE').o.resume_call()   // sans sphère : pas d'erreur
-  zos.default.widget.IMG_ANIM = sauf
+  J.opts = {}
+})
+
+test('constantes natives non énumérables (comme sur la montre) : le cadran n\'est jamais vide (écran noir de la 1.0.0)', () => {
+  assert.equal(Object.keys(Object.assign({}, globalThis.hmUI.widget)).length, 0, 'le factice imite bien la montre')
+  assert.ok(J.widgets.length > 25)
+})
+
+test('sans IMG_TIME ni images (micrologiciel ou fichiers en panne) : base noire et heure en TEXT, écran allumé et AOD', async () => {
+  J.opts = { inconnus: ['IMG_TIME', 'IMG'] }; J.heure = 10
+  const avant = J.widgets.length
+  let d4 = null
+  globalThis.WatchFace = (o) => { d4 = o }
+  await import('../watchface/index.js?sans-images')
+  assert.doesNotThrow(() => d4.build())
+  const nouveaux = J.widgets.slice(avant)
+  assert.equal(nouveaux[0].type, 'w:FILL_RECT')
+  const t = nouveaux.filter((w) => w.type === 'w:TEXT')
+  assert.deepEqual(t.map((w) => w.o.show_level), [NORMAL, AOD])
+  assert.equal(t[0].o.text, '10:00')
+  J.heure = 13; J.minutes.at(-1)()
+  assert.equal(t[0].o.text, '13:00'); assert.equal(t[1].o.text, '13:00')
+  J.heure = 10; J.opts = {}
 })
