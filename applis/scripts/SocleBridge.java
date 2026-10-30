@@ -12,10 +12,22 @@ package __PKG__;
 //  - stateSave / stateLoad : copie de secours de la disposition (pages, tuiles, notes rapides) hors du stockage web
 //  - storage() : stockage interne et mémoire vive (panneau « Batterie et stockage »)
 //  - appsVersion() : change quand une appli est installée / désinstallée (la liste n'est relue qu'à ce moment-là)
+//  - page Jarvis : niveau sonore envoyé par Majordome pendant qu'il écoute ou parle (diffusion protégée par la permission
+//    « signature » WIDGET, reçue seulement quand Socle est à l'écran) → window.accueilVoice(état, niveau) ;
+//    option « Réagir aux sons de la pièce » (roomMic) : micro ouvert seulement quand la page le demande et que Socle est
+//    à l'écran (arrêt automatique dès qu'il passe en arrière-plan ou que l'écran s'éteint) ; un seul nombre (niveau RMS)
+//    est transmis à la page, rien n'est enregistré ni envoyé ailleurs → window.accueilRoom(niveau)
 // Toutes les méthodes appelées par la page attrapent leurs erreurs : une erreur ici ne peut pas faire planter Socle.
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.ActivityManager;
+import android.app.Application;
+import android.content.pm.PackageManager;
+import android.media.AudioFormat;
+import android.media.AudioRecord;
+import android.media.MediaRecorder;
+import android.os.Bundle;
 import android.content.BroadcastReceiver;
 import android.content.ComponentCallbacks2;
 import android.content.Context;
@@ -77,7 +89,77 @@ public class SocleBridge {
         } catch (Throwable t) { log(app, "Surveillance de l'affichage indisponible : " + t); }
         // Filet de sécurité : l'écran natif ne reste jamais plus de 6 s
         ui.postDelayed(new Runnable() { public void run() { hideOverlay(); } }, 6000);
+        // Page Jarvis : écoute du niveau de Majordome et micro de la pièce, seulement tant que Socle est à l'écran
+        try {
+            a.getApplication().registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks() {
+                public void onActivityResumed(Activity x) { if (x == SocleBridge.this.a) { front = true; voiceOn(); } }
+                public void onActivityPaused(Activity x) { if (x == SocleBridge.this.a) { front = false; voiceOff(); roomStop(); js("window.accueilVoice&&accueilVoice('idle',0)"); } }
+                public void onActivityCreated(Activity x, Bundle b) { }
+                public void onActivityStarted(Activity x) { }
+                public void onActivityStopped(Activity x) { }
+                public void onActivitySaveInstanceState(Activity x, Bundle b) { }
+                public void onActivityDestroyed(Activity x) { if (x == SocleBridge.this.a) { front = false; voiceOff(); roomStop(); try { x.getApplication().unregisterActivityLifecycleCallbacks(this); } catch (Throwable t) { } } }
+            });
+            front = true; voiceOn();
+        } catch (Throwable t) { log(app, "Niveau sonore de Jarvis indisponible : " + t); }
     }
+
+    // ---------- Page Jarvis : niveau sonore de Majordome ----------
+    static final String MJ_VOICE = "fr.magformation13.MJ_VOICE", PERM_WIDGET = "fr.magformation13.permission.WIDGET";
+    private volatile boolean front = false;
+    private BroadcastReceiver voiceRx;
+    private void voiceOn() {
+        if (voiceRx != null) return;
+        voiceRx = new BroadcastReceiver() {
+            @Override public void onReceive(Context c, Intent i) {
+                String st = i.getStringExtra("s");
+                if (!"listen".equals(st) && !"speak".equals(st)) st = "idle";
+                float v = Math.max(0f, Math.min(1f, i.getFloatExtra("v", 0f)));
+                if (front) js("window.accueilVoice&&accueilVoice('" + st + "'," + (Math.round(v * 1000) / 1000f) + ")");
+            }
+        };
+        try {
+            IntentFilter f = new IntentFilter(MJ_VOICE);
+            // seules les applis signées avec la même clé (permission WIDGET) peuvent envoyer ce niveau
+            if (Build.VERSION.SDK_INT >= 33) a.registerReceiver(voiceRx, f, PERM_WIDGET, ui, Context.RECEIVER_EXPORTED);
+            else a.registerReceiver(voiceRx, f, PERM_WIDGET, ui);
+        } catch (Throwable t) { voiceRx = null; }
+    }
+    private void voiceOff() { BroadcastReceiver r = voiceRx; voiceRx = null; if (r != null) try { a.unregisterReceiver(r); } catch (Throwable t) { } }
+
+    // ---------- Page Jarvis : « Réagir aux sons de la pièce » (désactivé par défaut) ----------
+    private volatile boolean roomRun = false;
+    private Thread roomTh;
+    private void roomStart() {
+        if (roomTh != null && roomTh.isAlive()) { if (roomRun) return; try { roomTh.join(400); } catch (Throwable t) { } if (roomTh.isAlive()) { roomRun = true; return; } }
+        roomRun = true;
+        roomTh = new Thread(new Runnable() { public void run() {
+            AudioRecord rec = null;
+            try {
+                int rate = 16000, min = AudioRecord.getMinBufferSize(rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
+                rec = new AudioRecord(MediaRecorder.AudioSource.MIC, rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, Math.max(min, 4096) * 2);
+                if (rec.getState() != AudioRecord.STATE_INITIALIZED) throw new IllegalStateException("micro occupé");
+                rec.startRecording();
+                short[] buf = new short[800]; long last = 0; float sent = -1;
+                while (roomRun && front) {
+                    int n = rec.read(buf, 0, buf.length);
+                    if (n < 0) throw new IllegalStateException("lecture du micro : " + n);
+                    if (n == 0) continue;
+                    double s = 0; for (int i = 0; i < n; i++) s += (double) buf[i] * buf[i];
+                    float v = (float) Math.min(1, Math.sqrt(s / n) / 32768.0 * 7);   // niveau seulement : l'échantillon est aussitôt écrasé
+                    long now = SystemClock.uptimeMillis();
+                    if (now - last >= 50 && (Math.abs(v - sent) > 0.01 || now - last > 500)) { last = now; sent = v; js("window.accueilRoom&&accueilRoom(" + (Math.round(v * 1000) / 1000f) + ")"); }
+                }
+            } catch (Throwable t) {
+                log(a, "Sons de la pièce : micro indisponible (" + t.getMessage() + ")");
+                js("window.accueilRoom&&accueilRoom(-1)");
+            } finally {
+                if (rec != null) { try { rec.stop(); } catch (Throwable t) { } try { rec.release(); } catch (Throwable t) { } }
+            }
+        } }, "socle-sons");
+        roomTh.start();
+    }
+    private void roomStop() { roomRun = false; }
 
     // ---------- Une seule fois par processus : plantages notés, installations d'applis, mémoire basse ----------
     private static synchronized void installStatics(final Context app) {
@@ -264,6 +346,20 @@ public class SocleBridge {
     }
     @JavascriptInterface
     public int appsVersion() { return appsVer; }
+    @JavascriptInterface
+    public boolean roomMicPerm() { try { return a.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED; } catch (Throwable t) { return false; } }
+    @JavascriptInterface
+    public void roomMicAsk() { ui.post(new Runnable() { public void run() { try { a.requestPermissions(new String[]{ Manifest.permission.RECORD_AUDIO }, 4312); } catch (Throwable t) { } } }); }
+    /** Micro de la pièce : « ok » (ouvert), « off », « perm » (non autorisé), « hidden » (Socle n'est pas à l'écran) */
+    @JavascriptInterface
+    public String roomMic(boolean on) {
+        try {
+            if (!on) { roomStop(); return "off"; }
+            if (!roomMicPerm()) return "perm";
+            if (!front) return "hidden";
+            roomStart(); return "ok";
+        } catch (Throwable t) { return "err"; }
+    }
 
     // ---------- Journal (80 dernières lignes, gardées par Android) ----------
     private static SharedPreferences prefs(Context c) { return c.getSharedPreferences("socle_log", Context.MODE_PRIVATE); }

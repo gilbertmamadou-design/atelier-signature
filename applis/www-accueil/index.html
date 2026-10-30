@@ -228,6 +228,9 @@ body.edit .tile.full{animation:none}
 .jvhello em{display:inline-flex;align-items:center;gap:5px;font-style:normal;font-size:11.5px;color:#7fe6d2;margin-top:5px;font-weight:600}
 .jvhello em svg{width:13px;height:13px}
 .jv.listen .jvhello em{color:#60ffa0}
+.jvroom{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:4px;font:600 10.5px/1.2 ui-monospace,"Roboto Mono",monospace;letter-spacing:1px;text-transform:uppercase;color:#ffc35c}
+.jvroom:before{content:"";width:7px;height:7px;border-radius:50%;background:#ffc35c;box-shadow:0 0 6px #ffc35c}
+.jvroom[hidden]{display:none}
 .jvdlg{flex:none;border-left:2px solid rgba(70,217,194,.6);padding:4px 0 4px 10px;font-size:13px;line-height:1.35;min-width:0}
 .jvdlg div{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .jvdlg .q{color:rgba(214,247,240,.72)}
@@ -542,7 +545,7 @@ function jvConf(j){
   j=(j && typeof j==='object' && !Array.isArray(j)) ? j : {};
   var c=(j.cards && typeof j.cards==='object') ? j.cards : {}, o={cards:{}};
   JVC.forEach(function(k){ o.cards[k]=c[k]===false||c[k]===0 ? 0 : 1; });
-  o.nodock=j.nodock===0||j.nodock===false ? 0 : 1; o.back=j.back===0||j.back===false ? 0 : 1; o.station=j.station ? 1 : 0;
+  o.nodock=j.nodock===0||j.nodock===false ? 0 : 1; o.back=j.back===0||j.back===false ? 0 : 1; o.station=j.station ? 1 : 0; o.room=j.room===1||j.room===true ? 1 : 0;
   o.rooms=Array.isArray(j.rooms) ? j.rooms.filter(function(x){ return typeof x==='string'; }).slice(0,3) : null;
   return o;
 }
@@ -1336,6 +1339,8 @@ function mjOffer(yes){
 var MJO={raf:0, cv:[], io:null, pts:null, t0:performance.now(), last:0, act:performance.now(), frames:0, reduce:false};
 try{ var mjMq=window.matchMedia('(prefers-reduced-motion: reduce)'); MJO.reduce=mjMq.matches; if(mjMq.addEventListener) mjMq.addEventListener('change', function(e){ MJO.reduce=e.matches; MJO.cv.forEach(function(c){ c.__drawn=0; }); mjOrbKick(); }); }catch(e){}
 window.__mjo=MJO;   // pour les tests
+var MJV={st:'idle', v:0, at:0, env:0, room:0, roomAt:0, roomOn:false, rdT:0};   // son de Jarvis (voir accueilVoice)
+window.__mjv=MJV;
 function mjOrbPts(){
   if(MJO.pts) return MJO.pts;
   var N=150, GA=Math.PI*(3-Math.sqrt(5)), l=[];
@@ -1356,13 +1361,14 @@ function mjOrbSync(){
 }
 function mjOrbOn(){ return !document.hidden && !document.body.classList.contains('edit') && !$('drawer').classList.contains('on') && !$('pages').classList.contains('snap') && MJO.cv.some(function(c){ return c.__on && c.isConnected; }); }
 function mjOrbKick(){
+  roomSync();
   if(MJO.reduce){ if(!document.hidden) MJO.cv.forEach(function(c){ if(c.__on && !c.__drawn){ c.__drawn=1; mjOrbDraw(c, performance.now()); } }); return; }
   if(!MJO.raf && mjOrbOn()) MJO.raf=requestAnimationFrame(mjOrbFrame);
 }
 function mjOrbFrame(now){
   MJO.raf=0;
   if(MJO.reduce || !mjOrbOn()) return;   // en pause : la boucle s'arrête complètement
-  if(now-MJO.last >= (MJO.slow ? 125 : now-MJO.act>15000 ? 80 : 30)){ MJO.last=now; MJO.frames++; MJO.cv.forEach(function(c){ if(c.__on && c.isConnected) mjOrbDraw(c, now); }); }
+  if(now-MJO.last >= (MJO.slow ? 125 : now-MJO.act>15000 ? 80 : 30)){ MJO.last=now; MJO.frames++; mjVoiceLv(now); MJO.cv.forEach(function(c){ if(c.__on && c.isConnected) mjOrbDraw(c, now); }); }
   MJO.raf=requestAnimationFrame(mjOrbFrame);
 }
 function mjOrbDraw(c, now){
@@ -1371,14 +1377,14 @@ function mjOrbDraw(c, now){
   var dpr=Math.min(2, window.devicePixelRatio||1), bw=Math.round(w*dpr), bh=Math.round(h*dpr);
   if(c.width!==bw || c.height!==bh){ c.width=bw; c.height=bh; }
   var x=c.getContext('2d'); if(!x) return;
-  var rd=MJO.reduce, t=(now-MJO.t0)/1000, P=mjOrbPts(), R=Math.min(w,h)*.36*(1+(rd?0:.03*Math.sin(t*1.1)));
+  var rd=MJO.reduce, t=(now-MJO.t0)/1000, P=mjOrbPts(), lv=(MJO.vlv||0)*(rd?.35:1), R=Math.min(w,h)*.36*(1+(rd?0:.03*Math.sin(t*1.1))+lv*.26);
   var cx=w/2, cy=h/2, rot=rd?.6:t*.3, cr=Math.cos(rot), sr=Math.sin(rot), ct=Math.cos(.35), st=Math.sin(.35), sm=w<90?.8:1;
   x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,w,h); x.globalCompositeOperation='lighter';
   for(var i=0;i<P.length;i++){
-    var p=P[i], n=rd?0:Math.sin(t*p[4]*2.1+p[3])*Math.sin(p[1]*4+t*1.3)*.07;
+    var p=P[i], n=rd?0:Math.sin(t*p[4]*2.1+p[3])*Math.sin(p[1]*4+t*1.3)*(.07+lv*.2)+lv*.12*Math.abs(Math.sin(p[3]*3.1));
     var px=p[0]*(1+n), py=p[1]*(1+n), pz=p[2]*(1+n), x1=px*cr+pz*sr, z1=-px*sr+pz*cr, y1=py*ct-z1*st, z2=py*st+z1*ct;
-    var k=1.9/(2.6-z2), dp=(z2+1)/2, sz=(1.2+dp*2)*sm;
-    x.fillStyle='rgba(70,217,194,'+(.2+dp*.75).toFixed(2)+')';
+    var k=1.9/(2.6-z2), dp=(z2+1)/2, sz=(1.2+dp*2)*sm*(1+lv*.3);
+    x.fillStyle='rgba(70,217,194,'+Math.min(1,.2+lv*.15+dp*.75).toFixed(2)+')';
     x.fillRect(cx+x1*R*k-sz/2, cy+y1*R*k-sz/2, sz, sz);
   }
   x.globalCompositeOperation='source-over';
@@ -1401,7 +1407,7 @@ function jvChrome(){
   /* Barre d'état (où Android affiche l'heure) : masquée sur la page Jarvis si elle ne l'est pas déjà partout */
   var bar=on && !C.hideBar;
   if(bar!==jvBarHidden && A && A.homeStatusBar){ jvBarHidden=bar; A.homeStatusBar(bar || !!C.hideBar); }
-  stationApply();
+  stationApply(); roomSync();
 }
 function setMainPage(p){
   if(!(p>0) || !C.pages[p]) return;
@@ -1462,16 +1468,18 @@ function jvParts(cfg){
 }
 function jvHtml(cfg){
   var P=jvParts(cfg);
-  return '<div class="jv"><div class="jvtop">'+P.top+'</div><div class="jvorb" data-act="jv-listen" aria-label="Parler à '+esc(mjName())+'"><canvas class="mjorb jvbig"></canvas></div><div class="jvhello" data-act="jv-listen">'+P.hello+'</div>'+
+  return '<div class="jv"><div class="jvtop">'+P.top+'</div><div class="jvorb" data-act="jv-listen" aria-label="Parler à '+esc(mjName())+'"><canvas class="mjorb jvbig"></canvas></div><div class="jvhello" data-act="jv-listen">'+P.hello+'<div class="jvroom"'+(MJV.roomOn?'':' hidden')+'>Micro : niveau sonore seulement</div></div>'+
     '<div class="jvdlg"'+(P.dlg?'':' hidden')+' data-act="jv-mj">'+P.dlg+'</div><div class="jvcards">'+P.cards+'</div></div>';
 }
 function jvUpdate(el, cfg){
   var P=jvParts(cfg);
+  P.hello+='<div class="jvroom"'+(MJV.roomOn?'':' hidden')+'>Micro : niveau sonore seulement</div>';
   [['.jvtop','top'],['.jvhello','hello'],['.jvdlg','dlg'],['.jvcards','cards']].forEach(function(x){ var e=el.querySelector(x[0]); if(e && e.innerHTML!==P[x[1]]) e.innerHTML=P[x[1]]; if(x[1]==='dlg' && e) e.hidden=!P.dlg; });
 }
 /* Toutes les 15 s : heure, date et compte à rebours seulement (aucun appel à Android) */
 function jvTick(){
   if(document.hidden) return;
+  roomSync();   // secours : reprise du micro de la pièce si un message de fin de Majordome s'est perdu
   document.querySelectorAll('.tile.full .jvtime').forEach(function(e){ var t=jvTime(); if(e.textContent!==t) e.textContent=t; });
   document.querySelectorAll('.tile.full .jvdate').forEach(function(e){ var t=jvDate(); if(e.textContent!==t) e.textContent=t; });
   document.querySelectorAll('.tile.full [data-jvt]').forEach(function(e){ var at=+e.dataset.jvt; if(at>Date.now()) e.lastChild.textContent=jvIn(at); else if(at) refresh('mjpanel'); });
@@ -1513,10 +1521,15 @@ function jvSettings(){
     sw('nodock','Masquer la barre de recherche ici', nm+' affiche l\'heure ; glisser vers le haut ouvre toujours la liste des applis', C.jv.nodock)+
     sw('back','Revenir sur Socle après la réponse','Toucher la sphère ouvre '+nm+' en écoute, puis revient ici', C.jv.back)+
     sw('station','Station '+nm+' (en charge)','Branché : cette page reste affichée, écran allumé, luminosité réduite la nuit. Se coupe dès que le téléphone est débranché. Idéal avec l\'écoute continue « seulement en charge » de '+nm+'.', C.jv.station)+
+    sw('room','Réagir aux sons de la pièce','La sphère suit le bruit autour du téléphone. Socle utilise alors le micro, seulement quand cette page est affichée et l\'écran allumé (Android montre son témoin de micro, la page aussi). Seul un niveau sonore est mesuré : rien n\'est enregistré ni envoyé. En pause la nuit en mode Station, et quand l\'écoute continue de '+nm+' est active (le micro lui est réservé).'+(S && S.roomMic ? '' : ' <b>Disponible dans l\'appli Socle du téléphone.</b>'), C.jv.room)+
     '</div>';
   openSheet(html,'jvset');
   $('sbody').onchange=safe(function(e){
     var i=e.target; if(i.dataset.jo){ var o=i.dataset.jo; if(o.indexOf('c.')===0) C.jv.cards[o.slice(2)]=i.checked?1:0; else C.jv[o]=i.checked?1:0; }
+    if(i.dataset.jo==='room' && i.checked){
+      if(!S || !S.roomMic){ C.jv.room=0; i.checked=false; toast('Disponible dans l\'appli Socle du téléphone'); return; }
+      if(!S.roomMicPerm()){ try{ S.roomMicAsk(); }catch(x){} toast('Autorisez le micro pour Socle : niveau sonore seulement'); }
+    }
     if(i.dataset.room2){ var f=jvRooms(mjHue(wd(MJ)||{})).map(function(r){ return r.id; }).filter(function(x){ return x!==i.dataset.room2; }); if(i.checked) f.push(i.dataset.room2); if(f.length>3){ f=f.slice(-3); } C.jv.rooms=f; }
     save(); render(); if(i.dataset.jo==='station') stationCheck(); if(i.dataset.room2) jvSettings();
   },'Page Jarvis');
@@ -1537,20 +1550,68 @@ function stationCheck(plugged){
 function stationApply(){
   var on=STN.on && !document.hidden && CP===jvFullPage(), night=on && stnNight();
   document.body.classList.toggle('station', on); document.body.classList.toggle('stnight', night);
-  MJO.slow=night;
+  MJO.slow=night; roomSync();
   if(!A) return;
   if(STN.keep!==on && A.keepScreen){ STN.keep=on; try{ A.keepScreen(on); }catch(e){} }
   var br=night?0.02:-1; if(STN.bright!==br && A.setBright){ STN.bright=br; try{ A.setBright(br); }catch(e){} }
 }
 window.accueilPower=safe(function(p){ if(C.jv.station) stationCheck(!!p); else if(STN.on) stationCheck(false); },'Charge');
+/* ---------- Jarvis réagit au son ----------
+   - Majordome envoie son niveau sonore lissé (≈ 18 valeurs/s) seulement pendant qu'il écoute ou parle (SocleBridge,
+     diffusion réservée aux applis MAG) : accueilVoice(état, niveau) ; plus rien après 0,45 s → retour au calme.
+   - Option « Réagir aux sons de la pièce » (désactivée par défaut) : micro de Socle ouvert seulement quand la page Jarvis
+     est affichée, l'écran allumé, hors mode modification / liste des applis, hors nuit en mode Station, et jamais pendant
+     l'écoute continue de Majordome ni pendant qu'il écoute ou parle (le micro lui revient). Un niveau seulement : accueilRoom(niveau). */
+function mjVoiceLv(now){
+  var tg=MJV.st!=='idle' && now-MJV.at<450 ? MJV.v : 0;
+  if(MJV.roomOn && now-MJV.roomAt<450) tg=Math.max(tg, MJV.room*.6);   // pièce : réaction plus douce que la voix de Jarvis
+  MJV.env+=(tg-MJV.env)*(tg>MJV.env?.6:.22); if(MJV.env<.003) MJV.env=0;
+  return (MJO.vlv=MJV.env);
+}
+/* « Réduire les animations » : pas de boucle continue ; quelques images par seconde pendant le son seulement */
+function mjReducedSound(){
+  if(!MJO.reduce || MJV.rdT || document.hidden) return;
+  MJV.rdT=setTimeout(function(){ MJV.rdT=0; var n=performance.now(), lv=mjVoiceLv(n); MJO.cv.forEach(function(c){ if(c.__on && c.isConnected) mjOrbDraw(c, n); }); if(lv>0) mjReducedSound(); }, 160);
+}
+window.accueilVoice=safe(function(st, v){
+  st=st==='listen'||st==='speak' ? st : 'idle';
+  var was=MJV.st; MJV.st=st; MJV.v=Math.max(0,Math.min(1,+v||0)); MJV.at=performance.now();
+  if(st!=='idle'){ MJO.st=st; MJO.act=MJV.at; } else if(was!=='idle') MJO.st='idle';
+  if(st!==was) roomSync();
+  mjOrbKick(); mjReducedSound();
+},'Jarvis');
+window.accueilRoom=safe(function(v){
+  v=+v;
+  if(!(v>=0)){ if(MJV.roomOn){ MJV.roomOn=false; jvRoomBadge(); toast('Micro indisponible pour le moment'); } return; }
+  MJV.room=Math.min(1,v); MJV.roomAt=performance.now(); if(v>.05) MJO.act=MJV.roomAt;
+  mjOrbKick(); mjReducedSound();
+},'Sons de la pièce');
+function roomWanted(){
+  if(!S || !S.roomMic || !C.jv || !C.jv.room) return false;
+  if(document.hidden || CP!==jvFullPage() || document.body.classList.contains('edit') || document.body.classList.contains('stnight')) return false;
+  if($('drawer').classList.contains('on')) return false;
+  var d=wd(MJ)||{}; if(d.wake) return false;
+  if(MJV.st!=='idle' && performance.now()-MJV.at<1500) return false;
+  return true;
+}
+function jvRoomBadge(){ document.querySelectorAll('.jvroom').forEach(function(e){ e.hidden=!MJV.roomOn; }); }
+function roomSync(){
+  var want=roomWanted(); if(want===MJV.roomOn) return;
+  var r='off'; try{ r=S && S.roomMic ? String(S.roomMic(want)) : 'off'; }catch(e){ r='err'; }
+  MJV.roomOn=want && r==='ok';
+  if(want && r==='perm' && C.jv.room){ C.jv.room=0; save(); toast('Micro non autorisé : « Réagir aux sons de la pièce » est coupé'); if(sheetType==='jvset') jvSettings(); }
+  if(!MJV.roomOn){ MJV.room=0; }
+  jvRoomBadge();
+}
+
 /* Sphère grand format : rendu de Majordome (points sur une spirale de Fibonacci, perspective, bruit lisse, halo, couleur d'état,
    pulsation au toucher) et anneaux d'instruments discrets. Même boucle, même limite d'images et mêmes pauses que le petit panneau. */
-var JVCOL={idle:[70,217,194], listen:[96,255,160]};
+var JVCOL={idle:[70,217,194], listen:[96,255,160], speak:[125,200,255]};
 MJO.col=JVCOL.idle.slice(); MJO.st='idle'; MJO.burst=0; MJO.slow=false;
 function jvPts(){
   if(MJO.big) return MJO.big;
   var N=420, GA=Math.PI*(3-Math.sqrt(5)), l=[];
-  for(var i=0;i<N;i++){ var y=1-i/(N-1)*2, r=Math.sqrt(1-y*y), th=GA*i; l.push([Math.cos(th)*r, y, Math.sin(th)*r, Math.random()*6.283, .6+Math.random()*.8]); }
+  for(var i=0;i<N;i++){ var y=1-i/(N-1)*2, r=Math.sqrt(1-y*y), th=GA*i; l.push([Math.cos(th)*r, y, Math.sin(th)*r, Math.random()*6.283, .6+Math.random()*.8, .4+Math.random()*.9]); }
   return (MJO.big=l);
 }
 function jvOrbDraw(c, now){
@@ -1560,11 +1621,14 @@ function jvOrbDraw(c, now){
   var x=c.getContext('2d'); if(!x) return;
   var rd=MJO.reduce, t=(now-MJO.t0)/1000, P=jvPts(), tg=JVCOL[MJO.st]||JVCOL.idle, col=MJO.col, dim=MJO.slow?.45:1;
   for(var k=0;k<3;k++) col[k]=rd?tg[k]:col[k]+(tg[k]-col[k])*.12;
-  var lv=MJO.burst; MJO.burst*=.9; if(MJO.burst<.005) MJO.burst=0;
-  var m=Math.min(w,h), R=m*.33*(1+(rd?0:.025*Math.sin(t*1.1))+lv*.22), cx=w/2, cy=h/2;
-  var rot=rd?.6:t*.25*(MJO.st==='listen'?1.8:1), cr=Math.cos(rot), sr=Math.sin(rot), ct=Math.cos(.35), st=Math.sin(.35), rgb=(col[0]|0)+','+(col[1]|0)+','+(col[2]|0);
+  var bu=MJO.burst; MJO.burst*=.9; if(MJO.burst<.005) MJO.burst=0;
+  /* son : niveau de Majordome (écoute, parole) ou de la pièce ; réaction réduite avec « réduire les animations » */
+  var vo=(MJO.vlv||0)*(rd?.35:1), lv=Math.max(bu, vo);
+  var m=Math.min(w,h), R=m*.33*(1+(rd?0:.025*Math.sin(t*1.1))+lv*.30), cx=w/2, cy=h/2;
+  var rot=rd?.6:t*.25*(MJO.st==='listen'?1.8:1)+(MJO.spin=(MJO.spin||0)+vo*.03), cr=Math.cos(rot), sr=Math.sin(rot), ct=Math.cos(.35), st=Math.sin(.35), rgb=(col[0]|0)+','+(col[1]|0)+','+(col[2]|0);
   x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,w,h);
-  var g=x.createRadialGradient(cx,cy,R*.2,cx,cy,R*1.6); g.addColorStop(0,'rgba('+rgb+','+((.1+lv*.25)*dim).toFixed(3)+')'); g.addColorStop(1,'rgba('+rgb+',0)'); x.fillStyle=g; x.fillRect(0,0,w,h);
+  var ga=(.1+lv*.38)*dim, g=x.createRadialGradient(cx,cy,R*.2,cx,cy,Math.min(Math.min(w,h)*.5,R*(1.6+lv*.45))); g.addColorStop(0,'rgba('+rgb+','+ga.toFixed(3)+')'); g.addColorStop(1,'rgba('+rgb+',0)'); x.fillStyle=g; x.fillRect(0,0,w,h);
+  MJO.m={r:R/(m*.33), glow:ga, lv:lv};   // pour les tests
   /* anneaux : cercle fin, graduations, 3 arcs qui tournent lentement */
   x.strokeStyle='rgba('+rgb+','+(.22*dim).toFixed(3)+')'; x.lineWidth=1;
   x.beginPath(); x.arc(cx,cy,m*.44,0,6.2832); x.stroke();
@@ -1572,9 +1636,9 @@ function jvOrbDraw(c, now){
   x.strokeStyle='rgba('+rgb+','+(.5*dim).toFixed(3)+')'; x.lineWidth=2;
   var ro=rd?0:-t*.12; for(var s2=0;s2<3;s2++){ x.beginPath(); x.arc(cx,cy,m*.41,ro+s2*2.094,ro+s2*2.094+.9); x.stroke(); }
   x.globalCompositeOperation='lighter';
-  var amp=.05+lv*.28;
+  var amp=.05+lv*.28, disp=rd?0:vo*.18;
   for(var i=0;i<P.length;i++){
-    var p=P[i], n=rd?0:Math.sin(t*p[4]*2.1+p[3])*Math.sin(p[1]*4+t*1.3)*amp;
+    var p=P[i], n=rd?0:Math.sin(t*p[4]*2.1+p[3])*Math.sin(p[1]*4+t*1.3)*amp+disp*p[5]*(.6+.4*Math.sin(t*5+p[3]));
     var px=p[0]*(1+n), py=p[1]*(1+n), pz=p[2]*(1+n), x1=px*cr+pz*sr, z1=-px*sr+pz*cr, y1=py*ct-z1*st, z2=py*st+z1*ct;
     var kk=1.9/(2.6-z2), dp=(z2+1)/2, sz=(.8+dp*1.7)*1.1;
     x.fillStyle='rgba('+rgb+','+((.18+dp*.72)*dim).toFixed(3)+')';
@@ -1880,7 +1944,7 @@ $('dock').addEventListener('touchstart', function(e){ dockY=e.touches[0].clientY
 $('dock').addEventListener('touchend', function(e){ if(dockY!=null && dockY-e.changedTouches[0].clientY>50) openDrawer(); dockY=null; }, {passive:true});
 
 /* ---------- Mode « Modifier l'écran » ---------- */
-function startEdit(){ closeDrawer(); document.body.classList.add('edit'); }
+function startEdit(){ closeDrawer(); document.body.classList.add('edit'); roomSync(); }
 function endEdit(){ if(!document.body.classList.contains('edit')) return; document.body.classList.remove('edit'); snapSoon(); mjOrbKick(); }
 $('bDone').onclick=endEdit;
 $('bAddPage').onclick=safe(function(){
@@ -1961,6 +2025,7 @@ function linkForm(){
 var curCat='all';
 function openDrawer(focus){
   endEdit(); $('drawer').classList.add('on'); renderChips(); renderList();
+  roomSync();
   if(focus) setTimeout(function(){ $('q').focus(); }, 280);
 }
 function closeDrawer(){ $('drawer').classList.remove('on'); $('q').value=''; $('qx').hidden=true; $('q').blur(); mjOrbKick(); }
@@ -2184,7 +2249,7 @@ window.accueilBack=safe(function(){
 window.accueilHome=safe(function(){ closeSheet(); closeDrawer(); endEdit(); if(CP>0) goPage(0, true); else curPage().scrollTo({top:0,behavior:'smooth'}); },'Accueil');
 window.accueilColors=safe(function(){ theme(); },'Couleurs');
 window.accueilPerms=safe(function(){
-  render(); if(sheetType==='settings') settingsSheet();
+  render(); roomSync(); if(sheetType==='settings') settingsSheet();
   if($('drawer').classList.contains('on')) renderList();
   if(pendingLocate){ pendingLocate=false; var p=J(A.homePerms(),{}); if(p.location) locateMe(); else toast('Choisis une ville à la place'); }
 },'Autorisations');
@@ -2248,7 +2313,7 @@ setInterval(safe(function(){ pollMedia(); if(!document.hidden) document.querySel
 setInterval(safe(function(){ if(!document.hidden){ ['battery','alarm','agenda','nextev','device','mjpanel'].forEach(refresh); fetchWeather(false); } },'Mise à jour'), 120000);
 document.addEventListener('visibilitychange', safe(function(){
   if(!document.hidden){ window.accueilResume(); MJO.act=performance.now(); mjOrbKick(); if(C.jv.station || STN.on) stationCheck(); }
-  else { endEdit(); saveSnap(); persistW(); if(MJO.raf){ cancelAnimationFrame(MJO.raf); MJO.raf=0; } stationApply(); }   // on quitte l'accueil : instantané et cache pour le prochain démarrage
+  else { endEdit(); saveSnap(); persistW(); if(MJO.raf){ cancelAnimationFrame(MJO.raf); MJO.raf=0; } stationApply(); roomSync(); }   // on quitte l'accueil : instantané et cache pour le prochain démarrage
 },'Visibilité'));
 })();
 </script>
