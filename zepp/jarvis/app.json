@@ -1,0 +1,37 @@
+{
+  "configVersion": "v3",
+  "app": {
+    "appId": 1093117,
+    "appName": "Jarvis",
+    "appType": "app",
+    "version": { "code": 1, "name": "1.0.0" },
+    "icon": "icon.png",
+    "vender": "magformation13",
+    "description": "Jarvis : commandes de Majordome depuis la montre (lumières, routines, clim, voix)"
+  },
+  "permissions": ["device:os.mic", "device:os.local_storage"],
+  "runtime": {
+    "apiVersion": { "compatible": "3.0", "target": "4.0", "minVersion": "3.0" }
+  },
+  "targets": {
+    "trex3": {
+      "module": {
+        "page": { "pages": ["page/index", "page/reponse"] },
+        "app-side": { "path": "app-side/index" },
+        "setting": { "path": "setting/index" }
+      },
+      "platforms": [
+        { "name": "trex3", "deviceSource": 8716545 },
+        { "name": "trex3", "deviceSource": 8716547 },
+        { "name": "trex3", "deviceSource": 8716544 }
+      ],
+      "designWidth": 480
+    }
+  },
+  "i18n": {
+    "fr-FR": { "appName": "Jarvis" },
+    "en-US": { "appName": "Jarvis" }
+  },
+  "defaultLanguage": "fr-FR",
+  "debug": false
+}

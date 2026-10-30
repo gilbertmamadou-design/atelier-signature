@@ -1,0 +1,95 @@
+name: Fabriquer la mini-appli Zepp OS « Jarvis » (montre)
+
+# Construit zepp/jarvis avec l'outil officiel Zeus CLI (@zeppos/zeus-cli, licence ISC) et publie dans « Releases » :
+#   jarvis-trex3.zab          paquet officiel (zeus build), à installer avec « zeus preview » (voie documentée par Zepp)
+#   jarvis-trex3-apercu.zab   même paquet marqué « preview » (packageInfo.mode), pour le scanner du mode développeur
+#   jarvis-qr.png             QR « zpkd1:// » vers jarvis-trex3-apercu.zab : voie NON documentée par Zepp (voir le guide)
+# Lancement : Actions › « Fabriquer la mini-appli Zepp OS » › Run workflow (ou par l'API REST).
+on:
+  workflow_dispatch:
+    inputs:
+      zeus:
+        description: "Version de @zeppos/zeus-cli (ex. 1.6.7) ou « latest »"
+        required: false
+        default: "latest"
+  push:
+    branches: [main]
+    paths: ["zepp/jarvis/**", ".github/workflows/zepp.yml"]
+
+permissions:
+  contents: write
+
+jobs:
+  jarvis:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: zepp/jarvis
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+      - name: Zeus CLI et dépendances
+        env:
+          ZEUS: ${{ github.event.inputs.zeus || 'latest' }}
+        run: |
+          npm install -g "@zeppos/zeus-cli@${ZEUS}" --no-audit --no-fund
+          npm view "@zeppos/zeus-cli@${ZEUS}" name version license
+          npm install --no-audit --no-fund
+          npm ls --depth=0 || true
+      - name: zeus build
+        run: |
+          CI=1 zeus build < /dev/null
+          ls -la dist
+      - name: Paquets et QR
+        env:
+          REPO: ${{ github.repository }}
+          TAG: jarvis-montre-${{ github.run_number }}
+        run: |
+          mkdir -p ../out
+          ZAB=$(ls -t dist/*.zab | head -1)
+          cp "$ZAB" ../out/jarvis-trex3.zab
+          python3 - <<'PY'
+          import io, json, zipfile, os
+          def walk(data, depth=0, path=''):
+              src = zipfile.ZipFile(io.BytesIO(data)); out = io.BytesIO(); dst = zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED)
+              for i in src.infolist():
+                  b = src.read(i.filename)
+                  print('  ' * depth + path + i.filename, len(b))
+                  if i.filename.endswith(('.zpk', '.zip')):
+                      b = walk(b, depth + 1, path + i.filename + ' › ')
+                  elif i.filename == 'app.json':
+                      o = json.loads(b)
+                      if 'app' in o:
+                          o.setdefault('packageInfo', {})['mode'] = 'preview'
+                          b = json.dumps(o, ensure_ascii=False).encode('utf-8')
+                          print('  ' * depth + '    → packageInfo.mode = preview')
+                  dst.writestr(i, b)
+              dst.close(); return out.getvalue()
+          d = open('../out/jarvis-trex3.zab', 'rb').read()
+          open('../out/jarvis-trex3-apercu.zab', 'wb').write(walk(d))
+          z = zipfile.ZipFile('../out/jarvis-trex3.zab')
+          zpk = [n for n in z.namelist() if n.endswith('.zpk')]
+          if zpk: open('../out/jarvis-trex3.zpk', 'wb').write(z.read(zpk[0]))
+          PY
+          pip install --quiet "qrcode[pil]==7.4.2"
+          URL="https://github.com/${REPO}/releases/download/${TAG}/jarvis-trex3-apercu.zab"
+          python3 -c "import qrcode,sys; qrcode.make(sys.argv[1], box_size=10, border=3).save('../out/jarvis-qr.png')" "zpkd1://${URL#https://}"
+          echo "zpkd1://${URL#https://}" > ../out/jarvis-qr.txt
+          ls -la ../out
+          sha256sum ../out/*
+      - name: Publier dans « Releases »
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: jarvis-montre-${{ github.run_number }}
+          name: Jarvis (montre T-Rex 3) – version ${{ github.run_number }}
+          body: |
+            Mini-appli Zepp OS « Jarvis » pour Amazfit T-Rex 3 (Zepp OS 4, 480 × 480), construite avec Zeus CLI.
+            Installation : voir le guide « Jarvis sur la montre » (zepp/jarvis/README.md).
+          files: |
+            zepp/out/jarvis-trex3.zab
+            zepp/out/jarvis-trex3-apercu.zab
+            zepp/out/jarvis-trex3.zpk
+            zepp/out/jarvis-qr.png
+            zepp/out/jarvis-qr.txt
