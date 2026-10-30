@@ -523,10 +523,10 @@ public class MajordomeBridge {
             if (!ttsOk) { for (String[] q : ttsQ) emit("spoken", obj("id", q[2])); ttsQ.clear(); return; }
             tts.setLanguage(Locale.FRANCE);
             tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
-                public void onStart(String id) { }
-                public void onDone(String id) { emit("spoken", obj("id", id)); }
-                @SuppressWarnings("deprecation") public void onError(String id) { emit("spoken", obj("id", id)); }
-                public void onRangeStart(String id, int s, int e, int f) { emit("boundary", "{}"); }
+                public void onStart(String id) { MajordomeWallpaper.voice(true); }
+                public void onDone(String id) { MajordomeWallpaper.voice(false); emit("spoken", obj("id", id)); }
+                @SuppressWarnings("deprecation") public void onError(String id) { MajordomeWallpaper.voice(false); emit("spoken", obj("id", id)); }
+                public void onRangeStart(String id, int s, int e, int f) { MajordomeWallpaper.voice(true); emit("boundary", "{}"); }
             });
             for (String[] q : ttsQ) sayNow(q[0], q[1], q[2]); ttsQ.clear();
         } });
@@ -1058,8 +1058,54 @@ public class MajordomeBridge {
                 JSONObject d = new JSONObject(r.body); Iterator<String> k = d.keys();
                 while (k.hasNext()) { JSONObject l = d.optJSONObject(k.next()); if (l == null) continue; total++; if (l.optJSONObject("state") != null && l.getJSONObject("state").optBoolean("on")) { on++; if (names.length() < 3) names.put(l.optString("name")); } }
             }
+            // les pièces (relues juste après par hueRooms) restent affichées entre-temps
+            try { JSONObject prev = new JSONObject(WidgetProvider.prefs(c).getString("hue", "{}")); if (prev.has("rooms")) s.put("rooms", prev.get("rooms")); } catch (Throwable t) { }
             WidgetProvider.putHue(c, s.put("on", on).put("total", total).put("names", names).toString());
         } catch (Throwable t) { }
+    }
+    /** Pièces (12 au plus) et leur état, pour les 3 pièces favorites de la page Jarvis de Socle : id = grouped_light (v2) ou groupe (v1) */
+    static void hueRooms(Context c, boolean v2) {
+        try {
+            JSONArray rooms = new JSONArray();
+            if (v2) {
+                java.util.HashMap<String, Boolean> on = new java.util.HashMap<>();
+                JSONArray g = new JSONObject(hueCall(c, "GET", "/clip/v2/resource/grouped_light", null).body).optJSONArray("data");
+                for (int i = 0; g != null && i < g.length(); i++) { JSONObject x = g.getJSONObject(i); on.put(x.optString("id"), x.optJSONObject("on") != null && x.getJSONObject("on").optBoolean("on")); }
+                JSONArray r = new JSONObject(hueCall(c, "GET", "/clip/v2/resource/room", null).body).optJSONArray("data");
+                for (int i = 0; r != null && i < r.length() && rooms.length() < 12; i++) {
+                    JSONObject x = r.getJSONObject(i); JSONArray sv = x.optJSONArray("services"); String gl = null;
+                    for (int j = 0; sv != null && j < sv.length(); j++) if ("grouped_light".equals(sv.getJSONObject(j).optString("rtype"))) gl = sv.getJSONObject(j).optString("rid");
+                    if (gl == null) continue;
+                    rooms.put(new JSONObject().put("id", gl).put("name", x.optJSONObject("metadata") != null ? x.getJSONObject("metadata").optString("name") : "Pièce").put("on", Boolean.TRUE.equals(on.get(gl))));
+                }
+            } else {
+                JSONObject d = new JSONObject(hueCall(c, "GET", "v1:/groups", null).body); Iterator<String> k = d.keys();
+                while (k.hasNext() && rooms.length() < 12) { String id = k.next(); JSONObject x = d.optJSONObject(id); if (x == null || !"Room".equals(x.optString("type"))) continue;
+                    rooms.put(new JSONObject().put("id", id).put("name", x.optString("name")).put("on", x.optJSONObject("state") != null && x.getJSONObject("state").optBoolean("any_on"))); }
+            }
+            JSONObject s = new JSONObject(WidgetProvider.prefs(c).getString("hue", "{}"));
+            if (!s.has("err")) WidgetProvider.putHue(c, s.put("rooms", rooms).toString());
+        } catch (Throwable t) { }
+    }
+    /** Socle : allumer / éteindre une pièce (arg = id de hueRooms) ; les autres méthodes passent par widgetCall(c, m) */
+    public static boolean widgetCall(final Context c0, final String m, final String arg) {
+        if (!"hue_room".equals(m)) return widgetCall(c0, m);
+        final Context c = c0.getApplicationContext();
+        final JSONObject o = hueLoad(c);
+        if (o == null || arg == null || !arg.matches("[A-Za-z0-9\\-]{1,64}")) return false;
+        final boolean v2 = "v2".equals(o.optString("api"));
+        HX.execute(new Runnable() { public void run() {
+            try {
+                boolean was = false;
+                try { JSONArray r = new JSONObject(WidgetProvider.prefs(c).getString("hue", "{}")).optJSONArray("rooms"); for (int i = 0; r != null && i < r.length(); i++) if (arg.equals(r.getJSONObject(i).optString("id"))) was = r.getJSONObject(i).optBoolean("on"); } catch (Throwable t) { }
+                if (v2) hueCall(c, "PUT", "/clip/v2/resource/grouped_light/" + arg, "{\"on\":{\"on\":" + !was + "}}");
+                else hueCall(c, "PUT", "v1:/groups/" + arg + "/action", "{\"on\":" + !was + "}");
+                hueCall(c, "GET", v2 ? "/clip/v2/resource/light" : "v1:/lights", null);
+                hueRooms(c, v2);
+            } catch (Hue.HueErr e) { hueStatusErr(c, e.code); }
+            catch (Throwable t) { hueStatusErr(c, "unreachable"); }
+        } });
+        return true;
     }
     static void hueStatusErr(Context c, String err) { try { WidgetProvider.putHue(c, new JSONObject().put("paired", hueLoad(c) != null).put("err", err).put("at", System.currentTimeMillis()).toString()); } catch (Throwable t) { } }
     /** Socle (WidgetProvider.call, permission « signature ») : relire l'état, ou tout éteindre, sans ouvrir Majordome */
@@ -1080,6 +1126,7 @@ public class MajordomeBridge {
                         } else hueCall(c, "PUT", "v1:/groups/0/action", "{\"on\":false}");
                     }
                     hueCall(c, "GET", v2 ? "/clip/v2/resource/light" : "v1:/lights", null);
+                    hueRooms(c, v2);
                 } catch (Hue.HueErr e) { hueStatusErr(c, e.code); }
                 catch (Throwable t) { hueStatusErr(c, "unreachable"); }
             } });
@@ -1090,6 +1137,40 @@ public class MajordomeBridge {
     static String hueEv(String op, Object... kv) {
         try { JSONObject o = new JSONObject().put("op", op); for (int i = 0; i + 1 < kv.length; i += 2) if (kv[i + 1] != null) o.put((String) kv[i], kv[i + 1]); return o.toString(); }
         catch (Exception e) { return "{}"; }
+    }
+
+    // ---------- Widget Android et fond d'écran animé (pour tous les lanceurs) ----------
+    @JavascriptInterface public String wallpaperGet() {
+        JSONObject o = MajordomeWallpaper.settings(a);
+        try {
+            android.app.WallpaperInfo wi = android.app.WallpaperManager.getInstance(a).getWallpaperInfo();
+            o.put("active", wi != null && a.getPackageName().equals(wi.getPackageName()));
+            int[] ids = android.appwidget.AppWidgetManager.getInstance(a).getAppWidgetIds(new android.content.ComponentName(a, MajordomeWidget.class));
+            o.put("widgets", ids == null ? 0 : ids.length);
+        } catch (Throwable t) { }
+        return o.toString();
+    }
+    @JavascriptInterface public void wallpaperSet(String json) { MajordomeWallpaper.save(a, json); }
+    /** « Définir comme fond d'écran animé » : aperçu d'Android avec le bouton Appliquer (repli : liste des fonds animés) */
+    @JavascriptInterface public void wallpaperOpen() {
+        ui.post(new Runnable() { public void run() {
+            try {
+                Intent i = new Intent(android.app.WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER);
+                i.putExtra(android.app.WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT, new android.content.ComponentName(a, MajordomeWallpaper.class));
+                a.startActivity(i);
+            } catch (Throwable t) {
+                try { a.startActivity(new Intent(android.app.WallpaperManager.ACTION_LIVE_WALLPAPER_CHOOSER)); }
+                catch (Throwable t2) { emit("toast", obj("text", "Ce téléphone ne propose pas de fonds d'écran animés")); }
+            }
+        } });
+    }
+    /** « Ajouter le widget » : demande au lanceur de l'épingler (Android 8+, si le lanceur le permet) ; false → ajout manuel */
+    @JavascriptInterface public boolean widgetPin() {
+        try {
+            android.appwidget.AppWidgetManager m = android.appwidget.AppWidgetManager.getInstance(a);
+            if (Build.VERSION.SDK_INT >= 26 && m.isRequestPinAppWidgetSupported()) return m.requestPinAppWidget(new android.content.ComponentName(a, MajordomeWidget.class), null, null);
+        } catch (Throwable t) { }
+        return false;
     }
 
     @JavascriptInterface public String hueInfo() {

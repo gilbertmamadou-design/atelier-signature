@@ -1908,6 +1908,101 @@ GRADLE
   # Pas de VoiceInteractionService (mot-clé système, écran verrouillé, contexte de l'écran) : trop lourd pour ce qu'il apporte.
   addfilters '<intent-filter><action android:name="android.intent.action.ASSIST" /><category android:name="android.intent.category.DEFAULT" /></intent-filter>'
   addactivity '<receiver android:name=".MajordomeBridge$Rappel" android:exported="true"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED" /><action android:name="android.intent.action.MY_PACKAGE_REPLACED" /></intent-filter></receiver>'
+  # Widget Android « Jarvis » (MajordomeWidget) et fond d'écran animé (MajordomeWallpaper) : pour n'importe quel lanceur.
+  # Widget : 4 mises en page (petite, moyenne, grande, plein écran), redimensionnable dans les deux sens sans taille maximale,
+  # mises à jour toutes les 30 min au plus par le système et à chaque vrai changement publié par Majordome.
+  # Boutons : « Parler », « Bonjour » (ouvrent Majordome) ; « Éteindre » : récepteur non exporté MajordomeWidget$Act → pont Hue.
+  # Fond animé : service BIND_WALLPAPER (seul Android peut s'y lier), réglages dans Majordome (couleur, densité, vitesse, pulsation).
+  for J in MajordomeWidget MajordomeWallpaper; do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
+  RS=android/app/src/main/res; mkdir -p $RS/layout $RS/xml $RS/drawable $RS/values
+  cat > $RS/drawable/mj_w_bg.xml <<'XML'
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle"><solid android:color="#E6030A0E" /><stroke android:width="1dp" android:color="#3346D9C2" /><corners android:radius="18dp" /></shape>
+XML
+  cat > $RS/drawable/mj_w_card.xml <<'XML'
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle"><solid android:color="#B3061216" /><stroke android:width="1dp" android:color="#3346D9C2" /><corners android:radius="6dp" /></shape>
+XML
+  cat > $RS/drawable/mj_w_btn.xml <<'XML'
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle"><solid android:color="#3346D9C2" /><stroke android:width="1dp" android:color="#8046D9C2" /><corners android:radius="8dp" /></shape>
+XML
+  cat > $RS/layout/mj_widget_s.xml <<'XML'
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/mj_root" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/mj_w_bg" android:padding="6dp">
+  <ImageView android:id="@+id/mj_orb" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitCenter" android:src="@mipmap/ic_launcher" android:contentDescription="Parler" android:layout_marginBottom="12dp" />
+  <TextView android:id="@+id/mj_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="bottom" android:gravity="center" android:text="JARVIS" android:textSize="11sp" android:textStyle="bold" android:letterSpacing="0.12" android:textColor="#EAFFFB" android:maxLines="1" />
+</FrameLayout>
+XML
+  cat > $RS/layout/mj_widget_m.xml <<'XML'
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/mj_root" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:gravity="center_vertical" android:background="@drawable/mj_w_bg" android:padding="10dp">
+  <ImageView android:id="@+id/mj_orb" android:layout_width="84dp" android:layout_height="84dp" android:scaleType="fitCenter" android:src="@mipmap/ic_launcher" android:contentDescription="Parler" />
+  <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginLeft="10dp">
+    <TextView android:id="@+id/mj_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="JARVIS" android:textSize="16sp" android:textStyle="bold" android:letterSpacing="0.12" android:textColor="#EAFFFB" android:maxLines="1" />
+    <TextView android:id="@+id/mj_greet" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Bonjour" android:textSize="12sp" android:textColor="#C7D6F7F0" android:maxLines="1" />
+    <TextView android:id="@+id/mj_c0" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#EAFFFB" android:textSize="12sp" android:maxLines="2" android:ellipsize="end" android:layout_marginTop="3dp" />
+    <TextView android:id="@+id/mj_c1" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#EAFFFB" android:textSize="12sp" android:maxLines="2" android:ellipsize="end" android:layout_marginTop="3dp" />
+  </LinearLayout>
+</LinearLayout>
+XML
+  cat > $RS/layout/mj_widget_l.xml <<'XML'
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/mj_root" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="@drawable/mj_w_bg" android:padding="14dp">
+  <TextClock android:id="@+id/mj_clock" android:layout_width="wrap_content" android:layout_height="wrap_content" android:format12Hour="HH:mm" android:format24Hour="HH:mm" android:textSize="40sp" android:fontFamily="sans-serif-thin" android:textColor="#EAFFFB" android:includeFontPadding="false" />
+  <TextClock android:id="@+id/mj_date" android:layout_width="wrap_content" android:layout_height="wrap_content" android:format12Hour="EEEE d MMMM" android:format24Hour="EEEE d MMMM" android:textSize="14sp" android:textColor="#C7D6F7F0" />
+  <ImageView android:id="@+id/mj_orb" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:scaleType="fitCenter" android:src="@mipmap/ic_launcher" android:contentDescription="Parler" />
+  <TextView android:id="@+id/mj_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="JARVIS" android:textSize="18sp" android:textStyle="bold" android:letterSpacing="0.15" android:textColor="#EAFFFB" android:maxLines="1" />
+  <TextView android:id="@+id/mj_greet" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="Bonjour" android:textSize="13sp" android:textColor="#C7D6F7F0" android:maxLines="1" android:ellipsize="end" />
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="8dp">
+    <TextView android:id="@+id/mj_c0" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:background="@drawable/mj_w_card" android:paddingLeft="10dp" android:paddingRight="8dp" android:paddingTop="7dp" android:paddingBottom="7dp" android:textColor="#EAFFFB" android:maxLines="3" android:ellipsize="end" android:lineSpacingExtra="1dp" android:textSize="13sp" android:layout_marginRight="6dp" android:text="MÉTÉO&#10;17° · vent 12 km/h" />
+    <TextView android:id="@+id/mj_c1" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:background="@drawable/mj_w_card" android:paddingLeft="10dp" android:paddingRight="8dp" android:paddingTop="7dp" android:paddingBottom="7dp" android:textColor="#EAFFFB" android:maxLines="3" android:ellipsize="end" android:lineSpacingExtra="1dp" android:textSize="13sp" android:text="RENDEZ-VOUS&#10;Réunion de chantier" />
+  </LinearLayout>
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="6dp">
+    <TextView android:id="@+id/mj_c2" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:background="@drawable/mj_w_card" android:paddingLeft="10dp" android:paddingRight="8dp" android:paddingTop="7dp" android:paddingBottom="7dp" android:textColor="#EAFFFB" android:maxLines="3" android:ellipsize="end" android:lineSpacingExtra="1dp" android:textSize="13sp" android:layout_marginRight="6dp" android:text="MÉTÉO&#10;17° · vent 12 km/h" />
+    <TextView android:id="@+id/mj_c3" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:background="@drawable/mj_w_card" android:paddingLeft="10dp" android:paddingRight="8dp" android:paddingTop="7dp" android:paddingBottom="7dp" android:textColor="#EAFFFB" android:maxLines="3" android:ellipsize="end" android:lineSpacingExtra="1dp" android:textSize="13sp" android:text="RENDEZ-VOUS&#10;Réunion de chantier" />
+  </LinearLayout>
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="8dp">
+    <TextView android:id="@+id/mj_b_talk" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:gravity="center" android:background="@drawable/mj_w_btn" android:textColor="#EAFFFB" android:textSize="13sp" android:textStyle="bold" android:maxLines="1" android:text="Parler" android:layout_marginRight="6dp" />
+    <TextView android:id="@+id/mj_b_off" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:gravity="center" android:background="@drawable/mj_w_btn" android:textColor="#EAFFFB" android:textSize="13sp" android:textStyle="bold" android:maxLines="1" android:text="Éteindre" android:layout_marginRight="6dp" />
+    <TextView android:id="@+id/mj_b_hello" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:gravity="center" android:background="@drawable/mj_w_btn" android:textColor="#EAFFFB" android:textSize="13sp" android:textStyle="bold" android:maxLines="1" android:text="Bonjour" />
+  </LinearLayout>
+</LinearLayout>
+XML
+  cat > $RS/layout/mj_widget_xl.xml <<'XML'
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/mj_root" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="@drawable/mj_w_bg" android:padding="16dp">
+  <TextClock android:id="@+id/mj_clock" android:layout_width="wrap_content" android:layout_height="wrap_content" android:format12Hour="HH:mm" android:format24Hour="HH:mm" android:textSize="60sp" android:fontFamily="sans-serif-thin" android:textColor="#EAFFFB" android:includeFontPadding="false" />
+  <TextClock android:id="@+id/mj_date" android:layout_width="wrap_content" android:layout_height="wrap_content" android:format12Hour="EEEE d MMMM" android:format24Hour="EEEE d MMMM" android:textSize="14sp" android:textColor="#C7D6F7F0" />
+  <ImageView android:id="@+id/mj_orb" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:scaleType="fitCenter" android:src="@mipmap/ic_launcher" android:contentDescription="Parler" />
+  <TextView android:id="@+id/mj_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="JARVIS" android:textSize="22sp" android:textStyle="bold" android:letterSpacing="0.15" android:textColor="#EAFFFB" android:maxLines="1" />
+  <TextView android:id="@+id/mj_greet" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="Bonjour" android:textSize="13sp" android:textColor="#C7D6F7F0" android:maxLines="1" android:ellipsize="end" />
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="10dp">
+    <TextView android:id="@+id/mj_c0" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:background="@drawable/mj_w_card" android:paddingLeft="10dp" android:paddingRight="8dp" android:paddingTop="7dp" android:paddingBottom="7dp" android:textColor="#EAFFFB" android:maxLines="3" android:ellipsize="end" android:lineSpacingExtra="1dp" android:textSize="14sp" android:layout_marginRight="6dp" android:text="MÉTÉO&#10;17° · vent 12 km/h" />
+    <TextView android:id="@+id/mj_c1" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:background="@drawable/mj_w_card" android:paddingLeft="10dp" android:paddingRight="8dp" android:paddingTop="7dp" android:paddingBottom="7dp" android:textColor="#EAFFFB" android:maxLines="3" android:ellipsize="end" android:lineSpacingExtra="1dp" android:textSize="14sp" android:text="RENDEZ-VOUS&#10;Réunion de chantier" />
+  </LinearLayout>
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="6dp">
+    <TextView android:id="@+id/mj_c2" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:background="@drawable/mj_w_card" android:paddingLeft="10dp" android:paddingRight="8dp" android:paddingTop="7dp" android:paddingBottom="7dp" android:textColor="#EAFFFB" android:maxLines="3" android:ellipsize="end" android:lineSpacingExtra="1dp" android:textSize="14sp" android:layout_marginRight="6dp" android:text="MÉTÉO&#10;17° · vent 12 km/h" />
+    <TextView android:id="@+id/mj_c3" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:background="@drawable/mj_w_card" android:paddingLeft="10dp" android:paddingRight="8dp" android:paddingTop="7dp" android:paddingBottom="7dp" android:textColor="#EAFFFB" android:maxLines="3" android:ellipsize="end" android:lineSpacingExtra="1dp" android:textSize="14sp" android:text="RENDEZ-VOUS&#10;Réunion de chantier" />
+  </LinearLayout>
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="6dp">
+    <TextView android:id="@+id/mj_c4" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:background="@drawable/mj_w_card" android:paddingLeft="10dp" android:paddingRight="8dp" android:paddingTop="7dp" android:paddingBottom="7dp" android:textColor="#EAFFFB" android:maxLines="3" android:ellipsize="end" android:lineSpacingExtra="1dp" android:textSize="14sp" android:layout_marginRight="6dp" android:text="MÉTÉO&#10;17° · vent 12 km/h" />
+    <TextView android:id="@+id/mj_c5" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:background="@drawable/mj_w_card" android:paddingLeft="10dp" android:paddingRight="8dp" android:paddingTop="7dp" android:paddingBottom="7dp" android:textColor="#EAFFFB" android:maxLines="3" android:ellipsize="end" android:lineSpacingExtra="1dp" android:textSize="14sp" android:text="RENDEZ-VOUS&#10;Réunion de chantier" />
+  </LinearLayout>
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="8dp">
+    <TextView android:id="@+id/mj_b_talk" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:gravity="center" android:background="@drawable/mj_w_btn" android:textColor="#EAFFFB" android:textSize="13sp" android:textStyle="bold" android:maxLines="1" android:text="Parler" android:layout_marginRight="6dp" />
+    <TextView android:id="@+id/mj_b_off" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:gravity="center" android:background="@drawable/mj_w_btn" android:textColor="#EAFFFB" android:textSize="13sp" android:textStyle="bold" android:maxLines="1" android:text="Éteindre" android:layout_marginRight="6dp" />
+    <TextView android:id="@+id/mj_b_hello" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:gravity="center" android:background="@drawable/mj_w_btn" android:textColor="#EAFFFB" android:textSize="13sp" android:textStyle="bold" android:maxLines="1" android:text="Bonjour" />
+  </LinearLayout>
+</LinearLayout>
+XML
+  cat > $RS/values/mj_strings.xml <<'XML'
+<resources><string name="mj_widget_desc">Sphère, heure, météo et vent, rendez-vous, réveil, lumières ; Parler, Éteindre, Bonjour. Agrandissez-le jusqu\'au plein écran.</string><string name="mj_wp_desc">Sphère de particules de Majordome, en pause quand l\'écran est éteint.</string></resources>
+XML
+  cat > $RS/xml/mj_widget_info.xml <<'XML'
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android" android:minWidth="180dp" android:minHeight="110dp" android:minResizeWidth="40dp" android:minResizeHeight="40dp" android:targetCellWidth="4" android:targetCellHeight="3" android:resizeMode="horizontal|vertical" android:widgetCategory="home_screen" android:updatePeriodMillis="1800000" android:initialLayout="@layout/mj_widget_l" android:previewLayout="@layout/mj_widget_l" android:previewImage="@mipmap/ic_launcher" android:description="@string/mj_widget_desc" />
+XML
+  cat > $RS/xml/mj_wallpaper.xml <<XML
+<wallpaper xmlns:android="http://schemas.android.com/apk/res/android" android:thumbnail="@mipmap/ic_launcher" android:description="@string/mj_wp_desc" android:settingsActivity="$PKG.MainActivity" />
+XML
+  addraw '<uses-feature android:name="android.software.live_wallpaper" android:required="false" /><uses-feature android:name="android.software.app_widgets" android:required="false" />'
+  addactivity '<receiver android:name=".MajordomeWidget" android:label="Jarvis (Majordome)" android:exported="true"><intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter><meta-data android:name="android.appwidget.provider" android:resource="@xml/mj_widget_info" /></receiver>'
+  addactivity '<receiver android:name=".MajordomeWidget$Act" android:exported="false" />'
+  addactivity '<service android:name=".MajordomeWallpaper" android:label="Jarvis : sphère animée" android:permission="android.permission.BIND_WALLPAPER" android:exported="true"><intent-filter><action android:name="android.service.wallpaper.WallpaperService" /></intent-filter><meta-data android:name="android.service.wallpaper" android:resource="@xml/mj_wallpaper" /></service>'
+  grep -n "MajordomeWidget\|MajordomeWallpaper" "$MAN"
   grep -n "Majordome" "$MAN"
 fi
 # Solaire : photos (appareil photo par le sélecteur de fichiers), position, internet (cadastre, urbanisme, PVGIS par SolaireBridge.java),

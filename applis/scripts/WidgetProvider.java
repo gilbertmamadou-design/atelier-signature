@@ -21,12 +21,19 @@ public class WidgetProvider extends ContentProvider {
         try { new JSONObject(json); } catch (Exception e) { return; }
         prefs(c).edit().putString("data", json).putLong("at", System.currentTimeMillis()).apply();
         try { c.getContentResolver().notifyChange(Uri.parse("content://" + c.getPackageName() + ".widget/data"), null); } catch (Exception e) { }
+        widgetsChanged(c);
+    }
+    // Majordome : son widget Android (MajordomeWidget) se met à jour quand le contenu affiché change vraiment
+    static void widgetsChanged(Context c) {
+        if (!c.getPackageName().endsWith(".majordome")) return;
+        try { Class.forName(c.getPackageName() + ".MajordomeWidget").getDeclaredMethod("changed", Context.class).invoke(null, c); } catch (Throwable t) { }
     }
 
     // Majordome : nombre de lumières Philips Hue allumées (lu par le panneau Jarvis de Socle), tenu par MajordomeBridge
     static void putHue(Context c, String json) {
         prefs(c).edit().putString("hue", json).apply();
         try { c.getContentResolver().notifyChange(Uri.parse("content://" + c.getPackageName() + ".widget/data"), null); } catch (Exception e) { }
+        widgetsChanged(c);
     }
 
     // Sauvegarde : chaque appli MAG peut déposer une copie complète de ses données (JSON), lue par l'appli Sauvegarde
@@ -79,9 +86,9 @@ public class WidgetProvider extends ContentProvider {
                 b.putBoolean("ok", k.getDeclaredField("alive").getBoolean(null));
             }
             // Majordome : lumières Philips Hue (relire l'état, tout éteindre) sans ouvrir l'appli ; la clé du pont reste chez Majordome
-            else if ("hue_refresh".equals(method) || "hue_all_off".equals(method)) {
+            else if ("hue_refresh".equals(method) || "hue_all_off".equals(method) || "hue_room".equals(method)) {
                 Class<?> k = Class.forName(c.getPackageName() + ".MajordomeBridge");
-                Object r = k.getMethod("widgetCall", Context.class, String.class).invoke(null, c, method);
+                Object r = k.getMethod("widgetCall", Context.class, String.class, String.class).invoke(null, c, method, arg);
                 b.putBoolean("ok", Boolean.TRUE.equals(r));
             }
             else b.putBoolean("ok", false);

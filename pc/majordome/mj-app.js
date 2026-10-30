@@ -133,7 +133,7 @@
     if (typeof o === 'string') o = { say: o };
     var html = o.html != null ? o.html : '<p>' + esc(o.show || o.say) + '</p>';
     var c = card((o.k ? '<div class="k">' + esc(o.k) + '</div>' : '') + html, o.cls);
-    MJ.last = { a: o.show || o.say || '', at: now() };
+    MJ.last = { q: MJ.cur && now() - MJ.cur.at < 120000 ? MJ.cur.q : '', a: o.show || o.say || '', at: now() };
     if (MJ.cur) MJ.cur.a = (MJ.cur.a ? MJ.cur.a + ' ' : '') + (o.say || o.show || '');
     publish();
     var p = o.say ? speak(o.say) : Promise.resolve();
@@ -214,13 +214,14 @@
         if (!MJ.listening && !d.wake) break;
         stopUi(); beep('end');
         if (d.text && d.text.trim()) handle(d.text, 'voice');
-        else { status('Je n\'ai rien entendu', 'idle'); $('heard').textContent = ''; if (MJ.wait && MJ.wait.slot === 'yesno') { /* on garde la carte : boutons */ } }
+        else { status('Je n\'ai rien entendu', 'idle'); $('heard').textContent = ''; backToSocle(); if (MJ.wait && MJ.wait.slot === 'yesno') { /* on garde la carte : boutons */ } }
         break;
       case 'end': if (MJ.listening) { stopUi(); status('Prêt', 'idle'); } break;
       case 'error': stopUi(); errorReply(d.msg || 'Erreur de reconnaissance.'); break;
       case 'wake': if (!MJ.listening && !speaking()) { orb.pulse(); startListen(); } break;
       case 'command': if (d.text) handle(d.text, 'voice'); break;
       case 'assist': takeAssist(); break;
+      case 'toast': if (d.text) toast(d.text); break;
       case 'spoken': if (speakWait[d.id]) speakWait[d.id](); break;
       case 'boundary': orb.pulse(); break;
       case 'model': INFO.model = d; chips(); modelUi(); if (d.state === 'ready' && d.fresh) { answer({ say: 'Le modèle vocal français est installé. Je vous écoute quand vous voulez.', k: 'Modèle vocal' }); applyWake(); } break;
@@ -250,6 +251,7 @@
     } else card('<p>' + esc(text) + '</p>', 'q');
     var r = NLU.parse(text, ctx());
     MJ.cur = { at: now(), q: text, a: '', intent: r.intent };
+    if (via !== 'voice' && via !== 'socle') MJ.backAfter = false;
     status('…', 'think');
     var p;
     try { p = Promise.resolve(exec(r)); } catch (e) { p = Promise.reject(e); }
@@ -257,6 +259,7 @@
       if (orb.get() === 'think') orb.state('idle');
       if (!MJ.listening) status('Prêt');
       logHist(MJ.cur);
+      backToSocle();
     });
   }
   MJ.handle = handle;
@@ -1199,7 +1202,7 @@
       '<div class="sect">Routines</div>' + S.routines.map(function (r, i) { return '<div class="set"><div class="t">' + esc(r.name) + '<small>« ' + esc(r.phrase) + ' » : ' + esc((r.steps || []).map(stepLabel).join(', ')) + '</small></div><button class="btn sm" data-rt="' + i + '">Modifier</button></div>'; }).join('') +
       '<div class="row" style="display:flex;gap:8px;margin-top:8px"><button class="btn sm" id="sRtNew">Nouvelle routine</button></div>' +
       (ANDROID ? '<div class="sect">Téléphone</div><div class="set"><div class="t">Autorisations</div><button class="btn sm" id="sPerms">Voir</button></div>' + assistRow() : '') +
-      (MJ.settingsExtra ? MJ.settingsExtra() : '') +
+      (MJ.settingsExtra ? MJ.settingsExtra() : '') + homeHtml() +
       '<div class="sect">Vie privée</div><p class="note">Tout reste sur cet appareil : réglages, historique, notes, listes, minuteurs. Les seules connexions sont la météo (Open-Meteo), les titres (franceinfo), la vigilance (MeteoAlarm) et le téléchargement unique du modèle vocal (alphacephei.com)' + (ANDROID ? ' ; le pont Philips Hue est joint sur le réseau local seulement (et, si vous le demandez, la recherche du pont sur discovery.meethue.com)' : '') + '.</p>' +
       '<div class="set"><div class="t">Historique des commandes</div><button class="btn sm" id="sHist">Voir / effacer</button></div>' +
       '<div class="sect">À propos</div><p class="note">' + esc(S.name) + ' : assistant vocal à commandes de la Suite MAG. Reconnaissance : Vosk (Apache 2.0)' + (PC ? ', vosk-browser de Ciaran O\'Reilly (Apache 2.0 ; Kaldi, OpenFST Apache 2.0 ; CLAPACK, libarchive BSD ; zlib)' : ', vosk-android et JNA (Apache 2.0)') + '. Modèle : vosk-model-small-fr-0.22, Alpha Cephei (Apache 2.0). Aucun personnage, logo ni visuel tiers.</p>';
@@ -1230,10 +1233,31 @@
     on('sHist', 'onclick', histSheet);
     on('sRtNew', 'onclick', function () { routineSheet(-1); });
     if (MJ.settingsBind) try { MJ.settingsBind(b); } catch (e) { console.warn(e); }
+    homeBind();
     b.addEventListener('click', function (e) { var r = e.target.closest('[data-rt]'); if (r) routineSheet(+r.dataset.rt); var f = e.target.closest('[data-fix]'); if (f && B && B.fix) B.fix(f.dataset.fix); });
     if (focus) { var f = $('f-' + focus); if (f) setTimeout(function () { f.scrollIntoView({ block: 'start' }); }, 50); }
   }
   MJ.settingsSheet = settingsSheet;
+  /* Écran d'accueil de n'importe quel lanceur : widget Android (redimensionnable jusqu'au plein écran) et fond d'écran animé */
+  function homeHtml() {
+    if (!B || !B.wallpaperGet) return '';
+    var w = J(B.wallpaperGet(), {}) || {}, sel = function (id, cur, l) { return '<select class="in" id="' + id + '">' + l.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === cur ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>'; };
+    return '<div class="sect" id="f-accueil">Écran d\'accueil (tous les lanceurs)</div>' +
+      '<div class="set"><div class="t">Widget « ' + esc(S.name) + ' »<small>' + (w.widgets ? w.widgets + ' sur l\'écran d\'accueil. ' : '') + 'Sphère, heure, météo et vent, rendez-vous, réveil, lumières ; Parler, Éteindre, Bonjour. Agrandissez-le jusqu\'au plein écran.</small></div><button class="btn sm" id="sWgAdd">Ajouter</button></div>' +
+      '<div class="set"><div class="t">Fond d\'écran animé<small>' + (w.active ? 'Actif. ' : '') + 'La sphère derrière les icônes, en pause écran éteint ou appli ouverte.</small></div><button class="btn sm" id="sWpSet">' + (w.active ? 'Revoir' : 'Définir') + '</button></div>' +
+      '<div class="set"><div class="t">Couleur</div>' + sel('sWpCol', w.color, [['turquoise', 'Turquoise'], ['bleu', 'Bleu'], ['violet', 'Violet'], ['vert', 'Vert'], ['ambre', 'Ambre'], ['blanc', 'Blanc']]) + '</div>' +
+      '<div class="set"><div class="t">Densité</div>' + sel('sWpDen', w.density, [['legere', 'Légère (économe)'], ['normale', 'Normale'], ['dense', 'Dense']]) + '</div>' +
+      '<div class="set"><div class="t">Vitesse</div>' + sel('sWpSpd', w.speed, [['lente', 'Lente'], ['normale', 'Normale'], ['rapide', 'Rapide']]) + '</div>' +
+      '<div class="set"><div class="t">Pulser quand ' + esc(S.name) + ' parle</div><label class="sw"><input type="checkbox" id="sWpPul"' + (w.pulse !== false ? ' checked' : '') + '><span></span></label></div>' +
+      '<div class="set"><div class="t">Fond noir<small>Économise la batterie sur les écrans OLED</small></div><label class="sw"><input type="checkbox" id="sWpBlk"' + (w.black ? ' checked' : '') + '><span></span></label></div>';
+  }
+  function homeBind() {
+    if (!B || !B.wallpaperGet || !$('sWpCol')) return;
+    var save = function () { B.wallpaperSet(JSON.stringify({ color: $('sWpCol').value, density: $('sWpDen').value, speed: $('sWpSpd').value, pulse: $('sWpPul').checked, black: $('sWpBlk').checked })); };
+    ['sWpCol', 'sWpDen', 'sWpSpd', 'sWpPul', 'sWpBlk'].forEach(function (id) { $(id).onchange = save; });
+    $('sWpSet').onclick = function () { save(); B.wallpaperOpen(); };
+    $('sWgAdd').onclick = function () { if (!B.widgetPin()) toast('Ajout manuel : appui long sur l\'écran d\'accueil › Widgets › Majordome › « Jarvis (Majordome) »'); };
+  }
   $('bSet').onclick = function () { settingsSheet(); };
   function lumRow(v) { return '<div style="display:flex;gap:6px;margin:6px 0"><input class="in" data-lum value="' + esc(v) + '" placeholder="ex. éteins tout"><button class="btn sm" data-lumx aria-label="Retirer">✕</button></div>'; }
   function routineSheet(i) {
@@ -1272,10 +1296,26 @@
     var srt = AL.slice().sort(function (a, b) { return a.at - b.at; }), next = srt[0];
     var first = function (k) { return srt.filter(function (o) { return o.kind === k; })[0]; }, tm = first('timer'), rm = first('reminder');
     // name, sir (appellation) : panneau « Majordome » de Socle ; timer / rem : prochain minuteur et prochain rappel
-    try { P.widgetPut(JSON.stringify({ name: S.name, sir: sir(), last: MJ.last ? { a: String(MJ.last.a).slice(0, 140), at: MJ.last.at } : null, next: next ? { kind: next.kind, at: next.at, label: next.kind === 'timer' ? (next.label || 'Minuteur') : next.kind === 'alarm' ? 'Réveil' : next.text } : null, timer: tm ? { at: tm.at, label: tm.label || '' } : null, rem: rm ? { at: rm.at, text: String(rm.text || 'Rappel').slice(0, 100) } : null, wake: !!S.wakeOn, at: now() })); } catch (e) { }
+    // timers (3 au plus), news (titres déjà en cache, aucune requête), windLimit, wx (dernière météo lue) : page Jarvis de Socle et widget Android
+    var tms = srt.filter(function (o) { return o.kind === 'timer'; }).slice(0, 3).map(function (o) { return { at: o.at, label: o.label || '' }; });
+    var ac = lsGet(KEY.actu, null), news = ac && Array.isArray(ac.items) && now() - ac.at < 12 * HOUR ? ac.items.slice(0, 3).map(function (x) { return { t: String(x.t || '').slice(0, 160) }; }) : null;
+    var wc = lsGet(KEY.wx, null), cu = wc && wc.d && wc.d.current, wx = cu && now() - wc.at < 3 * HOUR ? { t: Math.round(cu.temperature_2m), code: cu.weather_code, wind: Math.round(cu.wind_speed_10m || 0), gust: Math.round(cu.wind_gusts_10m || 0), where: String(wc.where || '').replace(/^à /, ''), at: wc.at } : null;
+    try { P.widgetPut(JSON.stringify({ name: S.name, sir: sir(), timers: tms, news: news, windLimit: +S.windLimit || 45, wx: wx, last: MJ.last ? { q: String(MJ.last.q || '').slice(0, 120), a: String(MJ.last.a).slice(0, 140), at: MJ.last.at } : null, next: next ? { kind: next.kind, at: next.at, label: next.kind === 'timer' ? (next.label || 'Minuteur') : next.kind === 'alarm' ? 'Réveil' : next.text } : null, timer: tm ? { at: tm.at, label: tm.label || '' } : null, rem: rm ? { at: rm.at, text: String(rm.text || 'Rappel').slice(0, 100) } : null, wake: !!S.wakeOn, at: now() })); } catch (e) { }
   }
+  /* Page Jarvis de Socle : « back » = après la réponse (voix terminée), retour sur Socle, sauf si une question attend
+     une réponse, si l'écoute a repris, si un panneau est ouvert ou si l'on a touché l'écran entre-temps */
+  function backToSocle() {
+    if (!MJ.backAfter) return;
+    setTimeout(function () {
+      if (!MJ.backAfter || MJ.wait || MJ.listening || speaking() || curSheet) return;
+      MJ.backAfter = false;
+      try { if (P && P.appBack) P.appBack(); } catch (e) { }
+    }, 1800);
+  }
+  document.addEventListener('pointerdown', function () { MJ.backAfter = false; }, true);
   window.onSocle = function (a) {
     var o = J(a, {}) || {};
+    MJ.backAfter = !!o.back;
     var voice = !!(B && B.listen && engineReady());
     if (o.listen) setTimeout(function () { startListen(); }, 300);
     else if (o.routine) setTimeout(function () { MJ.voiceTurn = false; H.routine({ id: String(o.routine) }); }, 300);
