@@ -1182,6 +1182,8 @@
         default: return { type: 'keep' };
       }
     }
+    /** Paragraphes d'une zone de texte, y compris dans des contrôles de contenu (pages de garde de Word) */
+    const parasOf = (n) => { const out = []; kids(n).forEach((c) => { if (c.localName === 'p') out.push(c); else if (c.localName === 'sdt') { const sc = kid(c, 'sdtContent'); if (sc) out.push(...parasOf(sc)); } else if (c.localName === 'customXml' || c.localName === 'smartTag') out.push(...parasOf(c)); }); return out; };
     /* images DrawingML */
     async function readDrawing(dr, rc) {
       const inline = kid(dr, 'inline'), anchor = kid(dr, 'anchor'), box = inline || anchor; if (!box) return null;
@@ -1212,10 +1214,13 @@
         const fillN = sp && kid(sp, 'solidFill'), lnN = sp && kid(sp, 'ln');
         const clr = (n) => { if (!n) return null; const s = desc(n, 'srgbClr')[0]; if (s) return '#' + s.getAttribute('val').toUpperCase(); const sc = desc(n, 'schemeClr')[0]; if (sc) { const v = sc.getAttribute('val'); const role = { tx1: 'tx1', bg1: 'bg1', tx2: 'tx2', bg2: 'bg2', dk1: 'tx1', lt1: 'bg1', dk2: 'tx2', lt2: 'bg2' }[v] || v; return 't:' + role; } return null; };
         const txbx = desc(wsp, 'txbxContent')[0];
-        const html = txbx ? kids(txbx, 'p').map((p) => { const jc = desc(p, 'jc')[0]; const al = jc ? { center: 'center', right: 'right', both: 'justify' }[att(jc, 'val')] : null; return '<p' + (al ? ' style="text-align:' + al + '"' : '') + '>' + kids(p).filter((r) => r.localName === 'r').map((r) => { const rp = rprOf(kid(r, 'rPr')); const t = O.esc(desc(r, 't').map((x) => x.textContent).join('')); if (!t) return ''; let s = ''; if (rp.c && /^#/.test(rp.c)) s += 'color:' + rp.c + ';'; if (rp.sz) s += 'font-size:' + rp.sz + 'pt;'; let h = s ? '<span style="' + s + '">' + t + '</span>' : t; if (rp.b) h = '<b>' + h + '</b>'; if (rp.i) h = '<i>' + h + '</i>'; if (rp.u) h = '<u>' + h + '</u>'; return h; }).join('') + '</p>'; }).join('') : '';
+        const html = txbx ? parasOf(txbx).map((p) => { const jc = desc(p, 'jc')[0]; const al = jc ? { center: 'center', right: 'right', both: 'justify' }[att(jc, 'val')] : null; return '<p' + (al ? ' style="text-align:' + al + '"' : '') + '>' + kids(p).filter((r) => r.localName === 'r').map((r) => { const rp = rprOf(kid(r, 'rPr')); const t = O.esc(desc(r, 't').map((x) => x.textContent).join('')); if (!t) return ''; let s = ''; if (rp.c && /^#/.test(rp.c)) s += 'color:' + rp.c + ';'; if (rp.sz) s += 'font-size:' + rp.sz + 'pt;'; let h = s ? '<span style="' + s + '">' + t + '</span>' : t; if (rp.b) h = '<b>' + h + '</b>'; if (rp.i) h = '<i>' + h + '</i>'; if (rp.u) h = '<u>' + h + '</u>'; return h; }).join('') + '</p>'; }).join('') : '';
         const isTb = kid(wsp, 'cNvSpPr') && kid(wsp, 'cNvSpPr').getAttribute('txBox') === '1';
         const xf = sp && desc(sp, 'xfrm')[0];
-        return { type: 'drawing', attrs: Object.assign({}, a, { kind: isTb || (txbx && (!prst || prst.getAttribute('prst') === 'rect') && !fillN) ? 'textbox' : 'shape', shape: prst ? prst.getAttribute('prst') : 'rect', fill: sp && kid(sp, 'noFill') ? null : (clr(fillN) || (isTb ? null : 't:accent1')), line: lnN && !kid(lnN, 'noFill') ? { w: r2((+lnN.getAttribute('w') || 12700) / 12700), c: clr(kid(lnN, 'solidFill')) || '#000000' } : null, html, rot: xf && xf.getAttribute('rot') ? Math.round(+xf.getAttribute('rot') / 60000) : 0, va: (() => { const bp = kid(wsp, 'bodyPr'); const an = bp && bp.getAttribute('anchor'); return an === 't' ? 'top' : an === 'b' ? 'bottom' : 'middle'; })() }) };
+        // zone de texte qui contient plus que du texte (graphique, image, tableau) : affichée simplifiée, gardée telle quelle
+        const rich = txbx && (desc(txbx, 'drawing').length || desc(txbx, 'tbl').length || desc(txbx, 'pict').length || desc(txbx, 'object').length);
+        let keepTb = null; if (rich) { keepTb = await keepOf(dr, rc, a.w, a.h); keepTb.sig = html; warnings.add('Zones de texte avec images, graphiques ou tableaux : montrées simplifiées, gardées telles quelles dans le .docx.'); }
+        return { type: 'drawing', attrs: Object.assign({}, a, keepTb ? { keep: keepTb } : {}, { kind: isTb || (txbx && (!prst || prst.getAttribute('prst') === 'rect') && !fillN) ? 'textbox' : 'shape', shape: prst ? prst.getAttribute('prst') : 'rect', fill: sp && kid(sp, 'noFill') ? null : (clr(fillN) || (isTb ? null : 't:accent1')), line: lnN && !kid(lnN, 'noFill') ? { w: r2((+lnN.getAttribute('w') || 12700) / 12700), c: clr(kid(lnN, 'solidFill')) || '#000000' } : null, html, rot: xf && xf.getAttribute('rot') ? Math.round(+xf.getAttribute('rot') / 60000) : 0, va: (() => { const bp = kid(wsp, 'bodyPr'); const an = bp && bp.getAttribute('anchor'); return an === 't' ? 'top' : an === 'b' ? 'bottom' : 'middle'; })() }) };
       }
       // graphique, SmartArt, groupe, zone de dessin… : affiché au mieux, gardé tel quel pour l'enregistrement .docx
       const keep = await keepOf(dr, rc, a.w, a.h);
@@ -1231,7 +1236,7 @@
         if (smart) { keep.sig = JSON.stringify(smart); warnings.add('SmartArt : affichés d\'après leur texte, gardés tels quels dans le .docx.'); return { type: 'drawing', attrs: Object.assign({}, a, { kind: 'smart', smart, fill: null, keep }) }; }
       }
       const label = /\/chart$|chartex/.test(uri) ? 'Graphique' : /diagram$/.test(uri) ? 'SmartArt' : /Group$/.test(uri) ? 'Groupe d\'objets' : /Canvas$/.test(uri) ? 'Zone de dessin' : /ink/i.test(uri) ? 'Dessin à main levée' : 'Objet';
-      const texts = desc(box, 'txbxContent').map((t) => kids(t, 'p').map((p) => desc(p, 't').map((x) => x.textContent).join('')).filter(Boolean).join(' / ')).filter(Boolean);
+      const texts = desc(box, 'txbxContent').map((t) => parasOf(t).map((p) => desc(p, 't').map((x) => x.textContent).join('')).filter(Boolean).join(' / ')).filter(Boolean);
       const html = '<p><b>' + O.esc(label) + '</b> (conservé tel quel)</p>' + texts.map((t) => '<p>' + O.esc(t) + '</p>').join('') + (alt ? '<p>' + O.esc(alt) + '</p>' : '');
       keep.sig = html;
       warnings.add('Certains objets (' + label.toLowerCase() + '…) sont montrés par un cadre et gardés tels quels dans le .docx.');
@@ -1254,7 +1259,7 @@
         return { type: 'image', attrs: { m, w: g('width') || 100, h: g('height') || 100, alt: (shape && shape.getAttribute('alt')) || '' } };
       }
       const txb = desc(el, 'txbxContent')[0];
-      if (txb) { return { type: 'drawing', attrs: { kind: 'textbox', shape: 'rect', w: 144, h: 72, wrap: 'square', fill: null, line: { w: 0.75, c: '#000000' }, html: kids(txb, 'p').map((p) => '<p>' + O.esc(desc(p, 't').map((t) => t.textContent).join('')) + '</p>').join('') } }; }
+      if (txb) { return { type: 'drawing', attrs: { kind: 'textbox', shape: 'rect', w: 144, h: 72, wrap: 'square', fill: null, line: { w: 0.75, c: '#000000' }, html: parasOf(txb).map((p) => '<p>' + O.esc(desc(p, 't').map((t) => t.textContent).join('')) + '</p>').join('') } }; }
       return null;
     }
     /* tableaux */
