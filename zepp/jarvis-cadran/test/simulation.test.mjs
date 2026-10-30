@@ -133,3 +133,18 @@ test('sans IMG_TIME ni images (micrologiciel ou fichiers en panne) : base noire 
   assert.equal(t[0].o.text, '13:00'); assert.equal(t[1].o.text, '13:00')
   J.heure = 10; J.opts = {}
 })
+
+test('sans constantes show_level : aucun calque AOD créé (il couvrirait l\'écran normal), le reste s\'affiche', async () => {
+  J.opts = { sansNiveaux: true }
+  const avant = J.widgets.length
+  let d5 = null
+  globalThis.WatchFace = (o) => { d5 = o }
+  await import('../watchface/index.js?sans-niveaux')
+  assert.doesNotThrow(() => d5.build())
+  const nouveaux = J.widgets.slice(avant)
+  assert.ok(nouveaux.some((w) => w.o.src === 'images/fond.png'))
+  assert.ok(!nouveaux.some((w) => /_aod/.test(w.o.src || '') || /_aod\//.test(JSON.stringify(w.o.hour_array || w.o.week_en || ''))))
+  assert.equal(nouveaux.filter((w) => w.type === 'w:IMG_TIME').length, 1)
+  assert.ok(nouveaux.every((w) => !('show_level' in w.o) && !('aod' in w.o)))
+  J.opts = {}
+})

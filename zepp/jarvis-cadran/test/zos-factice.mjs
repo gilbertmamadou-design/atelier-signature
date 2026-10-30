@@ -5,7 +5,7 @@ const J = globalThis.__zos || (globalThis.__zos = { widgets: [], lancements: [],
 const natif = (paires) => { const o = {}; for (const [k, v] of Object.entries(paires)) Object.defineProperty(o, k, { value: v, enumerable: false }); return o }
 const enumere = (noms) => natif(Object.fromEntries(noms.map((n, i) => [n, 'w:' + n])))
 const widget = enumere(['IMG', 'IMG_TIME', 'IMG_WEEK', 'IMG_DATE', 'IMG_ANIM', 'IMG_LEVEL', 'TEXT_IMG', 'IMG_CLICK', 'WIDGET_DELEGATE', 'FILL_RECT', 'TEXT'])
-const show_level = natif({ ONLY_NORMAL: 1, ONAL_AOD: 2, ONLY_EDIT: 4 })
+const show_level = new Proxy(natif({ ONLY_NORMAL: 1, ONAL_AOD: 2, ONLY_EDIT: 4 }), { get: (o, k) => (J.opts.sansNiveaux ? undefined : o[k]) })
 const data_type = natif(Object.fromEntries(['BATTERY', 'STEP', 'HEART', 'WEATHER_CURRENT', 'WIND', 'SUN_RISE', 'SUN_SET', 'ALTITUDE', 'ALTIMETER'].map((n, i) => [n, 100 + i])))
 const align = natif({ LEFT: 'L', RIGHT: 'R', CENTER_H: 'C', CENTER_V: 'V' })
 const prop = natif({ ANIM_STATUS: 'anim_status', SRC: 'src', VISIBLE: 'visible', TEXT: 'text', MORE: 'more' })

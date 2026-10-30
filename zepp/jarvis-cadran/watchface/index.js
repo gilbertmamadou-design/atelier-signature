@@ -44,6 +44,13 @@ const UI = ui && typeof ui.createWidget === 'function' ? ui : H
 /** Crée un widget ; un widget inconnu de ce micrologiciel ou une erreur est ignoré au lieu d'arrêter tout le cadran */
 const creer = (type, o) => {
   if (type === undefined || !UI) return null
+  // sans constante ONAL_AOD, un calque AOD se superposerait à l'écran normal : on ne le crée pas ;
+  // sans ONLY_NORMAL, on laisse le niveau par défaut (écran normal)
+  if (o && 'show_level' in o && o.show_level === undefined) {
+    if (o.aod) return null
+    o = Object.assign({}, o); delete o.show_level
+  }
+  if (o && 'aod' in o) { o = Object.assign({}, o); delete o.aod }
   try { return UI.createWidget(type, o) || null } catch (e) { return null }
 }
 /** Chaque bloc du cadran est isolé : une panne n'empêche jamais les suivants */
@@ -102,7 +109,7 @@ WatchFace({
     // ---------- fonds (d'abord, toujours) : base noire puis décor
     bloc(() => creer(widget.FILL_RECT, { x: 0, y: 0, w: 480, h: 480, color: 0x000000, show_level: NORMAL }))
     bloc(() => creer(widget.IMG, { x: 0, y: 0, w: 480, h: 480, src: img('fond.png'), show_level: NORMAL }))
-    bloc(() => creer(widget.IMG, { x: 0, y: 0, w: 480, h: 480, src: img('fond_aod.png'), show_level: AOD }))
+    bloc(() => creer(widget.IMG, { x: 0, y: 0, w: 480, h: 480, src: img('fond_aod.png'), show_level: AOD, aod: true }))
 
     // ---------- heure (toujours) : IMG_TIME, sinon TEXT mis à jour à la minute ; puis date
     let horloge = null
@@ -118,10 +125,10 @@ WatchFace({
       if (t) secours.push(t)
     }
     if (!bloc(() => heure('heure', NORMAL))) bloc(() => heureTexte(0xeafffb, NORMAL))
-    if (!bloc(() => heure('heure_aod', AOD))) bloc(() => heureTexte(0x6f9e97, AOD))
+    if (AOD !== undefined && !bloc(() => heure('heure_aod', AOD))) bloc(() => heureTexte(0x6f9e97, AOD))
     const majSecours = () => secours.forEach((t) => { try { t.setProperty(prop.TEXT, hm()) } catch (e) {} })
     bloc(() => date('', NORMAL))
-    bloc(() => date('_aod', AOD))
+    if (AOD !== undefined) bloc(() => date('_aod', AOD))
 
     // ---------- sphère
     const s = D.sphere
@@ -130,7 +137,7 @@ WatchFace({
       anim_size: ANIM.images, repeat_count: ANIM.tours, anim_repeat: false, anim_status: anim.START,
       display_on_restart: true, default_frame_index: 0, show_level: NORMAL,
     }))
-    bloc(() => creer(widget.IMG, { x: s.x, y: s.y, w: s.w, h: s.h, src: img('sphere_aod.png'), show_level: AOD }))
+    bloc(() => creer(widget.IMG, { x: s.x, y: s.y, w: s.w, h: s.h, src: img('sphere_aod.png'), show_level: AOD, aod: true }))
     const jouer = () => {
       if (!sphere) return
       try { sphere.setProperty(prop.ANIM_STATUS, anim.STOP) } catch (e) {}
