@@ -103,7 +103,7 @@
   function speak(text) {
     var t = speechText(text);
     lastSaid = text;
-    if (!S.voiceOn || !t) return Promise.resolve();
+    if (!S.voiceOn || !t || MJ.quiet) return Promise.resolve();   // quiet : demande venue de la montre (réponse affichée là-bas)
     speakChain = speakChain.then(function () { return speakNow(t); });
     return speakChain;
   }
@@ -136,6 +136,7 @@
     MJ.last = { q: MJ.cur && now() - MJ.cur.at < 120000 ? MJ.cur.q : '', a: o.show || o.say || '', at: now() };
     if (MJ.cur) MJ.cur.a = (MJ.cur.a ? MJ.cur.a + ' ' : '') + (o.say || o.show || '');
     publish();
+    if (MJ.onAnswer) try { MJ.onAnswer(o); } catch (e) { console.warn(e); }   // montre connectée (mj-montre.js)
     var p = o.say ? speak(o.say) : Promise.resolve();
     c.done = p;
     return c;
@@ -160,7 +161,7 @@
       if (slot === 'yesno') btns = '<div class="row"><button class="btn ' + (opt.danger ? 'bad' : 'pri') + '" data-y>' + esc(opt.yes || 'Confirmer') + '</button><button class="btn" data-n>Annuler</button></div>';
       else if (slot === 'choice') btns = '<div class="row">' + opt.choices.map(function (c, i) { return '<button class="btn sm" data-c="' + (i + 1) + '">' + (i + 1) + '. ' + esc(c) + '</button>'; }).join('') + '<button class="btn sm" data-n>Annuler</button></div>';
       else btns = '<div class="row"><button class="btn sm" data-n>Annuler</button></div>';
-      w.card = answer({ say: q, html: '<p>' + esc(opt.show || q) + '</p>' + btns, cls: opt.danger ? 'warn' : '', k: opt.k || (slot === 'yesno' ? 'Confirmation' : 'Précision') });
+      w.card = answer({ say: q, html: '<p>' + esc(opt.show || q) + '</p>' + btns, cls: opt.danger ? 'warn' : '', k: opt.k || (slot === 'yesno' ? 'Confirmation' : 'Précision'), ask: slot, choices: opt.choices });
       w.card.addEventListener('click', function (e) {
         if (e.target.closest('[data-y]')) w.resolve(true);
         else if (e.target.closest('[data-n]')) w.resolve(slot === 'yesno' ? false : null);
@@ -229,6 +230,7 @@
       case 'sms': answer(d.ok ? { say: 'Message envoyé.' } : { say: 'Le message n\'a pas pu partir : ' + (d.err || 'erreur') + '.', cls: 'err' }); break;
       case 'wakestate': INFO.wake = d; chips(); break;
       case 'perm': refreshInfo(); if (curSheet === 'perms') permsSheet(); break;
+      case 'watch': if (MJ.onWatch) MJ.onWatch(d); break;   // demande de la mini-appli de la montre (MajordomeBridge.Montre)
     }
   };
   function speaking() { return orb.get() === 'speak'; }
@@ -555,6 +557,7 @@
       return httpText(url).then(function (t) {
         var d = J(t, null); if (!d || !d.daily) throw new Error('réponse météo illisible');
         var all = lsGet(KEY.wx, {}); all = { k: k, at: now(), d: d, where: where }; lsSet(KEY.wx, all);
+        if (MJ.onWeather) try { MJ.onWeather(d, where); } catch (e) { console.warn(e); }   // alerte vent fort pour la montre
         return { data: d, where: where, place: pl, cached: false };
       }, function (e) {
         var c = lsGet(KEY.wx, null);
@@ -632,9 +635,10 @@
     return DEPTS;
   }
   function nearestDept(lat, lon) { var best = null, bd = 1e9; depts().forEach(function (d) { var dx = (d.lon - lon) * Math.cos(lat * Math.PI / 180), dy = d.lat - lat, x = dx * dx + dy * dy; if (x < bd) { bd = x; best = d; } }); return best; }
-  H.vigilance = function (p) {
-    status('Vigilance…', 'think');
-    return placeFor(p.city).then(function (pl) {
+  /* Lecture seule (sans réponse) : { lv : 0 à 4, dep, list : ['orange vent violent', …] } ; aussi pour l'alerte de la montre */
+  function vigilanceData(city) { return placeFor(city).then(vigilanceAt); }
+  function vigilanceAt(pl) {
+    return Promise.resolve().then(function () {
       var dep = nearestDept(pl.lat, pl.lon); if (!dep) throw new Error('département inconnu');
       return httpText('https://feeds.meteoalarm.org/feeds/meteoalarm-legacy-atom-france', true).then(function (xml) {
         var doc = new DOMParser().parseFromString(xml, 'application/xml'), es = doc.getElementsByTagName('entry'), lv = 0, ph = {};
@@ -650,9 +654,21 @@
           ph[name] = Math.max(ph[name] || 0, l); lv = Math.max(lv, l);
         }
         var col = { 2: 'jaune', 3: 'orange', 4: 'rouge' };
-        if (!lv) return answer('Pas de vigilance météo en cours pour ' + dep.name + '.').done;
         var list = Object.keys(ph).sort(function (a, b) { return ph[b] - ph[a]; }).map(function (k) { return col[ph[k]] + ' ' + k; });
-        return answer({ say: 'Vigilance ' + col[lv] + ' en ' + dep.name + ' : ' + list.join(', ') + '.' + (lv >= 3 ? ' Prudence.' : ''), cls: lv >= 3 ? 'warn' : '', k: 'Vigilance · ' + dep.name }).done;
+        var v = { lv: lv, dep: dep, list: list, col: col[lv] || '' };
+        if (MJ.onVigilance) try { MJ.onVigilance(v); } catch (e) { console.warn(e); }   // alerte orange / rouge pour la montre
+        return v;
+      });
+    });
+  }
+  MJ.vigilanceData = vigilanceData;
+  H.vigilance = function (p) {
+    status('Vigilance…', 'think');
+    return placeFor(p.city).then(function (pl) {
+      return vigilanceAt(pl).then(function (v) {
+        var lv = v.lv, dep = v.dep, list = v.list;
+        if (!lv) return answer('Pas de vigilance météo en cours pour ' + dep.name + '.').done;
+        return answer({ say: 'Vigilance ' + v.col + ' en ' + dep.name + ' : ' + list.join(', ') + '.' + (lv >= 3 ? ' Prudence.' : ''), cls: lv >= 3 ? 'warn' : '', k: 'Vigilance · ' + dep.name }).done;
       }, function (e) {
         if (PC && /CORS|relais/.test(e && e.message || '')) return answer('Sur PC, la vigilance MeteoAlarm n\'est lisible qu\'avec le relais réseau (lanceur de la Suite, Relais réseau). Ouvrez le site Vigilance de Météo-France.').done;
         return answer({ say: online() ? 'La vigilance n\'est pas disponible pour le moment.' : 'Je n\'ai pas accès à internet pour lire la vigilance.', cls: 'err' }).done;
@@ -1040,7 +1056,8 @@
     if (!r) return answer('Je ne connais pas la routine « ' + (p.name || p.id) + ' ». Vous pouvez la créer dans les réglages.').done;
     var chain = Promise.resolve();
     (r.steps || []).forEach(function (s) { chain = chain.then(function () { return Promise.resolve(runStep(s)).catch(function () { }); }); });
-    return chain;
+    // montre connectée : résumé du matin après « Bonjour » (mj-montre.js)
+    return chain.then(function () { if (MJ.onRoutine) return Promise.resolve(MJ.onRoutine(r)).catch(function (e) { console.warn(e); }); });
   };
 
   /* ---------------- Écoute continue (mot de réveil) ---------------- */
@@ -1330,8 +1347,11 @@
     if (document.hidden) return;
     refreshInfo(); tick();
     if (B && B.takeCommand) { var c = B.takeCommand(); if (c) handle(c, 'voice'); }
+    takeWatch();
     takeAssist();
   });
+  /* Demande de la montre arrivée quand Majordome était fermé (MajordomeBridge.Montre l'a gardée et a ouvert l'appli) */
+  function takeWatch() { try { if (B && B.takeWatch && MJ.onWatch) { var w = B.takeWatch(); if (w) MJ.onWatch(J(w, {})); } } catch (e) { } }
 
   /* ---------------- Démarrage ---------------- */
   applyName(); refreshInfo(); renderTimers();
@@ -1345,12 +1365,13 @@
   setTimeout(function () {
     try { if (P && P.takeSocle) { var x = P.takeSocle(); if (x) window.onSocle(x); } } catch (e) { }
     if (B && B.takeCommand) { var c = B.takeCommand(); if (c) handle(c, 'voice'); }
+    takeWatch();
     takeAssist();
   }, 400);
   publish();
   MJ.S = S; MJ.AL = function () { return AL; };
   MJ._ = { H: H, answer: answer, ask: ask, errorReply: errorReply, openSheet: openSheet, closeSheet: closeSheet, curSheet: function () { return curSheet; }, esc: esc, J: J, lsGet: lsGet, lsSet: lsSet, uid: uid, now: now, cap: cap, deacc: deacc,
     S: S, saveS: saveS, toast: toast, card: card, withSir: withSir, sir: sir, ack: ack, dur: dur, hm: hm, hmSay: hmSay, addAlarm: addAlarm, removeAlarm: removeAlarm, setAL: function (l) { AL = l; saveAL(); renderTimers(); },
-    HELP: HELP, settingsSheet: settingsSheet, handle: handle, ANDROID: ANDROID, PC: PC, B: B, P: P };
+    HELP: HELP, settingsSheet: settingsSheet, handle: handle, ANDROID: ANDROID, PC: PC, B: B, P: P, KEY: KEY, WMO: WMO, weatherData: weatherData, vigilanceData: vigilanceData, speaking: speaking };
   if (MJ.onReady) try { MJ.onReady(); } catch (e) { console.warn(e); } MJ.LS = function () { return LS; }; MJ.orb = orb; MJ.ask = ask; MJ.speakText = speechText; MJ.refresh = refreshInfo;
 })();

@@ -569,7 +569,7 @@
       "theme_color": "#070b14",
       "background_color": "#070b14",
       "vendor": ["vosk/vosk-worker.js"],
-      "copies": { "mj-nlu.js": "applis/www-majordome/mj-nlu.js", "mj-orb.js": "applis/www-majordome/mj-orb.js", "mj-depts.js": "applis/www-majordome/mj-depts.js", "mj-app.js": "applis/www-majordome/mj-app.js", "mj-maison.js": "applis/www-majordome/mj-maison.js" },
+      "copies": { "mj-nlu.js": "applis/www-majordome/mj-nlu.js", "mj-orb.js": "applis/www-majordome/mj-orb.js", "mj-depts.js": "applis/www-majordome/mj-depts.js", "mj-app.js": "applis/www-majordome/mj-app.js", "mj-maison.js": "applis/www-majordome/mj-maison.js", "mj-montre.js": "applis/www-majordome/mj-montre.js" },
       "extra": ["../shared/apps/agenda.js"],
       "patches": [],
       "data": { "ls": ["majordome:"], "note": "Le modèle vocal (IndexedDB « /vosk ») n'est pas exporté : il se réinstalle depuis les réglages." }

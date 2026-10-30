@@ -10,7 +10,10 @@ package __PKG__;
 //  - Minuteurs, réveils, rappels : AlarmManager (setAlarmClock / setExactAndAllowWhileIdle), notification plein écran, redémarrage.
 //  - Téléphone : appel et SMS (toujours après confirmation dans la page), volume, sonnerie / ne pas déranger, panneaux Wi-Fi
 //    et Bluetooth (Android impose de passer par eux), touches multimédia.
-// Événements vers la page : window.majordomeEvent(type, json). Codes de requête 6600 à 6619 ; notifications 6620 à 6640.
+//  - Montre connectée (Amazfit T-Rex 3) : notifications courtes recopiées par l'appli Zepp, et serveur local 127.0.0.1
+//    à jeton pour la mini-appli Zepp OS « Jarvis » (zepp/jarvis/), voir « Montre connectée » plus bas.
+// Événements vers la page : window.majordomeEvent(type, json). Codes de requête 6600 à 6619 ; notifications 6620 à 6640,
+// 6630 + 0..1023 (alarmes), 7700 à 7710 (montre) ; PendingIntent 6680 à 6692 (montre).
 
 import android.Manifest;
 import android.app.Activity;
@@ -76,6 +79,8 @@ public class MajordomeBridge {
     static final int REQ_MIC = 6600, REQ_PICK = 6601, REQ_PERM = 6602;
     static final int N_WAKE = 6620, N_CMD = 6621, N_ALARM_BASE = 6630;
     static final String CH_WAKE = "mj_ecoute", CH_ALARM = "mj_alarme", CH_RAPPEL = "mj_rappel", CH_CMD = "mj_commande";
+    static final String CH_WATCH = "mj_montre", CH_LINK = "mj_montre_liaison";
+    static final int N_WATCH_BASE = 7700, N_LINK = 7710;   // au-delà des notifications d'alarme (6630 + 0..1023)
 
     static volatile MajordomeBridge live;
     static volatile boolean resumed;
@@ -422,7 +427,7 @@ public class MajordomeBridge {
         if (overlay) { try { c.startActivity(i); return; } catch (Throwable t) { } }
         channels(c);
         PendingIntent pi = PendingIntent.getActivity(c, 6603, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-        Notification.Builder b = nb(c, CH_CMD).setSmallIcon(c.getApplicationInfo().icon).setContentTitle("« " + text + " »").setContentText("Touchez pour la réponse")
+        Notification.Builder b = nb(c, CH_CMD).setSmallIcon(c.getApplicationInfo().icon).setContentTitle(Lien.clip("« " + text + " »", Lien.TITLE_MAX)).setContentText("Touchez pour la réponse")
             .setAutoCancel(true).setContentIntent(pi).setFullScreenIntent(pi, true).setCategory(Notification.CATEGORY_CALL);
         try { ((NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE)).notify(N_CMD, b.build()); } catch (Throwable t) { }
     }
@@ -438,6 +443,12 @@ public class MajordomeBridge {
         al.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM), new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
         al.enableVibration(true); al.setBypassDnd(true); nm.createNotificationChannel(al);
         NotificationChannel r = new NotificationChannel(CH_RAPPEL, "Rappels", NotificationManager.IMPORTANCE_HIGH); r.enableVibration(true); nm.createNotificationChannel(r);
+        // Montre connectée : alertes courtes recopiées par l'appli Zepp (silencieuses sur le téléphone, la montre vibre),
+        // et liaison locale (service au premier plan, importance minimale : rien à voir ni à entendre)
+        NotificationChannel wa = new NotificationChannel(CH_WATCH, "Montre connectée : alertes", NotificationManager.IMPORTANCE_HIGH);
+        wa.setDescription("Vent fort, vigilance, résumé du matin, réponses : textes courts pour la montre"); wa.setSound(null, null); wa.enableVibration(true); nm.createNotificationChannel(wa);
+        NotificationChannel li = new NotificationChannel(CH_LINK, "Montre connectée : liaison", NotificationManager.IMPORTANCE_MIN);
+        li.setDescription("Indique que la mini-appli Jarvis de la montre peut joindre Majordome"); li.setShowBadge(false); nm.createNotificationChannel(li);
     }
 
     // ---------- Écoute continue : service au premier plan ----------
@@ -608,16 +619,19 @@ public class MajordomeBridge {
                     JSONObject all = alarms(c), o = all.optJSONObject(id);
                     if (o == null) return;
                     if ("hue".equals(o.optString("kind"))) { all.remove(id); saveAlarms(c, all); hueLater(c, id, o, goAsync()); return; }
-                    if (live != null && resumed) { send("alarm", obj("id", id)); return; }   // page ouverte : elle sonne et parle elle-même
+                    // page ouverte : elle sonne et parle elle-même ; montre connectée : copie silencieuse pour que Zepp la recopie
+                    if (live != null && resumed) { send("alarm", obj("id", id)); if (watchOn(c)) watchAlarmCopy(c, id, o); return; }
                     channels(c);
                     boolean loud = !"reminder".equals(o.optString("kind"));
                     Intent open = c.getPackageManager().getLaunchIntentForPackage(c.getPackageName());
                     open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                     PendingIntent pi = PendingIntent.getActivity(c, 6607 + (id.hashCode() & 0xff), open, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
                     PendingIntent stop = PendingIntent.getBroadcast(c, 6608 + (id.hashCode() & 0xff), new Intent(c, Rappel.class).setAction("mj.STOP").putExtra("id", id), PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+                    // titre ≤ 30 caractères, texte ≤ 120 : lisibles tels quels sur une montre (Zepp recopie titre et texte)
+                    String[] tt = Lien.alarmContent(o.optString("title", "Majordome"), o.optString("text", ""));
                     Notification.Builder b = nb(c, loud ? CH_ALARM : CH_RAPPEL).setSmallIcon(c.getApplicationInfo().icon)
-                        .setContentTitle(o.optString("title", "Majordome")).setContentText(o.optString("text", ""))
-                        .setStyle(new Notification.BigTextStyle().bigText(o.optString("text", "")))
+                        .setContentTitle(tt[0]).setContentText(tt[1])
+                        .setStyle(new Notification.BigTextStyle().bigText(tt[1]))
                         .setCategory(loud ? Notification.CATEGORY_ALARM : Notification.CATEGORY_REMINDER).setAutoCancel(true)
                         .setContentIntent(pi).setDeleteIntent(stop).setVisibility(Notification.VISIBILITY_PUBLIC)
                         .addAction(new Notification.Action.Builder(null, "Arrêter", stop).build());
@@ -636,6 +650,8 @@ public class MajordomeBridge {
                     while (k.hasNext()) { String x = k.next(); JSONObject o = all.optJSONObject(x); if (o == null || o.optLong("at") < now - 60000) old.add(x); else schedule(c, o); }
                     for (String x : old) all.remove(x);
                     saveAlarms(c, all);
+                    // montre connectée : le serveur local repart s'il était actif (démarrage, mise à jour de l'appli)
+                    if (watchOn(c)) Montre.sync(c);
                 }
             } catch (Throwable t) { }
         }
@@ -1093,19 +1109,37 @@ public class MajordomeBridge {
         final Context c = c0.getApplicationContext();
         final JSONObject o = hueLoad(c);
         if (o == null || arg == null || !arg.matches("[A-Za-z0-9\\-]{1,64}")) return false;
-        final boolean v2 = "v2".equals(o.optString("api"));
-        HX.execute(new Runnable() { public void run() {
-            try {
+        HX.execute(new Runnable() { public void run() { hueDo(c, "hue_room", arg); } });
+        return true;
+    }
+    /** Lumières, exécuté sur le fil appelant (serveur de la montre, ou HX pour Socle et le widget) :
+     *  « hue_room » bascule une pièce (id de hueRooms), « hue_all_off » éteint tout, « hue_refresh » relit l'état.
+     *  Rend null si tout s'est bien passé, sinon le code d'erreur (notpaired, unreachable, unauthorized…). */
+    static String hueDo(Context c, String m, String arg) {
+        JSONObject o = hueLoad(c);
+        if (o == null) { try { WidgetProvider.putHue(c, "{\"paired\":false}"); } catch (Throwable t) { } return "notpaired"; }
+        boolean v2 = "v2".equals(o.optString("api"));
+        try {
+            if ("hue_room".equals(m)) {
+                if (arg == null || !arg.matches("[A-Za-z0-9\\-]{1,64}")) return "path";
                 boolean was = false;
                 try { JSONArray r = new JSONObject(WidgetProvider.prefs(c).getString("hue", "{}")).optJSONArray("rooms"); for (int i = 0; r != null && i < r.length(); i++) if (arg.equals(r.getJSONObject(i).optString("id"))) was = r.getJSONObject(i).optBoolean("on"); } catch (Throwable t) { }
-                if (v2) hueCall(c, "PUT", "/clip/v2/resource/grouped_light/" + arg, "{\"on\":{\"on\":" + !was + "}}");
-                else hueCall(c, "PUT", "v1:/groups/" + arg + "/action", "{\"on\":" + !was + "}");
-                hueCall(c, "GET", v2 ? "/clip/v2/resource/light" : "v1:/lights", null);
-                hueRooms(c, v2);
-            } catch (Hue.HueErr e) { hueStatusErr(c, e.code); }
-            catch (Throwable t) { hueStatusErr(c, "unreachable"); }
-        } });
-        return true;
+                Hue.Resp x = v2 ? hueCall(c, "PUT", "/clip/v2/resource/grouped_light/" + arg, "{\"on\":{\"on\":" + !was + "}}")
+                    : hueCall(c, "PUT", "v1:/groups/" + arg + "/action", "{\"on\":" + !was + "}");
+                if (x.code >= 400) return x.code == 403 || x.code == 401 ? "unauthorized" : "http";
+            } else if ("hue_all_off".equals(m)) {
+                if (v2) {
+                    Hue.Resp g = hueCall(c, "GET", "/clip/v2/resource/grouped_light", null);
+                    JSONArray d = new JSONObject(g.body).optJSONArray("data"); String home = null;
+                    for (int i = 0; d != null && i < d.length(); i++) { JSONObject x = d.getJSONObject(i); JSONObject ow = x.optJSONObject("owner"); if (ow != null && "bridge_home".equals(ow.optString("rtype"))) home = x.optString("id"); }
+                    if (home != null && home.matches("[0-9a-fA-F\\-]{8,64}")) hueCall(c, "PUT", "/clip/v2/resource/grouped_light/" + home, "{\"on\":{\"on\":false}}");
+                } else hueCall(c, "PUT", "v1:/groups/0/action", "{\"on\":false}");
+            } else if (!"hue_refresh".equals(m)) return "method";
+            hueCall(c, "GET", v2 ? "/clip/v2/resource/light" : "v1:/lights", null);
+            hueRooms(c, v2);
+            return null;
+        } catch (Hue.HueErr e) { hueStatusErr(c, e.code); return e.code; }
+        catch (Throwable t) { hueStatusErr(c, "unreachable"); return "unreachable"; }
     }
     static void hueStatusErr(Context c, String err) { try { WidgetProvider.putHue(c, new JSONObject().put("paired", hueLoad(c) != null).put("err", err).put("at", System.currentTimeMillis()).toString()); } catch (Throwable t) { } }
     /** Socle (WidgetProvider.call, permission « signature ») : relire l'état, ou tout éteindre, sans ouvrir Majordome */
@@ -1113,23 +1147,8 @@ public class MajordomeBridge {
         final Context c = c0.getApplicationContext();
         final JSONObject o = hueLoad(c);
         if (o == null) { try { WidgetProvider.putHue(c, "{\"paired\":false}"); } catch (Throwable t) { } return false; }
-        final boolean v2 = "v2".equals(o.optString("api"));
         if ("hue_refresh".equals(m) || "hue_all_off".equals(m)) {
-            HX.execute(new Runnable() { public void run() {
-                try {
-                    if ("hue_all_off".equals(m)) {
-                        if (v2) {
-                            Hue.Resp g = hueCall(c, "GET", "/clip/v2/resource/grouped_light", null);
-                            JSONArray d = new JSONObject(g.body).optJSONArray("data"); String home = null;
-                            for (int i = 0; d != null && i < d.length(); i++) { JSONObject x = d.getJSONObject(i); JSONObject ow = x.optJSONObject("owner"); if (ow != null && "bridge_home".equals(ow.optString("rtype"))) home = x.optString("id"); }
-                            if (home != null && home.matches("[0-9a-fA-F\\-]{8,64}")) hueCall(c, "PUT", "/clip/v2/resource/grouped_light/" + home, "{\"on\":{\"on\":false}}");
-                        } else hueCall(c, "PUT", "v1:/groups/0/action", "{\"on\":false}");
-                    }
-                    hueCall(c, "GET", v2 ? "/clip/v2/resource/light" : "v1:/lights", null);
-                    hueRooms(c, v2);
-                } catch (Hue.HueErr e) { hueStatusErr(c, e.code); }
-                catch (Throwable t) { hueStatusErr(c, "unreachable"); }
-            } });
+            HX.execute(new Runnable() { public void run() { hueDo(c, m, null); } });
             return true;
         }
         return false;
@@ -1303,12 +1322,659 @@ public class MajordomeBridge {
             if (!ok && (live == null || !resumed)) {
                 try {
                     channels(c);
-                    Notification n = nb(c, CH_RAPPEL).setSmallIcon(c.getApplicationInfo().icon).setContentTitle("Lumières : " + o.optString("text", ""))
+                    Notification n = nb(c, CH_RAPPEL).setSmallIcon(c.getApplicationInfo().icon).setContentTitle(Lien.clip("Lumières : " + o.optString("text", ""), Lien.TITLE_MAX))
                         .setContentText("unreachable".equals(err) ? "Le pont Hue ne répond pas." : "Le pont Hue a refusé la commande.").setAutoCancel(true).build();
                     ((NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE)).notify(N_ALARM_BASE + (id.hashCode() & 0x3ff), n);
                 } catch (Throwable t) { }
             }
             if (pr != null) pr.finish();
         } }, "majordome-hue-later").start();
+    }
+
+    // =====================================================================
+    // Montre connectée (Amazfit T-Rex 3, Zepp OS 4) : voir zepp/jarvis/ à la racine du dépôt
+    //  1. Notifications : l'appli Zepp recopie sur la montre les notifications des applis cochées
+    //     (Zepp › Profil › la montre › Notifications des applis › Majordome). Rappels, minuteurs, réveils :
+    //     titre ≤ 30 caractères, texte ≤ 120 (Lien.alarmContent). Alertes facultatives (vent fort, vigilance orange
+    //     ou rouge, résumé du matin, réponse de Jarvis) : canal CH_WATCH ; c'est la page qui les décide, au moment où
+    //     elle lit déjà la météo, la vigilance ou exécute la routine « Bonjour » : aucune tâche réseau ajoutée.
+    //  2. Mini-appli « Jarvis » : son Side Service tourne dans l'appli Zepp du téléphone et appelle
+    //     http://127.0.0.1:<port>/… Ce serveur (Lien.Server) n'écoute que l'adresse de bouclage, exige le jeton
+    //     (« Authorization: Bearer … », comparaison à temps constant, blocage après 10 refus en une minute), n'accepte
+    //     que 6 actions (Lien.ROUTES), refuse les en-têtes Host étrangers (pages web : « DNS rebinding ») et les
+    //     requêtes OPTIONS (aucun en-tête CORS), borne les corps, et ne tourne que si l'option « Montre connectée »
+    //     est active (service au premier plan Montre, arrêté avec l'option).
+    // =====================================================================
+    static volatile String pendingWatch = "";
+
+    /** Partie en Java pur (testée hors d'Android) : textes courts, jeton, serveur HTTP local, routeur, relais, Opus. */
+    static final class Lien {
+        static final int TITLE_MAX = 30, TEXT_MAX = 120, PORT = 47615;
+        static final int MAX_HEAD = 8192, MAX_BODY = 8192, MAX_AUDIO = 600 * 1024;
+        static final String[] KINDS = { "vent", "vigilance", "matin", "reponse" };
+        /** Liste blanche : méthode, chemin, action */
+        static final String[][] ROUTES = { { "GET", "/etat", "etat" }, { "POST", "/commande", "commande" }, { "POST", "/audio", "audio" },
+            { "POST", "/lumieres", "lumieres" }, { "POST", "/routine", "routine" }, { "POST", "/clim", "clim" } };
+        static final java.nio.charset.Charset UTF8 = java.nio.charset.Charset.forName("UTF-8");
+
+        // ---------- Textes courts pour la montre ----------
+        /** Espaces réduits ; au-delà de max, coupé au dernier mot entier (s'il n'est pas trop loin) avec « … » */
+        static String clip(String s, int max) {
+            if (s == null) return "";
+            String t = s.replaceAll("[\\r\\n\\t]+", " ").replaceAll(" {2,}", " ").trim();
+            if (t.length() <= max) return t;
+            int cut = max - 1;
+            if (cut > 0 && Character.isHighSurrogate(t.charAt(cut - 1))) cut--;
+            String head = t.substring(0, cut);
+            int sp = head.lastIndexOf(' ');
+            if (sp >= max / 2) head = head.substring(0, sp);
+            head = head.replaceAll("[\\s,;:.·«(\\-–—]+$", "");
+            return head + "…";
+        }
+        static String[] alarmContent(String title, String text) {
+            return new String[]{ clip(title == null || title.trim().isEmpty() ? "Majordome" : title, TITLE_MAX), clip(text, TEXT_MAX) };
+        }
+        static int kindIndex(String k) { for (int i = 0; i < KINDS.length; i++) if (KINDS[i].equals(k)) return i; return -1; }
+
+        // ---------- Jeton ----------
+        static final String ALPHA = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";   // sans 0/O ni 1/I/L : se recopie sans erreur
+        static String newToken(java.security.SecureRandom r) { StringBuilder b = new StringBuilder(); for (int i = 0; i < 20; i++) b.append(ALPHA.charAt(r.nextInt(ALPHA.length()))); return b.toString(); }
+        static String normToken(String s) { if (s == null) return ""; String t = s.toUpperCase(Locale.ROOT).replaceAll("[\\s\\-]", ""); return t.matches("[A-Z0-9]{1,64}") ? t : ""; }
+        static String grouped(String t) { StringBuilder b = new StringBuilder(); for (int i = 0; i < t.length(); i++) { if (i > 0 && i % 4 == 0) b.append('-'); b.append(t.charAt(i)); } return b.toString(); }
+        /** Comparaison à temps constant (ne dépend que de la longueur attendue) */
+        static boolean sameToken(String want, String got) {
+            String a = normToken(want), b = normToken(got);
+            if (a.length() < 16) return false;
+            int diff = a.length() ^ b.length();
+            for (int i = 0; i < a.length(); i++) diff |= a.charAt(i) ^ (i < b.length() ? b.charAt(i) : 0);
+            return diff == 0;
+        }
+
+        // ---------- Serveur HTTP local (127.0.0.1 seulement) ----------
+        interface Tok { String get(); }
+        interface Handler { Resp handle(String action, String body) throws Exception; }
+        static final class Resp { final int code; final String body; Resp(int c, String b) { code = c; body = b == null ? "{}" : b; } }
+        static final class Req { String method, path, host, auth; int len = -1; boolean chunked; }
+        static final class Bad extends Exception { final int code; final String msg; Bad(int c, String m) { super(m); code = c; msg = m; } }
+        static String err(String m) { return "{\"ok\":false,\"erreur\":" + quote(m) + "}"; }
+        static String quote(String s) {
+            StringBuilder b = new StringBuilder("\"");
+            for (int i = 0; i < s.length(); i++) { char c = s.charAt(i); if (c == '"' || c == '\\') b.append('\\').append(c); else if (c < 0x20) b.append(String.format("\\u%04x", (int) c)); else b.append(c); }
+            return b.append('"').toString();
+        }
+        static String[] route(String path) { for (String[] r : ROUTES) if (r[1].equals(path)) return r; return null; }
+
+        static final class Server {
+            final int port; final Tok tok; final Handler h;
+            private java.net.ServerSocket ss; private java.util.concurrent.ThreadPoolExecutor pool;
+            volatile boolean running; volatile long lastAt = 0; volatile String lastAction = "";
+            final java.util.concurrent.atomic.AtomicInteger served = new java.util.concurrent.atomic.AtomicInteger(), refused = new java.util.concurrent.atomic.AtomicInteger();
+            private final java.util.ArrayDeque<Long> bad = new java.util.ArrayDeque<>(); private volatile long lockUntil = 0;
+            Server(int port, Tok tok, Handler h) { this.port = port; this.tok = tok; this.h = h; }
+
+            synchronized void start() throws java.io.IOException {
+                if (running) return;
+                java.net.ServerSocket s = new java.net.ServerSocket();
+                s.setReuseAddress(true);
+                s.bind(new java.net.InetSocketAddress(java.net.InetAddress.getByAddress(new byte[]{ 127, 0, 0, 1 }), port), 16);
+                ss = s;
+                pool = new java.util.concurrent.ThreadPoolExecutor(3, 3, 30, java.util.concurrent.TimeUnit.SECONDS, new java.util.concurrent.ArrayBlockingQueue<Runnable>(8));
+                running = true;
+                Thread th = new Thread(new Runnable() { public void run() { loop(s); } }, "majordome-montre");
+                th.setDaemon(true); th.start();
+            }
+            synchronized void stop() {
+                running = false;
+                try { if (ss != null) ss.close(); } catch (Exception e) { }
+                if (pool != null) pool.shutdownNow();
+            }
+            boolean isRunning() { return running && ss != null && !ss.isClosed(); }
+
+            private void loop(java.net.ServerSocket s) {
+                while (running) {
+                    final java.net.Socket c;
+                    try { c = s.accept(); } catch (java.io.IOException e) { if (!running || s.isClosed()) break; continue; }
+                    if (!c.getInetAddress().isLoopbackAddress()) { close(c); continue; }   // impossible (bouclage), par prudence
+                    try { pool.execute(new Runnable() { public void run() { serve(c); } }); }
+                    catch (java.util.concurrent.RejectedExecutionException e) { try { write(c.getOutputStream(), new Resp(503, err("occupé"))); } catch (Exception x) { } close(c); }
+                }
+            }
+            static void close(java.net.Socket c) { try { c.close(); } catch (Exception e) { } }
+
+            void serve(java.net.Socket c) {
+                try {
+                    c.setSoTimeout(6000);
+                    java.io.InputStream in = new java.io.BufferedInputStream(c.getInputStream());
+                    Resp r;
+                    try { r = answer(in); }
+                    catch (Bad b) { r = new Resp(b.code, err(b.msg)); }
+                    catch (java.net.SocketTimeoutException e) { r = new Resp(408, err("délai dépassé")); }
+                    if (r.code >= 400) refused.incrementAndGet();
+                    write(c.getOutputStream(), r);
+                } catch (Throwable t) {
+                } finally { close(c); }
+            }
+            Resp answer(java.io.InputStream in) throws Exception {
+                Req q = head(in);
+                // Host : seulement l'adresse de bouclage (une page web ne peut pas se faire passer pour 127.0.0.1)
+                if (!hostOk(q.host)) throw new Bad(403, "hôte refusé");
+                if ("OPTIONS".equals(q.method)) throw new Bad(405, "méthode refusée");
+                if (System.currentTimeMillis() < lockUntil) throw new Bad(429, "trop de jetons refusés : réessayez dans une minute");
+                String want = tok == null ? null : tok.get();
+                String a = q.auth == null ? "" : q.auth.trim();
+                if (want == null || !a.regionMatches(true, 0, "Bearer ", 0, 7) || !sameToken(want, a.substring(7))) { noteBad(); throw new Bad(401, "jeton absent ou refusé"); }
+                String p = q.path; int k = p.indexOf('?'); if (k >= 0) p = p.substring(0, k);
+                String[] rt = route(p);
+                if (rt == null) throw new Bad(404, "action inconnue");
+                if (!rt[0].equals(q.method)) throw new Bad(405, "méthode refusée");
+                String body = "";
+                if ("POST".equals(q.method)) {
+                    int max = "audio".equals(rt[2]) ? MAX_AUDIO : MAX_BODY;
+                    if (q.chunked) body = new String(chunked(in, max), UTF8);   // certains clients n'annoncent pas la longueur
+                    else {
+                        if (q.len < 0) throw new Bad(411, "longueur exigée");
+                        if (q.len > max) throw new Bad(413, "corps trop gros");
+                        byte[] b = new byte[q.len]; int got = 0;
+                        while (got < q.len) { int n = in.read(b, got, q.len - got); if (n < 0) throw new Bad(400, "corps incomplet"); got += n; }
+                        body = new String(b, UTF8);
+                    }
+                }
+                lastAt = System.currentTimeMillis(); lastAction = rt[2]; served.incrementAndGet();
+                try { Resp r = h.handle(rt[2], body); return r == null ? new Resp(500, err("pas de réponse")) : r; }
+                catch (Bad b) { throw b; }
+                catch (org.json.JSONException e) { throw new Bad(400, "JSON illisible"); }
+                catch (Exception e) { return new Resp(500, err("erreur : " + e.getMessage())); }
+            }
+            private synchronized void noteBad() {
+                long now = System.currentTimeMillis();
+                bad.addLast(now);
+                while (!bad.isEmpty() && now - bad.peekFirst() > 60000) bad.pollFirst();
+                if (bad.size() >= 10) { lockUntil = now + 60000; bad.clear(); }
+            }
+            boolean hostOk(String host) {
+                if (host == null) return false;
+                String x = host.trim().toLowerCase(Locale.ROOT);
+                return x.equals("127.0.0.1:" + port) || x.equals("localhost:" + port) || x.equals("127.0.0.1") || x.equals("localhost");
+            }
+            static Req head(java.io.InputStream in) throws Exception {
+                Req q = new Req(); int[] used = { 0 };
+                String l = line(in, used);
+                if (l == null) throw new Bad(400, "requête vide");
+                String[] p = l.split(" ");
+                if (p.length != 3 || !p[2].startsWith("HTTP/1.") || !p[0].matches("[A-Z]{3,7}") || !p[1].startsWith("/")) throw new Bad(400, "requête invalide");
+                q.method = p[0]; q.path = p[1];
+                while (true) {
+                    String h = line(in, used);
+                    if (h == null) throw new Bad(400, "en-têtes incomplets");
+                    if (h.isEmpty()) break;
+                    int k = h.indexOf(':'); if (k <= 0) continue;
+                    String n = h.substring(0, k).trim().toLowerCase(Locale.ROOT), v = h.substring(k + 1).trim();
+                    if ("host".equals(n)) q.host = v;
+                    else if ("authorization".equals(n)) q.auth = v;
+                    else if ("content-length".equals(n)) { try { q.len = Integer.parseInt(v); } catch (Exception e) { throw new Bad(400, "longueur invalide"); } if (q.len < 0) throw new Bad(400, "longueur invalide"); }
+                    else if ("transfer-encoding".equals(n)) q.chunked = true;
+                }
+                return q;
+            }
+            /** Corps « Transfer-Encoding: chunked », borné à max octets */
+            static byte[] chunked(java.io.InputStream in, int max) throws Exception {
+                java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream(); int[] used = { 0 };
+                while (true) {
+                    used[0] = 0;
+                    String sz = line(in, used); if (sz == null) throw new Bad(400, "corps incomplet");
+                    int sc = sz.indexOf(';'); if (sc >= 0) sz = sz.substring(0, sc); sz = sz.trim();
+                    if (sz.isEmpty()) continue;
+                    int n; try { n = Integer.parseInt(sz, 16); } catch (Exception e) { throw new Bad(400, "morceau invalide"); }
+                    if (n < 0 || out.size() + n > max) throw new Bad(413, "corps trop gros");
+                    if (n == 0) { while (true) { used[0] = 0; String t = line(in, used); if (t == null || t.isEmpty()) break; } break; }
+                    byte[] b = new byte[n]; int got = 0;
+                    while (got < n) { int k = in.read(b, got, n - got); if (k < 0) throw new Bad(400, "corps incomplet"); got += k; }
+                    out.write(b, 0, n);
+                    used[0] = 0; line(in, used);
+                }
+                return out.toByteArray();
+            }
+            static String line(java.io.InputStream in, int[] used) throws Exception {
+                java.io.ByteArrayOutputStream b = new java.io.ByteArrayOutputStream(); int c;
+                while ((c = in.read()) >= 0) { if (++used[0] > MAX_HEAD) throw new Bad(431, "en-têtes trop longs"); if (c == '\n') break; if (c != '\r') b.write(c); }
+                if (c < 0 && b.size() == 0) return null;
+                return b.toString("UTF-8");
+            }
+            static void write(java.io.OutputStream o, Resp r) throws java.io.IOException {
+                byte[] b = r.body.getBytes(UTF8);
+                String reason = r.code == 200 ? "OK" : r.code == 400 ? "Bad Request" : r.code == 401 ? "Unauthorized" : r.code == 403 ? "Forbidden" : r.code == 404 ? "Not Found" : r.code == 405 ? "Method Not Allowed"
+                    : r.code == 408 ? "Request Timeout" : r.code == 411 ? "Length Required" : r.code == 413 ? "Payload Too Large" : r.code == 429 ? "Too Many Requests" : r.code == 431 ? "Request Header Fields Too Large" : r.code == 503 ? "Service Unavailable" : "Error";
+                String h = "HTTP/1.1 " + r.code + " " + reason + "\r\nContent-Type: application/json; charset=utf-8\r\nContent-Length: " + b.length
+                    + "\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\nConnection: close\r\n\r\n";
+                o.write(h.getBytes(UTF8)); o.write(b); o.flush();
+            }
+        }
+
+        // ---------- Routeur : actions de la liste blanche ----------
+        interface Actions {
+            String etat() throws Exception;
+            String lumieres(String action, String id) throws Exception;
+            String clim() throws Exception;
+            String relay(String kind, String arg) throws Exception;     // « commande » (texte) ou « routine » (identifiant)
+            String suite(String id) throws Exception;                   // réponse d'une commande encore en cours
+            String audio(byte[] opus) throws Exception;
+        }
+        static final String ID = "[A-Za-z0-9\\-]{1,64}";
+        static Handler router(final Actions a) {
+            return new Handler() { public Resp handle(String action, String body) throws Exception {
+                org.json.JSONObject o = body == null || body.trim().isEmpty() ? new org.json.JSONObject() : new org.json.JSONObject(body);
+                switch (action) {
+                    case "etat": return new Resp(200, a.etat());
+                    case "clim": return new Resp(200, a.clim());
+                    case "lumieres": {
+                        String act = o.optString("action"), id = o.optString("id", "");
+                        if ("tout_eteindre".equals(act)) return new Resp(200, a.lumieres(act, null));
+                        if ("piece".equals(act) && id.matches(ID)) return new Resp(200, a.lumieres(act, id));
+                        throw new Bad(400, "action de lumière inconnue");
+                    }
+                    case "routine": {
+                        String id = o.optString("id");
+                        if (!id.matches("[A-Za-z0-9_\\-]{1,32}")) throw new Bad(400, "routine inconnue");
+                        return new Resp(200, a.relay("routine", id));
+                    }
+                    case "commande": {
+                        String s = o.optString("suite", "");
+                        if (!s.isEmpty()) { if (!s.matches("[0-9a-f]{16}")) throw new Bad(400, "suite inconnue"); return new Resp(200, a.suite(s)); }
+                        String t = o.optString("texte", "").replaceAll("[\\p{Cntrl}]+", " ").trim();
+                        if (t.isEmpty() || t.length() > 200) throw new Bad(400, "texte vide ou trop long");
+                        return new Resp(200, a.relay("commande", t));
+                    }
+                    case "audio": {
+                        byte[] d = b64(o.optString("opus", ""));
+                        if (d == null || d.length < 16) throw new Bad(400, "audio vide ou illisible");
+                        return new Resp(200, a.audio(d));
+                    }
+                }
+                throw new Bad(404, "action inconnue");
+            } };
+        }
+
+        // ---------- Relais vers la page (commande, routine) : réponse attendue 7 s, puis « suite » ----------
+        static final class Relay {
+            static final class P { final java.util.concurrent.CountDownLatch l = new java.util.concurrent.CountDownLatch(1); volatile String json; final long at = System.currentTimeMillis(); }
+            final java.util.concurrent.ConcurrentHashMap<String, P> map = new java.util.concurrent.ConcurrentHashMap<>();
+            final java.security.SecureRandom rnd = new java.security.SecureRandom();
+            String open() {
+                purge();
+                byte[] b = new byte[8]; rnd.nextBytes(b); StringBuilder s = new StringBuilder(); for (byte x : b) s.append(String.format("%02x", x & 0xff));
+                map.put(s.toString(), new P()); return s.toString();
+            }
+            boolean has(String id) { return id != null && map.containsKey(id); }
+            void reply(String id, String json) { P p = id == null ? null : map.get(id); if (p != null && p.json == null) { p.json = json; p.l.countDown(); } }
+            /** Réponse de la page, ou null si elle n'est pas encore arrivée (la demande reste ouverte 3 minutes) */
+            String await(String id, long ms) throws InterruptedException {
+                P p = map.get(id); if (p == null) return null;
+                p.l.await(ms, java.util.concurrent.TimeUnit.MILLISECONDS);
+                if (p.json != null) map.remove(id);
+                return p.json;
+            }
+            void purge() { long now = System.currentTimeMillis(); for (java.util.Map.Entry<String, P> e : map.entrySet()) if (now - e.getValue().at > 180000) map.remove(e.getKey()); }
+        }
+        /** Réponse de la page nettoyée : {ok, texte (≤ 600), question, entendu} */
+        static String cleanReply(String json) {
+            try {
+                org.json.JSONObject o = new org.json.JSONObject(json), r = new org.json.JSONObject();
+                r.put("ok", o.optBoolean("ok", true)).put("texte", clip(o.optString("texte", ""), 600));
+                if (o.optBoolean("question")) r.put("question", true);
+                if (o.optBoolean("ouinon")) r.put("ouinon", true);
+                return r.toString();
+            } catch (Exception e) { return "{\"ok\":false,\"texte\":\"Réponse illisible.\"}"; }
+        }
+        static String pendingJson(String id) { return "{\"ok\":true,\"attente\":\"" + id + "\",\"texte\":\"Un instant…\"}"; }
+
+        // ---------- État pour l'écran principal de la montre ----------
+        static String etat(MajordomeWidget.Model m, String hueJson, String favsCsv, long now) throws org.json.JSONException {
+            org.json.JSONObject o = new org.json.JSONObject().put("v", 1).put("nom", m.name).put("appel", m.sir == null ? "" : m.sir).put("t", now);
+            if (m.temp != null) {
+                org.json.JSONObject w = new org.json.JSONObject().put("t", m.temp).put("ciel", m.sky == null ? "" : m.sky).put("vent", m.wind == null ? 0 : m.wind)
+                    .put("rafales", m.gust == null ? 0 : m.gust).put("seuil", m.windLimit).put("niveau", MajordomeWidget.windLevel(m)).put("lieu", m.where == null ? "" : m.where);
+                o.put("meteo", w);
+            }
+            if (m.evTitle != null) o.put("rdv", new org.json.JSONObject().put("titre", clip(m.evTitle, 40)).put("quand", MajordomeWidget.capital(MajordomeWidget.day(m.evAt, now)) + (m.evAll ? " · journée" : " à " + MajordomeWidget.hm(m.evAt))));
+            if (m.alarmAt > now) o.put("reveil", new org.json.JSONObject().put("heure", MajordomeWidget.hm(m.alarmAt)).put("jour", MajordomeWidget.day(m.alarmAt, now)));
+            if (m.timerAt > now) o.put("minuteur", new org.json.JSONObject().put("label", m.timerLabel == null || m.timerLabel.isEmpty() ? "Minuteur" : clip(MajordomeWidget.capital(m.timerLabel), 24)).put("fin", m.timerAt));
+            org.json.JSONObject l = new org.json.JSONObject().put("jumele", m.huePaired).put("allumees", m.hueOn).put("total", m.hueTotal);
+            if (m.hueErr != null) l.put("erreur", m.hueErr);
+            org.json.JSONArray rooms = new org.json.JSONArray(), all = null;
+            try { all = new org.json.JSONObject(hueJson == null || hueJson.isEmpty() ? "{}" : hueJson).optJSONArray("rooms"); } catch (Exception e) { }
+            java.util.List<String> favs = new java.util.ArrayList<>();
+            for (String f : (favsCsv == null ? "" : favsCsv).split(",")) if (f.trim().matches(ID)) favs.add(f.trim());
+            if (all != null) {
+                for (String f : favs) for (int i = 0; i < all.length(); i++) { org.json.JSONObject r = all.optJSONObject(i); if (r != null && f.equals(r.optString("id")) && rooms.length() < 3) rooms.put(room(r)); }
+                for (int i = 0; favs.isEmpty() && i < all.length() && rooms.length() < 3; i++) { org.json.JSONObject r = all.optJSONObject(i); if (r != null) rooms.put(room(r)); }
+            }
+            o.put("lumieres", l.put("pieces", rooms));
+            if (m.lastA != null && now - m.lastAt < 12 * 3600000L) o.put("derniere", clip(m.lastA, 120));
+            return o.toString();
+        }
+        static org.json.JSONObject room(org.json.JSONObject r) throws org.json.JSONException { return new org.json.JSONObject().put("id", r.optString("id")).put("nom", clip(r.optString("name", "Pièce"), 18)).put("on", r.optBoolean("on")); }
+
+        // ---------- Audio de la montre : Opus brut du Recorder de Zepp OS ----------
+        /** Paquets Opus du Recorder (@zos/media, codec.OPUS) : sans conteneur, chacun « [u32 BE longueur][u32 BE état final
+         *  du codeur][paquet] » (disposition de l'outil opus_demo de libopus), relevée sur une T-Rex 3 Pro par le projet
+         *  public SDarioosh/odysseus-sound. null si les données n'ont pas cette forme. */
+        static java.util.List<byte[]> opusPackets(byte[] d) {
+            java.util.List<byte[]> out = new java.util.ArrayList<>();
+            int pos = 0, stereo = -1;
+            while (pos + 8 <= d.length) {
+                int len = ((d[pos] & 0xff) << 24) | ((d[pos + 1] & 0xff) << 16) | ((d[pos + 2] & 0xff) << 8) | (d[pos + 3] & 0xff);
+                if (len < 1 || len > 1275) return null;
+                int start = pos + 8;
+                if (start + len > d.length) break;              // dernier paquet coupé : ignoré
+                byte[] p = java.util.Arrays.copyOfRange(d, start, start + len);
+                int st = p[0] & 0x04;
+                if (stereo < 0) stereo = st; else if (st != stereo) return null;
+                out.add(p); pos = start + len;
+                if (out.size() > 20000) return null;
+            }
+            return out.isEmpty() ? null : out;
+        }
+        /** Échantillons à 48 kHz d'un paquet Opus (RFC 6716, § 3.1) */
+        static int packetSamples48(byte[] p) {
+            int config = (p[0] & 0xff) >> 3, frame;
+            if (config < 12) frame = new int[]{ 480, 960, 1920, 2880 }[config % 4];
+            else if (config < 16) frame = new int[]{ 480, 960 }[config % 2];
+            else frame = new int[]{ 120, 240, 480, 960 }[config % 4];
+            int code = p[0] & 3, frames = code == 0 ? 1 : code < 3 ? 2 : (p.length > 1 ? p[1] & 0x3f : 0);
+            return frame * frames;
+        }
+        /** En-tête « OpusHead » (RFC 7845, § 5.1), donné au décodeur d'Android comme csd-0 */
+        static byte[] opusHead(int channels, int preskip, int inputRate) {
+            byte[] h = new byte[19]; byte[] magic = "OpusHead".getBytes(UTF8);
+            System.arraycopy(magic, 0, h, 0, 8); h[8] = 1; h[9] = (byte) channels;
+            h[10] = (byte) preskip; h[11] = (byte) (preskip >> 8);
+            for (int i = 0; i < 4; i++) h[12 + i] = (byte) (inputRate >> (8 * i));
+            return h;   // gain 0, famille de canaux 0
+        }
+        static byte[] le64(long v) { byte[] b = new byte[8]; for (int i = 0; i < 8; i++) b[i] = (byte) (v >> (8 * i)); return b; }
+        /** Mono, puis rééchantillonnage par moyenne sur la fenêtre (passe-bas simple, suffisant pour la reconnaissance) */
+        static short[] resample(short[] in, int rate, int channels, int out) {
+            if (channels < 1) channels = 1;
+            int n = in.length / channels; double[] mono = new double[n];
+            for (int i = 0; i < n; i++) { double s = 0; for (int c = 0; c < channels; c++) s += in[i * channels + c]; mono[i] = s / channels; }
+            if (rate == out) { short[] r = new short[n]; for (int i = 0; i < n; i++) r[i] = (short) Math.round(mono[i]); return r; }
+            int m = (int) ((long) n * out / rate); short[] r = new short[m]; double step = (double) rate / out;
+            for (int i = 0; i < m; i++) {
+                int a = (int) Math.floor(i * step), b = Math.max(a + 1, (int) Math.floor((i + 1) * step)); b = Math.min(b, n);
+                double s = 0; for (int k = a; k < b; k++) s += mono[k];
+                r[i] = (short) Math.max(-32768, Math.min(32767, Math.round(s / Math.max(1, b - a))));
+            }
+            return r;
+        }
+        /** Base64 standard (sans dépendre de java.util.Base64, absent avant Android 8) ; null si illisible */
+        static byte[] b64(String s) {
+            if (s == null) return null;
+            String t = s.replaceAll("\\s", ""); if (t.isEmpty() || t.length() % 4 != 0) return null;
+            int pad = t.endsWith("==") ? 2 : t.endsWith("=") ? 1 : 0;
+            byte[] out = new byte[t.length() / 4 * 3 - pad]; int o = 0;
+            for (int i = 0; i < t.length(); i += 4) {
+                int v = 0;
+                for (int j = 0; j < 4; j++) {
+                    char c = t.charAt(i + j); int x;
+                    if (c >= 'A' && c <= 'Z') x = c - 'A'; else if (c >= 'a' && c <= 'z') x = c - 'a' + 26; else if (c >= '0' && c <= '9') x = c - '0' + 52;
+                    else if (c == '+') x = 62; else if (c == '/') x = 63; else if (c == '=' && i + j >= t.length() - pad) x = 0; else return null;
+                    v = (v << 6) | x;
+                }
+                for (int j = 0; j < 3 && o < out.length; j++) out[o++] = (byte) (v >> (16 - 8 * j));
+            }
+            return out;
+        }
+    }
+
+    // ---------- Réglages de la montre (préférences privées de l'appli ; le jeton n'est jamais dans la page web) ----------
+    static JSONObject watchPrefs(Context c) { try { return new JSONObject(prefs(c).getString("montre", "{}")); } catch (Exception e) { return new JSONObject(); } }
+    static boolean watchOn(Context c) { return watchPrefs(c).optBoolean("on", false); }
+    static int watchPort(Context c) { int p = watchPrefs(c).optInt("port", Lien.PORT); return p >= 1024 && p <= 65535 ? p : Lien.PORT; }
+    static synchronized String watchToken(Context c) {
+        String t = prefs(c).getString("montreJeton", "");
+        if (Lien.normToken(t).length() < 16) { t = Lien.newToken(new java.security.SecureRandom()); prefs(c).edit().putString("montreJeton", t).apply(); }
+        return t;
+    }
+    /** Alerte facultative pour la montre (vent, vigilance, matin, réponse), seulement si l'option et le type sont actifs */
+    static boolean watchPost(Context c, String kind, String title, String text) {
+        boolean essai = "essai".equals(kind);   // bouton « Envoyer un essai » des réglages
+        int k = essai ? Lien.KINDS.length : Lien.kindIndex(kind);
+        if (k < 0) return false;
+        JSONObject p = watchPrefs(c);
+        if (!p.optBoolean("on", false) || (!essai && !p.optBoolean(kind, !"reponse".equals(kind)))) return false;
+        try {
+            channels(c);
+            String[] tt = Lien.alarmContent(title, text);
+            Intent open = c.getPackageManager().getLaunchIntentForPackage(c.getPackageName());
+            PendingIntent pi = open == null ? null : PendingIntent.getActivity(c, 6680 + k, open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP), PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+            Notification.Builder b = nb(c, CH_WATCH).setSmallIcon(c.getApplicationInfo().icon).setContentTitle(tt[0]).setContentText(tt[1])
+                .setStyle(new Notification.BigTextStyle().bigText(tt[1])).setAutoCancel(true).setVisibility(Notification.VISIBILITY_PUBLIC)
+                .setCategory("reponse".equals(kind) ? Notification.CATEGORY_MESSAGE : "matin".equals(kind) ? Notification.CATEGORY_EVENT : Notification.CATEGORY_STATUS);
+            if (pi != null) b.setContentIntent(pi);
+            if (Build.VERSION.SDK_INT >= 26) b.setTimeoutAfter("reponse".equals(kind) ? 15 * 60000L : "matin".equals(kind) ? 4 * 3600000L : 12 * 3600000L);
+            ((NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE)).notify(N_WATCH_BASE + k, b.build());
+            return true;
+        } catch (Throwable t) { return false; }
+    }
+    /** Page ouverte : elle sonne elle-même ; la copie (canal silencieux) suffit pour que Zepp fasse vibrer la montre */
+    static void watchAlarmCopy(Context c, String id, JSONObject o) {
+        try {
+            channels(c);
+            String[] tt = Lien.alarmContent(o.optString("title", "Majordome"), o.optString("text", ""));
+            Notification.Builder b = nb(c, CH_WATCH).setSmallIcon(c.getApplicationInfo().icon).setContentTitle(tt[0]).setContentText(tt[1])
+                .setStyle(new Notification.BigTextStyle().bigText(tt[1])).setAutoCancel(true).setVisibility(Notification.VISIBILITY_PUBLIC)
+                .setCategory("reminder".equals(o.optString("kind")) ? Notification.CATEGORY_REMINDER : Notification.CATEGORY_ALARM);
+            if (Build.VERSION.SDK_INT >= 26) b.setTimeoutAfter(10 * 60000L);
+            ((NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE)).notify(N_ALARM_BASE + (id.hashCode() & 0x3ff), b.build());
+        } catch (Throwable t) { }
+    }
+
+    @JavascriptInterface public String watchInfo() {
+        try {
+            JSONObject p = watchPrefs(a), o = new JSONObject();
+            o.put("on", p.optBoolean("on", false)).put("port", watchPort(a)).put("token", Lien.grouped(watchToken(a)));
+            for (String k : Lien.KINDS) o.put(k, p.optBoolean(k, !"reponse".equals(k)));
+            o.put("favs", p.optString("favs", "")).put("parle", p.optBoolean("parle", false));
+            Lien.Server s = Montre.server;
+            o.put("running", s != null && s.isRunning()).put("lastAt", s == null ? 0 : s.lastAt).put("served", s == null ? 0 : s.served.get()).put("refused", s == null ? 0 : s.refused.get()).put("err", Montre.lastErr);
+            try { JSONArray r = new JSONObject(WidgetProvider.prefs(a).getString("hue", "{}")).optJSONArray("rooms"); o.put("rooms", r == null ? new JSONArray() : r); } catch (Throwable t) { o.put("rooms", new JSONArray()); }
+            o.put("notif", Build.VERSION.SDK_INT < 33 || has("android.permission.POST_NOTIFICATIONS"));
+            o.put("zepp", a.getPackageManager().getLaunchIntentForPackage("com.huami.watch.hmwatchmanager") != null);
+            return o.toString();
+        } catch (Exception e) { return "{}"; }
+    }
+    @JavascriptInterface public void watchSet(String json) {
+        try {
+            JSONObject in = new JSONObject(json == null ? "{}" : json), p = watchPrefs(a);
+            if (in.has("on")) p.put("on", in.optBoolean("on"));
+            if (in.has("port")) { int port = in.optInt("port", Lien.PORT); p.put("port", port >= 1024 && port <= 65535 ? port : Lien.PORT); }
+            for (String k : Lien.KINDS) if (in.has(k)) p.put(k, in.optBoolean(k));
+            if (in.has("parle")) p.put("parle", in.optBoolean("parle"));
+            if (in.has("favs")) { StringBuilder f = new StringBuilder(); for (String x : in.optString("favs", "").split(",")) if (x.trim().matches(Lien.ID) && f.length() < 400) f.append(f.length() > 0 ? "," : "").append(x.trim()); p.put("favs", f.toString()); }
+            prefs(a).edit().putString("montre", p.toString()).apply();
+            watchToken(a);
+            if (p.optBoolean("on")) askNotif();
+            Montre.sync(a);
+        } catch (Exception e) { }
+    }
+    @JavascriptInterface public String watchNewToken() {
+        String t = Lien.newToken(new java.security.SecureRandom());
+        prefs(a).edit().putString("montreJeton", t).apply();
+        return Lien.grouped(t);
+    }
+    @JavascriptInterface public void watchCopy() {
+        final String t = Lien.grouped(watchToken(a));
+        ui.post(new Runnable() { public void run() {
+            try { ((android.content.ClipboardManager) a.getSystemService(Context.CLIPBOARD_SERVICE)).setPrimaryClip(android.content.ClipData.newPlainText("Jeton Jarvis", t)); toast("Jeton copié : collez-le dans Zepp › Jarvis › Réglages"); }
+            catch (Throwable x) { toast("Copie impossible"); }
+        } });
+    }
+    @JavascriptInterface public boolean watchNotify(String json) {
+        try { JSONObject o = new JSONObject(json); return watchPost(a, o.optString("kind"), o.optString("title"), o.optString("text")); } catch (Exception e) { return false; }
+    }
+    @JavascriptInterface public void watchReply(String id, String json) { Montre.RELAY.reply(id, Lien.cleanReply(json)); }
+    @JavascriptInterface public String takeWatch() { String w = pendingWatch; pendingWatch = ""; return w == null ? "" : w; }
+
+    /** Service au premier plan « appareil connecté » : tient le serveur local tant que l'option « Montre connectée » est active */
+    public static class Montre extends Service {
+        static volatile Lien.Server server;
+        static volatile String lastErr = "";
+        static final Lien.Relay RELAY = new Lien.Relay();
+        static void sync(Context c) {
+            Intent i = new Intent(c, Montre.class);
+            if (watchOn(c)) { try { if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(i); else c.startService(i); } catch (Throwable t) { lastErr = "Android refuse le service : ouvrez Majordome"; } }
+            else { try { c.stopService(i); } catch (Throwable t) { } stopServer(); }
+        }
+        static synchronized void stopServer() { Lien.Server s = server; server = null; if (s != null) s.stop(); }
+        static synchronized void startServer(final Context c) {
+            int port = watchPort(c);
+            Lien.Server s = server;
+            if (s != null && s.port == port && s.isRunning()) return;
+            stopServer();
+            s = new Lien.Server(port, new Lien.Tok() { public String get() { return watchOn(c) ? watchToken(c) : null; } }, Lien.router(new Acts(c.getApplicationContext())));
+            try { s.start(); server = s; lastErr = ""; }
+            catch (java.io.IOException e) { lastErr = "port " + port + " déjà utilisé : choisissez-en un autre"; }
+        }
+        @Override public IBinder onBind(Intent i) { return null; }
+        @Override public int onStartCommand(Intent intent, int flags, int id) {
+            channels(this);
+            fg();
+            if (!watchOn(this)) { stopServer(); stopSelf(); return START_NOT_STICKY; }
+            startServer(this);
+            return START_STICKY;
+        }
+        void fg() {
+            Intent open = getPackageManager().getLaunchIntentForPackage(getPackageName());
+            PendingIntent pi = open == null ? null : PendingIntent.getActivity(this, 6690, open, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+            Notification.Builder b = nb(this, CH_LINK).setSmallIcon(getApplicationInfo().icon).setOngoing(true)
+                .setContentTitle("Montre connectée").setContentText("Jarvis peut joindre Majordome sur ce téléphone");
+            if (pi != null) b.setContentIntent(pi);
+            try {
+                if (Build.VERSION.SDK_INT >= 29) startForeground(N_LINK, b.build(), ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
+                else startForeground(N_LINK, b.build());
+            } catch (Throwable t) { lastErr = "Android refuse le service au premier plan"; }
+        }
+        @Override public void onDestroy() { stopServer(); super.onDestroy(); }
+
+        /** Actions réelles (Android) derrière le routeur */
+        static final class Acts implements Lien.Actions {
+            final Context c;
+            Acts(Context c) { this.c = c; }
+            public String etat() throws Exception {
+                JSONObject p = watchPrefs(c);
+                String hue = WidgetProvider.prefs(c).getString("hue", "");
+                // lumières relues en tâche de fond si l'état a plus de 2 minutes (pont du réseau local seulement)
+                try { JSONObject h = new JSONObject(hue.isEmpty() ? "{}" : hue); if (h.optBoolean("paired") && System.currentTimeMillis() - h.optLong("at") > 120000) HX.execute(new Runnable() { public void run() { hueDo(c, "hue_refresh", null); } }); } catch (Throwable t) { }
+                return Lien.etat(MajordomeWidget.read(c), hue, p.optString("favs", ""), System.currentTimeMillis());
+            }
+            public String lumieres(String action, String id) throws Exception {
+                String name = null; boolean was = false;
+                if (id != null) try { JSONArray r = new JSONObject(WidgetProvider.prefs(c).getString("hue", "{}")).optJSONArray("rooms"); for (int i = 0; r != null && i < r.length(); i++) if (id.equals(r.getJSONObject(i).optString("id"))) { name = r.getJSONObject(i).optString("name"); was = r.getJSONObject(i).optBoolean("on"); } } catch (Throwable t) { }
+                String e = hueDo(c, id == null ? "hue_all_off" : "hue_room", id);
+                if (e == null) return new JSONObject().put("ok", true).put("texte", id == null ? "Lumières éteintes." : (name == null ? "Pièce" : name) + (was ? " : éteinte." : " : allumée.")).toString();
+                String t = "notpaired".equals(e) ? "Aucun pont Hue n'est jumelé dans Majordome." : "unauthorized".equals(e) ? "Le pont Hue refuse Majordome : jumelez-le à nouveau." : "unreachable".equals(e) ? "Le pont Hue ne répond pas (téléphone sur le Wi-Fi de la maison ?)." : "Le pont Hue a refusé la commande.";
+                return new JSONObject().put("ok", false).put("texte", t).put("erreur", e).toString();
+            }
+            public String clim() throws Exception {
+                Intent li = c.getPackageManager().getLaunchIntentForPackage("com.panasonic.ACCsmart");
+                if (li == null) return new JSONObject().put("ok", false).put("texte", "Comfort Cloud n'est pas installée sur le téléphone.").toString();
+                li.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                if (Build.VERSION.SDK_INT < 23 || Settings.canDrawOverlays(c)) {
+                    try { c.startActivity(li); return new JSONObject().put("ok", true).put("texte", "Comfort Cloud s'ouvre sur le téléphone.").toString(); } catch (Throwable t) { }
+                }
+                channels(c);
+                PendingIntent pi = PendingIntent.getActivity(c, 6691, li, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+                Notification.Builder b = nb(c, CH_CMD).setSmallIcon(c.getApplicationInfo().icon).setContentTitle("Climatisation").setContentText("Touchez pour ouvrir Comfort Cloud").setAutoCancel(true).setContentIntent(pi);
+                ((NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE)).notify(N_CMD, b.build());
+                return new JSONObject().put("ok", true).put("texte", "Touchez la notification sur le téléphone pour ouvrir Comfort Cloud.").toString();
+            }
+            public String relay(String kind, String arg) throws Exception {
+                String id = RELAY.open();
+                JSONObject w = new JSONObject().put("id", id).put("kind", kind);
+                if ("routine".equals(kind)) w.put("routine", arg); else w.put("text", arg);
+                dispatch(c, w.toString());
+                String r = RELAY.await(id, 7000);
+                return r != null ? r : Lien.pendingJson(id);
+            }
+            public String suite(String id) throws Exception {
+                if (!RELAY.has(id)) return new JSONObject().put("ok", false).put("texte", "Réponse perdue : redemandez.").toString();
+                String r = RELAY.await(id, 7000);
+                if (r != null) return r;
+                return live == null ? new JSONObject().put("ok", true).put("attente", id).put("texte", "Majordome s'ouvre sur le téléphone…").toString() : Lien.pendingJson(id);
+            }
+            public String audio(byte[] data) throws Exception {
+                if (!modelReady(c)) return new JSONObject().put("ok", false).put("texte", "Installez d'abord le modèle vocal dans Majordome (Réglages › Reconnaissance vocale).").toString();
+                java.util.List<byte[]> pk = Lien.opusPackets(data);
+                if (pk == null) return new JSONObject().put("ok", false).put("texte", "Enregistrement illisible (format inattendu).").toString();
+                String text;
+                try { text = recognize(c, decodeOpus(pk)); }
+                catch (Throwable t) { return new JSONObject().put("ok", false).put("texte", "Décodage impossible sur ce téléphone : " + t.getMessage()).toString(); }
+                if (text == null || text.trim().isEmpty()) return new JSONObject().put("ok", true).put("entendu", "").put("texte", "Je n'ai rien entendu.").toString();
+                JSONObject r = new JSONObject(relay("commande", text.trim()));
+                return r.put("entendu", text.trim()).toString();
+            }
+        }
+        /** Vers la page : ouverte → événement « watch » ; fermée → on l'ouvre (comme après « Jarvis » téléphone en veille) */
+        static void dispatch(Context c, String payload) {
+            MajordomeBridge b = live;
+            if (b != null) { b.emit("watch", payload); return; }
+            pendingWatch = payload;
+            Intent i = c.getPackageManager().getLaunchIntentForPackage(c.getPackageName());
+            if (i == null) return;
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+            if (Build.VERSION.SDK_INT < 23 || Settings.canDrawOverlays(c)) { try { c.startActivity(i); return; } catch (Throwable t) { } }
+            channels(c);
+            PendingIntent pi = PendingIntent.getActivity(c, 6692, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+            Notification.Builder nbu = nb(c, CH_CMD).setSmallIcon(c.getApplicationInfo().icon).setContentTitle("Jarvis (montre)").setContentText("Touchez pour la réponse").setAutoCancel(true).setContentIntent(pi).setFullScreenIntent(pi, true);
+            try { ((NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE)).notify(N_CMD, nbu.build()); } catch (Throwable t) { }
+        }
+        /** Opus → PCM 16 bits par le décodeur d'Android (MediaCodec « audio/opus », Android 5+), puis 16 kHz mono pour Vosk */
+        static short[] decodeOpus(java.util.List<byte[]> pk) throws Exception {
+            android.media.MediaFormat f = android.media.MediaFormat.createAudioFormat("audio/opus", 48000, 1);
+            f.setByteBuffer("csd-0", java.nio.ByteBuffer.wrap(Lien.opusHead(1, 0, 16000)));
+            f.setByteBuffer("csd-1", java.nio.ByteBuffer.wrap(Lien.le64(0)));
+            f.setByteBuffer("csd-2", java.nio.ByteBuffer.wrap(Lien.le64(80000000L)));
+            android.media.MediaCodec d = android.media.MediaCodec.createDecoderByType("audio/opus");
+            java.io.ByteArrayOutputStream pcm = new java.io.ByteArrayOutputStream();
+            int rate = 48000, ch = 1;
+            try {
+                d.configure(f, null, null, 0); d.start();
+                android.media.MediaCodec.BufferInfo bi = new android.media.MediaCodec.BufferInfo();
+                int i = 0; long pts = 0, end = System.currentTimeMillis() + 10000; boolean inDone = false, outDone = false;
+                while (!outDone && System.currentTimeMillis() < end) {
+                    if (!inDone) {
+                        int ix = d.dequeueInputBuffer(10000);
+                        if (ix >= 0) {
+                            java.nio.ByteBuffer b = d.getInputBuffer(ix); b.clear();
+                            if (i < pk.size()) { byte[] p = pk.get(i++); b.put(p); d.queueInputBuffer(ix, 0, p.length, pts, 0); pts += Lien.packetSamples48(p) * 1000000L / 48000; }
+                            else { d.queueInputBuffer(ix, 0, 0, pts, android.media.MediaCodec.BUFFER_FLAG_END_OF_STREAM); inDone = true; }
+                        }
+                    }
+                    int ox = d.dequeueOutputBuffer(bi, 10000);
+                    if (ox >= 0) {
+                        if (bi.size > 0) { java.nio.ByteBuffer o = d.getOutputBuffer(ox); byte[] t = new byte[bi.size]; o.position(bi.offset); o.get(t); pcm.write(t, 0, t.length); }
+                        d.releaseOutputBuffer(ox, false);
+                        if ((bi.flags & android.media.MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) outDone = true;
+                    } else if (ox == android.media.MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
+                        android.media.MediaFormat of = d.getOutputFormat();
+                        if (of.containsKey(android.media.MediaFormat.KEY_SAMPLE_RATE)) rate = of.getInteger(android.media.MediaFormat.KEY_SAMPLE_RATE);
+                        if (of.containsKey(android.media.MediaFormat.KEY_CHANNEL_COUNT)) ch = of.getInteger(android.media.MediaFormat.KEY_CHANNEL_COUNT);
+                    }
+                }
+            } finally { try { d.stop(); } catch (Throwable t) { } d.release(); }
+            byte[] b = pcm.toByteArray(); short[] s = new short[b.length / 2];
+            java.nio.ByteBuffer.wrap(b).order(java.nio.ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(s);
+            return Lien.resample(s, rate, ch, 16000);
+        }
+        /** Vosk sur le son décodé (modèle partagé avec l'écoute du téléphone, reconnaissance indépendante) */
+        static String recognize(Context c, short[] pcm) throws Exception {
+            if (pcm.length < 1600) return "";
+            Recognizer r = new Recognizer(Ear.model(c), 16000.0f);
+            try {
+                short[] buf = new short[3200];
+                for (int o = 0; o < pcm.length; o += buf.length) { int n = Math.min(buf.length, pcm.length - o); System.arraycopy(pcm, o, buf, 0, n); r.acceptWaveForm(buf, n); }
+                return Ear.field(r.getFinalResult(), "text");
+            } finally { try { r.close(); } catch (Throwable t) { } }
+        }
     }
 }
