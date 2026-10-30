@@ -4,7 +4,7 @@
  * Tout ce qui change (heure, date, météo, cœur, pas, batterie, soleil, vent, altitude, pression) est dessiné par le
  * système lui-même avec des widgets « données » du cadran (IMG_TIME, IMG_WEEK, IMG_DATE, TEXT_IMG, IMG_LEVEL avec
  * data_type) : aucun minuteur JavaScript, aucune demande au téléphone.
- * - Écran allumé (ONLY_NORMAL) : sphère animée 24 images à 10 images/s, 3 tours (7,2 s) puis arrêt sur l'image 0 ;
+ * - Écran allumé (ONLY_NORMAL) : sphère animée 24 images à 10 images/s, en boucle jusqu'à l'extinction de l'écran (arrêt par pause_call) ;
  *   relancée quand le cadran revient au premier plan.
  * - Écran toujours allumé (ONAL_AOD) : heure, date, sphère fixe atténuée, quelques repères. Environ 3 % de pixels allumés.
  * - Toucher la sphère : ouvre la mini-appli Jarvis (launchApp, appId 1093117).
@@ -134,7 +134,7 @@ WatchFace({
     const s = D.sphere
     const sphere = bloc(() => creer(widget.IMG_ANIM, {
       x: s.x, y: s.y, anim_path: ANIM.dossier, anim_prefix: ANIM.prefixe, anim_ext: 'png', anim_fps: ANIM.fps,
-      anim_size: ANIM.images, repeat_count: ANIM.tours, anim_repeat: false, anim_status: anim.START,
+      anim_size: ANIM.images, repeat_count: 0, anim_repeat: true, anim_status: anim.START, // en boucle tant que l'écran est allumé ; arrêt par pause_call (écran éteint / AOD)
       display_on_restart: true, default_frame_index: 0, show_level: NORMAL,
     }))
     bloc(() => creer(widget.IMG, { x: s.x, y: s.y, w: s.w, h: s.h, src: img('sphere_aod.png'), show_level: AOD, aod: true }))

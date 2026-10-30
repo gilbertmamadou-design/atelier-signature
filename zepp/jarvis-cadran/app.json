@@ -4,7 +4,7 @@
     "appId": 1093118,
     "appName": "Jarvis",
     "appType": "watchface",
-    "version": { "code": 2, "name": "1.1.0" },
+    "version": { "code": 3, "name": "1.2.0" },
     "icon": "images/preview.png",
     "vender": "magformation13",
     "description": "Cadran Jarvis : heure, date en français, sphère de particules, météo, cœur, pas, batterie, soleil, altitude"

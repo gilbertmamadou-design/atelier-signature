@@ -44,9 +44,9 @@ test('AOD minimal : fond, heure, date, sphère fixe ; rien d\'animé', () => {
   assert.equal(de('IMG_ANIM')[0].o.show_level, NORMAL)
 })
 
-test('sphère : animation bornée, relancée au retour, arrêtée en pause', () => {
+test('sphère : en boucle écran allumé, relancée au retour, arrêtée en pause (écran éteint)', () => {
   const a = de('IMG_ANIM')[0]
-  assert.equal(a.o.repeat_count, K.ANIM.tours); assert.equal(a.o.anim_size, K.ANIM.images); assert.equal(a.o.anim_fps, K.ANIM.fps)
+  assert.equal(a.o.repeat_count, 0); assert.equal(a.o.anim_repeat, true); assert.equal(a.o.anim_size, K.ANIM.images); assert.equal(a.o.anim_fps, K.ANIM.fps)
   const del = de('WIDGET_DELEGATE')[0].o
   del.pause_call(); assert.deepEqual(a.etats.slice(-1), [4])
   del.resume_call(); assert.deepEqual(a.etats.slice(-2), [4, 1])
