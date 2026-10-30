@@ -20,7 +20,7 @@ Toutes ces données viennent de la montre elle-même. Le cadran ne demande rien 
 
 ## Installer
 
-Voir le guide simple : il faut scanner `jarvis-cadran-qr.png` (Releases, « Cadran Jarvis ») avec **Zepp › Profil › T-Rex 3 › Mode développeur › scan**.
+Il suffit de scanner `jarvis-cadran-qr.png` (Releases, « Cadran Jarvis ») avec **Zepp › Profil › T-Rex 3 › Mode développeur › scan**.
 Pour la voie officielle avec un ordinateur, faites comme pour la mini-appli (`zepp/jarvis/README.md`, voie A), mais dans le dossier `zepp/jarvis-cadran`.
 
 ## Autonomie
