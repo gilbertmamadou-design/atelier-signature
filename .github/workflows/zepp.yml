@@ -150,7 +150,8 @@ jobs:
             T=node_modules/@zeppos/device-types
             for m in IMG_TIME IMG_WEEK IMG_DATE IMG_ANIM IMG_LEVEL TEXT_IMG IMG_CLICK WIDGET_DELEGATE WEATHER_CURRENT SUN_RISE ALTIMETER ALTITUDE WIND launchApp onPerMinute; do
               echo "types $m : $(grep -rl "\b$m\b" "$T" 2>/dev/null | wc -l) fichier(s)"
-            done; } | tee ../out-cadran/jarvis-cadran-construction.txt
+            done
+            grep -rhoE "\b(data_type|show_level|ONAL_AOD|ONLY_NORMAL|SCENE_AOD)\b" "$T" 2>/dev/null | sort | uniq -c | sed 's/^/types : /'; } | tee ../out-cadran/jarvis-cadran-construction.txt
       - name: zeus build
         run: |
           set -o pipefail
