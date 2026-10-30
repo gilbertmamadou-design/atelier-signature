@@ -55,7 +55,9 @@
   function ack(extra) { var a = ACKS[Math.floor(Math.random() * ACKS.length)], x = sir(); return a + (x ? ', ' + x : '') + '.' + (extra ? ' ' + extra : ''); }
 
   /* ---------------- Interface ---------------- */
-  var orb = window.MJOrb.create($('orb'));
+  // la sphère déborde de sa boîte (halo, gonflement au son) ; l'anneau gradué suit légèrement le niveau
+  var orbBox = $('orbBox'), lvShown = -1;
+  var orb = window.MJOrb.create($('orb'), { pad: 1.32, onLevel: function (v) { v = Math.round(v * 50) / 50; if (v !== lvShown) { lvShown = v; orbBox.style.setProperty('--lv', v); } } });
   var ticks = '';
   for (var ti = 0; ti < 60; ti++) { var an = ti / 60 * Math.PI * 2, r1 = ti % 5 ? 47 : 45.5; ticks += '<line class="tick" x1="' + (50 + Math.cos(an) * r1).toFixed(2) + '" y1="' + (50 + Math.sin(an) * r1).toFixed(2) + '" x2="' + (50 + Math.cos(an) * 49).toFixed(2) + '" y2="' + (50 + Math.sin(an) * 49).toFixed(2) + '"/>'; }
   $('ticks').innerHTML = ticks;
@@ -69,7 +71,8 @@
     setTimeout(function () { c.scrollIntoView({ block: 'end', behavior: 'smooth' }); }, 30);
     return c;
   }
-  function applyName() { $('title').textContent = S.name || 'Majordome'; document.title = S.name || 'Majordome'; }
+  function greeting() { var h = new Date(now()).getHours(), x = sir(); return (h >= 18 || h < 5 ? 'Bonsoir' : 'Bonjour') + (x ? ' ' + x : ''); }
+  function applyName() { $('title').textContent = S.name || 'Majordome'; document.title = S.name || 'Majordome'; $('greet').textContent = greeting(); orbBox.setAttribute('aria-label', 'Parler à ' + (S.name || 'Majordome')); }
 
   /* ---------------- Sons (bips) ---------------- */
   var AC = null;
@@ -107,12 +110,14 @@
     speakChain = speakChain.then(function () { return speakNow(t); });
     return speakChain;
   }
+  var SPEAKING = 'Je vous réponds';
   function speakNow(t) {
     return new Promise(function (resolve) {
       var done = false, id = uid();
-      var fin = function () { if (done) return; done = true; delete speakWait[id]; orb.speak(false); if (orb.get() === 'speak') orb.state(MJ.listening ? 'listen' : 'idle'); if (B && B.hold) try { B.hold(false); } catch (e) { } resolve(); };
+      var fin = function () { if (done) return; done = true; delete speakWait[id]; orb.speak(false); if (orb.get() === 'speak') orb.state(MJ.listening ? 'listen' : 'idle'); if ($('status').textContent === SPEAKING) status(MJ.listening ? 'J\'écoute' : 'Prêt'); if (B && B.hold) try { B.hold(false); } catch (e) { } resolve(); };
       setTimeout(fin, 2500 + t.length * 95);   // filet de sécurité
-      orb.speak(true);
+      orb.speak(true, t, S.rate || 1);
+      if (!MJ.listening) status(SPEAKING);
       if (B && B.hold) try { B.hold(true); } catch (e) { }
       if (B && B.say) { speakWait[id] = fin; try { B.say(t, JSON.stringify({ voice: S.voice, rate: S.rate, pitch: S.pitch, volume: S.volume, id: id })); } catch (e) { fin(); } return; }
       if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) { fin(); return; }
@@ -120,7 +125,7 @@
       var vs = speechSynthesis.getVoices().filter(function (v) { return (v.voiceURI || v.name) === S.voice; });
       if (!vs.length) vs = speechSynthesis.getVoices().filter(function (v) { return /^fr/i.test(v.lang); });
       try { if (vs[0]) u.voice = vs[0]; } catch (e) { }
-      u.onboundary = function () { orb.pulse(); };
+      u.onboundary = function (e) { if (e && e.name !== 'sentence' && e.charIndex != null) orb.word(null, e.charIndex, e.charLength ? e.charIndex + e.charLength : undefined); else orb.pulse(); };
       u.onend = fin; u.onerror = fin;
       try { speechSynthesis.speak(u); } catch (e) { fin(); }
     }).catch(function () { });
@@ -209,7 +214,7 @@
   window.majordomeEvent = function (type, data) {
     var d = J(data, {}) || {};
     switch (type) {
-      case 'level': orb.level(d.v); break;
+      case 'level': if (MJ.listening || orb.get() === 'listen') orb.level(d.v, d.b); break;   // niveau du micro (≈ 20 par seconde) et bandes grave / médium / aigu
       case 'partial': if (MJ.listening && d.text) { $('heard').textContent = d.text; $('heard').className = 'partial'; } break;
       case 'result':
         if (!MJ.listening && !d.wake) break;
@@ -224,7 +229,7 @@
       case 'assist': takeAssist(); break;
       case 'toast': if (d.text) toast(d.text); break;
       case 'spoken': if (speakWait[d.id]) speakWait[d.id](); break;
-      case 'boundary': orb.pulse(); break;
+      case 'boundary': if (d.s != null) orb.word(null, d.s, d.e); else orb.pulse(); break;   // mot prononcé par la synthèse (début, fin)
       case 'model': INFO.model = d; chips(); modelUi(); if (d.state === 'ready' && d.fresh) { answer({ say: 'Le modèle vocal français est installé. Je vous écoute quand vous voulez.', k: 'Modèle vocal' }); applyWake(); } break;
       case 'alarm': tick(); break;
       case 'sms': answer(d.ok ? { say: 'Message envoyé.' } : { say: 'Le message n\'a pas pu partir : ' + (d.err || 'erreur') + '.', cls: 'err' }); break;
@@ -261,6 +266,7 @@
       if (orb.get() === 'think') orb.state('idle');
       if (!MJ.listening) status('Prêt');
       logHist(MJ.cur);
+      try { moment(); } catch (e) { }
       backToSocle();
     });
   }
@@ -1060,7 +1066,7 @@
     else if (S.engine === 'web') h += '<button class="chip warn" data-chip="engine"><b></b>Web Speech · en ligne</button>';
     else if (S.engine === 'android') h += '<button class="chip warn" data-chip="engine"><b></b>Reconnaissance Android</button>';
     if (B && B.wake) h += '<button class="chip ' + (S.wakeOn && m.state === 'ready' ? 'on' : '') + '" data-chip="wake"><b></b>Écoute continue ' + (S.wakeOn && m.state === 'ready' ? '« ' + esc(S.name) + ' »' : 'coupée') + '</button>';
-    h += '<span class="chip ' + (online() ? 'on' : 'warn') + '"><b></b>' + (online() ? 'Réseau' : 'Hors ligne') + '</span>';
+    if (!online()) h += '<span class="chip warn"><b></b>Hors ligne</span>';   // réseau présent : rien à signaler (place gagnée sur les petits écrans)
     $('chips').innerHTML = h;
     $('hint').textContent = !B || !B.listen ? '' : PC ? 'Ctrl+Espace : parler · Entrée : envoyer' : '';
   }
@@ -1293,7 +1299,7 @@
 
   /* ---------------- Socle (tuile, appui long) ---------------- */
   function publish() {
-    if (!P || !P.widgetPut || !Array.isArray(AL)) return;
+    if (!Array.isArray(AL)) return;
     var srt = AL.slice().sort(function (a, b) { return a.at - b.at; }), next = srt[0];
     var first = function (k) { return srt.filter(function (o) { return o.kind === k; })[0]; }, tm = first('timer'), rm = first('reminder');
     // name, sir (appellation) : panneau « Majordome » de Socle ; timer / rem : prochain minuteur et prochain rappel
@@ -1301,8 +1307,65 @@
     var tms = srt.filter(function (o) { return o.kind === 'timer'; }).slice(0, 3).map(function (o) { return { at: o.at, label: o.label || '' }; });
     var ac = lsGet(KEY.actu, null), news = ac && Array.isArray(ac.items) && now() - ac.at < 12 * HOUR ? ac.items.slice(0, 3).map(function (x) { return { t: String(x.t || '').slice(0, 160) }; }) : null;
     var wc = lsGet(KEY.wx, null), cu = wc && wc.d && wc.d.current, wx = cu && now() - wc.at < 3 * HOUR ? { t: Math.round(cu.temperature_2m), code: cu.weather_code, wind: Math.round(cu.wind_speed_10m || 0), gust: Math.round(cu.wind_gusts_10m || 0), where: String(wc.where || '').replace(/^à /, ''), at: wc.at } : null;
+    try { moment(); } catch (e) { console.warn(e); }
+    if (!P || !P.widgetPut) return;
     try { P.widgetPut(JSON.stringify({ name: S.name, sir: sir(), timers: tms, news: news, windLimit: +S.windLimit || 45, wx: wx, last: MJ.last ? { q: String(MJ.last.q || '').slice(0, 120), a: String(MJ.last.a).slice(0, 140), at: MJ.last.at } : null, next: next ? { kind: next.kind, at: next.at, label: next.kind === 'timer' ? (next.label || 'Minuteur') : next.kind === 'alarm' ? 'Réveil' : next.text } : null, timer: tm ? { at: tm.at, label: tm.label || '' } : null, rem: rm ? { at: rm.at, text: String(rm.text || 'Rappel').slice(0, 100) } : null, wake: !!S.wakeOn, at: now() })); } catch (e) { }
   }
+  /* ---------------- Informations du moment (sous la sphère) ----------------
+     Heure, météo et vent (dernière météo lue, aucune requête), prochain rendez-vous (agenda déjà autorisé),
+     lumières Hue (état connu de mj-maison) ou, sans Hue, prochain minuteur / réveil. Toucher une carte : la commande. */
+  var JOURS3 = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'], MOIS3 = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+  function hhmm(ms) { var d = new Date(ms); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+  function nextEvent() {
+    try {
+      var A = window.MAGAgenda; if (!A || !A.instances || (A.perm && !A.perm())) return undefined;
+      var t = now(), l = J(A.instances(t, t + 7 * DAY), []) || [];
+      var timed = l.filter(function (e) { return !e.all && e.e > t; }).sort(function (a, b) { return a.b - b.b; });
+      return timed[0] || l.filter(function (e) { return e.all && e.e > t; })[0] || null;
+    } catch (e) { return undefined; }
+  }
+  function momentCells() {
+    var t = now(), d = new Date(t), cells = [];
+    cells.push({ k: 'time', l: 'Heure', b: hhmm(t), big: 1, s: cap(JOURS3[d.getDay()]) + ' ' + d.getDate() + ' ' + MOIS3[d.getMonth()] });
+    var wc = lsGet(KEY.wx, null), cu = wc && wc.d && wc.d.current && t - wc.at < 3 * HOUR ? wc.d.current : null;
+    var SHORT = { 'partiellement nuageux': 'peu nuageux', 'plutôt dégagé': 'dégagé', 'brouillard givrant': 'brouillard', 'bruine verglaçante': 'verglas', 'pluie verglaçante': 'verglas', 'averses de neige': 'neige', 'fortes averses de neige': 'neige', 'orages avec grêle': 'orages' };
+    if (cu) {
+      var lim = +S.windLimit || 45, g = Math.max(cu.wind_gusts_10m || 0, cu.wind_speed_10m || 0), lv = g >= lim ? 'bad' : g >= lim * 0.75 ? 'warn' : '';
+      cells.push({ k: 'wx', l: 'Météo' + (wc.where ? ' ' + String(wc.where).replace(/^à /, '') : ''), b: Math.round(cu.temperature_2m) + '° ' + (SHORT[WMO[cu.weather_code]] || WMO[cu.weather_code] || ''), s: 'Vent ' + Math.round(cu.wind_speed_10m || 0) + ' km/h · raf. ' + Math.round(cu.wind_gusts_10m || 0), cls: lv });
+    } else cells.push({ k: 'wx', l: 'Météo', b: 'Météo et vent', s: 'Touchez pour la lire' });
+    var ev = nextEvent();
+    if (ev) cells.push({ k: 'ev', l: 'Rendez-vous', b: ev.t || 'Sans titre', s: ev.all ? 'Toute la journée' + (ymd(ev.b) === ymd(t) ? '' : ', ' + dayName(ev.b)) : (ymd(ev.b) === ymd(t) ? 'Aujourd\'hui' : cap(dayName(ev.b))) + ' à ' + hhmm(ev.b) });
+    else cells.push({ k: 'ev', l: 'Rendez-vous', b: ev === null ? 'Rien de prévu' : 'Agenda', s: ev === null ? 'dans les 7 jours' : 'Touchez pour le voir' });
+    var li = MJ.lightsSummary ? MJ.lightsSummary() : null;
+    if (li) cells.push({ k: 'hue', l: 'Lumières', b: !li.paired ? 'Philips Hue' : li.total == null ? 'Lumières' : li.on ? li.on + ' allumée' + (li.on > 1 ? 's' : '') : 'Tout est éteint', s: !li.paired ? 'Touchez pour jumeler' : li.total ? 'sur ' + li.total + ' lampe' + (li.total > 1 ? 's' : '') : 'Touchez pour voir' });
+    else {
+      var nx = (Array.isArray(AL) ? AL : []).filter(function (o) { return o.kind !== 'hue' && o.at > t; }).sort(function (a, b) { return a.at - b.at; })[0];
+      cells.push({ k: 'al', l: nx ? alarmTitle(nx).replace(/ :.*$/, '') : 'Minuteur', b: nx ? (nx.kind === 'timer' ? clock(nx.at - t) : hhmm(nx.at)) : 'Aucun', big: nx ? 1 : 0, s: nx ? (nx.kind === 'timer' ? 'fin à ' + hhmm(nx.at) : dayName(nx.at)) : '« Minuteur 10 minutes »' });
+    }
+    return cells;
+  }
+  var momentHtml = '';
+  function moment() {
+    var h = momentCells().map(function (c) { return '<button class="mo" data-mo="' + c.k + '"><i>' + esc(c.l) + '</i><b' + (c.big ? ' class="big"' : '') + '>' + esc(c.b) + '</b><span' + (c.cls ? ' class="' + c.cls + '"' : '') + '>' + esc(c.s) + '</span></button>'; }).join('');
+    if (h !== momentHtml) { momentHtml = h; $('moment').innerHTML = h; }
+  }
+  $('moment').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-mo]'); if (!b) return; audio();
+    var k = b.dataset.mo;
+    if (k === 'hue' && MJ.homeSheet) return MJ.homeSheet();
+    var q = { time: 'quelle heure est-il', wx: 'quel temps fait-il', ev: 'quels sont mes rendez-vous', al: 'quels minuteurs sont en cours' }[k];
+    if (k === 'al' && !(AL || []).some(function (o) { return o.kind !== 'hue' && o.at > now(); })) { $('q').focus(); $('q').value = 'Minuteur 10 minutes'; return; }
+    if (q) handle(q, 'click');
+  });
+  /* Dernier échange (historique local) : affiché jusqu'à la première question de la séance */
+  function lastExchange() {
+    var el = $('last'), l = lsGet(KEY.hist, []), h = Array.isArray(l) && l.length ? l[l.length - 1] : null;
+    if (!S.history || !h || !h.a || now() - h.at > 12 * HOUR || $('cards').children.length) { el.hidden = true; return; }
+    el.innerHTML = '<div class="k">Dernier échange · ' + esc(hm(h.at)) + '</div>' + (h.q ? '<q>' + esc(h.q) + '</q>' : '') + '<p>' + esc(h.a) + '</p>';
+    el.hidden = false;
+  }
+  new MutationObserver(function () { if ($('cards').children.length) $('last').hidden = true; }).observe($('cards'), { childList: true });
+
   /* Page Jarvis de Socle : « back » = après la réponse (voix terminée), retour sur Socle, sauf si une question attend
      une réponse, si l'écoute a repris, si un panneau est ouvert ou si l'on a touché l'écran entre-temps */
   function backToSocle() {
@@ -1329,7 +1392,7 @@
   function takeAssist() { try { if (B && B.takeAssist && B.takeAssist()) { closeSheet(); setTimeout(function () { startListen(); }, 250); return true; } } catch (e) { } return false; }
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) return;
-    refreshInfo(); tick();
+    refreshInfo(); tick(); applyName(); moment();
     if (B && B.takeCommand) { var c = B.takeCommand(); if (c) handle(c, 'voice'); }
     takeWatch();
     takeAssist();
@@ -1341,7 +1404,9 @@
   applyName(); refreshInfo(); renderTimers();
   if (!NLU) { errorReply('Analyseur de commandes introuvable.'); return; }
   setInterval(tick, 500);
-  tick();
+  setInterval(function () { if (!document.hidden) { moment(); $('greet').textContent = greeting(); } }, 15000);
+  tick(); lastExchange();
+  document.addEventListener('DOMContentLoaded', function () { try { moment(); } catch (e) { } });   // après mj-maison (carte Lumières)
   applyWake();
   if (window.speechSynthesis && speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = function () { if (curSheet === 'settings') settingsSheet(); };
   var first = !lsGet('majordome:vu', false);
@@ -1357,5 +1422,5 @@
   MJ._ = { H: H, answer: answer, ask: ask, errorReply: errorReply, openSheet: openSheet, closeSheet: closeSheet, curSheet: function () { return curSheet; }, esc: esc, J: J, lsGet: lsGet, lsSet: lsSet, uid: uid, now: now, cap: cap, deacc: deacc,
     S: S, saveS: saveS, toast: toast, card: card, withSir: withSir, sir: sir, ack: ack, dur: dur, hm: hm, hmSay: hmSay, addAlarm: addAlarm, removeAlarm: removeAlarm, setAL: function (l) { AL = l; saveAL(); renderTimers(); },
     HELP: HELP, openLink: openLink, settingsSheet: settingsSheet, handle: handle, ANDROID: ANDROID, PC: PC, B: B, P: P, KEY: KEY, WMO: WMO, weatherData: weatherData, vigilanceData: vigilanceData, speaking: speaking };
-  if (MJ.onReady) try { MJ.onReady(); } catch (e) { console.warn(e); } MJ.LS = function () { return LS; }; MJ.orb = orb; MJ.ask = ask; MJ.speakText = speechText; MJ.refresh = refreshInfo;
+  if (MJ.onReady) try { MJ.onReady(); } catch (e) { console.warn(e); } MJ.LS = function () { return LS; }; MJ.orb = orb; MJ.moment = function () { try { moment(); } catch (e) { } }; MJ.ask = ask; MJ.speakText = speechText; MJ.refresh = refreshInfo;
 })();

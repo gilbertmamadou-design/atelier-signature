@@ -226,6 +226,13 @@
   if (!info.paired && model) { model = null; X.lsSet(KEYM, null); }
   MJ.hueReady = function () { return HUE && !!refreshInfo().paired; };
   MJ.lightCheck = function (phrase) { var r = window.MJNLU.parse(phrase, { now: Date.now(), names: [] }); return r.intent === 'light'; };
+  /* Carte « Lumières » sous la sphère : état connu (aucune requête) ; null hors Android (pas de pont) */
+  MJ.lightsSummary = function () {
+    if (!HUE) return null;
+    if (!info.paired) return { paired: false };
+    if (!model || !Array.isArray(model.lights)) return { paired: true };
+    return { paired: true, on: model.lights.filter(function (l) { return l.on; }).length, total: model.lights.length };
+  };
   MJ.ctxExtra = function () { return { lightRecent: !!(MJ.lastLight && Date.now() - MJ.lastLight.at < 120000) }; };
 
   /* Requêtes : le pont natif répond par l'événement « hue » */
@@ -477,7 +484,7 @@
       (loose.length ? '<div class="sect">Autres ampoules</div><div class="bulbs">' + loose.map(function (l) { return '<button data-bulb="' + esc(l.id) + '" class="' + (l.on ? 'on' : '') + '">' + esc(l.name) + '</button>'; }).join('') + '</div>' : '') +
       '<p class="note" style="margin-top:12px">Pont « ' + esc(info.name || 'Hue') + ' » · ' + esc(info.ip || '') + ' · ' + (info.api === 'v2' ? 'API CLIP v2' : 'API v1') + '. Appui sur une scène : elle s\'active.</p>';
   }
-  function renderHome() { if (X.curSheet() === 'maison') { var b = document.getElementById('shB'); if (b) b.innerHTML = homeHtml(); } }
+  function renderHome() { if (MJ.moment) MJ.moment(); if (X.curSheet() === 'maison') { var b = document.getElementById('shB'); if (b) b.innerHTML = homeHtml(); } }
   function groupById(id) { return model && model.groups.filter(function (g) { return g.id === id; })[0]; }
   function homeAct(sel, cmd) {
     var reqs = plan(model, sel, cmd); if (!reqs.length) { X.toast('Pas de couleur sur ces lumières'); return; }
