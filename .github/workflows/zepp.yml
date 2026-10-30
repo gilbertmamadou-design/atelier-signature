@@ -1,4 +1,5 @@
 name: Fabriquer la mini-appli Zepp OS « Jarvis » (montre)
+# (et le cadran « Jarvis » : zepp/jarvis-cadran, job « cadran » plus bas)
 
 # Construit zepp/jarvis avec l'outil officiel Zeus CLI (@zeppos/zeus-cli, licence ISC) et publie dans « Releases » :
 #   jarvis-trex3.zab          paquet officiel (zeus build), à installer avec « zeus preview » (voie documentée par Zepp)
@@ -12,15 +13,20 @@ on:
         description: "Version de @zeppos/zeus-cli (ex. 1.6.7) ou « latest »"
         required: false
         default: "latest"
+      cible:
+        description: "Quoi construire : tous, jarvis (mini-appli) ou cadran"
+        required: false
+        default: "tous"
   push:
     branches: [main]
-    paths: ["zepp/jarvis/**", ".github/workflows/zepp.yml"]
+    paths: ["zepp/jarvis/**", "zepp/jarvis-cadran/**", ".github/workflows/zepp.yml"]
 
 permissions:
   contents: write
 
 jobs:
   jarvis:
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.cible != 'cadran'
     runs-on: ubuntu-24.04
     defaults:
       run:
@@ -112,3 +118,73 @@ jobs:
             zepp/out/jarvis-qr.png
             zepp/out/jarvis-qr.txt
             zepp/out/jarvis-construction.txt
+
+  # Cadran « Jarvis » (watchface) : mêmes outils, même installation par le scanner du mode développeur
+  #   jarvis-cadran-trex3.zab          paquet officiel (zeus build)
+  #   jarvis-cadran-trex3-apercu.zab   même paquet marqué « preview » (outils/variante_apercu.py)
+  #   jarvis-cadran-qr.png             QR « zpkd1:// » vers la variante « preview »
+  cadran:
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.cible != 'jarvis'
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: zepp/jarvis-cadran
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+      - name: Essais (Node, sans montre)
+        run: node --test test/*.test.mjs
+      - name: Zeus CLI
+        env:
+          ZEUS: ${{ github.event.inputs.zeus || 'latest' }}
+        run: |
+          npm install -g "@zeppos/zeus-cli@${ZEUS}" --no-audit --no-fund
+          npm install --no-audit --no-fund
+          mkdir -p ../out-cadran
+          { echo "Construction du cadran Jarvis : $(date -u +%FT%TZ), commit ${GITHUB_SHA}"
+            echo "Zeus CLI : $(npm ls -g @zeppos/zeus-cli --depth=0 | grep zeus-cli), licence $(node -p "require('$(npm root -g)/@zeppos/zeus-cli/package.json').license")"
+            echo "Node : $(node -v)"
+            # widgets et données de cadran déclarés par les types officiels (contrôle, sans effet sur le paquet)
+            T=node_modules/@zeppos/device-types
+            for m in IMG_TIME IMG_WEEK IMG_DATE IMG_ANIM IMG_LEVEL TEXT_IMG IMG_CLICK WIDGET_DELEGATE WEATHER_CURRENT SUN_RISE ALTIMETER ALTITUDE WIND launchApp onPerMinute; do
+              echo "types $m : $(grep -rl "\b$m\b" "$T" 2>/dev/null | wc -l) fichier(s)"
+            done; } | tee ../out-cadran/jarvis-cadran-construction.txt
+      - name: zeus build
+        run: |
+          set -o pipefail
+          CI=1 zeus build < /dev/null 2>&1 | tee -a ../out-cadran/jarvis-cadran-construction.txt
+          ls -la dist
+      - name: Paquets et QR
+        env:
+          REPO: ${{ github.repository }}
+          TAG: jarvis-cadran-${{ github.run_number }}
+        run: |
+          set -o pipefail
+          ZAB=$(ls -t dist/*.zab | head -1)
+          cp "$ZAB" ../out-cadran/jarvis-cadran-trex3.zab
+          python3 outils/variante_apercu.py ../out-cadran/jarvis-cadran-trex3.zab ../out-cadran/jarvis-cadran-trex3-apercu.zab ../out-cadran/jarvis-cadran-trex3.zpk | tee -a ../out-cadran/jarvis-cadran-construction.txt
+          pip install --quiet "qrcode[pil]==7.4.2"
+          URL="https://github.com/${REPO}/releases/download/${TAG}/jarvis-cadran-trex3-apercu.zab"
+          python3 -c "import qrcode,sys; qrcode.make(sys.argv[1], box_size=10, border=3).save('../out-cadran/jarvis-cadran-qr.png')" "zpkd1://${URL#https://}"
+          echo "zpkd1://${URL#https://}" > ../out-cadran/jarvis-cadran-qr.txt
+          cp assets/trex3/images/preview.png ../out-cadran/jarvis-cadran-apercu.png
+          ls -la ../out-cadran
+          sha256sum ../out-cadran/*
+      - name: Publier dans « Releases »
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: jarvis-cadran-${{ github.run_number }}
+          name: Cadran Jarvis (montre T-Rex 3) – version ${{ github.run_number }}
+          body: |
+            Cadran Zepp OS « Jarvis » pour Amazfit T-Rex 3 (Zepp OS 4, 480 × 480), construit avec Zeus CLI.
+            Installation : scannez jarvis-cadran-qr.png avec Zepp › Profil › T-Rex 3 › Mode développeur (voir zepp/jarvis-cadran/README.md).
+          files: |
+            zepp/out-cadran/jarvis-cadran-trex3.zab
+            zepp/out-cadran/jarvis-cadran-trex3-apercu.zab
+            zepp/out-cadran/jarvis-cadran-trex3.zpk
+            zepp/out-cadran/jarvis-cadran-qr.png
+            zepp/out-cadran/jarvis-cadran-qr.txt
+            zepp/out-cadran/jarvis-cadran-apercu.png
+            zepp/out-cadran/jarvis-cadran-construction.txt

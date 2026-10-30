@@ -1,0 +1,35 @@
+{
+  "configVersion": "v3",
+  "app": {
+    "appId": 1093118,
+    "appName": "Jarvis",
+    "appType": "watchface",
+    "version": { "code": 1, "name": "1.0.0" },
+    "icon": "images/preview.png",
+    "vender": "magformation13",
+    "description": "Cadran Jarvis : heure, date en français, sphère de particules, météo, cœur, pas, batterie, soleil, altitude"
+  },
+  "permissions": [],
+  "runtime": {
+    "apiVersion": { "compatible": "3.0", "target": "4.0", "minVersion": "3.0" }
+  },
+  "targets": {
+    "trex3": {
+      "module": {
+        "watchface": { "path": "watchface/index", "main": 1, "editable": 0, "lockscreen": 0 }
+      },
+      "platforms": [
+        { "name": "trex3", "deviceSource": 8716545 },
+        { "name": "trex3", "deviceSource": 8716547 },
+        { "name": "trex3", "deviceSource": 8716544 }
+      ],
+      "designWidth": 480
+    }
+  },
+  "i18n": {
+    "fr-FR": { "appName": "Jarvis" },
+    "en-US": { "appName": "Jarvis" }
+  },
+  "defaultLanguage": "fr-FR",
+  "debug": false
+}
