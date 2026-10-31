@@ -286,8 +286,12 @@ def lively_voice_package(src_dir, out_dir=None):
     if not want:
         sys.exit('somme SHA-256 de %s introuvable dans mj-voix.js' % m)
     got = hashlib.sha256(onnx).hexdigest()
+    # comme mj-voix.js : une somme différente est acceptée si HuggingFace l'annonce (voix mise à jour en amont)
+    ok = [want.group(1)] + [x for x in [os.environ.get('VOIX_SHA256_HF', '').strip().lower()] if re.fullmatch(r'[0-9a-f]{64}', x)]
+    if got not in ok:
+        sys.exit('%s.onnx : somme SHA-256 %s, attendue %s' % (m, got, ' ou '.join(ok)))
     if got != want.group(1):
-        sys.exit('%s.onnx : somme SHA-256 %s, attendue %s' % (m, got, want.group(1)))
+        print('ATTENTION : somme de %s annoncée par HuggingFace (%s), différente de celle de mj-voix.js' % (m, got))
     c = json.loads(cfg.decode('utf-8'))
     if not (c.get('phoneme_id_map') and c.get('audio', {}).get('sample_rate')):
         sys.exit('%s.onnx.json invalide' % m)

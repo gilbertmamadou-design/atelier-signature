@@ -6,11 +6,18 @@ name: "Fond Jarvis — paquet Lively avec la voix Siwis"
 #   https://github.com/<dépôt>/releases/download/fond-jarvis-voix/fond-jarvis-lively-voix-siwis.zip
 # La voix (60 Mo, CC BY 4.0) n'est jamais enregistrée dans le dépôt : téléchargée de HuggingFace (rhasspy/piper-voices),
 # somme SHA-256 comparée à celle de applis/www-majordome/mj-voix.js, attribution dans voix/SIWIS-ATTRIBUTION.txt.
-# Lancement : à chaque nouveau paquet publié (pc/fond-jarvis/fond-jarvis-lively.zip), ou Actions › Run workflow.
+# Lancement :
+#   - chaque jour (les commits de pc/ portent « [skip ci] ») : refabriqué seulement si la version du fond
+#     (pc/fond-jarvis/fj-version.json) diffère de celle du paquet publié (fichier .version de la Release) ;
+#   - étiquette « fond-jarvis-voix-<n> » poussée (sans relancer les APK, qui ne suivent que main) ;
+#   - push sur main qui change le paquet (sans « [skip ci] »), ou Actions › Run workflow.
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "41 4 * * *"
   push:
     branches: [main]
+    tags: ["fond-jarvis-voix-*"]
     paths: ["pc/fond-jarvis/fond-jarvis-lively.zip", "pc/shared/fond-jarvis/voix/**", ".github/workflows/fond-jarvis-voix.yml"]
 
 permissions:
@@ -25,7 +32,16 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
+      - name: Version à fabriquer
+        id: ver
+        run: |
+          V=$(python3 -c "import json;print(json.load(open('pc/fond-jarvis/fj-version.json'))['v'])")
+          P=$(curl -fsSL "https://github.com/${{ github.repository }}/releases/download/fond-jarvis-voix/fond-jarvis-lively-voix-siwis.version" 2>/dev/null | head -c 40 || true)
+          echo "Fond : $V ; paquet avec voix publié : ${P:-aucun}"
+          echo "v=$V" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "$P" = "$V" ]; then echo "skip=1" >> "$GITHUB_OUTPUT"; echo "::notice title=Paquet avec voix::déjà à jour ($V)"; fi
       - name: Télécharger la voix Siwis (HuggingFace, rhasspy/piper-voices)
+        if: steps.ver.outputs.skip != '1'
         run: |
           mkdir -p /tmp/voix && cd /tmp/voix
           B=https://huggingface.co/rhasspy/piper-voices/resolve/main/fr/fr_FR/siwis/medium
@@ -33,12 +49,21 @@ jobs:
             curl -fsSL --retry 4 --retry-delay 5 -o "$f" "$B/$f"
           done
           ls -l; sha256sum fr_FR-siwis-medium.onnx
+          # somme annoncée par l'API de HuggingFace (oid LFS), acceptée en plus de celle de mj-voix.js (comme mj-voix.js)
+          curl -fsSL --retry 4 "https://huggingface.co/api/models/rhasspy/piper-voices/tree/main/fr/fr_FR/siwis/medium" -o tree.json || echo '[]' > tree.json
+          HF=$(python3 -c "import json;print(next((f['lfs']['oid'] for f in json.load(open('tree.json')) if f['path'].endswith('fr_FR-siwis-medium.onnx') and f.get('lfs')), ''))")
+          echo "VOIX_SHA256_HF=$HF" >> "$GITHUB_ENV"
+          echo "::notice title=Voix Siwis téléchargée::$(sha256sum fr_FR-siwis-medium.onnx | cut -c1-64) ($(stat -c %s fr_FR-siwis-medium.onnx) o), somme annoncée par HuggingFace : ${HF:-inconnue}"
       - name: Fabriquer le paquet (somme vérifiée)
+        if: steps.ver.outputs.skip != '1'
         run: |
-          python3 pc/build-pc.py --check
-          python3 pc/build-pc.py --lively-voix=/tmp/voix,/tmp/out
+          python3 pc/build-pc.py --check || { echo "::error title=build-pc.py --check::fichiers générés pas à jour"; exit 1; }
+          python3 pc/build-pc.py --lively-voix=/tmp/voix,/tmp/out 2> /tmp/err.txt || { cat /tmp/err.txt; echo "::error title=Paquet avec voix::$(tail -1 /tmp/err.txt)"; exit 1; }
           cd /tmp/out && unzip -l fond-jarvis-lively-voix-siwis.zip | tail -12 && sha256sum fond-jarvis-lively-voix-siwis.zip | tee fond-jarvis-lively-voix-siwis.zip.sha256
+          echo "${{ steps.ver.outputs.v }}" > fond-jarvis-lively-voix-siwis.version
+          echo "::notice title=Paquet avec voix::version ${{ steps.ver.outputs.v }}, $(stat -c %s fond-jarvis-lively-voix-siwis.zip) o, sha256 $(cut -c1-64 fond-jarvis-lively-voix-siwis.zip.sha256)"
       - name: Publier dans « Releases » (étiquette fixe fond-jarvis-voix)
+        if: steps.ver.outputs.skip != '1'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: fond-jarvis-voix
@@ -57,3 +82,4 @@ jobs:
           files: |
             /tmp/out/fond-jarvis-lively-voix-siwis.zip
             /tmp/out/fond-jarvis-lively-voix-siwis.zip.sha256
+            /tmp/out/fond-jarvis-lively-voix-siwis.version
