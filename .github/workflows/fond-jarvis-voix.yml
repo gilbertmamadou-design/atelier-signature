@@ -15,7 +15,7 @@ name: "Fond Jarvis — paquet Lively avec la voix Siwis"
 on:
   workflow_dispatch:
   schedule:
-    - cron: "47 2,14 * * *"
+    - cron: "53 2,15 * * *"
   push:
     branches: [main]
     tags: ["fond-jarvis-voix-*"]
@@ -58,7 +58,6 @@ jobs:
       - name: Fabriquer le paquet (somme vérifiée)
         if: steps.ver.outputs.skip != '1'
         run: |
-          python3 pc/build-pc.py --check || { echo "::error title=build-pc.py --check::fichiers générés pas à jour"; exit 1; }
           python3 pc/build-pc.py --lively-voix=/tmp/voix,/tmp/out 2> /tmp/err.txt || { cat /tmp/err.txt; echo "::error title=Paquet avec voix::$(tail -1 /tmp/err.txt)"; exit 1; }
           cd /tmp/out && unzip -l fond-jarvis-lively-voix-siwis.zip | tail -12 && sha256sum fond-jarvis-lively-voix-siwis.zip | tee fond-jarvis-lively-voix-siwis.zip.sha256
           echo "${{ steps.ver.outputs.v }}" > fond-jarvis-lively-voix-siwis.version

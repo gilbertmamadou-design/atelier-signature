@@ -301,6 +301,11 @@ def lively_voice_package(src_dir, out_dir=None):
     with zipfile.ZipFile(base) as z:
         for n in z.namelist():
             files[n] = z.read(n)
+    # paquet publié à jour ? contenu décompressé comparé aux sources (les octets compressés varient selon zlib : --check
+    # n'est fiable que sur la machine qui a fabriqué le paquet)
+    for dest, src in app['lively']['files'].items():
+        if files.get(dest) != read(os.path.join(REPO, src), 'rb'):
+            sys.exit('%s : %s différent de %s, lancer pc/build-pc.py et publier' % (app['lively']['zip'], dest, src))
     props = json.loads(files['LivelyProperties.json'].decode('utf-8-sig'))
     for k, v in V['props'].items():
         if k not in props:
