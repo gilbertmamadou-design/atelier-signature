@@ -13,12 +13,16 @@ Régler
   - Dans Lively : clic droit sur la vignette › Personnaliser (thème, disposition,
     ville, seuil de vent, voix, nom de l'assistant, zone libre pour les icônes…).
   - Sur le fond : bouton ⚙ en bas à droite (raccourcis, agenda .ics, voix…).
+  - Voix Piper (neuronale, hors ligne) : ⚙ › Voix › « Voix Piper », Télécharger
+    (60 à 73 Mo, une fois, somme vérifiée) ; effet « IA de film », Majordome, Radio…
   - Pour taper des commandes : Lively › Paramètres › Fond d'écran ›
     Périphérique d'interaction › cocher « Clavier ». Puis Ctrl+Espace.
 
 Guide complet : https://gilbertmamadou-design.github.io/atelier-signature/pc/fond-jarvis/guide.html
 Dernière version : https://gilbertmamadou-design.github.io/atelier-signature/pc/fond-jarvis/fond-jarvis-lively.zip
 
-Réseau utilisé : Open-Meteo (météo), franceinfo (titres), et une fois par jour
-la date de la dernière version du fond. Rien d'autre ne sort de l'ordinateur.
+Réseau utilisé : Open-Meteo (météo), franceinfo (titres), une fois par jour
+la date de la dernière version du fond, et le téléchargement unique des voix
+Piper choisies (huggingface.co). Rien d'autre ne sort de l'ordinateur.
+Moteur des voix : sherpa-onnx (Apache-2.0, voir piper/LISEZ-MOI.txt).
 Création originale (aucune marque ni élément d'une œuvre existante).
