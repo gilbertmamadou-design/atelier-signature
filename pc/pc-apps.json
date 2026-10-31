@@ -102,10 +102,16 @@
       "android": "liseuse",
       "name": "Liseuse",
       "short_name": "Liseuse",
-      "description": "Livres EPUB et PDF, dossiers suivis, livres libres de droits",
+      "description": "Livres EPUB et PDF, dossiers suivis, livres libres de droits, lecture à voix haute (voix Piper hors ligne)",
       "theme_color": "#0f1116",
       "background_color": "#0f1116",
       "vendor": ["jszip.min.js", "pdf.min.js", "pdf.worker.min.js"],
+      "copies": {
+        "lis-audio.js": "applis/www-liseuse/lis-audio.js",
+        "mj-voix.js": "applis/www-majordome/mj-voix.js",
+        "mj-voix-worker.js": "applis/www-majordome/mj-voix-worker.js",
+        "mj-phon.js": "applis/www-majordome/mj-phon.js"
+      },
       "patches": [
         { "from": "Ajoute tes livres EPUB ou PDF depuis le téléphone", "to": "Ajoute tes livres EPUB ou PDF de l’ordinateur (bouton +, Ctrl+O ou glisser-déposer sur la fenêtre)" },
         { "from": "Ajouter des livres du téléphone", "to": "Ajouter des livres de l’ordinateur" },

@@ -910,6 +910,51 @@
     return { act: 'ctl', what: what };
   }
 
+  /* ---------------- Livres audio (Liseuse) ----------------
+     « lis mon livre », « reprends la lecture », « lis-moi Germinal », « pause la lecture », « chapitre suivant »,
+     « arrête la lecture dans 20 minutes » → { intent: 'book', p: { cmd, title, ms, chap } } ; Majordome transmet à Liseuse.
+     cmd : read (livre en cours ou titre), resume, pause, stop, nextch, prevch, sleep (ms ou fin du chapitre).
+     Les formules exigent « livre », « lecture », « chapitre », « roman », « lire » ou « lis-moi » : les anciennes phrases
+     (musique, listes, notes, titres de l'actualité…) ne changent pas. */
+  var BOOKW = '(?:livre|livres|roman|bouquin|livre audio|histoire|lecture)';
+  var LIS = '(?:lis|lit|lie|lisez|lire|relis)';
+  function parseBook(t) {
+    var m, ds;
+    var aboutBook = /\b(lecture|livre|roman|bouquin|chapitre|lire|liseuse)\b/.test(t);
+    if (!aboutBook && !new RegExp('^' + LIS + ' (?:moi|nous)\\b').test(t)) return null;
+    // minuterie de sommeil : « arrête la lecture dans 20 minutes », « arrête de lire dans une demi-heure »
+    if (/\b(arrete|arreter|arretez|stoppe|stop|coupe|coupez|termine|eteins|pause|mets en pause|endors toi|fin)\b/.test(t) && /\b(lecture|lire|livre|roman)\b/.test(t)) {
+      if (/\bdans\b/.test(t) && (ds = durations(t)).length) return { cmd: 'sleep', ms: ds[0].ms };
+      if (/\ba la fin (du|de ce) chapitre\b|\bfin du chapitre\b/.test(t)) return { cmd: 'sleep', chap: true };
+    }
+    if ((m = /^(?:minuterie|minuteur) (?:de |pour )?(?:la )?lecture (?:de |dans |a )?(.+)$/.exec(t)) && (ds = durations(m[1])).length) return { cmd: 'sleep', ms: ds[0].ms };
+    if (/^(?:annule|desactive|enleve|supprime) (?:la )?minuterie (?:de |du )?(?:la )?(?:lecture|livre)$/.test(t)) return { cmd: 'sleep', ms: 0 };
+    // chapitres et phrases
+    if (/^(?:passe (?:au |a la )?|va (?:au |a la )?|aller au )?(?:chapitre suivant|prochain chapitre|chapitre d apres)(?: s il te plait| s il vous plait)?$/.test(t)) return { cmd: 'nextch' };
+    if (/^(?:passe (?:au |a la )?|va (?:au |a la )?|reviens (?:au |a la )?|retourne (?:au |a la )?)?(?:chapitre precedent|chapitre d avant)(?: s il te plait| s il vous plait)?$/.test(t)) return { cmd: 'prevch' };
+    if (/^(?:recommence|relis|reprends) (?:le |ce )?chapitre(?: depuis le debut| du debut| au debut)?$/.test(t)) return { cmd: 'prevch' };
+    // pause, arrêt, reprise
+    if (/^(?:mets |met )?(?:la |ma )?lecture en pause$|^(?:mets |met )?(?:le |mon )?(?:livre|roman) en pause$|^pause (?:la |de la |ma )?lecture$|^pause (?:le |du |mon )?(?:livre|roman)$|^(?:suspends?|interromps?) (?:la |ma )?lecture$/.test(t)) return { cmd: 'pause' };
+    if (/^(?:arrete|arreter|stoppe|stop|coupe|termine|ferme) (?:la |ma )?lecture$|^(?:arrete|arreter|stoppe|stop|coupe) (?:le |mon )?(?:livre|roman)(?: audio)?$|^arrete de (?:me )?lire$/.test(t)) return { cmd: 'stop' };
+    if (/^(?:reprends|reprend|reprenez|continue|continuez|poursuis|relance|redemarre) (?:la |ma )?lecture$|^(?:reprise|suite) de (?:la |ma )?lecture$|^(?:continue|reprends|reprend) (?:a |de )?lire$/.test(t)) return { cmd: 'resume' };
+    // lire le livre en cours
+    if (new RegExp('^(?:' + LIS + '|reprends|reprend|continue|continuez|lance|relance|mets|demarre|ecoute|je veux ecouter|on ecoute|ecouter)(?: moi| nous)? (?:la suite de |la suite du )?(?:mon|le|ma|du|de mon|mes) ' + BOOKW + '(?: en cours| audio)?$').test(t)) return { cmd: 'read' };
+    if (new RegExp('^(?:' + LIS + ') (?:moi|nous) (?:la )?suite$|^(?:' + LIS + ') (?:moi|nous)$|^(?:livre audio|lecture a voix haute|lecture du livre)$').test(t)) return { cmd: 'read' };
+    return null;
+  }
+  /* « lis-moi Germinal », « lis le livre Les Misérables » : après les listes, notes, actualités (« lis-moi les titres ») */
+  var NOTBOOK = /^(?:mes |mon |ma |tes |les |le |la |l |un |une |des |du |de |ce |cet |cette |ces |son |sa |ses |leur |leurs |nos |notre |vos |votre )?(?:titres?|infos?|informations|actus?|actualites?|nouvelles|messages?|sms|textos?|mails?|e ?mails?|courriels?|notes?|rappels?|listes?|courses|agenda|programme|planning|rendez vous|heure|date|meteo|temps|journal|notifications?|resultats?|horoscope|recette|definition|alarmes?|reveils?|minuteurs?|evenements?)\b/;
+  function parseBookTitle(t, P) {
+    var m = new RegExp('^(?:' + LIS + ' (?:moi |nous )?|je veux (?:ecouter|lire) |mets (?:moi )?|lance (?:la lecture de |moi )?|ecoute )(?:le livre |le roman |le bouquin |l histoire |le texte )(.+)$').exec(t)
+      || new RegExp('^(?:' + LIS + ') (?:moi|nous) (.+)$').exec(t)
+      || /^(?:lecture de |lance la lecture de )(.+)$/.exec(t);
+    if (!m) return null;
+    var w = m[1];
+    if (NOTBOOK.test(w) || /^(?:un peu|quelque chose|qqch|ca|cela|ceci|ce que|ce qui|la suite|tout)\b/.test(w)) return null;
+    var title = orig(P, m.index + m[0].length - w.length);
+    return title ? { cmd: 'read', title: title.replace(/[.!?]+$/, '').trim() } : null;
+  }
+
   /* ---------------- Aide : exemples (servent aussi aux suggestions) ---------------- */
   var EXAMPLES = [
     ['time', 'Quelle heure est-il ?'], ['date', 'Quel jour sommes-nous ?'], ['countdown', 'Dans combien de jours est Noël ?'],
@@ -1012,6 +1057,9 @@
     // --- climatisation (ouvrir Comfort Cloud ; réglage : réponse honnête) ---
     var cl = parseClim(t);
     if (cl) return R('clim', cl);
+    // --- livres audio (Liseuse) ---
+    var bk = parseBook(t);
+    if (bk) return R('book', bk);
     // --- aide ---
     if (/\b(qu est ce que tu (sais|peux) faire|que (sais|peux) tu faire|tu (sais|peux) faire quoi|qu est ce que vous (savez|pouvez) faire|que (savez|pouvez) vous faire|liste des commandes|quelles (sont les )?commandes|comment ca marche|tes fonctions|quelles sont tes capacites|que puis je te demander|qu est ce que je peux te demander|aide moi)\b/.test(t) || /^(aide|l aide|help|au secours d utilisation|exemples|des exemples)$/.test(t)) return R('help');
     // --- réglages, écoute, historique ---
@@ -1259,6 +1307,9 @@
       txt2 = txt2.replace(/^(?:que |qu'|qu’|de |ceci |:\s*)/i, '');
       return R('note_add', { text: txt2 });
     }
+    // --- livre à lire par son titre (Liseuse) ---
+    var bt = ctx._noFix ? null : parseBookTitle(t, P);   // pas de titre inventé par la correction d'orthographe
+    if (bt) return R('book', bt);
     // --- ouvrir une appli (Suite, puis toutes celles du téléphone), un raccourci du système, un site ---
     var apps = ctx.apps && ctx.apps.length ? ctx.apps : null;
     if ((m = /^(?:ouvre moi|lance moi|ouvre|ouvrir|ouvrez|lance|lancer|lancez|demarre|demarrer|demarrez|va dans|va sur|aller sur|aller dans|affiche|montre moi|passe sur|bascule sur|je veux|j ai besoin de|emmene moi sur|direction|mets|met) (?:l appli |l application |l app |le logiciel |le site (?:de |du |des |d )?|le site |le |la |les |l |mon |ma |mes |un |une )*(.+)$/.exec(t))) {
@@ -1331,7 +1382,7 @@
 
   var NLU = {
     parse: parse, prep: prep, numberize: numberize, tokenize: tokenize, findWhen: findWhen, durations: durations, calcExpr: calcExpr,
-    convert: convert, parseClim: parseClim, parseLight: parseLight, lightTarget: lightTarget, colorWord: colorWord, nextFete: nextFete, easter: easter, findApp: findApp, findSite: findSite, APPS: APPS, SITES: SITES, KNOWN: KNOWN, SYS: SYS, SETSUB: SETSUB, phon: phon, akey: akey, matchApps: matchApps, pickApp: pickApp, findKnown: findKnown, EXAMPLES: EXAMPLES,
+    convert: convert, parseClim: parseClim, parseBook: parseBook, parseLight: parseLight, lightTarget: lightTarget, colorWord: colorWord, nextFete: nextFete, easter: easter, findApp: findApp, findSite: findSite, APPS: APPS, SITES: SITES, KNOWN: KNOWN, SYS: SYS, SETSUB: SETSUB, phon: phon, akey: akey, matchApps: matchApps, pickApp: pickApp, findKnown: findKnown, EXAMPLES: EXAMPLES,
     suggest: suggest, spell: spell, yesNo: yesNo, deacc: deacc, num: num, DN: DN, UNITS: UNITS, MONTHS: MONTHS, WDAYS: WDAYS, startOfDay: startOfDay, addDays: addDays
   };
   root.MJNLU = NLU;

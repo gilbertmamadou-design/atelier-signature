@@ -942,6 +942,53 @@
     return answer('Je ne peux pas piloter la musique ici.').done;
   };
 
+  /* --- Livres audio : commandes transmises à Liseuse ---
+     Téléphone : WidgetProvider de Liseuse (« liseuse_audio ») quand la lecture tourne déjà (pause, chapitre, minuterie… sans
+     ouvrir l'appli) ; sinon Liseuse est ouverte avec l'action (homeLaunchWith), elle lit alors le livre demandé.
+     PC : canal « mag-liseuse » (BroadcastChannel) vers la fenêtre Liseuse ouverte, sinon lien qui l'ouvre avec l'action. */
+  var LIS = 'fr.magformation13.liseuse', lisCh = null;
+  try { lisCh = PC && window.BroadcastChannel ? new BroadcastChannel('mag-liseuse') : null; } catch (e) { }
+  function bookArg(p) { return { audio: p.cmd, title: p.title || '', min: p.ms ? Math.round(p.ms / 60000) : 0, chap: !!p.chap, src: 'majordome' }; }
+  function bookSay(p) {
+    if (p.cmd === 'read') return p.title ? 'Je lis « ' + p.title + ' ».' : withSir('Je reprends votre livre') + '.';
+    if (p.cmd === 'resume') return 'Je reprends la lecture.';
+    if (p.cmd === 'pause') return 'Lecture en pause.';
+    if (p.cmd === 'stop') return 'Lecture arrêtée.';
+    if (p.cmd === 'nextch') return 'Chapitre suivant.';
+    if (p.cmd === 'prevch') return 'Chapitre précédent.';
+    if (p.cmd === 'sleep') return p.chap ? 'La lecture s\'arrêtera à la fin du chapitre.' : p.ms ? 'La lecture s\'arrêtera dans ' + dur(p.ms) + '.' : 'Minuterie de lecture annulée.';
+    return ack();
+  }
+  var BOOK_RUNNING = /^(pause|stop|nextch|prevch|sleep)$/;
+  H.book = function (p) {
+    var arg = bookArg(p), say = bookSay(p);
+    if (PC) {
+      return new Promise(function (res) {
+        if (!lisCh) { res(false); return; }
+        var id = uid(), done = false, h = function (e) { if (e.data && e.data.ack === id) { done = true; lisCh.removeEventListener('message', h); res(e.data.ok !== false ? 'ok' : 'no'); } };
+        lisCh.addEventListener('message', h); arg.id = id; lisCh.postMessage(arg);
+        setTimeout(function () { if (!done) { lisCh.removeEventListener('message', h); res(false); } }, 900);
+      }).then(function (r) {
+        if (r === 'ok') return answer({ say: say, k: 'Liseuse' }).done;
+        if (r === 'no') return answer({ say: p.title ? 'Je ne trouve pas « ' + p.title + ' » dans la bibliothèque de Liseuse.' : BOOK_RUNNING.test(p.cmd) ? 'Aucune lecture en cours dans Liseuse.' : 'Aucun livre en cours dans Liseuse.', k: 'Liseuse' }).done;
+        if (BOOK_RUNNING.test(p.cmd)) return answer('Liseuse n\'est pas ouverte sur cet ordinateur.').done;
+        var url = (window.MAGPC && MAGPC.conf.apps || {})[LIS];
+        if (!url) return answer('Liseuse n\'est pas disponible ici.').done;
+        delete arg.id; arg.src = '';
+        return openLink(url + '?socle=' + encodeURIComponent(JSON.stringify(arg)), 'Liseuse');
+      });
+    }
+    if (!(P && P.homeLaunchWith)) return answer('Liseuse n\'est pas joignable ici.').done;
+    if (P.homeInstalled && P.homeInstalled(LIS) !== '1') return answer('L\'appli Liseuse n\'est pas installée.').done;
+    var json = JSON.stringify(arg), sent = false;
+    try { sent = !!(P.homeWidgetCall && P.homeWidgetCall(LIS, 'liseuse_audio', json)); } catch (e) { }
+    if (!sent) {
+      if (BOOK_RUNNING.test(p.cmd)) return answer({ say: 'Aucune lecture en cours dans Liseuse.', k: 'Liseuse' }).done;
+      P.homeLaunchWith(LIS, json);
+    }
+    return answer({ say: say, k: 'Liseuse' }).done;
+  };
+
   /* --- Téléphone --- */
   function phoneOnly() { return answer(PC ? 'Je ne peux pas faire cela depuis l\'ordinateur : c\'est une commande du téléphone.' : 'Cette commande n\'est disponible que sur le téléphone.').done; }
   function findContact(name) {
@@ -1134,6 +1181,7 @@
     ['Budget (jamais de solde lu)', ['J\'ai dépensé 45 euros de carburant sur le compte courant', 'J\'ai payé 12,50 € au restaurant par carte']],
     ['Applis et sites', ['Ouvre Présentation', 'Ouvre le tableur', 'Ouvre le lecteur PDF', 'Ouvre Rangement', 'Ouvre YouTube'].concat(ANDROID ? ['Ouvre WhatsApp', 'Lance Waze', 'Ouvre le GPS', 'Ouvre l\'appareil photo', 'Ouvre les paramètres Wi-Fi', 'Ouvre le Play Store'] : []).concat(PC ? ['Plein écran'] : [])],
     ['Climatisation' + (ANDROID ? '' : ' (sur le téléphone seulement)'), ['Ouvre la clim', 'Ouvre Comfort Cloud']],
+    ['Livres audio (Liseuse)', ['Lis mon livre', 'Reprends la lecture', 'Lis-moi Germinal', 'Pause la lecture', 'Chapitre suivant', 'Arrête la lecture dans 20 minutes']],
     ['Musique', ['Mets de la musique', 'Pause', 'Chanson suivante', 'Morceau précédent']],
     ['Téléphone' + (ANDROID ? '' : ' (sur le téléphone seulement)'), ['Appelle Paul', 'Envoie un SMS à Paul : j\'arrive dans 10 minutes', 'Allume la lampe', 'Monte le son', 'Mode silencieux', 'Ne pas déranger', 'Active le Wi-Fi', 'Ouvre le Bluetooth', 'Niveau de batterie']],
     ['Routines et réglages', ['Bonjour ' + (S.name || 'Majordome'), 'Bonne nuit', 'Parle plus lentement', 'Appelle-moi Gilbert', 'Arrête d\'écouter', 'Efface l\'historique', 'Répète', 'Stop']]
@@ -1341,13 +1389,14 @@
     var srt = AL.slice().sort(function (a, b) { return a.at - b.at; }), next = srt[0];
     var first = function (k) { return srt.filter(function (o) { return o.kind === k; })[0]; }, tm = first('timer'), rm = first('reminder');
     // name, sir (appellation) : panneau « Majordome » de Socle ; timer / rem : prochain minuteur et prochain rappel
+    // voix : moteur et voix Piper choisis (Liseuse les reprend par défaut, par le fournisseur MajordomeBridge$Voix)
     // timers (3 au plus), news (titres déjà en cache, aucune requête), windLimit, wx (dernière météo lue) : page Jarvis de Socle et widget Android
     var tms = srt.filter(function (o) { return o.kind === 'timer'; }).slice(0, 3).map(function (o) { return { at: o.at, label: o.label || '' }; });
     var ac = lsGet(KEY.actu, null), news = ac && Array.isArray(ac.items) && now() - ac.at < 12 * HOUR ? ac.items.slice(0, 3).map(function (x) { return { t: String(x.t || '').slice(0, 160) }; }) : null;
     var wc = lsGet(KEY.wx, null), cu = wc && wc.d && wc.d.current, wx = cu && now() - wc.at < 3 * HOUR ? { t: Math.round(cu.temperature_2m), code: cu.weather_code, wind: Math.round(cu.wind_speed_10m || 0), gust: Math.round(cu.wind_gusts_10m || 0), where: String(wc.where || '').replace(/^à /, ''), at: wc.at } : null;
     try { moment(); } catch (e) { console.warn(e); }
     if (!P || !P.widgetPut) return;
-    try { P.widgetPut(JSON.stringify({ name: S.name, sir: sir(), timers: tms, news: news, windLimit: +S.windLimit || 45, wx: wx, last: MJ.last ? { q: String(MJ.last.q || '').slice(0, 120), a: String(MJ.last.a).slice(0, 140), at: MJ.last.at } : null, next: next ? { kind: next.kind, at: next.at, label: next.kind === 'timer' ? (next.label || 'Minuteur') : next.kind === 'alarm' ? 'Réveil' : next.text } : null, timer: tm ? { at: tm.at, label: tm.label || '' } : null, rem: rm ? { at: rm.at, text: String(rm.text || 'Rappel').slice(0, 100) } : null, wake: !!S.wakeOn, at: now() })); } catch (e) { }
+    try { P.widgetPut(JSON.stringify({ name: S.name, sir: sir(), timers: tms, news: news, windLimit: +S.windLimit || 45, wx: wx, last: MJ.last ? { q: String(MJ.last.q || '').slice(0, 120), a: String(MJ.last.a).slice(0, 140), at: MJ.last.at } : null, next: next ? { kind: next.kind, at: next.at, label: next.kind === 'timer' ? (next.label || 'Minuteur') : next.kind === 'alarm' ? 'Réveil' : next.text } : null, timer: tm ? { at: tm.at, label: tm.label || '' } : null, rem: rm ? { at: rm.at, text: String(rm.text || 'Rappel').slice(0, 100) } : null, wake: !!S.wakeOn, voix: { tts: S.tts || 'system', piper: S.piperVoice || '' }, at: now() })); } catch (e) { }
   }
   /* ---------------- Informations du moment (sous la sphère) ----------------
      Heure, météo et vent (dernière météo lue, aucune requête), prochain rendez-vous (agenda déjà autorisé),

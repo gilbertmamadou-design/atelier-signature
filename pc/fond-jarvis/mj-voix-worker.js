@@ -96,6 +96,8 @@ function codepoints(text) {
 }
 self.onmessage = function (e) {
   var d = e.data || {};
+  // chemins aussi transmis par message : un service worker (Suite MAG sur PC) peut servir ce fichier sans sa requête « ?e=…&p=… »
+  if (d.t === 'cfg') { if (!ready) { if (d.e) ENGINE = d.e; if (d.p) PHON = d.p; } return; }
   if (d.t === 'load') {
     load(d.voice).then(function (r) { r.t = 'loaded'; r.id = d.id; self.postMessage(r); }, function (err) { self.postMessage({ t: 'error', id: d.id, msg: String(err && err.message || err) }); });
   } else if (d.t === 'gen') {

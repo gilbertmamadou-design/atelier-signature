@@ -2,7 +2,7 @@
   "id": "/atelier-signature/pc/liseuse/",
   "name": "Liseuse",
   "short_name": "Liseuse",
-  "description": "Livres EPUB et PDF, dossiers suivis, livres libres de droits",
+  "description": "Livres EPUB et PDF, dossiers suivis, livres libres de droits, lecture à voix haute (voix Piper hors ligne)",
   "lang": "fr",
   "dir": "ltr",
   "start_url": "./",
