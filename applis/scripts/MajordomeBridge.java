@@ -670,7 +670,8 @@ public class MajordomeBridge {
         if (l != null) for (File d : l) { File ok = new File(d, "ok.json"); if (d.isDirectory() && ok.exists()) try { ms.put(d.getName(), new JSONObject(readText(ok))); } catch (Exception e) { } }
         try { return new JSONObject().put("models", ms).put("busy", new JSONArray(new ArrayList<String>(piperBusy))).toString(); } catch (Exception e) { return "{}"; }
     }
-    @JavascriptInterface public void piperDownload(final String m, final String base, final String api) {
+    /** pinned : SHA-256 figée par la page (mj-voix.js) ; la somme annoncée par l'API de HuggingFace est aussi acceptée */
+    @JavascriptInterface public void piperDownload(final String m, final String base, final String api, final String pinned) {
         if (!piperName(m) || base == null || !base.startsWith("https://huggingface.co/") || api == null || !api.startsWith("https://huggingface.co/api/")) { piperEvent(m, "error", 0, "adresse refusée", null); return; }
         if (!piperBusy.add(m)) return;
         final Context c = a.getApplicationContext();
@@ -696,10 +697,11 @@ public class MajordomeBridge {
                         if (now - last > 400) { last = now; piperEvent(m, "downloading", total > 0 ? Math.min(0.99, (double) got / total) : 0.5, null, null); }
                     }
                 } finally { h.disconnect(); }
-                String sha = hex(d.digest()), want = eo != null ? eo.optString("sha256") : "";
-                if (want.length() == 64 && !want.equals(sha)) throw new Exception("somme SHA-256 incorrecte (fichier abîmé)");
-                piperInstall(c, m, part, json, sha, want.length() == 64);
-                piperEvent(m, "ready", 1, null, want.length() == 64);
+                String sha = hex(d.digest()), want = eo != null ? eo.optString("sha256") : "", pin = pinned == null ? "" : pinned;
+                boolean known = want.length() == 64 || pin.length() == 64, good = sha.equals(want) || sha.equals(pin);
+                if (known && !good) throw new Exception("somme SHA-256 incorrecte (fichier abîmé)");
+                piperInstall(c, m, part, json, sha, good);
+                piperEvent(m, "ready", 1, null, good);
             } catch (Throwable t) {
                 piperEvent(m, "error", 0, "Téléchargement impossible (" + t.getMessage() + "). Vérifiez la connexion, ou téléchargez les deux fichiers de la voix avec le navigateur puis « Choisir les fichiers téléchargés ».", null);
             } finally { part.delete(); piperBusy.remove(m); }

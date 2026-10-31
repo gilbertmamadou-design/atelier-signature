@@ -28,9 +28,11 @@
   'use strict';
   var HF = 'https://huggingface.co/rhasspy/piper-voices/resolve/main/', HFAPI = 'https://huggingface.co/api/models/rhasspy/piper-voices/tree/main/';
   var MODELS = {
-    'fr_FR-upmc-medium': { dir: 'fr/fr_FR/upmc/medium/', size: 76682529, sr: 22050, lic: 'CC BY-SA 4.0', src: 'UPMC (Pierre et Jessica), github.com/marytts/upmc-pierre-data' },
-    'fr_FR-gilles-low': { dir: 'fr/fr_FR/gilles/low/', size: 63052422, sr: 16000, lic: 'CC0', src: 'French Single Speaker Speech Dataset (Kaggle)' },
-    'fr_FR-siwis-medium': { dir: 'fr/fr_FR/siwis/medium/', size: 63149190, sr: 22050, lic: 'CC BY 4.0', src: 'SIWIS, université d\'Édimbourg' }
+    // sha256 / size : fichiers .onnx de huggingface.co/rhasspy/piper-voices (révision b4e358f, vérifiés le 31/10/2026) ;
+    // une somme différente est aussi acceptée si l'API de HuggingFace l'annonce (voix mise à jour en amont)
+    'fr_FR-upmc-medium': { dir: 'fr/fr_FR/upmc/medium/', size: 76733615, sha256: '9abb3800c199148897a9ed64e100d224f3de83579f100044174ad19418f1786f', sr: 22050, lic: 'CC BY-SA 4.0', src: 'UPMC (Pierre et Jessica), github.com/marytts/upmc-pierre-data' },
+    'fr_FR-gilles-low': { dir: 'fr/fr_FR/gilles/low/', size: 63104526, sha256: '5cd711846720e261c2a176f6924c198a7424d0a75dd4b0a5357a5fb9cb739285', sr: 16000, lic: 'CC0', src: 'French Single Speaker Speech Dataset (Kaggle)' },
+    'fr_FR-siwis-medium': { dir: 'fr/fr_FR/siwis/medium/', size: 63201294, sha256: '641d1ab097da2b81128c076810edb052b385decc8be3381814802a64a73baf99', sr: 22050, lic: 'CC BY 4.0', src: 'SIWIS, université d\'Édimbourg' }
   };
   var VOICES = [
     { id: 'pierre', name: 'Pierre', desc: 'Homme, voix posée', model: 'fr_FR-upmc-medium', sid: 1 },
@@ -262,7 +264,7 @@
       if (ANDROID) {   // Java : téléchargement dans le stockage privé, SHA-256 vérifiée ; avancement par événements « piper »
         var x = E.dl[m] = { f: 0, onp: onp };
         x.p = new Promise(function (ok, ko) { x.ok = ok; x.ko = ko; });
-        ANDROID.piperDownload(m, HF + info.dir, HFAPI + info.dir.replace(/\/$/, ''));
+        ANDROID.piperDownload(m, HF + info.dir, HFAPI + info.dir.replace(/\/$/, ''), info.sha256 || '');
         return x.p;
       }
       var exp = {}, cfgAb;
@@ -275,17 +277,20 @@
         return exp[m + '.onnx.json'] && exp[m + '.onnx.json'].oid ? gitBlobSha1(ab).then(function (h) { if (h && h !== exp[m + '.onnx.json'].oid) throw new Error('somme du .onnx.json incorrecte'); }) : null;
       }).then(function () {
         return fetchProgress(HF + info.dir + m + '.onnx', function (f) { if (E.dl[m]) E.dl[m].f = f; if (onp) onp(f); emit({ t: 'progress', model: m, f: f }); }, (exp[m + '.onnx'] && exp[m + '.onnx'].size) || info.size);
-      }).then(function (ab) { return save(m, ab, cfgAb, exp[m + '.onnx'] && exp[m + '.onnx'].sha256, true); })
+      }).then(function (ab) { return save(m, ab, cfgAb, [info.sha256, exp[m + '.onnx'] && exp[m + '.onnx'].sha256]); })
         .then(function (r) { delete E.dl[m]; return r; }, function (e) { delete E.dl[m]; throw e; });
       E.dl[m].p = p;
       return p;
     };
-    function save(m, ab, cfgAb, want, verified) {
+    /** want : sommes acceptées (figée dans MODELS, annoncée par HuggingFace) */
+    function save(m, ab, cfgAb, want) {
+      want = (want || []).filter(Boolean);
       return sha('SHA-256', ab).then(function (h) {
-        if (want && h && h !== want) throw new Error('somme SHA-256 incorrecte : fichier abîmé ou différent de celui de HuggingFace');
+        var good = !!h && want.indexOf(h) >= 0;
+        if (want.length && h && !good) throw new Error('somme SHA-256 incorrecte : fichier abîmé ou différent de celui de HuggingFace');
         var cfg = JSON.parse(new TextDecoder().decode(cfgAb)); checkCfg(cfg);
         return IDB.put(m + '.onnx', new Blob([ab])).then(function () { return IDB.put(m + '.onnx.json', cfg); }).then(function () {
-          var l = lsGet(); l[m] = { size: ab.byteLength, sha256: h, verified: !!(want && h === want), at: Date.now() }; lsSet(l);
+          var l = lsGet(); l[m] = { size: ab.byteLength, sha256: h, verified: good, at: Date.now() }; lsSet(l);
           emit({ t: 'installed', model: m }); return l[m];
         });
       });
@@ -298,7 +303,7 @@
       var m = onnx.name.replace(/\.onnx$/i, '');
       if (!MODELS[m]) return Promise.reject(new Error('voix inconnue : ' + m + ' (attendu : ' + Object.keys(MODELS).join(', ') + ')'));
       return Promise.all([onnx.arrayBuffer(), json.arrayBuffer(), expected(m).catch(function () { return {}; })]).then(function (r) {
-        return save(m, r[0], r[1], r[2][m + '.onnx'] && r[2][m + '.onnx'].sha256);
+        return save(m, r[0], r[1], [MODELS[m].sha256, r[2][m + '.onnx'] && r[2][m + '.onnx'].sha256]);
       });
     };
     E.pickAndroid = function () { if (ANDROID && ANDROID.piperPick) ANDROID.piperPick(); };
