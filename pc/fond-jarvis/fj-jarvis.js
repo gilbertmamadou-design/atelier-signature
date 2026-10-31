@@ -642,6 +642,23 @@
   $('mic').onclick = function () { if (listening) { if (B) B.stop(); stopUi(); return; } activate(true); };
   $('orbHit').onclick = function () { activate(FJ.mode === 'suite' && !!B && engineOk(B) === 'vosk'); };
   $('q').addEventListener('keydown', function (e) { if (e.key === 'Escape') { $('q').value = ''; $('q').blur(); dismiss(); } });
+  /* Lively transmet parfois deux fois la même frappe au fond d'écran (touche + caractère) : on ignore le
+     doublon identique arrivé dans les 25 ms, sans gêner la frappe normale (une vraie double lettre est bien plus espacée). */
+  (function () {
+    var last = { t: 0, k: '' };
+    document.addEventListener('beforeinput', function (e) {
+      var k = e.inputType + '|' + (e.data == null ? '' : e.data), now = performance.now();
+      if (k === last.k && now - last.t < 25) { e.preventDefault(); return; }
+      last = { t: now, k: k };
+    }, true);
+    var lk = { t: 0, k: '' };
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' || e.repeat) return;
+      var now = performance.now();
+      if (lk.k === 'Enter' && now - lk.t < 25) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+      lk = { t: now, k: 'Enter' };
+    }, true);
+  })();
   say.addEventListener('mouseenter', function () { clearTimeout(hideT); });
   say.addEventListener('mouseleave', autoHide);
   if (AL.length) setTimeout(tick, 1500);
