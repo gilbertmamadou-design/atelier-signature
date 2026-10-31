@@ -64,6 +64,12 @@ public class MajordomeWallpaper extends WallpaperService {
             init(c); mic = (float) Math.pow(Math.max(0, Math.min(1, v)), 0.75); micAt = SystemClock.uptimeMillis();
             if (!"listen".equals(state)) { state = "listen"; start(); }
         }
+        /** Voix Piper : niveau réel (RMS de l'audio joué par AudioTrack, ≈ 50 valeurs/s) ; prioritaire sur l'enveloppe estimée */
+        private static float real = 0; private static long realAt = -100000;
+        static synchronized void speakLevel(Context c, float v) {
+            init(c); real = Math.max(0, Math.min(1, v)); realAt = SystemClock.uptimeMillis();
+            if (!"speak".equals(state)) { state = "speak"; spkT = realAt; words = 0; syl.clear(); quietUntil = 0; start(); }
+        }
         static synchronized void speakStart(Context c, String t, float r) {
             init(c); text = t == null ? "" : t; rate = Math.max(0.4f, Math.min(3f, r)); spkT = SystemClock.uptimeMillis(); words = 0; syl.clear(); quietUntil = 0;
             if (!"speak".equals(state)) { state = "speak"; start(); }
@@ -102,6 +108,7 @@ public class MajordomeWallpaper extends WallpaperService {
         private static void init(Context c) { if (app == null && c != null) app = c.getApplicationContext(); if (h == null) h = new Handler(Looper.getMainLooper()); }
         private static void start() { h.removeCallbacks(TICK); h.post(TICK); }
         private static double voiceTarget(long now) {
+            if (now - realAt < 160) return 0.04 + real * 0.96;   // voix Piper : niveau réel
             double v = 0; boolean any = false;
             for (int k = 0; k < syl.size(); k++) {
                 double[] q = syl.get(k); double ph = (now - q[0]) / q[1];

@@ -7,6 +7,10 @@ package __PKG__;
 //    Repli : SpeechRecognizer d'Android avec EXTRA_PREFER_OFFLINE.
 //  - Écoute continue du mot de réveil : service au premier plan (micro) avec notification, option « seulement en charge ».
 //  - Voix : TextToSpeech (voix françaises du téléphone, vitesse, hauteur, volume) ; fin de phrase signalée à la page.
+//  - Voix Piper (hors ligne) : la page synthétise (sherpa-onnx WASM, mj-voix.js) ; ici, les fichiers des voix
+//    (téléchargés depuis huggingface.co/rhasspy/piper-voices, SHA-256 vérifiée, stockage privé files/piper/, lus par
+//    la page via Capacitor.convertFileSrc) et la lecture : AudioTrack, focus audio, micro de veille coupé, niveau réel
+//    (RMS) envoyé au fond animé et à Socle (MajordomeWallpaper.Voix.speakLevel).
 //  - Minuteurs, réveils, rappels : AlarmManager (setAlarmClock / setExactAndAllowWhileIdle), notification plein écran, redémarrage.
 //  - Téléphone : appel et SMS (toujours après confirmation dans la page), volume, sonnerie / ne pas déranger, panneaux Wi-Fi
 //    et Bluetooth (Android impose de passer par eux), touches multimédia.
@@ -86,7 +90,7 @@ import java.util.zip.ZipInputStream;
 public class MajordomeBridge {
     static final String MODEL_URL = "https://alphacephei.com/vosk/models/vosk-model-small-fr-0.22.zip";
     static final String PREFS = "majordome";
-    static final int REQ_MIC = 6600, REQ_PICK = 6601, REQ_PERM = 6602;
+    static final int REQ_MIC = 6600, REQ_PICK = 6601, REQ_PERM = 6602, REQ_PIPER = 6603;
     static final int N_WAKE = 6620, N_CMD = 6621, N_ALARM_BASE = 6630;
     static final String CH_WAKE = "mj_ecoute", CH_ALARM = "mj_alarme", CH_RAPPEL = "mj_rappel", CH_CMD = "mj_commande";
     static final String CH_WATCH = "mj_montre", CH_LINK = "mj_montre_liaison";
@@ -124,6 +128,7 @@ public class MajordomeBridge {
     public void onPermissions(int code) { emit("perm", "{}"); }
     public void onIntent(Intent i) { takeIntent(i); }
     public void onResult(int code, int res, Intent data) {
+        if (code == REQ_PIPER) { piperPicked(res, data); return; }
         if (code != REQ_PICK) return;
         if (res != Activity.RESULT_OK || data == null || data.getData() == null) return;
         final Uri u = data.getData();
@@ -595,7 +600,233 @@ public class MajordomeBridge {
             tts.speak(text, TextToSpeech.QUEUE_ADD, p, id);
         } catch (Throwable t) { emit("spoken", obj("id", id)); }
     }
-    @JavascriptInterface public void shush() { ui.post(new Runnable() { public void run() { if (tts != null) tts.stop(); ttsText.clear(); MajordomeWallpaper.Voix.end("speak"); } }); }
+    @JavascriptInterface public void shush() { piperStop(); ui.post(new Runnable() { public void run() { if (tts != null) tts.stop(); ttsText.clear(); MajordomeWallpaper.Voix.end("speak"); } }); }
+
+    // =====================================================================
+    // Voix Piper : fichiers (stockage privé) et lecture (AudioTrack)
+    // =====================================================================
+    static File piperRoot(Context c) { return new File(c.getFilesDir(), "piper"); }
+    static boolean piperName(String m) { return m != null && m.matches("fr_FR-[a-z]+-(x_low|low|medium|high)"); }
+    static String readText(File f) throws Exception { try (InputStream in = new java.io.FileInputStream(f)) { return new String(readAll(in, 1 << 20), "UTF-8"); } }
+    static byte[] readAll(InputStream in, int max) throws Exception {
+        java.io.ByteArrayOutputStream o = new java.io.ByteArrayOutputStream(); byte[] b = new byte[16384]; int n;
+        while ((n = in.read(b)) > 0) { o.write(b, 0, n); if (o.size() > max) throw new Exception("fichier trop gros"); }
+        return o.toByteArray();
+    }
+    static String hex(byte[] d) { StringBuilder s = new StringBuilder(); for (byte x : d) s.append(String.format("%02x", x & 0xff)); return s.toString(); }
+    static void piperEvent(String m, String st, double prog, String msg, Boolean verified) {
+        try { JSONObject o = new JSONObject().put("model", m).put("state", st).put("progress", prog); if (msg != null) o.put("msg", msg); if (verified != null) o.put("verified", verified.booleanValue()); send("piper", o.toString()); } catch (Exception e) { }
+    }
+    /** Connexion https (redirections https seulement, comme pour le modèle Vosk) */
+    static HttpURLConnection httpsOpen(String url) throws Exception {
+        String cur = url;
+        for (int hop = 0; hop < 6; hop++) {
+            HttpURLConnection h = (HttpURLConnection) new URL(cur).openConnection();
+            h.setConnectTimeout(15000); h.setReadTimeout(30000); h.setInstanceFollowRedirects(false);
+            h.setRequestProperty("User-Agent", "Majordome/1.0 (Android)");
+            int code = h.getResponseCode();
+            if (code >= 300 && code < 400 && h.getHeaderField("Location") != null) { String loc = new URL(new URL(cur), h.getHeaderField("Location")).toString(); h.disconnect(); if (!loc.startsWith("https://")) throw new Exception("redirection refusée"); cur = loc; continue; }
+            if (code != 200) { h.disconnect(); throw new Exception("HTTP " + code); }
+            return h;
+        }
+        throw new Exception("trop de redirections");
+    }
+    /** Sommes attendues (API de HuggingFace) : nom → {sha256 (LFS), oid (git), size} ; vide si injoignable */
+    static JSONObject piperExpected(String api) {
+        JSONObject o = new JSONObject();
+        try {
+            HttpURLConnection h = httpsOpen(api);
+            try (InputStream in = h.getInputStream()) {
+                JSONArray l = new JSONArray(new String(readAll(in, 1 << 20), "UTF-8"));
+                for (int i = 0; i < l.length(); i++) {
+                    JSONObject f = l.getJSONObject(i), lfs = f.optJSONObject("lfs"); String p = f.optString("path"); p = p.substring(p.lastIndexOf('/') + 1);
+                    o.put(p, new JSONObject().put("sha256", lfs != null ? lfs.optString("oid") : "").put("oid", f.optString("oid")).put("size", lfs != null ? lfs.optLong("size") : f.optLong("size")));
+                }
+            } finally { h.disconnect(); }
+        } catch (Throwable t) { }
+        return o;
+    }
+    static String gitSha1(byte[] b) throws Exception { java.security.MessageDigest d = java.security.MessageDigest.getInstance("SHA-1"); d.update(("blob " + b.length + "\0").getBytes("UTF-8")); d.update(b); return hex(d.digest()); }
+    static void piperCheckJson(byte[] b) throws Exception {
+        JSONObject j = new JSONObject(new String(b, "UTF-8"));
+        if (j.optJSONObject("phoneme_id_map") == null || j.optJSONObject("audio") == null) throw new Exception("fichier .onnx.json invalide");
+        JSONObject es = j.optJSONObject("espeak"); if (es != null && !es.optString("voice", "fr").startsWith("fr")) throw new Exception("ce n'est pas une voix française");
+    }
+    /** Installe : dossier temporaire → files/piper/<modèle>/ (+ ok.json : taille, somme, vérifiée) */
+    static void piperInstall(Context c, String m, File tmpOnnx, byte[] json, String sha, boolean verified) throws Exception {
+        File dir = new File(piperRoot(c), m), tmp = new File(piperRoot(c), m + ".tmp");
+        deleteTree(tmp); tmp.mkdirs();
+        if (!tmpOnnx.renameTo(new File(tmp, m + ".onnx"))) throw new Exception("installation impossible");
+        try (OutputStream o = new FileOutputStream(new File(tmp, m + ".onnx.json"))) { o.write(json); }
+        long size = new File(tmp, m + ".onnx").length();
+        try (OutputStream o = new FileOutputStream(new File(tmp, "ok.json"))) { o.write(new JSONObject().put("size", size).put("sha256", sha).put("verified", verified).put("at", System.currentTimeMillis()).toString().getBytes("UTF-8")); }
+        deleteTree(dir); if (!tmp.renameTo(dir)) throw new Exception("installation impossible");
+    }
+    static final java.util.Set<String> piperBusy = Collections.synchronizedSet(new java.util.HashSet<String>());
+    @JavascriptInterface public String piperDir() { return piperRoot(a).getAbsolutePath(); }
+    @JavascriptInterface public String piperState() {
+        JSONObject ms = new JSONObject();
+        File[] l = piperRoot(a).listFiles();
+        if (l != null) for (File d : l) { File ok = new File(d, "ok.json"); if (d.isDirectory() && ok.exists()) try { ms.put(d.getName(), new JSONObject(readText(ok))); } catch (Exception e) { } }
+        try { return new JSONObject().put("models", ms).put("busy", new JSONArray(new ArrayList<String>(piperBusy))).toString(); } catch (Exception e) { return "{}"; }
+    }
+    @JavascriptInterface public void piperDownload(final String m, final String base, final String api) {
+        if (!piperName(m) || base == null || !base.startsWith("https://huggingface.co/") || api == null || !api.startsWith("https://huggingface.co/api/")) { piperEvent(m, "error", 0, "adresse refusée", null); return; }
+        if (!piperBusy.add(m)) return;
+        final Context c = a.getApplicationContext();
+        new Thread(new Runnable() { public void run() {
+            File part = new File(c.getCacheDir(), m + ".onnx.part");
+            try {
+                piperEvent(m, "downloading", 0, null, null);
+                JSONObject exp = piperExpected(api);
+                JSONObject ej = exp.optJSONObject(m + ".onnx.json"), eo = exp.optJSONObject(m + ".onnx");
+                HttpURLConnection h = httpsOpen(base + m + ".onnx.json"); byte[] json;
+                try (InputStream in = h.getInputStream()) { json = readAll(in, 1 << 20); } finally { h.disconnect(); }
+                piperCheckJson(json);
+                if (ej != null && ej.optString("oid").length() == 40 && !ej.optString("oid").equals(gitSha1(json))) throw new Exception("somme du fichier .onnx.json incorrecte");
+                h = httpsOpen(base + m + ".onnx");
+                long total = h.getContentLengthLong(); if (total <= 0 && eo != null) total = eo.optLong("size");
+                java.security.MessageDigest d = java.security.MessageDigest.getInstance("SHA-256");
+                try (InputStream in = h.getInputStream(); OutputStream out = new FileOutputStream(part)) {
+                    byte[] b = new byte[65536]; long got = 0, last = 0; int n;
+                    while ((n = in.read(b)) > 0) {
+                        out.write(b, 0, n); d.update(b, 0, n); got += n;
+                        if (got > 250L * 1024 * 1024) throw new Exception("fichier trop gros");
+                        long now = System.currentTimeMillis();
+                        if (now - last > 400) { last = now; piperEvent(m, "downloading", total > 0 ? Math.min(0.99, (double) got / total) : 0.5, null, null); }
+                    }
+                } finally { h.disconnect(); }
+                String sha = hex(d.digest()), want = eo != null ? eo.optString("sha256") : "";
+                if (want.length() == 64 && !want.equals(sha)) throw new Exception("somme SHA-256 incorrecte (fichier abîmé)");
+                piperInstall(c, m, part, json, sha, want.length() == 64);
+                piperEvent(m, "ready", 1, null, want.length() == 64);
+            } catch (Throwable t) {
+                piperEvent(m, "error", 0, "Téléchargement impossible (" + t.getMessage() + "). Vérifiez la connexion, ou téléchargez les deux fichiers de la voix avec le navigateur puis « Choisir les fichiers téléchargés ».", null);
+            } finally { part.delete(); piperBusy.remove(m); }
+        } }).start();
+    }
+    @JavascriptInterface public void piperDelete(String m) {
+        if (!piperName(m)) return;
+        piperStop(); deleteTree(new File(piperRoot(a), m)); piperEvent(m, "removed", 0, null, null);
+    }
+    @JavascriptInterface public void piperPick() {
+        ui.post(new Runnable() { public void run() {
+            try { Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*").putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true); a.startActivityForResult(i, REQ_PIPER); }
+            catch (Throwable t) { toast("Sélecteur de fichiers indisponible"); }
+        } });
+    }
+    /** Fichiers choisis : la voix (.onnx) et sa description (.onnx.json) ; somme vérifiée si HuggingFace répond */
+    private void piperPicked(int res, Intent data) {
+        if (res != Activity.RESULT_OK || data == null) return;
+        final ArrayList<Uri> us = new ArrayList<>();
+        if (data.getClipData() != null) for (int i = 0; i < data.getClipData().getItemCount(); i++) us.add(data.getClipData().getItemAt(i).getUri());
+        else if (data.getData() != null) us.add(data.getData());
+        final Context c = a.getApplicationContext();
+        new Thread(new Runnable() { public void run() {
+            String m = null;
+            try {
+                Uri uo = null, uj = null;
+                for (Uri u : us) {
+                    String n = displayName(c, u);
+                    if (n.endsWith(".onnx.json")) uj = u; else if (n.endsWith(".onnx")) { uo = u; m = n.substring(0, n.length() - 5); }
+                }
+                if (uo == null || uj == null) throw new Exception("choisissez les deux fichiers : la voix (.onnx) et sa description (.onnx.json)");
+                if (!piperName(m)) throw new Exception("nom de voix inattendu : " + m);
+                piperEvent(m, "downloading", 0.5, null, null);
+                byte[] json; try (InputStream in = c.getContentResolver().openInputStream(uj)) { json = readAll(in, 1 << 20); }
+                piperCheckJson(json);
+                File part = new File(c.getCacheDir(), m + ".onnx.part");
+                java.security.MessageDigest d = java.security.MessageDigest.getInstance("SHA-256");
+                try (InputStream in = c.getContentResolver().openInputStream(uo); OutputStream out = new FileOutputStream(part)) {
+                    byte[] b = new byte[65536]; int n; long got = 0;
+                    while ((n = in.read(b)) > 0) { out.write(b, 0, n); d.update(b, 0, n); got += n; if (got > 250L * 1024 * 1024) throw new Exception("fichier trop gros"); }
+                }
+                String sha = hex(d.digest());
+                String dir = m.replaceAll("^fr_FR-([a-z]+)-([a-z_]+)$", "fr/fr_FR/$1/$2");
+                JSONObject eo = piperExpected("https://huggingface.co/api/models/rhasspy/piper-voices/tree/main/" + dir).optJSONObject(m + ".onnx");
+                String want = eo != null ? eo.optString("sha256") : "";
+                if (want.length() == 64 && !want.equals(sha)) { part.delete(); throw new Exception("somme SHA-256 différente de celle de HuggingFace"); }
+                piperInstall(c, m, part, json, sha, want.length() == 64);
+                piperEvent(m, "ready", 1, null, want.length() == 64);
+            } catch (Throwable t) { piperEvent(m == null ? "" : m, "error", 0, "Fichiers refusés : " + t.getMessage(), null); }
+        } }).start();
+    }
+    static String displayName(Context c, Uri u) {
+        try (android.database.Cursor q = c.getContentResolver().query(u, new String[]{ android.provider.OpenableColumns.DISPLAY_NAME }, null, null, null)) {
+            if (q != null && q.moveToFirst()) return q.getString(0);
+        } catch (Throwable t) { }
+        String p = u.getLastPathSegment(); return p == null ? "" : p.substring(p.lastIndexOf('/') + 1);
+    }
+
+    // ---------- Lecture : file de phrases, un fil « piper », AudioTrack en flux ----------
+    private final java.util.ArrayDeque<Object[]> pq = new java.util.ArrayDeque<>();
+    private Thread pth; private volatile boolean pstop = false; private Object afr;
+    private final AudioManager.OnAudioFocusChangeListener afl = new AudioManager.OnAudioFocusChangeListener() { public void onAudioFocusChange(int f) { if (f == AudioManager.AUDIOFOCUS_LOSS) piperStop(); } };
+    @JavascriptInterface public void piperPlay(String id, String b64, int sr) {
+        byte[] b = android.util.Base64.decode(b64, android.util.Base64.DEFAULT);
+        short[] s = new short[b.length / 2];
+        java.nio.ByteBuffer.wrap(b).order(java.nio.ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(s);
+        synchronized (pq) {
+            pq.add(new Object[]{ id, s, Math.max(8000, Math.min(48000, sr)) }); pq.notifyAll();
+            if (pth == null || !pth.isAlive()) { pstop = false; pth = new Thread(new Runnable() { public void run() { playLoop(); } }, "piper"); pth.start(); }
+        }
+    }
+    @JavascriptInterface public void piperStop() { synchronized (pq) { pstop = true; pq.clear(); pq.notifyAll(); } }
+    private void focus(boolean on) {
+        try {
+            AudioManager am = (AudioManager) a.getSystemService(Context.AUDIO_SERVICE);
+            if (Build.VERSION.SDK_INT >= 26) {
+                if (on) { android.media.AudioFocusRequest r = new android.media.AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK).setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ASSISTANT).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()).setOnAudioFocusChangeListener(afl).build(); afr = r; am.requestAudioFocus(r); }
+                else if (afr != null) { am.abandonAudioFocusRequest((android.media.AudioFocusRequest) afr); afr = null; }
+            } else {
+                if (on) am.requestAudioFocus(afl, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK); else am.abandonAudioFocus(afl);
+            }
+        } catch (Throwable t) { }
+    }
+    private void playLoop() {
+        final Context c = a.getApplicationContext();
+        android.media.AudioTrack t = null; int curSr = 0;
+        focus(true); Ear.hold(true);
+        try {
+            while (true) {
+                Object[] it;
+                synchronized (pq) {
+                    long until = System.currentTimeMillis() + 700;   // attend la phrase suivante un instant (focus gardé)
+                    while (pq.isEmpty() && !pstop) { long w = until - System.currentTimeMillis(); if (w <= 0) break; try { pq.wait(w); } catch (InterruptedException e) { break; } }
+                    if (pstop || pq.isEmpty()) break;
+                    it = pq.poll();
+                }
+                String id = (String) it[0]; short[] s = (short[]) it[1]; int sr = (Integer) it[2];
+                if (t == null || curSr != sr) {
+                    if (t != null) { try { t.stop(); } catch (Throwable x) { } t.release(); }
+                    int min = android.media.AudioTrack.getMinBufferSize(sr, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT);
+                    t = new android.media.AudioTrack.Builder()
+                        .setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ASSISTANT).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
+                        .setAudioFormat(new AudioFormat.Builder().setEncoding(AudioFormat.ENCODING_PCM_16BIT).setSampleRate(sr).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
+                        .setBufferSizeInBytes(Math.max(min, sr / 5 * 2)).setTransferMode(android.media.AudioTrack.MODE_STREAM).build();
+                    t.play(); curSr = sr;
+                }
+                emit("pchunk", "{\"id\":" + JSONObject.quote(id) + ",\"phase\":\"start\"}");
+                int frame = Math.max(1, sr / 50); long head0 = t.getPlaybackHeadPosition() & 0xffffffffL, written = 0;
+                for (int off = 0; off < s.length && !pstop; off += frame) {
+                    int n = Math.min(frame, s.length - off); double acc = 0;
+                    for (int k = off; k < off + n; k++) acc += (double) s[k] * s[k];
+                    double rms = Math.sqrt(acc / n) / 32768.0;
+                    MajordomeWallpaper.Voix.speakLevel(c, (float) Math.min(1, Math.pow(rms * 5.5, 0.8)));
+                    int w = t.write(s, off, n); if (w < 0) break; written += w;
+                }
+                long end = System.currentTimeMillis() + 3000;   // fin réelle du son : tête de lecture
+                while (!pstop && ((t.getPlaybackHeadPosition() & 0xffffffffL) - head0) < written && System.currentTimeMillis() < end) { try { Thread.sleep(15); } catch (InterruptedException e) { break; } }
+                emit("pchunk", "{\"id\":" + JSONObject.quote(id) + ",\"phase\":\"end\"}");
+            }
+        } catch (Throwable e) {
+            synchronized (pq) { for (Object[] it : pq) emit("pchunk", "{\"id\":" + JSONObject.quote((String) it[0]) + ",\"phase\":\"end\"}"); pq.clear(); }
+        } finally {
+            if (t != null) { try { if (pstop) t.pause(); t.flush(); t.stop(); } catch (Throwable x) { } t.release(); }
+            Ear.hold(false); focus(false); MajordomeWallpaper.Voix.end("speak");
+            synchronized (pq) { pth = null; }
+        }
+    }
 
     // =====================================================================
     // Minuteurs, réveils, rappels (AlarmManager)
