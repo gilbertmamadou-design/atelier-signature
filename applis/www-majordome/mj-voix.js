@@ -19,6 +19,10 @@
      Les voix du système (speechSynthesis, TextToSpeech) ne passent pas par Web Audio : effet réservé à Piper.
      Effet générique : il n'imite la voix d'aucune personne réelle.
 
+   Liseuse (lecture continue des livres) charge ce même fichier : moteur.chunk(phrase, réglages) synthétise une phrase
+   sans la lire (Liseuse la confie à son lecteur : AudioTrack sur Android, Web Audio sur PC). Sur Android, les voix sont
+   celles de Majordome, lues par Liseuse à travers un fournisseur protégé par signature (opt.store = pont de Liseuse).
+
    Voix (licences vérifiées dans les MODEL_CARD de rhasspy/piper-voices ; fr_FR-tom-medium exclue : AGPL-3.0) :
      Pierre (UPMC, homme, CC BY-SA 4.0), Jessica (UPMC, femme, CC BY-SA 4.0), Gilles (homme, CC0), Siwis (femme, CC BY 4.0).
    Téléchargement unique depuis huggingface.co/rhasspy/piper-voices, somme SHA-256 vérifiée (API de HuggingFace : oid LFS),
@@ -327,6 +331,7 @@
       if (w) return w;
       var u = WORKER + (WORKER.indexOf('?') < 0 ? '?' : '&') + 'e=' + encodeURIComponent(ENGINE) + '&p=' + encodeURIComponent(PHON);
       w = new Worker(u);
+      w.postMessage({ t: 'cfg', e: ENGINE, p: PHON });   // le service worker de la Suite sur PC sert le worker sans sa requête
       w.onmessage = function (e) { var d = e.data || {}, p = pend[d.id]; if (!p) return; delete pend[d.id]; if (d.t === 'error') p.ko(new Error(d.msg)); else p.ok(d); };
       w.onerror = function (e) { e.preventDefault && e.preventDefault(); var msg = e.message || 'moteur Piper indisponible'; Object.keys(pend).forEach(function (k) { pend[k].ko(new Error(msg)); delete pend[k]; }); try { w.terminate(); } catch (x) { } w = null; loaded = null; E.state = 'error'; E.err = msg; emit({ t: 'state' }); };
       return w;
@@ -364,28 +369,43 @@
       if (E._fin) { var f = E._fin; E._fin = null; f(); }
     };
     function toInt16(x) { var o = new Int16Array(x.length); for (var i = 0; i < x.length; i++) { var v = Math.max(-1, Math.min(1, x[i])); o[i] = v < 0 ? v * 32768 : v * 32767; } return o; }
+    E.toInt16 = toInt16;
+    /** Réglages de synthèse communs à speak() et chunk() : voix, effet, hauteur, vitesse (durée compensée), volume */
+    function plan(s) {
+      var v = voice(s.voice), fxName = s.fx || 'aucun', fxo = s.fxo || null;
+      var p = fxParams(fxName, fxo), pitch = Math.max(0.8, Math.min(1.25, (+s.pitch || 1) * p.pitch));
+      return { v: v, fxName: fxName, fxo: fxo, pitch: pitch, speed: Math.max(0.5, Math.min(2, +s.rate || 1)) / pitch, vol: Math.max(0, Math.min(1.5, s.volume == null ? 1 : +s.volume)) };
+    }
+    /** Une phrase : synthèse (worker), effet, volume ; o = {samples, sr, tail, genMs, fxMs, ipa, env} */
+    function synthOne(text, q) {
+      return call({ t: 'gen', text: text, sid: q.v.sid, speed: q.speed }).then(function (r) {
+        var g = (root.performance || Date).now();
+        return render(r.samples, r.sr, q.fxName, Object.assign({}, q.fxo || {}, { pitch: q.pitch })).then(function (o) {
+          o.genMs = r.ms; o.fxMs = (root.performance || Date).now() - g; o.ipa = r.ipa; o.text = text;
+          if (q.vol !== 1) { var gv = Math.min(q.vol, PEAK / Math.max(1e-6, stats(o.samples, o.sr).peak)); for (var k = 0; k < o.samples.length; k++) o.samples[k] *= gv; }   // volume, sans dépasser −1 dBFS
+          o.env = envelope(o.samples, o.sr); return o;
+        });
+      });
+    }
+    /** Synthèse d'une phrase sans la lire (lecture continue de Liseuse : la lecture est faite par l'appelant).
+        s = {voice, rate, pitch, volume, fx, fxo} → Promise<{samples (Float32Array), sr, dur, tail, genMs, fxMs}> ; rejet {fallback:true} si Piper est inutilisable */
+    E.chunk = function (text, s) {
+      s = s || {};
+      var q = plan(s);
+      if (!E.usable(q.v.id)) return Promise.reject({ fallback: true, msg: 'Piper indisponible' });
+      return E.warm(q.v.id).then(function () { return synthOne(String(text || ''), q); }).then(function (o) { o.dur = o.samples.length / o.sr; return o; });
+    };
     /** Dit le texte. s = {voice, rate, pitch, volume, fx, fxo} ; cb = {onStart, onLevel, onChunk} → Promise */
     E.speak = function (text, s, cb) {
       s = s || {}; cb = cb || {};
-      var v = voice(s.voice), parts = split(text), my = ++token, fxName = s.fx || 'aucun', fxo = s.fxo || null;
+      var q = plan(s), v = q.v, parts = split(text), my = ++token;
       if (!parts.length) return Promise.resolve({ chunks: 0 });
       if (!E.usable(v.id)) return Promise.reject({ fallback: true, msg: 'Piper indisponible' });
-      var p = fxParams(fxName, fxo), pitch = Math.max(0.8, Math.min(1.25, (+s.pitch || 1) * p.pitch));
-      var speed = Math.max(0.5, Math.min(2, +s.rate || 1)) / pitch, vol = Math.max(0, Math.min(1.5, s.volume == null ? 1 : +s.volume));
       var t0 = (root.performance || Date).now(), stats0 = { first: 0, chunks: [], ok: true };
       return E.warm(v.id).then(function () {
         if (my !== token) return stats0;
         var startAt = 0, carry = null, ctx = opt.sink ? null : ac(), ended = false;
-        function gen(i) {
-          return call({ t: 'gen', text: parts[i], sid: v.sid, speed: speed }).then(function (r) {
-            var g = (root.performance || Date).now();
-            return render(r.samples, r.sr, fxName, Object.assign({}, fxo || {}, { pitch: pitch })).then(function (o) {
-              o.genMs = r.ms; o.fxMs = (root.performance || Date).now() - g; o.ipa = r.ipa; o.text = parts[i];
-              if (vol !== 1) { var gv = Math.min(vol, PEAK / Math.max(1e-6, stats(o.samples, o.sr).peak)); for (var k = 0; k < o.samples.length; k++) o.samples[k] *= gv; }   // volume, sans dépasser −1 dBFS
-              o.env = envelope(o.samples, o.sr); return o;
-            });
-          });
-        }
+        function gen(i) { return synthOne(parts[i], q); }
         return new Promise(function (done, fail) {
           E._fin = function () { if (!ended) { ended = true; done(stats0); } };
           var pending = gen(0);
