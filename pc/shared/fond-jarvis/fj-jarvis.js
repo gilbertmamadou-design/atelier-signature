@@ -551,6 +551,22 @@
       return answer('Je ne pilote que Mélodie, quand elle est ouverte dans le même navigateur. Pour les autres lecteurs, utilisez les touches multimédia du clavier.').done;
     });
   };
+  /* Livres audio : la fenêtre Liseuse de la Suite (même navigateur) reçoit la commande par le canal « mag-liseuse » */
+  var lisCh = null; try { lisCh = root.BroadcastChannel ? new BroadcastChannel('mag-liseuse') : null; } catch (e) { }
+  H.book = function (p) {
+    var arg = { audio: p.cmd, title: p.title || '', min: p.ms ? Math.round(p.ms / 60000) : 0, chap: !!p.chap, id: 'fj' + Date.now().toString(36) };
+    return new Promise(function (res) {
+      if (!lisCh) return res(null);
+      var done = false, h = function (e) { if (e.data && e.data.ack === arg.id) { done = true; lisCh.removeEventListener('message', h); res(e.data.ok !== false); } };
+      lisCh.addEventListener('message', h); lisCh.postMessage(arg);
+      setTimeout(function () { if (!done) { lisCh.removeEventListener('message', h); res(null); } }, 900);
+    }).then(function (ok) {
+      if (ok) return answer({ pause: 'Lecture en pause.', stop: 'Lecture arrêtée.', nextch: 'Chapitre suivant.', prevch: 'Chapitre précédent.', sleep: 'Minuterie de lecture réglée.' }[p.cmd] || 'Je lis.').done;
+      if (ok === false) return answer(p.title ? 'Je ne trouve pas « ' + p.title + ' » dans Liseuse.' : 'Aucune lecture en cours dans Liseuse.').done;
+      if (/^(read|resume)$/.test(p.cmd)) return openLink(FJ.suiteUrl('liseuse'), 'Liseuse');
+      return answer('Liseuse n\'est pas ouverte dans ce navigateur.').done;
+    });
+  };
   H.routine = function (p) {
     if (p.id === 'matin') {
       var h = new Date().getHours();
