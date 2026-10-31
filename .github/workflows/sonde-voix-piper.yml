@@ -1,0 +1,26 @@
+# TEMPORAIRE (retiré après usage) : vérifie depuis Internet le CORS de HuggingFace pour les voix Piper de Majordome,
+# les sommes SHA-256 réelles et les métadonnées ONNX des fichiers d'origine (rhasspy/piper-voices).
+name: Sonde voix Piper (temporaire)
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  sonde:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: CORS, sommes, métadonnées, fiches des voix
+        run: |
+          B=https://huggingface.co/rhasspy/piper-voices/resolve/main/fr/fr_FR
+          O="Origin: https://gilbertmamadou-design.github.io"
+          for v in upmc/medium/fr_FR-upmc-medium gilles/low/fr_FR-gilles-low siwis/medium/fr_FR-siwis-medium; do
+            for e in .onnx .onnx.json; do
+              echo "=== $v$e"; curl -sS -L -D - -o /dev/null -H "$O" "$B/$v$e" | grep -iE "^(HTTP|access-control-allow-origin|access-control-expose|location|content-length|x-linked-size|x-linked-etag)" | cut -c1-160
+            done
+          done
+          echo "=== API tree (lively)"; curl -sS -D - -o tree.json -H "Origin: https://abc.localhost" https://huggingface.co/api/models/rhasspy/piper-voices/tree/main/fr/fr_FR/upmc/medium | grep -iE "^(HTTP|access-control-allow-origin)"; cat tree.json; echo
+          for v in tom/medium mls/medium siwis/medium upmc/medium gilles/low; do echo "=== MODEL_CARD $v"; curl -sSL "$B/$v/MODEL_CARD"; echo; done
+          pip install -q onnx
+          for v in upmc/medium/fr_FR-upmc-medium gilles/low/fr_FR-gilles-low siwis/medium/fr_FR-siwis-medium; do
+            curl -sSL -o m.onnx "$B/$v.onnx"; echo "=== $v.onnx $(stat -c %s m.onnx) $(sha256sum m.onnx | cut -c1-64)"
+            python3 -c "import onnx;m=onnx.load('m.onnx',load_external_data=False);print('metadata:',[(p.key,p.value[:40]) for p in m.metadata_props]);print('opset',[o.version for o in m.opset_import])"
+          done
