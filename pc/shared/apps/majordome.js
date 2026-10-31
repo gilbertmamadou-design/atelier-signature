@@ -22,6 +22,12 @@
   var MODEL_KEY = 'vosk-model-small-fr-0.22';
   var FLAG = 'majordome:modele';
   var WORKER = (M.conf.vendor || '../shared/vendor/') + 'vosk/vosk-worker.js';
+  /* Stockage persistant (réglages, listes, voix Piper de 60 à 73 Mo et modèle Vosk) : sans lui, Edge ou Chrome peuvent
+     effacer les données du site quand le disque est presque plein. Accordé sans fenêtre (appli installée ou très utilisée). */
+  try {
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persisted().then(function (p) { return p || navigator.storage.persist(); })
+      .then(function (p) { M.persisted = !!p; }, function () { });
+  } catch (e) { }
   function emit(t, o) { try { if (window.majordomeEvent) window.majordomeEvent(t, JSON.stringify(o || {})); } catch (e) { console.warn(e); } }
   function deacc(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim(); }
   function uuid() { return 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
