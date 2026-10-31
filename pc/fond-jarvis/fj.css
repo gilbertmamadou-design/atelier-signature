@@ -253,6 +253,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .fld small, .hint { display: block; color: rgb(var(--ink) / .55); font-size: .82em; line-height: 1.35; }
 .hint { margin: .3em 0 .7em; }
 .hint.warn { color: rgb(var(--warn)); }
+.sh-store { margin: .2em 1.2em .4em; padding: .55em .8em; border: 1px solid rgb(var(--warn) / .45); border-radius: .5em; text-shadow: none; }
+.sh-store .btn { margin-left: .4em; font-size: .95em; }
 .sh input[type="text"], .sh input[type="url"], .sh input[type="number"], .sh select { background: rgb(var(--c) / .06); border: 1px solid rgb(var(--c) / .35); padding: .4em .55em; width: 100%; min-width: 0; outline: none; }
 .sh input:focus, .sh select:focus { border-color: rgb(var(--c)); }
 .sh select option { background: #04111d; }

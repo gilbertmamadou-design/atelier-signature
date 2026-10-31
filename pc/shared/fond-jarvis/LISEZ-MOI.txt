@@ -8,13 +8,25 @@ Installer
      https://apps.microsoft.com/detail/9ntm2qc6qws7  (éditeur : rocksdanister)
   2. Ouvrez Lively, puis glissez ce fichier .zip dans sa fenêtre (Bibliothèque).
   3. Cliquez sur la vignette « Fond Jarvis (Suite MAG) » : le fond s'affiche.
+  4. IMPORTANT, pour que le fond garde ses réglages : Lively › Paramètres
+     (roue dentée) › Fond d'écran › Navigateur Internet › « Cache sur
+     disque » : Activé, puis fermez et rouvrez Lively. Sans cela, Lively
+     donne au fond un stockage neuf à chaque démarrage (nom, ville,
+     raccourcis, voix téléchargée oubliés). Témoin : ⚙ › À propos ›
+     « Réglages enregistrés : oui ».
 
 Régler
   - Dans Lively : clic droit sur la vignette › Personnaliser (thème, disposition,
     ville, seuil de vent, voix, nom de l'assistant, zone libre pour les icônes…).
   - Sur le fond : bouton ⚙ en bas à droite (raccourcis, agenda .ics, voix…).
-  - Voix Piper (neuronale, hors ligne) : ⚙ › Voix › « Voix Piper », Télécharger
-    (60 à 73 Mo, une fois, somme vérifiée) ; effet « IA de film », Majordome, Radio…
+  - Lively garde toujours ce qui est réglé dans Personnaliser, même sans
+    « Cache sur disque ».
+  - Voix Piper (neuronale, hors ligne) : paquet « avec voix Siwis » (voix déjà
+    dans voix/), ou Personnaliser › « Voix Piper (fichiers) » › + (fichiers
+    .onnx et .onnx.json), ou ⚙ › Voix › Télécharger (60 à 73 Mo, gardée
+    seulement avec « Cache sur disque ») ; effet « IA de film », Radio…
+  - Sauvegarde : ⚙ › À propos › « Enregistrer mes réglages dans un fichier »
+    (avant une mise à jour du paquet), puis « Reprendre un fichier de réglages ».
   - Pour taper des commandes : Lively › Paramètres › Fond d'écran ›
     Périphérique d'interaction › cocher « Clavier ». Puis Ctrl+Espace.
 

@@ -40,11 +40,14 @@
       <a class="btn" href="https://apps.microsoft.com/detail/9ntm2qc6qws7" target="_blank" rel="noopener">Ouvrir Lively dans le Microsoft Store</a><br>
       <small>Vérifiez que l'éditeur est <b>rocksdanister</b> et que l'appli est <b>gratuite</b> (il existe des copies payantes au nom proche, comme « Lively Wallpaper Metro »). Cliquez <b class="ui">Obtenir</b>, puis ouvrez Lively.</small></li>
     <li><b>Télécharger le fond</b> (fichier .zip, à ne pas décompresser) :<br>
-      <a class="btn" href="fond-jarvis-lively.zip">Télécharger fond-jarvis-lively.zip</a></li>
+      <a class="btn" href="fond-jarvis-lively.zip">Télécharger fond-jarvis-lively.zip</a> (15 Mo)<br>
+      <small>Ou, plus simple pour la voix : <a href="https://github.com/gilbertmamadou-design/atelier-signature/releases/download/fond-jarvis-voix/fond-jarvis-lively-voix-siwis.zip">paquet avec la voix Siwis incluse</a> (environ 60 Mo, voix féminine hors ligne déjà prête, rien à télécharger dans le fond ; voix sous licence CC BY 4.0, attribution dans le paquet).</small></li>
     <li><b>Glisser le .zip dans la fenêtre de Lively</b> (page <b class="ui">Bibliothèque</b>). La vignette « Fond Jarvis (Suite MAG) » apparaît.<br>
       <small>Autre façon : bouton <b class="ui">Ajouter</b> (+) › <b class="ui">Sélectionner un fichier</b> › choisir le .zip.</small></li>
     <li><b>Cliquer sur la vignette</b> (ou clic droit › <b class="ui">Définir comme fond d'écran</b>). Le fond s'affiche derrière les icônes du bureau.</li>
     <li><b>Activer le clavier</b> pour parler à l'assistant au clavier : Lively › <b class="ui">Paramètres</b> (roue dentée) › <b class="ui">Fond d'écran</b> › <b class="ui">Périphérique d'interaction</b> › cochez <b class="ui">Clavier</b>. La souris marche déjà.</li>
+    <li><b>Garder les réglages (important)</b> : Lively › <b class="ui">Paramètres</b> (roue dentée) › <b class="ui">Fond d'écran</b> › <b class="ui">Navigateur Internet</b> › <b class="ui">Cache sur disque</b> : <b>Activé</b>, puis fermez et rouvrez Lively.<br>
+      <small>Sans ce réglage (désactivé à l'installation de Lively), Lively donne au fond un stockage neuf à chaque démarrage : nom, ville, raccourcis et voix téléchargée faits sur le fond (⚙) seraient oubliés. ⚙ › <b>À propos</b> › « Réglages enregistrés » indique <b>oui</b> quand tout est bien gardé.</small></li>
   </ol>
 
   <h2>Plusieurs écrans</h2>
@@ -57,7 +60,7 @@
 
   <h2>Régler</h2>
   <ul>
-    <li><b>Dans Lively</b> : clic droit sur la vignette › <b class="ui">Personnaliser</b> : thème (cyan, bleu, vert, ambre, rouge), disposition (Complet, Épuré, Sphère seule), ville de la météo, seuil de vent chantier, voix, nom de l'assistant (« Jarvis » par exemple), zone libre à gauche pour les icônes, taille du texte, intensité des effets, animations réduites, images par seconde, économie sur batterie, nombre de titres, agenda (.ics).</li>
+    <li><b>Dans Lively</b> : clic droit sur la vignette › <b class="ui">Personnaliser</b> : thème (cyan, bleu, vert, ambre, rouge), disposition (Complet, Épuré, Sphère seule), ville de la météo, seuil de vent chantier, voix (Windows ou Piper), voix Piper choisie, fichiers de voix Piper, effet, nom de l'assistant (« Jarvis » par défaut), zone libre à gauche pour les icônes, taille du texte, intensité des effets, animations réduites, images par seconde, économie sur batterie, nombre de titres, agenda (.ics), réglages enregistrés (fichier). <b>Lively garde toujours ces réglages</b>, même si « Cache sur disque » est désactivé.</li>
     <li><b>Sur le fond</b> : le bouton <b class="ui">⚙</b> au bout de la barre de commande ouvre tous les réglages, dont l'éditeur de <b>raccourcis</b> (ajouter, retirer, renommer, choisir l'icône).</li>
     <li><b>Icônes du bureau cachées ?</b> Augmentez la <b>zone libre à gauche</b> (140 px par défaut, une colonne d'icônes fait environ 80 px).</li>
   </ul>
@@ -66,7 +69,7 @@
   <ul>
     <li>Cliquez la <b>sphère</b>, ou faites <kbd>Ctrl</kbd> + <kbd>Espace</kbd> quand le bureau est affiché, puis tapez : « quelle heure est-il », « quel temps fait-il demain », « minuteur de 10 minutes », « combien font 15 % de 240 », « les titres », « ajoute du pain à la liste de courses », « ouvre le tableur », « ouvre les paramètres Wi-Fi », « thème vert », « aide »…</li>
     <li>Il répond <b>par écrit</b> et <b>à voix haute</b> (voix française de Windows). Pas de son ? Lively › Paramètres › <b class="ui">Son</b> : volume au-dessus de 0. Par défaut, Lively ne joue le son que quand le bureau est au premier plan.</li>
-    <li><b>Voix neuronale Piper</b> (hors ligne, plus naturelle que la voix de Windows) : ⚙ › <b class="ui">Voix</b> › Moteur « Voix Piper (hors ligne) », puis <b>Télécharger</b> une voix (Pierre, Gilles, Siwis ou Jessica, 60 à 73 Mo, une seule fois ; la somme de contrôle est vérifiée). Dans Lively, le fond a son propre stockage : téléchargez-la une fois ici même si elle est déjà dans la Suite. Si le téléchargement est refusé, récupérez les deux fichiers de la voix sur huggingface.co/rhasspy/piper-voices (…/fr/fr_FR/…, <code>.onnx</code> et <code>.onnx.json</code>) et utilisez <b class="ui">Choisir les fichiers téléchargés</b>. Effet sur la voix : Aucun, Discret, Majordome, <b>IA de film</b> (par défaut) ou Radio, avec des réglages fins ; aussi dans Lively › Personnaliser. Si la voix Piper ne peut pas se charger, la voix de Windows prend le relais.</li>
+    <li><b>Voix neuronale Piper</b> (hors ligne, plus naturelle que la voix de Windows) : ⚙ › <b class="ui">Voix</b> › Moteur « Voix Piper (hors ligne) », puis <b>Télécharger</b> une voix (Pierre, Gilles, Siwis ou Jessica, 60 à 73 Mo, une seule fois ; la somme de contrôle est vérifiée). Dans Lively, le plus sûr est une voix <b>dans le paquet</b> : paquet avec la voix Siwis incluse (ci-dessus), ou clic droit › Personnaliser › « Voix Piper (fichiers) » › <b>+</b> › choisissez les deux fichiers de la voix (<code>.onnx</code> et <code>.onnx.json</code>) ; Lively les range dans le dossier du fond et le fond les lit sur place. Une voix téléchargée dans ⚙ n'est gardée que si « Cache sur disque » est activé. Si le téléchargement est refusé, récupérez les deux fichiers de la voix sur huggingface.co/rhasspy/piper-voices (…/fr/fr_FR/…, <code>.onnx</code> et <code>.onnx.json</code>) et utilisez <b class="ui">Choisir les fichiers téléchargés</b>. Effet sur la voix : Aucun, Discret, Majordome, <b>IA de film</b> (par défaut) ou Radio, avec des réglages fins ; aussi dans Lively › Personnaliser. Si la voix Piper ne peut pas se charger, la voix de Windows prend le relais.</li>
     <li><b>À la voix</b> : dans Lively, le fond d'écran n'a pas accès au micro. Le bouton micro ouvre <b>Majordome</b> (Suite MAG), qui écoute hors ligne. Dans le navigateur (version ci-dessous), le micro du fond marche si le modèle vocal est installé dans Majordome.</li>
   </ul>
 
@@ -94,11 +97,12 @@
   <a class="btn alt" href="./">Ouvrir la version web</a> <a class="btn alt" href="../">Toutes les applis de la Suite</a>
 
   <h2>Mettre à jour</h2>
-  <p>Le fond vérifie une fois par jour si une nouvelle version existe (⚙ › <b>À propos</b>). Pour l'installer : téléchargez le nouveau .zip, supprimez l'ancienne vignette dans Lively (clic droit › <b class="ui">Supprimer</b>) et glissez le nouveau .zip. Les réglages faits dans le panneau ⚙ sont gardés.</p>
+  <p>Le fond vérifie une fois par jour si une nouvelle version existe (⚙ › <b>À propos</b>). Pour l'installer : téléchargez le nouveau .zip, supprimez l'ancienne vignette dans Lively (clic droit › <b class="ui">Supprimer</b>) et glissez le nouveau .zip. Lively installe chaque version dans un nouveau dossier, avec un stockage neuf : <b>avant</b> de supprimer l'ancienne, faites ⚙ › <b>À propos</b> › <b class="ui">Enregistrer mes réglages dans un fichier</b> (dossier Téléchargements) ; <b>après</b>, sur le nouveau fond, ⚙ › À propos › <b class="ui">Reprendre un fichier de réglages</b>. Les réglages de Lively › Personnaliser sont à refaire, la voix aussi si elle avait été téléchargée dans ⚙ (inutile avec le paquet avec voix).</p>
 
   <h2>Problèmes fréquents</h2>
   <ul>
     <li><b>Écran noir</b> : Lively › Paramètres › <b class="ui">Fond d'écran</b> : moteur web <b>WebView2</b> (par défaut). WebView2 est fourni avec Windows ; s'il manque, Lively propose de l'installer.</li>
+    <li><b>Tout est oublié à chaque redémarrage</b> (nom, ville, voix, raccourcis) : activez <b>Cache sur disque</b> (étape 6). Autre solution sans ce réglage : réglez le fond dans Lively › Personnaliser, et pour les raccourcis faites ⚙ › À propos › <b>Enregistrer mes réglages dans un fichier</b>, puis Personnaliser › « Réglages enregistrés » › <b>+</b> › ce fichier : Lively le redonne au fond à chaque démarrage.</li>
     <li><b>Météo « Position inconnue »</b> : saisissez votre ville (Personnaliser › Ville de la météo).</li>
     <li><b>Les touches ne font rien</b> : cochez <b>Clavier</b> (étape 5) et cliquez d'abord sur le bureau.</li>
     <li><b>Pas de jauges CPU / RAM</b> : elles n'existent que dans Lively (données fournies par Lively). Dans le navigateur, le panneau Système est masqué.</li>

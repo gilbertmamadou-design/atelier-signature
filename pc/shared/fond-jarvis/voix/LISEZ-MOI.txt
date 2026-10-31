@@ -1,0 +1,18 @@
+Voix Piper du Fond Jarvis
+=========================
+
+Ce dossier reçoit les voix Piper lues sur place par le fond (aucun
+téléchargement, gardées même quand Lively efface le stockage du fond).
+
+Ajouter une voix : dans Lively, clic droit sur le fond › Personnaliser ›
+« Voix Piper (fichiers) » › bouton + › choisissez les DEUX fichiers de la
+voix, sans les renommer, par exemple :
+  fr_FR-siwis-medium.onnx  et  fr_FR-siwis-medium.onnx.json
+Puis « Voix » : Voix Piper (hors ligne).
+
+Voix reconnues : fr_FR-upmc-medium (Pierre, Jessica), fr_FR-gilles-low
+(Gilles), fr_FR-siwis-medium (Siwis). Fichiers sur
+https://huggingface.co/rhasspy/piper-voices/tree/main/fr/fr_FR
+
+Le paquet « avec voix Siwis » contient déjà fr_FR-siwis-medium (licence
+CC BY 4.0, voir SIWIS-ATTRIBUTION.txt dans ce dossier).

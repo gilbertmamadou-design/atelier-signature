@@ -5,6 +5,7 @@
     python3 pc/build-pc.py --vendor        # en plus, recopie les bibliothèques depuis pc/node_modules (après « npm ci » dans pc/)
     python3 pc/build-pc.py --vendor=exceljs.min.js   # idem pour les seules bibliothèques nommées (séparées par des virgules)
     python3 pc/build-pc.py --check         # vérifie seulement que les fichiers générés sont à jour (code 1 sinon)
+    python3 pc/build-pc.py --lively-voix=DOSSIER[,SORTIE]   # paquet Lively avec la voix Siwis (workflow fond-jarvis-voix.yml)
 
 Pour chaque appli de pc/pc-apps.json :
   applis/www-<web>/index.html  →  pc/<id>/index.html   (copie + injection du shim PC + adaptations de libellés)
@@ -261,6 +262,74 @@ def lively_package(app, out_dir):
     return v
 
 
+VOICE_PKG = {   # paquet Lively « avec voix » : fabriqué par .github/workflows/fond-jarvis-voix.yml (Release), jamais dans le dépôt
+    'app': 'fond-jarvis', 'model': 'fr_FR-siwis-medium', 'zip': 'fond-jarvis-lively-voix-siwis.zip',
+    'attribution': 'pc/shared/fond-jarvis/voix/SIWIS-ATTRIBUTION.txt', 'title': 'Fond Jarvis (Suite MAG, voix Siwis)',
+    'props': {'voiceEngine': 1, 'piperVoice': 2, 'voiceFile': 'fr_FR-siwis-medium.onnx'},
+}
+
+
+def lively_voice_package(src_dir, out_dir=None):
+    """--lively-voix=DOSSIER[,SORTIE] : paquet Lively avec la voix Siwis incluse (voix/ du paquet, lue sur place).
+    DOSSIER : fr_FR-siwis-medium.onnx, .onnx.json et MODEL_CARD (facultatif) téléchargés de HuggingFace.
+    Somme SHA-256 du .onnx comparée à celle de applis/www-majordome/mj-voix.js (MODELS). Part du paquet publié
+    pc/<id>/fond-jarvis-lively.zip (à jour) : mêmes fichiers, LivelyProperties.json réglé sur Piper / Siwis."""
+    import io
+    import zipfile
+    V = VOICE_PKG
+    m = V['model']
+    out_dir = out_dir or src_dir
+    onnx = read(os.path.join(src_dir, m + '.onnx'), 'rb')
+    cfg = read(os.path.join(src_dir, m + '.onnx.json'), 'rb')
+    js = read(os.path.join(APPLIS, 'www-majordome', 'mj-voix.js'))
+    want = re.search(r"'%s':\s*\{[^}]*sha256:\s*'([0-9a-f]{64})'" % re.escape(m), js)
+    if not want:
+        sys.exit('somme SHA-256 de %s introuvable dans mj-voix.js' % m)
+    got = hashlib.sha256(onnx).hexdigest()
+    if got != want.group(1):
+        sys.exit('%s.onnx : somme SHA-256 %s, attendue %s' % (m, got, want.group(1)))
+    c = json.loads(cfg.decode('utf-8'))
+    if not (c.get('phoneme_id_map') and c.get('audio', {}).get('sample_rate')):
+        sys.exit('%s.onnx.json invalide' % m)
+    app = next(a for a in json.loads(read(os.path.join(PC, 'pc-apps.json')))['apps'] if a['id'] == V['app'])
+    base = os.path.join(PC, app['id'], app['lively']['zip'])
+    files = {}
+    with zipfile.ZipFile(base) as z:
+        for n in z.namelist():
+            files[n] = z.read(n)
+    props = json.loads(files['LivelyProperties.json'].decode('utf-8-sig'))
+    for k, v in V['props'].items():
+        if k not in props:
+            sys.exit('LivelyProperties.json : propriété %s absente' % k)
+        props[k]['value'] = v
+    files['LivelyProperties.json'] = (json.dumps(props, ensure_ascii=False, indent=1) + '\n').encode()
+    info = json.loads(files['LivelyInfo.json'].decode('utf-8-sig'))
+    info['Title'] = V['title']
+    info['Desc'] = info.get('Desc', '') + ' Voix Piper « Siwis » incluse (CC BY 4.0, voir voix/SIWIS-ATTRIBUTION.txt).'
+    files['LivelyInfo.json'] = (json.dumps(info, ensure_ascii=False, indent=1) + '\n').encode()
+    files['voix/' + m + '.onnx'] = onnx
+    files['voix/' + m + '.onnx.json'] = cfg
+    files['voix/SIWIS-ATTRIBUTION.txt'] = read(os.path.join(REPO, V['attribution']), 'rb')
+    card = os.path.join(src_dir, 'MODEL_CARD')
+    if os.path.exists(card):
+        files['voix/' + m + '.MODEL_CARD.txt'] = read(card, 'rb')
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, 'w', allowZip64=True) as z:
+        for k in sorted(files):
+            zi = zipfile.ZipInfo(k, date_time=ZIP_DATE)
+            zi.compress_type = zipfile.ZIP_STORED if k.endswith(('.gif', '.jpg', '.png')) else zipfile.ZIP_DEFLATED
+            zi.create_system = 0
+            zi.external_attr = 0o644 << 16
+            z.writestr(zi, files[k], compresslevel=9)
+    zb = buf.getvalue()
+    dest = os.path.join(out_dir, V['zip'])
+    os.makedirs(out_dir, exist_ok=True)
+    with open(dest, 'wb') as f:
+        f.write(zb)
+    print('%s : %.1f Mo, sha256 %s (voix %s vérifiée)' % (dest, len(zb) / 1048576, sha(zb), m))
+    return dest
+
+
 def app_id(app, conf):
     """Identifiant unique et stable de l'appli installée. Il est résolu par rapport à l'ORIGINE (pas au dossier) :
     un id relatif comme "./" donnerait le même identifiant à toutes les applis du site, que Edge et Chrome confondraient."""
@@ -438,4 +507,9 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    _lv = next((a for a in sys.argv if a.startswith('--lively-voix=')), None)
+    if _lv:
+        _a = _lv.split('=', 1)[1].split(',')
+        lively_voice_package(_a[0], _a[1] if len(_a) > 1 else None)
+    else:
+        main()

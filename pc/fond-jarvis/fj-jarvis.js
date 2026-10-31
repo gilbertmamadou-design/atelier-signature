@@ -52,20 +52,45 @@
     return fr.filter(function (v) { return v.name === S.voice; })[0] || fr.filter(function (v) { return /fr-FR/i.test(v.lang) && v.localService; })[0] || fr[0] || null;
   }
   function speechText(t) { return String(t || '').replace(/km\/h/g, 'kilomètres heure').replace(/°C?/g, ' degrés').replace(/\s%/g, ' pour cent').replace(/[«»"]/g, ''); }
-  var VX = FJ.VX = root.MJVoix ? MJVoix.create({ engine: FJ.mode === 'lively' ? 'piper/' : '../../applis/www-majordome/piper/', worker: 'mj-voix-worker.js', phon: 'mj-phon.js' }) : null;
-  if (VX && S.tts === 'piper' && VX.hasVoice(S.piperVoice)) setTimeout(function () { VX.warm(S.piperVoice).catch(function () { }); }, 3000);   // première phrase rapide
+  // Lively : voix rangées dans le dossier du paquet (voix/, paquet « avec voix » ou fichiers ajoutés par Lively › Personnaliser ›
+  // « Voix Piper (fichiers) ») : lues sur place, sans téléchargement ni stockage du navigateur.
+  var VX = FJ.VX = root.MJVoix ? MJVoix.create({ engine: FJ.mode === 'lively' ? 'piper/' : '../../applis/www-majordome/piper/', worker: 'mj-voix-worker.js', phon: 'mj-phon.js', localDir: FJ.mode === 'lively' ? 'voix/' : null }) : null;
+  /** Cherche les voix du dossier voix/ ; si la voix choisie manque mais qu'une voix du paquet existe, la prend. */
+  FJ.localVoices = function (prefer) {
+    if (!VX || !VX.probeLocal) return Promise.resolve({});
+    return VX.probeLocal().then(function (loc) {
+      var ms = Object.keys(loc);
+      if (ms.length) {
+        var pv = prefer && MJVoix.VOICES.filter(function (v) { return v.model === prefer && loc[v.model]; })[0];
+        if (pv) S.piperVoice = pv.id;
+        else if (!VX.hasVoice(S.piperVoice)) S.piperVoice = MJVoix.VOICES.filter(function (v) { return loc[v.model]; })[0].id;
+        FJ.save();
+      }
+      return loc;
+    });
+  };
+  /** Voix Piper réellement utilisée : celle choisie si elle est là, sinon une voix du paquet */
+  function curVoice() {
+    if (!VX || VX.hasVoice(S.piperVoice)) return S.piperVoice;
+    var l = VX.local || {}, v = MJVoix.VOICES.filter(function (x) { return l[x.model]; })[0];
+    return v ? v.id : S.piperVoice;
+  }
+  FJ.curVoice = curVoice;
+  FJ.voiceReady = FJ.localVoices().catch(function () { }).then(function () {
+    if (VX && S.tts === 'piper' && VX.hasVoice(curVoice())) setTimeout(function () { VX.warm(curVoice()).catch(function () { }); }, 3000);   // première phrase rapide
+  });
   function piperSay(t, orb, id, end) {
     var heard = false;
     if (orb) orb.speak(true, t, S.rate);
     setState('Réponse');
-    return VX.speak(t, { voice: S.piperVoice, rate: S.rate, pitch: 1, volume: 1, fx: S.vfx, fxo: S.vfxo }, { onStart: function () { heard = true; }, onLevel: function (v) { if (orb && speakId === id) orb.voice(v); } })
+    return VX.speak(t, { voice: curVoice(), rate: S.rate, pitch: 1, volume: 1, fx: S.vfx, fxo: S.vfxo }, { onStart: function () { heard = true; }, onLevel: function (v) { if (orb && speakId === id) orb.voice(v); } })
       .then(function () { end(); return true; }, function () { if (heard) { end(); return true; } return false; });
   }
   function speak(text) {
     lastSaid = text;
     var orb = FJ.orb, id = ++speakId;
     return new Promise(function (done) {
-      if (S.voiceOn && S.tts === 'piper' && VX && VX.usable(S.piperVoice)) {   // voix Piper ; échec avant le premier son : voix du système, sans message
+      if (S.voiceOn && S.tts === 'piper' && VX && VX.usable(curVoice())) {   // voix Piper ; échec avant le premier son : voix du système, sans message
         if (VX) VX.stop(); try { if (root.speechSynthesis) speechSynthesis.cancel(); } catch (e) { }
         var pend = function () { if (orb && speakId === id) { orb.speak(false); if (orb.get() === 'speak') orb.state(listening ? 'listen' : 'idle'); setState(listening ? 'J\'écoute' : 'En ligne'); } if (B && B.hold) try { B.hold(false); } catch (e) { } done(); };
         if (B && B.hold) try { B.hold(true); } catch (e) { }

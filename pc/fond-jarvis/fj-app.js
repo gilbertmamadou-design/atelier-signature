@@ -48,8 +48,37 @@
   var S = FJ.S = Object.assign({}, DEF, lsGet(KEY.set, {}));
   S.panels = Object.assign({}, DEF.panels, S.panels || {});
   FJ.save = function () { lsSet(KEY.set, S); };
+
+  /* ---------------- Les réglages tiennent-ils ? (témoin ⚙ › À propos) ----------------
+     Lively (lecteur WebView2) donne au fond un profil de navigateur NEUF à chaque démarrage tant que son réglage
+     « Cache sur disque » est désactivé (valeur par défaut) : %TEMP%\Lively Wallpaper\CEF\<nom aléatoire>, vidé au
+     lancement suivant de Lively. Code de Lively : WallpaperPluginFactory.GetWebView2UserDataDir →
+     WebView2UserDataFactory.GetTempUserDataFolder (Path.GetRandomFileName) ; AppInitializer.CleanTempFiles
+     (EmptyDirectory(CefRootCacheDir)). localStorage et IndexedDB repartent donc de zéro. Ce que Lively garde : les
+     valeurs de LivelyProperties.json (SaveData\wpdata), renvoyées à chaque chargement, et les fichiers du dossier du fond.
+     Réglage activé : profil fixe %LOCALAPPDATA%\Lively Wallpaper\WebView2\Lively.PlayerWebView2\<écran>, tout est gardé. */
+  var BKEY = 'fond-jarvis:demarrages';
+  var B0 = lsGet(BKEY, null), hadSet = false;
+  try { hadSet = localStorage.getItem(KEY.set) != null || localStorage.getItem(KEY.keys) != null; } catch (e) { }
+  var ST = FJ.store = { had: !!(B0 && B0.n) || hadSet, first: (B0 && B0.first) || Date.now(), n: ((B0 && B0.n) || 0) + 1, file: false, persisted: null };
+  ST.writable = lsSet(BKEY, { first: ST.first, n: ST.n, last: Date.now() });
+  try {
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persisted().then(function (p) { return p || navigator.storage.persist(); })
+      .then(function (p) { ST.persisted = !!p; }, function () { });
+  } catch (e) { }
+  // valeurs de LivelyProperties.json : celles du paquet (défaut) et celles reçues de Lively pendant cette session
+  var LPDEF = null, LPS = {};
+  if (FJ.mode === 'lively') fetch('LivelyProperties.json', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (o) {
+    LPDEF = {}; Object.keys(o || {}).forEach(function (k) { if (o[k] && 'value' in o[k] && !/^(label|button|folderDropdown)$/.test(o[k].type)) LPDEF[k] = JSON.stringify(o[k].value); });
+  }).catch(function () { });
+  /** Réglé par l'utilisateur dans Lively › Personnaliser (valeur reçue différente de celle du paquet) */
+  FJ.lpUser = function (name) { return !!LPDEF && name in LPS && name in LPDEF && LPS[name] !== LPDEF[name]; };
+  function anyLpUser() { return Object.keys(LPS).some(FJ.lpUser); }
+  /** 'ok' réglages retrouvés · 'efface' stockage vide alors que le fond a déjà été réglé · 'nouveau' premier démarrage (ou effacé) · 'bloque' */
+  FJ.storeState = function () { return !ST.writable ? 'bloque' : ST.had ? 'ok' : (ST.file || anyLpUser()) ? 'efface' : 'nouveau'; };
+  FJ.DISK_CACHE_HELP = 'Lively › Paramètres (roue dentée) › Fond d\'écran › Navigateur Internet › « Cache sur disque » : Activé, puis redémarrez Lively.';
   FJ.aiName = function () { return (S.name || MJS.name || 'Majordome').trim() || 'Majordome'; };
-  var THEMES = ['cyan', 'bleu', 'vert', 'ambre', 'rouge'], LAYOUTS = ['complet', 'epure', 'sphere'];
+  var THEMES = ['cyan', 'bleu', 'vert', 'ambre', 'rouge'], LAYOUTS = ['complet', 'epure', 'sphere'], PIPER = ['pierre', 'gilles', 'siwis', 'jessica'];
   FJ.THEMES = THEMES; FJ.LAYOUTS = LAYOUTS;
 
   /* ---------------- Petits outils d'interface ---------------- */
@@ -599,6 +628,7 @@
     if (name === 'openSettings') { FJ.settings(); return; }
     if (name === 'resetKeys') { FJ.keys = FJ.defaultKeys(); FJ.saveKeys(); FJ.toast('Raccourcis par défaut rétablis'); return; }
     var key = JSON.stringify(val);
+    LPS[name] = key;
     if (LP[name] === key) return;
     LP[name] = key; lsSet(KEY.lp, LP);
     switch (name) {
@@ -612,6 +642,21 @@
       case 'voiceOn': S.voiceOn = !!val; break;
       case 'voiceEngine': S.tts = +val === 1 ? 'piper' : 'system'; break;
       case 'voiceFx': S.vfx = ['aucun', 'discret', 'majordome', 'ia', 'radio'][+val] || 'ia'; S.vfxo = null; break;
+      case 'piperVoice': S.piperVoice = PIPER[+val] || 'pierre'; break;
+      case 'voiceFile':   // fichiers de voix ajoutés dans Lively › Personnaliser : copiés par Lively dans voix/ (dossier du fond)
+        if (val && FJ.localVoices) {
+          var vf = String(val).replace(/\\/g, '/').split('/').pop().replace(/(\.onnx)?(\.json)?$/i, '');
+          FJ.localVoices(vf).then(function (loc) { if (loc[vf]) { FJ.toast('Voix ' + cap(vf.split('-')[1] || vf) + ' trouvée dans le dossier du fond'); if (FJ.VX && S.tts === 'piper') FJ.VX.warm(FJ.curVoice()).catch(function () { }); } });
+        }
+        return;
+      case 'settingsFile':   // réglages enregistrés dans un fichier (⚙ › À propos), ajouté dans Lively › Personnaliser
+        if (val) {
+          var sp = String(val).replace(/\\/g, '/');
+          fetch(sp.split('/').map(encodeURIComponent).join('/'), { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+            .then(function (t) { ST.file = true; var n = FJ.importSettings(t, { auto: true }); if (n) FJ.toast('Réglages repris du fichier ' + sp.split('/').pop()); })
+            .catch(function () { FJ.toast('Fichier de réglages illisible'); });
+        }
+        return;
       case 'assistantName': clearTimeout(nameT); nameT = setTimeout(function () { S.name = String(val || '').trim().slice(0, 30); FJ.save(); FJ.apply(); }, 800); return;
       case 'freeLeft': S.free = clamp(Math.round(+val), 0, 900); break;
       case 'textScale': S.scale = clamp(Math.round(+val), 70, 160); break;
@@ -631,6 +676,57 @@
       default: return;
     }
     FJ.save(); FJ.apply();
+  };
+
+  /* ---------------- Sauvegarde des réglages dans un fichier ----------------
+     Pour retrouver ses réglages quand le stockage est perdu : nouvelle version du paquet (Lively l'installe dans un
+     nouveau dossier, donc nouvelle adresse et nouveau stockage), ou « Cache sur disque » désactivé dans Lively. Le
+     fichier se reprend ici (⚙ › À propos) ou se donne à Lively › Personnaliser › « Réglages enregistrés » : Lively le
+     copie dans le dossier du fond et le renvoie à chaque démarrage. Une propriété réglée dans Lively › Personnaliser
+     (différente de la valeur du paquet) garde la priorité sur le fichier. */
+  var FKEY = 'fond-jarvis:fichier', XKEYS = [KEY.ics, 'fond-jarvis:minuteurs', 'majordome:listes'];
+  var LPMAP = { theme: ['theme'], layout: ['layout'], city: ['city', 'place'], windLimit: ['windLimit'], assistantName: ['name'], voiceOn: ['voiceOn'], voiceEngine: ['tts'],
+    voiceFx: ['vfx', 'vfxo'], piperVoice: ['piperVoice'], freeLeft: ['free'], textScale: ['scale'], effects: ['fx'], reduceMotion: ['reduce'], fpsMax: ['fpsMax'],
+    batterySaver: ['saver'], newsCount: ['newsN'] };
+  FJ.exportSettings = function () {
+    var d = {}; d[KEY.set] = S; d[KEY.keys] = FJ.keys;
+    XKEYS.forEach(function (k) { var v = lsGet(k, undefined); if (v !== undefined && v !== null) d[k] = v; });
+    return JSON.stringify({ type: 'fond-jarvis-reglages', v: 1, at: new Date().toISOString(), build: FJ.build && FJ.build.v || '', data: d }, null, 1);
+  };
+  /** Reprend un fichier exporté ; o.auto : fichier renvoyé par Lively au démarrage (une seule fois par fichier). Rend le nombre de parties reprises. */
+  FJ.importSettings = function (text, o) {
+    o = o || {};
+    var f = J(text, null);
+    if (!f || f.type !== 'fond-jarvis-reglages' || !f.data) throw new Error('ce fichier n\'est pas une sauvegarde du Fond Jarvis');
+    if (o.auto && f.at && lsGet(FKEY, '') === f.at) return 0;   // déjà repris, stockage gardé depuis
+    var d = f.data, n = 0;
+    if (d[KEY.set] && typeof d[KEY.set] === 'object') {
+      var keep = {};
+      Object.keys(LPMAP).forEach(function (name) { if (FJ.lpUser(name)) LPMAP[name].forEach(function (k) { keep[k] = S[k]; }); });
+      if (!('name' in keep)) clearTimeout(nameT);
+      if (!('city' in keep)) clearTimeout(cityT);
+      var ns = Object.assign({}, DEF, d[KEY.set], keep);
+      ns.panels = Object.assign({}, DEF.panels, ns.panels || {});
+      Object.keys(S).forEach(function (k) { delete S[k]; });
+      Object.assign(S, ns);            // même objet : fj-jarvis.js garde sa référence
+      FJ.save(); n++;
+    }
+    if (Array.isArray(d[KEY.keys]) && d[KEY.keys].length) { FJ.keys = d[KEY.keys].filter(function (k) { return k && k.url && !/^\s*javascript:/i.test(k.url); }).slice(0, 24); FJ.saveKeys(); n++; }
+    if (Array.isArray(d[KEY.ics])) { AG.events = d[KEY.ics]; lsSet(KEY.ics, AG.events); agendaRender(); n++; }
+    ['fond-jarvis:minuteurs', 'majordome:listes'].forEach(function (k) { if (k in d && !(k === 'majordome:listes' && FJ.mode === 'suite')) { lsSet(k, d[k]); n++; } });
+    if (f.at) lsSet(FKEY, f.at);
+    FJ.apply(); try { FJ.hud.redrawStatic(); } catch (e) { }
+    WX.data = null; wxRender(); FJ.weather(true).catch(function () { });
+    if (FJ.localVoices) FJ.localVoices().catch(function () { });
+    return n;
+  };
+  /** Enregistre le fichier : téléchargement (dossier Téléchargements) */
+  FJ.downloadSettings = function () {
+    var txt = FJ.exportSettings(), d = new Date(), name = 'fond-jarvis-reglages-' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + '.json';
+    var url = URL.createObjectURL(new Blob([txt], { type: 'application/json' }));
+    var a = doc.createElement('a'); a.href = url; a.download = name; a.style.display = 'none'; doc.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+    return name;
   };
 
   /* ---------------- Mise à jour du paquet Lively ----------------
@@ -661,12 +757,51 @@
     var sh = $('sheet'); sh.hidden = false;
     sh.innerHTML = '<div class="sh"><header><h2 id="shTitle">Réglages du fond</h2><button type="button" class="ib" data-x aria-label="Fermer">' + FJI.svg('croix') + '</button></header>' +
       '<div class="tabs" role="tablist">' + TABS.map(function (t) { return '<button type="button" role="tab" data-tab="' + t[0] + '" aria-selected="' + (t[0] === curTab) + '">' + t[1] + '</button>'; }).join('') + '</div>' +
-      '<div class="sh-body" id="shBody"></div><div class="sh-foot"><button type="button" class="btn pri" data-x>Fermer</button></div></div>';
+      storeBanner() + '<div class="sh-body" id="shBody"></div><div class="sh-foot"><button type="button" class="btn pri" data-x>Fermer</button></div></div>';
     sh.querySelectorAll('[data-x]').forEach(function (b) { b.onclick = FJ.closeSettings; });
     sh.onclick = function (e) { if (e.target === sh) FJ.closeSettings(); };
     sh.querySelectorAll('[data-tab]').forEach(function (b) { b.onclick = function () { FJ.settings(b.dataset.tab); }; });
+    var sw = $('shWhy'); if (sw) sw.onclick = function () { FJ.settings('apropos'); };
     tabBody($('shBody'), curTab);
   };
+  /** Bandeau en haut du panneau ⚙ quand Lively ne garde pas le stockage du fond */
+  function storeBanner() {
+    var st = FJ.storeState();
+    if (FJ.mode !== 'lively' || st === 'ok') return '';
+    return '<p class="hint warn sh-store" role="status">' + (st === 'efface' ? 'Lively a effacé les réglages faits ici au dernier démarrage.' : 'Premier démarrage — ou réglages effacés par Lively.') +
+      ' Pour qu\'ils soient gardés : <b>' + esc(FJ.DISK_CACHE_HELP) + '</b> <button type="button" class="btn" id="shWhy">En savoir plus</button></p>';
+  }
+  function frDate(t) { try { return new Date(t).toLocaleDateString('fr-FR'); } catch (e) { return ''; } }
+  /** Témoin « Réglages enregistrés : oui / non » (⚙ › À propos) */
+  function storeHtml() {
+    var st = FJ.storeState(), lively = FJ.mode === 'lively', h = '<h3>Réglages enregistrés</h3>';
+    h += '<p id="sStore" data-state="' + st + '">Réglages enregistrés : ' + (st === 'ok' ? '<b>oui</b> — gardés depuis le ' + esc(frDate(ST.first)) + ' (' + ST.n + ' démarrages)' :
+      st === 'efface' ? '<b class="warn">non (stockage effacé par Lively)</b>' + (ST.file ? ' — réglages repris du fichier « Réglages enregistrés »' : '') : st === 'bloque' ? '<b class="warn">non (stockage refusé par le navigateur)</b>' :
+      '<b>premier démarrage</b>' + (lively ? ' — ou stockage effacé par Lively si vous aviez déjà réglé le fond' : '')) + '.</p>';
+    if (lively && st !== 'ok') {
+      h += '<p class="hint warn">Lively donne au fond un stockage neuf à chaque démarrage tant que son réglage « Cache sur disque » est désactivé (c\'est le cas par défaut) : le nom, la ville, les raccourcis, la voix téléchargée… sont alors oubliés. ' +
+        'À faire une seule fois : <b>' + esc(FJ.DISK_CACHE_HELP) + '</b></p>';
+      h += '<p class="hint">Toujours gardé par Lively, même sans ce réglage : clic droit sur le fond (ou sur sa vignette) › <b>Personnaliser</b> (nom, ville, thème, disposition, voix, effet, seuil de vent…), les voix rangées dans le paquet et le fichier « Réglages enregistrés ».</p>';
+    }
+    if (FJ.mode !== 'lively') h += '<p class="hint">Stockage persistant du navigateur : <b>' + (ST.persisted == null ? 'inconnu' : ST.persisted ? 'oui' : 'non (le navigateur peut l\'effacer si le disque est plein)') + '</b>.</p>';
+    h += '<p class="hint">Sauvegarde dans un fichier : utile avant d\'installer une nouvelle version du paquet (Lively lui donne un stockage neuf).</p>';
+    h += '<div style="display:flex;gap:.5em;flex-wrap:wrap"><button type="button" class="btn pri" id="sExp">Enregistrer mes réglages dans un fichier</button>' +
+      '<label class="btn" style="cursor:pointer">Reprendre un fichier de réglages<input type="file" id="sImp" accept=".json,application/json" hidden></label><button type="button" class="btn" id="sCopy">Copier les réglages</button></div><p class="hint" id="sSaveMsg"></p>';
+    if (lively) h += '<p class="hint">Pour que Lively le redonne à chaque démarrage : clic droit › Personnaliser › « Réglages enregistrés » › bouton <b>+</b> › choisissez le fichier (dans Téléchargements).</p>';
+    return h;
+  }
+  function storeBind() {
+    var m = function (t) { var e = $('sSaveMsg'); if (e) e.textContent = t; };
+    $('sExp').onclick = function () { try { var n = FJ.downloadSettings(); m('Fichier « ' + n + ' » enregistré dans Téléchargements.'); } catch (e) { m('Enregistrement impossible : utilisez « Copier les réglages ».'); } };
+    $('sCopy').onclick = function () {
+      var t = FJ.exportSettings();
+      (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { m('Réglages copiés : collez-les dans le Bloc-notes et enregistrez le fichier en .json.'); }, function () { m('Copie impossible.'); });
+    };
+    $('sImp').onchange = function (e) {
+      var f = e.target.files[0]; if (!f) return;
+      f.text().then(function (t) { var n = FJ.importSettings(t); m(n ? 'Réglages repris (' + n + ' partie' + (n > 1 ? 's' : '') + ').' : 'Rien à reprendre dans ce fichier.'); }).catch(function (x) { m('Fichier refusé : ' + (x && x.message || x) + '.'); });
+    };
+  }
   FJ.closeSettings = function () { var sh = $('sheet'); sh.hidden = true; sh.innerHTML = ''; };
   function fld(label, html, hint) { return '<div class="fld"><span class="lb">' + label + (hint ? '<small>' + hint + '</small>' : '') + '</span><div>' + html + '</div></div>'; }
   function sel(id, opts, v) { return '<select id="' + id + '">' + opts.map(function (o) { return '<option value="' + esc(o[0]) + '"' + (String(o[0]) === String(v) ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select>'; }
@@ -684,7 +819,7 @@
       h += '<h3>Panneaux affichés (disposition Complet)</h3>';
       [['clock', 'Horloge'], ['wx', 'Météo'], ['agenda', 'Agenda (s\'il y a des rendez-vous)'], ['sys', 'Système et batterie (si disponibles)'], ['news', 'Actualités'], ['music', 'Musique en cours (Lively)']].forEach(function (p) { h += chk('sP_' + p[0], p[1], S.panels[p[0]]); });
       B.innerHTML = h;
-      bind('sName', function (v) { setS('name', v.trim().slice(0, 30), 'quiet'); });
+      bind('sName', function (v) { clearTimeout(nameT); setS('name', v.trim().slice(0, 30), 'quiet'); });
       bind('sLayout', function (v) { setS('layout', v); });
       bind('sTheme', function (v) { setS('theme', v); FJ.hud.redrawStatic(); });
       ['clock', 'wx', 'agenda', 'sys', 'news', 'music'].forEach(function (k) { bind('sP_' + k, function (v) { S.panels[k] = v; FJ.save(); FJ.apply(); if (k === 'news') newsRender(); }); });
@@ -709,7 +844,7 @@
       h += fld('Seuil de vent (chantier)', rng('sWind', 20, 90, 1, S.windLimit, ' km/h'), 'Rafales au-dessus : affichées en couleur d\'alerte.');
       h += '<h3>Actualités</h3>' + fld('Nombre de titres', rng('sNews', 5, 10, 1, S.newsN, ''), 'franceinfo, actualisé toutes les 20 minutes (moins si la place manque).');
       B.innerHTML = h;
-      var go = function () { var v = $('sCity').value.trim(); $('sCityMsg').textContent = v ? 'Recherche…' : ''; S.city = v; S.place = null; FJ.save(); WX.data = null; FJ.weather(true).then(function () { $('sCityMsg').textContent = 'Lieu actuel : ' + (S.place ? (S.place.name || 'position détectée') + (S.place.admin ? ' (' + S.place.admin + ')' : '') : WX.where); }, function () { $('sCityMsg').textContent = WX.err === 'nopos' ? 'Position inconnue : saisissez une ville.' : WX.err; }); };
+      var go = function () { clearTimeout(cityT); var v = $('sCity').value.trim(); $('sCityMsg').textContent = v ? 'Recherche…' : ''; S.city = v; S.place = null; FJ.save(); WX.data = null; FJ.weather(true).then(function () { $('sCityMsg').textContent = 'Lieu actuel : ' + (S.place ? (S.place.name || 'position détectée') + (S.place.admin ? ' (' + S.place.admin + ')' : '') : WX.where); }, function () { $('sCityMsg').textContent = WX.err === 'nopos' ? 'Position inconnue : saisissez une ville.' : WX.err; }); };
       $('sCityGo').onclick = go; $('sCity').addEventListener('keydown', function (e) { if (e.key === 'Enter') go(); });
       $('sLocate').onclick = function () { $('sCity').value = ''; S.city = ''; S.place = null; MJS.place = null; FJ.save(); go(); };
       $('sWxNow').onclick = function () { FJ.weather(true).catch(function () { }); };
@@ -731,7 +866,7 @@
       var vp = FJ.VX && root.MJVoix ? MJVoix.panel(FJ.VX, VS, { btn: 'btn', save: function () { FJ.save(); }, refresh: function () { FJ.settings('voix'); }, preview: function (id) { if (FJ.jarvis) FJ.jarvis.preview(id); },
         systemHtml: fld('Voix du système', sel('sVoice', [['', 'Automatique (première voix française)']].concat(vs.map(function (v) { return [v.name, v.name + (v.localService ? '' : ' (en ligne)')]; })), S.voice)) }) : null;
       h += vp ? '<h3>Voix</h3>' + vp.html : fld('Voix', sel('sVoice', [['', 'Automatique (première voix française)']].concat(vs.map(function (v) { return [v.name, v.name + (v.localService ? '' : ' (en ligne)')]; })), S.voice));
-      if (vp && FJ.mode === 'lively') h += '<p class="hint">Dans Lively, le fond a son propre stockage : la voix Piper se télécharge une fois ici (ou se choisit dans les fichiers téléchargés), même si elle est déjà installée dans la Suite.</p>';
+      if (vp && FJ.mode === 'lively') h += '<p class="hint">Dans Lively, le fond a son propre stockage (effacé à chaque démarrage si « Cache sur disque » est désactivé dans Lively). Une voix est toujours gardée si elle est <b>dans le paquet</b> : paquet « avec voix Siwis », ou fichiers .onnx et .onnx.json ajoutés par clic droit › Personnaliser › « Voix Piper (fichiers) » › <b>+</b>.</p>';
       h += fld('Débit', rng('sRate', 0.6, 1.6, 0.1, S.rate, ''));
       h += '<div style="display:flex;gap:.5em"><button type="button" class="btn" id="sTest">Essayer la voix</button></div>';
       h += '<h3>Parler à l\'assistant</h3>';
@@ -760,10 +895,12 @@
       h += '<p class="hint">Ouvert dans : <b>' + (FJ.mode === 'lively' ? 'Lively Wallpaper (paquet .zip)' : FJ.mode === 'suite' ? 'la Suite MAG sur PC (navigateur)' : 'un navigateur') + '</b>' + (FJ.lively && FJ.mode !== 'lively' ? ' — API de Lively détectée' : '') + '.</p>';
       if (FJ.mode === 'lively') h += '<p class="hint" id="sMaj">Recherche de mise à jour…</p><div style="display:flex;gap:.5em;flex-wrap:wrap"><button type="button" class="btn pri" id="sZip">Télécharger la dernière version (.zip)</button><button type="button" class="btn" id="sGuide">Guide d\'installation</button></div>';
       else h += '<p class="hint">Mises à jour : automatiques dans la Suite (service worker). Paquet pour Lively : <code>' + esc(SITE) + 'fond-jarvis/fond-jarvis-lively.zip</code></p><div style="display:flex;gap:.5em;flex-wrap:wrap"><button type="button" class="btn" id="sZip">Télécharger le paquet Lively (.zip)</button><button type="button" class="btn" id="sGuide">Guide d\'installation</button></div>';
+      h += storeHtml();
       h += '<h3>Ce qu\'une page web ne peut pas faire</h3><p class="hint">Lancer un programme .exe, éteindre ou verrouiller Windows, régler le volume du système. Les raccourcis passent par les adresses web et les protocoles de Windows (ms-settings:, mailto:…), qui ouvrent l\'appli correspondante.</p>';
       h += '<h3>Données</h3><p class="hint">Réglages, raccourcis, notes et listes restent sur cet ordinateur (stockage du navigateur ou de Lively). Réseau : Open-Meteo (météo), franceinfo (titres)' + (FJ.mode === 'lively' ? ', et une fois par jour la date de la dernière version du fond sur GitHub Pages' : '') + '.</p>';
       h += '<p class="hint">Sphère de particules et analyse des commandes : celles de Majordome (Suite MAG). Création originale.</p>';
       B.innerHTML = h;
+      storeBind();
       $('sZip').onclick = function () { FJ.open(SITE + 'fond-jarvis/fond-jarvis-lively.zip'); };
       $('sGuide').onclick = function () { FJ.open(SITE + 'fond-jarvis/guide.html'); };
       if (FJ.mode === 'lively') FJ.checkUpdate().then(function (n) { var m = $('sMaj'); if (m) m.textContent = n ? 'Nouvelle version disponible (' + (FJ.latest.date || '').split('-').reverse().join('/') + ') : téléchargez-la, puis glissez-la dans Lively (elle remplace l\'ancienne après suppression).' : 'Vous avez la dernière version.'; }, function () { var m = $('sMaj'); if (m) m.textContent = 'Recherche impossible (hors ligne ?).'; });
@@ -826,6 +963,8 @@
     setInterval(function () { if (!doc.hidden && !FJ.loop.paused) { FJ.weather().catch(function () { }); } }, 30 * MIN);
     setInterval(function () { if (!doc.hidden && !FJ.loop.paused) { FJ.loadNews().catch(function () { }); } }, 20 * MIN);
     setInterval(agendaRender, 5 * MIN);
+    // Lively a effacé le stockage : le dire une fois au démarrage (les propriétés de Lively arrivent après le chargement)
+    if (FJ.mode === 'lively') setTimeout(function () { if (FJ.storeState() === 'efface' && !ST.file) FJ.toast('Lively a oublié les réglages faits sur le fond : ⚙ › À propos', 9000); }, 8000);
     if (FJ.mode === 'lively' && S.updates) { setTimeout(function () { FJ.checkUpdate().catch(function () { }); }, 20000); setInterval(function () { FJ.checkUpdate().catch(function () { }); }, DAY); }
     // Suite : mise à jour du fond appliquée d'elle-même (pas de bandeau sur un fond d'écran)
     var M = root.MAGPC;

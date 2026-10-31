@@ -340,10 +340,48 @@ non précachés : guide, aperçu) et `lively` (paquet).
   met en pause ou que la page est cachée. Réseau : météo toutes les 30 min, titres toutes les 20 min.
 - Réglages : `localStorage` `fond-jarvis:*` ; une valeur de `LivelyProperties.json` déjà reçue n'écrase pas un choix fait depuis
   dans le panneau ⚙ (`fond-jarvis:lively`).
+- **Stockage effacé par Lively** (cause des « réglages oubliés à chaque redémarrage », vérifiée dans le code de Lively 2.2.1.0
+  et sur sa branche principale) : le lecteur WebView2 reçoit son dossier de profil de `WallpaperPluginFactory.GetWebView2UserDataDir`.
+  Quand le réglage « Cache sur disque » (`CefDiskCache`) est désactivé, ce qui est le cas par défaut (`SettingsModel` : `CefDiskCache = false`, remis à
+  `false` par `AppInitializer` à la mise à jour vers 2.2), c'est `WebView2UserDataFactory.GetTempUserDataFolder()` :
+  `%TEMP%\Lively Wallpaper\CEF\<Path.GetRandomFileName()>`, dossier **neuf à chaque affichage** et vidé au démarrage suivant
+  (`AppInitializer.CleanTempFiles` → `EmptyDirectory(CefRootCacheDir)`). L'adresse, elle, est stable
+  (`LinkUtil.GetStableHostName` : SHA-1 du dossier du fond). Mais elle change à chaque **nouvelle installation** du .zip
+  (`LibraryViewModel.AddWallpaperFile` : dossier `wallpapers\<nom aléatoire>`), et le dossier SaveData des propriétés aussi.
+  « Cache sur disque » activé : profil fixe `%LOCALAPPDATA%\Lively Wallpaper\WebView2\Lively.PlayerWebView2\PerScreen\Monitor_N`
+  (ou `Span` / `Duplicate`), tout est gardé. Un fond « adresse web » passe par la même fonction : ce n'est pas une solution.
+  Aucun pont page → fichier dans le lecteur (ni `WebMessageReceived` ni `AddHostObjectToScript`).
+  Ce que Lively garde toujours : `SaveData\wpdata\<dossier>\<écran>\LivelyProperties.json`, renvoyé après chaque
+  `NavigationCompleted` (`Form1.RestoreLivelyProperties`), et les fichiers ajoutés par le « + » d'une liste de fichiers
+  (`FolderDropdown.OpenFile` : copie dans le dossier du fond). D'où, dans le fond :
+  - propriétés Lively pour l'essentiel : nom (« Jarvis » par défaut), ville, thème, disposition, seuil de vent, voix, **voix Piper
+    choisie** (`piperVoice`), effet… ;
+  - `voiceFile` (liste `voix/*.onnx|*.json`) : voix Piper rangée dans le dossier du fond, lue sur place par `mj-voix.js`
+    (`opt.localDir`, `probeLocal()`, worker chargé par adresse : jamais copiée dans IndexedDB) ; voix choisie absente →
+    voix du paquet (`FJ.curVoice`) ;
+  - `settingsFile` (liste `reglages/*.json`, dernière propriété) : fichier de ⚙ › À propos › « Enregistrer mes réglages dans un
+    fichier » (`FJ.exportSettings` / `FJ.importSettings` : réglages, raccourcis, agenda importé, minuteurs, listes), repris à
+    chaque démarrage tant que le stockage est vide (une fois par fichier sinon, `fond-jarvis:fichier`) ; une propriété réglée
+    dans Lively (différente de celle du paquet, `FJ.lpUser`) reste prioritaire ;
+  - témoin ⚙ › À propos « Réglages enregistrés : oui / non (stockage effacé par Lively) / premier démarrage »
+    (`fond-jarvis:demarrages`, `FJ.storeState`), bandeau en haut de ⚙ et message au démarrage, avec le chemin du réglage
+    « Cache sur disque » ; `navigator.storage.persist()` demandé (Suite).
+- **Paquet avec voix** `fond-jarvis-lively-voix-siwis.zip` (environ 60 Mo) : `build-pc.py --lively-voix=DOSSIER[,SORTIE]` part du
+  paquet publié, ajoute `voix/fr_FR-siwis-medium.onnx` et `.onnx.json` (somme SHA-256 comparée à `mj-voix.js`), la fiche
+  `MODEL_CARD` et `voix/SIWIS-ATTRIBUTION.txt` (CC BY 4.0), et règle Voix = Piper, Siwis. Fabriqué par
+  `.github/workflows/fond-jarvis-voix.yml` (à chaque nouveau paquet, ou à la main) et publié dans la Release à étiquette fixe
+  `fond-jarvis-voix` : `https://github.com/gilbertmamadou-design/atelier-signature/releases/download/fond-jarvis-voix/fond-jarvis-lively-voix-siwis.zip`.
+  Le modèle n'est jamais dans le dépôt.
+- Essais : Lively simulé dans Chromium (Playwright) : dossier d'installation aléatoire, nom d'hôte SHA-1, profil temporaire vidé
+  ou profil fixe, SaveData, propriétés renvoyées après le chargement, « + » des listes de fichiers. Défaut reproduit avec
+  l'ancien paquet. Puis nom, ville, thème, disposition, voix Siwis dans voix/ (synthèse réelle), effet, raccourcis et témoin
+  retrouvés après redémarrage. Même chose avec « Cache sur disque », mise à jour du paquet avec reprise du fichier, et paquet avec voix.
 - **Voix Piper** : mêmes fichiers que Majordome (paquet : `mj-voix.js`, `mj-voix-worker.js`, `mj-phon.js`, `piper/`, 4,3 Mo en
   tout) ; ⚙ › Voix (panneau commun ; `S.vfx` / `S.vfxo` pour l'effet, `S.fx` restant l'intensité des effets visuels) ;
-  propriétés Lively « Voix » et « Effet sur la voix Piper ». Dans Lively, IndexedDB propre au fond : la voix se télécharge une
-  fois dans le fond (ou se choisit en fichiers) ; dans la Suite, elle est partagée avec Majordome PC.
+  propriétés Lively « Voix », « Voix Piper choisie », « Voix Piper (fichiers) » et « Effet sur la voix Piper ». Dans Lively :
+  voix du paquet (`voix/`), sinon IndexedDB propre au fond (gardée seulement avec « Cache sur disque ») ; dans la Suite,
+  elle est partagée avec Majordome PC, qui demande le stockage persistant au chargement (`navigator.storage.persist()`,
+  `pc/shared/apps/majordome.js`) : Edge ou Chrome n'effacent pas ses réglages ni ses voix quand le disque se remplit.
 
 ## Applis bureautiques (shared/office/)
 

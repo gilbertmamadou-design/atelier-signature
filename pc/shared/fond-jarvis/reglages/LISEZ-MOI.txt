@@ -1,0 +1,10 @@
+Réglages enregistrés du Fond Jarvis
+===================================
+
+Ce dossier reçoit le fichier de sauvegarde des réglages (nom de l'assistant,
+ville, raccourcis, thème, voix, agenda importé…), créé par
+⚙ › À propos › « Enregistrer mes réglages dans un fichier ».
+
+Pour que Lively le redonne au fond à chaque démarrage : clic droit sur le
+fond › Personnaliser › « Réglages enregistrés » › bouton + › choisissez le
+fichier fond-jarvis-reglages-….json (dossier Téléchargements).

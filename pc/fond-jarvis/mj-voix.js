@@ -7,6 +7,8 @@
      opt.engine  dossier du moteur sherpa-onnx WASM (piper/…), opt.worker (mj-voix-worker.js), opt.phon (mj-phon.js)
      opt.store   'idb' (navigateur, Lively : IndexedDB « mj-voix ») ou un objet Android (pont MajordomeBridge :
                  piperState, piperDownload, piperPick, piperDelete, piperDir ; fichiers lus par Capacitor.convertFileSrc)
+     opt.localDir dossier de voix à côté de la page (paquet Lively : 'voix/') ; moteur.probeLocal() y cherche
+                 <modèle>.onnx et .onnx.json, lus sur place (jamais copiés) : « dans le paquet », sans téléchargement
      opt.sink    lecture déléguée (Android : AudioTrack, focus audio, micro coupé) : {play(id, Int16Array, sr, durée) → Promise, stop()} ;
                  sinon Web Audio dans la page.
    moteur.speak(texte, réglages, rappels) → Promise (fin de la parole). Rejet {fallback:true} si Piper n'est pas utilisable :
@@ -246,15 +248,40 @@
     function emit(ev) { ev = ev || {}; if (opt.onChange) try { opt.onChange(ev); } catch (e) { } listeners.slice().forEach(function (f) { try { f(ev); } catch (e) { } }); }
     E.on = function (f) { listeners.push(f); return function () { listeners = listeners.filter(function (x) { return x !== f; }); }; };
 
+    /* --- voix rangées à côté de la page (opt.localDir, ex. paquet Lively : voix/<modèle>.onnx et .onnx.json) ---
+       Lues sur place à chaque démarrage, jamais copiées dans IndexedDB : elles ne dépendent pas du stockage du
+       navigateur (Lively efface son profil WebView2 à chaque démarrage quand « Cache sur disque » est désactivé). */
+    var LOCAL = opt.localDir && !ANDROID ? abs(opt.localDir) : null, localM = {};
+    E.local = localM;
+    E.probeLocal = function () {
+      if (!LOCAL) return Promise.resolve(localM);
+      return Promise.all(Object.keys(MODELS).map(function (m) {
+        return fetch(LOCAL + m + '.onnx.json', { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (cfg) {
+          checkCfg(cfg);
+          // GET coupé après les en-têtes (HEAD n'est pas garanti par tous les serveurs de fichiers locaux)
+          return fetch(LOCAL + m + '.onnx', { cache: 'no-store' }).then(function (r) {
+            if (!r.ok) throw new Error(r.status);
+            var n = +r.headers.get('content-length') || 0; try { if (r.body) r.body.cancel(); } catch (e) { }
+            if (n && n < 1e6) throw new Error('fichier trop petit');
+            localM[m] = { size: n || MODELS[m].size, local: true, verified: false, cfg: cfg };
+          });
+        }).catch(function () { delete localM[m]; });
+      })).then(function () { emit({ t: 'local' }); return localM; });
+    };
+
     /* --- modèles installés --- */
     function installed() {
       if (ANDROID) { var st = {}; try { st = JSON.parse(ANDROID.piperState() || '{}') || {}; } catch (e) { } return st.models || {}; }
-      return lsGet();
+      var l = lsGet();
+      Object.keys(localM).forEach(function (m) { if (!l[m]) l[m] = { size: localM[m].size, local: true, verified: false }; else l[m].local = true; });
+      return l;
     }
     function hasModel(m) { return !!installed()[m]; }
     E.installed = installed;
     E.hasVoice = function (id) { return hasModel(voice(id).model); };
+    E.isLocal = function (id) { return !!localM[voice(id).model]; };
     E.cfgOf = function (model) {
+      if (localM[model]) return Promise.resolve(localM[model].cfg);
       if (ANDROID) return fetch(fileUrl(model, model + '.onnx.json')).then(function (r) { return r.json(); });
       return IDB.get(model + '.onnx.json').then(function (t) { if (!t) throw new Error('voix absente'); return typeof t === 'string' ? JSON.parse(t) : t; });
     };
@@ -351,6 +378,7 @@
       var lp = E.cfgOf(m).then(function (cfg) {
         var vv = { key: m + '.onnx', cfg: cfg };
         if (ANDROID) vv.url = fileUrl(m, m + '.onnx');
+        else if (localM[m]) { vv.url = LOCAL + m + '.onnx'; vv.key = 'local:' + m + '.onnx'; }
         return call({ t: 'load', voice: vv }).then(function (r) { r.cfg = cfg; return r; });
       }).then(function (r) { E.state = 'ready'; E.err = ''; E.loadMs = Date.now() - t0; failCount = 0; emit({ t: 'state' }); return r; },
         function (e) { loaded = null; failCount++; E.state = 'error'; E.err = String(e && e.message || e); emit({ t: 'state' }); throw Object.assign(e instanceof Error ? e : new Error(String(e)), { fallback: true }); });
@@ -503,7 +531,7 @@
       var shared = E.voices.filter(function (x) { return x.model === v.model && x !== v; }).map(function (x) { return x.name; });
       h += '<div class="mjv-v' + (on ? ' mjv-on' : '') + '" data-v="' + v.id + '"><div class="mjv-n"><b>' + esc(v.name) + (on && has ? ' ✓' : '') + '</b><small>' + esc(v.desc) + ' · ' + mo(m.size) + (shared.length ? ' (fichier partagé avec ' + esc(shared.join(', ')) + ')' : '') + ' · licence ' + esc(m.lic) + '</small>' +
         '<progress' + (dl ? '' : ' hidden') + ' max="1" value="' + (dl ? dl.f || 0 : 0) + '"></progress></div><div class="mjv-b">' +
-        (has ? '<button type="button" class="' + btn + '" data-a="use">' + (on ? 'Choisie' : 'Choisir') + '</button><button type="button" class="' + btn + '" data-a="hear">Aperçu</button><button type="button" class="' + btn + '" data-a="del">Supprimer</button>'
+        (has ? '<button type="button" class="' + btn + '" data-a="use">' + (on ? 'Choisie' : 'Choisir') + '</button><button type="button" class="' + btn + '" data-a="hear">Aperçu</button>' + (inst[v.model].local ? '<small title="Fichier rangé dans le dossier de la page : gardé même si le stockage du navigateur est effacé">dans le paquet</small>' : '<button type="button" class="' + btn + '" data-a="del">Supprimer</button>')
           : '<button type="button" class="' + btn + '" data-a="get"' + (dl ? ' disabled>Téléchargement…' : '>Télécharger') + '</button>') + '</div></div>';
     });
     h += '<p class="note">Si le téléchargement direct est refusé (pare-feu, réseau), téléchargez les deux fichiers de la voix sur <a href="https://huggingface.co/rhasspy/piper-voices/tree/main/fr/fr_FR" target="_blank" rel="noopener">huggingface.co/rhasspy/piper-voices</a> (fr_FR-…-medium.onnx et .onnx.json), puis : ' +

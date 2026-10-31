@@ -1,0 +1,24 @@
+Voix Piper « Siwis » (fr_FR-siwis-medium) — attribution et licence
+==================================================================
+
+Fichiers : fr_FR-siwis-medium.onnx et fr_FR-siwis-medium.onnx.json, copiés
+sans modification depuis https://huggingface.co/rhasspy/piper-voices
+(fr/fr_FR/siwis/medium/), somme SHA-256 du .onnx vérifiée à la fabrication
+du paquet. Fiche d'origine : fr_FR-siwis-medium.MODEL_CARD.txt (ce dossier).
+
+Licence : Creative Commons Attribution 4.0 International (CC BY 4.0)
+          https://creativecommons.org/licenses/by/4.0/deed.fr
+
+Modèle de voix : projet Piper (Rhasspy, Michael Hansen),
+                 https://github.com/rhasspy/piper
+Données d'origine : « The SIWIS French Speech Synthesis Database »,
+   Junichi Yamagishi, Pierre-Edouard Honnet, Philip Garner, Alexandros
+   Lazaridis — University of Edinburgh, The Centre for Speech Technology
+   Research (CSTR), 2017. https://datashare.ed.ac.uk/handle/10283/2353
+
+Modification : aucune sur les fichiers. Le Fond Jarvis peut appliquer à la
+lecture un effet audio (réverbération, filtres…) choisi par l'utilisateur.
+
+Le Fond Jarvis lui-même est une création originale de la Suite MAG sur PC ;
+moteur de synthèse : sherpa-onnx (Apache-2.0) et onnxruntime (MIT), voir
+piper/LISEZ-MOI.txt.

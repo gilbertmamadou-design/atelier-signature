@@ -4,9 +4,11 @@
   "layout": { "type": "dropdown", "text": "Disposition", "value": 0, "items": ["Complet", "Épuré (horloge, sphère, raccourcis)", "Sphère seule"] },
   "city": { "type": "textbox", "text": "Ville de la météo (vide : position détectée)", "value": "" },
   "windLimit": { "type": "slider", "text": "Seuil de vent chantier (km/h)", "value": 45, "min": 20, "max": 90, "step": 1 },
-  "assistantName": { "type": "textbox", "text": "Nom de l'assistant", "value": "Majordome" },
+  "assistantName": { "type": "textbox", "text": "Nom de l'assistant", "value": "Jarvis" },
   "voiceOn": { "type": "checkbox", "text": "Réponse à voix haute", "value": true },
-  "voiceEngine": { "type": "dropdown", "text": "Voix (Piper : à télécharger une fois dans ⚙ › Voix)", "value": 0, "items": ["Voix de Windows", "Voix Piper (hors ligne)"] },
+  "voiceEngine": { "type": "dropdown", "text": "Voix", "value": 0, "items": ["Voix de Windows", "Voix Piper (hors ligne)"] },
+  "piperVoice": { "type": "dropdown", "text": "Voix Piper choisie", "value": 0, "items": ["Pierre (homme)", "Gilles (homme, grave)", "Siwis (femme)", "Jessica (femme)"] },
+  "voiceFile": { "type": "folderDropdown", "text": "Voix Piper (fichiers .onnx et .onnx.json, gardés par Lively)", "value": "", "folder": "voix", "filter": "*.onnx|*.json" },
   "voiceFx": { "type": "dropdown", "text": "Effet sur la voix Piper", "value": 3, "items": ["Aucun", "Discret", "Majordome", "IA de film", "Radio"] },
   "freeLeft": { "type": "slider", "text": "Zone libre à gauche, pour les icônes (px)", "value": 140, "min": 0, "max": 600, "step": 10 },
   "textScale": { "type": "slider", "text": "Taille du texte (%)", "value": 100, "min": 70, "max": 160, "step": 5 },
@@ -16,5 +18,6 @@
   "batterySaver": { "type": "checkbox", "text": "Économie sur batterie (portable)", "value": true },
   "newsCount": { "type": "slider", "text": "Nombre de titres d'actualité", "value": 7, "min": 5, "max": 10, "step": 1 },
   "icsFile": { "type": "folderDropdown", "text": "Agenda (.ics)", "value": "vide.ics", "folder": "agenda", "filter": "*.ics" },
+  "settingsFile": { "type": "folderDropdown", "text": "Réglages enregistrés (fichier de ⚙ › À propos, gardé par Lively)", "value": "", "folder": "reglages", "filter": "*.json" },
   "openSettings": { "type": "button", "text": "Raccourcis et autres réglages", "value": "Ouvrir sur le fond" }
 }
