@@ -100,7 +100,7 @@
   var pipeWait = {};
   var VX = window.MJVoix ? window.MJVoix.create({
     engine: PC ? ((window.MAGPC && MAGPC.conf && MAGPC.conf.piper) || '../../applis/www-majordome/piper/') : 'piper/',
-    store: ANDROID && B.piperState ? B : 'idb', key: 'majordome:voix-piper',
+    store: ANDROID && B.piperState ? B : 'idb',   // liste des voix installées : clé commune « mj-voix:installees » (Majordome et Fond Jarvis du même site)
     sink: ANDROID && B.piperPlay ? {
       play: function (id, pcm, sr, dur, started) {
         return new Promise(function (ok) {

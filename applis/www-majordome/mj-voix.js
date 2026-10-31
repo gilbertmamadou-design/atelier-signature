@@ -82,11 +82,13 @@
     return c;
   }
   var PEAK = 0.891;   // −1 dBFS
+  var RMS_MAX = 0.2;   // plafond du niveau moyen : même volume perçu d'un effet à l'autre (la saturation ne fait pas « plus fort »)
   function normalize(x, gainMax) {
-    var pk = 0, i;
-    for (i = 0; i < x.length; i++) { var a = x[i] < 0 ? -x[i] : x[i]; if (a > pk) pk = a; }
+    var pk = 0, ss = 0, i;
+    for (i = 0; i < x.length; i++) { var a = x[i] < 0 ? -x[i] : x[i]; if (a > pk) pk = a; ss += a * a; }
     if (!pk) return x;
-    var g = Math.min(gainMax || 1.6, PEAK / pk);
+    var rms = Math.sqrt(ss / x.length);
+    var g = Math.min(gainMax || 1.6, PEAK / pk, rms > 0 ? RMS_MAX / rms : 1e9);
     if (g !== 1) for (i = 0; i < x.length; i++) x[i] *= g;
     return x;
   }
@@ -147,7 +149,7 @@
       var s = 0, e = Math.min(x.length, i + n);
       for (var j = i; j < e; j++) s += x[j] * x[j];
       var rms = Math.sqrt(s / (e - i));
-      out.push(Math.min(1, Math.pow(rms * 5.5, 0.8)));
+      out.push(Math.min(1, Math.pow(rms * 4.5, 0.8)));
     }
     return out;
   }
@@ -233,7 +235,9 @@
     var w = null, wid = 0, pend = {}, loaded = null, failCount = 0;
     function lsGet() { try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { return {}; } }
     function lsSet(v) { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) { } }
-    function emit(ev) { if (opt.onChange) try { opt.onChange(ev || {}); } catch (e) { } }
+    var listeners = [];
+    function emit(ev) { ev = ev || {}; if (opt.onChange) try { opt.onChange(ev); } catch (e) { } listeners.slice().forEach(function (f) { try { f(ev); } catch (e) { } }); }
+    E.on = function (f) { listeners.push(f); return function () { listeners = listeners.filter(function (x) { return x !== f; }); }; };
 
     /* --- modèles installés --- */
     function installed() {
@@ -254,13 +258,15 @@
     /** Téléchargement depuis HuggingFace + vérification ; onp(fraction) */
     E.download = function (id, onp) {
       var v = voice(id), m = v.model, info = MODELS[m];
-      if (ANDROID) {   // Java : téléchargement dans le stockage privé, SHA-256 vérifiée ; avancement par événements « piper »
-        ANDROID.piperDownload(m, HF + info.dir, HFAPI + info.dir.replace(/\/$/, ''));
-        return new Promise(function (ok, ko) { E.dl[m] = { ok: ok, ko: ko, onp: onp }; });
-      }
       if (E.dl[m]) return E.dl[m].p;
+      if (ANDROID) {   // Java : téléchargement dans le stockage privé, SHA-256 vérifiée ; avancement par événements « piper »
+        var x = E.dl[m] = { f: 0, onp: onp };
+        x.p = new Promise(function (ok, ko) { x.ok = ok; x.ko = ko; });
+        ANDROID.piperDownload(m, HF + info.dir, HFAPI + info.dir.replace(/\/$/, ''));
+        return x.p;
+      }
       var exp = {}, cfgAb;
-      E.dl[m] = { p: null };
+      E.dl[m] = { p: null, f: 0 };
       var p = expected(m).catch(function () { return {}; }).then(function (x) {
         exp = x;
         return fetchProgress(HF + info.dir + m + '.onnx.json', null);
@@ -268,7 +274,7 @@
         cfgAb = ab; checkCfg(JSON.parse(new TextDecoder().decode(ab)));
         return exp[m + '.onnx.json'] && exp[m + '.onnx.json'].oid ? gitBlobSha1(ab).then(function (h) { if (h && h !== exp[m + '.onnx.json'].oid) throw new Error('somme du .onnx.json incorrecte'); }) : null;
       }).then(function () {
-        return fetchProgress(HF + info.dir + m + '.onnx', function (f) { if (onp) onp(f); emit({ t: 'progress', model: m, f: f }); }, (exp[m + '.onnx'] && exp[m + '.onnx'].size) || info.size);
+        return fetchProgress(HF + info.dir + m + '.onnx', function (f) { if (E.dl[m]) E.dl[m].f = f; if (onp) onp(f); emit({ t: 'progress', model: m, f: f }); }, (exp[m + '.onnx'] && exp[m + '.onnx'].size) || info.size);
       }).then(function (ab) { return save(m, ab, cfgAb, exp[m + '.onnx'] && exp[m + '.onnx'].sha256, true); })
         .then(function (r) { delete E.dl[m]; return r; }, function (e) { delete E.dl[m]; throw e; });
       E.dl[m].p = p;
@@ -305,7 +311,7 @@
     /** Événements du pont Android (« piper ») : avancement, fin, erreur */
     E.androidEvent = function (d) {
       var x = E.dl[d.model];
-      if (d.state === 'downloading' && x && x.onp) x.onp(d.progress || 0);
+      if (d.state === 'downloading' && x) { x.f = d.progress || 0; if (x.onp) x.onp(x.f); emit({ t: 'progress', model: d.model, f: x.f }); }
       if (d.state === 'ready' && x) { delete E.dl[d.model]; x.ok(d); }
       if (d.state === 'error' && x) { delete E.dl[d.model]; x.ko(new Error(d.msg || 'téléchargement impossible')); }
       emit({ t: 'android', d: d });
@@ -464,15 +470,15 @@
     var btn = o.btn || 'btn sm', inst = E.installed(), piper = S.tts === 'piper';
     var h = '<div class="mjv">';
     h += '<div class="mjv-r"><label for="mjvEng">Moteur</label><select class="in" id="mjvEng" style="flex:1"><option value="system"' + (piper ? '' : ' selected') + '>Voix du système</option><option value="piper"' + (piper ? ' selected' : '') + '>Voix Piper (hors ligne)</option></select></div>';
-    h += '<p class="note mjv-msg" id="mjvMsg">' + (piper ? (E.state === 'error' ? 'Le moteur Piper n\'a pas pu se charger : les voix du système prennent le relais.' : '') : 'Voix neuronales françaises, sans internet après un téléchargement unique (60 à 73 Mo par voix).') + '</p>';
+    h += '<p class="note mjv-msg" id="mjvMsg">' + (E._msg ? esc(E._msg) : piper ? (E.state === 'error' ? 'Le moteur Piper n\'a pas pu se charger : les voix du système prennent le relais.' : '') : 'Voix neuronales françaises, sans internet après un téléchargement unique (60 à 73 Mo par voix).') + '</p>';
     h += '<div id="mjvPiper"' + (piper ? '' : ' hidden') + '>';
     E.voices.forEach(function (v) {
-      var m = E.models[v.model], has = !!inst[v.model], on = S.piperVoice === v.id || (!S.piperVoice && v === E.voices[0]);
+      var m = E.models[v.model], has = !!inst[v.model], on = S.piperVoice === v.id || (!S.piperVoice && v === E.voices[0]), dl = E.dl[v.model];
       var shared = E.voices.filter(function (x) { return x.model === v.model && x !== v; }).map(function (x) { return x.name; });
       h += '<div class="mjv-v' + (on ? ' mjv-on' : '') + '" data-v="' + v.id + '"><div class="mjv-n"><b>' + esc(v.name) + (on && has ? ' ✓' : '') + '</b><small>' + esc(v.desc) + ' · ' + mo(m.size) + (shared.length ? ' (fichier partagé avec ' + esc(shared.join(', ')) + ')' : '') + ' · licence ' + esc(m.lic) + '</small>' +
-        '<progress hidden max="1" value="0"></progress></div><div class="mjv-b">' +
+        '<progress' + (dl ? '' : ' hidden') + ' max="1" value="' + (dl ? dl.f || 0 : 0) + '"></progress></div><div class="mjv-b">' +
         (has ? '<button type="button" class="' + btn + '" data-a="use">' + (on ? 'Choisie' : 'Choisir') + '</button><button type="button" class="' + btn + '" data-a="hear">Aperçu</button><button type="button" class="' + btn + '" data-a="del">Supprimer</button>'
-          : '<button type="button" class="' + btn + '" data-a="get">Télécharger</button>') + '</div></div>';
+          : '<button type="button" class="' + btn + '" data-a="get"' + (dl ? ' disabled>Téléchargement…' : '>Télécharger') + '</button>') + '</div></div>';
     });
     h += '<p class="note">Si le téléchargement direct est refusé (pare-feu, réseau), téléchargez les deux fichiers de la voix sur <a href="https://huggingface.co/rhasspy/piper-voices/tree/main/fr/fr_FR" target="_blank" rel="noopener">huggingface.co/rhasspy/piper-voices</a> (fr_FR-…-medium.onnx et .onnx.json), puis : ' +
       (o.android ? '<button type="button" class="' + btn + '" id="mjvPick">Choisir les fichiers téléchargés</button>' : '<label class="' + btn + '" style="cursor:pointer">Choisir les fichiers téléchargés<input type="file" id="mjvFiles" multiple accept=".onnx,.json" hidden></label>') + '</p>';
@@ -488,7 +494,11 @@
     h += '</div>';
     function bind(box) {
       var $ = function (id) { return box.querySelector('#' + id); };
-      function msg(t) { var e = $('mjvMsg'); if (e) e.textContent = t || ''; }
+      function msg(t) { E._msg = t || ''; var e = root.document.getElementById('mjvMsg'); if (e) e.textContent = t || ''; }   // élément du dernier affichage ; gardé pour le suivant
+      var off = E.on(function (ev) {   // avancement des téléchargements (y compris après un nouvel affichage du panneau)
+        if (!root.document.contains(box)) { off(); return; }
+        if (ev.t === 'progress') box.querySelectorAll('[data-v]').forEach(function (row) { if (E.voice(row.getAttribute('data-v')).model === ev.model) { var pr = row.querySelector('progress'); pr.hidden = false; pr.value = ev.f; } });
+      });
       $('mjvEng').onchange = function () { S.tts = this.value; if (S.tts === 'piper' && !S.piperVoice) S.piperVoice = E.voices[0].id; o.save(); $('mjvPiper').hidden = S.tts !== 'piper'; $('mjvSys').hidden = S.tts === 'piper'; msg(''); if (S.tts === 'piper' && E.hasVoice(S.piperVoice)) E.warm(S.piperVoice).catch(function () { msg('Le moteur Piper n\'a pas pu se charger : les voix du système prennent le relais.'); }); };
       box.querySelectorAll('[data-v] [data-a]').forEach(function (b) {
         b.onclick = function () {
@@ -497,12 +507,12 @@
           else if (a === 'hear') { S.piperVoice = S.piperVoice || id; if (o.preview) o.preview(id); }
           else if (a === 'del') { if (root.confirm('Supprimer la voix ' + v.name + ' de cet appareil ?')) E.remove(id).then(function () { if (o.refresh) o.refresh(); }); }
           else if (a === 'get') {
-            var pr = row.querySelector('progress'); pr.hidden = false; b.disabled = true; msg('Téléchargement de ' + v.name + ' (' + mo(E.size(id)) + ')…');
-            E.download(id, function (f) { pr.value = f; }).then(function (r) {
+            var pr = row.querySelector('progress'); pr.hidden = false; b.disabled = true; b.textContent = 'Téléchargement…'; msg('Téléchargement de ' + v.name + ' (' + mo(E.size(id)) + ')…');
+            E.download(id).then(function (r) {
               S.piperVoice = id; if (S.tts !== 'piper') S.tts = 'piper'; o.save(); msg(v.name + ' est installée' + (r && r.verified === false ? ' (somme non vérifiée : HuggingFace injoignable)' : ', somme SHA-256 vérifiée') + '.');
-              E.warm(id).catch(function () { }); if (o.refresh) o.refresh();
+              E.warm(id).catch(function () { }); if (o.refresh && root.document.contains(box)) o.refresh();
             }, function (e) {
-              b.disabled = false; pr.hidden = true;
+              b.disabled = false; b.textContent = 'Télécharger'; pr.hidden = true;
               msg((e && e.name === 'TypeError' ? 'Le téléchargement direct a été refusé (réseau, pare-feu, ou page sans accès à HuggingFace).' : 'Téléchargement impossible : ' + (e && e.message || e) + '.') + ' Vous pouvez choisir les fichiers téléchargés avec le navigateur.');
             });
           }

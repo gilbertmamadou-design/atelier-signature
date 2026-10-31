@@ -23,6 +23,9 @@ self.Module = {
   print: function () { }, printErr: function (t) { if (/error|erreur/i.test(String(t))) console.warn('[piper] ' + t); },
   onRuntimeInitialized: function () { if (ready) ready.ok(); }
 };
+// moteur introuvable ou interrompu (fichier bloqué, mémoire) : erreur rendue à la page (repli sur la voix du système), sans exception non traitée
+self.addEventListener('unhandledrejection', function (e) { e.preventDefault(); if (ready && ready.ko) ready.ko(e.reason instanceof Error ? e.reason : new Error(String(e.reason))); });
+self.addEventListener('error', function (e) { if (ready && ready.ko) { e.preventDefault(); ready.ko(new Error(e.message || 'moteur indisponible')); } });
 function boot() {
   if (ready) return ready.p;
   ready = {}; ready.p = new Promise(function (ok, ko) { ready.ok = ok; ready.ko = ko; });

@@ -812,7 +812,7 @@ public class MajordomeBridge {
                     int n = Math.min(frame, s.length - off); double acc = 0;
                     for (int k = off; k < off + n; k++) acc += (double) s[k] * s[k];
                     double rms = Math.sqrt(acc / n) / 32768.0;
-                    MajordomeWallpaper.Voix.speakLevel(c, (float) Math.min(1, Math.pow(rms * 5.5, 0.8)));
+                    MajordomeWallpaper.Voix.speakLevel(c, (float) Math.min(1, Math.pow(rms * 4.5, 0.8)));
                     int w = t.write(s, off, n); if (w < 0) break; written += w;
                 }
                 long end = System.currentTimeMillis() + 3000;   // fin réelle du son : tête de lecture
