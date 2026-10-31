@@ -955,6 +955,36 @@
     return title ? { cmd: 'read', title: title.replace(/[.!?]+$/, '').trim() } : null;
   }
 
+  /* ---------------- Mode voyage (Photo) et Carnet de voyage ----------------
+     « mode voyage », « active le mode voyage », « arrête le mode voyage », « commence le carnet Italie »,
+     « ajoute les photos du jour au carnet », « ouvre mon carnet de voyage »
+     → { intent: 'voyage', p: { cmd: on | off | start | import | open, title } } ; Majordome transmet à Photo et au Carnet.
+     Les formules exigent « mode voyage », « carnet (de voyage) » avec un titre ou « photos du jour / du voyage » :
+     « ouvre le carnet » (notes), « ouvre l'appareil photo », « les photos » ne changent pas. */
+  var VOYGEN = /^(?:de voyage|voyage|carnet|de|du|le|la|les|mon|ma|un|une|notre|nouveau)$/;
+  function parseVoyage(t, P) {
+    var m;
+    if (!/\b(voyage|carnet)\b/.test(t)) return null;
+    var PH = '(?: (?:dans|sur|de|pour) (?:l appli |l application )?photo)?';
+    if (new RegExp('^(?:(?:active|activez|activer|allume|allumez|lance|lancez|demarre|demarrez|mets|passe en|passe au|passez en|bascule en|bascule sur|je passe en|on passe en|mettre|mode) )?(?:le |en )?mode voyage' + PH + '(?: on| oui| active)?$').test(t)) return { cmd: 'on' };
+    if (new RegExp('^(?:arrete|arreter|arretez|desactive|desactiver|desactivez|coupe|couper|coupez|quitte|quitter|quittez|stoppe|stop|termine|terminer|eteins|eteindre|sors du|sortir du|sors de|annule|enleve|fin du|fin de) (?:le |du |de |)?mode voyage' + PH + '$|^mode voyage (?:off|non|arrete|desactive|coupe|termine)$').test(t)) return { cmd: 'off' };
+    var START = '^(?:commence|commencer|commencez|commencons|on commence|je commence|demarre|demarrer|demarrez|cree|creer|creez|cree moi|nouveau|nouvel|debute|debuter|lance|lancez)';
+    if (new RegExp(START + '(?: un| le| mon| notre| ce| une| ma)?(?: nouveau)? carnet de voyage$').test(t)) return { cmd: 'start', title: '' };
+    if ((m = new RegExp(START + '(?: un| le| mon| notre| ce| une| ma)?(?: nouveau)? carnet(?: de voyage)?( pour| sur| de| du| d| en| a| au| aux| intitule| appele| nomme)? (.+)$').exec(t))
+      || (m = /^(?:commence|commencer|commencez|on commence|je commence|demarre|demarrer|cree|creer|nouveau|debute) (?:un |le |mon |notre )?(?:nouveau )?voyage( pour| en| a| au| aux| sur| de| du| d)? (.+)$/.exec(t))) {
+      var w = m[2];
+      if (!VOYGEN.test(w) && !/^(?:de voyage|voyage)$/.test(w) && !/^(?:de |d )?(?:notes?|courses|chasse|liste)\b/.test(w)) {
+        var title = orig(P, m.index + m[0].length - w.length).replace(/[.!?]+$/, '').trim();
+        if (m[1]) title = title.replace(/^(?:la|le|les|l['’])\s*/i, '');   // « pour la Grèce » → Grèce
+        if (title) return { cmd: 'start', title: title.charAt(0).toUpperCase() + title.slice(1) };
+      }
+    }
+    if (/^(?:ajoute|ajouter|ajoutez|mets|mettre|importe|importer|importez|range|ranger|verse|copie|copier|transfere|envoie)(?: moi)? (?:les |mes |toutes les )?photos (?:du jour|d aujourd hui|de la journee|de ce jour|prises aujourd hui|du voyage(?: d aujourd hui| du jour)?)(?: (?:au|dans le|dans mon|dans|a mon|sur le|sur mon|vers le|vers mon) carnet(?: de voyage)?)?$/.test(t)
+      && /\b(carnet|voyage)\b/.test(t)) return { cmd: 'import' };
+    if (/^(?:(?:ouvre|ouvrir|ouvrez|affiche|afficher|montre|montre moi|montrez moi|lance|va sur|va dans|aller dans|reprends|retourne a|retourne sur) )?(?:l appli |l application )?(?:mon |le |notre |ma )?carnet de voyage$/.test(t)) return { cmd: 'open' };
+    return null;
+  }
+
   /* ---------------- Aide : exemples (servent aussi aux suggestions) ---------------- */
   var EXAMPLES = [
     ['time', 'Quelle heure est-il ?'], ['date', 'Quel jour sommes-nous ?'], ['countdown', 'Dans combien de jours est Noël ?'],
@@ -1060,6 +1090,9 @@
     // --- livres audio (Liseuse) ---
     var bk = parseBook(t);
     if (bk) return R('book', bk);
+    // --- mode voyage (Photo) et Carnet de voyage ---
+    var vy = parseVoyage(t, P);
+    if (vy) return R('voyage', vy);
     // --- aide ---
     if (/\b(qu est ce que tu (sais|peux) faire|que (sais|peux) tu faire|tu (sais|peux) faire quoi|qu est ce que vous (savez|pouvez) faire|que (savez|pouvez) vous faire|liste des commandes|quelles (sont les )?commandes|comment ca marche|tes fonctions|quelles sont tes capacites|que puis je te demander|qu est ce que je peux te demander|aide moi)\b/.test(t) || /^(aide|l aide|help|au secours d utilisation|exemples|des exemples)$/.test(t)) return R('help');
     // --- réglages, écoute, historique ---

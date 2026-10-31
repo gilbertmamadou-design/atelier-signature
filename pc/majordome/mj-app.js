@@ -989,6 +989,51 @@
     return answer({ say: say, k: 'Liseuse' }).done;
   };
 
+  /* --- Mode voyage (Photo) et Carnet de voyage ---
+     Téléphone : MAGVoyage (VoyageBridge.java, chargé dans toutes les applis) lit et écrit par les fournisseurs protégés par signature :
+     Carnet de voyage (liste des carnets, création « en attente ») et Photo (mode voyage, carnet actif). « Ouvre mon carnet de voyage »
+     et « ajoute les photos du jour au carnet » ouvrent le Carnet avec l'action (homeLaunchWith). PC : pas d'appareil photo. */
+  var VOY = 'fr.magformation13.voyage', PHO = 'fr.magformation13.photo';
+  function installed(pkg) { return !(P && P.homeInstalled) || P.homeInstalled(pkg) === '1'; }
+  H.voyage = function (p) {
+    if (PC) {
+      if (p.cmd === 'open') { var url = (window.MAGPC.conf && window.MAGPC.conf.apps || {})[VOY]; return url ? openLink(url, 'Carnet de voyage') : answer('Le Carnet de voyage n\'est pas disponible ici.').done; }
+      if (p.cmd === 'import') return answer({ say: 'Sur l\'ordinateur, ouvrez le Carnet de voyage et choisissez « Importer un dossier de voyage » : le dossier copié depuis le téléphone, avec son voyage.json.', k: 'Carnet de voyage' }).done;
+      return answer('Le mode voyage est une fonction de l\'appli Photo du téléphone : l\'ordinateur n\'a pas d\'appareil photo.').done;
+    }
+    var V = window.MAGVoyage && window.MAGVoyage.photoMode ? window.MAGVoyage : null;
+    if (p.cmd === 'open' || p.cmd === 'import') {
+      if (!(P && P.homeLaunchWith)) return answer('Le Carnet de voyage n\'est pas joignable ici.').done;
+      if (!installed(VOY)) return answer('L\'appli Carnet de voyage n\'est pas installée.').done;
+      P.homeLaunchWith(VOY, JSON.stringify(p.cmd === 'open' ? { voyage: 1, src: 'majordome' } : { importer: 'jour', src: 'majordome' }));
+      return answer({ say: p.cmd === 'open' ? ack('J\'ouvre votre carnet de voyage.') : 'J\'ajoute les photos du jour au carnet de voyage.', k: 'Carnet de voyage' }).done;
+    }
+    if (!V) return answer('Je ne peux pas joindre l\'appli Photo ici.').done;
+    if (!installed(PHO)) return answer('L\'appli Photo n\'est pas installée.').done;
+    if (p.cmd === 'off') {
+      var r0 = J(V.photoMode(JSON.stringify({ mode: 'normal' })), null);
+      if (!r0) return answer('Je n\'arrive pas à joindre l\'appli Photo.').done;
+      return answer({ say: 'Mode voyage arrêté : les photos retournent dans DCIM/Photo.', k: 'Photo' }).done;
+    }
+    if (p.cmd === 'on') {
+      var r1 = J(V.photoMode(JSON.stringify({ mode: 'voyage' })), null);
+      if (!r1) return answer('Je n\'arrive pas à joindre l\'appli Photo.').done;
+      if (r1.ok === false) return ask('Pour quel voyage ? Dites son nom, par exemple « Italie ».', 'text', { k: 'Mode voyage' }).then(function (t) { if (!t) return answer('D\'accord.'); return H.voyage({ cmd: 'start', title: cap(String(t).replace(/^(?:le |la |l'|pour |carnet )+/i, '').replace(/[.!?]+$/, '').trim()) }); });
+      return answer({ say: 'Mode voyage activé : les photos iront dans le carnet « ' + (r1.voyage && r1.voyage.titre || '') + ' ».', k: 'Photo' }).done;
+    }
+    if (p.cmd === 'start') {
+      if (!p.title) return ask('Quel est le nom du voyage ?', 'text', { k: 'Carnet de voyage' }).then(function (t) { if (!t) return answer('D\'accord.'); return H.voyage({ cmd: 'start', title: cap(String(t).replace(/[.!?]+$/, '').trim()) }); });
+      var c = installed(VOY) && V.creer ? J(V.creer(JSON.stringify({ titre: p.title, source: 'majordome' })), {}) : {};
+      var carnet = c.ok ? { id: c.id, titre: c.titre || p.title } : { id: 'v' + Date.now(), titre: p.title, local: true };
+      var r2 = J(V.photoMode(JSON.stringify({ mode: 'voyage', carnet: carnet })), null);
+      if (!r2 || r2.ok === false) return answer(c.ok ? 'Carnet « ' + carnet.titre + ' » créé, mais je n\'arrive pas à joindre l\'appli Photo.' : 'Je n\'arrive pas à joindre l\'appli Photo.').done;
+      var say = c.ok ? (c.existe ? 'Le carnet « ' + carnet.titre + ' » existe déjà. Mode voyage activé dans Photo.' : 'Carnet « ' + carnet.titre + ' » créé. Mode voyage activé dans Photo.')
+        : 'Le Carnet de voyage n\'est pas installé : je garde le voyage « ' + carnet.titre + ' » dans Photo, mode voyage activé.';
+      return answer({ say: say, k: 'Mode voyage' }).done;
+    }
+    return answer('Je ne sais pas encore faire ça.').done;
+  };
+
   /* --- Téléphone --- */
   function phoneOnly() { return answer(PC ? 'Je ne peux pas faire cela depuis l\'ordinateur : c\'est une commande du téléphone.' : 'Cette commande n\'est disponible que sur le téléphone.').done; }
   function findContact(name) {
@@ -1182,6 +1227,7 @@
     ['Applis et sites', ['Ouvre Présentation', 'Ouvre le tableur', 'Ouvre le lecteur PDF', 'Ouvre Rangement', 'Ouvre YouTube'].concat(ANDROID ? ['Ouvre WhatsApp', 'Lance Waze', 'Ouvre le GPS', 'Ouvre l\'appareil photo', 'Ouvre les paramètres Wi-Fi', 'Ouvre le Play Store'] : []).concat(PC ? ['Plein écran'] : [])],
     ['Climatisation' + (ANDROID ? '' : ' (sur le téléphone seulement)'), ['Ouvre la clim', 'Ouvre Comfort Cloud']],
     ['Livres audio (Liseuse)', ['Lis mon livre', 'Reprends la lecture', 'Lis-moi Germinal', 'Pause la lecture', 'Chapitre suivant', 'Arrête la lecture dans 20 minutes']],
+    ['Mode voyage (Photo et Carnet de voyage)' + (ANDROID ? '' : ' (sur le téléphone surtout)'), ['Active le mode voyage', 'Commence le carnet Italie', 'Arrête le mode voyage', 'Ajoute les photos du jour au carnet', 'Ouvre mon carnet de voyage']],
     ['Musique', ['Mets de la musique', 'Pause', 'Chanson suivante', 'Morceau précédent']],
     ['Téléphone' + (ANDROID ? '' : ' (sur le téléphone seulement)'), ['Appelle Paul', 'Envoie un SMS à Paul : j\'arrive dans 10 minutes', 'Allume la lampe', 'Monte le son', 'Mode silencieux', 'Ne pas déranger', 'Active le Wi-Fi', 'Ouvre le Bluetooth', 'Niveau de batterie']],
     ['Routines et réglages', ['Bonjour ' + (S.name || 'Majordome'), 'Bonne nuit', 'Parle plus lentement', 'Appelle-moi Gilbert', 'Arrête d\'écouter', 'Efface l\'historique', 'Répète', 'Stop']]

@@ -244,3 +244,19 @@ html.calme *{transition:none!important}
   .tool .oi{width:20px;height:20px}
 }
 html.pc .selbox .hd{width:12px;height:12px;margin:-7px 0 0 -7px}
+
+/* ---------- photos du voyage (appli Photo, dossier de voyage) ---------- */
+.voyBan{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 8px 0;padding:8px 8px 8px 12px;border-radius:12px;background:#FFF4D6;border:1px solid #E9C979;box-shadow:0 2px 8px #3a240f1f;z-index:4;animation:vbIn .25s ease-out}
+.voyBan b{flex:1;min-width:150px;font-size:14.5px}
+.voyBan .btn{min-height:36px;padding:5px 12px}
+.voyBan .ibtn{width:36px;height:36px}
+.vbIc{width:30px;height:30px;border-radius:50%;background:var(--acc2);color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
+.vbIc .oi{width:17px;height:17px}
+@keyframes vbIn{from{opacity:0;transform:translateY(-8px)}}
+.calme .voyBan{animation:none}
+.voyStyles{display:grid;gap:8px}
+.vsb{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:var(--paper2);cursor:pointer;color:var(--ink)}
+.vsb small{color:var(--ink3)}
+.vsb.on{border-color:var(--acc);box-shadow:0 0 0 2px #b5532f40;background:#fff}
+.vpDay{margin:12px 2px 6px;font-size:14px;color:var(--ink2)}
+.voyPick .trayGrid{max-height:none}

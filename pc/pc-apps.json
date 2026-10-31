@@ -556,10 +556,11 @@
       "theme_color": "#7B3F2A",
       "background_color": "#F1E7D6",
       "vendor": ["jszip.min.js", "jspdf.umd.min.js", "lucide-icons.js", "fonts-carnet/", "fonts/Caladea-Regular.ttf", "fonts/Caladea-Bold.ttf"],
-      "copies": { "cv.css": "applis/www-voyage/cv.css", "cv-art.js": "applis/www-voyage/cv-art.js", "cv-render.js": "applis/www-voyage/cv-render.js", "cv-model.js": "applis/www-voyage/cv-model.js", "cv-editor.js": "applis/www-voyage/cv-editor.js", "cv-share.js": "applis/www-voyage/cv-share.js", "cv-ui.js": "applis/www-voyage/cv-ui.js", "cv-carte-data.js": "applis/www-voyage/cv-carte-data.js" },
-      "pcconf": { "dropHint": "Photos (JPEG, PNG, WebP) ou carnet .magcarnet" },
+      "copies": { "cv.css": "applis/www-voyage/cv.css", "cv-art.js": "applis/www-voyage/cv-art.js", "cv-render.js": "applis/www-voyage/cv-render.js", "cv-model.js": "applis/www-voyage/cv-model.js", "cv-editor.js": "applis/www-voyage/cv-editor.js", "cv-share.js": "applis/www-voyage/cv-share.js", "cv-ui.js": "applis/www-voyage/cv-ui.js", "cv-carte-data.js": "applis/www-voyage/cv-carte-data.js", "cv-voyage.js": "applis/www-voyage/cv-voyage.js" },
+      "pcconf": { "dropHint": "Photos (JPEG, PNG, WebP), carnet .magcarnet ou dossier de voyage (voyage.json et ses photos)" },
       "file_handlers": [
-        { "accept": { "application/x-magcarnet": [".magcarnet"] } }
+        { "accept": { "application/x-magcarnet": [".magcarnet"] } },
+        { "accept": { "application/json": [".json"], "image/jpeg": [".jpg", ".jpeg"] } }
       ],
       "data": { "ls": ["voyage."], "idb": ["carnet-voyage"], "note": "Les carnets et leurs photos sont dans le navigateur (IndexedDB « carnet-voyage ») : cet export les contient. Pour un seul carnet, préférer sa sauvegarde .magcarnet (aussi lisible sur le téléphone)." }
     },

@@ -56,6 +56,26 @@
           ".magcarnet"
         ]
       }
+    },
+    {
+      "action": "./",
+      "launch_type": "single-client",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ],
+      "accept": {
+        "application/json": [
+          ".json"
+        ],
+        "image/jpeg": [
+          ".jpg",
+          ".jpeg"
+        ]
+      }
     }
   ]
 }
