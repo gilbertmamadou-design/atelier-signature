@@ -7,14 +7,19 @@ name: "Fond Jarvis — paquet Lively avec la voix Siwis"
 # La voix (60 Mo, CC BY 4.0) n'est jamais enregistrée dans le dépôt : téléchargée de HuggingFace (rhasspy/piper-voices),
 # somme SHA-256 comparée à celle de applis/www-majordome/mj-voix.js, attribution dans voix/SIWIS-ATTRIBUTION.txt.
 # Lancement :
-#   - chaque jour (les commits de pc/ portent « [skip ci] ») : refabriqué seulement si la version du fond
-#     (pc/fond-jarvis/fj-version.json) diffère de celle du paquet publié (fichier .version de la Release) ;
+#   - après chaque déploiement de GitHub Pages (il a lieu même pour les commits « [skip ci] » de pc/), et chaque jour
+#     par sécurité : refabriqué seulement si la version du fond (pc/fond-jarvis/fj-version.json) diffère de celle du
+#     paquet publié (fichier .version de la Release) ;
 #   - étiquette « fond-jarvis-voix-<n> » poussée (sans relancer les APK, qui ne suivent que main) ;
 #   - push sur main qui change le paquet (sans « [skip ci] »), ou Actions › Run workflow.
 on:
   workflow_dispatch:
   schedule:
     - cron: "41 4 * * *"
+  workflow_run:
+    workflows: ["pages build and deployment"]
+    types: [completed]
+    branches: [main]
   push:
     branches: [main]
     tags: ["fond-jarvis-voix-*"]
@@ -39,7 +44,7 @@ jobs:
           P=$(curl -fsSL "https://github.com/${{ github.repository }}/releases/download/fond-jarvis-voix/fond-jarvis-lively-voix-siwis.version" 2>/dev/null | head -c 40 || true)
           echo "Fond : $V ; paquet avec voix publié : ${P:-aucun}"
           echo "v=$V" >> "$GITHUB_OUTPUT"
-          if [ "${{ github.event_name }}" = "schedule" ] && [ "$P" = "$V" ]; then echo "skip=1" >> "$GITHUB_OUTPUT"; echo "::notice title=Paquet avec voix::déjà à jour ($V)"; fi
+          if [ "${{ github.event_name }}" != "workflow_dispatch" ] && [ "${{ github.event_name }}" != "push" ] && [ "$P" = "$V" ]; then echo "skip=1" >> "$GITHUB_OUTPUT"; echo "::notice title=Paquet avec voix::déjà à jour ($V)"; fi
       - name: Télécharger la voix Siwis (HuggingFace, rhasspy/piper-voices)
         if: steps.ver.outputs.skip != '1'
         run: |
@@ -67,7 +72,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: fond-jarvis-voix
-          target_commitish: ${{ github.sha }}
+          target_commitish: main
           name: Fond Jarvis pour Lively — paquet avec la voix Siwis
           make_latest: false
           overwrite_files: true
