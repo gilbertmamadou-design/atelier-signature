@@ -6,8 +6,8 @@
    - message VERSION : répond {app, version, date} (« Version du JJ/MM » de l'appli et du lanceur) ;
    - réponses : cache d'abord pour les fichiers précachés, réseau puis cache pour le reste (polices…). */
 'use strict';
-var VERSION = 'ecf015a758ab';
-var DATE = '2026-10-30';          // jour de publication de cette version (« Version du JJ/MM » dans l'appli et le lanceur)
+var VERSION = '3f72384d53aa';
+var DATE = '2026-10-31';          // jour de publication de cette version (« Version du JJ/MM » dans l'appli et le lanceur)
 var APP = 'majordome';
 var CACHE = 'mag-pc-' + APP + '-' + VERSION, RUNTIME = 'mag-pc-' + APP + '-rt';
 var PRECACHE = [
@@ -28,6 +28,9 @@ var PRECACHE = [
   "mj-montre.js",
   "mj-nlu.js",
   "mj-orb.js",
+  "mj-phon.js",
+  "mj-voix-worker.js",
+  "mj-voix.js",
   "../shared/apps/agenda.js"
 ];
 

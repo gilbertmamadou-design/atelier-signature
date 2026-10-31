@@ -9,9 +9,12 @@
      window.MAGPrint      commun (applis, tuiles Socle, batterie, lampe, contacts…)
      window.MAGAgenda     agenda (AgendaBridge.java / pc/shared/apps/agenda.js)
      window.MAGActualites flux en liste blanche sur Android (ActualitesBridge.java)
+   Voix : système (TextToSpeech sur Android, speechSynthesis sur PC) ou Piper hors ligne (mj-voix.js, worker
+   mj-voix-worker.js, moteur sherpa-onnx WASM dans piper/, phonétiseur mj-phon.js) avec effet « Jarvis » ;
+   repli automatique et silencieux sur la voix du système si Piper ne se charge pas.
    Événements du pont : window.majordomeEvent(type, json).
    Réseau : seulement Open-Meteo (météo, recherche de ville), franceinfo (titres),
-   MeteoAlarm (vigilance) et le téléchargement du modèle vocal.
+   MeteoAlarm (vigilance) et le téléchargement du modèle vocal (et des voix Piper, huggingface.co).
    ===================================================================== */
 (function () {
   'use strict';
@@ -34,6 +37,7 @@
   /* ---------------- Réglages (stockés localement seulement) ---------------- */
   var DEF = {
     name: 'Majordome', wake: '', address: 'monsieur', prenom: '', voice: '', rate: 1, pitch: 1, volume: 1, voiceOn: true, beeps: true,
+    tts: 'system', piperVoice: 'pierre', fx: 'majordome', fxo: null,
     engine: ANDROID ? 'vosk' : 'vosk', webOk: false, wakeOn: false, wakeCharging: false, autoListen: true,
     place: null, gps: true, windLimit: 45, history: true, newsN: 5,
     routines: [
@@ -93,6 +97,26 @@
   }
 
   /* ---------------- Voix (synthèse) ---------------- */
+  // Piper : APK → piper/ (dans l'appli) et voix dans le stockage privé (MajordomeBridge) ; PC → moteur publié dans applis/www-majordome/piper/, voix dans IndexedDB
+  var pipeWait = {};
+  var VX = window.MJVoix ? window.MJVoix.create({
+    engine: PC ? ((window.MAGPC && MAGPC.conf && MAGPC.conf.piper) || '../../applis/www-majordome/piper/') : 'piper/',
+    store: ANDROID && B.piperState ? B : 'idb',   // liste des voix installées : clé commune « mj-voix:installees » (Majordome et Fond Jarvis du même site)
+    sink: ANDROID && B.piperPlay ? {
+      play: function (id, pcm, sr, dur, started) {
+        return new Promise(function (ok) {
+          var u8 = new Uint8Array(pcm.buffer), bin = '';
+          for (var i = 0; i < u8.length; i += 0x8000) bin += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+          pipeWait[id] = { ok: ok, started: started };
+          setTimeout(function () { if (pipeWait[id]) { delete pipeWait[id]; ok(); } }, dur * 1000 + 4000);   // filet
+          try { B.piperPlay(id, btoa(bin), sr); } catch (e) { delete pipeWait[id]; ok(); }
+        });
+      },
+      stop: function () { try { B.piperStop(); } catch (e) { } Object.keys(pipeWait).forEach(function (k) { var w = pipeWait[k]; delete pipeWait[k]; w.ok(); }); }
+    } : null,
+    onChange: function (ev) { if (curSheet === 'settings' && ev.t === 'android' && ev.d && /^(ready|error|removed)$/.test(ev.d.state)) settingsSheet('voix'); }
+  }) : null;
+  function piperOn() { return S.tts === 'piper' && VX && VX.usable(S.piperVoice); }
   var lastSaid = '', speakWait = {}, speakChain = Promise.resolve();
   function speechText(s) {
     return String(s || '').replace(/<[^>]+>/g, ' ').replace(/[«»"]/g, '').replace(/\b(\d{1,2}) h (\d{2})\b/g, '$1 heures $2').replace(/\b(\d{1,2}) h\b/g, '$1 heures')
@@ -115,10 +139,18 @@
     return new Promise(function (resolve) {
       var done = false, id = uid();
       var fin = function () { if (done) return; done = true; delete speakWait[id]; orb.speak(false); if (orb.get() === 'speak') orb.state(MJ.listening ? 'listen' : 'idle'); if ($('status').textContent === SPEAKING) status(MJ.listening ? 'J\'écoute' : 'Prêt'); if (B && B.hold) try { B.hold(false); } catch (e) { } resolve(); };
-      setTimeout(fin, 2500 + t.length * 95);   // filet de sécurité
+      setTimeout(fin, (2500 + t.length * 95) / Math.min(1, S.rate || 1) + (S.tts === 'piper' ? 5000 : 0));   // filet de sécurité
       orb.speak(true, t, S.rate || 1);
       if (!MJ.listening) status(SPEAKING);
       if (B && B.hold) try { B.hold(true); } catch (e) { }
+      if (piperOn()) {   // voix Piper ; en cas d'échec avant le premier son : voix du système, sans message
+        speakWait[id] = fin; var heard = false;
+        VX.speak(t, { voice: S.piperVoice, rate: S.rate, pitch: S.pitch, volume: S.volume, fx: S.fx, fxo: S.fxo }, { onStart: function () { heard = true; }, onLevel: function (v) { orb.voice(v); } })
+          .then(fin, function (e) { if (heard || done) return fin(); console.warn('Piper indisponible, voix du système', e && (e.message || e.msg)); delete speakWait[id]; system(); });
+        return;
+      }
+      system();
+      function system() {
       if (B && B.say) { speakWait[id] = fin; try { B.say(t, JSON.stringify({ voice: S.voice, rate: S.rate, pitch: S.pitch, volume: S.volume, id: id })); } catch (e) { fin(); } return; }
       if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) { fin(); return; }
       var u = new SpeechSynthesisUtterance(t); u.lang = 'fr-FR'; u.rate = S.rate || 1; u.pitch = S.pitch || 1; u.volume = Math.min(1, S.volume || 1);
@@ -128,9 +160,10 @@
       u.onboundary = function (e) { if (e && e.name !== 'sentence' && e.charIndex != null) orb.word(null, e.charIndex, e.charLength ? e.charIndex + e.charLength : undefined); else orb.pulse(); };
       u.onend = fin; u.onerror = fin;
       try { speechSynthesis.speak(u); } catch (e) { fin(); }
+      }
     }).catch(function () { });
   }
-  function shush() { try { if (B && B.shush) B.shush(); if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) { } Object.keys(speakWait).forEach(function (k) { speakWait[k](); }); }
+  function shush() { try { if (VX) VX.stop(); if (B && B.shush) B.shush(); if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) { } Object.keys(speakWait).forEach(function (k) { speakWait[k](); }); }
 
   /* ---------------- Réponse : carte + voix ---------------- */
   var MJ = window.Majordome = { listening: false, wait: null, last: null, voiceTurn: false };
@@ -229,6 +262,8 @@
       case 'assist': takeAssist(); break;
       case 'toast': if (d.text) toast(d.text); break;
       case 'spoken': if (speakWait[d.id]) speakWait[d.id](); break;
+      case 'pchunk': { var pw = pipeWait[d.id]; if (pw) { if (d.phase === 'start' && pw.started) pw.started(); if (d.phase === 'end') { delete pipeWait[d.id]; pw.ok(); } } break; }   // phrase Piper jouée par AudioTrack
+      case 'piper': if (VX) VX.androidEvent(d); break;   // téléchargement ou suppression d'une voix Piper
       case 'boundary': if (d.s != null) orb.word(null, d.s, d.e); else orb.pulse(); break;   // mot prononcé par la synthèse (début, fin)
       case 'model': INFO.model = d; chips(); modelUi(); if (d.state === 'ready' && d.fresh) { answer({ say: 'Le modèle vocal français est installé. Je vous écoute quand vous voulez.', k: 'Modèle vocal' }); applyWake(); } break;
       case 'alarm': tick(); break;
@@ -1177,6 +1212,8 @@
   function settingsSheet(focus) {
     refreshInfo();
     var vs = frVoices(), m = INFO.model || {};
+    var voxPanel = VX ? MJVoix.panel(VX, S, { save: saveS, android: ANDROID, refresh: function () { settingsSheet('voix'); }, preview: function (id) { shush(); VX.preview(id, { rate: S.rate, pitch: S.pitch, volume: S.volume, fx: S.fx, fxo: S.fxo }, { onLevel: function (v) { orb.voice(v); } }).then(function () { orb.speak(false); orb.state('idle'); }, function () { orb.speak(false); }); },
+      systemHtml: '<div class="set"><div class="t">Voix française<small>' + (vs.length ? vs.length + ' voix du système' : 'Aucune voix française trouvée : installez-en une dans les réglages du système') + '</small></div><select class="in" id="sVoice"><option value="">Par défaut</option>' + vs.map(function (v) { return '<option value="' + esc(v.id) + '"' + (v.id === S.voice ? ' selected' : '') + '>' + esc(v.name + (v.local === false ? ' (en ligne)' : '')) + '</option>'; }).join('') + '</select></div>' }) : { html: '<div class="set"><div class="t">Voix française<small>' + (vs.length ? vs.length + ' voix du système' : 'Aucune voix française trouvée : installez-en une dans les réglages du système') + '</small></div><select class="in" id="sVoice"><option value="">Par défaut</option>' + vs.map(function (v) { return '<option value="' + esc(v.id) + '"' + (v.id === S.voice ? ' selected' : '') + '>' + esc(v.name + (v.local === false ? ' (en ligne)' : '')) + '</option>'; }).join('') + '</select></div>', bind: function () { } };
     var h = '<div class="sect">Assistant</div>' +
       '<div class="set"><div class="t">Nom de l\'assistant<small>Affiché et utilisé comme mot de réveil. Ex. « Jarvis » pour votre usage personnel : gardé sur cet appareil seulement.</small></div></div><input class="in" id="sName" maxlength="24" value="' + esc(S.name) + '">' +
       '<div class="set"><div class="t">Autres mots de réveil<small>Séparés par des virgules (facultatif)</small></div></div><input class="in" id="sWake" maxlength="80" value="' + esc(S.wake) + '" placeholder="ex. jarvis, maestro">' +
@@ -1184,7 +1221,7 @@
       '<div id="sPrenomBox"' + (S.address === 'prenom' ? '' : ' hidden') + '><input class="in" id="sPrenom" maxlength="30" placeholder="Votre prénom" value="' + esc(S.prenom) + '"></div>' +
       '<div class="sect" id="f-voix">Voix</div>' +
       '<div class="set"><div class="t">Répondre à voix haute</div><label class="sw"><input type="checkbox" id="sVoiceOn"' + (S.voiceOn ? ' checked' : '') + '><span></span></label></div>' +
-      '<div class="set"><div class="t">Voix française<small>' + (vs.length ? vs.length + ' voix du système' : 'Aucune voix française trouvée : installez-en une dans les réglages du système') + '</small></div><select class="in" id="sVoice"><option value="">Par défaut</option>' + vs.map(function (v) { return '<option value="' + esc(v.id) + '"' + (v.id === S.voice ? ' selected' : '') + '>' + esc(v.name + (v.local === false ? ' (en ligne)' : '')) + '</option>'; }).join('') + '</select></div>' +
+      voxPanel.html +
       '<div class="set"><div class="t">Vitesse</div><input type="range" id="sRate" min="0.6" max="1.6" step="0.05" value="' + S.rate + '"></div>' +
       '<div class="set"><div class="t">Hauteur</div><input type="range" id="sPitch" min="0.6" max="1.6" step="0.05" value="' + S.pitch + '"></div>' +
       '<div class="set"><div class="t">Volume (voix et bips)</div><input type="range" id="sVol" min="0.1" max="1" step="0.05" value="' + S.volume + '"></div>' +
@@ -1210,9 +1247,9 @@
       '<div class="row" style="display:flex;gap:8px;margin-top:8px"><button class="btn sm" id="sRtNew">Nouvelle routine</button></div>' +
       (ANDROID ? '<div class="sect">Téléphone</div><div class="set"><div class="t">Autorisations</div><button class="btn sm" id="sPerms">Voir</button></div>' + assistRow() : '') +
       (MJ.settingsExtra ? MJ.settingsExtra() : '') + homeHtml() +
-      '<div class="sect">Vie privée</div><p class="note">Tout reste sur cet appareil : réglages, historique, notes, listes, minuteurs. Les seules connexions sont la météo (Open-Meteo), les titres (franceinfo), la vigilance (MeteoAlarm) et le téléchargement unique du modèle vocal (alphacephei.com)' + (ANDROID ? ' ; le pont Philips Hue est joint sur le réseau local seulement (et, si vous le demandez, la recherche du pont sur discovery.meethue.com)' : '') + '.</p>' +
+      '<div class="sect">Vie privée</div><p class="note">Tout reste sur cet appareil : réglages, historique, notes, listes, minuteurs. Les seules connexions sont la météo (Open-Meteo), les titres (franceinfo), la vigilance (MeteoAlarm) et le téléchargement unique du modèle vocal (alphacephei.com) et des voix Piper choisies (huggingface.co)' + (ANDROID ? ' ; le pont Philips Hue est joint sur le réseau local seulement (et, si vous le demandez, la recherche du pont sur discovery.meethue.com)' : '') + '.</p>' +
       '<div class="set"><div class="t">Historique des commandes</div><button class="btn sm" id="sHist">Voir / effacer</button></div>' +
-      '<div class="sect">À propos</div><p class="note">' + esc(S.name) + ' : assistant vocal à commandes de la Suite MAG. Reconnaissance : Vosk (Apache 2.0)' + (PC ? ', vosk-browser de Ciaran O\'Reilly (Apache 2.0 ; Kaldi, OpenFST Apache 2.0 ; CLAPACK, libarchive BSD ; zlib)' : ', vosk-android et JNA (Apache 2.0)') + '. Modèle : vosk-model-small-fr-0.22, Alpha Cephei (Apache 2.0). Aucun personnage, logo ni visuel tiers.</p>';
+      '<div class="sect">À propos</div><p class="note">' + esc(S.name) + ' : assistant vocal à commandes de la Suite MAG. Reconnaissance : Vosk (Apache 2.0)' + (PC ? ', vosk-browser de Ciaran O\'Reilly (Apache 2.0 ; Kaldi, OpenFST Apache 2.0 ; CLAPACK, libarchive BSD ; zlib)' : ', vosk-android et JNA (Apache 2.0)') + '. Modèle : vosk-model-small-fr-0.22, Alpha Cephei (Apache 2.0). Voix Piper : moteur sherpa-onnx (k2-fsa, Apache 2.0 ; onnxruntime MIT), phonétiseur français propre à Majordome (sans espeak-ng) ; voix de rhasspy/piper-voices : Pierre et Jessica (UPMC, CC BY-SA 4.0), Gilles (CC0), Siwis (CC BY 4.0). Aucun personnage, logo ni visuel tiers.</p>';
     var b = openSheet('Réglages', h, 'settings');
     $('sAddr').value = S.address;
     var on = function (id, ev, fn) { var e = $(id); if (e) e[ev] = fn; };
@@ -1239,6 +1276,7 @@
     on('sPerms', 'onclick', permsSheet);
     on('sHist', 'onclick', histSheet);
     on('sRtNew', 'onclick', function () { routineSheet(-1); });
+    try { voxPanel.bind(b); } catch (e) { console.warn(e); }
     if (MJ.settingsBind) try { MJ.settingsBind(b); } catch (e) { console.warn(e); }
     homeBind();
     b.addEventListener('click', function (e) { var r = e.target.closest('[data-rt]'); if (r) routineSheet(+r.dataset.rt); var f = e.target.closest('[data-fix]'); if (f && B && B.fix) B.fix(f.dataset.fix); });
@@ -1408,6 +1446,7 @@
   tick(); lastExchange();
   document.addEventListener('DOMContentLoaded', function () { try { moment(); } catch (e) { } });   // après mj-maison (carte Lumières)
   applyWake();
+  if (S.tts === 'piper' && VX && VX.hasVoice(S.piperVoice)) setTimeout(function () { VX.warm(S.piperVoice).catch(function () { }); }, 1200);
   if (window.speechSynthesis && speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = function () { if (curSheet === 'settings') settingsSheet(); };
   var first = !lsGet('majordome:vu', false);
   if (first) { lsSet('majordome:vu', true); card('<div class="k">Bienvenue</div><p>Je suis ' + esc(S.name) + ', votre assistant à commandes. Touchez la sphère ou le micro pour parler, ou tapez une commande ci-dessous. Dites « qu\'est-ce que tu sais faire ? » pour les exemples.</p>' + (B && B.listen && !(INFO.model && INFO.model.state === 'ready') && S.engine === 'vosk' ? '<div class="row"><button class="btn pri" data-mdl>Installer la reconnaissance hors ligne (41 Mo)</button></div>' : '')); var bm = document.querySelector('[data-mdl]'); if (bm) bm.onclick = modelSheet; }
@@ -1418,7 +1457,7 @@
     takeAssist();
   }, 400);
   publish();
-  MJ.S = S; MJ.AL = function () { return AL; };
+  MJ.S = S; MJ.VX = VX; MJ.AL = function () { return AL; };
   MJ._ = { H: H, answer: answer, ask: ask, errorReply: errorReply, openSheet: openSheet, closeSheet: closeSheet, curSheet: function () { return curSheet; }, esc: esc, J: J, lsGet: lsGet, lsSet: lsSet, uid: uid, now: now, cap: cap, deacc: deacc,
     S: S, saveS: saveS, toast: toast, card: card, withSir: withSir, sir: sir, ack: ack, dur: dur, hm: hm, hmSay: hmSay, addAlarm: addAlarm, removeAlarm: removeAlarm, setAL: function (l) { AL = l; saveAL(); renderTimers(); },
     HELP: HELP, openLink: openLink, settingsSheet: settingsSheet, handle: handle, ANDROID: ANDROID, PC: PC, B: B, P: P, KEY: KEY, WMO: WMO, weatherData: weatherData, vigilanceData: vigilanceData, speaking: speaking };

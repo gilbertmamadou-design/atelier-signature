@@ -2,7 +2,7 @@
   "id": "/atelier-signature/pc/majordome/",
   "name": "Majordome",
   "short_name": "Majordome",
-  "description": "Assistant vocal à commandes, hors ligne (Vosk) : heure, calculs, minuteurs, météo, agenda, listes…",
+  "description": "Assistant vocal à commandes, hors ligne (Vosk) : heure, calculs, minuteurs, météo, agenda, listes… Voix Piper hors ligne et effet « Jarvis »",
   "lang": "fr",
   "dir": "ltr",
   "start_url": "./",
