@@ -91,6 +91,12 @@ public class WidgetProvider extends ContentProvider {
                 Object r = k.getMethod("widgetCall", Context.class, String.class, String.class).invoke(null, c, method, arg);
                 b.putBoolean("ok", Boolean.TRUE.equals(r));
             }
+            // Liseuse : lecture à voix haute (Jarvis de Majordome, tuile Socle) sans ouvrir l'appli quand la lecture tourne déjà
+            else if ("liseuse_audio".equals(method)) {
+                Class<?> k = Class.forName(c.getPackageName() + ".LiseuseBridge");
+                Object r = k.getMethod("widgetCall", Context.class, String.class, String.class).invoke(null, c, method, arg);
+                b.putBoolean("ok", c.getPackageName().endsWith(".liseuse") && Boolean.TRUE.equals(r));
+            }
             else b.putBoolean("ok", false);
         } catch (Throwable t) { b.putBoolean("ok", false); b.putString("err", String.valueOf(t.getMessage())); }
         return b;

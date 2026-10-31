@@ -1,9 +1,15 @@
 # Liseuse (fr.magformation13.liseuse) : lignes à ajouter à android/app/src/main/AndroidManifest.xml (uniquement pour Liseuse)
 # LiseuseBridge.java est copié automatiquement (boucle scripts/*Bridge.java, __PKG__ remplacé) et chargé sous window.MAGLiseuse.
 # jszip.min.js, pdf.min.js et pdf.worker.min.js doivent être copiés dans www-liseuse/ à la compilation.
+# Lecture à voix haute : mj-voix.js, mj-voix-worker.js, mj-phon.js et piper/ (moteur sherpa-onnx WASM) sont copiés depuis
+# www-majordome/ à la compilation (apps.json « with », .github/workflows/apk.yml) : une seule source pour les deux applis.
 
 # ---------- 1. Avant </manifest> : autorisations ----------
 <uses-permission android:name="android.permission.INTERNET" />
+# Lecture à voix haute (livre audio) : service au premier plan « lecture », verrou de veille partiel pendant la lecture
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+<uses-permission android:name="android.permission.WAKE_LOCK" />
 # Aucune autorisation de stockage : les livres sont choisis avec le sélecteur d'Android (ACTION_OPEN_DOCUMENT)
 # ou reçus par « Ouvrir avec » (autorisation de lecture temporaire accordée par l'appli qui envoie).
 # Dossiers suivis : choisis avec le sélecteur de dossiers d'Android (accès en lecture gardé, sans autorisation de stockage).
@@ -17,7 +23,17 @@
     <intent><action android:name="android.intent.action.VIEW" /><data android:scheme="https" /></intent>
     <package android:name="fr.magformation13.fichiers" />
     <package android:name="fr.magformation13.socle" />
+    <!-- voix Piper de Majordome (fournisseur content://fr.magformation13.majordome.voix, permission signature) -->
+    <package android:name="fr.magformation13.majordome" />
 </queries>
+
+# ---------- 2 bis. Dans <application> : lecture à voix haute ----------
+# Service au premier plan (mediaPlayback) qui est aussi le MediaBrowserService d'Android Auto ; res/xml/lis_auto.xml :
+# <automotiveApp><uses name="media" /></automotiveApp>
+<service android:name=".LiseuseBridge$Lecture" android:label="Liseuse : lecture à voix haute" android:exported="true" android:foregroundServiceType="mediaPlayback">
+    <intent-filter><action android:name="android.media.browse.MediaBrowserService" /></intent-filter>
+</service>
+<meta-data android:name="com.google.android.gms.car.application" android:resource="@xml/lis_auto" />
 
 # ---------- 3. Dans <activity android:name=".MainActivity" …>, à côté de l'intent-filter MAIN/LAUNCHER ----------
 # MainActivity doit rester en android:launchMode="singleTask" (valeur du modèle Capacitor) : un second « Ouvrir avec »

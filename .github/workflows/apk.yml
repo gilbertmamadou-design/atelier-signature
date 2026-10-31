@@ -54,7 +54,8 @@ jobs:
                   if common:
                       sel = apps
                   else:
-                      sel = [a for a in apps if any(f.startswith(a['web'] + '/') or f.startswith(a['icons'] + '/') for f in files)]
+                      # « with » : fichiers d'une autre appli copiés à la fabrication (ex. Liseuse : moteur Piper de www-majordome)
+                      sel = [a for a in apps if any(f.startswith(a['web'] + '/') or f.startswith(a['icons'] + '/') or any(f.startswith(w) for w in a.get('with', [])) for f in files)]
           if sel is None:
               sel = apps
           if os.environ.get('HAS_KEY') != 'true':
@@ -94,6 +95,17 @@ jobs:
       - name: Préparer l'application ${{ matrix.name }}
         run: |
           cp node_modules/jspdf/dist/jspdf.umd.min.js node_modules/xlsx/dist/xlsx.full.min.js node_modules/leaflet/dist/leaflet.js node_modules/leaflet/dist/leaflet.css node_modules/pdf-lib/dist/pdf-lib.min.js node_modules/pdfjs-dist/build/pdf.min.js node_modules/pdfjs-dist/build/pdf.worker.min.js node_modules/jszip/dist/jszip.min.js "${{ matrix.web }}/"
+          # Fichiers communs avec une autre appli (apps.json « with ») : une seule source dans le dépôt, copiée dans l'APK
+          python3 - "${{ matrix.app }}" "${{ matrix.web }}" <<'PYW'
+          import json, os, shutil, sys
+          app, web = sys.argv[1], sys.argv[2]
+          a = [x for x in json.load(open('apps.json', encoding='utf-8')) if x['app'] == app][0]
+          for src in a.get('with', []):
+              dst = os.path.join(web, os.path.basename(src.rstrip('/')))
+              if src.endswith('/'): shutil.copytree(src, dst, dirs_exist_ok=True)
+              else: shutil.copy(src, dst)
+              print('Fichier commun :', src, '->', dst)
+          PYW
           printf '{"appId":"%s","appName":"%s","webDir":"%s"}' "${{ matrix.appid }}" "${{ matrix.name }}" "${{ matrix.web }}" > capacitor.config.json
           cat capacitor.config.json
 

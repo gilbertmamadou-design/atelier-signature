@@ -213,7 +213,13 @@
   "appid": "fr.magformation13.liseuse",
   "name": "Liseuse",
   "icons": "android-icons-liseuse",
-  "file": "Liseuse.apk"
+  "file": "Liseuse.apk",
+  "with": [
+   "www-majordome/mj-voix.js",
+   "www-majordome/mj-voix-worker.js",
+   "www-majordome/mj-phon.js",
+   "www-majordome/piper/"
+  ]
  },
  {
   "app": "qr",
