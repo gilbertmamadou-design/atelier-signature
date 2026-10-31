@@ -1,0 +1,22 @@
+Moteur des voix Piper de Majordome (synthèse vocale hors ligne)
+================================================================
+
+Origine : sherpa-onnx 2.0.1 (https://github.com/k2-fsa/sherpa-onnx), release GitHub v2.0.1,
+archive sherpa-onnx-wasm-simd-2.0.1-vits-piper-de_DE-thorsten_emotional-medium.tar.bz2 (construction WebAssembly SIMD
+officielle, emscripten 4.0.23, un seul fil, sans SharedArrayBuffer).
+
+Fichiers :
+  sherpa-onnx-wasm-main-tts.wasm   tel quel                       13740219 octets  sha256 b0a84503747bbefd2e06003518ba6588edaae8e4057ad72af9c5853d231531f1
+  sherpa-onnx-wasm-main-tts.js     glue emscripten : en-tête ajouté, appel loadPackage(...) du paquet .data de démonstration retiré
+                                   (le modèle allemand de la démo n'est ni publié ni téléchargé)   sha256 595ecb723ddd0c9284205fa050a6e7ddd7a21f6354077250b897545ef03b97af
+  sherpa-onnx-tts.js               API JavaScript (wasm/tts/), une ligne d'en-tête ajoutée         sha256 249567a8873df3da5c6f24d23685f2b298c332b4d4c46df6129f5bfd971ab9d8
+
+Licences :
+  sherpa-onnx : Apache-2.0 (LICENCE-sherpa-onnx-Apache-2.0.txt) ; onnxruntime (inclus dans le .wasm) : MIT, Microsoft
+  (LICENCE-onnxruntime-MIT.txt) ; emscripten / musl : MIT.
+  Depuis la version 2.0.0, sherpa-onnx ne contient plus espeak-ng ni piper-phonemize (CHANGELOG : « Remove espeak-ng and
+  piper-phonemize from sherpa-onnx (#4055) ») : aucun code GPL dans ce dossier. Le texte est phonétisé par mj-phon.js
+  (code de Majordome) et passé au moteur en phonèmes (GenerationConfig.phonemeCodepoints).
+
+Voix : non incluses. Téléchargées une fois depuis https://huggingface.co/rhasspy/piper-voices (somme SHA-256 vérifiée),
+gardées sur l'appareil. Voir mj-voix.js (catalogue, licences des voix).

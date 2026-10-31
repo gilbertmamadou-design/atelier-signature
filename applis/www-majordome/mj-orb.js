@@ -1,6 +1,6 @@
 /* =====================================================================
    Majordome : sphère de particules animée (canvas 2D, code propre au projet).
-   MJOrb.create(canvas, {pad}) → { state(nom), level(0..1, bandes), speak(on, texte, débit), word(texte, début, fin),
+   MJOrb.create(canvas, {pad}) → { state(nom), level(0..1, bandes), speak(on, texte, débit), word(texte, début, fin), voice(0..1),
                                     pulse(), metrics(), stop() }
    États : idle (respire), listen (réagit au micro), think (tourne, violet),
    speak (pulse au rythme de la voix), error (rouge, frissonne), sleep (veille).
@@ -12,7 +12,8 @@
       rapide (≈ 35 ms) et relâche douce (≈ 220 ms) → gonflement, éclat du halo, dispersion des particules ;
       bandes grave / médium / aigu si elles sont fournies → vague lente (grave) et frisson fin (aigu) ;
       attaque brusque → onde circulaire qui s'élargit.
-    - parole : la synthèse ne donne pas son niveau ; enveloppe construite à partir des mots prononcés
+    - parole : voix Piper (mj-voix.js) : niveau réel (RMS de l'audio produit, ≈ 30 valeurs/s, voice(v)) ;
+      voix du système : la synthèse ne donne pas son niveau ; enveloppe construite à partir des mots prononcés
       (événements de mots), des syllabes estimées (groupes de voyelles) et de la ponctuation (pauses) ;
       sans événements de mots, rythme syllabique régulier.
    « Réduire les animations » : pas de rotation ni de bruit ; pendant l'écoute ou la parole seulement,
@@ -52,7 +53,7 @@
     // micro : valeur brute, instant de réception, enveloppe, enveloppe lente (détection d'attaque), bandes
     var mic = 0, micAt = 0, env = 0, envSlow = 0, bands = null, lo = 0, hi = 0, ripples = [];
     // parole : impulsions syllabiques planifiées
-    var spk = 0, spkT = 0, spkText = '', spkRate = 1, words = 0, sylls = [], quietUntil = 0, sEnv = 0, burst = 0;
+    var spk = 0, spkT = 0, spkText = '', spkRate = 1, words = 0, sylls = [], quietUntil = 0, sEnv = 0, burst = 0, vReal = 0, vRealAt = -1e9;
     var lvlS = 0, M = { scale: 1, glow: 0, level: 0, frames: 0 };
     function size() {
       var b = cv.getBoundingClientRect(); W = Math.max(10, b.width); H = Math.max(10, b.height);
@@ -63,6 +64,7 @@
     if (ro) ro.observe(cv); else root.addEventListener('resize', size);
     function voiceTarget(now) {
       if (!spk) return 0;
+      if (now - vRealAt < 160) return 0.04 + vReal * 0.96;   // niveau réel de la voix Piper
       var v = 0, any = false;
       for (var k = 0; k < sylls.length; k++) {
         var s = sylls[k], ph = (now - s.at) / s.dur;
@@ -183,6 +185,8 @@
         words++; kick();
       },
       pulse: function () { burst = Math.min(0.45, burst + 0.24); kick(); },
+      /* niveau réel de la voix (0..1, RMS de l'audio joué) : remplace l'enveloppe estimée tant qu'il arrive */
+      voice: function (v) { vReal = clamp(+v || 0, 0, 1); vRealAt = performance.now(); if (!spk) api.speak(true); kick(); },
       metrics: function () { return { scale: M.scale, glow: M.glow, level: M.level, frames: M.frames, state: st, running: !!(raf || tmo) }; },
       stop: function () { running = false; if (raf) cancelAnimationFrame(raf); if (tmo) clearTimeout(tmo); raf = tmo = 0; if (ro) ro.disconnect(); },
       reduced: reduce, count: N
