@@ -59,6 +59,7 @@
     if (k === 'new') U.newCarnet();
     else if (k === 'open') U.open(id);
     else if (k === 'import') U.importCarnet();
+    else if (k === 'voyage') CV.V.importFolder();
     else if (k === 'settings') CV.X.settings();
     else if (k === 'more') {
       const c = await M.getCarnet(id); if (!c) return;
@@ -122,11 +123,14 @@
     $('#edTitle').textContent = c.title;
     U.tools(); E.render(); U.props(); U.pagesBar(); U.hist();
     setTimeout(() => E.layout(), 30);
+    // photos prises avec Photo en mode voyage : bandeau « N nouvelles photos du voyage »
+    if (CV.V) { CV.V.banner(0); setTimeout(() => { if (E.c && E.c.id === c.id) CV.V.check(true); }, 350); }
   };
   U.close = async function (fromBack) {
     if (E.drawing) E.endDraw();
     await E.saveNow();
     E.c = null; E.sel = [];
+    if (CV.V) CV.V.banner(0);
     document.body.dataset.screen = 'home';
     if (!fromBack) U.pop();
     U.home();
@@ -188,6 +192,10 @@
       { label: 'Diaporama', icon: 'play', kbd: 'F5', on: () => CV.X.show(E.pi) },
       { label: 'Sauvegarde .magcarnet', icon: 'archive', on: () => CV.X.saveFile(E.c) },
       '-',
+      window.MAGPC ? null : { label: 'Actualiser les photos du voyage', icon: 'refresh-cw', on: () => CV.V.check(false) },
+      window.MAGPC ? { label: 'Importer un dossier de voyage…', icon: 'folder-input', on: () => CV.V.importFolder() } : null,
+      { label: 'Style des pages du voyage…', icon: 'palette', on: () => CV.V.askStyle(E.c, true) },
+      '-',
       { label: E.view === 'double' ? 'Page simple' : 'Double page', icon: 'book-open', on: () => U.topClick({ target: { closest: () => ({ dataset: { top: 'view' } }) } }) },
       { label: 'Toutes les pages…', icon: 'layout-grid', on: () => U.pagesDialog() },
       { label: 'Couverture…', icon: 'book', on: () => U.coverDialog() },
@@ -203,6 +211,8 @@
     O.menu(at, [
       { label: window.MAGPC ? 'Ajouter des photos du PC…' : (window.MAGOffice ? 'Choisir dans la galerie…' : 'Ajouter des photos…'), icon: 'image-plus', on: () => U.addPhotos() },
       { label: 'Photos du carnet…', icon: 'images', on: () => U.tray() },
+      window.MAGPC ? { label: 'Importer un dossier de voyage…', icon: 'folder-input', on: () => CV.V.importFolder() }
+        : { label: 'Photos du voyage (appli Photo)…', icon: 'plane', on: () => { if (CV.V.check(false)) CV.V.choose(CV.V.pending.slice()); } },
       E.c && E.c.pages.length ? { label: 'Composer une page (3 à 6 photos)…', icon: 'layout-dashboard', on: () => U.compose() } : null
     ], { title: 'Photos' });
   };
@@ -835,6 +845,8 @@
     if (l[0]) await U.receive(l);
   };
   U.receive = async function (list) {
+    // dossier de voyage de Photo (voyage.json et ses photos) : « Ouvrir avec », dépôt
+    if (list.some((x) => /^voyage\.json$/i.test(x.name || ''))) { await CV.V.receive(list); return; }
     const cars = list.filter((x) => /\.magcarnet$/i.test(x.name || '')), imgs = list.filter((x) => /^image\//.test((x.blob && x.blob.type) || '') || /\.(jpe?g|png|webp|gif|heic)$/i.test(x.name || ''));
     for (const x of cars) {
       try { const pr = U.progress('Ouverture du carnet…', 1); pr(0); const c = await M.importFile(x.blob); pr(-1); O.toast('Carnet « ' + c.title + ' » importé'); await U.open(c.id, -1); }
@@ -863,10 +875,15 @@
       }
       Mp.widgetPut(JSON.stringify({ last: c ? { id: c.id, title: c.title, info: M.stats(c), thumb, at: c.updated } : null, count: list.length }));
     } catch (e) { console.warn('socle', e); }
+    // liste des carnets pour Photo et Majordome (fournisseur protégé VoyageBridge$Carnets)
+    if (CV.V) CV.V.publish(list);
   };
   window.onSocle = function (json) {
     let a = {}; try { a = typeof json === 'string' ? JSON.parse(json) : json; } catch (e) { }
-    if (a.open) U.open(a.open); else if (a['new']) U.newCarnet(); else if (a.last) { const l = localStorage.getItem('voyage.last'); if (l) U.open(l); }
+    // Majordome : « ajoute les photos du jour au carnet », « ouvre mon carnet de voyage » ; Photo : « Ouvrir le carnet »
+    if (a.importer) { CV.V.attente().then(() => CV.V.importToday()); return; }
+    if (a.voyage && !a.open) { CV.V.attente().then(() => CV.V.activeCarnet()).then((id) => { if (id) U.open(id); else U.home(); }); return; }
+    if (a.open) CV.V.attente().then(() => U.open(a.open)); else if (a['new']) U.newCarnet(); else if (a.last) { const l = localStorage.getItem('voyage.last'); if (l) U.open(l); }
   };
 
   /* ---------------- Démarrage ---------------- */
@@ -899,6 +916,10 @@
     addEventListener('pagehide', () => { if (E.c) E.saveNow(); });
     CV.keys();
     O.Files.onLaunch((l) => U.receive(l));
+    // carnets demandés par Photo ou Majordome pendant que l'appli était fermée
+    try { await CV.V.attente(); } catch (e) { }
+    const vb = $('[data-a="voyage"]'); if (vb) vb.hidden = !window.MAGPC;
+    document.addEventListener('visibilitychange', () => { if (document.hidden) return; CV.V.attente().then((n) => { if (E.c) CV.V.check(true); else if (n) U.home(); }); });
     await U.home();
     try { history.replaceState({ cv: 0 }, ''); } catch (e) { }
     setTimeout(() => { try { const Mp = window.MAGPrint; if (Mp && Mp.takeSocle && !window.MAGPC) { const x = Mp.takeSocle(); if (x) window.onSocle(x); } } catch (e) { } }, 300);

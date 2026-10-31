@@ -245,9 +245,16 @@
     return { code, tmax, tmin, sym: w[0], txt: w[1] };
   };
 
-  /* ---------------- Composer : mises en page automatiques de 3 à 6 photos ---------------- */
+  /* ---------------- Composer : mises en page automatiques de 3 à 6 photos (1 et 2 : pages du voyage) ---------------- */
   // Chaque agencement : liste de cases [x, y, w, h, rot, cadre] en fractions de page ; la photo est ajustée à la case.
   const L = {
+    1: [
+      { name: 'Vedette', cells: [[0.1, 0.06, 0.8, 0.86, -1.5, 'polaroid']] }
+    ],
+    2: [
+      { name: 'Duo', cells: [[0.06, 0.03, 0.6, 0.5, -3, 'polaroid'], [0.34, 0.5, 0.6, 0.48, 3, 'timbre']] },
+      { name: 'Duo empilé', cells: [[0.12, 0.03, 0.76, 0.46, -1.5, 'bord'], [0.12, 0.52, 0.76, 0.46, 1.5, 'bord']] }
+    ],
     3: [
       { name: 'Classique', cells: [[0.07, 0.05, 0.86, 0.42, 0, 'bord'], [0.07, 0.52, 0.41, 0.38, 0, 'bord'], [0.52, 0.52, 0.41, 0.38, 0, 'bord']] },
       { name: 'Polaroids', cells: [[0.1, 0.06, 0.5, 0.42, -5, 'polaroid'], [0.42, 0.3, 0.5, 0.42, 4, 'polaroid'], [0.12, 0.54, 0.5, 0.42, -2, 'polaroid']] },
@@ -273,23 +280,30 @@
       { name: 'Souvenirs', cells: [[0.04, 0.04, 0.44, 0.27, -4, 'trombone'], [0.52, 0.05, 0.44, 0.3, 3, 'punaise'], [0.08, 0.36, 0.4, 0.28, 2, 'dechire'], [0.52, 0.4, 0.42, 0.26, -3, 'washi'], [0.05, 0.69, 0.44, 0.27, 3, 'coins'], [0.52, 0.7, 0.43, 0.26, -2, 'timbre']] }
     ]
   };
-  /** Propositions pour n photos (3 à 6) : [{name, items}] — les photos les plus horizontales vont dans les cases larges */
+  /** Propositions pour n photos (3 à 6 ; 1 et 2 pour les pages du voyage) : [{name, items, cells}] — les photos les plus horizontales
+      vont dans les cases larges. opt : jitter ; area {x, y, w, h} (fractions de page : zone utilisée, sous un titre par exemple) ;
+      frame(cadre, i) → cadre imposé ; room(id) → part de la case (0 à 0,3) laissée sous la photo pour une légende. */
   M.compose = function (mediaIds, opt) {
     opt = opt || {};
-    const n = Math.max(3, Math.min(6, mediaIds.length)), ids = mediaIds.slice(0, n);
+    const n = Math.max(mediaIds.length < 3 ? 1 : 3, Math.min(6, mediaIds.length)), ids = mediaIds.slice(0, n);
+    const ar0 = opt.area || { x: 0, y: 0, w: 1, h: 1 };
     const ratio = (id) => { const i = info[id] || {}; return i.w && i.h ? i.w / i.h : 4 / 3; };
     return (L[n] || []).map((lay, k) => {
-      const cells = lay.cells.map((c, i) => ({ c, i, ar: (c[2] * W) / (c[3] * H) }));
+      const cells = lay.cells.map((c, i) => ({ c, i, ar: (c[2] * ar0.w * W) / (c[3] * ar0.h * H) }));
       const byCell = cells.slice().sort((a, b) => b.ar - a.ar), byPhoto = ids.slice().sort((a, b) => ratio(b) - ratio(a));
       const assign = {}; byCell.forEach((c, i) => { assign[c.i] = byPhoto[i]; });
+      const rects = [];
       const items = lay.cells.map((c, i) => {
-        const id = assign[i], fr = c[5];
-        const cw = c[2] * W, ch = c[3] * H, cx = (c[0] + c[2] / 2) * W, cy = (c[1] + c[3] / 2) * H;
+        const id = assign[i], fr = opt.frame ? opt.frame(c[5], i) : c[5];
+        const cw = c[2] * ar0.w * W, ch0 = c[3] * ar0.h * H, x0 = (ar0.x + c[0] * ar0.w) * W, y0 = (ar0.y + c[1] * ar0.h) * H;
+        const room = opt.room ? Math.max(0, Math.min(0.3, opt.room(id) || 0)) : 0, ch = ch0 * (1 - room);
+        const cx = x0 + cw / 2, cy = y0 + ch / 2;
         let w = cw, h = A.idealH(fr, w, info[id]);
         if (h > ch) { w = w * ch / h; h = ch; }
+        rects.push({ x: x0, y: y0, w: cw, h: ch0, rot: c[4], frame: fr, media: id });
         return M.photoItem(id, { frame: fr, x: cx - w / 2, y: cy - h / 2, w, h, rot: c[4] + (opt.jitter ? (Math.random() - 0.5) * 2 : 0), seq: k });
       });
-      return { name: lay.name, items };
+      return { name: lay.name, items, cells: rects };
     });
   };
   M.photoItem = function (mid, o) {
