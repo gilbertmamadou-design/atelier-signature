@@ -1,0 +1,10 @@
+/* Polices du Carnet de voyage (copies locales, sous-ensemble latin, WOFF) — voir ../LICENSES/
+   Caveat, Kalam, Amatic SC : SIL Open Font License 1.1 ; Special Elite : Apache 2.0 ; Caladea : SIL OFL 1.1 (../fonts/) */
+@font-face{font-family:'Caveat';src:url('Caveat.woff') format('woff');font-weight:400 700;font-style:normal;font-display:block}
+@font-face{font-family:'Kalam';src:url('Kalam-Regular.woff') format('woff');font-weight:400;font-style:normal;font-display:block}
+@font-face{font-family:'Kalam';src:url('Kalam-Bold.woff') format('woff');font-weight:700;font-style:normal;font-display:block}
+@font-face{font-family:'Amatic SC';src:url('AmaticSC-Regular.woff') format('woff');font-weight:400;font-style:normal;font-display:block}
+@font-face{font-family:'Amatic SC';src:url('AmaticSC-Bold.woff') format('woff');font-weight:700;font-style:normal;font-display:block}
+@font-face{font-family:'Special Elite';src:url('SpecialElite-Regular.woff') format('woff');font-weight:400;font-style:normal;font-display:block}
+@font-face{font-family:'Caladea';src:url('../fonts/Caladea-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:block}
+@font-face{font-family:'Caladea';src:url('../fonts/Caladea-Bold.ttf') format('truetype');font-weight:700;font-style:normal;font-display:block}
