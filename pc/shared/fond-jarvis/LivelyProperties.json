@@ -6,6 +6,8 @@
   "windLimit": { "type": "slider", "text": "Seuil de vent chantier (km/h)", "value": 45, "min": 20, "max": 90, "step": 1 },
   "assistantName": { "type": "textbox", "text": "Nom de l'assistant", "value": "Majordome" },
   "voiceOn": { "type": "checkbox", "text": "Réponse à voix haute", "value": true },
+  "voiceEngine": { "type": "dropdown", "text": "Voix (Piper : à télécharger une fois dans ⚙ › Voix)", "value": 0, "items": ["Voix de Windows", "Voix Piper (hors ligne)"] },
+  "voiceFx": { "type": "dropdown", "text": "Effet sur la voix Piper", "value": 3, "items": ["Aucun", "Discret", "Majordome", "IA de film", "Radio"] },
   "freeLeft": { "type": "slider", "text": "Zone libre à gauche, pour les icônes (px)", "value": 140, "min": 0, "max": 600, "step": 10 },
   "textScale": { "type": "slider", "text": "Taille du texte (%)", "value": 100, "min": 70, "max": 160, "step": 5 },
   "effects": { "type": "slider", "text": "Intensité des effets (%)", "value": 70, "min": 0, "max": 100, "step": 5 },

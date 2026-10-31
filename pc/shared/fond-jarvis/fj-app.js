@@ -41,7 +41,7 @@
   var MJS = lsGet('majordome:reglages', {}) || {};   // Majordome PC (même origine dans la Suite) : nom, ville, seuil de vent, voix
   var DEF = {
     theme: 'cyan', layout: 'complet', name: '', city: '', place: null, windLimit: +MJS.windLimit || 45,
-    voiceOn: true, voice: MJS.voice || '', rate: +MJS.rate || 1, free: 140, scale: 100, fx: 70, reduce: false, fpsMax: 30, saver: true,
+    voiceOn: true, voice: MJS.voice || '', rate: +MJS.rate || 1, tts: MJS.tts || 'system', piperVoice: MJS.piperVoice || 'pierre', vfx: 'ia', vfxo: null, free: 140, scale: 100, fx: 70, reduce: false, fpsMax: 30, saver: true,
     newsN: 7, panels: { clock: true, wx: true, agenda: true, sys: true, news: true, music: true }, wake: false, wakeOk: false, updates: true
   };
   var S = FJ.S = Object.assign({}, DEF, lsGet(KEY.set, {}));
@@ -609,6 +609,8 @@
         return;
       case 'windLimit': S.windLimit = clamp(Math.round(+val) || 45, 10, 150); wxRender(); break;
       case 'voiceOn': S.voiceOn = !!val; break;
+      case 'voiceEngine': S.tts = +val === 1 ? 'piper' : 'system'; break;
+      case 'voiceFx': S.vfx = ['aucun', 'discret', 'majordome', 'ia', 'radio'][+val] || 'ia'; S.vfxo = null; break;
       case 'assistantName': clearTimeout(nameT); nameT = setTimeout(function () { S.name = String(val || '').trim().slice(0, 30); FJ.save(); FJ.apply(); }, 800); return;
       case 'freeLeft': S.free = clamp(Math.round(+val), 0, 900); break;
       case 'textScale': S.scale = clamp(Math.round(+val), 70, 160); break;
@@ -722,8 +724,13 @@
       $('sIcsDel').onclick = function () { AG.events = null; lsSet(KEY.ics, null); agendaRender(); $('sIcsMsg').textContent = 'Fichier oublié.'; };
     } else if (tab === 'voix') {
       var vs = (root.speechSynthesis && speechSynthesis.getVoices() || []).filter(function (v) { return /^fr/i.test(v.lang); });
-      h += chk('sVoiceOn', 'Réponse à voix haute', S.voiceOn, 'Voix française de Windows (synthèse du navigateur). Les réponses restent écrites.');
-      h += fld('Voix', sel('sVoice', [['', 'Automatique (première voix française)']].concat(vs.map(function (v) { return [v.name, v.name + (v.localService ? '' : ' (en ligne)')]; })), S.voice));
+      h += chk('sVoiceOn', 'Réponse à voix haute', S.voiceOn, 'Voix française de Windows, ou voix neuronale Piper hors ligne avec l\'effet « Jarvis ». Les réponses restent écrites.');
+      // voix Piper : panneau commun (mj-voix.js) ; adaptateur : S.fx est déjà l'intensité des effets visuels du fond
+      var VS = { get tts() { return S.tts; }, set tts(v) { S.tts = v; }, get piperVoice() { return S.piperVoice; }, set piperVoice(v) { S.piperVoice = v; }, get fx() { return S.vfx; }, set fx(v) { S.vfx = v; }, get fxo() { return S.vfxo; }, set fxo(v) { S.vfxo = v; } };
+      var vp = FJ.VX && root.MJVoix ? MJVoix.panel(FJ.VX, VS, { btn: 'btn', save: function () { FJ.save(); }, refresh: function () { FJ.settings('voix'); }, preview: function (id) { if (FJ.jarvis) FJ.jarvis.preview(id); },
+        systemHtml: fld('Voix du système', sel('sVoice', [['', 'Automatique (première voix française)']].concat(vs.map(function (v) { return [v.name, v.name + (v.localService ? '' : ' (en ligne)')]; })), S.voice)) }) : null;
+      h += vp ? '<h3>Voix</h3>' + vp.html : fld('Voix', sel('sVoice', [['', 'Automatique (première voix française)']].concat(vs.map(function (v) { return [v.name, v.name + (v.localService ? '' : ' (en ligne)')]; })), S.voice));
+      if (vp && FJ.mode === 'lively') h += '<p class="hint">Dans Lively, le fond a son propre stockage : la voix Piper se télécharge une fois ici (ou se choisit dans les fichiers téléchargés), même si elle est déjà installée dans la Suite.</p>';
       h += fld('Débit', rng('sRate', 0.6, 1.6, 0.1, S.rate, ''));
       h += '<div style="display:flex;gap:.5em"><button type="button" class="btn" id="sTest">Essayer la voix</button></div>';
       h += '<h3>Parler à l\'assistant</h3>';
@@ -735,6 +742,7 @@
         h += '<p class="hint">Dans Lively, le fond d\'écran n\'a pas accès au micro (aucune autorisation n\'est prévue par le lecteur de Lively). Tapez vos commandes (Ctrl+Espace, clavier activé dans Lively), ou utilisez le bouton micro : il ouvre <b>Majordome</b> de la Suite MAG, qui écoute hors ligne.</p>';
       }
       B.innerHTML = h;
+      if (vp) try { vp.bind(B); } catch (e) { console.warn(e); }
       bind('sVoiceOn', function (v) { setS('voiceOn', v, 'quiet'); });
       bind('sVoice', function (v) { setS('voice', v, 'quiet'); });
       rngBind('sRate', '', function (v) { setS('rate', v, 'quiet'); });

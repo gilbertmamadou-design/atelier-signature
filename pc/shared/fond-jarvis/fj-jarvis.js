@@ -5,8 +5,11 @@
      (heure, date, calculs, conversions, minuteurs et rappels tant que le fond
      tourne, météo et vent, lever et coucher du soleil, titres, agenda, notes et
      listes de Majordome, applis de la Suite, sites connus, réglages de Windows).
-   - Réponse écrite dans le panneau de dialogue et dite à voix haute
-     (speechSynthesis, voix française du système) ; la sphère réagit.
+   - Réponse écrite dans le panneau de dialogue et dite à voix haute : voix française du
+     système (speechSynthesis) ou voix Piper hors ligne avec effet « Jarvis » (mj-voix.js,
+     moteur sherpa-onnx WASM : piper/ dans le paquet Lively, ../../applis/www-majordome/piper/
+     sur le site) ; repli silencieux sur la voix du système. La sphère réagit (niveau réel
+     de la voix Piper, sinon enveloppe des mots).
    - Voix en entrée : dans la Suite MAG, pont de Majordome PC (Vosk hors ligne,
      pc/shared/apps/majordome.js, chargé au premier clic sur le micro) ;
      dans Lively, pas de micro : saisie au clavier et bouton vers Majordome.
@@ -48,10 +51,28 @@
     return fr.filter(function (v) { return v.name === S.voice; })[0] || fr.filter(function (v) { return /fr-FR/i.test(v.lang) && v.localService; })[0] || fr[0] || null;
   }
   function speechText(t) { return String(t || '').replace(/km\/h/g, 'kilomètres heure').replace(/°C?/g, ' degrés').replace(/\s%/g, ' pour cent').replace(/[«»"]/g, ''); }
+  var VX = FJ.VX = root.MJVoix ? MJVoix.create({ engine: FJ.mode === 'lively' ? 'piper/' : '../../applis/www-majordome/piper/', worker: 'mj-voix-worker.js', phon: 'mj-phon.js' }) : null;
+  if (VX && S.tts === 'piper' && VX.hasVoice(S.piperVoice)) setTimeout(function () { VX.warm(S.piperVoice).catch(function () { }); }, 3000);   // première phrase rapide
+  function piperSay(t, orb, id, end) {
+    var heard = false;
+    if (orb) orb.speak(true, t, S.rate);
+    setState('Réponse');
+    return VX.speak(t, { voice: S.piperVoice, rate: S.rate, pitch: 1, volume: 1, fx: S.vfx, fxo: S.vfxo }, { onStart: function () { heard = true; }, onLevel: function (v) { if (orb && speakId === id) orb.voice(v); } })
+      .then(function () { end(); return true; }, function () { if (heard) { end(); return true; } return false; });
+  }
   function speak(text) {
     lastSaid = text;
     var orb = FJ.orb, id = ++speakId;
     return new Promise(function (done) {
+      if (S.voiceOn && S.tts === 'piper' && VX && VX.usable(S.piperVoice)) {   // voix Piper ; échec avant le premier son : voix du système, sans message
+        if (VX) VX.stop(); try { if (root.speechSynthesis) speechSynthesis.cancel(); } catch (e) { }
+        var pend = function () { if (orb && speakId === id) { orb.speak(false); if (orb.get() === 'speak') orb.state(listening ? 'listen' : 'idle'); setState(listening ? 'J\'écoute' : 'En ligne'); } if (B && B.hold) try { B.hold(false); } catch (e) { } done(); };
+        if (B && B.hold) try { B.hold(true); } catch (e) { }
+        piperSay(speechText(text), orb, id, pend).then(function (ok) { if (!ok) system(); });
+        return;
+      }
+      system();
+      function system() {
       if (!S.voiceOn || !root.speechSynthesis || !root.SpeechSynthesisUtterance) { if (orb) { orb.pulse(); } return done(); }
       try { speechSynthesis.cancel(); } catch (e) { }
       var t = speechText(text), u = new SpeechSynthesisUtterance(t), v = frVoice(), fin = false;
@@ -64,10 +85,12 @@
       if (B && B.hold) try { B.hold(true); } catch (e) { }
       speechSynthesis.speak(u);
       setTimeout(end, Math.min(60000, 1500 + t.length * 95 / u.rate));   // filet : certaines voix n'envoient jamais « fin »
+      }
     });
   }
+  function preview(id) { if (!VX) return; shush(); var orb = FJ.orb, sid = ++speakId; VX.preview(id, { rate: S.rate, fx: S.vfx, fxo: S.vfxo }, { onLevel: function (v) { if (orb && speakId === sid) orb.voice(v); } }).then(function () { if (orb) { orb.speak(false); orb.state('idle'); } }, function () { if (orb) orb.speak(false); }); }
   if (root.speechSynthesis && speechSynthesis.addEventListener) speechSynthesis.addEventListener('voiceschanged', function () { });
-  function shush() { try { if (root.speechSynthesis) speechSynthesis.cancel(); } catch (e) { } if (FJ.orb) { FJ.orb.speak(false); FJ.orb.state('idle'); } }
+  function shush() { try { if (VX) VX.stop(); if (root.speechSynthesis) speechSynthesis.cancel(); } catch (e) { } if (FJ.orb) { FJ.orb.speak(false); FJ.orb.state('idle'); } }
 
   /* ---------------- Panneau de dialogue ---------------- */
   var say = $('say'), hideT = 0, wait = null;
@@ -607,5 +630,5 @@
   if (AL.length) setTimeout(tick, 1500);
   if (S.wake && FJ.mode === 'suite') setTimeout(applyWake, 4000);
 
-  FJ.jarvis = { handle: handle, answer: answer, say: function (t) { return answer(t).done; }, activate: activate, dismiss: dismiss, applyWake: applyWake, timers: function () { return AL.slice(); }, H: H };
+  FJ.jarvis = { handle: handle, answer: answer, say: function (t) { return answer(t).done; }, preview: preview, activate: activate, dismiss: dismiss, applyWake: applyWake, timers: function () { return AL.slice(); }, H: H };
 })(window);
