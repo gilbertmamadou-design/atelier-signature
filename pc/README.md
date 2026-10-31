@@ -369,7 +369,7 @@ non précachés : guide, aperçu) et `lively` (paquet).
 - **Paquet avec voix** `fond-jarvis-lively-voix-siwis.zip` (environ 60 Mo) : `build-pc.py --lively-voix=DOSSIER[,SORTIE]` part du
   paquet publié, ajoute `voix/fr_FR-siwis-medium.onnx` et `.onnx.json` (somme SHA-256 comparée à `mj-voix.js`), la fiche
   `MODEL_CARD` et `voix/SIWIS-ATTRIBUTION.txt` (CC BY 4.0), et règle Voix = Piper, Siwis. Fabriqué par
-  `.github/workflows/fond-jarvis-voix.yml` (après chaque déploiement Pages et chaque jour : refait seulement si `fj-version.json` a changé, puisque
+  `.github/workflows/fond-jarvis-voix.yml` (deux fois par jour, tâche planifiée : refait seulement si `fj-version.json` a changé, puisque
   les commits de `pc/` portent `[skip ci]` ; ou étiquette `fond-jarvis-voix-<n>` poussée, ou à la main ; somme acceptée : celle de
   `mj-voix.js` ou celle annoncée par l'API de HuggingFace) et publié dans la Release à étiquette fixe
   `fond-jarvis-voix` : `https://github.com/gilbertmamadou-design/atelier-signature/releases/download/fond-jarvis-voix/fond-jarvis-lively-voix-siwis.zip`.

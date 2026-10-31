@@ -7,19 +7,15 @@ name: "Fond Jarvis — paquet Lively avec la voix Siwis"
 # La voix (60 Mo, CC BY 4.0) n'est jamais enregistrée dans le dépôt : téléchargée de HuggingFace (rhasspy/piper-voices),
 # somme SHA-256 comparée à celle de applis/www-majordome/mj-voix.js, attribution dans voix/SIWIS-ATTRIBUTION.txt.
 # Lancement :
-#   - après chaque déploiement de GitHub Pages (il a lieu même pour les commits « [skip ci] » de pc/), et chaque jour
-#     par sécurité : refabriqué seulement si la version du fond (pc/fond-jarvis/fj-version.json) diffère de celle du
-#     paquet publié (fichier .version de la Release) ;
+#   - deux fois par jour (les commits de pc/ portent « [skip ci] », qui ne bloque pas les tâches planifiées) :
+#     refabriqué seulement si la version du fond (pc/fond-jarvis/fj-version.json) diffère de celle du paquet publié
+#     (fichier .version de la Release) ; sinon le run s'arrête en quelques secondes ;
 #   - étiquette « fond-jarvis-voix-<n> » poussée (sans relancer les APK, qui ne suivent que main) ;
 #   - push sur main qui change le paquet (sans « [skip ci] »), ou Actions › Run workflow.
 on:
   workflow_dispatch:
   schedule:
-    - cron: "41 4 * * *"
-  workflow_run:
-    workflows: ["pages build and deployment"]
-    types: [completed]
-    branches: [main]
+    - cron: "47 2,14 * * *"
   push:
     branches: [main]
     tags: ["fond-jarvis-voix-*"]
