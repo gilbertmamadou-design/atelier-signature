@@ -1,0 +1,59 @@
+name: "Fond Jarvis — paquet Lively avec la voix Siwis"
+
+# Fabrique fond-jarvis-lively-voix-siwis.zip (paquet Lively du Fond Jarvis avec la voix Piper « Siwis » incluse dans voix/,
+# lue sur place par le fond : aucun téléchargement, gardée même quand Lively efface le stockage du fond) et le publie
+# dans « Releases » sous l'étiquette fixe fond-jarvis-voix (adresse stable) :
+#   https://github.com/<dépôt>/releases/download/fond-jarvis-voix/fond-jarvis-lively-voix-siwis.zip
+# La voix (60 Mo, CC BY 4.0) n'est jamais enregistrée dans le dépôt : téléchargée de HuggingFace (rhasspy/piper-voices),
+# somme SHA-256 comparée à celle de applis/www-majordome/mj-voix.js, attribution dans voix/SIWIS-ATTRIBUTION.txt.
+# Lancement : à chaque nouveau paquet publié (pc/fond-jarvis/fond-jarvis-lively.zip), ou Actions › Run workflow.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["pc/fond-jarvis/fond-jarvis-lively.zip", "pc/shared/fond-jarvis/voix/**", ".github/workflows/fond-jarvis-voix.yml"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fond-jarvis-voix
+  cancel-in-progress: true
+
+jobs:
+  voix:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Télécharger la voix Siwis (HuggingFace, rhasspy/piper-voices)
+        run: |
+          mkdir -p /tmp/voix && cd /tmp/voix
+          B=https://huggingface.co/rhasspy/piper-voices/resolve/main/fr/fr_FR/siwis/medium
+          for f in fr_FR-siwis-medium.onnx fr_FR-siwis-medium.onnx.json MODEL_CARD; do
+            curl -fsSL --retry 4 --retry-delay 5 -o "$f" "$B/$f"
+          done
+          ls -l; sha256sum fr_FR-siwis-medium.onnx
+      - name: Fabriquer le paquet (somme vérifiée)
+        run: |
+          python3 pc/build-pc.py --check
+          python3 pc/build-pc.py --lively-voix=/tmp/voix,/tmp/out
+          cd /tmp/out && unzip -l fond-jarvis-lively-voix-siwis.zip | tail -12 && sha256sum fond-jarvis-lively-voix-siwis.zip | tee fond-jarvis-lively-voix-siwis.zip.sha256
+      - name: Publier dans « Releases » (étiquette fixe fond-jarvis-voix)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: fond-jarvis-voix
+          target_commitish: ${{ github.sha }}
+          name: Fond Jarvis pour Lively — paquet avec la voix Siwis
+          make_latest: false
+          overwrite_files: true
+          body: |
+            Paquet Lively Wallpaper du Fond Jarvis avec la voix Piper « Siwis » (femme, hors ligne) **déjà incluse** : rien à télécharger dans le fond, et la voix reste là après chaque redémarrage de Lively ou du PC.
+
+            Installer : glissez `fond-jarvis-lively-voix-siwis.zip` (environ 60 Mo) dans la fenêtre de Lively, puis cliquez la vignette « Fond Jarvis (Suite MAG, voix Siwis) ».
+            Guide : https://gilbertmamadou-design.github.io/atelier-signature/pc/fond-jarvis/guide.html
+
+            Voix « Siwis » : modèle Piper (rhasspy/piper-voices, fr_FR-siwis-medium), données « The SIWIS French Speech Synthesis Database » (J. Yamagishi, P.-E. Honnet, P. Garner, A. Lazaridis, University of Edinburgh, CSTR, 2017), licence CC BY 4.0 — détails dans `voix/SIWIS-ATTRIBUTION.txt` du paquet.
+            Fabriqué depuis le commit ${{ github.sha }}.
+          files: |
+            /tmp/out/fond-jarvis-lively-voix-siwis.zip
+            /tmp/out/fond-jarvis-lively-voix-siwis.zip.sha256
