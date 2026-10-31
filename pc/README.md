@@ -50,7 +50,7 @@ pc/
 | Lecteur PDF (`lecteur`) | lire, remplir, annoter, signer (PIN), « Ouvrir avec » .pdf, envoi vers l'Atelier | — |
 | Atelier PDF (`pdf`) | tous les outils, OCR Tesseract, « Lire dans le Lecteur PDF » | chiffrement/déchiffrement PDF |
 | Budget (`budget`) | comptes, budgets, import CSV/OFX (dépôt), graphiques, sauvegarde | — |
-| Liseuse (`liseuse`) | EPUB/PDF, dossiers suivis (File System Access), « Ouvrir avec » .epub | catalogues sans CORS (Gutenberg) sans relais |
+| Liseuse (`liseuse`) | EPUB/PDF, dossiers suivis (File System Access), « Ouvrir avec » .epub ; lecture à voix haute (Piper, Web Audio, Media Session : touches multimédia) | catalogues sans CORS (Gutenberg) sans relais ; voix du système de Windows sans effet |
 | Rangement (`fichiers`) | plusieurs dossiers du PC analysés ensemble (vue d'ensemble, catégories, doublons d'un dossier à l'autre, gros fichiers, récents, recherche), liste mémorisée, réautorisation en un clic | onglet Applis, stockage du téléphone, corbeille (suppression définitive) |
 | Actualités (`actualites`) | franceinfo et flux qui autorisent CORS | les autres médias sans relais |
 | Carnet (`notes`), Agenda (`agenda`), Contacts (`contacts`) | tout le contenu ; .ics/.vcf en import/export et « Ouvrir avec » ; rappels fenêtre ouverte | agenda/contacts du téléphone, synchronisation |
@@ -206,6 +206,40 @@ publie tout le dépôt) ; il n'est pas précaché (13,7 Mo) mais gardé par le s
   compensé à la synthèse). Sortie : crête ≤ −1 dBFS et niveau moyen plafonné (RMS 0,2) : jamais d'écrêtage, même volume d'un
   effet à l'autre. Les voix du système ne passent pas par Web Audio : effet réservé à Piper. Effet générique, aucune imitation.
 - **Repli** : voix absente, moteur qui ne se charge pas ou erreur avant le premier son → voix du système, sans message.
+
+### Lecture des livres à voix haute (Liseuse, APK et PC)
+
+Liseuse lit ses livres comme un livre audio avec les voix Piper de Majordome (ou la voix du système).
+
+- **Code commun, une seule source** : `applis/www-liseuse/lis-audio.js` (découpage en phrases, production, lecteur dans la
+  page) ; synthèse par `mj-voix.js` (`moteur.chunk(phrase, réglages)` : une phrase synthétisée sans être lue, ajouté sans
+  changer `speak()`), `mj-voix-worker.js`, `mj-phon.js` et `piper/` de `applis/www-majordome/`. APK : copiés dans Liseuse à la
+  fabrication (`apps.json` « with »). PC : `copies` de `pc-apps.json`, moteur lu dans `../../applis/www-majordome/piper/`.
+  Le worker reçoit aussi ses chemins par message (`{t:'cfg'}`) : le service worker de la Suite le sert sans sa requête
+  `?e=…&p=…` (sans cela, Piper retombait sur la voix du système une fois l'appli installée, Majordome PC compris).
+- **Voix partagées avec Majordome** : PC, même origine github.io → même IndexedDB `mj-voix` (magasin `f`, version 1) et même
+  liste `localStorage` `mj-voix:installees` : une voix téléchargée dans Majordome sert à Liseuse et inversement (Liseuse
+  propose aussi le téléchargement, au même endroit). Android : deux applis, deux stockages ; Majordome prête ses voix par un
+  fournisseur en lecture seule `MajordomeBridge$Voix` (`content://fr.magformation13.majordome.voix`, exporté, permission
+  signature `fr.magformation13.permission.WIDGET` déjà commune aux applis MAG, signature de l'appelant vérifiée en plus ;
+  `…/etat` : voix installées et voix choisie ; `…/<modèle>/<modèle>.onnx[.json]` : fichiers). Le worker de Liseuse les lit
+  par la route `_capacitor_content_` de Capacitor (ContentResolver) : aucune seconde copie des 60 à 73 Mo. Voix par défaut :
+  celle choisie dans Majordome si elle est installée, sinon Siwis, sinon Pierre ; modifiable dans Liseuse.
+- **Lecture continue** : EPUB chapitre par chapitre dans l'ordre du spine (texte identique à la page affichée, débuts de
+  paragraphes pris en compte) ; PDF page par page (texte de pdf.js, sans en-têtes, pieds de page ni numéros : lignes courtes
+  en haut ou en bas de page, numéros seuls, lignes répétées sur les pages voisines ; mots coupés en fin de ligne recollés).
+  Découpage en phrases (abréviations « M. », « p. 12 », initiales, « Viens ! dit-il », tirets de dialogue, phrases de plus de
+  300 caractères coupées à la ponctuation) ; titres en chiffres romains dits en nombres. Synthèse anticipée : 2 phrases
+  d'avance au moins et 25 s de son (PC), 45 s (Android, écran allumé), 5 min (Android, page cachée ou écran éteint).
+  Phrase surlignée, page tournée (EPUB) ou défilement (PDF) ; toucher une phrase fait partir la lecture de là ; position
+  (chapitre, décalage de la phrase) mémorisée à chaque phrase dans le livre (`tts`) et, sur Android, par le lecteur natif.
+- **Barre** : lecture / pause, phrase −/+, chapitre (ou page) −/+, vitesse 0,75× à 2× (synthèse plus rapide, pas de voix
+  aiguë), voix, effet (défaut : Aucun), minuterie 15 / 30 / 45 / 60 min ou fin du chapitre.
+- **PC** : Web Audio, Media Session (lecture, pause, piste précédente / suivante = phrase, avance / retour rapide =
+  chapitre, arrêt ; un `<audio>` silencieux en boucle rend la session active pour les touches du clavier et Windows) ;
+  la lecture continue fenêtre cachée ou réduite. Majordome PC et le Fond Jarvis (mode Suite) envoient leurs commandes par
+  le canal `BroadcastChannel('mag-liseuse')` ; Liseuse fermée : Majordome l'ouvre avec `?socle={"audio":"read"…}`.
+- **Android** : voir `applis/scripts/LiseuseBridge.java` (lecteur natif, service au premier plan, MediaSession, Android Auto).
 
 ## Fond Jarvis (fond d'écran animé)
 
@@ -639,6 +673,8 @@ avec les fonctions de `WallpaperJob.java` compilées telles quelles (faux `andro
 `Rect`, `Canvas` bilinéaire) sur des images construites exprès (bordures, bandeau, logo, paysage, portrait).
 Autorisations « à redemander » : `queryPermission` simulé à `prompt` jusqu'au clic ; aussi refus (`denied`), fenêtre fermée
 (`prompt`), et un dossier par demande avec clic « consommé » (fenêtre « Encore N dossiers »).
+Liseuse, lecture à voix haute (`/home/claude/tests-liseuse/`) : EPUB de 3 chapitres et PDF de 3 pages générés, vraie voix
+Siwis, pont Android simulé (lecteur natif rejoué en JavaScript) en 412×915 et Suite PC en 1366×768 avec service worker.
 Dossiers mémorisés (Mélodie, Écran, Galerie, Liseuse, Rangement) : ajout, rechargement complet, nouvelle version du service
 worker activée, bibliothèque affichée depuis le cache avant l'accès, un seul bouton, refus sans rien perdre, lecture qui
 demande l'accès, dossier imbriqué, fusion, retrait, ancien format repris, fichiers ajoutés ou supprimés sur le PC.
