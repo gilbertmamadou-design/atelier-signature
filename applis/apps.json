@@ -270,6 +270,14 @@
   "file": "Presentation.apk"
  },
  {
+  "app": "voyage",
+  "web": "www-voyage",
+  "appid": "fr.magformation13.voyage",
+  "name": "Carnet de voyage",
+  "icons": "android-icons-voyage",
+  "file": "Carnet-de-voyage.apk"
+ },
+ {
   "app": "texte",
   "web": "www-texte",
   "appid": "fr.magformation13.texte",

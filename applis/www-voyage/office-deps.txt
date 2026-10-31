@@ -1,0 +1,9 @@
+# Pièces communes copiées dans l'APK par scripts/office-deps.sh (appelé par print-patch.sh). Même source que la Suite MAG sur PC.
+# Une ligne : <source relative à applis/> <destination dans le dossier web>.
+../pc/shared/office/ office/
+../pc/shared/vendor/lucide-icons.js lucide-icons.js
+../pc/shared/vendor/fonts-carnet/ fonts-carnet/
+../pc/shared/vendor/fonts/Caladea-Regular.ttf fonts/Caladea-Regular.ttf
+../pc/shared/vendor/fonts/Caladea-Bold.ttf fonts/Caladea-Bold.ttf
+../pc/shared/vendor/LICENSES/ LICENSES/
+# jszip.min.js et jspdf.umd.min.js : copiés par le workflow depuis node_modules (mêmes versions que pc/shared/vendor/)

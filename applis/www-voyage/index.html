@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="fr" data-ui="clair">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
+<title>Carnet de voyage</title>
+<meta name="theme-color" content="#7B3F2A">
+<meta name="description" content="Carnet de voyage : tes photos en timbres, Polaroid, tickets et cartes postales, écriture à la main, export PDF (Suite MAG)">
+<link rel="stylesheet" href="office/office.css">
+<link rel="stylesheet" href="fonts-carnet/fonts.css">
+<link rel="stylesheet" href="cv.css">
+</head>
+<body data-screen="home">
+<section id="home" class="screen">
+  <header class="homeTop">
+    <div class="brand"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x="8" y="6" width="44" height="52" rx="5" fill="#7B3F2A"/><rect x="44" y="6" width="5" height="52" fill="#2b1c14"/><rect x="15" y="16" width="26" height="18" fill="#FBF5E6" stroke="#E3C98F" stroke-width="1.5"/><path d="M17 31l6-7 4 4 3-3 9 6z" fill="#2F6F73"/><circle cx="35" cy="21" r="2.5" fill="#F4C542"/></svg><div><h1>Carnet de voyage</h1><p>Tes souvenirs, photo par photo</p></div></div>
+    <div class="homeAct">
+      <button class="btn" data-a="import">Ouvrir un .magcarnet</button>
+      <button class="ibtn" data-a="settings" aria-label="Réglages et licences"><svg class="oi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+    </div>
+  </header>
+  <div id="homeList"></div>
+</section>
+<section id="ed" class="screen">
+  <header id="edTop">
+    <button class="ibtn" data-top="back" aria-label="Retour aux carnets"><svg class="oi" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+    <button class="edTitle" data-top="title"><span id="edTitle"></span></button>
+    <div id="pageNav"></div>
+    <button class="ibtn" id="bUndo" data-top="undo" aria-label="Annuler"><svg class="oi" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+    <button class="ibtn" id="bRedo" data-top="redo" aria-label="Rétablir"><svg class="oi" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
+    <button class="ibtn wideOnly" data-top="view" aria-label="Page simple ou double page"><svg class="oi" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg></button>
+    <button class="ibtn" data-top="share" aria-label="Exporter et partager"><svg class="oi" viewBox="0 0 24 24"><path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/></svg></button>
+    <button class="ibtn" data-top="more" aria-label="Plus"><svg class="oi" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+  </header>
+  <div id="edMain">
+    <aside id="pagesBar" aria-label="Pages"></aside>
+    <div id="stage" data-mpc-drop aria-label="Pages du carnet"><div id="spread" class="spread"></div><div id="selov"></div></div>
+    <aside id="props" aria-label="Propriétés"></aside>
+  </div>
+  <nav id="tools" aria-label="Outils"></nav>
+  <div id="drawBar" hidden></div>
+</section>
+<div id="show" hidden></div>
+<noscript>Carnet de voyage a besoin de JavaScript.</noscript>
+<!-- bibliothèques (licences : dossier LICENSES et Réglages › Licences) -->
+<script src="jszip.min.js"></script>
+<script src="lucide-icons.js"></script>
+<!-- pièces communes de la Suite MAG (pc/shared/office/) -->
+<script src="office/office-core.js"></script>
+<script src="office/office-history.js"></script>
+<script src="office/office-files.js"></script>
+<script src="office/office-pdf.js"></script>
+<!-- Carnet de voyage -->
+<script src="cv-art.js"></script>
+<script src="cv-render.js"></script>
+<script src="cv-model.js"></script>
+<script src="cv-editor.js"></script>
+<script src="cv-share.js"></script>
+<script src="cv-ui.js"></script>
+</body>
+</html>
