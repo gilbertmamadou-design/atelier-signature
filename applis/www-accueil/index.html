@@ -441,6 +441,7 @@ var IC = {
   sheet:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M3 14h18M9 4v16M15 4v16"/>',
   orb:'<circle cx="12" cy="12" r="8.5" stroke-dasharray="2 2.2"/><circle cx="12" cy="12" r="4.5"/><path d="M10.2 12h.01M13.8 12h.01M12 10.2h.01M12 13.8h.01"/>',
   easel:'<rect x="3" y="3" width="18" height="12" rx="1.5"/><path d="M12 15v3M8 21l4-3 4 3M7 8h6M7 11h4"/>',
+  stamp:'<rect x="4.5" y="3" width="15" height="18" rx="1" stroke-dasharray="1.7 1.3"/><path d="M8 15l3-3.5 2 2 3-3V15z"/><circle cx="14.5" cy="7.5" r="1.2"/>',
   solar:'<circle cx="17.5" cy="5.5" r="2.5"/><path d="M3 20h13l3-8H6z"/><path d="M9.5 12 8 20M14.5 12 13 20M4.5 16h13"/>',
   bulb:'<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3z"/>',
   sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
@@ -511,7 +512,7 @@ var TYPES = {
   sos:{n:'Urgence : bouton SOS',i:'sos',w:1}, coffre:{n:'Coffre : mots de passe',i:'lock',w:1},
   qrcode:{n:'QR : lire un code',i:'qr',w:1}, livre:{n:'Liseuse : livre en cours',i:'book',w:2},
   budget:{n:'Budget : dépenses du mois',i:'wallet',w:2,tall:1}, dicta:{n:'Dictaphone',i:'mic',w:1},
-  meteoapp:{n:'Météo : aujourd\'hui',i:'sun',w:2}, reseau:{n:'Réseau : connexion, débit et VPN',i:'web',w:1}, lecteur:{n:'Lecteur PDF : documents récents',i:'pdf',w:2}, solaire:{n:'Solaire : dernier projet',i:'solar',w:1}, presentation:{n:'Présentation : dernière présentation',i:'easel',w:1}, majordome:{n:'Majordome : commande vocale',i:'orb',w:1}, mjpanel:{n:'Majordome : panneau d\'accueil (sphère et résumé)',i:'orb',w:2,tall:1,h:2}, texte:{n:'Texte : dernier document',i:'doc',w:1}, tableur:{n:'Tableur : dernier classeur',i:'sheet',w:1}, actu:{n:'Actualités : l\'essentiel',i:'news',w:2}, power:{n:'Éteindre le téléphone',i:'power',w:1}, mag:{n:'Mes applis MAG',i:'mag',w:2}, note:{n:'Note rapide',i:'note',w:1},
+  meteoapp:{n:'Météo : aujourd\'hui',i:'sun',w:2}, reseau:{n:'Réseau : connexion, débit et VPN',i:'web',w:1}, lecteur:{n:'Lecteur PDF : documents récents',i:'pdf',w:2}, solaire:{n:'Solaire : dernier projet',i:'solar',w:1}, presentation:{n:'Présentation : dernière présentation',i:'easel',w:1}, voyage:{n:'Carnet de voyage : dernier carnet',i:'stamp',w:1}, majordome:{n:'Majordome : commande vocale',i:'orb',w:1}, mjpanel:{n:'Majordome : panneau d\'accueil (sphère et résumé)',i:'orb',w:2,tall:1,h:2}, texte:{n:'Texte : dernier document',i:'doc',w:1}, tableur:{n:'Tableur : dernier classeur',i:'sheet',w:1}, actu:{n:'Actualités : l\'essentiel',i:'news',w:2}, power:{n:'Éteindre le téléphone',i:'power',w:1}, mag:{n:'Mes applis MAG',i:'mag',w:2}, note:{n:'Note rapide',i:'note',w:1},
   app:{n:'Une appli',i:'grid',w:1,pick:1}, contact:{n:'Un contact',i:'user',w:1,pick:1}, link:{n:'Un site web',i:'link',w:1,pick:1},
   nextev:{n:'Prochain rendez-vous',i:'cal',w:1}, device:{n:'Batterie et stockage',i:'phonedev',w:1}, wxdetail:{n:'Météo détaillée',i:'cloud',w:2}
 };
@@ -757,6 +758,7 @@ function tileBody(cfg){
     case 'lecteur': body = lecteurHtml(cfg); break;
     case 'solaire': body = solaireHtml(cfg); break;
     case 'presentation': body = presHtml(cfg); break;
+    case 'voyage': body = voyageHtml(cfg); break;
     case 'majordome': body = mjHtml(cfg); break;
     case 'mjpanel': body = mjpHtml(cfg); break;
     case 'texte': body = texteHtml(cfg); break;
@@ -1658,6 +1660,17 @@ function presHtml(cfg){
     '<div class="sub">'+esc(l.info||'')+(l.at?' · '+ago2(l.at):'')+'</div></button>'+nb;
 }
 
+/* Carnet de voyage : dernier carnet (couverture, titre, pages et photos) et bouton Nouveau */
+var VOY='fr.magformation13.voyage';
+function voyageHtml(cfg){
+  var hd='<div class="hd">'+ic('stamp')+'Carnet de voyage</div>'; if(!app(VOY)) return hd+missing('Carnet de voyage');
+  var d=wd(VOY)||{}, l=d.last, nb='<button class="mini" data-act="voy-new">'+ic('plus')+'Nouveau</button>';
+  if(!l) return hd+'<div class="empty">Aucun carnet</div>'+nb;
+  var th=(l.thumb&&/^data:image\/(jpeg|png);base64,/.test(l.thumb))?'<img src="'+l.thumb+'" alt="" style="display:block;width:62%;margin:6px auto 4px;aspect-ratio:1/1.414;object-fit:cover;border-radius:3px 7px 7px 3px;box-shadow:2px 3px 8px #0005">':'';
+  return hd+'<button class="ld" data-voyp="'+esc(l.id)+'" style="display:block;text-align:left;width:100%;padding:0;margin-top:4px">'+th+'<div class="sub" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--tx);font-weight:600">'+esc(l.title||'Carnet')+'</div>'+
+    '<div class="sub">'+esc(l.info||'')+(l.at?' · '+ago2(l.at):'')+'</div></button>'+nb;
+}
+
 /* Texte : dernier document (vignette de la 1re page, nom) et bouton Nouveau */
 var TABLEUR='fr.magformation13.tableur';
 function tableurHtml(cfg){
@@ -1849,6 +1862,7 @@ $('pages').addEventListener('click', safe(function(e){
     if(k2==='lec-pick') A.homeLaunchWith(LEC, JSON.stringify({pick:1}));
     if(k2==='sol-new') A.homeLaunchWith(SOL, JSON.stringify({'new':1}));
     if(k2==='pres-new') A.homeLaunchWith(PRES, JSON.stringify({'new':1}));
+    if(k2==='voy-new') A.homeLaunchWith(VOY, JSON.stringify({'new':1}));
     if(k2==='mj-listen') mjListen();
     if(k2.indexOf('jv-')===0){ jvAct(k2, act); return; }
     if(k2==='texte-new') A.homeLaunchWith(TEXTE, JSON.stringify({'new':1}));
@@ -1875,6 +1889,7 @@ $('pages').addEventListener('click', safe(function(e){
   var tb=e.target.closest('[data-tableurp]'); if(tb && A){ A.homeLaunchWith(TABLEUR, JSON.stringify({open:tb.dataset.tableurp})); return; }
   var tq=e.target.closest('[data-textep]'); if(tq && A){ A.homeLaunchWith(TEXTE, JSON.stringify({open:tq.dataset.textep})); return; }
   var pp=e.target.closest('[data-presp]'); if(pp && A){ A.homeLaunchWith(PRES, JSON.stringify({open:pp.dataset.presp})); return; }
+  var vy=e.target.closest('[data-voyp]'); if(vy && A){ A.homeLaunchWith(VOY, JSON.stringify({open:vy.dataset.voyp})); return; }
   var sp=e.target.closest('[data-solp]'); if(sp && A){ A.homeLaunchWith(SOL, JSON.stringify({open:sp.dataset.solp})); return; }
   var ax=e.target.closest('[data-actus]'); if(ax && A){ A.homeLaunchWith(ACTU, JSON.stringify({sujet:ax.dataset.actus})); return; }
   if(e.target.closest('[data-actv]') && A){ A.homeLaunchWith(ACTU, JSON.stringify({tab:'meteo'})); return; }
@@ -1897,7 +1912,7 @@ $('pages').addEventListener('click', safe(function(e){
   if(tp==='device' && A) A.homeOpen('storage','');
   if(tp==='wxdetail'){ if(C.city) weatherSheet(); else locateMe(); }
   if(tp==='mjpanel'){ if(!(cfg && cfg.full)) mjListen(); return; }
-  var tmap={camera:PHOTO,scandoc:SCANP,mesure:MESURE,backup:SAUVE,video:ECRAN,sos:URG,coffre:COF,qrcode:QRP,livre:LIS,budget:BUD,dicta:DIC,meteoapp:MET,reseau:RES,lecteur:LEC,solaire:SOL,presentation:PRES,texte:TEXTE,tableur:TABLEUR,majordome:MJ,actu:ACTU}; if(tmap[tp]){ var ap2=app(tmap[tp]); if(ap2) launch(ap2); }
+  var tmap={camera:PHOTO,scandoc:SCANP,mesure:MESURE,backup:SAUVE,video:ECRAN,sos:URG,coffre:COF,qrcode:QRP,livre:LIS,budget:BUD,dicta:DIC,meteoapp:MET,reseau:RES,lecteur:LEC,solaire:SOL,presentation:PRES,voyage:VOY,texte:TEXTE,tableur:TABLEUR,majordome:MJ,actu:ACTU}; if(tmap[tp]){ var ap2=app(tmap[tp]); if(ap2) launch(ap2); }
 }, 'Toucher'));
 
 /* ---------- Gestes ---------- */
@@ -1969,7 +1984,7 @@ function addTile(cfg){
   setTimeout(function(){ var pg=pageEls()[p]; if(pg) pg.scrollTop=pg.scrollHeight; }, 50);
   toast('Ajouté à la page '+(p+1));
 }
-var NEED={majordome:MJ,mjpanel:MJ,notes:CARNET,podcast:ONDES,wallpaper:TOILE,camera:PHOTO,scandoc:SCANP,mesure:MESURE,backup:SAUVE,video:ECRAN,sos:URG,coffre:COF,qrcode:QRP,livre:LIS,budget:BUD,dicta:DIC,meteoapp:MET,reseau:RES,lecteur:LEC,solaire:SOL,presentation:PRES,texte:TEXTE,tableur:TABLEUR,actu:ACTU};
+var NEED={majordome:MJ,mjpanel:MJ,notes:CARNET,podcast:ONDES,wallpaper:TOILE,camera:PHOTO,scandoc:SCANP,mesure:MESURE,backup:SAUVE,video:ECRAN,sos:URG,coffre:COF,qrcode:QRP,livre:LIS,budget:BUD,dicta:DIC,meteoapp:MET,reseau:RES,lecteur:LEC,solaire:SOL,presentation:PRES,voyage:VOY,texte:TEXTE,tableur:TABLEUR,actu:ACTU};
 $('bAddTile').onclick=safe(function(){
   var btn=function(k){ var miss=NEED[k]&&!app(NEED[k]); return '<button data-add="'+k+'"'+(miss?' style="opacity:.5"':'')+'>'+ic(TYPES[k].i)+'<span style="flex:1;text-align:left">'+(k==='mjpanel'?esc(mjName())+' : panneau d\'accueil (sphère et résumé)':TYPES[k].n)+(miss?'<br><small style="color:var(--tx3)">Appli non installée</small>':'')+'</span></button>'; };
   var panels=['mjpanel','note','nextev','device','wxdetail','clock','weather','battery','agenda','alarm','music','tools','calc','favs','mag','photos','contacts'];
