@@ -1171,7 +1171,7 @@ function livreHtml(cfg){
   var hd='<div class="hd">'+ic('book')+'Liseuse</div>'; if(!app(LIS)) return hd+missing('Liseuse');
   var d=wd(LIS)||{}, r=d.reading;
   if(!r) return hd+'<div class="empty">Aucun livre en cours</div><button class="mini" data-act="lis-open">'+ic('book')+'Livres libres</button>';
-  return hd+'<div class="mus" style="margin-top:7px">'+(r.cover?'<img class="art" src="'+r.cover+'" alt="" style="width:44px;height:62px;border-radius:6px">':'')+'<div class="tt"><b style="font-size:14px">'+esc(r.title)+'</b><span>'+esc(r.author||'')+' · '+(r.pct||0)+' %</span></div></div><div class="mbar"><i style="width:'+(r.pct||0)+'%"></i></div><button class="mini" data-act="lis-resume">'+ic('book')+'Reprendre la lecture</button>';
+  return hd+'<div class="mus" style="margin-top:7px">'+(r.cover?'<img class="art" src="'+r.cover+'" alt="" style="width:44px;height:62px;border-radius:6px">':'')+'<div class="tt"><b style="font-size:14px">'+esc(r.title)+'</b><span>'+esc(r.author||'')+' · '+(r.pct||0)+' %</span></div></div><div class="mbar"><i style="width:'+(r.pct||0)+'%"></i></div><button class="mini" data-act="lis-resume">'+ic('book')+'Reprendre la lecture</button> <button class="mini" data-act="lis-listen" aria-label="'+(r.audio==='playing'?'Mettre la lecture à voix haute en pause':'Écouter le livre')+'">'+ic(r.audio==='playing'?'mpause':'mplay')+(r.audio==='playing'?'Pause':'Écouter')+'</button>';
 }
 function budgetHtml(cfg){
   var hd='<div class="hdr"><div class="hd">'+ic('wallet')+'Budget'+(app(BUD)&&wd(BUD)&&wd(BUD).label?' · '+esc(wd(BUD).label):'')+'</div>'+(app(BUD)?'<button class="hbtn" data-act="bud-add" aria-label="Nouvelle dépense">'+ic('plus')+'</button>':'')+'</div>';
@@ -1856,6 +1856,8 @@ $('pages').addEventListener('click', safe(function(e){
     if(k2==='cof-open'){ var c4=app(COF); if(c4) launch(c4); }
     if(k2==='qr-scan') A.homeLaunchWith(QRP, JSON.stringify({scan:1}));
     if(k2==='lis-resume') A.homeLaunchWith(LIS, JSON.stringify({resume:1}));
+    // Écouter / Pause : sans ouvrir Liseuse quand la lecture à voix haute tourne déjà, sinon Liseuse s'ouvre et lit le livre en cours
+    if(k2==='lis-listen'){ var la=JSON.stringify({audio:'toggle', src:'socle'}); if(!(A.homeWidgetCall && A.homeWidgetCall(LIS,'liseuse_audio',la))) A.homeLaunchWith(LIS, JSON.stringify({audio:'read', src:'socle'})); [1500,4000].forEach(function(t){ setTimeout(function(){ delete WCACHE[LIS]; refresh('livre'); },t); }); }
     if(k2==='lis-open'){ var l4=app(LIS); if(l4) launch(l4); }
     if(k2==='bud-add') A.homeLaunchWith(BUD, JSON.stringify({add:1}));
     if(k2==='dic-rec') A.homeLaunchWith(DIC, JSON.stringify({rec:1}));
