@@ -20,9 +20,11 @@ import android.graphics.drawable.Icon;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.provider.Settings;
+import android.speech.RecognizerIntent;
 import android.util.Base64;
 import android.util.Size;
 import android.webkit.JavascriptInterface;
@@ -38,8 +40,12 @@ import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -48,15 +54,20 @@ import java.util.concurrent.Executors;
  * Exposé en JS sous window.MAGPhoto. Événements : window.photoEvent(type, json).
  * Les images ne sont jamais transmises par chemin de fichier : toujours en data:image/jpeg;base64.
  * Identifiant d'un élément : « id » MediaStore (images) ou « v<id> » (vidéos).
+ *
+ * Mode voyage (exclusif du mode chantier) : photos rangées dans DCIM/Photo/Voyage/<titre du carnet>, index privé des photos
+ * du voyage (Voy : date, position, lieu, ville, légende, carnet) recopié dans un voyage.json du dossier, et fournisseur
+ * PhotoBridge$Voyage (content://fr.magformation13.photo.voyage, déclaré dans l'appli Photo seule, permission « signature »
+ * fr.magformation13.permission.WIDGET et signature de l'appelant vérifiée) lu par Carnet de voyage et Majordome.
  */
 public class PhotoBridge {
-    private static final int REQ_CAMERA = 5410, REQ_PERM = 5420, REQ_DELETE = 5430, REQ_MOVE = 5431;
+    private static final int REQ_CAMERA = 5410, REQ_PERM = 5420, REQ_DELETE = 5430, REQ_MOVE = 5431, REQ_DICT = 5440;
     private static final int SDK = Build.VERSION.SDK_INT;
     static final String PREFS = "photo", ROOT = "DCIM/Photo";
     private final Activity a;
     private final WebView wv;
     private ExecutorService io, thumbs;
-    private String pendDelete = "", pendMove = "";
+    private String pendDelete = "", pendMove = "", pendDict = "";
 
     public PhotoBridge(Activity a, WebView wv) { this.a = a; this.wv = wv; }
 
@@ -75,6 +86,11 @@ public class PhotoBridge {
             } else if (requestCode == REQ_DELETE) {
                 JSONObject o = new JSONObject(); o.put("ok", resultCode == Activity.RESULT_OK); o.put("ids", pendDelete);
                 pendDelete = ""; emit("deleted", o.toString());
+            } else if (requestCode == REQ_DICT) {
+                JSONObject o = new JSONObject(); o.put("req", pendDict); pendDict = "";
+                ArrayList<String> l = data == null || resultCode != Activity.RESULT_OK ? null : data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+                o.put("text", l == null || l.isEmpty() ? "" : l.get(0)); o.put("ok", l != null && !l.isEmpty());
+                emit("dictee", o.toString());
             } else if (requestCode == REQ_MOVE) {
                 final String[] p = pendMove.split("\n", -1); pendMove = "";
                 if (resultCode == Activity.RESULT_OK && p.length == 2) io().execute(() -> doRename(p[0], p[1], false));
@@ -107,7 +123,12 @@ public class PhotoBridge {
         if (SDK >= 29 && can("android.permission.ACCESS_MEDIA_LOCATION")) { try { return MediaStore.setRequireOriginal(u); } catch (Throwable e) { } }
         return u;
     }
-    private static String rel(String dir) { String d = safeName(dir); return ROOT + (d.isEmpty() ? "" : "/" + d) + "/"; }
+    /** Dossier relatif : « Villa Martin » → DCIM/Photo/Villa Martin/ ; « Voyage/Italie » → DCIM/Photo/Voyage/Italie/ (chaque partie nettoyée) */
+    static String rel(String dir) {
+        StringBuilder b = new StringBuilder();
+        if (dir != null) for (String part : dir.split("/")) { String d = safeName(part); if (!d.isEmpty()) b.append('/').append(d); }
+        return ROOT + b + "/";
+    }
     /** Même règle que PhotoCamera.safeDir (dupliquée : ce pont est compilé dans toutes les applis, même sans PhotoCamera) */
     static String safeName(String s) {
         if (s == null) return "";
@@ -158,8 +179,10 @@ public class PhotoBridge {
     }
 
     // ================= Réglages partagés avec l'appareil photo =================
-    private static final String[] BOOL = { "siteMode", "stamp", "keepOrig", "geo", "sound", "grid", "level" };
-    private static final boolean[] BOOL_DEF = { false, true, true, true, true, false, true };
+    // voyMode : mode voyage (exclusif de siteMode, le mode chantier) ; voyStamp : bandeau « carte postale » (désactivé par défaut :
+    // le Carnet de voyage ajoute ses propres légendes) ; voyKeepOrig : original sans bandeau ; voyCaption : « Légende ? » après la prise
+    private static final String[] BOOL = { "siteMode", "stamp", "keepOrig", "geo", "sound", "grid", "level", "voyMode", "voyStamp", "voyKeepOrig", "voyCaption" };
+    private static final boolean[] BOOL_DEF = { false, true, true, true, true, false, true, false, false, true, true };
 
     @JavascriptInterface public String getSettings() {
         SharedPreferences s = sp(); JSONObject o = new JSONObject();
@@ -168,6 +191,7 @@ public class PhotoBridge {
             o.put("quality", s.getString("quality", "max")); o.put("flash", s.getString("flash", "auto"));
             o.put("timer", s.getInt("timer", 0)); o.put("note", s.getString("note", "")); o.put("author", s.getString("author", ""));
             o.put("lens", s.getString("lens", ""));
+            o.put("voyStyle", s.getString("voyStyle", "carte")); o.put("voyPos", s.getString("voyPos", "bas"));
         } catch (Throwable e) { }
         return o.toString();
     }
@@ -175,8 +199,11 @@ public class PhotoBridge {
         try {
             JSONObject o = new JSONObject(json); SharedPreferences.Editor e = sp().edit();
             for (String k : BOOL) if (o.has(k)) e.putBoolean(k, o.getBoolean(k));
-            for (String k : new String[]{ "quality", "flash", "note", "author" }) if (o.has(k)) e.putString(k, o.getString(k));
+            for (String k : new String[]{ "quality", "flash", "note", "author", "voyStyle", "voyPos" }) if (o.has(k)) e.putString(k, o.getString(k));
             if (o.has("timer")) e.putInt("timer", o.getInt("timer"));
+            // les deux modes s'excluent : chantier ou voyage (ou aucun)
+            if (o.optBoolean("voyMode", false)) e.putBoolean("siteMode", false);
+            if (o.optBoolean("siteMode", false)) e.putBoolean("voyMode", false);
             e.apply();
         } catch (Throwable x) { }
     }
@@ -644,5 +671,298 @@ public class PhotoBridge {
                 .setShortLabel("Prendre une photo").setLongLabel("Prendre une photo").setIntent(i);
         try { b.setIcon(Icon.createWithResource(a, a.getApplicationInfo().icon)); } catch (Throwable e) { }
         return b.build();
+    }
+
+    // ================= Mode voyage =================
+    /** Voyage actif (objet JSON {id, titre, dir, debut, fin, local}, « {} » si aucun) */
+    @JavascriptInterface public String getVoyage() { return sp().getString("voyage", "{}"); }
+    @JavascriptInterface public void setVoyage(String json) { try { Voy.setVoyage(a, new JSONObject(json == null || json.isEmpty() ? "{}" : json)); } catch (Throwable e) { } }
+    /** Voyages connus de Photo (locaux, ou carnets déjà utilisés) : JSON [{id, titre, dir, debut, fin, local, created}] */
+    @JavascriptInterface public String getVoyages() { return sp().getString("voyages", "[]"); }
+    @JavascriptInterface public void setVoyages(String json) { try { new JSONArray(json); sp().edit().putString("voyages", json).apply(); } catch (Throwable e) { } }
+    /** Photos du voyage d'un dossier (« Voyage/Italie ») avec date, lieu, ville, légende : JSON [{id, nom, date, lat, lng, lieu, ville, legende, carnet}] */
+    @JavascriptInterface public String voyageIndex(String dir) {
+        JSONArray out = new JSONArray(), l = Voy.load(a);
+        for (int i = 0; i < l.length(); i++) { JSONObject o = l.optJSONObject(i); if (o != null && (dir == null || dir.isEmpty() || o.optString("dossier").equalsIgnoreCase(dir))) out.put(o); }
+        return out.toString();
+    }
+    /** Légende d'une photo du voyage (index, voyage.json du dossier et description MediaStore) */
+    @JavascriptInterface public boolean voyageLegende(final String id, final String text) { return Voy.setLegende(a, id, text); }
+    /** Où est écrit voyage.json pour un dossier (« DCIM/Photo/Voyage/Italie/voyage.json », ou Documents/… si Android refuse) */
+    @JavascriptInterface public String voyageJson(String dir) { return sp().getString("voyJson:" + dir, ""); }
+    /** Dictée par la reconnaissance vocale d'Android : photoEvent("dictee", {req, ok, text}) */
+    @JavascriptInterface public boolean canDictate() { try { return !a.getPackageManager().queryIntentActivities(new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH), 0).isEmpty(); } catch (Throwable e) { return false; } }
+    @JavascriptInterface public void dictate(final String req) {
+        ui(() -> {
+            try {
+                Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+                i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "fr-FR"); i.putExtra(RecognizerIntent.EXTRA_PROMPT, "Légende de la photo");
+                pendDict = req == null ? "" : req;
+                a.startActivityForResult(i, REQ_DICT);
+            } catch (Throwable e) { emit("dictee", "{\"req\":" + JSONObject.quote(req == null ? "" : req) + ",\"ok\":false,\"text\":\"\",\"error\":\"indisponible\"}"); }
+        });
+    }
+    /** Page des versions (installer le Carnet de voyage) : seulement le dépôt de la Suite MAG */
+    @JavascriptInterface public void openUrl(final String url) {
+        if (url == null || !url.startsWith("https://github.com/gilbertmamadou-design/atelier-signature/")) return;
+        ui(() -> { try { a.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); } catch (Throwable e) { toast("Aucun navigateur"); } });
+    }
+
+    /**
+     * Index des photos du voyage (fichier privé files/voyage/index.json) et voyage.json du dossier.
+     * Utilisé par la page, l'appareil photo (PhotoCamera) et le fournisseur. Une entrée :
+     * {id, nom, chemin, dossier, date, dateTxt, lat, lng, lieu, ville, pays, legende, carnet, titre, w, h}
+     */
+    static final class Voy {
+        private static final Object LOCK = new Object();
+        static File file(Context c) { File d = new File(c.getFilesDir(), "voyage"); d.mkdirs(); return new File(d, "index.json"); }
+        static JSONArray load(Context c) {
+            synchronized (LOCK) {
+                File f = file(c); if (!f.exists()) return new JSONArray();
+                try (InputStream in = new java.io.FileInputStream(f)) { ByteArrayOutputStream o = new ByteArrayOutputStream(); copy(in, o); return new JSONArray(o.toString("UTF-8")); }
+                catch (Throwable e) { return new JSONArray(); }
+            }
+        }
+        static void save(Context c, JSONArray l) {
+            synchronized (LOCK) {
+                File f = file(c), t = new File(f.getParentFile(), "index.tmp");
+                try (FileOutputStream o = new FileOutputStream(t)) { o.write(l.toString().getBytes("UTF-8")); } catch (Throwable e) { return; }
+                if (!t.renameTo(f)) { f.delete(); t.renameTo(f); }
+            }
+        }
+        static SharedPreferences prefs(Context c) { return c.getSharedPreferences(PREFS, Context.MODE_PRIVATE); }
+        static String norm(String s) { return VoyageBridge.norm(s); }
+        static String isoLocal(long t) {
+            String s = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.US).format(new Date(t));
+            return s.substring(0, s.length() - 2) + ":" + s.substring(s.length() - 2);
+        }
+        /** Voyage actif ; ajouté à la liste « voyages » s'il n'y est pas (ou mis à jour) */
+        static void setVoyage(Context c, JSONObject v) {
+            try {
+                if (v.has("titre") && !v.has("dir")) v.put("dir", safeName(v.getString("titre")));
+                if (v.has("dir")) v.put("dir", safeName(v.getString("dir")));
+                SharedPreferences.Editor e = prefs(c).edit().putString("voyage", v.toString());
+                if (v.optString("id").length() > 0) {
+                    JSONArray l = VoyageBridge.arr(prefs(c).getString("voyages", "[]")), out = new JSONArray(); boolean found = false;
+                    for (int i = 0; i < l.length(); i++) { JSONObject o = l.optJSONObject(i); if (o == null) continue; if (o.optString("id").equals(v.optString("id"))) { found = true; JSONObject m = new JSONObject(v.toString()); if (o.has("created")) m.put("created", o.get("created")); out.put(m); } else out.put(o); }
+                    if (!found) { JSONObject m = new JSONObject(v.toString()); m.put("created", System.currentTimeMillis()); out.put(m); }
+                    e.putString("voyages", out.toString());
+                }
+                e.apply();
+            } catch (Throwable x) { }
+        }
+        static JSONObject etat(Context c) {
+            JSONObject o = new JSONObject();
+            try {
+                SharedPreferences s = prefs(c);
+                boolean voy = s.getBoolean("voyMode", false), site = s.getBoolean("siteMode", false);
+                o.put("mode", voy ? "voyage" : site ? "chantier" : "normal");
+                o.put("voyage", new JSONObject(s.getString("voyage", "{}")));
+                o.put("stamp", s.getBoolean("voyStamp", false)); o.put("caption", s.getBoolean("voyCaption", true));
+                int n = 0; JSONObject v = o.getJSONObject("voyage"); JSONArray l = load(c);
+                for (int i = 0; i < l.length(); i++) { JSONObject x = l.optJSONObject(i); if (x != null && x.optString("dossier").equalsIgnoreCase("Voyage/" + v.optString("dir"))) n++; }
+                o.put("photos", n);
+            } catch (Throwable e) { }
+            return o;
+        }
+        /** Change le mode depuis une autre appli (Majordome) ou la page : {mode, carnet:{id, titre, debut, fin}} */
+        static JSONObject mode(Context c, JSONObject arg) {
+            try {
+                String m = arg.optString("mode", "voyage");
+                SharedPreferences.Editor e = prefs(c).edit();
+                if ("voyage".equals(m)) {
+                    JSONObject k = arg.optJSONObject("carnet");
+                    if (k != null && k.optString("titre").length() > 0) {
+                        JSONObject v = new JSONObject();
+                        v.put("id", k.optString("id", "v" + System.currentTimeMillis())); v.put("titre", k.optString("titre")); v.put("dir", safeName(k.optString("titre")));
+                        v.put("debut", k.optString("debut")); v.put("fin", k.optString("fin")); v.put("local", k.optBoolean("local", false));
+                        setVoyage(c, v);
+                    } else if (new JSONObject(prefs(c).getString("voyage", "{}")).optString("titre").isEmpty()) {
+                        JSONObject r = etat(c); r.put("ok", false); r.put("besoin", "carnet"); return r;
+                    }
+                    e.putBoolean("voyMode", true).putBoolean("siteMode", false);
+                } else if ("chantier".equals(m)) e.putBoolean("siteMode", true).putBoolean("voyMode", false);
+                else e.putBoolean("voyMode", false);
+                e.commit();
+                JSONObject r = etat(c); r.put("ok", true); return r;
+            } catch (Throwable x) { return new JSONObject(); }
+        }
+        /** Nouvelle photo du voyage (appelé par PhotoCamera après l'enregistrement) */
+        static JSONObject add(Context c, String id, String nom, String voyDir, long t, android.location.Location l, String lieu, String ville, String pays, JSONObject voyage, int w, int h) {
+            JSONObject o = new JSONObject();
+            try {
+                String dossier = "Voyage/" + safeName(voyDir);
+                o.put("id", id); o.put("nom", nom); o.put("dossier", dossier); o.put("chemin", rel(dossier) + nom);
+                o.put("date", t); o.put("dateTxt", isoLocal(t));
+                if (l != null) { o.put("lat", l.getLatitude()); o.put("lng", l.getLongitude()); }
+                o.put("lieu", lieu == null ? "" : lieu); o.put("ville", ville == null ? "" : ville); o.put("pays", pays == null ? "" : pays);
+                o.put("legende", ""); o.put("carnet", voyage.optBoolean("local") ? "" : voyage.optString("id")); o.put("voyage", voyage.optString("id"));
+                o.put("titre", voyage.optString("titre")); o.put("w", w); o.put("h", h);
+                synchronized (LOCK) { JSONArray all = load(c); all.put(o); save(c, all); }
+                writeFolder(c, dossier);
+            } catch (Throwable e) { }
+            return o;
+        }
+        static boolean setLegende(Context c, String id, String text) {
+            String dossier = null, lieu = "";
+            synchronized (LOCK) {
+                JSONArray all = load(c);
+                for (int i = 0; i < all.length(); i++) {
+                    JSONObject o = all.optJSONObject(i);
+                    if (o != null && o.optString("id").equals(id)) { try { o.put("legende", text == null ? "" : text.trim()); } catch (Throwable e) { } dossier = o.optString("dossier"); lieu = o.optString("lieu"); }
+                }
+                if (dossier == null) return false;
+                save(c, all);
+            }
+            try {
+                String t = text == null ? "" : text.trim();
+                ContentValues v = new ContentValues(); v.put(MediaStore.Images.ImageColumns.DESCRIPTION, (lieu.isEmpty() ? "" : lieu) + (t.isEmpty() ? "" : (lieu.isEmpty() ? "" : "\n") + t));
+                c.getContentResolver().update(uriOf(id), v, null, null);
+            } catch (Throwable e) { }
+            writeFolder(c, dossier);
+            return true;
+        }
+        /** Photos d'un carnet : même id de carnet, ou même titre (voyage local renommé ensuite en carnet) */
+        static List<JSONObject> forCarnet(Context c, String carnet, String titre) {
+            List<JSONObject> out = new ArrayList<>(); JSONArray all = load(c);
+            String nt = norm(titre), dir = titre == null ? "" : safeName(titre);
+            for (int i = 0; i < all.length(); i++) {
+                JSONObject o = all.optJSONObject(i); if (o == null) continue;
+                boolean byId = carnet != null && !carnet.isEmpty() && carnet.equals(o.optString("carnet"));
+                boolean byTitle = !nt.isEmpty() && (o.optString("carnet").isEmpty() || carnet == null || carnet.isEmpty()) && (norm(o.optString("titre")).equals(nt) || o.optString("dossier").equalsIgnoreCase("Voyage/" + dir));
+                if (byId || byTitle) out.add(o);
+            }
+            return out;
+        }
+        /** Retire de la liste les photos supprimées du téléphone (une requête MediaStore pour toutes) */
+        static List<JSONObject> existing(Context c, List<JSONObject> l) {
+            if (l.isEmpty()) return l;
+            Set<String> ok = new HashSet<>();
+            StringBuilder in = new StringBuilder();
+            for (JSONObject o : l) { long n = num(o.optString("id")); if (n >= 0) { if (in.length() > 0) in.append(','); in.append(n); } }
+            try (Cursor k = c.getContentResolver().query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, new String[]{ MediaStore.MediaColumns._ID }, MediaStore.MediaColumns._ID + " IN (" + in + ")", null, null)) {
+                if (k == null) return l;
+                while (k.moveToNext()) ok.add(String.valueOf(k.getLong(0)));
+            } catch (Throwable e) { return l; }
+            List<JSONObject> out = new ArrayList<>();
+            for (JSONObject o : l) if (ok.contains(o.optString("id"))) out.add(o);
+            return out;
+        }
+        /**
+         * voyage.json du dossier : DCIM/Photo/Voyage/<titre>/voyage.json. Android 10+ n'accepte en principe que des images et
+         * des vidéos dans DCIM : essai par MediaStore, puis par chemin direct ; s'il refuse, copie dans Documents/Photo/Voyage/<titre>/.
+         * L'emplacement retenu est gardé (préférence « voyJson:<dossier> »).
+         */
+        static void writeFolder(Context c, String dossier) {
+            try {
+                JSONObject j = new JSONObject(); JSONArray ph = new JSONArray(); JSONObject car = null;
+                JSONArray all = load(c);
+                for (int i = 0; i < all.length(); i++) {
+                    JSONObject o = all.optJSONObject(i); if (o == null || !o.optString("dossier").equalsIgnoreCase(dossier)) continue;
+                    JSONObject p = new JSONObject();
+                    p.put("fichier", o.optString("nom")); p.put("chemin", o.optString("chemin")); p.put("date", o.optString("dateTxt"));
+                    if (o.has("lat")) { p.put("lat", o.optDouble("lat")); p.put("lng", o.optDouble("lng")); }
+                    p.put("lieu", o.optString("lieu")); p.put("ville", o.optString("ville")); p.put("pays", o.optString("pays"));
+                    p.put("legende", o.optString("legende")); p.put("carnet", o.optString("carnet")); p.put("w", o.optInt("w")); p.put("h", o.optInt("h"));
+                    ph.put(p);
+                    if (car == null) { car = new JSONObject(); car.put("id", o.optString("carnet")); car.put("titre", o.optString("titre")); }
+                }
+                JSONObject v = new JSONObject(prefs(c).getString("voyage", "{}"));
+                if (car != null && v.optString("titre").length() > 0 && ("Voyage/" + v.optString("dir")).equalsIgnoreCase(dossier)) { car.put("debut", v.optString("debut")); car.put("fin", v.optString("fin")); }
+                j.put("format", "magvoyage"); j.put("version", 1); j.put("app", "Photo (Suite MAG)"); j.put("dossier", dossier);
+                j.put("carnet", car == null ? new JSONObject() : car); j.put("maj", isoLocal(System.currentTimeMillis())); j.put("photos", ph);
+                byte[] data = j.toString(1).getBytes("UTF-8");
+                String where = writeJson(c, rel(dossier), data);
+                if (where == null) where = writeJson(c, "Documents/Photo/" + rel(dossier).substring(ROOT.length() + 1), data);
+                prefs(c).edit().putString("voyJson:" + dossier, where == null ? "" : where + "voyage.json").apply();
+            } catch (Throwable e) { }
+        }
+        @SuppressWarnings("deprecation")
+        private static String writeJson(Context c, String relp, byte[] data) {
+            ContentResolver cr = c.getContentResolver();
+            if (SDK >= 29) {
+                Uri files = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+                try {
+                    Uri u = null;
+                    try (Cursor k = cr.query(files, new String[]{ MediaStore.MediaColumns._ID }, MediaStore.MediaColumns.RELATIVE_PATH + "=? AND " + MediaStore.MediaColumns.DISPLAY_NAME + "=?", new String[]{ relp, "voyage.json" }, null)) {
+                        if (k != null && k.moveToFirst()) u = ContentUris.withAppendedId(files, k.getLong(0));
+                    }
+                    if (u == null) {
+                        ContentValues v = new ContentValues();
+                        v.put(MediaStore.MediaColumns.DISPLAY_NAME, "voyage.json"); v.put(MediaStore.MediaColumns.MIME_TYPE, "application/json");
+                        v.put(MediaStore.MediaColumns.RELATIVE_PATH, relp);
+                        u = cr.insert(files, v);
+                    }
+                    if (u != null) { try (OutputStream o = cr.openOutputStream(u, "wt")) { o.write(data); } return relp; }
+                } catch (Throwable e) { }
+            }
+            try {
+                File d = new File(Environment.getExternalStorageDirectory(), relp); d.mkdirs();
+                try (FileOutputStream o = new FileOutputStream(new File(d, "voyage.json"))) { o.write(data); }
+                try { android.media.MediaScannerConnection.scanFile(c, new String[]{ new File(d, "voyage.json").getAbsolutePath() }, null, null); } catch (Throwable e) { }
+                return relp;
+            } catch (Throwable e) { return null; }
+        }
+    }
+
+    /** Fournisseur de l'appli Photo pour le mode voyage (déclaré dans le manifeste de Photo seulement). */
+    public static class Voyage extends android.content.ContentProvider {
+        @Override public boolean onCreate() { return true; }
+        private void check() {
+            int uid = android.os.Binder.getCallingUid();
+            if (uid == android.os.Process.myUid()) return;
+            if (getContext().getPackageManager().checkSignatures(uid, android.os.Process.myUid()) != PackageManager.SIGNATURE_MATCH) throw new SecurityException("réservé aux applis MAG");
+        }
+        /** content://…voyage/photos?carnet=&titre= : photos du voyage encore présentes sur le téléphone ; …/voyages : dossiers */
+        @Override public Cursor query(Uri uri, String[] proj, String sel, String[] args, String sort) {
+            check();
+            android.database.MatrixCursor m = new android.database.MatrixCursor(new String[]{ "id", "json" });
+            Context c = getContext();
+            if ("voyages".equals(uri.getLastPathSegment())) {
+                Map<String, Integer> n = new HashMap<>(); JSONArray all = Voy.load(c);
+                for (int i = 0; i < all.length(); i++) { JSONObject o = all.optJSONObject(i); if (o != null) n.put(o.optString("dossier"), (n.containsKey(o.optString("dossier")) ? n.get(o.optString("dossier")) : 0) + 1); }
+                for (Map.Entry<String, Integer> e : n.entrySet()) { try { JSONObject o = new JSONObject(); o.put("dossier", e.getKey()); o.put("n", e.getValue()); m.addRow(new Object[]{ e.getKey(), o.toString() }); } catch (Throwable x) { } }
+                return m;
+            }
+            List<JSONObject> l = Voy.existing(c, Voy.forCarnet(c, uri.getQueryParameter("carnet"), uri.getQueryParameter("titre")));
+            for (JSONObject o : l) m.addRow(new Object[]{ o.optString("id"), o.toString() });
+            return m;
+        }
+        /** content://…voyage/photo/<id> : la photo d'origine (position GPS comprise), seulement si elle est dans l'index du voyage */
+        @Override public android.os.ParcelFileDescriptor openFile(Uri uri, String mode) throws java.io.FileNotFoundException {
+            check();
+            if (mode == null || !mode.equals("r")) throw new SecurityException("lecture seule");
+            List<String> seg = uri.getPathSegments();
+            if (seg.size() != 2 || !"photo".equals(seg.get(0))) throw new java.io.FileNotFoundException("adresse inconnue");
+            String id = seg.get(1); boolean known = false; JSONArray all = Voy.load(getContext());
+            for (int i = 0; i < all.length() && !known; i++) { JSONObject o = all.optJSONObject(i); known = o != null && id.equals(o.optString("id")); }
+            if (!known || num(id) < 0) throw new java.io.FileNotFoundException("photo hors du voyage");
+            Uri u = uriOf(id);
+            if (SDK >= 29 && getContext().checkSelfPermission("android.permission.ACCESS_MEDIA_LOCATION") == PackageManager.PERMISSION_GRANTED) { try { u = MediaStore.setRequireOriginal(u); } catch (Throwable e) { } }
+            try { return getContext().getContentResolver().openFileDescriptor(u, "r"); }
+            catch (Throwable e) { throw new java.io.FileNotFoundException(String.valueOf(e.getMessage())); }
+        }
+        @Override public Bundle call(String method, String arg, Bundle extras) {
+            check();
+            Bundle b = new Bundle(); Context c = getContext();
+            try {
+                if ("etat".equals(method)) b.putString("json", Voy.etat(c).toString());
+                else if ("mode".equals(method)) b.putString("json", Voy.mode(c, new JSONObject(arg == null ? "{}" : arg)).toString());
+                else if ("vignette".equals(method) && arg != null) {
+                    boolean known = false; JSONArray all = Voy.load(c);
+                    for (int i = 0; i < all.length() && !known; i++) { JSONObject o = all.optJSONObject(i); known = o != null && arg.equals(o.optString("id")); }
+                    if (known) {
+                        Bitmap bm = SDK >= 29 ? c.getContentResolver().loadThumbnail(uriOf(arg), new Size(240, 240), null) : null;
+                        if (bm != null) { b.putString("data", dataUrl(bm, 78)); bm.recycle(); }
+                    }
+                }
+            } catch (Throwable e) { b.putString("err", String.valueOf(e.getMessage())); }
+            return b;
+        }
+        @Override public String getType(Uri uri) { return uri.getPathSegments().size() == 2 ? "image/jpeg" : "application/json"; }
+        @Override public Uri insert(Uri uri, ContentValues v) { throw new SecurityException("lecture seule"); }
+        @Override public int delete(Uri uri, String s, String[] a) { throw new SecurityException("lecture seule"); }
+        @Override public int update(Uri uri, ContentValues v, String s, String[] a) { throw new SecurityException("lecture seule"); }
     }
 }

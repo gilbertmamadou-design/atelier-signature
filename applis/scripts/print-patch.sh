@@ -11,7 +11,8 @@
 #  - MAGToile (ToileBridge.java) : Toile, « Images en ligne » (sources libres en liste blanche, tâche de fond WorkManager)
 #  - MAGOffice (OfficeBridge.java) : applis bureautiques (Présentation…), ouvrir / enregistrer sur place / enregistrer sous / partager
 #  - MAGMajordome (MajordomeBridge.java, appli Majordome seulement) : reconnaissance vocale Vosk, voix, alarmes, téléphone
-#  - MAGVoyage (VoyageBridge.java) : Carnet de voyage, lieu et date d'origine des photos choisies (ACCESS_MEDIA_LOCATION)
+#  - MAGVoyage (VoyageBridge.java) : Carnet de voyage, lieu et date d'origine des photos choisies (ACCESS_MEDIA_LOCATION) ;
+#    mode voyage : liste des carnets (fournisseur VoyageBridge$Carnets), photos du voyage de Photo (PhotoBridge$Voyage)
 set -e
 F=$(find android/app/src/main/java -name MainActivity.java | head -1)
 PKG=$(sed -n 's/^package \(.*\);/\1/p' "$F")
@@ -1795,6 +1796,12 @@ if [ "$APP" = "photo" ]; then
   grep -q 'READ_EXTERNAL_STORAGE' "$MAN" || addraw '<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" /><uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />'
   addraw '<uses-feature android:name="android.hardware.camera.any" android:required="false" /><queries><intent><action android:name="android.media.action.STILL_IMAGE_CAMERA" /></intent></queries>'
   addactivity '<activity android:name=".PhotoCamera" android:exported="true" android:label="Appareil photo" android:screenOrientation="portrait" android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize" android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" android:windowSoftInputMode="adjustPan"><intent-filter><action android:name="android.media.action.STILL_IMAGE_CAMERA" /><category android:name="android.intent.category.DEFAULT" /></intent-filter><intent-filter><action android:name="android.media.action.IMAGE_CAPTURE" /><category android:name="android.intent.category.DEFAULT" /></intent-filter></activity>'
+  # Mode voyage : fournisseur des photos du voyage (index, voyage.json, photo d'origine en lecture seule, mode), lu par Carnet de
+  # voyage et Majordome ; réservé aux applis MAG (permission signature fr.magformation13.permission.WIDGET, signature vérifiée).
+  # Carnet de voyage nommé dans <queries> (liste des carnets, création) ; reconnaissance vocale d'Android (dictée de la légende).
+  addactivity '<provider android:name=".PhotoBridge$Voyage" android:authorities="${applicationId}.voyage" android:exported="true" android:permission="fr.magformation13.permission.WIDGET" />'
+  addraw '<queries><package android:name="fr.magformation13.voyage" /><intent><action android:name="android.speech.action.RECOGNIZE_SPEECH" /></intent></queries>'
+  grep -n "PhotoBridge\$Voyage\|RECOGNIZE_SPEECH" "$MAN"
 fi
 if [ "$APP" = "ecran" ]; then
   addperm INTERNET READ_MEDIA_VIDEO
@@ -1871,8 +1878,13 @@ fi
 # Carnet de voyage : pièces communes (office-deps.txt : office/, Lucide, polices du carnet, licences), « Ouvrir avec » et
 # « Partager » des sauvegardes .magcarnet (OfficeBridge.java), photos reçues par « Partager » depuis la galerie (une ou plusieurs).
 # Lieu des photos : VoyageBridge.java (ACCESS_MEDIA_LOCATION, déjà déclarée plus bas pour toutes les applis).
+# Mode voyage : fournisseur VoyageBridge$Carnets (liste des carnets en lecture seule, création « en attente » demandée par Photo
+# ou Majordome), réservé aux applis MAG (permission signature, signature vérifiée) ; Photo nommée dans <queries> (photos du voyage).
 if [ "$APP" = "voyage" ]; then
   bash scripts/office-deps.sh www-voyage
+  addactivity '<provider android:name=".VoyageBridge$Carnets" android:authorities="${applicationId}.carnets" android:exported="true" android:permission="fr.magformation13.permission.WIDGET" />'
+  addraw '<queries><package android:name="fr.magformation13.photo" /></queries>'
+  grep -n "VoyageBridge\$Carnets" "$MAN"
   addfilters '<intent-filter android:label="Ouvrir avec Carnet de voyage"><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.DEFAULT" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="content" /><data android:scheme="file" /><data android:mimeType="application/x-magcarnet" /></intent-filter><intent-filter android:label="Ouvrir avec Carnet de voyage"><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.DEFAULT" /><data android:scheme="content" /><data android:scheme="file" /><data android:host="*" /><data android:mimeType="application/octet-stream" /><data android:mimeType="application/zip" /><data android:pathPattern=".*\\.magcarnet" /><data android:pathPattern=".*\\..*\\.magcarnet" /><data android:pathPattern=".*\\..*\\..*\\.magcarnet" /></intent-filter><intent-filter android:label="Carnet de voyage"><action android:name="android.intent.action.SEND" /><action android:name="android.intent.action.SEND_MULTIPLE" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="image/*" /><data android:mimeType="application/x-magcarnet" /></intent-filter>'
 fi
 # Atelier PDF : reconnaissance de texte hors ligne (ML Kit, modèle latin embarqué, sans Google Play Services),
@@ -1936,6 +1948,8 @@ GRADLE
   # Voix Piper prêtées à Liseuse (lecture des livres) : fournisseur en lecture seule, réservé aux applis MAG (permission signature,
   # et signature de l'appelant vérifiée dans MajordomeBridge$Voix) ; seuls les fichiers des voix installées sont servis.
   addactivity '<provider android:name=".MajordomeBridge$Voix" android:authorities="${applicationId}.voix" android:exported="true" android:permission="fr.magformation13.permission.WIDGET" />'
+  # Mode voyage (« commence le carnet Italie », « mode voyage ») : fournisseurs de Carnet de voyage et de Photo (VoyageBridge.java)
+  addraw '<queries><package android:name="fr.magformation13.voyage" /><package android:name="fr.magformation13.photo" /></queries>'
   # Assistant numérique du téléphone : une activité qui répond à ACTION_ASSIST suffit pour figurer dans
   # Paramètres › Applis par défaut › Assistant numérique (rôle ASSISTANT d'Android 10+, « Assistance et saisie vocale » avant).
   # Appui long sur le bouton d'accueil / geste d'assistant → MainActivity avec ACTION_ASSIST → MajordomeBridge.takeIntent → écoute.

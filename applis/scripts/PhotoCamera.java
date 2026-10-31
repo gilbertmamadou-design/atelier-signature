@@ -19,6 +19,7 @@ import android.graphics.ImageFormat;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.PathMeasure;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
@@ -63,6 +64,7 @@ import android.os.Looper;
 import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.provider.Settings;
+import android.speech.RecognizerIntent;
 import android.util.DisplayMetrics;
 import android.util.Range;
 import android.util.Size;
@@ -81,6 +83,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
@@ -115,12 +119,15 @@ import java.util.concurrent.TimeUnit;
  * Photo : appareil photo de chantier (Camera2), plein écran, interface construite en code.
  * Enregistre dans DCIM/Photo (ou DCIM/Photo/<Chantier> en mode chantier) via MediaStore,
  * avec EXIF (date, orientation, GPS) et bandeau incrusté (date, adresse, chantier, note).
+ * Mode voyage (exclusif du mode chantier) : DCIM/Photo/Voyage/<titre du carnet>, date et GPS dans l'EXIF, ville par le
+ * géocodeur d'Android, bandeau facultatif « carte postale » (désactivé par défaut), feuille « Légende ? » après la prise
+ * (saisie, dictée d'Android ou ignorer) ; index et voyage.json : PhotoBridge.Voy.
  * Réglages partagés avec la page (PhotoBridge) : SharedPreferences « photo ».
  */
 public class PhotoCamera extends Activity {
     static final String PREFS = "photo";
     static final String ROOT = "DCIM/Photo";
-    private static final int REQ_PERMS = 5401, REQ_AUDIO = 5402;
+    private static final int REQ_PERMS = 5401, REQ_AUDIO = 5402, REQ_DICT = 5403;
     private static final int SDK = Build.VERSION.SDK_INT;
     private static final int ST_PREVIEW = 0, ST_LOCK = 1, ST_PRE = 2, ST_NONPRE = 3, ST_SHOT = 4;
     static final String NIGHT_MSG = "La caméra de vision de nuit n'est pas proposée par Android aux autres applications sur ce téléphone : seule l'appli photo d'origine du fabricant peut l'utiliser. Pour la vision de nuit, ouvre l'appli photo d'origine.";
@@ -306,6 +313,7 @@ public class PhotoCamera extends Activity {
     // Position
     private LocationManager lm;
     private volatile Location loc; private volatile String addr; private volatile Location addrLoc;
+    private volatile String city = "", country = ""; private volatile Location cityLoc;
     private long geoAt;
 
     // Capteurs
@@ -325,6 +333,9 @@ public class PhotoCamera extends Activity {
     private LinearLayout lensRow, siteRow;
     private ImageView thumb;
     private Shutter shutter;
+    private TextView backLab;
+    // feuille « Légende ? » (mode voyage)
+    private LinearLayout capSheet; private EditText capField; private ImageView capThumb; private String capId = ""; private TextView capMic;
     private final List<View> rotating = new ArrayList<>();
     private int W, H, topH;
     private int countdown = 0;
@@ -390,6 +401,7 @@ public class PhotoCamera extends Activity {
 
     @Override protected void onPause() {
         resumed = false;
+        commitCaption();
         cancelCountdown();
         if (recording) stopRecording(false);
         closeCamera();
@@ -428,6 +440,17 @@ public class PhotoCamera extends Activity {
         }
     }
 
+    @Override protected void onActivityResult(int req, int res, Intent data) {
+        super.onActivityResult(req, res, data);
+        if (req != REQ_DICT || capField == null) return;
+        ArrayList<String> l = res == RESULT_OK && data != null ? data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS) : null;
+        if (l != null && !l.isEmpty()) {
+            String cur = capField.getText().toString().trim(), add = l.get(0).trim();
+            if (!add.isEmpty()) add = add.substring(0, 1).toUpperCase(Locale.FRANCE) + add.substring(1);
+            capField.setText(cur.isEmpty() ? add : cur + " " + add); capField.setSelection(capField.getText().length());
+        }
+    }
+
     @Override public boolean onKeyDown(int code, KeyEvent e) {
         if (code == KeyEvent.KEYCODE_VOLUME_UP || code == KeyEvent.KEYCODE_VOLUME_DOWN || code == KeyEvent.KEYCODE_CAMERA) {
             if (e.getRepeatCount() == 0) shutterPressed();
@@ -442,6 +465,7 @@ public class PhotoCamera extends Activity {
     }
 
     @Override public void onBackPressed() {
+        if (capSheet != null && capSheet.getVisibility() == View.VISIBLE) { hideCaption(); return; }
         if (countdown > 0) { cancelCountdown(); return; }
         if (recording) { stopRecording(true); return; }
         leave(false);
@@ -834,6 +858,7 @@ public class PhotoCamera extends Activity {
 
     // ================= Minuteur =================
     private void shutterPressed() {
+        commitCaption();
         if (videoMode) { if (recording) stopRecording(true); else startRecording(); return; }
         if (countdown > 0) { cancelCountdown(); return; }
         shutter.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
@@ -854,6 +879,8 @@ public class PhotoCamera extends Activity {
     static final class Meta {
         long t; Location l; String addr = "", site = "", siteDir = "", note = "", client = "";
         boolean siteMode, stamp, keepOrig, geo, front;
+        // mode voyage
+        boolean voyMode, vStamp, vKeep; String voyTitle = "", voyDir = "", vStyle = "carte", vPos = "bas", city = "", country = ""; JSONObject voyage = new JSONObject();
     }
 
     private Meta snapshot() {
@@ -869,6 +896,17 @@ public class PhotoCamera extends Activity {
             if (m.addr.isEmpty() && m.l == null) m.addr = s.optString("addr", "");
         } catch (Throwable e) { }
         if (m.site.isEmpty()) m.siteMode = false;
+        m.voyMode = prefB("voyMode", false) && !captureIntent;
+        try {
+            JSONObject v = new JSONObject(pref("voyage", "{}"));
+            m.voyage = v; m.voyTitle = v.optString("titre", ""); m.voyDir = safeDir(v.optString("dir", m.voyTitle));
+        } catch (Throwable e) { }
+        if (m.voyTitle.isEmpty() || m.voyDir.isEmpty()) m.voyMode = false;
+        if (m.voyMode) m.siteMode = false;   // les deux modes s'excluent
+        m.vStamp = prefB("voyStamp", false); m.vKeep = prefB("voyKeepOrig", true);
+        m.vStyle = pref("voyStyle", "carte"); m.vPos = pref("voyPos", "bas");
+        Location cl = cityLoc;
+        if (m.l != null && cl != null && m.l.distanceTo(cl) < 3000) { m.city = city; m.country = country; }
         m.note = pref("note", "");
         m.stamp = prefB("stamp", true);
         m.keepOrig = prefB("keepOrig", true);
@@ -915,10 +953,20 @@ public class PhotoCamera extends Activity {
             fillExif(ex, m);
             ex.saveAttributes();
             String name = "Photo_" + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date(m.t));
-            String dir = m.siteMode ? m.siteDir : "";
-            String desc = locLine(m) + (m.note.trim().isEmpty() ? "" : "\n" + m.note.trim());
+            String dir = m.voyMode ? "Voyage/" + m.voyDir : m.siteMode ? m.siteDir : "";
+            String desc = m.voyMode ? locLine(m) : locLine(m) + (m.note.trim().isEmpty() ? "" : "\n" + m.note.trim());
             if (captureIntent) { deliverCapture(tmp); return; }
-            if (m.siteMode && m.stamp) {
+            if (m.voyMode && m.vStamp) {
+                // bandeau « carte postale » ; l'original sans bandeau reste dans Originaux si demandé
+                t2 = new File(getCacheDir(), "carte-" + m.t + ".jpg");
+                postcardFile(tmp, t2, ori, m);
+                ExifInterface e2 = new ExifInterface(t2.getAbsolutePath());
+                copyExif(ex, e2);
+                e2.setAttribute(ExifInterface.TAG_ORIENTATION, String.valueOf(ori));
+                e2.saveAttributes();
+                main = insert(t2, name + ".jpg", dir, m.t, desc, false);
+                if (m.vKeep) insert(tmp, name + "_original.jpg", dir + "/Originaux", m.t, desc, false);
+            } else if (m.siteMode && m.stamp) {
                 t2 = new File(getCacheDir(), "stamp-" + m.t + ".jpg");
                 stampFile(tmp, t2, ori, bannerLines(m));
                 ExifInterface e2 = new ExifInterface(t2.getAbsolutePath());
@@ -934,8 +982,20 @@ public class PhotoCamera extends Activity {
                 lastUri = main; lastVideo = false;
                 sp.edit().putString("lastUri", main.toString()).putLong("lastAt", m.t).putBoolean("lastVideo", false).apply();
                 final Bitmap th = smallThumb(t2 != null ? t2 : tmp, ori);
-                final String where = m.siteMode ? "Enregistrée dans " + m.site : "Enregistrée";
-                ui.post(new Runnable() { public void run() { setThumb(th); info(where); } });
+                final String where = m.voyMode ? "Enregistrée dans le voyage « " + m.voyTitle + " »" : m.siteMode ? "Enregistrée dans " + m.site : "Enregistrée";
+                String vid = "";
+                if (m.voyMode) {
+                    // index du voyage et voyage.json du dossier (nom réel donné par MediaStore, taille affichée)
+                    String nm = name + ".jpg";
+                    try (android.database.Cursor k = getContentResolver().query(main, new String[]{ MediaStore.MediaColumns.DISPLAY_NAME }, null, null, null)) { if (k != null && k.moveToFirst() && k.getString(0) != null) nm = k.getString(0); } catch (Throwable x) { }
+                    BitmapFactory.Options bo = new BitmapFactory.Options(); bo.inJustDecodeBounds = true;
+                    BitmapFactory.decodeFile((t2 != null ? t2 : tmp).getAbsolutePath(), bo);
+                    boolean turn = ori == ExifInterface.ORIENTATION_ROTATE_90 || ori == ExifInterface.ORIENTATION_ROTATE_270;
+                    vid = String.valueOf(ContentUris.parseId(main));
+                    PhotoBridge.Voy.add(this, vid, nm, m.voyDir, m.t, m.l, m.addr, m.city, m.country, m.voyage, turn ? bo.outHeight : bo.outWidth, turn ? bo.outWidth : bo.outHeight);
+                }
+                final String capFor = m.voyMode && prefB("voyCaption", true) ? vid : "";
+                ui.post(new Runnable() { public void run() { setThumb(th); info(where); if (!capFor.isEmpty()) showCaption(capFor, th); } });
             }
         } catch (OutOfMemoryError e) {
             info("Mémoire insuffisante pour le bandeau : passe en 12 Mpx");
@@ -1026,7 +1086,8 @@ public class PhotoCamera extends Activity {
         ex.setAttribute(ExifInterface.TAG_SOFTWARE, "Photo - MAG Formation 13");
         String author = sp.getString("author", "");
         if (!author.isEmpty()) ex.setAttribute(ExifInterface.TAG_ARTIST, ascii(author));
-        String desc = (m.siteMode ? m.site + " - " : "") + locLine(m) + (m.note.isEmpty() ? "" : " - " + m.note);
+        String desc = m.voyMode ? m.voyTitle + (m.city.isEmpty() ? "" : " - " + m.city) + (locLine(m).isEmpty() ? "" : " - " + locLine(m))
+                : (m.siteMode ? m.site + " - " : "") + locLine(m) + (m.note.isEmpty() ? "" : " - " + m.note);
         ex.setAttribute(ExifInterface.TAG_IMAGE_DESCRIPTION, ascii(desc));
         if (m.l != null) {
             double la = m.l.getLatitude(), lo = m.l.getLongitude();
@@ -1131,6 +1192,180 @@ public class PhotoCamera extends Activity {
         return out;
     }
 
+    // ================= Bandeau « carte postale » (mode voyage) =================
+    // Même dessin que l'aperçu de la page (www-photo, postcard()) : 3 styles (carte, timbre, ruban), 3 positions (bas, haut, coin).
+    static final int PC_CREAM = 0xfffbf5e6, PC_RED = 0xffc7362f, PC_BLUE = 0xff1d4e89, PC_INK = 0xff2e2620, PC_TERRA = 0xff9e3b2e, PC_TEAL = 0xff2f6f73, PC_SUN = 0xfff4c542;
+
+    static void postcardFile(File in, File out, int ori, Meta m) throws Exception {
+        BitmapFactory.Options o = new BitmapFactory.Options();
+        o.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(in.getAbsolutePath(), o);
+        int s = 1;
+        while ((long) (o.outWidth / s) * (o.outHeight / s) > 50_000_000L) s *= 2;
+        Bitmap b = null;
+        for (int tries = 0; b == null && tries < 3; tries++) {
+            BitmapFactory.Options d = new BitmapFactory.Options();
+            d.inSampleSize = s; d.inMutable = true; d.inPreferredConfig = Bitmap.Config.ARGB_8888;
+            try { b = BitmapFactory.decodeFile(in.getAbsolutePath(), d); } catch (OutOfMemoryError e) { b = null; }
+            if (b == null) s *= 2;
+        }
+        if (b == null) throw new Exception("image illisible");
+        if (!b.isMutable()) { Bitmap c = b.copy(Bitmap.Config.ARGB_8888, true); b.recycle(); b = c; }
+        String place = m.city.isEmpty() ? m.voyTitle : m.city;
+        drawPostcard(new Canvas(b), b.getWidth(), b.getHeight(), ori, place, m.country, m.t, m.vStyle, m.vPos);
+        try (FileOutputStream fo = new FileOutputStream(out)) { b.compress(Bitmap.CompressFormat.JPEG, 92, fo); }
+        b.recycle();
+    }
+
+    static Paint pcPaint(int color) { Paint p = new Paint(Paint.ANTI_ALIAS_FLAG); p.setColor(color); return p; }
+    static Paint pcText(int color, float size, Typeface tf) { Paint p = pcPaint(color); p.setTextSize(size); p.setTypeface(tf); return p; }
+    static void pcFit(Paint p, String s, float maxW) { while (p.getTextSize() > 6 && p.measureText(s) > maxW) p.setTextSize(p.getTextSize() * 0.94f); }
+    /** Vagues de l'oblitération : n lignes ondulées de (x0, y) à (x1, y) */
+    static void pcWaves(Canvas cv, float x0, float x1, float y, float gap, int n, Paint st) {
+        for (int i = 0; i < n; i++) {
+            Path w = new Path(); float yy = y + (i - (n - 1) / 2f) * gap, amp = gap * 0.28f, step = gap * 0.9f;
+            w.moveTo(x0, yy);
+            for (float x = x0; x < x1; x += step) w.quadTo(x + step / 4, yy + ((int) ((x - x0) / step) % 2 == 0 ? -amp : amp), x + step / 2, yy) ;
+            cv.drawPath(w, st);
+        }
+    }
+    /** Cachet de la poste : deux cercles, ville en arc, date au centre */
+    static void pcPostmark(Canvas cv, float cx, float cy, float r, String city, String date, int ink) {
+        Paint st = pcPaint(ink); st.setStyle(Paint.Style.STROKE); st.setStrokeWidth(r * 0.06f);
+        cv.drawCircle(cx, cy, r, st); cv.drawCircle(cx, cy, r * 0.70f, st);
+        String up = city.toUpperCase(Locale.FRANCE);
+        Paint tp = pcText(ink, r * 0.22f, Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD));
+        Path arc = new Path(); float ra = r * 0.80f;
+        arc.addArc(new RectF(cx - ra, cy - ra, cx + ra, cy + ra), 180, 180);
+        float len = (float) (Math.PI * ra);
+        pcFit(tp, up, len * 0.9f);
+        float tw = tp.measureText(up);
+        cv.drawTextOnPath(up, arc, (len - tw) / 2, tp.getTextSize() * 0.35f, tp);
+        Paint dp = pcText(ink, r * 0.24f, Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)); dp.setTextAlign(Paint.Align.CENTER);
+        pcFit(dp, date, r * 1.2f);
+        cv.drawText(date, cx, cy + dp.getTextSize() * 0.36f, dp);
+    }
+    /** Petit dessin du timbre : ciel, soleil, mer et vagues */
+    static void pcArt(Canvas cv, RectF a) {
+        cv.save(); cv.clipRect(a);
+        cv.drawRect(a, pcPaint(PC_TEAL));
+        cv.drawRect(a.left, a.top, a.right, a.top + a.height() * 0.55f, pcPaint(0xff9fc5d9));
+        cv.drawCircle(a.left + a.width() * 0.68f, a.top + a.height() * 0.32f, a.width() * 0.16f, pcPaint(PC_SUN));
+        Paint hill = pcPaint(0xff5b7f3a); Path h = new Path();
+        h.moveTo(a.left, a.top + a.height() * 0.58f); h.quadTo(a.left + a.width() * 0.25f, a.top + a.height() * 0.38f, a.left + a.width() * 0.52f, a.top + a.height() * 0.58f); h.close();
+        cv.drawPath(h, hill);
+        Paint wv = pcPaint(0xccffffff); wv.setStyle(Paint.Style.STROKE); wv.setStrokeWidth(a.height() * 0.035f); wv.setStrokeCap(Paint.Cap.ROUND);
+        pcWaves(cv, a.left + a.width() * 0.08f, a.right - a.width() * 0.08f, a.top + a.height() * 0.76f, a.height() * 0.12f, 2, wv);
+        cv.restore();
+    }
+    /** Contour d'un timbre dentelé (rectangle moins des demi-cercles sur les bords) */
+    static Path pcStampPath(RectF r, float pr) {
+        Path p = new Path(); p.addRect(r, Path.Direction.CW);
+        Path holes = new Path(); float gap = pr * 2.7f;
+        int nx = Math.max(3, Math.round(r.width() / gap)), ny = Math.max(3, Math.round(r.height() / gap));
+        for (int i = 0; i <= nx; i++) { float x = r.left + r.width() * i / nx; holes.addCircle(x, r.top, pr, Path.Direction.CW); holes.addCircle(x, r.bottom, pr, Path.Direction.CW); }
+        for (int i = 0; i <= ny; i++) { float y = r.top + r.height() * i / ny; holes.addCircle(r.left, y, pr, Path.Direction.CW); holes.addCircle(r.right, y, pr, Path.Direction.CW); }
+        if (SDK >= 19) p.op(holes, Path.Op.DIFFERENCE);
+        return p;
+    }
+
+    /** Dessine le bandeau dans le sens d'affichage (orientation EXIF prise en compte). */
+    static void drawPostcard(Canvas cv, int W, int H, int ori, String place, String country, long t, String style, String pos) {
+        Matrix mx = new Matrix(); int vw = W, vh = H;
+        if (ori == ExifInterface.ORIENTATION_ROTATE_90) { mx.setValues(new float[]{0, 1, 0, -1, 0, H, 0, 0, 1}); vw = H; vh = W; }
+        else if (ori == ExifInterface.ORIENTATION_ROTATE_180) { mx.setValues(new float[]{-1, 0, W, 0, -1, H, 0, 0, 1}); }
+        else if (ori == ExifInterface.ORIENTATION_ROTATE_270) { mx.setValues(new float[]{0, -1, W, 1, 0, 0, 0, 0, 1}); vw = H; vh = W; }
+        cv.save(); cv.concat(mx);
+        float S = Math.min(vw, vh), mg = S * 0.035f;
+        if (place == null || place.isEmpty()) place = "Souvenir";
+        String dLong = new SimpleDateFormat("d MMMM yyyy", Locale.FRANCE).format(new Date(t)), dShort = new SimpleDateFormat("dd.MM.yy", Locale.FRANCE).format(new Date(t));
+        Typeface serifBI = Typeface.create(Typeface.SERIF, Typeface.BOLD_ITALIC), serifI = Typeface.create(Typeface.SERIF, Typeface.ITALIC), sans = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL);
+        Paint shadow = pcPaint(0x00000000); shadow.setShadowLayer(S * 0.014f, 0, S * 0.005f, 0x73000000);
+        if ("timbre".equals(style)) {
+            float sw = S * 0.30f, sh = sw * 1.22f;
+            float x = "bas".equals(pos) ? mg : vw - sw - mg, y = "haut".equals(pos) ? mg + sw * 0.12f : vh - sh - mg;
+            RectF r = new RectF(x, y, x + sw, y + sh);
+            Path stamp = pcStampPath(r, sw * 0.035f);
+            Paint sp = pcPaint(PC_CREAM); sp.setShadowLayer(S * 0.012f, 0, S * 0.004f, 0x80000000);
+            cv.drawPath(stamp, sp);
+            RectF art = new RectF(x + sw * 0.09f, y + sw * 0.09f, x + sw * 0.91f, y + sh * 0.74f);
+            pcArt(cv, art);
+            // valeur faciale du côté opposé au cachet
+            Paint v = pcText(0xffffffff, sw * 0.085f, Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD));
+            if ("bas".equals(pos)) cv.drawText("2,50 €", art.left + sw * 0.04f, art.top + v.getTextSize() * 1.1f, v);
+            else { v.setTextAlign(Paint.Align.RIGHT); cv.drawText("2,50 €", art.right - sw * 0.04f, art.top + v.getTextSize() * 1.1f, v); }
+            Paint cp = pcText(PC_TERRA, sw * 0.14f, serifBI); cp.setTextAlign(Paint.Align.CENTER); pcFit(cp, place, sw * 0.78f);
+            cv.drawText(place, x + sw / 2, y + sh * 0.86f, cp);
+            String cty = (country == null || country.isEmpty() ? "SOUVENIR" : country).toUpperCase(Locale.FRANCE);
+            Paint kp = pcText(PC_INK, sw * 0.065f, Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)); kp.setTextAlign(Paint.Align.CENTER); kp.setLetterSpacing(0.18f); pcFit(kp, cty, sw * 0.8f);
+            cv.drawText(cty, x + sw / 2, y + sh * 0.95f, kp);
+            float pr = sw * 0.30f, pcx = "bas".equals(pos) ? x + sw * 0.98f : x + sw * 0.02f, pcy = y + sw * 0.05f;
+            pcPostmark(cv, pcx, pcy, pr, place, dShort, 0xb32e2620);
+            Paint wv = pcPaint(0xa62e2620); wv.setStyle(Paint.Style.STROKE); wv.setStrokeWidth(pr * 0.055f);
+            if ("bas".equals(pos)) pcWaves(cv, pcx + pr * 1.05f, pcx + pr * 2.6f, pcy, pr * 0.32f, 4, wv);
+            else pcWaves(cv, pcx - pr * 2.6f, pcx - pr * 1.05f, pcy, pr * 0.32f, 4, wv);
+        } else if ("ruban".equals(style)) {
+            float tw = "coin".equals(pos) ? S * 0.62f : vw * 0.72f, th = S * 0.11f;
+            float x = "coin".equals(pos) ? vw - tw - mg : mg, y = "haut".equals(pos) ? mg * 1.4f : vh - th - mg * 1.6f;
+            cv.save(); cv.rotate("coin".equals(pos) ? -6 : -3, x + tw / 2, y + th / 2);
+            Path tape = new Path(); int teeth = 7; float tz = th / teeth;
+            tape.moveTo(x, y);
+            tape.lineTo(x + tw, y);
+            for (int i = 0; i < teeth; i++) { tape.lineTo(x + tw - (i % 2 == 0 ? th * 0.08f : 0), y + tz * (i + 0.5f)); }
+            tape.lineTo(x + tw, y + th); tape.lineTo(x, y + th);
+            for (int i = teeth - 1; i >= 0; i--) { tape.lineTo(x + (i % 2 == 0 ? th * 0.08f : 0), y + tz * (i + 0.5f)); }
+            tape.close();
+            Paint tp = pcPaint(0xebe6a1a0); tp.setShadowLayer(S * 0.008f, 0, S * 0.003f, 0x55000000);
+            cv.drawPath(tape, tp);
+            cv.save(); cv.clipPath(tape);
+            Paint stp = pcPaint(0x40ffffff); stp.setStrokeWidth(th * 0.12f);
+            for (float k = x - th; k < x + tw + th; k += th * 0.42f) cv.drawLine(k, y + th, k + th, y, stp);
+            cv.restore();
+            Paint cp = pcText(PC_INK, th * 0.56f, Typeface.create("cursive", Typeface.BOLD));
+            Paint dp = pcText(PC_INK, th * 0.30f, sans);
+            String sep = "  ·  ";
+            float total = cp.measureText(place) + dp.measureText(sep + dLong);
+            while (total > tw * 0.86f && cp.getTextSize() > 8) { cp.setTextSize(cp.getTextSize() * 0.94f); dp.setTextSize(dp.getTextSize() * 0.94f); total = cp.measureText(place) + dp.measureText(sep + dLong); }
+            float tx = x + (tw - total) / 2, by = y + th * 0.68f;
+            cv.drawText(place, tx, by, cp);
+            cv.drawText(sep + dLong, tx + cp.measureText(place), by, dp);
+            cv.restore();
+        } else {
+            float cw = "coin".equals(pos) ? S * 0.62f : Math.min(vw - 2 * mg, S * 0.80f), ch = cw * 0.30f;
+            float x = "coin".equals(pos) ? vw - cw - mg : mg, y = "haut".equals(pos) ? mg : vh - ch - mg;
+            RectF card = new RectF(x, y, x + cw, y + ch); float rr = ch * 0.05f;
+            Paint cs = pcPaint(PC_CREAM); cs.setShadowLayer(S * 0.014f, 0, S * 0.005f, 0x73000000);
+            cv.drawRoundRect(card, rr, rr, cs);
+            // bordure « par avion » : rayures rouges et bleues
+            cv.save(); Path cp0 = new Path(); cp0.addRoundRect(card, rr, rr, Path.Direction.CW); cv.clipPath(cp0);
+            float q = ch * 0.13f; Paint sr = pcPaint(PC_RED); sr.setStrokeWidth(q * 0.36f); Paint sb = pcPaint(PC_BLUE); sb.setStrokeWidth(q * 0.36f);
+            int k = 0; for (float u = x - ch; u < x + cw + ch; u += q, k++) cv.drawLine(u, y + ch, u + ch, y, k % 2 == 0 ? sr : sb);
+            cv.restore();
+            float b = ch * 0.075f; RectF in = new RectF(x + b, y + b, x + cw - b, y + ch - b);
+            cv.drawRoundRect(in, rr * 0.6f, rr * 0.6f, pcPaint(PC_CREAM));
+            float ih = in.height();
+            // timbre et cachet à droite
+            float sh = ih * 0.78f, sw = sh * 0.82f, sx = in.right - sw - ih * 0.10f, sy = in.top + (ih - sh) / 2;
+            RectF st = new RectF(sx, sy, sx + sw, sy + sh);
+            Paint white = pcPaint(0xffffffff); white.setShadowLayer(ih * 0.03f, 0, ih * 0.01f, 0x40000000);
+            cv.drawPath(pcStampPath(st, sw * 0.045f), white);
+            pcArt(cv, new RectF(sx + sw * 0.1f, sy + sw * 0.1f, sx + sw * 0.9f, sy + sh - sw * 0.1f));
+            float pr = sh * 0.36f, pcx = sx - sh * 0.02f, pcy = sy + sh * 0.56f;
+            pcPostmark(cv, pcx, pcy, pr, place, dShort, 0x992e2620);
+            Paint wv = pcPaint(0x8c2e2620); wv.setStyle(Paint.Style.STROKE); wv.setStrokeWidth(pr * 0.05f);
+            pcWaves(cv, pcx + pr * 1.02f, sx + sw * 0.98f, pcy, pr * 0.3f, 3, wv);
+            // texte : « Bons baisers de », lieu, date
+            float tx = in.left + ih * 0.14f, aw = pcx - pr * 1.05f - tx;
+            Paint l1 = pcText(0xff6b5a48, ih * 0.16f, serifI); pcFit(l1, "Bons baisers de", aw);
+            Paint l2 = pcText(PC_TERRA, ih * 0.40f, serifBI); pcFit(l2, place, aw);
+            Paint l3 = pcText(PC_INK, ih * 0.15f, sans); l3.setLetterSpacing(0.06f); pcFit(l3, dLong, aw);
+            cv.drawText("Bons baisers de", tx, in.top + ih * 0.28f, l1);
+            cv.drawText(place, tx, in.top + ih * 0.66f, l2);
+            cv.drawText(dLong, tx, in.top + ih * 0.89f, l3);
+        }
+        cv.restore();
+    }
+
     static Bitmap smallThumb(File f, int ori) {
         try {
             BitmapFactory.Options o = new BitmapFactory.Options(); o.inJustDecodeBounds = true;
@@ -1174,7 +1409,7 @@ public class PhotoCamera extends Activity {
                 rec.setVideoSource(MediaRecorder.VideoSource.SURFACE);
                 rec.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
                 String name = "Video_" + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date(m.t)) + ".mp4";
-                String rel = ROOT + (m.siteMode ? "/" + m.siteDir : "");
+                String rel = ROOT + (m.voyMode ? "/Voyage/" + m.voyDir : m.siteMode ? "/" + m.siteDir : "");
                 if (SDK >= 29) {
                     ContentValues v = new ContentValues();
                     v.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
@@ -1324,6 +1559,8 @@ public class PhotoCamera extends Activity {
                         s = b.toString().trim();
                     }
                     s = s.replaceAll(",\\s*France$", "").trim();
+                    String v = VoyageBridge.villeDe(a);
+                    if (!v.isEmpty()) { city = v; country = a.getCountryName() == null ? "" : a.getCountryName(); cityLoc = q; }
                     if (!s.isEmpty()) { addr = s; addrLoc = q; ui.post(new Runnable() { public void run() { ov.invalidate(); } }); }
                 }
             } catch (Throwable e) { }
@@ -1430,12 +1667,12 @@ public class PhotoCamera extends Activity {
         siteRow = new LinearLayout(this);
         siteRow.setOrientation(LinearLayout.HORIZONTAL); siteRow.setGravity(Gravity.CENTER_VERTICAL);
         siteRow.setPadding(dpi(10), 0, dpi(10), 0);
-        modeChip = chip("Chantier", new View.OnClickListener() { public void onClick(View v) { toggleSiteMode(); } });
+        modeChip = chip("Normal", new View.OnClickListener() { public void onClick(View v) { chooseMode(); } });
         siteRow.addView(modeChip, new LinearLayout.LayoutParams(-2, dpi(46)));
-        siteChip = chip("Choisir", new View.OnClickListener() { public void onClick(View v) { chooseSite(); } });
+        siteChip = chip("Choisir", new View.OnClickListener() { public void onClick(View v) { if (prefB("voyMode", false)) chooseVoyage(); else chooseSite(); } });
         LinearLayout.LayoutParams sl = new LinearLayout.LayoutParams(0, dpi(46), 1); sl.leftMargin = dpi(8);
         siteRow.addView(siteChip, sl);
-        noteChip = chip("Note", new View.OnClickListener() { public void onClick(View v) { editNote(); } });
+        noteChip = chip("Note", new View.OnClickListener() { public void onClick(View v) { if (prefB("voyMode", false)) toggleCard(); else editNote(); } });
         LinearLayout.LayoutParams nl = new LinearLayout.LayoutParams(-2, dpi(46)); nl.leftMargin = dpi(8);
         siteRow.addView(noteChip, nl);
         root.addView(siteRow, new FrameLayout.LayoutParams(-1, dpi(46), Gravity.TOP) {{ topMargin = topH + dpi(10); }});
@@ -1494,16 +1731,91 @@ public class PhotoCamera extends Activity {
         shutter = new Shutter(this);
         shutter.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { shutterPressed(); } });
         row.addView(shutter, new FrameLayout.LayoutParams(dpi(98), dpi(98), Gravity.CENTER));
-        LinearLayout back = tool(P_DIR, "Chantiers", new View.OnClickListener() { public void onClick(View v) { leave(true); } }, null, null);
+        TextView[] bl = new TextView[1];
+        LinearLayout back = tool(P_DIR, "Chantiers", new View.OnClickListener() { public void onClick(View v) { leave(true); } }, null, bl);
+        backLab = bl[0];
         back.setBackground(round(0x33ffffff, dp(18)));
         row.addView(back, new FrameLayout.LayoutParams(dpi(78), dpi(70), Gravity.CENTER_VERTICAL | Gravity.END) {{ rightMargin = dpi(20); }});
         LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(-1, dpi(104)); rl.topMargin = dpi(2);
         bottom.addView(row, rl);
         root.addView(bottom, new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM));
 
+        buildCaption();
         setContentView(root);
         buildLensRow();
         refreshUi();
+    }
+
+    // ----- Feuille « Légende ? » (mode voyage) : saisie, dictée d'Android ou ignorer -----
+    private void buildCaption() {
+        capSheet = new LinearLayout(this); capSheet.setOrientation(LinearLayout.VERTICAL);
+        capSheet.setBackground(round(0xf2181b23, dp(20), 0x33ffffff));
+        capSheet.setPadding(dpi(14), dpi(12), dpi(14), dpi(12));
+        LinearLayout head = new LinearLayout(this); head.setOrientation(LinearLayout.HORIZONTAL); head.setGravity(Gravity.CENTER_VERTICAL);
+        capThumb = new ImageView(this); capThumb.setScaleType(ImageView.ScaleType.CENTER_CROP); capThumb.setBackground(round(C_BG3, dp(10))); capThumb.setClipToOutline(true);
+        head.addView(capThumb, new LinearLayout.LayoutParams(dpi(44), dpi(44)));
+        LinearLayout tt = new LinearLayout(this); tt.setOrientation(LinearLayout.VERTICAL); tt.setPadding(dpi(12), 0, 0, 0);
+        tt.addView(text("Légende ?", 17, C_TX, true));
+        TextView sub = text("Un mot sur cette photo, repris dans le carnet", 12.5f, C_TX2, false); sub.setSingleLine(false);
+        tt.addView(sub);
+        head.addView(tt, new LinearLayout.LayoutParams(0, -2, 1));
+        capSheet.addView(head);
+        capField = new EditText(this);
+        capField.setHint("Ex. Coucher de soleil sur le port"); capField.setHintTextColor(0xff7d8294); capField.setTextColor(C_TX); capField.setTextSize(17);
+        capField.setSingleLine(true); capField.setImeOptions(EditorInfo.IME_ACTION_DONE);
+        capField.setBackground(round(C_BG3, dp(12), 0x22ffffff)); capField.setPadding(dpi(12), dpi(10), dpi(12), dpi(10));
+        capField.setOnEditorActionListener((v, act, ev) -> { if (act == EditorInfo.IME_ACTION_DONE) { commitCaption(); return true; } return false; });
+        LinearLayout.LayoutParams fl = new LinearLayout.LayoutParams(-1, -2); fl.topMargin = dpi(10);
+        capSheet.addView(capField, fl);
+        LinearLayout row = new LinearLayout(this); row.setOrientation(LinearLayout.HORIZONTAL);
+        capMic = chip("Dicter", new View.OnClickListener() { public void onClick(View v) { dictate(); } });
+        TextView skip = chip("Ignorer", new View.OnClickListener() { public void onClick(View v) { hideCaption(); } });
+        TextView ok = chip("OK", new View.OnClickListener() { public void onClick(View v) { commitCaption(); } });
+        ok.setBackground(round(C_ACC, dp(23))); ok.setTextColor(0xff10131c);
+        LinearLayout.LayoutParams b1 = new LinearLayout.LayoutParams(0, dpi(46), 1), b2 = new LinearLayout.LayoutParams(0, dpi(46), 1), b3 = new LinearLayout.LayoutParams(0, dpi(46), 1);
+        b2.leftMargin = dpi(8); b3.leftMargin = dpi(8);
+        row.addView(capMic, b1); row.addView(skip, b2); row.addView(ok, b3);
+        LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(-1, -2); rl.topMargin = dpi(10);
+        capSheet.addView(row, rl);
+        capSheet.setVisibility(View.GONE);
+        capSheet.setOnClickListener(v -> { });
+        root.addView(capSheet, new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM) {{ leftMargin = dpi(12); rightMargin = dpi(12); bottomMargin = dpi(250); }});
+    }
+    private boolean canDictate() { try { return !getPackageManager().queryIntentActivities(new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH), 0).isEmpty(); } catch (Throwable e) { return false; } }
+    private void showCaption(String id, Bitmap th) {
+        if (capSheet == null || !resumed) return;
+        commitCaption();
+        capId = id; capField.setText("");
+        if (th != null) capThumb.setImageBitmap(th);
+        capMic.setVisibility(canDictate() ? View.VISIBLE : View.GONE);
+        capSheet.setVisibility(View.VISIBLE); capSheet.setAlpha(0f); capSheet.setTranslationY(dp(30));
+        capSheet.animate().alpha(1f).translationY(0).setDuration(180).start();
+    }
+    private void hideCaption() {
+        if (capSheet == null) return;
+        capId = "";
+        try { ((InputMethodManager) getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(capField.getWindowToken(), 0); } catch (Throwable e) { }
+        capField.clearFocus();
+        capSheet.setVisibility(View.GONE);
+        immersive();
+    }
+    /** Garde la légende tapée (si elle n'est pas vide) puis ferme la feuille */
+    private void commitCaption() {
+        if (capSheet == null || capSheet.getVisibility() != View.VISIBLE) return;
+        final String id = capId, t = capField.getText().toString().trim();
+        if (!id.isEmpty() && !t.isEmpty()) {
+            saver.execute(new Runnable() { public void run() { PhotoBridge.Voy.setLegende(PhotoCamera.this, id, t); } });
+            info("Légende enregistrée");
+        }
+        hideCaption();
+    }
+    private void dictate() {
+        try {
+            Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+            i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+            i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "fr-FR"); i.putExtra(RecognizerIntent.EXTRA_PROMPT, "Légende de la photo");
+            startActivityForResult(i, REQ_DICT);
+        } catch (Throwable e) { info("Dictée indisponible sur ce téléphone"); }
     }
 
     private void buildLensRow() {
@@ -1563,16 +1875,18 @@ public class PhotoCamera extends Activity {
             bQualL.setText(max ? mp(s) + " Mpx" : (capSize != null ? mp(capSize) : "12") + " Mpx");
             bQualL.setTextColor(max ? C_ACC : C_TX2);
         }
-        boolean on = prefB("siteMode", false);
+        boolean voy = prefB("voyMode", false), on = prefB("siteMode", false) && !voy;
         String site = ""; try { site = new JSONObject(pref("site", "{}")).optString("name", ""); } catch (Throwable e) { }
-        modeChip.setText(on ? "Chantier : oui" : "Chantier : non");
-        modeChip.setBackground(round(on ? 0xff8fb4ff : 0x99181b23, dp(23), 0x22ffffff));
-        modeChip.setTextColor(on ? 0xff10131c : C_TX);
-        siteChip.setText(site.isEmpty() ? "Choisir un chantier" : site);
-        siteChip.setVisibility(on ? View.VISIBLE : View.INVISIBLE);
+        String trip = ""; try { trip = new JSONObject(pref("voyage", "{}")).optString("titre", ""); } catch (Throwable e) { }
+        modeChip.setText(voy ? "Voyage" : on ? "Chantier" : "Normal");
+        modeChip.setBackground(round(voy ? 0xfff4c542 : on ? 0xff8fb4ff : 0x99181b23, dp(23), 0x22ffffff));
+        modeChip.setTextColor(on || voy ? 0xff10131c : C_TX);
+        siteChip.setText(voy ? (trip.isEmpty() ? "Choisir un carnet" : trip) : site.isEmpty() ? "Choisir un chantier" : site);
+        siteChip.setVisibility(on || voy ? View.VISIBLE : View.INVISIBLE);
         String note = pref("note", "");
-        noteChip.setText(note.isEmpty() ? "Note" : "Note : oui");
-        noteChip.setVisibility(on ? View.VISIBLE : View.INVISIBLE);
+        noteChip.setText(voy ? (prefB("voyStamp", false) ? "Carte : oui" : "Carte : non") : note.isEmpty() ? "Note" : "Note : oui");
+        noteChip.setVisibility(on || voy ? View.VISIBLE : View.INVISIBLE);
+        if (backLab != null) backLab.setText(voy ? "Voyages" : "Chantiers");
         siteRow.setVisibility(recording || captureIntent ? View.GONE : View.VISIBLE);
         for (int i = 0; i < lensRow.getChildCount(); i++) {
             View c = lensRow.getChildAt(i);
@@ -1683,13 +1997,73 @@ public class PhotoCamera extends Activity {
 
     private AlertDialog.Builder dlg() { return new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert); }
 
-    private void toggleSiteMode() {
-        boolean on = !prefB("siteMode", false);
+    /** Normal, chantier ou voyage : les deux modes s'excluent */
+    private void chooseMode() {
+        boolean voy = prefB("voyMode", false), on = prefB("siteMode", false) && !voy;
+        final String[] items = { (!on && !voy ? "✓ " : "") + "Normal : DCIM/Photo", (on ? "✓ " : "") + "Chantier : par chantier, bandeau date et adresse", (voy ? "✓ " : "") + "Voyage : par carnet de voyage, légende" };
+        dlg().setTitle("Mode").setItems(items, (d, w) -> {
+            if (w == 0) { sp.edit().putBoolean("siteMode", false).putBoolean("voyMode", false).apply(); info("Mode normal : photos dans DCIM/Photo"); refreshUi(); }
+            else if (w == 1) { toggleSiteMode(true); }
+            else {
+                String trip = ""; try { trip = new JSONObject(pref("voyage", "{}")).optString("titre", ""); } catch (Throwable e) { }
+                sp.edit().putBoolean("voyMode", true).putBoolean("siteMode", false).apply(); refreshUi();
+                if (trip.isEmpty()) chooseVoyage(); else info("Mode voyage : photos rangées dans « " + trip + " »");
+            }
+        }).setNegativeButton("Fermer", null).show();
+    }
+    private void toggleSiteMode(boolean on) {
         String site = ""; try { site = new JSONObject(pref("site", "{}")).optString("name", ""); } catch (Throwable e) { }
-        sp.edit().putBoolean("siteMode", on).apply();
+        sp.edit().putBoolean("siteMode", on).putBoolean("voyMode", false).apply();
         refreshUi();
         if (on && site.isEmpty()) chooseSite();
         else info(on ? "Mode chantier : photos classées dans « " + site + " » avec bandeau" : "Mode chantier coupé : photos dans DCIM/Photo");
+    }
+    /** Carnet actif : carnets de l'appli Carnet de voyage (fournisseur protégé), voyages locaux, ou nouveau */
+    private void chooseVoyage() {
+        final List<JSONObject> list = new ArrayList<>();
+        final JSONArray car = VoyageBridge.carnetsList(this);
+        java.util.HashSet<String> seen = new java.util.HashSet<>();
+        if (car != null) for (int i = 0; i < car.length(); i++) { JSONObject o = car.optJSONObject(i); if (o != null) { list.add(o); seen.add(VoyageBridge.norm(o.optString("titre"))); } }
+        try { JSONArray a = new JSONArray(pref("voyages", "[]")); for (int i = 0; i < a.length(); i++) { JSONObject o = a.getJSONObject(i); if (!seen.contains(VoyageBridge.norm(o.optString("titre"))) && (car == null || o.optBoolean("local"))) { list.add(o); seen.add(VoyageBridge.norm(o.optString("titre"))); } } } catch (Throwable e) { }
+        String[] names = new String[list.size() + 1];
+        for (int i = 0; i < list.size(); i++) names[i] = list.get(i).optString("titre") + (list.get(i).optBoolean("local") ? " (local)" : "");
+        names[list.size()] = "Nouveau voyage…";
+        dlg().setTitle(car == null ? "Voyage (Carnet de voyage non installé)" : "Carnet de voyage").setItems(names, (d, w) -> {
+            if (w == list.size()) newVoyage(car != null);
+            else {
+                JSONObject o = list.get(w);
+                try { JSONObject v = new JSONObject(); v.put("id", o.optString("id")); v.put("titre", o.optString("titre")); v.put("dir", safeDir(o.optString("titre"))); v.put("debut", o.optString("debut")); v.put("fin", o.optString("fin")); v.put("local", o.optBoolean("local", false)); setVoyage(v); } catch (Throwable x) { }
+            }
+        }).setNegativeButton("Fermer", null).show();
+    }
+    private void newVoyage(final boolean carnetApp) {
+        final EditText e = field("Titre du voyage (ex. Italie 2026)", "");
+        dlg().setTitle("Nouveau voyage").setMessage(carnetApp ? "Le carnet est créé dans l'appli Carnet de voyage." : "L'appli Carnet de voyage n'est pas installée : le voyage est gardé dans Photo (local).").setView(padded(e)).setPositiveButton("Créer", (d, w) -> {
+            final String n = e.getText().toString().trim();
+            if (n.isEmpty()) return;
+            saver.execute(new Runnable() { public void run() {
+                try {
+                    JSONObject v = new JSONObject(); v.put("titre", n); v.put("dir", safeDir(n)); v.put("debut", ""); v.put("fin", "");
+                    JSONObject r = carnetApp ? VoyageBridge.creerCarnet(PhotoCamera.this, n, "", "", getPackageName()) : null;
+                    if (r != null && r.optBoolean("ok")) { v.put("id", r.optString("id")); v.put("local", false); }
+                    else { v.put("id", "v" + System.currentTimeMillis()); v.put("local", true); }
+                    final JSONObject fv = v;
+                    ui.post(new Runnable() { public void run() { setVoyage(fv); } });
+                } catch (Throwable x) { }
+            } });
+        }).setNegativeButton("Annuler", null).show();
+    }
+    private void setVoyage(JSONObject v) {
+        PhotoBridge.Voy.setVoyage(this, v);
+        sp.edit().putBoolean("voyMode", true).putBoolean("siteMode", false).apply();
+        info("Voyage actif : " + v.optString("titre") + " (DCIM/Photo/Voyage/" + v.optString("dir") + ")");
+        refreshUi();
+    }
+    private void toggleCard() {
+        boolean on = !prefB("voyStamp", false);
+        sp.edit().putBoolean("voyStamp", on).apply();
+        info(on ? "Bandeau carte postale sur les photos" + (prefB("voyKeepOrig", true) ? " (original gardé)" : "") : "Photos sans bandeau (le carnet ajoute ses légendes)");
+        refreshUi();
     }
 
     private void chooseSite() {
@@ -1705,7 +2079,7 @@ public class PhotoCamera extends Activity {
     }
 
     private void setSite(JSONObject o) {
-        sp.edit().putString("site", o.toString()).putBoolean("siteMode", true).apply();
+        sp.edit().putString("site", o.toString()).putBoolean("siteMode", true).putBoolean("voyMode", false).apply();
         info("Chantier actif : " + o.optString("name"));
         refreshUi();
     }
@@ -1743,9 +2117,9 @@ public class PhotoCamera extends Activity {
     }
 
     private void settingsDialog() {
-        final String[] keys = { "stamp", "keepOrig", "geo", "sound" };
-        final boolean[] defs = { true, true, true, true };
-        String[] labels = { "Incruster le bandeau en mode chantier", "Garder aussi l'original sans bandeau", "Enregistrer la position GPS", "Son du déclencheur" };
+        final String[] keys = { "stamp", "keepOrig", "geo", "sound", "voyStamp", "voyCaption" };
+        final boolean[] defs = { true, true, true, true, false, true };
+        String[] labels = { "Incruster le bandeau en mode chantier", "Garder aussi l'original sans bandeau", "Enregistrer la position GPS", "Son du déclencheur", "Voyage : bandeau carte postale", "Voyage : demander une légende" };
         final boolean[] vals = new boolean[keys.length];
         for (int i = 0; i < keys.length; i++) vals[i] = prefB(keys[i], defs[i]);
         dlg().setTitle("Réglages").setMultiChoiceItems(labels, vals, (d, w, c) -> vals[w] = c)

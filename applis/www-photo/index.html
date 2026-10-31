@@ -191,6 +191,24 @@ textarea.cap:focus,.field input:focus,.field textarea:focus,.field select:focus{
 .lens .t b{color:var(--tx);font-weight:650}
 .prog{height:8px;border-radius:9px;background:var(--bg3);overflow:hidden;margin:12px 0 6px}
 .prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width .2s}
+/* Mode : normal, chantier, voyage */
+.seg.mode{margin-top:4px}
+.seg.mode button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 4px 8px}
+.seg.mode button .ic{width:22px;height:22px}
+.seg.mode button.on[data-m="voyage"]{background:#f4c54226;color:#ffd77a;box-shadow:0 0 0 1px #f4c54266 inset}
+.seg.mode button.on[data-m="chantier"]{background:#8fb4ff26;color:var(--acc);box-shadow:0 0 0 1px #8fb4ff66 inset}
+.badge.voy{background:#f4c54224;color:#ffd77a}
+.cov{width:58px;height:74px;border-radius:6px 10px 10px 6px;flex:none;overflow:hidden;position:relative;box-shadow:0 4px 12px #0007;background:#7b3f2a;display:flex;align-items:center;justify-content:center}
+.cov img{width:100%;height:100%;object-fit:cover;display:block}
+.cov:before{content:"";position:absolute;left:5px;top:0;bottom:0;width:2px;background:#0003}
+.cov svg{width:28px;height:28px;stroke:#f6e7c8;fill:none;stroke-width:1.8}
+.site .cov{width:44px;height:56px}
+.site .cov svg{width:22px;height:22px}
+.tripLoc{font-size:11.5px;color:var(--tx3);margin-top:8px;word-break:break-all}
+#pcPrev{width:100%;border-radius:12px;display:block;margin-top:10px;background:#000}
+.capRow{display:flex;gap:8px;align-items:flex-start}
+.capRow textarea{flex:1}
+.capRow .iconbtn{width:46px;height:52px}
 #toast{position:fixed;left:16px;right:16px;bottom:calc(18px + var(--safe-b));background:#2b3042;border:1px solid #ffffff1f;color:var(--tx);padding:12px 14px;border-radius:14px;font-size:14px;box-shadow:0 10px 30px #0008;transform:translateY(160%);transition:transform .25s,visibility 0s .25s;z-index:40;visibility:hidden;pointer-events:none}
 #toast.on{transform:none;visibility:visible;transition:transform .25s}
 #toast.bad{border-color:#ff7b7b66}
@@ -214,11 +232,34 @@ textarea.cap:focus,.field input:focus,.field textarea:focus,.field select:focus{
     <div class="t"><b>Prendre une photo</b><span id="shootSub">Photos rangées dans DCIM/Photo</span></div>
   </button>
 
-  <section class="card" style="margin-top:12px">
-    <div class="set first">
-      <div class="t"><div>Mode chantier</div><div id="modeSub">Range les photos par chantier, avec date et adresse incrustées</div></div>
-      <label class="sw"><input type="checkbox" id="swSite"><span></span></label>
+  <section class="card" style="margin-top:12px" id="modeCard">
+    <h3 class="h3" style="margin-bottom:4px">Mode</h3>
+    <div class="seg mode" id="modeSeg" role="radiogroup" aria-label="Mode de prise de vue">
+      <button data-m="normal" role="radio"><svg class="ic" viewBox="0 0 24 24"><path d="M3 8.5a2 2 0 0 1 2-2h2.2l1.6-2.5h6.4l1.6 2.5H19a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.8"/></svg>Normal</button>
+      <button data-m="chantier" role="radio"><svg class="ic" viewBox="0 0 24 24"><path d="M3 21h18M5 21V10l7-5 7 5v11M9 21v-6h6v6"/></svg>Chantier</button>
+      <button data-m="voyage" role="radio"><svg class="ic" viewBox="0 0 24 24"><path d="M10.5 3.5 13 10l6.5 1.5a1.6 1.6 0 0 1 0 3.1L13 16l-2.5 6.5H8.7L10 16l-4.5-1-1.7 2H2.5l.8-3.6-.8-3.4h1.3l1.7 2L10 11 8.7 3.5z"/></svg>Voyage</button>
     </div>
+    <div class="muted" id="modeSub" style="margin-top:9px"></div>
+  </section>
+
+  <section class="card" id="tripCard" hidden>
+    <div class="active-top">
+      <div class="cov" id="tCov"></div>
+      <div class="t"><div class="h3" style="margin-bottom:4px">Carnet actif</div><div class="n" id="tName"></div><div class="s" id="tSub"></div></div>
+      <span class="badge voy" id="tBadge">En cours</span>
+    </div>
+    <div class="strip" id="tStrip"></div>
+    <div class="tripLoc" id="tLoc"></div>
+    <div class="row">
+      <button class="btn" id="tOpen"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Voir les photos</button>
+      <button class="btn" id="tCarnet"><svg class="ic" viewBox="0 0 24 24"><path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H19v15H5.5A1.5 1.5 0 0 0 4 19.5z"/><path d="M4 19.5A1.5 1.5 0 0 0 5.5 21H19v-3M8 7h7M8 10.5h5"/></svg>Ouvrir le carnet</button>
+    </div>
+  </section>
+
+  <section class="card" id="tripList" hidden>
+    <div class="h3row"><h3 class="h3">Carnets de voyage</h3><button class="btn small" id="tNew"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Nouveau</button></div>
+    <div class="card warn" id="noCarnet" hidden style="margin:6px 0 10px">L'appli <b>Carnet de voyage</b> n'est pas installée : tes photos sont rangées sous un nom de voyage local. Installe-la, puis crée un carnet du même titre : les photos y arriveront toutes seules.<div class="row"><button class="btn small" id="tInstall">Installer le Carnet de voyage</button></div></div>
+    <div id="trips"></div>
   </section>
 
   <section class="card" id="activeCard" hidden>
@@ -233,7 +274,7 @@ textarea.cap:focus,.field input:focus,.field textarea:focus,.field select:focus{
     </div>
   </section>
 
-  <section class="card">
+  <section class="card" id="sitesCard">
     <div class="h3row"><h3 class="h3">Chantiers</h3><button class="btn small" id="bNew"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Nouveau</button></div>
     <div id="sites"></div>
     <button class="site" id="looseRow" hidden>
@@ -290,7 +331,11 @@ var IC = {
   pin:'<path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
   lens:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/>',
   moon:'<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
-  home:'<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/>'
+  home:'<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/>',
+  plane:'<path d="M10.5 3.5 13 10l6.5 1.5a1.6 1.6 0 0 1 0 3.1L13 16l-2.5 6.5H8.7L10 16l-4.5-1-1.7 2H2.5l.8-3.6-.8-3.4h1.3l1.7 2L10 11 8.7 3.5z"/>',
+  book:'<path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H19v15H5.5A1.5 1.5 0 0 0 4 19.5z"/><path d="M4 19.5A1.5 1.5 0 0 0 5.5 21H19v-3M8 7h7M8 10.5h5"/>',
+  mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/>',
+  download:'<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>'
 };
 function ic(n, cls){ return '<svg class="ic'+(cls?' '+cls:'')+'" viewBox="0 0 24 24">'+(IC[n]||'')+'</svg>'; }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
@@ -331,7 +376,9 @@ window.photoEvent = function(type, json){
   if(type === 'deleted'){ if(o.ok){ toast('Supprimé'); } refreshAll(true); return; }
   if(type === 'renamed'){ if(!o.ok && o.failed) toast(o.failed+' fichier(s) non déplacé(s)', true); refreshAll(true); return; }
   if(type === 'saved'){ return; }
+  if(type === 'dictee'){ var w = DICT[o.req]; delete DICT[o.req]; if(w) w(o); return; }
 };
+var DICT = {};
 function askThumbs(ids){
   if(!P) return;
   var need = ids.filter(function(id){ return id && !THUMBS[id] && !THUMB_ASKED[id]; });
@@ -346,7 +393,13 @@ function listDir(dir){ return new Promise(function(res){ if(!P) return res([]); 
 /* ---------- État ---------- */
 var SITES = [], ACTIVE = {}, SETTINGS = {}, STATS = { dirs:{}, total:0 }, CAP = lsGet('photo.cap', {});
 var SHOW_ARCH = false, SET_OPEN = false;
-var DEF = { siteMode:false, stamp:true, keepOrig:true, geo:true, sound:true, grid:false, level:true, quality:'max', flash:'auto', timer:0, note:'', author:'' };
+var DEF = { siteMode:false, stamp:true, keepOrig:true, geo:true, sound:true, grid:false, level:true, quality:'max', flash:'auto', timer:0, note:'', author:'',
+  // mode voyage : bandeau « carte postale » désactivé par défaut (le Carnet de voyage ajoute ses propres légendes)
+  voyMode:false, voyStamp:false, voyKeepOrig:true, voyCaption:true, voyStyle:'carte', voyPos:'bas' };
+// Mode voyage : voyage actif {id, titre, dir, debut, fin, local}, voyages connus de Photo, carnets de l'appli Carnet de voyage (null : absente)
+var VOYAGE = {}, VOYAGES = [], CARNETS = null, VIDX = {};
+var VOY_PKG = 'fr.magformation13.voyage', VOY_URL = 'https://github.com/gilbertmamadou-design/atelier-signature/releases?q=voyage&expanded=true';
+function V(){ return window.MAGVoyage || null; }
 
 function safeDir(n){
   if(P && P.safeDir) return P.safeDir(n);
@@ -357,15 +410,26 @@ function loadState(){
     SITES = J(P.getSites(), []);
     ACTIVE = J(P.getActive(), {});
     SETTINGS = Object.assign({}, DEF, J(P.getSettings(), {}));
+    VOYAGE = P.getVoyage ? J(P.getVoyage(), {}) : {};
+    VOYAGES = P.getVoyages ? J(P.getVoyages(), []) : [];
   } else {
     SITES = lsGet('photo.sites', []); ACTIVE = lsGet('photo.active', {}); SETTINGS = Object.assign({}, DEF, lsGet('photo.settings', {}));
+    VOYAGE = lsGet('photo.voyage', {}); VOYAGES = lsGet('photo.voyages', []);
   }
+  if(!Array.isArray(VOYAGES)) VOYAGES = [];
+  if(!VOYAGE || typeof VOYAGE !== 'object') VOYAGE = {};
   if(!Array.isArray(SITES)) SITES = [];
   SITES.forEach(function(s){ if(!s.dir) s.dir = safeDir(s.name); });
 }
 function saveSites(){ if(P) P.setSites(JSON.stringify(SITES)); else lsSet('photo.sites', SITES); }
 function saveActive(){ if(P) P.setActive(JSON.stringify(ACTIVE)); else lsSet('photo.active', ACTIVE); }
-function saveSettings(patch){ Object.assign(SETTINGS, patch); if(P) P.setSettings(JSON.stringify(patch)); else lsSet('photo.settings', SETTINGS); }
+function saveSettings(patch){
+  // les modes chantier et voyage s'excluent
+  if(patch.siteMode === true) patch.voyMode = false;
+  if(patch.voyMode === true) patch.siteMode = false;
+  Object.assign(SETTINGS, patch); if(P) P.setSettings(JSON.stringify(patch)); else lsSet('photo.settings', SETTINGS);
+}
+function curMode(){ return SETTINGS.voyMode ? 'voyage' : SETTINGS.siteMode ? 'chantier' : 'normal'; }
 function siteById(id){ for(var i=0;i<SITES.length;i++) if(SITES[i].id===id) return SITES[i]; return null; }
 function activeSite(){ return ACTIVE && ACTIVE.id ? siteById(ACTIVE.id) : null; }
 function setActive(s){
@@ -376,12 +440,16 @@ function statOf(s){ return STATS.dirs[s.dir] || { n:0 }; }
 
 /* ---------- Accueil ---------- */
 function renderHome(){
-  var a = activeSite(), on = !!SETTINGS.siteMode && !!a;
-  $('swSite').checked = !!SETTINGS.siteMode;
-  $('shootSub').textContent = on ? 'Chantier : '+a.name+(SETTINGS.stamp?' · bandeau':'') : 'Photos rangées dans DCIM/Photo';
-  $('modeSub').textContent = SETTINGS.siteMode ? (a ? 'Photos rangées dans DCIM/Photo/'+a.dir+(SETTINGS.stamp?', avec date et adresse incrustées':'') : 'Choisis ou crée un chantier ci-dessous') : 'Range les photos par chantier, avec date et adresse incrustées';
+  var a = activeSite(), md = curMode(), on = md === 'chantier' && !!a, voy = md === 'voyage';
+  document.querySelectorAll('#modeSeg [data-m]').forEach(function(b){ var x = b.dataset.m === md; b.classList.toggle('on', x); b.setAttribute('aria-checked', String(x)); });
+  $('shootSub').textContent = voy && VOYAGE.titre ? 'Voyage : '+VOYAGE.titre+(SETTINGS.voyStamp?' · carte postale':'') : on ? 'Chantier : '+a.name+(SETTINGS.stamp?' · bandeau':'') : 'Photos rangées dans DCIM/Photo';
+  $('modeSub').textContent = voy ? (VOYAGE.titre ? 'Photos rangées dans DCIM/Photo/Voyage/'+voyDir(VOYAGE)+', avec date, lieu'+(SETTINGS.voyCaption?' et légende':'')+(SETTINGS.voyStamp?', bandeau carte postale':'') : 'Choisis ou crée un carnet de voyage ci-dessous')
+    : md === 'chantier' ? (a ? 'Photos rangées dans DCIM/Photo/'+a.dir+(SETTINGS.stamp?', avec date et adresse incrustées':'') : 'Choisis ou crée un chantier ci-dessous')
+    : 'Photos rangées dans DCIM/Photo. Chantier : par chantier, date et adresse incrustées. Voyage : par carnet, avec lieu et légende.';
+  $('sitesCard').hidden = voy;
+  renderTrips(voy);
   // Chantier actif
-  if(a){
+  if(a && !voy){
     var st = statOf(a);
     $('activeCard').hidden = false;
     $('aName').textContent = a.name;
@@ -437,14 +505,21 @@ document.addEventListener('click', function(e){
   var m = e.target.closest('[data-menu]'); if(m){ var s2 = siteById(m.dataset.menu); if(s2) siteMenu(s2); }
 });
 $('bShoot').onclick = function(){ openCamera(); };
-$('swSite').onchange = function(){
-  saveSettings({ siteMode: this.checked });
-  if(this.checked && !activeSite()){
-    var live = SITES.filter(function(s){ return !s.archived; });
-    if(live.length) { pickActive(); } else newSite(true);
-  }
+$('modeSeg').onclick = function(e){ var b = e.target.closest('[data-m]'); if(b) setMode(b.dataset.m); };
+/** Normal, chantier ou voyage (les deux derniers s'excluent) */
+function setMode(m){
+  if(m === 'chantier'){
+    saveSettings({ siteMode:true });
+    if(!activeSite()){
+      var live = SITES.filter(function(s){ return !s.archived; });
+      if(live.length) { pickActive(); } else newSite(true);
+    }
+  } else if(m === 'voyage'){
+    saveSettings({ voyMode:true });
+    if(!VOYAGE.titre) pickVoyage();
+  } else saveSettings({ siteMode:false, voyMode:false });
   renderHome(); publishWidget();
-};
+}
 $('bNew').onclick = function(){ newSite(true); };
 $('bArch').onclick = function(){ SHOW_ARCH = !SHOW_ARCH; renderHome(); };
 $('aOpen').onclick = function(){ var a = activeSite(); if(a) openSite(a); };
@@ -462,6 +537,134 @@ function pickActive(){
     return { t:s.name, ic: ACTIVE.id===s.id ? 'check' : 'folder', fn:function(){ setActive(s); saveSettings({ siteMode:true }); renderHome(); publishWidget(); } };
   }).concat([{ t:'Nouveau chantier', ic:'edit', fn:function(){ newSite(true); } }]));
 }
+
+/* ---------- Mode voyage : carnet actif, carnets du Carnet de voyage, voyages locaux ---------- */
+function voyDir(v){ return safeDir(v.dir || v.titre || ''); }
+function normT(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim(); }
+/** Carnets de l'appli Carnet de voyage (fournisseur protégé, via MAGVoyage) ; null si l'appli manque */
+function loadCarnets(){
+  var B = V(); CARNETS = null;
+  if(B && B.carnets){ try { var l = J(B.carnets(), null); if(Array.isArray(l)) CARNETS = l; } catch(e){} }
+  return CARNETS;
+}
+/** Carnets + voyages locaux (sans doublon de titre), le plus récent d'abord */
+function tripList(){
+  var out = [], seen = {};
+  (CARNETS || []).forEach(function(c){ var k = normT(c.titre); if(!k || seen[k]) return; seen[k] = 1; out.push({ id:c.id, titre:c.titre, dir:safeDir(c.titre), debut:c.debut||'', fin:c.fin||'', dates:c.dates||'', couleur:c.couleur||'', vignette:c.vignette||'', maj:c.maj||0, local:false, attente:!!c.attente }); });
+  VOYAGES.forEach(function(v){ var k = normT(v.titre); if(!k || seen[k]) return; if(CARNETS && !v.local) return; seen[k] = 1; out.push({ id:v.id, titre:v.titre, dir:voyDir(v), debut:v.debut||'', fin:v.fin||'', dates:'', maj:v.created||0, local:!!v.local || !CARNETS }); });
+  out.forEach(function(t){ var st = STATS.dirs['Voyage/'+t.dir]; t.n = st ? st.n : 0; t.last = st ? st.last : ''; t.at = Math.max(t.maj||0, st && st.date || 0); });
+  out.sort(function(x,y){ return (VOYAGE.id===y.id) - (VOYAGE.id===x.id) || y.at - x.at; });
+  return out;
+}
+function fmtTripDates(t){
+  if(t.dates) return t.dates;
+  var d = function(x){ return x ? new Date(x+'T12:00').toLocaleDateString('fr-FR',{ day:'numeric', month:'short' }) : ''; };
+  return t.debut && t.fin ? d(t.debut)+' – '+d(t.fin) : d(t.debut);
+}
+function covHtml(t){
+  if(t.vignette) return '<img alt="" src="'+esc(t.vignette)+'">';
+  return ic('book').replace('class="ic"','');
+}
+function renderTrips(voy){
+  $('tripCard').hidden = !voy || !VOYAGE.titre;
+  $('tripList').hidden = !voy;
+  if(!voy) return;
+  loadCarnets();
+  var list = tripList(), act = null;
+  list.forEach(function(t){ if(t.id === VOYAGE.id || normT(t.titre) === normT(VOYAGE.titre)) act = act || t; });
+  $('noCarnet').hidden = CARNETS !== null;
+  if(VOYAGE.titre){
+    var t = act || { titre:VOYAGE.titre, dir:voyDir(VOYAGE), debut:VOYAGE.debut, fin:VOYAGE.fin, local:!!VOYAGE.local, n:0 };
+    $('tName').textContent = VOYAGE.titre;
+    $('tSub').textContent = [fmtTripDates(t), plural(t.n||0,'photo'), t.local ? 'voyage local' : t.attente ? 'carnet en attente' : ''].filter(Boolean).join(' · ');
+    $('tCov').innerHTML = covHtml(t); $('tCov').style.background = t.couleur || '#7b3f2a';
+    $('tLoc').textContent = 'DCIM/Photo/Voyage/'+voyDir(VOYAGE)+'/';
+    $('tCarnet').hidden = CARNETS === null && !P;
+    $('tStrip').hidden = !t.n;
+    if(t.n){ if(!$('tStrip').children.length) $('tStrip').innerHTML = '<div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div>'; loadStripDir('tStrip', 'Voyage/'+voyDir(VOYAGE), 'voy:'+(VOYAGE.id||'')); }
+  }
+  $('trips').innerHTML = list.length ? list.map(function(t){
+    var on = t.id === VOYAGE.id || normT(t.titre) === normT(VOYAGE.titre);
+    var sub = [fmtTripDates(t), plural(t.n||0,'photo'), t.local ? 'local' : t.attente ? 'en attente' : ''].filter(Boolean).join(' · ');
+    return '<div class="site" data-trip="'+esc(t.id)+'"><button class="cov" data-tpick="'+esc(t.id)+'" style="background:'+esc(t.couleur||'#7b3f2a')+'">'+covHtml(t)+'</button>'+
+      '<button class="t" data-tpick="'+esc(t.id)+'" style="text-align:left"><div>'+(on?'<span class="dot" style="background:#f4c542"></span>':'')+esc(t.titre)+'</div><div>'+esc(sub)+'</div></button>'+
+      '<button class="more" data-tmenu="'+esc(t.id)+'" aria-label="Actions">'+ic('more')+'</button></div>';
+  }).join('') : '<div class="empty">Aucun carnet de voyage. Crée le premier avec « Nouveau ».</div>';
+  var ids = list.map(function(t){ return t.last; }).filter(Boolean); askThumbs(ids);
+}
+function tripById(id){ var l = tripList(); for(var i=0;i<l.length;i++) if(l[i].id === id) return l[i]; return null; }
+function setVoyage(t, quiet){
+  VOYAGE = { id:t.id, titre:t.titre, dir:safeDir(t.titre), debut:t.debut||'', fin:t.fin||'', local:!!t.local };
+  if(P && P.setVoyage){ P.setVoyage(JSON.stringify(VOYAGE)); VOYAGES = J(P.getVoyages(), []); }
+  else {
+    lsSet('photo.voyage', VOYAGE);
+    var found = false; VOYAGES = VOYAGES.map(function(v){ if(v.id === VOYAGE.id){ found = true; return Object.assign({}, v, VOYAGE); } return v; });
+    if(!found) VOYAGES.push(Object.assign({ created:Date.now() }, VOYAGE));
+    lsSet('photo.voyages', VOYAGES);
+  }
+  saveSettings({ voyMode:true });
+  renderHome(); publishWidget();
+  if(!quiet) toast('Carnet actif : '+t.titre+' (DCIM/Photo/Voyage/'+VOYAGE.dir+')');
+}
+function pickVoyage(){
+  loadCarnets();
+  var l = tripList();
+  sheet('Carnet de voyage', CARNETS === null ? 'L\'appli Carnet de voyage n\'est pas installée : le voyage reste local à Photo.' : 'Les prochaines photos seront rangées dans ce carnet.', l.map(function(t){
+    return { t:t.titre+(t.local?' (local)':''), ic: t.id===VOYAGE.id ? 'check' : 'book', fn:function(){ setVoyage(t); } };
+  }).concat([{ t:'Nouveau voyage', ic:'edit', fn:function(){ newVoyage(); } }]));
+}
+function newVoyage(){
+  loadCarnets();
+  form('Nouveau voyage', CARNETS === null ? 'Carnet de voyage n\'est pas installé : le voyage est gardé dans Photo.' : 'Le carnet est aussi créé dans l\'appli Carnet de voyage.', [
+    { k:'titre', label:'Titre', ph:'Ex. Italie 2026' },
+    { k:'debut', label:'Du (facultatif)', type:'date' },
+    { k:'fin', label:'Au (facultatif)', type:'date' }
+  ], 'Créer').then(function(v){
+    if(!v) return;
+    var n = v.titre.trim(); if(!n){ toast('Donne un titre au voyage', true); return; }
+    var t = { titre:n, debut:v.debut||'', fin:v.fin||'' }, B = V();
+    var r = CARNETS !== null && B && B.creer ? J(B.creer(JSON.stringify({ titre:n, debut:t.debut, fin:t.fin, source:'photo' })), {}) : {};
+    if(r.ok){ t.id = r.id; t.titre = r.titre || n; t.local = false; }
+    else { var same = VOYAGES.filter(function(x){ return normT(x.titre) === normT(n); })[0]; t.id = same ? same.id : 'v'+Date.now(); t.local = true; }
+    setVoyage(t, true);
+    toast(r.ok ? (r.existe ? 'Carnet « '+t.titre+' » déjà présent : il devient actif' : 'Carnet « '+t.titre+' » créé dans Carnet de voyage') : 'Voyage local « '+n+' » : Carnet de voyage n\'est pas installé');
+  });
+}
+function tripMenu(t){
+  var items = [];
+  items.push({ t:'Prendre une photo ici', ic:'cam', fn:function(){ setVoyage(t, true); openCamera(); } });
+  if(t.id !== VOYAGE.id) items.push({ t:'Rendre actif', ic:'check', fn:function(){ setVoyage(t); } });
+  items.push({ t:'Voir les photos', ic:'folder', fn:function(){ openTrip(t); } });
+  if(!t.local) items.push({ t:'Ouvrir dans Carnet de voyage', ic:'book', fn:function(){ openCarnet(t); } });
+  sheet(t.titre, plural(t.n||0,'photo')+' · DCIM/Photo/Voyage/'+t.dir, items);
+}
+function openTrip(t){ openSite({ id:'voy:'+t.id, name:t.titre, dir:'Voyage/'+safeDir(t.titre), voyage:true, trip:t }); }
+function openCarnet(t){
+  if(t && !t.local && M && M.homeLaunchWith && (!M.homeInstalled || M.homeInstalled(VOY_PKG) === '1')){ M.homeLaunchWith(VOY_PKG, JSON.stringify({ open:t.id, voyage:1 })); return; }
+  confirmBox('Carnet de voyage', 'L\'appli Carnet de voyage n\'est pas installée. Ouvrir la page des versions pour l\'installer ?', 'Installer').then(function(ok){ if(ok) installCarnet(); });
+}
+function installCarnet(){ if(P && P.openUrl) P.openUrl(VOY_URL); else window.open(VOY_URL, '_blank'); }
+$('tOpen').onclick = function(){ if(VOYAGE.titre) openTrip(tripById(VOYAGE.id) || { id:VOYAGE.id, titre:VOYAGE.titre, local:!!VOYAGE.local }); };
+$('tCarnet').onclick = function(){ openCarnet(tripById(VOYAGE.id) || { id:VOYAGE.id, titre:VOYAGE.titre, local:!!VOYAGE.local }); };
+$('tNew').onclick = function(){ newVoyage(); };
+$('tInstall').onclick = function(){ installCarnet(); };
+$('trips').onclick = function(e){
+  var p = e.target.closest('[data-tpick]'); if(p){ var t = tripById(p.dataset.tpick); if(t){ if(t.id === VOYAGE.id) openTrip(t); else setVoyage(t); } return; }
+  var m = e.target.closest('[data-tmenu]'); if(m){ var t2 = tripById(m.dataset.tmenu); if(t2) tripMenu(t2); }
+};
+function loadStripDir(el, dir, openId){
+  listDir(dir).then(function(items){
+    var photos = items.filter(function(i){ return !i.video; });
+    var cells = photos.slice(0,4).map(function(i, k){
+      if(k===3 && photos.length>4) return '<button class="c more" data-topen="1">+'+(photos.length-3)+'</button>';
+      return '<button class="c" data-topen="1">'+thumbImg(i.id)+'</button>';
+    });
+    while(cells.length<4) cells.push('<div class="c"></div>');
+    $(el).innerHTML = cells.join('');
+    askThumbs(photos.slice(0,4).map(function(i){ return i.id; }));
+  });
+}
+$('tStrip').onclick = function(e){ if(e.target.closest('[data-topen]')) $('tOpen').onclick(); };
 
 /* ---------- Chantiers : créer, renommer, archiver ---------- */
 function newSite(makeActive){
@@ -540,7 +743,7 @@ function form(title, sub, fields, ok){
     var done = false;
     var h = '<h2>'+esc(title)+'</h2>'+(sub?'<p class="sub">'+esc(sub)+'</p>':'')+fields.map(function(f){
       if(f.unit) return '<div class="field2"><label class="field"><span>'+esc(f.label)+'</span><input data-k="'+f.k+'" inputmode="'+(f.mode||'text')+'" value="'+esc(f.value||'')+'" placeholder="'+esc(f.ph||'')+'"></label><label class="field"><span>Unité</span><select data-k="'+f.unit.k+'">'+f.unit.opts.map(function(o){ return '<option'+(o===f.unit.value?' selected':'')+'>'+o+'</option>'; }).join('')+'</select></label></div>';
-      return '<label class="field"><span>'+esc(f.label)+'</span>'+(f.area?'<textarea data-k="'+f.k+'" placeholder="'+esc(f.ph||'')+'">'+esc(f.value||'')+'</textarea>':'<input data-k="'+f.k+'" value="'+esc(f.value||'')+'" placeholder="'+esc(f.ph||'')+'" inputmode="'+(f.mode||'text')+'" enterkeyhint="done">')+'</label>';
+      return '<label class="field"><span>'+esc(f.label)+'</span>'+(f.area?'<textarea data-k="'+f.k+'" placeholder="'+esc(f.ph||'')+'">'+esc(f.value||'')+'</textarea>':'<input data-k="'+f.k+'"'+(f.type?' type="'+f.type+'"':'')+' value="'+esc(f.value||'')+'" placeholder="'+esc(f.ph||'')+'" inputmode="'+(f.mode||'text')+'" enterkeyhint="done">')+'</label>';
     }).join('')+'<div class="row"><button class="btn" data-x>Annuler</button><button class="btn main" data-ok>'+esc(ok||'Valider')+'</button></div>';
     var s = veil(h, function(){ if(!done) res(null); });
     var first = s.el.querySelector('input,textarea'); if(first) setTimeout(function(){ first.focus(); }, 80);
@@ -571,15 +774,15 @@ var VS = null;
 function openSite(s){
   VS = { site:s, items:[], sel:null };
   var pg = page('', '<div class="bar"><button class="iconbtn" data-back aria-label="Retour">'+ic('back','lg')+'</button><div class="ttl"><div id="sName"></div><div id="sSub"></div></div>'+
-    (s.loose?'':'<button class="iconbtn" id="sMenu" aria-label="Actions">'+ic('more','lg')+'</button>')+'</div>'+
+    (s.loose||s.voyage?'':'<button class="iconbtn" id="sMenu" aria-label="Actions">'+ic('more','lg')+'</button>')+'</div>'+
     '<div class="scroll" id="sScroll"><div class="chips" id="sChips"></div><div id="sBody"><div class="empty">Chargement…</div></div></div>'+
     '<button class="fab" id="sShoot">'+ic('cam')+'Photo</button>'+
     '<div class="selbar" id="selBar" hidden><span class="n" id="selN"></span><button id="selShare">'+ic('share')+'Partager</button><button id="selPdf">'+ic('pdf')+'Rapport</button><button id="selDel">'+ic('trash')+'Supprimer</button><button id="selX">'+ic('close')+'Fin</button></div>',
     function(){ VS = null; renderHome(); });
   VS.pg = pg;
   pg.el.querySelector('[data-back]').onclick = function(){ pg.close(); };
-  if(!s.loose) pg.el.querySelector('#sMenu').onclick = function(){ siteMenu(s); };
-  pg.el.querySelector('#sShoot').onclick = function(){ if(!s.loose){ setActive(s); saveSettings({ siteMode:true }); } else saveSettings({ siteMode:false }); openCamera(); };
+  if(!s.loose && !s.voyage) pg.el.querySelector('#sMenu').onclick = function(){ siteMenu(s); };
+  pg.el.querySelector('#sShoot').onclick = function(){ if(s.voyage){ setVoyage(s.trip || { id:VOYAGE.id, titre:s.name }, true); } else if(!s.loose){ setActive(s); saveSettings({ siteMode:true }); } else saveSettings({ siteMode:false, voyMode:false }); openCamera(); };
   pg.el.querySelector('#selX').onclick = function(){ setSel(null); };
   pg.el.querySelector('#selShare').onclick = function(){ if(P && VS.sel.size) P.share(Array.from(VS.sel).join(',')); };
   pg.el.querySelector('#selDel').onclick = function(){ delItems(Array.from(VS.sel)); };
@@ -603,6 +806,15 @@ function renderSiteHead(){
   VS.pg.el.querySelector('#sName').textContent = s.name;
   VS.pg.el.querySelector('#sSub').textContent = [plural(n,'élément'), s.client, s.addr].filter(Boolean).join(' · ');
   var ch = VS.pg.el.querySelector('#sChips');
+  if(s.voyage){
+    VS.pg.el.querySelector('#sSub').textContent = [plural(n,'photo'), 'DCIM/Photo/'+s.dir].join(' · ');
+    ch.innerHTML = '<button class="chip main" id="cCarnet">'+ic('book')+'Ouvrir le carnet</button><button class="chip" id="cSel">'+ic('select')+'Choisir</button>'+
+      (VOYAGE.id===(s.trip&&s.trip.id) ? '' : '<button class="chip" id="cAct">'+ic('check')+'Rendre actif</button>');
+    ch.querySelector('#cCarnet').onclick = function(){ openCarnet(s.trip || { id:VOYAGE.id, titre:s.name, local:!!VOYAGE.local }); };
+    ch.querySelector('#cSel').onclick = function(){ setSel(new Set()); };
+    var cv = ch.querySelector('#cAct'); if(cv) cv.onclick = function(){ setVoyage(s.trip); renderSiteHead(); };
+    return;
+  }
   ch.innerHTML = s.loose ? '' :
     '<button class="chip main" id="cRep">'+ic('pdf')+'Rapport PDF</button>'+
     '<button class="chip" id="cSel">'+ic('select')+'Choisir</button>'+
@@ -618,6 +830,7 @@ function loadSite(){
   if(!VS) return; var want = VS.site;
   listDir(want.dir).then(function(items){
     if(!VS || VS.site !== want) return;
+    if(want.voyage && P && P.voyageIndex){ J(P.voyageIndex(want.dir), []).forEach(function(o){ VIDX[o.id] = o; if(o.legende && !CAP[o.id]) CAP[o.id] = o.legende; }); lsSet('photo.cap', CAP); }
     VS.items = items; renderSiteHead(); renderGrid();
   });
 }
@@ -661,7 +874,7 @@ var VW = null;
 function openViewer(i){
   var pg = page('viewer', '<div class="bar"><button class="iconbtn" data-back style="color:#fff">'+ic('back','lg')+'</button><div class="ttl"><div id="vT" style="font-size:16px"></div><div id="vS"></div></div></div>'+
     '<div class="img" id="vImg"><div class="spinner"></div></div>'+
-    '<div class="vpanel"><div class="vmeta" id="vMeta"></div><textarea class="cap" id="vCap" rows="2" placeholder="Légende pour le rapport (ex. Fissure en façade nord)"></textarea>'+
+    '<div class="vpanel"><div class="vmeta" id="vMeta"></div>'+(VS.site.voyage ? '<div class="capRow"><textarea class="cap" id="vCap" rows="2" placeholder="Légende, reprise dans le carnet (ex. Coucher de soleil sur le port)"></textarea><button class="iconbtn" id="vMic" aria-label="Dicter la légende">'+ic('mic')+'</button></div>' : '<textarea class="cap" id="vCap" rows="2" placeholder="Légende pour le rapport (ex. Fissure en façade nord)"></textarea>')+
     '<div class="vact"><button id="vAnn">'+ic('pen')+'Annoter</button><button id="vShare">'+ic('share')+'Partager</button><button id="vOpen">'+ic('open')+'Ouvrir</button><button id="vDel" class="danger">'+ic('trash')+'Supprimer</button></div></div>',
     function(){ saveCap(); VW = null; if(VS) renderGrid(); });
   VW = { i:i, pg:pg };
@@ -671,6 +884,8 @@ function openViewer(i){
   pg.el.querySelector('#vOpen').onclick = function(){ if(P) P.open(VS.items[VW.i].id); };
   pg.el.querySelector('#vDel').onclick = function(){ var id = VS.items[VW.i].id; delItems([id]); };
   pg.el.querySelector('#vCap').addEventListener('input', function(){ clearTimeout(saveCap.t); saveCap.t = setTimeout(saveCap, 500); });
+  var mic = pg.el.querySelector('#vMic');
+  if(mic){ mic.hidden = !(P && P.dictate && (!P.canDictate || P.canDictate())); mic.onclick = function(){ dictate(function(t){ var c = VW && VW.pg.el.querySelector('#vCap'); if(!c || !t) return; c.value = (c.value.trim() ? c.value.trim()+' ' : '') + t; saveCap(); }); }; }
   var sx = null, img = pg.el.querySelector('#vImg');
   img.addEventListener('touchstart', function(e){ sx = e.touches[0].clientX; }, { passive:true });
   img.addEventListener('touchend', function(e){ if(sx==null) return; var dx = e.changedTouches[0].clientX - sx; sx = null; if(Math.abs(dx) > 60) viewerGo(dx < 0 ? 1 : -1); });
@@ -681,8 +896,17 @@ function viewerGo(d){ var n = VW.i + d; if(n < 0 || n >= VS.items.length) return
 function saveCap(){
   if(!VW || !VS) return; var it = VS.items[VW.i]; if(!it) return;
   var v = VW.pg.el.querySelector('#vCap').value.trim();
+  var before = CAP[it.id] || '';
   if(v) CAP[it.id] = v; else delete CAP[it.id];
   lsSet('photo.cap', CAP);
+  // voyage : la légende part dans l'index et le voyage.json du dossier (le Carnet de voyage la reprend)
+  if(VS.site.voyage && P && P.voyageLegende && v !== before){ P.voyageLegende(it.id, v); if(VIDX[it.id]) VIDX[it.id].legende = v; }
+}
+/** Dictée par la reconnaissance vocale d'Android → fn(texte) */
+function dictate(fn){
+  if(!P || !P.dictate){ toast('La dictée passe par l\'application Android'); return; }
+  var r = nextReq(); DICT[r] = function(o){ if(o.ok && o.text) fn(o.text.charAt(0).toUpperCase()+o.text.slice(1)); else if(o.error) toast('Dictée indisponible sur ce téléphone', true); };
+  P.dictate(r);
 }
 function placeLine(it){
   var d = (it.desc||'').split('\n')[0].trim();
@@ -692,7 +916,8 @@ function showViewer(){
   var it = VS.items[VW.i], el = VW.pg.el;
   el.querySelector('#vT').textContent = fmtLong(it.date).replace(/^./, function(c){ return c.toUpperCase(); });
   el.querySelector('#vS').textContent = (VW.i+1)+' / '+VS.items.length+' · '+it.name;
-  var place = placeLine(it), info = P && !it.video ? J(P.info(it.id), {}) : {};
+  var place = placeLine(it), info = P && !it.video ? J(P.info(it.id), {}) : {}, vx = VIDX[it.id];
+  if(vx && (vx.ville || vx.lieu)) place = [vx.ville, vx.lieu && vx.lieu !== vx.ville ? vx.lieu : ''].filter(Boolean).join(' · ');
   if(!place && info.lat != null) place = 'GPS '+(+info.lat).toFixed(5)+', '+(+info.lng).toFixed(5);
   el.querySelector('#vMeta').innerHTML = (place ? ic('pin').replace('class="ic"','class="ic" style="display:inline-block;width:14px;height:14px;vertical-align:-2px;margin-right:4px"')+'<b>'+esc(place)+'</b><br>' : '')+
     esc((it.w&&it.h ? it.w+' × '+it.h+' · ' : '')+(it.size ? (it.size/1048576).toFixed(1).replace('.',',')+' Mo' : '')+(info.model ? ' · '+info.model : ''));
@@ -1039,6 +1264,13 @@ function renderSettings(){
     sw('geo','Position GPS','Enregistrée dans la photo, adresse retrouvée automatiquement')+
     '<label class="field"><span>Note incrustée (reste jusqu\'à ce que tu l\'effaces)</span><input id="sNote" value="'+esc(SETTINGS.note||'')+'" placeholder="Ex. Avant travaux"></label>'+
     '<label class="field"><span>Ton nom ou ton entreprise (rapport et photo)</span><input id="sAuthor" value="'+esc(SETTINGS.author||'')+'" placeholder="Ex. MAG Formation 13"></label>'+
+    '<div class="h3" style="margin-top:18px">Mode voyage</div>'+
+    sw('voyStamp','Bandeau carte postale','Ville, date et petit timbre incrustés. Conseil : laisse-le coupé, le Carnet de voyage ajoute ses propres légendes.')+
+    '<div class="muted" style="margin:10px 2px 0">Style du bandeau</div><div class="seg" data-k="voyStyle"><button data-v="carte">Carte postale</button><button data-v="timbre">Timbre</button><button data-v="ruban">Ruban</button></div>'+
+    '<div class="muted" style="margin:10px 2px 0">Position</div><div class="seg" data-k="voyPos"><button data-v="bas">En bas</button><button data-v="haut">En haut</button><button data-v="coin">Dans le coin</button></div>'+
+    '<canvas id="pcPrev" width="720" height="540" aria-label="Aperçu du bandeau carte postale"></canvas>'+
+    sw('voyKeepOrig','Garder aussi l\'original','Copie sans bandeau dans le sous-dossier « Originaux »')+
+    sw('voyCaption','« Légende ? » après chaque photo','Un mot tapé ou dicté, repris dans le carnet, ou « Ignorer »')+
     '<div class="h3" style="margin-top:18px">Prise de vue</div>'+
     sw('sound','Son du déclencheur','')+sw('level','Niveau à bulle','Ligne d\'horizon et bulle à plat')+sw('grid','Grille','Aide au cadrage en tiers')+
     '<div class="h3" style="margin-top:18px">Objectifs</div><div id="lensList">'+lensHtml()+'</div>'+
@@ -1049,11 +1281,12 @@ function renderSettings(){
       ((perm.camera && perm.location && perm.read) ? '' : '<div class="row"><button class="btn" id="sAsk">Autoriser</button><button class="btn" id="sApp">Réglages Android</button></div>') : '')+
     '<p class="foot">'+esc(P && P.device ? P.device() : '')+'</p>';
   b.innerHTML = h;
+  drawPreview();
   b.querySelectorAll('.seg[data-k]').forEach(function(g){
     g.querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', String(SETTINGS[g.dataset.k]) === x.dataset.v); });
     g.onclick = function(e){ var x = e.target.closest('button'); if(!x) return; var p = {}; p[g.dataset.k] = x.dataset.v; saveSettings(p); renderSettings(); };
   });
-  b.querySelectorAll('input[data-sw]').forEach(function(i){ i.onchange = function(){ var p = {}; p[i.dataset.sw] = i.checked; saveSettings(p); if(i.dataset.sw==='geo' && i.checked && P) P.askPerm('location'); }; });
+  b.querySelectorAll('input[data-sw]').forEach(function(i){ i.onchange = function(){ var p = {}; p[i.dataset.sw] = i.checked; saveSettings(p); if(i.dataset.sw==='geo' && i.checked && P) P.askPerm('location'); if(i.dataset.sw==='voyStamp') drawPreview(); }; });
   b.querySelector('#sNote').onchange = function(){ saveSettings({ note:this.value.trim() }); };
   b.querySelector('#sAuthor').onchange = function(){ saveSettings({ author:this.value.trim() }); lsSet('photo.author', this.value.trim()); };
   b.querySelector('#sPin').onclick = function(){ if(!P || !P.pinShortcut || !P.pinShortcut()) toast('Ton écran d\'accueil ne permet pas d\'ajouter ce raccourci : fais un appui long sur l\'icône Photo'); };
@@ -1080,12 +1313,143 @@ function lensHtml(){
   return h;
 }
 
+/* ---------- Bandeau « carte postale » (mode voyage) ----------
+   Même dessin que l'appareil photo natif (PhotoCamera.drawPostcard) : styles carte, timbre, ruban ; positions bas, haut, coin. */
+var PC_CREAM = '#fbf5e6', PC_RED = '#c7362f', PC_BLUE = '#1d4e89', PC_TERRA = '#9e3b2e', PC_TEAL = '#2f6f73', PC_SUN = '#f4c542';
+var F_SERIF = 'Georgia, "Noto Serif", "Droid Serif", serif', F_SANS = 'system-ui, Roboto, sans-serif', F_HAND = '"Dancing Script", "Segoe Script", "Comic Sans MS", cursive';
+function fitFont(g, style, fam, size, text, maxW){ do { g.font = style+' '+size+'px '+fam; if(g.measureText(text).width <= maxW || size < 7) break; size *= 0.94; } while(true); return size; }
+function pcWaves(g, x0, x1, y, gap, n){
+  for(var i=0;i<n;i++){
+    var yy = y + (i - (n-1)/2) * gap, amp = gap*0.28, step = gap*0.9, k = 0;
+    g.beginPath(); g.moveTo(x0, yy);
+    for(var x=x0; x<x1; x+=step, k++) g.quadraticCurveTo(x + step/4, yy + (k % 2 === 0 ? -amp : amp), x + step/2, yy);
+    g.stroke();
+  }
+}
+function pcPostmark(g, cx, cy, r, city, date, ink){
+  g.save(); g.strokeStyle = ink; g.fillStyle = ink; g.lineWidth = r*0.06;
+  g.beginPath(); g.arc(cx, cy, r, 0, Math.PI*2); g.stroke();
+  g.beginPath(); g.arc(cx, cy, r*0.70, 0, Math.PI*2); g.stroke();
+  var up = String(city||'').toUpperCase(), ra = r*0.80, len = Math.PI*ra;
+  var fs = fitFont(g, 'bold', F_SANS, r*0.22, up, len*0.9), tw = g.measureText(up).width, rb = ra - fs*0.35, pos = (len - tw)/2;
+  g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+  for(var i=0;i<up.length;i++){
+    var cw = g.measureText(up[i]).width, a = Math.PI + (pos + cw/2)/ra;
+    g.save(); g.translate(cx + rb*Math.cos(a), cy + rb*Math.sin(a)); g.rotate(a + Math.PI/2); g.fillText(up[i], 0, 0); g.restore();
+    pos += cw;
+  }
+  var ds = fitFont(g, 'bold', F_SANS, r*0.24, date, r*1.2);
+  g.fillText(date, cx, cy + ds*0.36);
+  g.restore();
+}
+function pcArt(g, x, y, w, h){
+  g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip();
+  g.fillStyle = PC_TEAL; g.fillRect(x, y, w, h);
+  g.fillStyle = '#9fc5d9'; g.fillRect(x, y, w, h*0.55);
+  g.fillStyle = PC_SUN; g.beginPath(); g.arc(x + w*0.68, y + h*0.32, w*0.16, 0, Math.PI*2); g.fill();
+  g.fillStyle = '#5b7f3a'; g.beginPath(); g.moveTo(x, y + h*0.58); g.quadraticCurveTo(x + w*0.25, y + h*0.38, x + w*0.52, y + h*0.58); g.closePath(); g.fill();
+  g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = h*0.035; g.lineCap = 'round';
+  pcWaves(g, x + w*0.08, x + w*0.92, y + h*0.76, h*0.12, 2);
+  g.restore();
+}
+/** Timbre dentelé dessiné à part (les perforations laissent voir le dessous), puis posé avec une ombre */
+function pcStamp(g, x, y, w, h, pr, fill, shadow){
+  var c = document.createElement('canvas'), m = Math.ceil(pr*2);
+  c.width = Math.ceil(w + m*2); c.height = Math.ceil(h + m*2);
+  var k = c.getContext('2d'); k.fillStyle = fill; k.fillRect(m, m, w, h);
+  k.globalCompositeOperation = 'destination-out';
+  var gap = pr*2.7, nx = Math.max(3, Math.round(w/gap)), ny = Math.max(3, Math.round(h/gap)), i;
+  k.beginPath();
+  for(i=0;i<=nx;i++){ var xx = m + w*i/nx; k.moveTo(xx+pr, m); k.arc(xx, m, pr, 0, Math.PI*2); k.moveTo(xx+pr, m+h); k.arc(xx, m+h, pr, 0, Math.PI*2); }
+  for(i=0;i<=ny;i++){ var yy = m + h*i/ny; k.moveTo(m+pr, yy); k.arc(m, yy, pr, 0, Math.PI*2); k.moveTo(m+w+pr, yy); k.arc(m+w, yy, pr, 0, Math.PI*2); }
+  k.fill();
+  g.save(); if(shadow){ g.shadowColor = shadow[0]; g.shadowBlur = shadow[1]; g.shadowOffsetY = shadow[2]; }
+  g.drawImage(c, x - m, y - m); g.restore();
+}
+/** o : {place, country, t, style: carte|timbre|ruban, pos: bas|haut|coin} */
+function postcard(g, vw, vh, o){
+  var S = Math.min(vw, vh), mg = S*0.035, place = o.place || 'Souvenir', d = new Date(o.t || Date.now()), pos = o.pos || 'bas', style = o.style || 'carte';
+  var dLong = d.toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' }), dShort = pad(d.getDate())+'.'+pad(d.getMonth()+1)+'.'+String(d.getFullYear()).slice(-2);
+  g.save(); g.textBaseline = 'alphabetic';
+  if(style === 'timbre'){
+    var sw = S*0.30, sh = sw*1.22, x = pos === 'bas' ? mg : vw - sw - mg, y = pos === 'haut' ? mg + sw*0.12 : vh - sh - mg;
+    pcStamp(g, x, y, sw, sh, sw*0.035, PC_CREAM, ['rgba(0,0,0,.5)', S*0.012, S*0.004]);
+    pcArt(g, x + sw*0.09, y + sw*0.09, sw*0.82, sh*0.74 - sw*0.09);
+    g.fillStyle = '#fff'; g.font = 'bold '+(sw*0.085)+'px '+F_SANS;   // valeur faciale du côté opposé au cachet
+    if(pos === 'bas'){ g.textAlign = 'left'; g.fillText('2,50 €', x + sw*0.13, y + sw*0.09 + sw*0.085*1.1); } else { g.textAlign = 'right'; g.fillText('2,50 €', x + sw*0.87, y + sw*0.09 + sw*0.085*1.1); }
+    g.fillStyle = PC_TERRA; g.textAlign = 'center'; fitFont(g, 'italic bold', F_SERIF, sw*0.14, place, sw*0.78); g.fillText(place, x + sw/2, y + sh*0.86);
+    var cty = (o.country || 'Souvenir').toUpperCase(); g.fillStyle = '#2e2620'; fitFont(g, 'bold', F_SANS, sw*0.065, cty, sw*0.8);
+    if('letterSpacing' in g) g.letterSpacing = (sw*0.065*0.18)+'px'; g.fillText(cty, x + sw/2, y + sh*0.95); if('letterSpacing' in g) g.letterSpacing = '0px';
+    var pr = sw*0.30, pcx = pos === 'bas' ? x + sw*0.98 : x + sw*0.02, pcy = y + sw*0.05;
+    pcPostmark(g, pcx, pcy, pr, place, dShort, 'rgba(46,38,32,.7)');
+    g.strokeStyle = 'rgba(46,38,32,.65)'; g.lineWidth = pr*0.055;
+    if(pos === 'bas') pcWaves(g, pcx + pr*1.05, pcx + pr*2.6, pcy, pr*0.32, 4); else pcWaves(g, pcx - pr*2.6, pcx - pr*1.05, pcy, pr*0.32, 4);
+  } else if(style === 'ruban'){
+    var tw = pos === 'coin' ? S*0.62 : vw*0.72, th = S*0.11, x2 = pos === 'coin' ? vw - tw - mg : mg, y2 = pos === 'haut' ? mg*1.4 : vh - th - mg*1.6;
+    g.translate(x2 + tw/2, y2 + th/2); g.rotate((pos === 'coin' ? -6 : -3) * Math.PI/180); g.translate(-(x2 + tw/2), -(y2 + th/2));
+    var teeth = 7, tz = th/teeth, i2;
+    g.beginPath(); g.moveTo(x2, y2); g.lineTo(x2 + tw, y2);
+    for(i2=0;i2<teeth;i2++) g.lineTo(x2 + tw - (i2 % 2 === 0 ? th*0.08 : 0), y2 + tz*(i2 + 0.5));
+    g.lineTo(x2 + tw, y2 + th); g.lineTo(x2, y2 + th);
+    for(i2=teeth-1;i2>=0;i2--) g.lineTo(x2 + (i2 % 2 === 0 ? th*0.08 : 0), y2 + tz*(i2 + 0.5));
+    g.closePath();
+    g.save(); g.shadowColor = 'rgba(0,0,0,.33)'; g.shadowBlur = S*0.008; g.shadowOffsetY = S*0.003; g.fillStyle = 'rgba(230,161,160,.92)'; g.fill(); g.restore();
+    g.save(); g.clip(); g.strokeStyle = 'rgba(255,255,255,.25)'; g.lineWidth = th*0.12;
+    for(var kx = x2 - th; kx < x2 + tw + th; kx += th*0.42){ g.beginPath(); g.moveTo(kx, y2 + th); g.lineTo(kx + th, y2); g.stroke(); }
+    g.restore();
+    var cs = th*0.56, ds2 = th*0.30, sep = '  ·  ', tot;
+    for(;;){ g.font = 'bold '+cs+'px '+F_HAND; var a1 = g.measureText(place).width; g.font = ds2+'px '+F_SANS; tot = a1 + g.measureText(sep + dLong).width; if(tot <= tw*0.86 || cs < 8) break; cs *= 0.94; ds2 *= 0.94; }
+    g.font = 'bold '+cs+'px '+F_HAND; var pw = g.measureText(place).width, tx = x2 + (tw - tot)/2, by = y2 + th*0.68;
+    g.fillStyle = '#2e2620'; g.textAlign = 'left'; g.fillText(place, tx, by);
+    g.font = ds2+'px '+F_SANS; g.fillText(sep + dLong, tx + pw, by);
+  } else {
+    var cw = pos === 'coin' ? S*0.62 : Math.min(vw - 2*mg, S*0.80), ch = cw*0.30, x3 = pos === 'coin' ? vw - cw - mg : mg, y3 = pos === 'haut' ? mg : vh - ch - mg, rr = ch*0.05;
+    g.save(); g.shadowColor = 'rgba(0,0,0,.45)'; g.shadowBlur = S*0.014; g.shadowOffsetY = S*0.005; g.fillStyle = PC_CREAM; roundRect(g, x3, y3, cw, ch, rr); g.fill(); g.restore();
+    g.save(); roundRect(g, x3, y3, cw, ch, rr); g.clip();
+    var q = ch*0.13, n = 0; g.lineWidth = q*0.36;
+    for(var u = x3 - ch; u < x3 + cw + ch; u += q, n++){ g.strokeStyle = n % 2 === 0 ? PC_RED : PC_BLUE; g.beginPath(); g.moveTo(u, y3 + ch); g.lineTo(u + ch, y3); g.stroke(); }
+    g.restore();
+    var b = ch*0.075, ix = x3 + b, iy = y3 + b, iw = cw - 2*b, ih = ch - 2*b;
+    g.fillStyle = PC_CREAM; roundRect(g, ix, iy, iw, ih, rr*0.6); g.fill();
+    var sh2 = ih*0.78, sw2 = sh2*0.82, sx = ix + iw - sw2 - ih*0.10, sy = iy + (ih - sh2)/2;
+    pcStamp(g, sx, sy, sw2, sh2, sw2*0.045, '#ffffff', ['rgba(0,0,0,.25)', ih*0.03, ih*0.01]);
+    pcArt(g, sx + sw2*0.1, sy + sw2*0.1, sw2*0.8, sh2 - sw2*0.2);
+    var pr2 = sh2*0.36, pcx2 = sx - sh2*0.02, pcy2 = sy + sh2*0.56;
+    pcPostmark(g, pcx2, pcy2, pr2, place, dShort, 'rgba(46,38,32,.6)');
+    g.strokeStyle = 'rgba(46,38,32,.55)'; g.lineWidth = pr2*0.05; pcWaves(g, pcx2 + pr2*1.02, sx + sw2*0.98, pcy2, pr2*0.3, 3);
+    var tx3 = ix + ih*0.14, aw = pcx2 - pr2*1.05 - tx3;
+    g.textAlign = 'left';
+    g.fillStyle = '#6b5a48'; fitFont(g, 'italic', F_SERIF, ih*0.16, 'Bons baisers de', aw); g.fillText('Bons baisers de', tx3, iy + ih*0.28);
+    g.fillStyle = PC_TERRA; fitFont(g, 'italic bold', F_SERIF, ih*0.40, place, aw); g.fillText(place, tx3, iy + ih*0.66);
+    g.fillStyle = '#2e2620'; fitFont(g, '', F_SANS, ih*0.15, dLong, aw); g.fillText(dLong, tx3, iy + ih*0.89);
+  }
+  g.restore();
+}
+/** Paysage d'exemple pour l'aperçu des réglages */
+function sampleScene(g, w, h){
+  var sky = g.createLinearGradient(0, 0, 0, h*0.6); sky.addColorStop(0, '#5f9fd0'); sky.addColorStop(1, '#f2d6a2');
+  g.fillStyle = sky; g.fillRect(0, 0, w, h);
+  g.fillStyle = '#ffd36b'; g.beginPath(); g.arc(w*0.72, h*0.28, h*0.09, 0, Math.PI*2); g.fill();
+  g.fillStyle = '#8a9a6a'; g.beginPath(); g.moveTo(0, h*0.6); g.quadraticCurveTo(w*0.25, h*0.36, w*0.5, h*0.58); g.quadraticCurveTo(w*0.75, h*0.42, w, h*0.6); g.lineTo(w, h); g.lineTo(0, h); g.fill();
+  var sea = g.createLinearGradient(0, h*0.6, 0, h); sea.addColorStop(0, '#2f7fb0'); sea.addColorStop(1, '#174a6e');
+  g.fillStyle = sea; g.fillRect(0, h*0.62, w, h*0.38);
+  g.fillStyle = '#fff'; g.beginPath(); g.moveTo(w*0.3, h*0.74); g.lineTo(w*0.36, h*0.74); g.lineTo(w*0.34, h*0.77); g.lineTo(w*0.31, h*0.77); g.fill();
+  g.beginPath(); g.moveTo(w*0.33, h*0.73); g.lineTo(w*0.33, h*0.64); g.lineTo(w*0.36, h*0.72); g.fill();
+}
+function drawPreview(){
+  var c = $('pcPrev'); if(!c) return;
+  var g = c.getContext('2d'); sampleScene(g, c.width, c.height);
+  postcard(g, c.width, c.height, { place:'Marseille', country:'France', t:Date.now(), style:SETTINGS.voyStyle, pos:SETTINGS.voyPos });
+  c.style.opacity = SETTINGS.voyStamp ? '1' : '.55';
+}
+window.PhotoPostcard = { draw:postcard, scene:sampleScene };
+
 /* ---------- Tuile de l'écran d'accueil (Socle) ---------- */
 var pendingWidgetThumb = '', lastWidget = '';
 function publishWidget(){
   try{
     if(!M || !M.widgetPut) return;
-    var a = activeSite(), st = a ? statOf(a) : (STATS.dirs[''] || { n:0 });
+    var voy = curMode() === 'voyage' && VOYAGE.titre, a = voy ? null : activeSite(), st = voy ? (STATS.dirs['Voyage/'+voyDir(VOYAGE)] || { n:0 }) : a ? statOf(a) : (STATS.dirs[''] || { n:0 });
     var last = st.last ? (THUMBS['w'+st.last] || '') : '';
     if(st.last && !last && P && P.thumbSync){ last = P.thumbSync(st.last, 160) || ''; if(last) THUMBS['w'+st.last] = last; }
     var o = { chantier: a ? a.name : '', photos: st.n || 0, last: last, mode: !!(SETTINGS.siteMode && a) };
