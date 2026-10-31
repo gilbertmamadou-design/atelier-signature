@@ -65,6 +65,7 @@ pc/
 | Majordome (`majordome`) | assistant vocal à commandes (sans IA) : reconnaissance hors ligne Vosk (WebAssembly), mot de réveil fenêtre ouverte, Ctrl+Espace, saisie au clavier ; heure, calculs, conversions, minuteurs, rappels, météo et vent (Open-Meteo), titres franceinfo, agenda (celui d'Agenda sur PC), notes et listes, dépense ajoutée dans Budget (après confirmation, jamais de solde lu), ouverture des applis de la Suite et des sites connus ; pour une appli du téléphone (« lance WhatsApp »), réponse honnête et proposition de son site s'il existe (web.whatsapp.com, open.spotify.com…), pause / suivant de Mélodie | appels, SMS, lampe, volume du système, modes, Wi-Fi / Bluetooth ; lumières Philips Hue (une page web ne peut pas joindre le pont Hue : certificat auto-signé, contenu mixte, protection du réseau local des navigateurs ; expliqué dans l'appli) ; vigilance MeteoAlarm sans relais ; alarmes appli fermée |
 | Fond Jarvis (`fond-jarvis`, page propre au PC) | fond d'écran animé pour **Lively Wallpaper** (paquet `fond-jarvis-lively.zip`) ou en page plein écran : sphère de Majordome, anneaux, circuits, horloge, météo, titres, système (Lively), musique en cours (Lively), raccourcis, assistant au clavier (analyseur de Majordome) | lancer un .exe, éteindre ou verrouiller Windows, micro dans Lively |
 | Tableur (`tableur`) | tout : tableur (formules en français ou en anglais, plus de 330 fonctions, tableaux dynamiques, mises en forme conditionnelles, tableaux, tris et filtres, tableaux croisés, graphiques), .magcalc, .xlsx et .ods (ouvrir et enregistrer), .xls (lecture), .csv/.tsv, .html, PDF, « Ouvrir avec » .xlsx/.xls/.ods/.csv/.tsv/.magcalc, enregistrement sur place, PDF envoyé à l'Atelier PDF | — |
+| Carnet de voyage (`voyage`) | tout : carnets (couverture cuir, kraft ou lin), pages simples ou doubles qu'on feuillette, photos du PC (bouton ou glisser-déposer, EXIF : orientation, date, lieu), 12 cadres, formes, filtres, textes manuscrits, dessin à la souris ou au stylet, autocollants, icônes Lucide, carte de l'itinéraire, Composer, magnétisme, groupes, annuler / rétablir et raccourcis, PDF A4 / A5 (planches), PNG / JPG, .magcarnet (« Ouvrir avec », dépôt), diaporama | partage Android (remplacé par le partage de Windows ou le téléchargement) |
 | Petits Pas (`petitspas`), Carnet de chasse (`chasse`) | consultation, fiches, statistiques, exports | Petits Pas : sources officielles sans relais ; chasse : position GPS précise |
 
 **Écartées** (n'ont de sens que sur le téléphone) : Socle (accueil Android), Aube (réveil), Urgence, Mesure
@@ -240,6 +241,37 @@ Liseuse lit ses livres comme un livre audio avec les voix Piper de Majordome (ou
   la lecture continue fenêtre cachée ou réduite. Majordome PC et le Fond Jarvis (mode Suite) envoient leurs commandes par
   le canal `BroadcastChannel('mag-liseuse')` ; Liseuse fermée : Majordome l'ouvre avec `?socle={"audio":"read"…}`.
 - **Android** : voir `applis/scripts/LiseuseBridge.java` (lecteur natif, service au premier plan, MediaSession, Android Auto).
+
+## Carnet de voyage (scrapbooking)
+
+Même page que l'APK (`applis/www-voyage/`, fichiers `cv-*.js` copiés par `copies`), sur le socle des applis bureautiques
+(`office: true` : `office-core`, `office-history`, `office-files`, `office-pdf`). Aucun pont propre au PC : les photos viennent
+de `Office.Files.pickMedia` ou d'un dépôt sur la page (`#stage[data-mpc-drop]`), les .magcarnet de `F.open` / `F.onLaunch`
+(`file_handlers`), les exports de `F.export` / `F.share` / `F.download`.
+
+- **Rendu** : chaque page est un SVG de 1000 × 1414 (proportions A4 / A5) produit par `cv-render.js` à partir des données ;
+  papiers, couvertures, cadres (timbre dentelé et cachet de la poste, Polaroid, bord blanc argentique, coins photo, washi,
+  trombone, punaise, papier déchiré, carte postale, ticket train / avion / musée, étiquette à bagage), formes, filtres
+  (`feColorMatrix` composée, grain `feTurbulence` en incrustation, vignette), autocollants et tampons : dessins originaux en
+  SVG dans `cv-art.js`, sans image extérieure. L'éditeur affiche ce SVG ; l'export rend le même SVG (photos pleine définition et
+  polices intégrées en `data:`) dans un canvas : PNG / JPG, puis PDF par jsPDF (A4, A5, ou deux pages par feuille A4 paysage).
+- **Données** : IndexedDB `carnet-voyage` (`carnets`, `media` avec l'index `carnet`, `kv`) ; une photo = JPEG ≤ 2048 px
+  (orientation EXIF appliquée par `createImageBitmap`) + version ≤ 1024 px pour l'écran, EXIF (date, GPS) lu par `cv-model.js`.
+  Réglages : `localStorage` `voyage.settings`, `voyage.last`.
+- **.magcarnet** : zip (STORE) avec `carnet.json` (`format: "magcarnet"`, carnet complet, liste des photos) et `photos/<id>.jpg`,
+  `photos/<id>-mid.jpg`. Relu à l'identique sur le téléphone et le PC ; un carnet déjà présent est importé en copie.
+- **Polices** : `vendor/fonts-carnet/` (Caveat, Kalam, Amatic SC : OFL-1.1 ; Special Elite : Apache-2.0), sous-ensembles latins
+  WOFF du dépôt google/fonts par `shared/office/tools/fonts-carnet-build.py`, plus Caladea de `vendor/fonts/` ; copiées dans
+  l'APK par `www-voyage/office-deps.txt`. Aucune requête vers Google Fonts.
+- **Carte** : `cv-carte-data.js` (180 Ko, chargé à la demande) : pays de Natural Earth 1:50m (domaine public) simplifiés par
+  `shared/office/tools/carte-carnet-build.py` ; étapes tirées des photos géolocalisées ou posées à la main.
+- **Internet (facultatif)** : lieu en clair des photos par BigDataCloud `reverse-geocode-client` (gratuit, sans clé, désactivé
+  par défaut, signalé dans l'appli) ; météo du jour par Open-Meteo (sans clé). Rien d'autre ne sort de l'appareil.
+- **Android** : `MAGOffice.pick('image/*', plusieurs)` (sélecteur d'Android) ; `scripts/VoyageBridge.java` (`MAGVoyage`) demande
+  `ACCESS_MEDIA_LOCATION` et relit la date et la position d'origine (`MediaStore.setRequireOriginal`, `ExifInterface`), qu'Android
+  retire sinon ; « Ouvrir avec » / « Partager » .magcarnet et photos (`print-patch.sh`). Tuile Socle « Carnet de voyage : dernier
+  carnet » (`widgetPut`, `onSocle` : `open`, `new`).
+- **Animations** : la page tourne (rotation 3D légère) ; rien ne bouge avec « réduire les animations » du système ou le réglage de l'appli.
 
 ## Fond Jarvis (fond d'écran animé)
 
@@ -774,6 +806,16 @@ Android simulé (téléchargement par le pont, `piperPlay` / `pchunk`) ; Majordo
 fichiers de HuggingFace. Java : `MajordomeBridge`, `MajordomeWallpaper` compilés contre android.jar. Phonétiseur comparé à
 espeak-ng (piper-phonemize WASM, référence de développement) ; intelligibilité par Whisper small (sherpa-onnx natif).
 
+Carnet de voyage (`/home/claude/tests-carnet/`) : 6 photos générées (EXIF date et GPS, une enregistrée couchée avec
+Orientation = 6) ; téléphone 412×915 au doigt avec ponts `MAGOffice`, `MAGPrint`, `MAGVoyage` simulés (58 vérifications :
+création, sélecteur multiple, orientation, compression, EXIF, chacun des 12 cadres, options du timbre et cachet, formes, 7 filtres,
+vignette, réglages, grain, rotation, poignées au doigt, texte, polices, bannière, dessin lissé, autocollants, icône, carte,
+Composer, annuler / rétablir, pages, persistance après rechargement, PDF A5 relu par pdf-lib (pages, images, format), PNG
+partagé, .magcarnet réimporté, tuile Socle, diaporama, console) ; PC 1366×768 (30 vérifications : polices locales, double page,
+glisser-déposer, panneau de droite, Ctrl+Z / Ctrl+Y / Ctrl+D / Suppr / Ctrl+G, magnétisme, alignement, dessin, Composer,
+persistance, PDF A4 et planches, JPG de double page, .magcarnet téléchargé, carnet du téléphone déposé sur le PC, F5,
+« réduire les animations », lanceur, console) ; tuile Socle (rendu et actions).
+
 ## Licences des bibliothèques (shared/vendor/LICENSES)
 
 Voix Piper (APK, PC, Fond Jarvis) : sherpa-onnx 2.0.1 (Apache-2.0) avec onnxruntime (MIT), dans `applis/www-majordome/piper/`
@@ -795,5 +837,8 @@ Debian), sous-ensembles latins renommés Mag Sans / Mag Serif / Mag Mono / Mag S
 vosk-browser 0.0.8 (Apache-2.0, PC seulement ; Vosk, Kaldi, OpenFST Apache-2.0, CLAPACK et libarchive BSD, zlib, emscripten MIT) :
 `vendor/vosk/vosk-worker.js`, worker décodé tel quel de la démo officielle (branche gh-pages de github.com/ccoreilly/vosk-browser,
 commit a4b0d0f), registre npm injoignable ; seule modification : clé de cache « key » (voir l'en-tête du fichier).
+Carnet de voyage : Caveat, Kalam, Amatic SC (OFL-1.1) et Special Elite (Apache-2.0) du dépôt github.com/google/fonts
+(commit 6c1dbe2), sous-ensembles latins WOFF aux noms inchangés (aucun nom réservé), licences `caveat-OFL-1.1.txt`,
+`kalam-OFL-1.1.txt`, `amatic-sc-OFL-1.1.txt`, `special-elite-Apache-2.0.txt` ; fond de carte Natural Earth 1:50m (domaine public).
 hls.js 1.6.19 (Apache-2.0, PC seulement, avec eventemitter3 MIT, url-toolkit et common-media-library Apache-2.0) : construit
 depuis le tag v1.6.19 par `pc/hls-build.mjs` (registre npm injoignable) ; `--vendor` le remplace par le `dist/hls.min.js` npm.
