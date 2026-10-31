@@ -1,0 +1,61 @@
+{
+  "id": "/atelier-signature/pc/voyage/",
+  "name": "Carnet de voyage",
+  "short_name": "Carnet de voyage",
+  "description": "Scrapbooking : photos en timbres, Polaroid, tickets et cartes postales, écriture à la main, PDF A4 / A5",
+  "lang": "fr",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F1E7D6",
+  "theme_color": "#7B3F2A",
+  "categories": [
+    "productivity",
+    "utilities"
+  ],
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "launch_handler": {
+    "client_mode": [
+      "focus-existing",
+      "auto"
+    ]
+  },
+  "file_handlers": [
+    {
+      "action": "./",
+      "launch_type": "single-client",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ],
+      "accept": {
+        "application/x-magcarnet": [
+          ".magcarnet"
+        ]
+      }
+    }
+  ]
+}

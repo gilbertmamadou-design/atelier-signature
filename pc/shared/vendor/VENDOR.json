@@ -10,6 +10,76 @@
     "size": 947663,
     "sha256": "b35a8b1fd1a5fe3e853a7dc4006294281dd2430ee3108fd30d5417ab7c9a5d56"
   },
+  "fonts-carnet/AmaticSC-Bold.woff": {
+    "package": "Caveat, Kalam, Amatic SC (SIL OFL 1.1), Special Elite (Apache 2.0) — dépôt google/fonts (commit 6c1dbe2, 30/10/2026)",
+    "version": "voir dépôt",
+    "from": null,
+    "license": "OFL-1.1 / Apache-2.0",
+    "licenseFile": "LICENSES/caveat-OFL-1.1.txt",
+    "note": "Polices du Carnet de voyage : sous-ensembles latins WOFF créés par pc/shared/office/tools/fonts-carnet-build.py (fontTools), noms inchangés (aucun nom de fonte réservé). Licences : LICENSES/caveat-OFL-1.1.txt, kalam-OFL-1.1.txt, amatic-sc-OFL-1.1.txt, special-elite-Apache-2.0.txt. fonts.css y ajoute Caladea (../fonts/).",
+    "size": 44136,
+    "sha256": "87f95826d53e7519ba7cb05263be4672fefe3cbb3dfe06ba015737aeffd88f85"
+  },
+  "fonts-carnet/AmaticSC-Regular.woff": {
+    "package": "Caveat, Kalam, Amatic SC (SIL OFL 1.1), Special Elite (Apache 2.0) — dépôt google/fonts (commit 6c1dbe2, 30/10/2026)",
+    "version": "voir dépôt",
+    "from": null,
+    "license": "OFL-1.1 / Apache-2.0",
+    "licenseFile": "LICENSES/caveat-OFL-1.1.txt",
+    "note": "Polices du Carnet de voyage : sous-ensembles latins WOFF créés par pc/shared/office/tools/fonts-carnet-build.py (fontTools), noms inchangés (aucun nom de fonte réservé). Licences : LICENSES/caveat-OFL-1.1.txt, kalam-OFL-1.1.txt, amatic-sc-OFL-1.1.txt, special-elite-Apache-2.0.txt. fonts.css y ajoute Caladea (../fonts/).",
+    "size": 45236,
+    "sha256": "ff96f73ce0159244da20e33126f85c6a1528a1d5696f985c66e0733250fdbc8e"
+  },
+  "fonts-carnet/Caveat.woff": {
+    "package": "Caveat, Kalam, Amatic SC (SIL OFL 1.1), Special Elite (Apache 2.0) — dépôt google/fonts (commit 6c1dbe2, 30/10/2026)",
+    "version": "voir dépôt",
+    "from": null,
+    "license": "OFL-1.1 / Apache-2.0",
+    "licenseFile": "LICENSES/caveat-OFL-1.1.txt",
+    "note": "Polices du Carnet de voyage : sous-ensembles latins WOFF créés par pc/shared/office/tools/fonts-carnet-build.py (fontTools), noms inchangés (aucun nom de fonte réservé). Licences : LICENSES/caveat-OFL-1.1.txt, kalam-OFL-1.1.txt, amatic-sc-OFL-1.1.txt, special-elite-Apache-2.0.txt. fonts.css y ajoute Caladea (../fonts/).",
+    "size": 103756,
+    "sha256": "b8fb2ef10bad00afca1d47752b831ea1e7efa78644cf6882f8bb14af14f3d78b"
+  },
+  "fonts-carnet/Kalam-Bold.woff": {
+    "package": "Caveat, Kalam, Amatic SC (SIL OFL 1.1), Special Elite (Apache 2.0) — dépôt google/fonts (commit 6c1dbe2, 30/10/2026)",
+    "version": "voir dépôt",
+    "from": null,
+    "license": "OFL-1.1 / Apache-2.0",
+    "licenseFile": "LICENSES/caveat-OFL-1.1.txt",
+    "note": "Polices du Carnet de voyage : sous-ensembles latins WOFF créés par pc/shared/office/tools/fonts-carnet-build.py (fontTools), noms inchangés (aucun nom de fonte réservé). Licences : LICENSES/caveat-OFL-1.1.txt, kalam-OFL-1.1.txt, amatic-sc-OFL-1.1.txt, special-elite-Apache-2.0.txt. fonts.css y ajoute Caladea (../fonts/).",
+    "size": 37896,
+    "sha256": "bf93822d6ea1dcda964f772fc579cb641a4f500267963b0c9134607378e5450d"
+  },
+  "fonts-carnet/Kalam-Regular.woff": {
+    "package": "Caveat, Kalam, Amatic SC (SIL OFL 1.1), Special Elite (Apache 2.0) — dépôt google/fonts (commit 6c1dbe2, 30/10/2026)",
+    "version": "voir dépôt",
+    "from": null,
+    "license": "OFL-1.1 / Apache-2.0",
+    "licenseFile": "LICENSES/caveat-OFL-1.1.txt",
+    "note": "Polices du Carnet de voyage : sous-ensembles latins WOFF créés par pc/shared/office/tools/fonts-carnet-build.py (fontTools), noms inchangés (aucun nom de fonte réservé). Licences : LICENSES/caveat-OFL-1.1.txt, kalam-OFL-1.1.txt, amatic-sc-OFL-1.1.txt, special-elite-Apache-2.0.txt. fonts.css y ajoute Caladea (../fonts/).",
+    "size": 38040,
+    "sha256": "8741d2ca8e72652f7d66dc49dfb9dd3fdf4a26b3210b9b2485eeeef8f872dfe7"
+  },
+  "fonts-carnet/SpecialElite-Regular.woff": {
+    "package": "Caveat, Kalam, Amatic SC (SIL OFL 1.1), Special Elite (Apache 2.0) — dépôt google/fonts (commit 6c1dbe2, 30/10/2026)",
+    "version": "voir dépôt",
+    "from": null,
+    "license": "OFL-1.1 / Apache-2.0",
+    "licenseFile": "LICENSES/caveat-OFL-1.1.txt",
+    "note": "Polices du Carnet de voyage : sous-ensembles latins WOFF créés par pc/shared/office/tools/fonts-carnet-build.py (fontTools), noms inchangés (aucun nom de fonte réservé). Licences : LICENSES/caveat-OFL-1.1.txt, kalam-OFL-1.1.txt, amatic-sc-OFL-1.1.txt, special-elite-Apache-2.0.txt. fonts.css y ajoute Caladea (../fonts/).",
+    "size": 80044,
+    "sha256": "1f0f8779a2ea325aa2e66d755d8d94417967bb3da241d202f8d5d39e14a06a60"
+  },
+  "fonts-carnet/fonts.css": {
+    "package": "Caveat, Kalam, Amatic SC (SIL OFL 1.1), Special Elite (Apache 2.0) — dépôt google/fonts (commit 6c1dbe2, 30/10/2026)",
+    "version": "voir dépôt",
+    "from": null,
+    "license": "OFL-1.1 / Apache-2.0",
+    "licenseFile": "LICENSES/caveat-OFL-1.1.txt",
+    "note": "Polices du Carnet de voyage : sous-ensembles latins WOFF créés par pc/shared/office/tools/fonts-carnet-build.py (fontTools), noms inchangés (aucun nom de fonte réservé). Licences : LICENSES/caveat-OFL-1.1.txt, kalam-OFL-1.1.txt, amatic-sc-OFL-1.1.txt, special-elite-Apache-2.0.txt. fonts.css y ajoute Caladea (../fonts/).",
+    "size": 1311,
+    "sha256": "d9bb169573c9c10a9aa6504c58b3afc2a1724385f15301c884a8f14673a47bb1"
+  },
   "fonts/Caladea-Bold.ttf": {
     "package": "Liberation Fonts 2.1.5, Carlito 1.103, Caladea 1.002 (paquets Debian fonts-liberation2, fonts-crosextra-carlito, fonts-crosextra-caladea)",
     "version": "voir paquets",
