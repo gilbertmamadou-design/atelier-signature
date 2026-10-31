@@ -65,7 +65,7 @@ pc/
 | Majordome (`majordome`) | assistant vocal à commandes (sans IA) : reconnaissance hors ligne Vosk (WebAssembly), mot de réveil fenêtre ouverte, Ctrl+Espace, saisie au clavier ; heure, calculs, conversions, minuteurs, rappels, météo et vent (Open-Meteo), titres franceinfo, agenda (celui d'Agenda sur PC), notes et listes, dépense ajoutée dans Budget (après confirmation, jamais de solde lu), ouverture des applis de la Suite et des sites connus ; pour une appli du téléphone (« lance WhatsApp »), réponse honnête et proposition de son site s'il existe (web.whatsapp.com, open.spotify.com…), pause / suivant de Mélodie | appels, SMS, lampe, volume du système, modes, Wi-Fi / Bluetooth ; lumières Philips Hue (une page web ne peut pas joindre le pont Hue : certificat auto-signé, contenu mixte, protection du réseau local des navigateurs ; expliqué dans l'appli) ; vigilance MeteoAlarm sans relais ; alarmes appli fermée |
 | Fond Jarvis (`fond-jarvis`, page propre au PC) | fond d'écran animé pour **Lively Wallpaper** (paquet `fond-jarvis-lively.zip`) ou en page plein écran : sphère de Majordome, anneaux, circuits, horloge, météo, titres, système (Lively), musique en cours (Lively), raccourcis, assistant au clavier (analyseur de Majordome) | lancer un .exe, éteindre ou verrouiller Windows, micro dans Lively |
 | Tableur (`tableur`) | tout : tableur (formules en français ou en anglais, plus de 330 fonctions, tableaux dynamiques, mises en forme conditionnelles, tableaux, tris et filtres, tableaux croisés, graphiques), .magcalc, .xlsx et .ods (ouvrir et enregistrer), .xls (lecture), .csv/.tsv, .html, PDF, « Ouvrir avec » .xlsx/.xls/.ods/.csv/.tsv/.magcalc, enregistrement sur place, PDF envoyé à l'Atelier PDF | — |
-| Carnet de voyage (`voyage`) | tout : carnets (couverture cuir, kraft ou lin), pages simples ou doubles qu'on feuillette, photos du PC (bouton ou glisser-déposer, EXIF : orientation, date, lieu), 12 cadres, formes, filtres, textes manuscrits, dessin à la souris ou au stylet, autocollants, icônes Lucide, carte de l'itinéraire, Composer, magnétisme, groupes, annuler / rétablir et raccourcis, PDF A4 / A5 (planches), PNG / JPG, .magcarnet (« Ouvrir avec », dépôt), diaporama | partage Android (remplacé par le partage de Windows ou le téléchargement) |
+| Carnet de voyage (`voyage`) | tout : carnets (couverture cuir, kraft ou lin), pages simples ou doubles qu'on feuillette, photos du PC (bouton ou glisser-déposer, EXIF : orientation, date, lieu), 12 cadres, formes, filtres, textes manuscrits, dessin à la souris ou au stylet, autocollants, icônes Lucide, carte de l'itinéraire, Composer, magnétisme, groupes, annuler / rétablir et raccourcis, PDF A4 / A5 (planches), PNG / JPG, .magcarnet (« Ouvrir avec », dépôt), diaporama ; « Importer un dossier de voyage » (dossier `DCIM/Photo/Voyage/<titre>` copié depuis le téléphone, avec son `voyage.json` : une page par jour, légendes, carte ; aussi par « Ouvrir avec » et dépôt) | partage Android (remplacé par le partage de Windows ou le téléchargement) ; mode voyage de Photo (pas d'appareil photo) |
 | Petits Pas (`petitspas`), Carnet de chasse (`chasse`) | consultation, fiches, statistiques, exports | Petits Pas : sources officielles sans relais ; chasse : position GPS précise |
 
 **Écartées** (n'ont de sens que sur le téléphone) : Socle (accueil Android), Aube (réveil), Urgence, Mesure
@@ -272,6 +272,45 @@ de `Office.Files.pickMedia` ou d'un dépôt sur la page (`#stage[data-mpc-drop]`
   retire sinon ; « Ouvrir avec » / « Partager » .magcarnet et photos (`print-patch.sh`). Tuile Socle « Carnet de voyage : dernier
   carnet » (`widgetPut`, `onSocle` : `open`, `new`).
 - **Animations** : la page tourne (rotation 3D légère) ; rien ne bouge avec « réduire les animations » du système ou le réglage de l'appli.
+
+### Mode voyage : Photo → Carnet de voyage (`cv-voyage.js`, `PhotoBridge.java`, `VoyageBridge.java`)
+
+- **Photo** : sélecteur **Normal / Chantier / Voyage** (`siteMode` et `voyMode` s'excluent ; le chantier ne change pas). Carnet
+  actif choisi parmi les carnets du Carnet de voyage (lus par le fournisseur `VoyageBridge$Carnets`), ou créé depuis Photo
+  (titre, dates : `call("creer")`, carnet « en attente » que le Carnet crée à sa prochaine ouverture avec le même id). Sans
+  l'appli Carnet : voyage local (même rangement), bouton « Installer » (page des versions). Rangement
+  `DCIM/Photo/Voyage/<titre>/` ; EXIF : date, et GPS écrit par Photo dès que la position est connue ; ville par le géocodeur
+  d'Android (avec l'adresse, mécanisme du chantier). Bandeau facultatif « carte postale » (carte « par avion » avec timbre et
+  cachet, grand timbre, ou ruban washi ; en bas, en haut ou dans le coin ; original sans bandeau gardé dans `Originaux`),
+  **désactivé par défaut** puisque le carnet ajoute ses légendes ; même dessin dans l'appareil photo natif
+  (`PhotoCamera.drawPostcard`) et dans l'aperçu des réglages (`postcard()` de la page). Après chaque prise : feuille
+  « Légende ? » (saisie, dictée par la reconnaissance vocale d'Android, ou Ignorer) ; la légende va dans l'index du voyage.
+- **Index et `voyage.json`** : index privé de Photo (`files/voyage/index.json` : id MediaStore, nom, chemin, date, lat / lng,
+  lieu, ville, pays, légende, id du carnet) recopié dans `voyage.json` du dossier (`format: "magvoyage"`, carnet, photos avec
+  `fichier`, `chemin`, `date` ISO locale, `lieu`, `legende`, `carnet`). Android 10+ n'accepte en principe que des images dans
+  `DCIM/` : Photo essaie MediaStore puis le chemin direct, sinon écrit `Documents/Photo/Voyage/<titre>/voyage.json`
+  (emplacement retenu : `MAGPhoto.voyageJson(dossier)`) ; à copier avec le dossier pour le PC.
+- **Lecture côté Carnet (choix retenu)** : par le fournisseur de Photo `PhotoBridge$Voyage`
+  (`content://fr.magformation13.photo.voyage`, permission signature et signature de l'appelant vérifiée) plutôt que par
+  MediaStore : depuis Android 11, une appli ne voit pas les fichiers non multimédias d'une autre (`voyage.json` serait
+  invisible), et l'index donne déjà lieu, ville et légende ; la photo d'origine est servie en lecture seule, seulement si elle
+  est dans l'index du voyage (`openFile("photo/<id>")`, position GPS comprise), réduite à 2048 px par `MAGVoyage.photoLire`.
+- **Carnet** : à l'ouverture d'un carnet, au retour dans l'appli et par « Actualiser les photos du voyage », bandeau
+  « N nouvelles photos du voyage » (Ajouter, Choisir… : grille par jour, photos non cochées écartées). Style choisi une fois
+  par carnet : Classique (bords blancs), Timbres (timbres et cachets), Polaroid (légende dans le cadre), Mélange. Une page par
+  jour (6 photos au plus, réparties : 7 → 4 + 3), mise en page par Composer (`M.compose` : zone sous le titre, cadres imposés,
+  place pour la légende) ; titre = date en français + ville la plus fréquente du jour ; légendes en manuscrit sous la photo (ou
+  dans le Polaroid) ; pages insérées dans l'ordre des jours (« (suite) » pour un jour déjà présent). Étapes ajoutées à la carte
+  de l'itinéraire (créée sur sa page au besoin), sans doublon de ville. Mémoire `carnet.voyage.imp` (clé « dossier/fichier ») :
+  jamais deux fois la même photo, une photo supprimée du carnet n'est pas reproposée ; elle part dans le .magcarnet.
+- **PC** : pas de mode voyage. « Importer un dossier de voyage » (accueil, menu « ⋯ » et Photos) : `showDirectoryPicker` (ou
+  `webkitdirectory`), photos + `voyage.json` (sans lui : date et GPS de l'EXIF), carnet retrouvé par id ou titre, sinon créé ;
+  « Ouvrir avec » (`file_handlers` .json et .jpg : `voyage.json` et ses photos sélectionnés ensemble ; `voyage.json` seul → choix
+  du dossier) et dépôt.
+- **Jarvis** (`mj-nlu.js` → intention `voyage`, `mj-app.js` → `H.voyage`) : « mode voyage », « active le mode voyage »,
+  « commence le carnet Italie » (crée le carnet si besoin et active le mode voyage dans Photo), « arrête le mode voyage »,
+  « ajoute les photos du jour au carnet », « ouvre mon carnet de voyage ». Téléphone : `MAGVoyage` (`creer`, `photoMode`) et
+  `homeLaunchWith` (`{importer:"jour"}`, `{voyage:1}`) ; PC : réponses honnêtes et ouverture de la page du Carnet.
 
 ## Fond Jarvis (fond d'écran animé)
 
@@ -815,6 +854,16 @@ partagé, .magcarnet réimporté, tuile Socle, diaporama, console) ; PC 1366×76
 glisser-déposer, panneau de droite, Ctrl+Z / Ctrl+Y / Ctrl+D / Suppr / Ctrl+G, magnétisme, alignement, dessin, Composer,
 persistance, PDF A4 et planches, JPG de double page, .magcarnet téléchargé, carnet du téléphone déposé sur le PC, F5,
 « réduire les animations », lanceur, console) ; tuile Socle (rendu et actions).
+
+Mode voyage (`/home/claude/tests-voyage2/`) : 12 photos générées sur 3 jours (EXIF date et GPS : Marseille, Cassis, La Ciotat,
+Aix-en-Provence ; 10 légendes). Photo 412×915 avec `MAGPhoto` / `MAGVoyage` simulés (37 vérifications : sélecteur et exclusion
+des modes, chantier inchangé, carnet actif, création envoyée au Carnet, rangement par l'appareil simulé, légende tapée et
+dictée, « Ouvrir le carnet », tuile Socle, réglages et aperçu du bandeau 3 styles × 3 positions, Carnet absent) ; Carnet
+téléphone (33 : attente, liste publiée, bandeau, style, pages par jour, titres, légendes, cadres, carte sans doublon,
+réouverture, Choisir…, photo supprimée, rechargement, .magcarnet, commandes de Jarvis) ; 4 styles (5) ; PC (11 : dossier,
+voyage.json, second import, Ouvrir avec) ; Jarvis (16, page Majordome téléphone et PC) ; analyseur : 683 phrases des corpus
+inchangées et 22 commandes ; essais du Carnet de référence rejoués (58 + 30 + 6) ; Java compilé contre android.jar (photo,
+voyage, majordome).
 
 ## Licences des bibliothèques (shared/vendor/LICENSES)
 
