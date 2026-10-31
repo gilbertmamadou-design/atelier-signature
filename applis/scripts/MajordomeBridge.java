@@ -11,6 +11,9 @@ package __PKG__;
 //    (téléchargés depuis huggingface.co/rhasspy/piper-voices, SHA-256 vérifiée, stockage privé files/piper/, lus par
 //    la page via Capacitor.convertFileSrc) et la lecture : AudioTrack, focus audio, micro de veille coupé, niveau réel
 //    (RMS) envoyé au fond animé et à Socle (MajordomeWallpaper.Voix.speakLevel).
+//    Voix partagées avec Liseuse (lecture des livres à voix haute) : fournisseur MajordomeBridge$Voix
+//    (content://fr.magformation13.majordome.voix), en lecture seule, réservé aux applis MAG signées par la même clé
+//    (permission « signature » fr.magformation13.permission.WIDGET + vérification de la signature de l'appelant).
 //  - Minuteurs, réveils, rappels : AlarmManager (setAlarmClock / setExactAndAllowWhileIdle), notification plein écran, redémarrage.
 //  - Téléphone : appel et SMS (toujours après confirmation dans la page), volume, sonnerie / ne pas déranger, panneaux Wi-Fi
 //    et Bluetooth (Android impose de passer par eux), touches multimédia.
@@ -758,6 +761,41 @@ public class MajordomeBridge {
             if (q != null && q.moveToFirst()) return q.getString(0);
         } catch (Throwable t) { }
         String p = u.getLastPathSegment(); return p == null ? "" : p.substring(p.lastIndexOf('/') + 1);
+    }
+
+    /** Voix Piper prêtées à Liseuse, sans copie : état (query …/etat) et fichiers (openFile …/<modèle>/<modèle>.onnx[.json]),
+     *  lecture seule. Manifeste : exporté, permission signature fr.magformation13.permission.WIDGET ; en plus, la signature de
+     *  l'appelant est comparée à celle de Majordome (défense en profondeur). Rien d'autre que les fichiers des voix n'est servi. */
+    public static class Voix extends android.content.ContentProvider {
+        @Override public boolean onCreate() { return true; }
+        private void check() {
+            int uid = android.os.Binder.getCallingUid();
+            if (uid == android.os.Process.myUid()) return;
+            if (getContext().getPackageManager().checkSignatures(uid, android.os.Process.myUid()) != PackageManager.SIGNATURE_MATCH) throw new SecurityException("voix réservées aux applis MAG");
+        }
+        @Override public android.database.Cursor query(Uri uri, String[] proj, String sel, String[] args, String sort) {
+            check();
+            android.database.MatrixCursor m = new android.database.MatrixCursor(new String[]{ "model", "json" });
+            if (!"etat".equals(uri.getLastPathSegment())) return m;
+            File[] l = piperRoot(getContext()).listFiles();
+            if (l != null) for (File d : l) { File ok = new File(d, "ok.json"); if (d.isDirectory() && piperName(d.getName()) && ok.exists()) try { m.addRow(new Object[]{ d.getName(), readText(ok) }); } catch (Exception e) { } }
+            // voix choisie dans Majordome (publiée par la page avec ses données de tuile) : Liseuse la prend par défaut
+            try { JSONObject w = new JSONObject(getContext().getSharedPreferences("socle_widget", Context.MODE_PRIVATE).getString("data", "{}")).optJSONObject("voix"); if (w != null) m.addRow(new Object[]{ "_choix", w.toString() }); } catch (Exception e) { }
+            return m;
+        }
+        @Override public android.os.ParcelFileDescriptor openFile(Uri uri, String mode) throws java.io.FileNotFoundException {
+            check();
+            if (mode == null || !mode.equals("r")) throw new SecurityException("lecture seule");
+            java.util.List<String> seg = uri.getPathSegments();
+            if (seg.size() != 2 || !piperName(seg.get(0)) || !(seg.get(1).equals(seg.get(0) + ".onnx") || seg.get(1).equals(seg.get(0) + ".onnx.json"))) throw new java.io.FileNotFoundException("fichier inconnu");
+            File f = new File(new File(piperRoot(getContext()), seg.get(0)), seg.get(1));
+            if (!new File(f.getParentFile(), "ok.json").exists() || !f.isFile()) throw new java.io.FileNotFoundException("voix absente");
+            return android.os.ParcelFileDescriptor.open(f, android.os.ParcelFileDescriptor.MODE_READ_ONLY);
+        }
+        @Override public String getType(Uri uri) { String p = uri.getPath(); return p != null && p.endsWith(".json") ? "application/json" : "application/octet-stream"; }
+        @Override public Uri insert(Uri uri, android.content.ContentValues v) { throw new SecurityException("lecture seule"); }
+        @Override public int delete(Uri uri, String s, String[] a) { throw new SecurityException("lecture seule"); }
+        @Override public int update(Uri uri, android.content.ContentValues v, String s, String[] a) { throw new SecurityException("lecture seule"); }
     }
 
     // ---------- Lecture : file de phrases, un fil « piper », AudioTrack en flux ----------
