@@ -10,6 +10,7 @@ jobs:
     steps:
       - name: CORS, sommes, métadonnées, fiches des voix
         run: |
+          exec > >(tee out.txt) 2>&1
           B=https://huggingface.co/rhasspy/piper-voices/resolve/main/fr/fr_FR
           O="Origin: https://gilbertmamadou-design.github.io"
           for v in upmc/medium/fr_FR-upmc-medium gilles/low/fr_FR-gilles-low siwis/medium/fr_FR-siwis-medium; do
@@ -24,3 +25,11 @@ jobs:
             curl -sSL -o m.onnx "$B/$v.onnx"; echo "=== $v.onnx $(stat -c %s m.onnx) $(sha256sum m.onnx | cut -c1-64)"
             python3 -c "import onnx;m=onnx.load('m.onnx',load_external_data=False);print('metadata:',[(p.key,p.value[:40]) for p in m.metadata_props]);print('opset',[o.version for o in m.opset_import])"
           done
+      - name: Résultats en annotations (journaux non lisibles depuis le poste de travail)
+        if: always()
+        run: |
+          python3 - <<'PY'
+          t=open('out.txt',encoding='utf-8',errors='replace').read()
+          parts=[t[i:i+3500] for i in range(0,len(t),3500)][:10]
+          for k,x in enumerate(parts): print('::notice title=sonde %d::'%k + x.replace('%','%25').replace('\r','').replace('\n','%0A'))
+          PY
