@@ -159,8 +159,53 @@ Même page que l'APK (`applis/www-majordome` : `mj-nlu.js` analyse des commandes
 - **Budget** : la page écrit l'opération dans `budget.v1` (même origine) après confirmation ; `shared/apps/budget.js` relit les données
   si Budget est ouvert (`BudgetApp.reload`). Le solde n'est jamais lu.
 - **Mélodie** : « pause », « suivant »… passent par `BroadcastChannel('mag-media')`, écouté par `shared/apps/musique.js`.
-- Voix : `speechSynthesis` du navigateur (voix françaises de Windows, vitesse, hauteur, volume) ; minuteurs et rappels dans la page.
+- Voix : `speechSynthesis` du navigateur (voix françaises de Windows, vitesse, hauteur, volume), ou **voix Piper hors ligne**
+  (ci-dessous) ; minuteurs et rappels dans la page.
 - Réglages, historique, notes, listes, minuteurs : `localStorage` `majordome:*` (exportables par le lanceur, sauf le modèle).
+
+### Voix Piper et effet « Jarvis » (Majordome, APK et PC ; Fond Jarvis)
+
+Fichiers communs dans `applis/www-majordome/` (copiés sur PC par `copies`) : `mj-voix.js` (catalogue, téléchargement, stockage,
+lecture, effets, panneau Réglages › Voix), `mj-voix-worker.js` (synthèse dans un worker), `mj-phon.js` (phonétiseur français),
+`piper/` (moteur). Le moteur n'est pas recopié dans `pc/` : les pages PC lisent `../../applis/www-majordome/piper/` (le site
+publie tout le dépôt) ; il n'est pas précaché (13,7 Mo) mais gardé par le service worker au premier usage (réseau puis cache).
+
+- **Moteur** : sherpa-onnx 2.0.1 en WebAssembly (Apache-2.0 ; onnxruntime MIT), construction officielle `wasm-simd` (un fil,
+  sans SharedArrayBuffer : marche dans la WebView d'Android et dans WebView2 de Lively) ; glue emscripten sans le paquet `.data`
+  de démonstration (`piper/LISEZ-MOI.txt`). `.wasm` 13,7 Mo, 3,8 Mo compressé. APK Majordome : +4,5 Mo (17,6 Mo au lieu de
+  13,1). La bibliothèque native (AAR sherpa-onnx 2.0.1) ajoutait 31 Mo de `.so` pour arm64 seul (onnxruntime 22 Mo) et aurait
+  demandé un second phonétiseur en Java : la WebView fait tourner le même WASM, dans un worker (interface jamais bloquée).
+- **Licences et phonétisation** : les voix Piper attendent des phonèmes produits par espeak-ng (**GPL-3.0**). sherpa-onnx ≥ 2.0
+  ne contient plus espeak-ng (CHANGELOG : « Remove espeak-ng and piper-phonemize », #4055) et reçoit des phonèmes tout faits
+  (`GenerationConfig.phonemeCodepoints`) ; piper-tts-web et le module `piper-phonemize` (WASM, ~18 Mo de données) embarquent
+  espeak-ng, donc GPL. Choix : **phonétiseur écrit pour Majordome** (`mj-phon.js`, règles graphème → phonème, lexique,
+  nombres, élisions, liaisons, accent final, mêmes conventions de transcription que l'entraînement des voix). Aucun code GPL
+  publié ni chargé. Écart avec espeak-ng (référence de développement, jamais publiée) : 1,0 % de phonèmes sur des phrases
+  générales, 1,8 % sur les phrases de Majordome ; intelligibilité mesurée par reconnaissance automatique (Whisper small,
+  10 phrases) : 2 à 12 % de mots erronés selon la voix et l'effet, du même ordre qu'avec espeak-ng.
+- **Voix** (`rhasspy/piper-voices`, licences lues dans les MODEL_CARD) : Pierre et Jessica (`fr_FR-upmc-medium`, un fichier
+  pour deux voix, 73 Mo, CC BY-SA 4.0), Gilles (`fr_FR-gilles-low`, 60 Mo, 16 kHz, CC0), Siwis (`fr_FR-siwis-medium`, 60 Mo,
+  CC BY 4.0). Écartées : `fr_FR-tom-medium` (AGPL-3.0), `fr_FR-mls-medium` (CC BY 4.0 mais 125 locuteurs mêlés, non retenue).
+  Pierre est la voix par défaut (homme, posée). Les modèles ne sont pas dans le dépôt.
+- **Téléchargement** : `https://huggingface.co/rhasspy/piper-voices/resolve/main/…` (CORS vérifié depuis Internet : 302 vers
+  le CDN, `Access-Control-Allow-Origin` à chaque étape, origines `*.localhost` de Lively comprises) ; somme SHA-256 figée
+  dans `MODELS` (fichiers de la révision b4e358f) ou annoncée par l'API `…/api/models/rhasspy/piper-voices/tree/main/…`
+  (oid LFS ; oid git pour le `.onnx.json`). Repli : « Choisir les fichiers téléchargés » (`.onnx` + `.onnx.json`).
+  Stockage : IndexedDB `mj-voix` (PC, Lively), liste `localStorage` `mj-voix:installees` commune au même site ; Android :
+  stockage privé `files/piper/<modèle>/` (MajordomeBridge, lu par `Capacitor.convertFileSrc`).
+- **Chargement** : les `.onnx` d'origine n'ont pas les métadonnées que sherpa-onnx lit (`sample_rate`, `n_speakers`,
+  `comment=piper`…) : le worker les ajoute en fin de fichier (champ 14 répétable du protobuf `ModelProto`) et écrit
+  `tokens.txt` depuis `phoneme_id_map`. Préchargé au démarrage quand Piper est choisi.
+- **Lecture** : découpage par phrases (première tranche ≤ 70 caractères, coupée à une virgule) ; la suivante est synthétisée
+  pendant la lecture. Premier son mesuré : < 1 s moteur préchauffé (Chromium sans GPU, 2 cœurs). Web Audio sur PC ; Android :
+  PCM 16 bits vers `MajordomeBridge.piperPlay` → AudioTrack (USAGE_ASSISTANT), focus audio « transitoire, atténuer les
+  autres », micro de veille coupé (`Ear.hold`). Niveau de la sphère, de Socle et du fond animé : RMS réel de l'audio joué.
+- **Effet** (`MJVoix.render`, OfflineAudioContext ; même calcul sur Android puisque l'audio est produit dans la page) :
+  Aucun, Discret, Majordome (défaut de Majordome), IA de film (défaut du Fond Jarvis), Radio ; réglages fins : réverbération
+  et taille de pièce, chorus ou flanger, passe-haut / passe-bas, saturation, grave, présence, hauteur (rééchantillonnage
+  compensé à la synthèse). Sortie : crête ≤ −1 dBFS et niveau moyen plafonné (RMS 0,2) : jamais d'écrêtage, même volume d'un
+  effet à l'autre. Les voix du système ne passent pas par Web Audio : effet réservé à Piper. Effet générique, aucune imitation.
+- **Repli** : voix absente, moteur qui ne se charge pas ou erreur avant le premier son → voix du système, sans message.
 
 ## Fond Jarvis (fond d'écran animé)
 
@@ -190,6 +235,10 @@ non précachés : guide, aperçu) et `lively` (paquet).
   met en pause ou que la page est cachée. Réseau : météo toutes les 30 min, titres toutes les 20 min.
 - Réglages : `localStorage` `fond-jarvis:*` ; une valeur de `LivelyProperties.json` déjà reçue n'écrase pas un choix fait depuis
   dans le panneau ⚙ (`fond-jarvis:lively`).
+- **Voix Piper** : mêmes fichiers que Majordome (paquet : `mj-voix.js`, `mj-voix-worker.js`, `mj-phon.js`, `piper/`, 4,3 Mo en
+  tout) ; ⚙ › Voix (panneau commun ; `S.vfx` / `S.vfxo` pour l'effet, `S.fx` restant l'intensité des effets visuels) ;
+  propriétés Lively « Voix » et « Effet sur la voix Piper ». Dans Lively, IndexedDB propre au fond : la voix se télécharge une
+  fois dans le fond (ou se choisit en fichiers) ; dans la Suite, elle est partagée avec Majordome PC.
 
 ## Applis bureautiques (shared/office/)
 
@@ -680,7 +729,19 @@ Audit « fichiers réels » de Texte et Tableur (30/10/2026, hors dépôt : corp
   PC `t-maj.js` (mises à jour des 29 applis : v1 → v2 → v3 servies à la même adresse, bandeau, « Rechercher une mise à jour »,
   caches, données IndexedDB / localStorage / fichiers mémorisés intactes, hors ligne après la mise à jour, lanceur).
 
+Voix Piper (banc hors dépôt, Playwright + Chromium) : HuggingFace simulé par `route` (vrais modèles des releases de sherpa-onnx,
+métadonnées retirées ; API `tree` avec oid LFS ; CORS) — téléchargement, somme vérifiée, fichier abîmé refusé, somme figée exigée
+sans API ; moteur WASM, synthèse, durée / RMS / crête / écrêtage de chaque préréglage et de réglages extrêmes ; découpage ; niveau
+envoyé à la sphère ; réglages persistants ; repli (voix absente, `.wasm` bloqué) ; console sans erreur ; page de l'APK avec pont
+Android simulé (téléchargement par le pont, `piperPlay` / `pchunk`) ; Majordome PC ; paquet Lively décompressé servi sur
+`http://fj.localhost` (même règle d'hôte `*.localhost` que Lively). Essai complémentaire sur un runner GitHub avec les vrais
+fichiers de HuggingFace. Java : `MajordomeBridge`, `MajordomeWallpaper` compilés contre android.jar. Phonétiseur comparé à
+espeak-ng (piper-phonemize WASM, référence de développement) ; intelligibilité par Whisper small (sherpa-onnx natif).
+
 ## Licences des bibliothèques (shared/vendor/LICENSES)
+
+Voix Piper (APK, PC, Fond Jarvis) : sherpa-onnx 2.0.1 (Apache-2.0) avec onnxruntime (MIT), dans `applis/www-majordome/piper/`
+(licences et provenance dans ce dossier) ; voix téléchargées par l'utilisateur, non publiées (CC BY-SA 4.0, CC0, CC BY 4.0).
 
 pdf.js 3.11.174 (Apache-2.0) · pdf-lib 1.17.1 (MIT) · JSZip 3.10.1 (MIT ou GPL-3.0) ·
 tesseract.js-core 7.0.0 (Apache-2.0) · données françaises tessdata_fast 4.1.0 (Apache-2.0) ·
