@@ -308,5 +308,13 @@
   "name": "Traducteur",
   "icons": "android-icons-traducteur",
   "file": "Traducteur.apk"
+ },
+ {
+  "app": "reperes",
+  "web": "www-reperes",
+  "appid": "fr.magformation13.reperes",
+  "name": "Repères",
+  "icons": "android-icons-reperes",
+  "file": "Reperes.apk"
  }
 ]
