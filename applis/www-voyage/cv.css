@@ -222,11 +222,14 @@ html.calme *{transition:none!important}
   #pageNav .pgLabel{padding:6px 7px;font-size:12px}
   #edTop .ibtn{width:38px}
   #props{position:absolute;left:0;right:0;bottom:0;max-height:0;border-top:1px solid var(--line);border-radius:16px 16px 0 0;box-shadow:0 -6px 20px #3a240f30;transition:max-height .2s}
-  body.hasSel #props{max-height:calc(62px + var(--safeB));padding-bottom:var(--safeB);overflow:hidden}
-  body.hasSel.sheetOpen #props{max-height:calc(48vh + var(--safeB));overflow:auto}
+  /* panneau des réglages : titre ET onglets toujours visibles, poignée pour l'ouvrir en grand */
+  #props::before{content:"";display:block;width:44px;height:5px;border-radius:3px;background:var(--ink3);opacity:.45;margin:7px auto 0}
+  body.hasSel #props{max-height:calc(122px + var(--safeB));padding-bottom:var(--safeB);overflow:hidden;border-top:2px solid var(--line);box-shadow:0 -8px 26px #3a240f45}
+  #props .pHead{cursor:pointer}
+  body.hasSel.sheetOpen #props{max-height:calc(58vh + var(--safeB));overflow:auto}
   body.hasSel #tools{display:none}
-  body.hasSel #stage{margin-bottom:calc(62px + var(--safeB))}
-  body.hasSel.sheetOpen #stage{margin-bottom:calc(48vh + var(--safeB))}
+  body.hasSel #stage{margin-bottom:calc(122px + var(--safeB))}
+  body.hasSel.sheetOpen #stage{margin-bottom:calc(58vh + var(--safeB))}
   #props .chips.tabs{flex-wrap:nowrap;overflow-x:auto;padding:0 10px;margin:0}
   #props .chips.tabs .chip{flex:none}
   .covGrid{grid-template-columns:1fr}

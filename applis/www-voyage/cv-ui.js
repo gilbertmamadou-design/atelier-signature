@@ -665,6 +665,15 @@
   const SEC = {};
   U.sheetTab = null;
   U.openSheet = function () { document.body.classList.add('sheetOpen'); };
+  (function () {   // tirer la poignée du panneau vers le haut pour l'ouvrir, vers le bas pour le replier
+    let y0 = null;
+    document.addEventListener('touchstart', (e) => { const p = $('#props'); if (!p || !PHONE() || !document.body.classList.contains('hasSel')) return; const r = p.getBoundingClientRect(); const y = e.touches[0].clientY; y0 = y >= r.top && y <= r.top + 64 ? y : null; }, { passive: true });
+    document.addEventListener('touchend', (e) => {
+      if (y0 == null) return; const dy = e.changedTouches[0].clientY - y0; y0 = null;
+      if (dy < -30 && !document.body.classList.contains('sheetOpen')) { document.body.classList.add('sheetOpen'); U.props(); }
+      else if (dy > 30 && document.body.classList.contains('sheetOpen')) { document.body.classList.remove('sheetOpen'); U.props(); }
+    }, { passive: true });
+  })();
   U.props = function () {
     const box = $('#props'); if (!box || !E.c) return;
     const its = E.selItems();
@@ -760,6 +769,8 @@
   };
   // événements du panneau (délégués)
   U.propsClick = function (e) {
+    // toucher le titre ou la poignée du panneau : l'ouvrir en grand ou le replier (téléphone)
+    if (PHONE() && document.body.classList.contains('hasSel') && !e.target.closest('button') && (e.target.closest('.pHead') || e.target === $('#props'))) { document.body.classList.toggle('sheetOpen'); U.props(); return; }
     const t = e.target.closest('button'); if (!t) return;
     const its = E.selItems(), it = its[0], d = t.dataset;
     if (d.bg && !it) { U.setBg(d.bg); $$('#props .bgb').forEach((b) => b.classList.toggle('on', b === t)); return; }
