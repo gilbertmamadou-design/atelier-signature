@@ -14,10 +14,18 @@ package __PKG__;
      traduire(req, src, dst, texte)  → « traduit » {req, ok, text, err}
      detecter(req, texte)            → « detecte » {req, lang} (« und » si inconnue)
      parler(req, texte, lang) / taire() → « parole » {req, etat: debut|fin|erreur, err}
+     ecouter(req, lang) / arreter()  → « micro » {req, etat: perm|refuse|ecoute|fin|erreur, partiel, final, niveau, msg}
      barres()                        → {haut, bas} en px CSS (barres système, la page passe dessous)
    ===================================================================== */
 
+import android.Manifest;
 import android.app.Activity;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Bundle;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
 import android.webkit.JavascriptInterface;
@@ -35,6 +43,7 @@ import com.google.mlkit.nl.translate.Translator;
 import com.google.mlkit.nl.translate.TranslatorOptions;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Set;
 
@@ -209,6 +218,92 @@ public class TraducteurBridge {
     }
     @JavascriptInterface public void taire() {
         a.runOnUiThread(new Runnable() { public void run() { try { if (tts != null) tts.stop(); } catch (Throwable t) { } } });
+    }
+
+    /* ================= Micro : reconnaissance vocale d'Android (hors ligne si la langue est installée) ================= */
+    static final int REQ_MIC = 6301;
+    private SpeechRecognizer sr = null;
+    private boolean srOnDevice = false;
+    private String micReq = "", micLang = "";
+    private long lastLvl = 0;
+    private boolean micOk() { return a.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED; }
+    /** Appelé par MainActivity.onRequestPermissionsResult (extraCall « onPermissions ») */
+    public void onPermissions(int code) {
+        if (code == REQ_MIC) send("micro", o("req", micReq, "etat", micOk() ? "autorise" : "refuse"));
+    }
+    @JavascriptInterface public void ecouter(final String req, final String lang) {
+        micReq = req; micLang = lang;
+        a.runOnUiThread(new Runnable() { public void run() {
+            try {
+                if (!micOk()) { send("micro", o("req", req, "etat", "perm")); a.requestPermissions(new String[]{ Manifest.permission.RECORD_AUDIO }, REQ_MIC); return; }
+                boolean any = false, dev = false;
+                try { any = SpeechRecognizer.isRecognitionAvailable(a); } catch (Throwable e) { }
+                try { dev = android.os.Build.VERSION.SDK_INT >= 31 && SpeechRecognizer.isOnDeviceRecognitionAvailable(a); } catch (Throwable e) { }
+                if (!any && !dev) { send("micro", o("req", req, "etat", "erreur", "msg", "Aucune reconnaissance vocale sur ce téléphone (installe l'appli Google)")); return; }
+                creer(dev);
+                ecoute();
+            } catch (Throwable t) { send("micro", o("req", req, "etat", "erreur", "msg", msg(t))); }
+        } });
+    }
+    @JavascriptInterface public void arreter() {
+        a.runOnUiThread(new Runnable() { public void run() { try { if (sr != null) sr.stopListening(); } catch (Throwable t) { } } });
+    }
+    private void detruire() { if (sr != null) { try { sr.destroy(); } catch (Throwable e) { } sr = null; } }
+    private void creer(boolean onDevice) {
+        detruire();
+        srOnDevice = onDevice;
+        sr = onDevice ? SpeechRecognizer.createOnDeviceSpeechRecognizer(a) : SpeechRecognizer.createSpeechRecognizer(a);
+        sr.setRecognitionListener(new RecognitionListener() {
+            public void onReadyForSpeech(Bundle b) { send("micro", o("req", micReq, "etat", "ecoute")); }
+            public void onBeginningOfSpeech() { }
+            public void onRmsChanged(float db) {
+                long now = System.currentTimeMillis(); if (now - lastLvl < 90) return; lastLvl = now;
+                send("micro", o("req", micReq, "niveau", Math.max(0, Math.min(1, (db + 2) / 12.0))));
+            }
+            public void onBufferReceived(byte[] b) { }
+            public void onEndOfSpeech() { }
+            public void onError(int err) {
+                // langue absente de la reconnaissance « sur l'appareil » : repli sur le service standard (hors ligne si le pack est installé)
+                if (srOnDevice && (err == 12 || err == 13)) { creer(false); ecoute(); return; }
+                String m;
+                switch (err) {
+                    case SpeechRecognizer.ERROR_NO_MATCH: case SpeechRecognizer.ERROR_SPEECH_TIMEOUT: m = "Je n'ai rien entendu"; break;
+                    case SpeechRecognizer.ERROR_NETWORK: case SpeechRecognizer.ERROR_NETWORK_TIMEOUT: case SpeechRecognizer.ERROR_SERVER:
+                        m = "Pas de réseau, et cette langue n'est pas installée pour la reconnaissance vocale hors connexion"; break;
+                    case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS: m = "Autorisation du micro refusée"; break;
+                    case SpeechRecognizer.ERROR_AUDIO: m = "Micro occupé par une autre appli"; break;
+                    case SpeechRecognizer.ERROR_RECOGNIZER_BUSY: m = "Reconnaissance vocale occupée, réessaie"; break;
+                    case 12: case 13: m = "Cette langue n'est pas disponible pour la reconnaissance vocale sur ce téléphone"; break;
+                    default: m = "Écoute interrompue (code " + err + ")";
+                }
+                send("micro", o("req", micReq, "etat", "erreur", "msg", m, "code", err));
+                detruire();
+            }
+            public void onResults(Bundle b) {
+                ArrayList<String> r = b == null ? null : b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                send("micro", o("req", micReq, "etat", "fin", "final", r != null && !r.isEmpty() ? r.get(0) : ""));
+                detruire();
+            }
+            public void onPartialResults(Bundle b) {
+                ArrayList<String> r = b == null ? null : b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                if (r != null && !r.isEmpty()) send("micro", o("req", micReq, "partiel", r.get(0)));
+            }
+            public void onEvent(int t, Bundle b) { }
+        });
+    }
+    private void ecoute() {
+        if (sr == null) return;
+        Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, micLang);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, micLang);
+        i.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+        i.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
+        i.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
+        i.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1800);
+        i.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1500);
+        i.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, a.getPackageName());
+        try { sr.startListening(i); } catch (Throwable e) { send("micro", o("req", micReq, "etat", "erreur", "msg", msg(e))); detruire(); }
     }
 
     /** Hauteur des barres système en px CSS {haut, bas} : env(safe-area-inset-*) vaut 0 dans certaines WebView */

@@ -52,6 +52,10 @@ textarea#in::placeholder{color:var(--tx3)}
 .note{background:#ffd68c14;border:1px solid #ffd68c3d;border-radius:14px;padding:12px 14px;font-size:14px;color:#ffe5b5;display:flex;flex-direction:column;gap:10px}
 .note.info{background:var(--bg2);border-color:var(--line);color:var(--tx2)}
 .sync{font-size:13px;color:var(--tx2)}
+.mic{height:42px;min-width:42px;padding:0 12px;border-radius:21px;display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--acc);color:var(--ink);font-weight:700;font-size:13px;margin-right:auto}
+.mic.other{background:var(--acc2);color:#3a2408;margin-right:4px}
+.mic.on{background:var(--bad);color:#2a0705;box-shadow:0 0 0 calc(var(--lvl,0) * 12px + 3px) #ff8a8040;transition:box-shadow .09s}
+#cnt:empty{display:none}
 .note .row{display:flex;gap:8px;flex-wrap:wrap}
 .prog{height:5px;border-radius:3px;background:#ffffff14;overflow:hidden}
 .prog b{display:block;height:100%;background:var(--acc2);width:0;transition:width .3s}
@@ -130,6 +134,7 @@ nav#tabs button.on{color:var(--acc);background:#4fc2c91a}
       <textarea id="in" rows="4" placeholder="Écris ou colle ton texte" spellcheck="false" aria-label="Texte à traduire"></textarea>
       <div class="cfoot">
         <span class="n" id="cnt"></span>
+        <button class="mic" id="bMicIn" aria-label="Parler dans ma langue"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
         <button class="ib" id="bClr" aria-label="Effacer"><svg class="i" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
         <button class="ib" id="bSayIn" aria-label="Écouter le texte"><svg class="i" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></button>
       </div>
@@ -139,6 +144,7 @@ nav#tabs button.on{color:var(--acc);background:#4fc2c91a}
       <div id="out" class="ph" aria-live="polite">La traduction s'affiche ici</div>
       <div class="cfoot">
         <span class="n" id="det"></span>
+        <button class="mic other" id="bMicOut" aria-label="Faire parler l’autre personne"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span id="lMicOut">Réponse</span></button>
         <button class="ib" id="bCopy" aria-label="Copier la traduction"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg></button>
         <button class="ib" id="bSayOut" aria-label="Écouter la traduction"><svg class="i" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></button>
       </div>
@@ -193,6 +199,7 @@ barres(); addEventListener('load', barres); setTimeout(barres, 800);
 var S = { src:'fr', dst:'en', wifi:true, init:false, hist:[] };
 try{ Object.assign(S, JSON.parse(localStorage.getItem('traducteur') || '{}')); }catch(e){}
 if(!Array.isArray(S.hist)) S.hist = [];
+if(!S.moi) S.moi = S.src && S.src !== 'auto' ? S.src : 'fr';
 function save(){ try{ localStorage.setItem('traducteur', JSON.stringify(S)); }catch(e){} }
 
 /* ---------- Noms des langues en français ---------- */
@@ -215,10 +222,11 @@ function req(method){
     try{ B[method].apply(B, [id].concat(args)); }catch(e){ delete wait[id]; ok({ ok:false, err:String(e) }); }
   });
 }
-var onParole = null;
+var onParole = null, onMicro = null;
 window.tradEvent = function(type, json){
   var d = {}; try{ d = JSON.parse(json); }catch(e){}
   if(type === 'parole'){ if(onParole) onParole(d); return; }
+  if(type === 'micro'){ if(onMicro) onMicro(d); return; }
   var f = wait[d.req]; if(f){ delete wait[d.req]; f(d); }
 };
 
@@ -308,6 +316,8 @@ function prepare(){
 function paint(){
   $('lSrc').textContent = nm(S.src);
   $('lDst').textContent = nm(S.dst);
+  var me = S.moi || 'fr', oth = S.src === me || S.src === 'auto' ? S.dst : S.src;
+  $('lMicOut').textContent = nm(oth); $('bMicOut').setAttribute('aria-label', 'Faire parler l\u2019autre personne en '+nm(oth).toLowerCase());
   var n = Object.keys(DL).length, busy = Object.keys(BUSY).length, st = $('state');
   st.classList.toggle('wait', busy > 0);
   $('stateT').textContent = busy ? 'Téléchargement…' : n ? n+' langue'+(n > 1 ? 's' : '')+' hors ligne' : 'Aucune langue';
@@ -422,6 +432,7 @@ function translate(){
     }, Promise.resolve()).then(function(){
       if(my !== tok) return;
       var o = out.join('\n'); setOut(o);
+      if(autoSay){ autoSay = false; setTimeout(function(){ say('out'); }, 150); }
       last = { i:text.trim(), o:o.trim(), s:src, d:S.dst };
       hT = setTimeout(remember, 2500);
     });
@@ -456,6 +467,52 @@ function say(which){
   req('parler', text, lang);
   remember();
 }
+
+/* ---------- Micro : on parle, l'appli écrit, traduit et lit la traduction ----------
+   « Moi » : j'écoute dans la langue du texte. « Réponse » : j'écoute l'autre personne dans la langue de traduction,
+   puis j'inverse les langues pour lui traduire la réponse dans ma langue. */
+var TAG = { fr:'fr-FR', en:'en-US', es:'es-ES', pt:'pt-PT', it:'it-IT', de:'de-DE', nl:'nl-NL', ar:'ar', zh:'zh-CN', ja:'ja-JP', ru:'ru-RU', ko:'ko-KR', tr:'tr-TR', pl:'pl-PL', el:'el-GR', ro:'ro-RO', sv:'sv-SE', da:'da-DK', no:'nb-NO', fi:'fi-FI', cs:'cs-CZ', hu:'hu-HU', uk:'uk-UA', he:'he-IL', hi:'hi-IN', th:'th-TH', vi:'vi-VN', id:'id-ID', ca:'ca-ES' };
+var mic = null;   // {side:'in'|'out', lang, btn}
+function micStop(){ if(!mic) return; mic.btn.classList.remove('on'); mic.btn.style.removeProperty('--lvl'); mic = null; $('in').placeholder = 'Écris ou colle ton texte'; }
+function listen(side){
+  if(!B || !B.ecouter){ toast('Le micro marche dans l’application sur le téléphone'); return; }
+  if(mic){ var same = mic.side === side; try{ B.arreter(); }catch(e){} if(same) return; micStop(); }
+  try{ if(speaking){ B.taire(); speaking = ''; } }catch(e){}
+  // « Moi » parle toujours dans ma langue (S.moi, la langue de départ choisie la première fois), « Réponse » dans l'autre
+  var me = S.moi || 'fr', src = S.src === 'auto' ? (detected && detected !== 'und' ? detected : me) : S.src;
+  var other = src === me ? S.dst : src;
+  if(other === me) other = S.dst === me ? 'en' : S.dst;
+  if(side === 'in' && (S.src !== me || S.dst !== other)){ S.src = me; S.dst = other; save(); paint(); }
+  var lang = side === 'in' ? me : other;
+  mic = { side:side, lang:lang, btn: side === 'in' ? $('bMicIn') : $('bMicOut') };
+  mic.btn.classList.add('on');
+  $('in').value = ''; count();
+  $('in').placeholder = 'Je t’écoute… parle en '+nm(lang).toLowerCase();
+  setOut(side === 'in' ? 'La traduction s’affiche ici' : 'L’autre personne parle en '+nm(lang).toLowerCase()+'…', true);
+  B.ecouter('m'+(++seq), TAG[lang] || lang);
+}
+onMicro = function(d){
+  if(d.etat === 'perm'){ toast('Autorise le micro pour parler au traducteur'); return; }
+  if(d.etat === 'refuse'){ toast('Micro refusé : autorise-le dans Paramètres › Applis › Traducteur › Autorisations'); micStop(); return; }
+  if(d.etat === 'autorise'){ var side = mic && mic.side; micStop(); if(side) listen(side); return; }
+  if(!mic) return;
+  if(typeof d.niveau === 'number'){ mic.btn.style.setProperty('--lvl', d.niveau.toFixed(2)); return; }
+  if(d.partiel != null){ $('in').value = d.partiel; count(); return; }
+  if(d.etat === 'erreur'){
+    var m = d.msg || 'Écoute impossible';
+    if(/hors connexion/.test(m)) m += ' : Paramètres › Système › Langues › Reconnaissance vocale hors connexion (ou appli Google › Voix), télécharge '+nm(mic.lang).toLowerCase()+'.';
+    toast(m); micStop(); translate(); return;
+  }
+  if(d.etat === 'fin'){
+    var side = mic.side, lang = mic.lang, text = (d.final || $('in').value || '').trim();
+    micStop();
+    if(!text){ toast('Je n’ai rien entendu'); translate(); return; }
+    if(side === 'out'){ S.src = lang; S.dst = S.moi || 'fr'; save(); paint(); }   // réponse de l'autre personne, traduite dans ma langue
+    $('in').value = text; count();
+    autoSay = true; translate();
+  }
+};
+var autoSay = false;
 
 /* ---------- Choix d'une langue ---------- */
 function pick(side){
@@ -492,7 +549,7 @@ function copy(text){
 }
 
 /* ---------- Événements ---------- */
-$('in').addEventListener('input', function(){ count(); clearTimeout(tT); tT = setTimeout(translate, 550); });
+$('in').addEventListener('input', function(){ autoSay = false; count(); clearTimeout(tT); tT = setTimeout(translate, 550); });
 $('bClr').onclick = function(){ remember(); $('in').value = ''; count(); translate(); $('in').focus(); };
 $('bSwap').onclick = function(){
   var src = S.src === 'auto' ? (detected && detected !== 'und' ? detected : 'fr') : S.src;
@@ -505,6 +562,8 @@ $('bDst').onclick = function(){ pick('dst'); };
 $('shX').onclick = close; $('shade').onclick = close;
 $('bCopy').onclick = function(){ if(!$('out').classList.contains('ph')){ copy($('out').textContent); remember(); } };
 $('bSayIn').onclick = function(){ say('in'); };
+$('bMicIn').onclick = function(){ listen('in'); };
+$('bMicOut').onclick = function(){ listen('out'); };
 $('bSayOut').onclick = function(){ say('out'); };
 $('bHistClr').onclick = function(){
   var b = $('bHistClr');

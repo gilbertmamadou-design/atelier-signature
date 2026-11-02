@@ -1907,7 +1907,7 @@ GRADLE
   addfilters '<intent-filter android:label="Atelier PDF"><action android:name="android.intent.action.SEND" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="application/pdf" /></intent-filter><intent-filter android:label="Atelier PDF"><action android:name="android.intent.action.SEND_MULTIPLE" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="application/pdf" /></intent-filter>'
 fi
 # Traducteur : traduction hors ligne (ML Kit Translate, modèles de ≈ 30 Mo téléchargés une fois par langue ; détection de la
-# langue par ML Kit Language ID, incluse), lecture par la voix du téléphone. TraducteurBridge.java copié ici seulement
+# langue par ML Kit Language ID, incluse), lecture par la voix du téléphone, micro (reconnaissance vocale d'Android). TraducteurBridge.java copié ici seulement
 # (il dépend d'ML Kit, ajouté à cette appli seule).
 if [ "$APP" = "traducteur" ]; then
   cp scripts/TraducteurBridge.java "$(dirname "$F")/TraducteurBridge.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/TraducteurBridge.java"
@@ -1920,8 +1920,8 @@ android {
     defaultConfig { ndk { abiFilters "arm64-v8a", "armeabi-v7a" } }
 }
 GRADLE
-  addperm INTERNET ACCESS_NETWORK_STATE
-  addraw '<queries><intent><action android:name="android.intent.action.TTS_SERVICE" /></intent></queries>'
+  addperm INTERNET ACCESS_NETWORK_STATE RECORD_AUDIO
+  addraw '<uses-feature android:name="android.hardware.microphone" android:required="false" /><queries><intent><action android:name="android.intent.action.TTS_SERVICE" /></intent><intent><action android:name="android.speech.RecognitionService" /></intent></queries>'
   grep -n "mlkit" "$G"; grep -n "minSdkVersion" android/variables.gradle
 fi
 # Majordome : assistant vocal à commandes. MajordomeBridge.java copié ici seulement (il dépend de Vosk et JNA, ajoutés à cette appli seule) :
