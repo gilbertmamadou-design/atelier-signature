@@ -98,26 +98,44 @@
     return t.replace(/\s+/g, ' ').replace(/\s+([,.;:!?…])/g, '$1').trim();
   }
 
-  /* Membres d'une phrase et silences de ponctuation (en secondes, à vitesse 1) */
-  var PAUSE = { ',': 0.22, ';': 0.36, ':': 0.32, '…': 0.45 };
+  /* Membres d'une phrase et silences de ponctuation (en secondes, à vitesse 1).
+     Une phrase courte est dite d'une traite (intonation naturelle) ; une phrase longue est coupée à ses virgules,
+     points-virgules, deux-points et points de suspension, en membres d'une demi-ligne au moins. */
+  var PAUSE = { ',': 0.16, ';': 0.3, ':': 0.26, '…': 0.4 }, LONG = 110, MINC = 28;
+  function letters(x) { return x.replace(/[^\p{L}\p{N}]/gu, '').length; }
   function clauses(t) {
+    if (t.length <= LONG) return [{ t: t, pause: 0 }];
     var out = [], re = /([,;:…]+)[»”"’)\]]*\s+/g, m, a = 0;
     while ((m = re.exec(t))) {
       var e = m.index + m[0].length, piece = t.slice(a, e).trim();
-      // « 3,5 » n'est pas coupé (pas d'espace) ; un membre très court (« Oui, », « Mais, ») reste avec la suite
-      if (piece.replace(/[^\p{L}\p{N}]/gu, '').length < 8) continue;
-      out.push({ t: piece, pause: PAUSE[m[1].slice(-1)] || 0.22 });
+      if (letters(piece) < MINC) continue;                  // trop court : reste avec la suite
+      if (letters(t.slice(e)) < MINC) break;                // la fin serait trop courte : on ne coupe plus
+      out.push({ t: piece, pause: PAUSE[m[1].slice(-1)] || 0.16 });
       a = e;
     }
     var rest = t.slice(a).trim();
-    if (rest) { if (out.length && rest.replace(/[^\p{L}\p{N}]/gu, '').length < 6) out[out.length - 1].t += ' ' + rest; else out.push({ t: rest, pause: 0 }); }
+    if (rest) out.push({ t: rest, pause: 0 });
     return out.length ? out : [{ t: t, pause: 0 }];
   }
-  /** Silence après la phrase : point, question, exclamation, suspension ; plus long en fin de paragraphe */
+  /** Silence après la phrase. Sans ponctuation finale (fin de page d'un PDF, retour à la ligne au milieu d'une phrase) :
+      micro-pause, la phrase continue. */
   function endPause(t, para) {
-    if (para) return 0.85;
     var c = String(t).replace(/[\s»”"’)\]]+$/, '').slice(-1);
-    return c === '…' ? 0.6 : c === '?' || c === '!' ? 0.52 : c === ':' || c === ';' ? 0.38 : 0.45;
+    if (!/[.!?…:;]/.test(c)) return 0.08;
+    if (para) return 0.75;
+    return c === '…' ? 0.55 : c === '?' || c === '!' ? 0.46 : c === ':' || c === ';' ? 0.32 : 0.4;
+  }
+  /** Retire le silence que la voix laisse au début et à la fin d'un morceau (les pauses sont alors exactement celles
+      voulues) et adoucit les bords (6 ms) pour éviter les clics. */
+  function trim(x, sr) {
+    var th = 0.012, a = 0, b = x.length - 1, keep = Math.round(sr * 0.012), f = Math.round(sr * 0.006), k;
+    while (a < b && Math.abs(x[a]) < th) a++;
+    while (b > a && Math.abs(x[b]) < th) b--;
+    a = Math.max(0, a - keep); b = Math.min(x.length - 1, b + keep * 3);   // la fin d'un mot retombe doucement
+    if (b <= a) return x;
+    var y = x.slice(a, b + 1);
+    for (k = 0; k < f && k < y.length; k++) { var g = k / f; y[k] *= g; y[y.length - 1 - k] *= g; }
+    return y;
   }
 
   /* ---------------- Lecteur dans la page (PC, navigateur) ---------------- */
@@ -330,7 +348,7 @@
         if (my !== tok || !acc.length) return;
         L.voice = st.voice;
         var sr = acc[0].o.sr, end = endPause(text, it.p), n = 0, k = 0, genMs = 0, dur = 0;
-        acc.forEach(function (a, j) { a.gap = Math.round(sr * (j < acc.length - 1 ? a.pause : end) / sp); n += a.o.samples.length + a.gap; genMs += a.o.genMs || 0; dur += a.o.dur || 0; });
+        acc.forEach(function (a, j) { a.o.samples = trim(a.o.samples, sr); a.gap = Math.round(sr * (j < acc.length - 1 ? a.pause : end) / sp); n += a.o.samples.length + a.gap; genMs += a.o.genMs || 0; dur += a.o.dur || 0; });
         var pcm = new Float32Array(n);
         acc.forEach(function (a) { pcm.set(a.o.samples, k); k += a.o.samples.length + a.gap; });
         it.id = id; it.dur = pcm.length / sr; q.push(it);
