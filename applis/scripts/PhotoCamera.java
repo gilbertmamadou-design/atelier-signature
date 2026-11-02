@@ -1331,7 +1331,8 @@ public class PhotoCamera extends Activity {
             cv.drawText(sep + dLong, tx + cp.measureText(place), by, dp);
             cv.restore();
         } else {
-            float cw = "coin".equals(pos) ? S * 0.62f : Math.min(vw - 2 * mg, S * 0.80f), ch = cw * 0.30f;
+            // bandeau réduit (≈ 60 % de l'ancienne taille) pour laisser voir la photo
+            float cw = "coin".equals(pos) ? S * 0.40f : Math.min(vw - 2 * mg, S * 0.48f), ch = cw * 0.30f;
             float x = "coin".equals(pos) ? vw - cw - mg : mg, y = "haut".equals(pos) ? mg : vh - ch - mg;
             RectF card = new RectF(x, y, x + cw, y + ch); float rr = ch * 0.05f;
             Paint cs = pcPaint(PC_CREAM); cs.setShadowLayer(S * 0.014f, 0, S * 0.005f, 0x73000000);

@@ -222,17 +222,20 @@ html.calme *{transition:none!important}
   #pageNav .pgLabel{padding:6px 7px;font-size:12px}
   #edTop .ibtn{width:38px}
   #props{position:absolute;left:0;right:0;bottom:0;max-height:0;border-top:1px solid var(--line);border-radius:16px 16px 0 0;box-shadow:0 -6px 20px #3a240f30;transition:max-height .2s}
-  body.hasSel #props{max-height:62px;overflow:hidden}
-  body.hasSel.sheetOpen #props{max-height:48vh;overflow:auto}
+  body.hasSel #props{max-height:calc(62px + var(--safeB));padding-bottom:var(--safeB);overflow:hidden}
+  body.hasSel.sheetOpen #props{max-height:calc(48vh + var(--safeB));overflow:auto}
   body.hasSel #tools{display:none}
-  body.hasSel #stage{margin-bottom:62px}
-  body.hasSel.sheetOpen #stage{margin-bottom:48vh}
+  body.hasSel #stage{margin-bottom:calc(62px + var(--safeB))}
+  body.hasSel.sheetOpen #stage{margin-bottom:calc(48vh + var(--safeB))}
   #props .chips.tabs{flex-wrap:nowrap;overflow-x:auto;padding:0 10px;margin:0}
   #props .chips.tabs .chip{flex:none}
   .covGrid{grid-template-columns:1fr}
   .covPv{width:150px;margin:0 auto}
   .o-dlg-wrap.cv-dlg{align-items:flex-end;padding:0}
-  .cv-dlg .o-dlg{width:100%;max-height:88vh;border-radius:18px 18px 0 0}
+  .cv-dlg .o-dlg{width:100%;max-height:calc(88vh - var(--safeT));border-radius:18px 18px 0 0}
+  /* boutons du bas au-dessus de la barre de navigation Android (flèches retour, accueil) */
+  .o-dlg-ft{padding-bottom:calc(12px + var(--safeB))}
+  .o-dlg-ft:empty{display:block;padding:0 0 var(--safeB);border:0}
 }
 /* ---------- PC ---------- */
 @media (min-width:900px){

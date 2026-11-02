@@ -65,6 +65,22 @@ public class VoyageBridge {
 
     @JavascriptInterface public String version() { return "2"; }
 
+    /** Hauteur des barres système en px CSS {haut, bas} : la page passe sous la barre de navigation (bord à bord)
+     *  et env(safe-area-inset-bottom) vaut 0 dans certaines WebView ; la page s'en sert pour garder ses boutons visibles. */
+    @JavascriptInterface public String barres() {
+        try {
+            android.view.WindowInsets w = a.getWindow().getDecorView().getRootWindowInsets();
+            if (w == null) return "{}";
+            float d = a.getResources().getDisplayMetrics().density;
+            int top, bot;
+            if (android.os.Build.VERSION.SDK_INT >= 30) {
+                android.graphics.Insets i = w.getInsetsIgnoringVisibility(android.view.WindowInsets.Type.systemBars() | android.view.WindowInsets.Type.displayCutout());
+                top = i.top; bot = i.bottom;
+            } else { top = w.getStableInsetTop(); bot = w.getStableInsetBottom(); }
+            return "{\"haut\":" + Math.round(top / d) + ",\"bas\":" + Math.round(bot / d) + "}";
+        } catch (Throwable e) { return "{}"; }
+    }
+
     /** « na » (Android 9 et avant : rien n'est retiré), « granted » ou « ask » */
     @JavascriptInterface public String locState() {
         if (Build.VERSION.SDK_INT < 29) return "na";

@@ -1403,7 +1403,7 @@ function postcard(g, vw, vh, o){
     g.fillStyle = '#2e2620'; g.textAlign = 'left'; g.fillText(place, tx, by);
     g.font = ds2+'px '+F_SANS; g.fillText(sep + dLong, tx + pw, by);
   } else {
-    var cw = pos === 'coin' ? S*0.62 : Math.min(vw - 2*mg, S*0.80), ch = cw*0.30, x3 = pos === 'coin' ? vw - cw - mg : mg, y3 = pos === 'haut' ? mg : vh - ch - mg, rr = ch*0.05;
+    var cw = pos === 'coin' ? S*0.40 : Math.min(vw - 2*mg, S*0.48), ch = cw*0.30, x3 = pos === 'coin' ? vw - cw - mg : mg, y3 = pos === 'haut' ? mg : vh - ch - mg, rr = ch*0.05;
     g.save(); g.shadowColor = 'rgba(0,0,0,.45)'; g.shadowBlur = S*0.014; g.shadowOffsetY = S*0.005; g.fillStyle = PC_CREAM; roundRect(g, x3, y3, cw, ch, rr); g.fill(); g.restore();
     g.save(); roundRect(g, x3, y3, cw, ch, rr); g.clip();
     var q = ch*0.13, n = 0; g.lineWidth = q*0.36;

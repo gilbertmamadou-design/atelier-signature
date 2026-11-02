@@ -98,6 +98,28 @@
     return t.replace(/\s+/g, ' ').replace(/\s+([,.;:!?…])/g, '$1').trim();
   }
 
+  /* Membres d'une phrase et silences de ponctuation (en secondes, à vitesse 1) */
+  var PAUSE = { ',': 0.22, ';': 0.36, ':': 0.32, '…': 0.45 };
+  function clauses(t) {
+    var out = [], re = /([,;:…]+)[»”"’)\]]*\s+/g, m, a = 0;
+    while ((m = re.exec(t))) {
+      var e = m.index + m[0].length, piece = t.slice(a, e).trim();
+      // « 3,5 » n'est pas coupé (pas d'espace) ; un membre très court (« Oui, », « Mais, ») reste avec la suite
+      if (piece.replace(/[^\p{L}\p{N}]/gu, '').length < 8) continue;
+      out.push({ t: piece, pause: PAUSE[m[1].slice(-1)] || 0.22 });
+      a = e;
+    }
+    var rest = t.slice(a).trim();
+    if (rest) { if (out.length && rest.replace(/[^\p{L}\p{N}]/gu, '').length < 6) out[out.length - 1].t += ' ' + rest; else out.push({ t: rest, pause: 0 }); }
+    return out.length ? out : [{ t: t, pause: 0 }];
+  }
+  /** Silence après la phrase : point, question, exclamation, suspension ; plus long en fin de paragraphe */
+  function endPause(t, para) {
+    if (para) return 0.85;
+    var c = String(t).replace(/[\s»”"’)\]]+$/, '').slice(-1);
+    return c === '…' ? 0.6 : c === '?' || c === '!' ? 0.52 : c === ':' || c === ';' ? 0.38 : 0.45;
+  }
+
   /* ---------------- Lecteur dans la page (PC, navigateur) ---------------- */
   // Joue les phrases l'une après l'autre : son Piper (Web Audio) ou voix du système (speechSynthesis).
   // Garde les 3 dernières phrases pour « phrase précédente ». Les touches multimédia passent par la Media Session.
@@ -294,16 +316,27 @@
         sink.pushText(id, text, rate, meta);
         return Promise.resolve();
       }
-      var g0 = Date.now();
-      return opt.vx.chunk(text, { voice: st.voice, rate: st.rate, fx: st.fx || 'aucun', fxo: st.fxo || null, volume: 1 }).then(function (o) {
-        if (my !== tok) return;
+      var g0 = Date.now(), cfg = { voice: st.voice, rate: st.rate, fx: st.fx || 'aucun', fxo: st.fxo || null, volume: 1 }, sp = Math.max(0.75, +st.rate || 1);
+      // la phrase est dite membre par membre (virgule, point-virgule, deux-points, points de suspension) avec un vrai silence
+      // à chaque signe, comme un lecteur qui respire : plus de phrase « d'un bloc » ; la ponctuation reste collée au membre
+      // pour que la voix garde l'intonation suspendue
+      var parts = clauses(text);
+      return parts.reduce(function (pr, c) {
+        return pr.then(function (acc) {
+          if (my !== tok) return acc;
+          return opt.vx.chunk(c.t, cfg).then(function (o) { acc.push({ o: o, pause: c.pause }); return acc; });
+        });
+      }, Promise.resolve([])).then(function (acc) {
+        if (my !== tok || !acc.length) return;
         L.voice = st.voice;
-        var gap = Math.round(o.sr * (it.p ? 0.55 : 0.18) / Math.max(0.75, +st.rate || 1)), pcm = new Float32Array(o.samples.length + gap);
-        pcm.set(o.samples, 0);
-        it.id = id; it.dur = pcm.length / o.sr; q.push(it);
-        L.stats.gen.push({ dur: o.dur, ms: Date.now() - g0, genMs: o.genMs, chars: text.length });
+        var sr = acc[0].o.sr, end = endPause(text, it.p), n = 0, k = 0, genMs = 0, dur = 0;
+        acc.forEach(function (a, j) { a.gap = Math.round(sr * (j < acc.length - 1 ? a.pause : end) / sp); n += a.o.samples.length + a.gap; genMs += a.o.genMs || 0; dur += a.o.dur || 0; });
+        var pcm = new Float32Array(n);
+        acc.forEach(function (a) { pcm.set(a.o.samples, k); k += a.o.samples.length + a.gap; });
+        it.id = id; it.dur = pcm.length / sr; q.push(it);
+        L.stats.gen.push({ dur: dur, ms: Date.now() - g0, genMs: genMs, chars: text.length });
         if (L.stats.gen.length > 400) L.stats.gen.shift();
-        sink.pushPcm(id, pcm, o.sr, meta);
+        sink.pushPcm(id, pcm, sr, meta);
       }, function (e) {
         if (my !== tok) return;
         // Piper indisponible (moteur, voix) : voix du système pour la suite, sans arrêter la lecture

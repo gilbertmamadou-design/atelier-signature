@@ -410,8 +410,10 @@ function dbDel(st,id){ return tx(st,'readwrite',function(s){ return s.delete(id)
 function dbAll(st){ return tx(st,'readonly',function(s){ return s.getAll(); }); }
 
 var BOOKS=[];
-var DEF={fs:19, lh:1.55, mg:'m', font:'serif', theme:'sombre', mode:'pages', just:true, dim:0, rate:1};
+var DEF={fs:16, lh:1.45, mg:'m', font:'serif', theme:'sombre', mode:'pages', just:true, dim:0, rate:1};
 var S=Object.assign({}, DEF, J(localStorage.getItem('liseuse-set'),{}));
+// texte « page de livre » : une seule fois, on ramène l'ancienne taille par défaut (19) et plus à 16 ; réglable ensuite de 11 à 34
+if(!S.livre){ if(S.fs>=17) S.fs=16; if(S.lh>1.5) S.lh=1.45; S.livre=1; try{ localStorage.setItem('liseuse-set', JSON.stringify(S)); }catch(e){} }
 var L=Object.assign({sort:'recent', filter:'all', colls:['À lire','Classiques'], last:'', openId:'', group:'none', bar:'', fold:{}}, J(localStorage.getItem('liseuse-lib'),{}));
 if(!Array.isArray(L.colls)) L.colls=['À lire','Classiques'];
 if(!L.fold || typeof L.fold!=='object') L.fold={};
@@ -1975,7 +1977,7 @@ $('rNotes').onclick=function(){ tocSheet('hl'); };
 
 /* Réglages d'affichage */
 function setSheet(){
-  var body='<div class="set"><div class="lab">Taille du texte <span id="vFs">'+S.fs+'</span></div><div class="stp"><button data-fs="-1" style="font-size:14px">A</button><div class="v"><input type="range" id="sFs" min="13" max="34" step="1" value="'+S.fs+'"></div><button data-fs="1" style="font-size:22px">A</button></div></div>'+
+  var body='<div class="set"><div class="lab">Taille du texte <span id="vFs">'+S.fs+'</span></div><div class="stp"><button data-fs="-1" style="font-size:14px">A</button><div class="v"><input type="range" id="sFs" min="11" max="34" step="1" value="'+S.fs+'"></div><button data-fs="1" style="font-size:22px">A</button></div></div>'+
     '<div class="set"><div class="lab">Thème</div><div class="themes">'+Object.keys(THEMES).map(function(k){ var T=THEMES[k]; return '<button data-th="'+k+'" style="background:'+T.bg+';color:'+T.tx+';'+(k==='nuit'?'box-shadow:0 0 0 1px #ffffff26 inset;':'')+'"'+(S.theme===k?' class="on"':'')+'><b>Aa</b>'+T.name+'</button>'; }).join('')+'</div></div>'+
     '<div class="set"><div class="lab">Police</div><div class="seg" data-k="font"><button data-v="serif" style="font-family:Georgia,serif">Serif</button><button data-v="sans">Sans</button><button data-v="cond" style="font-stretch:condensed">Étroite</button><button data-v="mono" style="font-family:monospace">Mono</button></div></div>'+
     '<div class="set"><div class="lab">Interligne <span id="vLh">'+String(S.lh).replace('.',',')+'</span></div><input type="range" id="sLh" min="1.2" max="2.2" step="0.05" value="'+S.lh+'"></div>'+
@@ -1990,7 +1992,7 @@ function setSheet(){
   var relayT=null;
   var relayout=function(now){ saveS(); clearTimeout(relayT); relayT=setTimeout(function(){ relayoutKeep(); }, now?0:120); };
   sb.onclick=function(e){
-    var f=e.target.closest('[data-fs]'); if(f){ S.fs=clamp(S.fs+(+f.dataset.fs),13,34); sb.querySelector('#sFs').value=S.fs; sb.querySelector('#vFs').textContent=S.fs; relayout(); return; }
+    var f=e.target.closest('[data-fs]'); if(f){ S.fs=clamp(S.fs+(+f.dataset.fs),11,34); sb.querySelector('#sFs').value=S.fs; sb.querySelector('#vFs').textContent=S.fs; relayout(); return; }
     var t=e.target.closest('[data-th]'); if(t){ S.theme=t.dataset.th; applyTheme(); mark(); relayout(true); return; }
     var b=e.target.closest('.seg[data-k] button'); if(b){ var k=b.parentNode.dataset.k; S[k]=b.dataset.v; mark(); relayout(true); }
   };
