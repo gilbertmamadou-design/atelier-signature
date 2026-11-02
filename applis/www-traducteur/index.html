@@ -56,6 +56,19 @@ textarea#in::placeholder{color:var(--tx3)}
 .mic.other{background:var(--acc2);color:#3a2408;margin-right:4px}
 .mic.on{background:var(--bad);color:#2a0705;box-shadow:0 0 0 calc(var(--lvl,0) * 12px + 3px) #ff8a8040;transition:box-shadow .09s}
 #cnt:empty{display:none}
+main > *{flex-shrink:0}
+.card.photo{overflow:hidden}
+.ph-hd{display:flex;align-items:center;gap:8px;padding:6px 6px 6px 14px}
+.ph-hd b{font-size:15px}
+.ph-hd .n{flex:1;font-size:12.5px;color:var(--tx3)}
+#phImg{display:block;width:100%;max-height:230px;object-fit:contain;background:#000}
+#phMiss{margin:10px}
+#phList{list-style:none;margin:0;padding:4px 14px 10px}
+#phList li{padding:10px 0;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:2px;cursor:pointer}
+#phList li:first-child{border-top:0}
+#phList .o{font-size:13.5px;color:var(--tx3)}
+#phList .t{font-size:17px;line-height:1.35}
+#phList .t.wait{color:var(--tx3)}
 .note .row{display:flex;gap:8px;flex-wrap:wrap}
 .prog{height:5px;border-radius:3px;background:#ffffff14;overflow:hidden}
 .prog b{display:block;height:100%;background:var(--acc2);width:0;transition:width .3s}
@@ -130,11 +143,21 @@ nav#tabs button.on{color:var(--acc);background:#4fc2c91a}
     <div class="note" id="miss" hidden></div>
     <div class="note info" id="nobridge" hidden>Cette page est l'interface de l'application Traducteur pour Android. Installe l'APK sur le téléphone pour traduire sans connexion.</div>
 
+    <section class="card photo" id="photo" hidden>
+      <div class="ph-hd"><b>Photo</b><span class="n" id="phSt"></span><button class="ib" id="phX" aria-label="Fermer la photo"><svg class="i" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+      <img id="phImg" alt="Photo à traduire">
+      <div id="phMiss" class="note" hidden></div>
+      <ol id="phList"></ol>
+    </section>
+    <input type="file" id="fCam" accept="image/*" capture="environment" hidden>
+    <input type="file" id="fGal" accept="image/*" hidden>
+
     <section class="card">
       <textarea id="in" rows="4" placeholder="Écris ou colle ton texte" spellcheck="false" aria-label="Texte à traduire"></textarea>
       <div class="cfoot">
         <span class="n" id="cnt"></span>
         <button class="mic" id="bMicIn" aria-label="Parler dans ma langue"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+        <button class="ib" id="bCam" aria-label="Traduire une photo (menu, panneau)"><svg class="i" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
         <button class="ib" id="bClr" aria-label="Effacer"><svg class="i" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
         <button class="ib" id="bSayIn" aria-label="Écouter le texte"><svg class="i" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></button>
       </div>
@@ -517,6 +540,100 @@ onMicro = function(d){
   }
 };
 var autoSay = false;
+
+/* ---------- Photo : menu, panneau, étiquette ----------
+   La photo est redressée et réduite (1600 px), le texte est lu sur le téléphone (ML Kit), puis chaque ligne est
+   traduite dans ma langue. La langue de la photo est reconnue toute seule. */
+var phTok = 0;
+function photoMenu(){
+  var bd = $('shB'); $('shT').textContent = 'Traduire une photo'; bd.innerHTML = '';
+  [['Prendre une photo', 'Menu, panneau, étiquette', 'fCam'], ['Choisir dans la galerie', 'Une photo déjà prise', 'fGal']].forEach(function(x){
+    var b = document.createElement('button'); b.className = 'opt';
+    var t = document.createElement('span'); t.className = 't'; t.textContent = x[0];
+    var sm = document.createElement('small'); sm.textContent = x[1]; t.appendChild(sm); b.appendChild(t);
+    b.onclick = function(){ close(); var f = $(x[2]); f.value = ''; f.click(); };
+    bd.appendChild(b);
+  });
+  $('shade').classList.add('on'); $('sheet').classList.add('on');
+}
+function shrink(file){
+  var max = 1600;
+  function draw(src, w, h){
+    var k = Math.min(1, max / Math.max(w, h)), c = document.createElement('canvas');
+    c.width = Math.round(w * k); c.height = Math.round(h * k);
+    c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', 0.88);
+  }
+  if(window.createImageBitmap){
+    return createImageBitmap(file, { imageOrientation:'from-image' }).then(function(bm){ return draw(bm, bm.width, bm.height); });
+  }
+  return new Promise(function(ok, ko){
+    var im = new Image(), u = URL.createObjectURL(file);
+    im.onload = function(){ ok(draw(im, im.naturalWidth, im.naturalHeight)); URL.revokeObjectURL(u); };
+    im.onerror = function(){ ko(new Error('image illisible')); }; im.src = u;
+  });
+}
+function phStatus(t){ $('phSt').textContent = t; }
+function photoFile(file){
+  if(!file) return;
+  if(!B || !B.lireTexte){ toast('La photo marche dans l’application sur le téléphone'); return; }
+  var my = ++phTok, list = $('phList');
+  $('photo').hidden = false; $('phMiss').hidden = true; list.innerHTML = ''; phStatus('Lecture du texte…');
+  $('photo').scrollIntoView({ block:'start', behavior:'smooth' });
+  shrink(file).then(function(data){
+    if(my !== phTok) return;
+    $('phImg').src = data;
+    return req('lireTexte', data);
+  }).then(function(r){
+    if(my !== phTok || !r) return;
+    if(!r.ok){ phStatus('Lecture impossible'); toast('Lecture du texte impossible ('+(r.err || 'erreur')+')'); return; }
+    var lines = [];
+    (r.blocs || []).forEach(function(b){ (b.lignes || []).forEach(function(l){ if(l.t && /\p{L}/u.test(l.t)) lines.push(l.t.trim()); }); });
+    if(!lines.length){ phStatus('Aucun texte trouvé'); toast('Aucun texte trouvé : rapproche-toi et évite les reflets'); return; }
+    phStatus(lines.length+' ligne'+(lines.length > 1 ? 's' : ''));
+    lines.forEach(function(t){
+      var li = document.createElement('li'), o = document.createElement('span'), tr = document.createElement('span');
+      o.className = 'o'; o.textContent = t; tr.className = 't wait'; tr.textContent = '…';
+      li.appendChild(o); li.appendChild(tr); list.appendChild(li);
+    });
+    var me = S.moi || 'fr';
+    return req('detecter', lines.join('\n').slice(0, 1500)).then(function(d){
+      if(my !== phTok) return;
+      var src = d.lang && d.lang !== 'und' ? d.lang : (S.src !== me && S.src !== 'auto' ? S.src : S.dst !== me ? S.dst : 'en');
+      if(ALL.indexOf(src) < 0) src = S.dst !== me ? S.dst : 'en';
+      phStatus(lines.length+' ligne'+(lines.length > 1 ? 's' : '')+' · '+nm(src)+' → '+nm(me));
+      if(src === me){ Array.prototype.forEach.call(list.children, function(li){ var t = li.querySelector('.t'); t.textContent = li.querySelector('.o').textContent; t.classList.remove('wait'); }); return; }
+      var miss = [src, me].filter(function(c){ return !has(c); });
+      if(miss.length){
+        var el = $('phMiss'); el.hidden = false; el.innerHTML = '';
+        var t = document.createElement('div'); t.textContent = 'Pour traduire cette photo, télécharge d’abord '+miss.map(function(c){ return nm(c).toLowerCase(); }).join(' et ')+' (≈ 30 Mo).';
+        var row = document.createElement('div'); row.className = 'row';
+        var bt = document.createElement('button'); bt.className = 'btn pri sm'; bt.textContent = 'Télécharger puis traduire';
+        bt.onclick = function(){ el.hidden = true; phStatus('Téléchargement…'); miss.reduce(function(p, c){ return p.then(function(){ return has(c) ? null : download(c); }); }, Promise.resolve()).then(function(){ if(miss.every(has)) photoFile(file); }); };
+        row.appendChild(bt); el.appendChild(t); el.appendChild(row);
+        return;
+      }
+      // une ligne après l'autre : les prix et les nombres seuls restent tels quels
+      return Array.prototype.reduce.call(list.children, function(p, li){
+        return p.then(function(){
+          if(my !== phTok) return;
+          var o = li.querySelector('.o').textContent, t = li.querySelector('.t');
+          if(!/\p{L}{2}/u.test(o)){ t.textContent = o; t.classList.remove('wait'); return; }
+          return req('traduire', src, me, o).then(function(x){ t.textContent = x.ok ? x.text : o; t.classList.remove('wait'); });
+        });
+      }, Promise.resolve()).then(function(){
+        if(my !== phTok) return;
+        Array.prototype.forEach.call(list.children, function(li){
+          li.onclick = function(){ S.src = src; S.dst = me; save(); paint(); $('in').value = li.querySelector('.o').textContent; count(); translate(); $('in').scrollIntoView({ block:'center', behavior:'smooth' }); };
+        });
+      });
+    });
+  }).catch(function(e){ if(my === phTok){ phStatus('Photo illisible'); toast('Photo illisible : '+(e && e.message || e)); } });
+}
+$('bCam').onclick = photoMenu;
+$('fCam').onchange = function(){ photoFile(this.files && this.files[0]); };
+$('fGal').onchange = function(){ photoFile(this.files && this.files[0]); };
+$('phX').onclick = function(){ phTok++; $('photo').hidden = true; $('phImg').removeAttribute('src'); $('phList').innerHTML = ''; };
 
 /* ---------- Choix d'une langue ---------- */
 function pick(side){

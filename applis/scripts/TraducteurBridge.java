@@ -14,6 +14,7 @@ package __PKG__;
      traduire(req, src, dst, texte)  → « traduit » {req, ok, text, err}
      detecter(req, texte)            → « detecte » {req, lang} (« und » si inconnue)
      parler(req, texte, lang) / taire() → « parole » {req, etat: debut|fin|erreur, err}
+     lireTexte(req, jpegBase64)      → « texte » {req, ok, w, h, blocs:[{lignes:[{t, x, y, w, h}]}], err} (photo d'un menu…)
      ecouter(req, lang) / arreter()  → « micro » {req, etat: perm|refuse|ecoute|fin|erreur, partiel, final, niveau, msg}
      barres()                        → {haut, bas} en px CSS (barres système, la page passe dessous)
    ===================================================================== */
@@ -23,6 +24,15 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Rect;
+import android.util.Base64;
+import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.text.Text;
+import com.google.mlkit.vision.text.TextRecognition;
+import com.google.mlkit.vision.text.TextRecognizer;
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -218,6 +228,41 @@ public class TraducteurBridge {
     }
     @JavascriptInterface public void taire() {
         a.runOnUiThread(new Runnable() { public void run() { try { if (tts != null) tts.stop(); } catch (Throwable t) { } } });
+    }
+
+    /* ================= Photo : lecture du texte (ML Kit Text Recognition, alphabet latin, sur le téléphone) ================= */
+    private TextRecognizer ocr = null;
+    @JavascriptInterface public void lireTexte(final String req, final String b64) {
+        final Bitmap bmp;
+        try {
+            String d = b64 == null ? "" : b64.replaceFirst("^data:[^,]*,", "");
+            byte[] by = Base64.decode(d, Base64.DEFAULT);
+            bmp = BitmapFactory.decodeByteArray(by, 0, by.length);
+            if (bmp == null) throw new Exception("image illisible");
+        } catch (Throwable t) { send("texte", o("req", req, "ok", false, "err", msg(t))); return; }
+        a.runOnUiThread(new Runnable() { public void run() {
+            try {
+                if (ocr == null) ocr = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+                ocr.process(InputImage.fromBitmap(bmp, 0))
+                    .addOnSuccessListener(new OnSuccessListener<Text>() { public void onSuccess(Text res) {
+                        JSONArray blocs = new JSONArray();
+                        try {
+                            for (Text.TextBlock b : res.getTextBlocks()) {
+                                JSONArray lignes = new JSONArray();
+                                for (Text.Line l : b.getLines()) {
+                                    Rect r = l.getBoundingBox();
+                                    JSONObject j = o("t", l.getText());
+                                    if (r != null) { j.put("x", r.left); j.put("y", r.top); j.put("w", r.width()); j.put("h", r.height()); }
+                                    lignes.put(j);
+                                }
+                                blocs.put(o("lignes", lignes));
+                            }
+                        } catch (Throwable t) { }
+                        send("texte", o("req", req, "ok", true, "w", bmp.getWidth(), "h", bmp.getHeight(), "blocs", blocs));
+                    } })
+                    .addOnFailureListener(new OnFailureListener() { public void onFailure(Exception e) { send("texte", o("req", req, "ok", false, "err", msg(e))); } });
+            } catch (Throwable t) { send("texte", o("req", req, "ok", false, "err", msg(t))); }
+        } });
     }
 
     /* ================= Micro : reconnaissance vocale d'Android (hors ligne si la langue est installée) ================= */

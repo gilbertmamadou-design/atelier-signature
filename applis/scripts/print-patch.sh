@@ -1907,11 +1907,12 @@ GRADLE
   addfilters '<intent-filter android:label="Atelier PDF"><action android:name="android.intent.action.SEND" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="application/pdf" /></intent-filter><intent-filter android:label="Atelier PDF"><action android:name="android.intent.action.SEND_MULTIPLE" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="application/pdf" /></intent-filter>'
 fi
 # Traducteur : traduction hors ligne (ML Kit Translate, modèles de ≈ 30 Mo téléchargés une fois par langue ; détection de la
-# langue par ML Kit Language ID, incluse), lecture par la voix du téléphone, micro (reconnaissance vocale d'Android). TraducteurBridge.java copié ici seulement
+# langue par ML Kit Language ID, incluse), lecture par la voix du téléphone, micro (reconnaissance vocale d'Android),
+# photo d'un menu ou d'un panneau (ML Kit Text Recognition, alphabet latin, inclus dans l'APK : hors ligne). TraducteurBridge.java copié ici seulement
 # (il dépend d'ML Kit, ajouté à cette appli seule).
 if [ "$APP" = "traducteur" ]; then
   cp scripts/TraducteurBridge.java "$(dirname "$F")/TraducteurBridge.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/TraducteurBridge.java"
-  grep -q "com.google.mlkit:translate" "$G" || sed -i '0,/^dependencies {/s//dependencies {\n    implementation "com.google.mlkit:translate:17.0.3"\n    implementation "com.google.mlkit:language-id:17.0.6"/' "$G"
+  grep -q "com.google.mlkit:translate" "$G" || sed -i '0,/^dependencies {/s//dependencies {\n    implementation "com.google.mlkit:translate:17.0.3"\n    implementation "com.google.mlkit:language-id:17.0.6"\n    implementation "com.google.mlkit:text-recognition:16.0.1"/' "$G"
   sed -i 's/minSdkVersion = 2[0-2]$/minSdkVersion = 23/' android/variables.gradle
   cat >> "$G" <<'GRADLE'
 
