@@ -398,7 +398,7 @@ public class MainActivity extends BridgeActivity {
     private final java.util.List<Object> extraBridges = new java.util.ArrayList<Object>();
     private void loadExtraBridges(WebView wv) {
         String pkg = MainActivity.class.getPackage().getName();
-        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge", "ReseauBridge", "LecteurBridge", "PdfBridge", "SolaireBridge", "SocleBridge", "FichiersBridge", "ActualitesBridge", "ToileBridge", "OfficeBridge", "MajordomeBridge", "VoyageBridge" }) {
+        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge", "ReseauBridge", "LecteurBridge", "PdfBridge", "SolaireBridge", "SocleBridge", "FichiersBridge", "ActualitesBridge", "ToileBridge", "OfficeBridge", "MajordomeBridge", "VoyageBridge", "TraducteurBridge" }) {
             try {
                 Class<?> k = Class.forName(pkg + "." + n);
                 Object o = k.getConstructor(android.app.Activity.class, WebView.class).newInstance(this, wv);
@@ -1624,7 +1624,7 @@ FSV="$(dirname "$F")/FileService.java"
 cp scripts/FileService.java "$FSV"
 sed -i "s/__PKG__/$PKG/" "$FSV"
 # Réveil, lever de soleil et endormissement (application Aube)
-for J in $(ls scripts/*Bridge.java 2>/dev/null | xargs -n1 basename 2>/dev/null | sed 's/\.java$//' | grep -vxE 'PdfBridge|MajordomeBridge'); do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
+for J in $(ls scripts/*Bridge.java 2>/dev/null | xargs -n1 basename 2>/dev/null | sed 's/\.java$//' | grep -vxE 'PdfBridge|MajordomeBridge|TraducteurBridge'); do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
 for J in AlarmService AlarmReceiver WallpaperJob WallpaperTile LauncherService LauncherA11y LauncherMedia WidgetProvider SauvegardeJob PhotoCamera EcranPlayer DictaService MeteoPersoJob MelodieVolume; do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
 # Bibliothèque des tâches de fond
 G=android/app/build.gradle
@@ -1905,6 +1905,24 @@ android {
 GRADLE
   grep -n "mlkit\|pdfbox" "$G"; grep -n "minSdkVersion" android/variables.gradle
   addfilters '<intent-filter android:label="Atelier PDF"><action android:name="android.intent.action.SEND" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="application/pdf" /></intent-filter><intent-filter android:label="Atelier PDF"><action android:name="android.intent.action.SEND_MULTIPLE" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="application/pdf" /></intent-filter>'
+fi
+# Traducteur : traduction hors ligne (ML Kit Translate, modèles de ≈ 30 Mo téléchargés une fois par langue ; détection de la
+# langue par ML Kit Language ID, incluse), lecture par la voix du téléphone. TraducteurBridge.java copié ici seulement
+# (il dépend d'ML Kit, ajouté à cette appli seule).
+if [ "$APP" = "traducteur" ]; then
+  cp scripts/TraducteurBridge.java "$(dirname "$F")/TraducteurBridge.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/TraducteurBridge.java"
+  grep -q "com.google.mlkit:translate" "$G" || sed -i '0,/^dependencies {/s//dependencies {\n    implementation "com.google.mlkit:translate:17.0.3"\n    implementation "com.google.mlkit:language-id:17.0.6"/' "$G"
+  sed -i 's/minSdkVersion = 2[0-2]$/minSdkVersion = 23/' android/variables.gradle
+  cat >> "$G" <<'GRADLE'
+
+android {
+    // Bibliothèques natives d'ML Kit : seulement pour les processeurs ARM des téléphones (APK plus léger)
+    defaultConfig { ndk { abiFilters "arm64-v8a", "armeabi-v7a" } }
+}
+GRADLE
+  addperm INTERNET ACCESS_NETWORK_STATE
+  addraw '<queries><intent><action android:name="android.intent.action.TTS_SERVICE" /></intent></queries>'
+  grep -n "mlkit" "$G"; grep -n "minSdkVersion" android/variables.gradle
 fi
 # Majordome : assistant vocal à commandes. MajordomeBridge.java copié ici seulement (il dépend de Vosk et JNA, ajoutés à cette appli seule) :
 # reconnaissance hors ligne (com.alphacephei:vosk-android, Apache-2.0 ; modèle téléchargé au premier lancement), écoute continue

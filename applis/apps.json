@@ -300,5 +300,13 @@
   "name": "Tableur",
   "icons": "android-icons-tableur",
   "file": "Tableur.apk"
+ },
+ {
+  "app": "traducteur",
+  "web": "www-traducteur",
+  "appid": "fr.magformation13.traducteur",
+  "name": "Traducteur",
+  "icons": "android-icons-traducteur",
+  "file": "Traducteur.apk"
  }
 ]

@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
+<title>Traducteur</title>
+<meta name="theme-color" content="#0e1a22">
+<style>
+/* Traducteur : une colonne, deux cartes (texte d'origine, traduction) sous la barre des langues, onglets en bas */
+:root{
+  color-scheme:dark;
+  --bg:#0e1a22;--bg2:#15242e;--bg3:#1d3240;--bg4:#264052;--line:#ffffff17;
+  --tx:#eef4f7;--tx2:#a9bcc7;--tx3:#6f8794;
+  --acc:#4fc2c9;--acc2:#ffd68c;--ink:#08262a;--bad:#ff8a80;--ok:#7fd8a6;
+  --safeT:env(safe-area-inset-top,0px);--safeB:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+textarea,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none;display:block}
+[hidden]{display:none!important}
+#app{display:flex;flex-direction:column;height:100%}
+header{padding:calc(12px + var(--safeT)) 16px 6px;display:flex;align-items:center;gap:10px}
+header h1{margin:0;font-size:21px;font-weight:800;letter-spacing:-.01em;flex:1}
+.pill{font-size:12px;font-weight:700;padding:5px 10px;border-radius:99px;background:var(--bg3);color:var(--tx2);display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.pill i{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.pill.wait i{background:var(--acc2);animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.25}}
+main{flex:1;overflow:auto;padding:4px 16px 20px;display:flex;flex-direction:column;gap:12px}
+.langbar{display:grid;grid-template-columns:1fr 44px 1fr;gap:8px;align-items:center;position:sticky;top:0;z-index:3;background:var(--bg);padding:4px 0 6px}
+.lang{display:flex;align-items:center;justify-content:space-between;gap:6px;background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:11px 12px;font-weight:700;min-width:0}
+.lang span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lang small{display:block;font-weight:500;font-size:11.5px;color:var(--acc)}
+.swap{width:44px;height:44px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;color:var(--acc)}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:18px;display:flex;flex-direction:column}
+.card.res{background:linear-gradient(180deg,#183644,#152a35);border-color:#4fc2c933}
+textarea#in{width:100%;min-height:128px;max-height:40vh;resize:none;background:transparent;border:0;outline:0;padding:14px 14px 6px;font-size:19px;line-height:1.4;color:var(--tx)}
+textarea#in::placeholder{color:var(--tx3)}
+#out{padding:14px 14px 6px;font-size:19px;line-height:1.4;min-height:96px;white-space:pre-wrap;overflow-wrap:anywhere;user-select:text}
+#out.ph{color:var(--tx3)}
+#out.busy{opacity:.55}
+.cfoot{display:flex;align-items:center;gap:4px;padding:4px 6px 6px 14px}
+.cfoot .n{flex:1;font-size:12px;color:var(--tx3);font-variant-numeric:tabular-nums}
+.ib{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--tx2)}
+.ib:active{background:var(--bg3)}
+.ib.on{color:var(--acc)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 14px;border-radius:13px;background:var(--bg3);border:1px solid var(--line);font-weight:600;font-size:14px;white-space:nowrap}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:var(--ink)}
+.btn.sm{padding:7px 11px;font-size:13px;border-radius:11px}
+.note{background:#ffd68c14;border:1px solid #ffd68c3d;border-radius:14px;padding:12px 14px;font-size:14px;color:#ffe5b5;display:flex;flex-direction:column;gap:10px}
+.note.info{background:var(--bg2);border-color:var(--line);color:var(--tx2)}
+.note .row{display:flex;gap:8px;flex-wrap:wrap}
+.prog{height:5px;border-radius:3px;background:#ffffff14;overflow:hidden}
+.prog b{display:block;height:100%;background:var(--acc2);width:0;transition:width .3s}
+.sect{font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:var(--tx3);font-weight:700;margin:8px 2px 0;display:flex;align-items:center;gap:8px}
+.sect button{margin-left:auto;text-transform:none;letter-spacing:0;font-size:12.5px;color:var(--tx2)}
+.hist{display:flex;flex-direction:column}
+.hist button{display:flex;flex-direction:column;gap:2px;text-align:left;padding:10px 4px;border-top:1px solid var(--line)}
+.hist button:first-child{border-top:0}
+.hist .a{color:var(--tx2);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%}
+.hist .b{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%}
+.hist small{font-size:11px;color:var(--tx3);font-weight:700;letter-spacing:.4px}
+.empty{color:var(--tx3);font-size:14px;padding:6px 2px}
+/* Langues */
+.swl{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.swl .t{flex:1;font-weight:600}
+.swl .t small{display:block;font-weight:400;color:var(--tx3);font-size:12.5px}
+.sw{appearance:none;width:46px;height:28px;border-radius:99px;background:var(--bg4);position:relative;flex:none;transition:.2s;margin:0}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:.2s}
+.sw:checked{background:var(--acc)}.sw:checked::after{left:21px}
+.search{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:10px 12px;color:var(--tx3)}
+.search input{flex:1;background:transparent;border:0;outline:0;min-width:0;font-size:16px;color:var(--tx)}
+.ll{display:flex;flex-direction:column}
+.li{display:flex;align-items:center;gap:10px;padding:10px 2px;border-top:1px solid var(--line)}
+.li:first-child{border-top:0}
+.li .t{flex:1;min-width:0}
+.li .t b{display:block;font-weight:600}
+.li .t small{display:block;font-size:12px;color:var(--tx3)}
+.li .t small.ok{color:var(--ok)}
+.spin{width:18px;height:18px;border-radius:50%;border:2.5px solid #ffffff2a;border-top-color:var(--acc2);animation:spin .8s linear infinite;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* Onglets */
+nav#tabs{display:flex;justify-content:center;gap:6px;padding:6px 10px calc(6px + var(--safeB));background:var(--bg2);border-top:1px solid var(--line)}
+nav#tabs button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11.5px;font-weight:600;color:var(--tx3);padding:6px 22px;border-radius:14px;min-width:110px}
+nav#tabs button.on{color:var(--acc);background:#4fc2c91a}
+/* Feuille de choix */
+#shade{position:fixed;inset:0;background:#0009;z-index:20;opacity:0;pointer-events:none;transition:opacity .18s}
+#shade.on{opacity:1;pointer-events:auto}
+#sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--bg2);border-radius:20px 20px 0 0;max-height:82vh;display:flex;flex-direction:column;transform:translateY(105%);transition:transform .22s;padding-bottom:var(--safeB)}
+#sheet.on{transform:none}
+#sheet .sh{display:flex;align-items:center;gap:10px;padding:14px 16px 8px}
+#sheet .sh h2{flex:1;margin:0;font-size:17px}
+#sheet .bd{overflow:auto;padding:4px 16px 16px;display:flex;flex-direction:column;gap:10px}
+.opt{display:flex;align-items:center;gap:10px;padding:11px 4px;border-top:1px solid var(--line);text-align:left;width:100%}
+.opt .t{flex:1}
+.opt .t small{display:block;font-size:12px;color:var(--tx3)}
+.opt.cur{color:var(--acc)}
+#toast{position:fixed;left:16px;right:16px;bottom:calc(84px + var(--safeB));background:#203743;border:1px solid #ffffff1f;padding:12px 14px;border-radius:14px;font-size:14px;z-index:40;opacity:0;transform:translateY(16px);transition:.22s;pointer-events:none}
+#toast.on{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Traducteur</h1>
+    <span class="pill" id="state"><i></i><span id="stateT">Hors ligne</span></span>
+  </header>
+
+  <main id="vTrad">
+    <div class="langbar">
+      <button class="lang" id="bSrc" aria-label="Langue du texte"><span id="lSrc">Français</span><svg class="i" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+      <button class="swap" id="bSwap" aria-label="Inverser les langues"><svg class="i" viewBox="0 0 24 24"><path d="M7 7h12l-3-3M17 17H5l3 3"/></svg></button>
+      <button class="lang" id="bDst" aria-label="Langue de traduction"><span id="lDst">Anglais</span><svg class="i" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+    </div>
+
+    <div class="note" id="prep" hidden>
+      <div id="prepT">Préparation des langues de base…</div>
+      <div class="prog"><b id="prepB"></b></div>
+    </div>
+    <div class="note" id="miss" hidden></div>
+    <div class="note info" id="nobridge" hidden>Cette page est l'interface de l'application Traducteur pour Android. Installe l'APK sur le téléphone pour traduire sans connexion.</div>
+
+    <section class="card">
+      <textarea id="in" rows="4" placeholder="Écris ou colle ton texte" spellcheck="false" aria-label="Texte à traduire"></textarea>
+      <div class="cfoot">
+        <span class="n" id="cnt"></span>
+        <button class="ib" id="bClr" aria-label="Effacer"><svg class="i" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+        <button class="ib" id="bSayIn" aria-label="Écouter le texte"><svg class="i" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></button>
+      </div>
+    </section>
+
+    <section class="card res">
+      <div id="out" class="ph" aria-live="polite">La traduction s'affiche ici</div>
+      <div class="cfoot">
+        <span class="n" id="det"></span>
+        <button class="ib" id="bCopy" aria-label="Copier la traduction"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg></button>
+        <button class="ib" id="bSayOut" aria-label="Écouter la traduction"><svg class="i" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></button>
+      </div>
+    </section>
+
+    <div class="sect">Récentes <button id="bHistClr" hidden>Effacer</button></div>
+    <div class="hist" id="hist"></div>
+  </main>
+
+  <main id="vLang" hidden>
+    <label class="swl"><span class="t">Télécharger seulement en Wi-Fi<small>Chaque langue pèse environ 30 Mo. Une fois sur le téléphone, elle marche en mode avion.</small></span><input type="checkbox" class="sw" id="wifi"></label>
+    <div class="sect">Sur le téléphone</div>
+    <div class="ll" id="llOn"></div>
+    <div class="sect">Autres langues</div>
+    <div class="search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" placeholder="Chercher une langue" aria-label="Chercher une langue"></div>
+    <div class="ll" id="llOff"></div>
+  </main>
+
+  <nav id="tabs">
+    <button class="on" data-v="vTrad"><svg class="i" viewBox="0 0 24 24"><path d="M4 5h9M8.5 3v2M6 5c0 4 3 7 6 8M11 5c0 3-2 7-6 9M13 21l4-9 4 9M14.5 18h5"/></svg>Traduire</button>
+    <button data-v="vLang"><svg class="i" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Langues</button>
+  </nav>
+</div>
+
+<div id="shade"></div>
+<div id="sheet" role="dialog" aria-modal="true" aria-labelledby="shT">
+  <div class="sh"><h2 id="shT">Langue</h2><button class="ib" id="shX" aria-label="Fermer"><svg class="i" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+  <div class="bd" id="shB"></div>
+</div>
+<div id="toast" role="status"></div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var B = window.MAGTraducteur || null;
+var BASE = ['fr','en','es','pt','it'];
+
+/* ---------- Barres système (bord à bord) ---------- */
+function barres(){
+  try{
+    if(!B || !B.barres) return;
+    var b = JSON.parse(B.barres() || '{}'), r = document.documentElement.style;
+    if(b.bas > 0) r.setProperty('--safeB', 'max(env(safe-area-inset-bottom,0px), '+b.bas+'px)');
+    if(b.haut > 0) r.setProperty('--safeT', 'max(env(safe-area-inset-top,0px), '+b.haut+'px)');
+  }catch(e){}
+}
+barres(); addEventListener('load', barres); setTimeout(barres, 800);
+
+/* ---------- Réglages et historique ---------- */
+var S = { src:'fr', dst:'en', wifi:true, init:false, hist:[] };
+try{ Object.assign(S, JSON.parse(localStorage.getItem('traducteur') || '{}')); }catch(e){}
+if(!Array.isArray(S.hist)) S.hist = [];
+function save(){ try{ localStorage.setItem('traducteur', JSON.stringify(S)); }catch(e){} }
+
+/* ---------- Noms des langues en français ---------- */
+var DN = null; try{ DN = new Intl.DisplayNames(['fr'], { type:'language' }); }catch(e){}
+var FALLBACK = { fr:'français', en:'anglais', es:'espagnol', pt:'portugais', it:'italien', de:'allemand', nl:'néerlandais', ar:'arabe', zh:'chinois', ja:'japonais', ru:'russe' };
+function nm(c){
+  if(c === 'auto') return 'Détecter';
+  var n = ''; try{ n = DN ? DN.of(c) : ''; }catch(e){}
+  if(!n || n === c) n = FALLBACK[c] || c;
+  return n.charAt(0).toUpperCase() + n.slice(1);
+}
+
+/* ---------- Pont natif : requêtes et réponses ---------- */
+var seq = 0, wait = {};
+function req(method){
+  var args = Array.prototype.slice.call(arguments, 1), id = 'r' + (++seq);
+  return new Promise(function(ok){
+    if(!B || !B[method]){ ok({ ok:false, err:'indisponible' }); return; }
+    wait[id] = ok;
+    try{ B[method].apply(B, [id].concat(args)); }catch(e){ delete wait[id]; ok({ ok:false, err:String(e) }); }
+  });
+}
+var onParole = null;
+window.tradEvent = function(type, json){
+  var d = {}; try{ d = JSON.parse(json); }catch(e){}
+  if(type === 'parole'){ if(onParole) onParole(d); return; }
+  var f = wait[d.req]; if(f){ delete wait[d.req]; f(d); }
+};
+
+/* ---------- Langues sur le téléphone ---------- */
+var ALL = [], DL = {}, BUSY = {};
+try{ ALL = B && B.langues ? JSON.parse(B.langues()) : BASE.slice(); }catch(e){ ALL = BASE.slice(); }
+ALL.sort(function(a, b){ return nm(a).localeCompare(nm(b), 'fr'); });
+function has(c){ return !!DL[c]; }
+function refresh(){
+  return req('modeles').then(function(r){
+    if(r.ok){ DL = {}; (r.list || []).forEach(function(c){ DL[c] = 1; }); }
+    paint();
+  });
+}
+function download(c){
+  if(BUSY[c]) return BUSY[c];
+  paintLangs();
+  BUSY[c] = req('telecharger', c, !!S.wifi).then(function(r){
+    delete BUSY[c];
+    if(r.ok){ DL[c] = 1; toast(nm(c)+' est sur le téléphone : traduction hors ligne prête'); if((c === S.dst || c === S.src || c === detected) && $('in').value.trim()) setTimeout(translate, 0); }
+    else toast('Téléchargement de '+nm(c).toLowerCase()+' impossible'+(S.wifi ? ' : vérifie le Wi-Fi' : ' : vérifie la connexion'));
+    paint(); return r;
+  });
+  paint();
+  return BUSY[c];
+}
+function remove(c){
+  return req('supprimer', c).then(function(r){
+    if(r.ok){ delete DL[c]; toast(nm(c)+' supprimé du téléphone'); }
+    else toast('Suppression impossible');
+    paint();
+  });
+}
+
+/* Premier lancement : français, anglais, espagnol, portugais, italien */
+function prepare(){
+  var miss = BASE.filter(function(c){ return !has(c); });
+  if(!miss.length){ if(!S.init){ S.init = true; save(); } $('prep').hidden = true; return; }
+  if(S.init) return;
+  var done = BASE.length - miss.length, total = BASE.length;
+  function show(){
+    $('prep').hidden = false;
+    $('prepT').textContent = 'Préparation des langues de base : '+done+' sur '+total+' (français, anglais, espagnol, portugais, italien)'+(S.wifi ? '. Le téléchargement attend le Wi-Fi si tu es en données mobiles.' : '.');
+    $('prepB').style.width = Math.round(done / total * 100)+'%';
+  }
+  show();
+  miss.reduce(function(p, c){ return p.then(function(){ return download(c).then(function(r){ if(r.ok){ done++; show(); } }); }); }, Promise.resolve()).then(function(){
+    if(BASE.every(has)){ S.init = true; save(); $('prep').hidden = true; toast('Langues de base prêtes : tout marche maintenant sans connexion'); }
+  });
+}
+
+/* ---------- Affichage ---------- */
+function paint(){
+  $('lSrc').textContent = nm(S.src);
+  $('lDst').textContent = nm(S.dst);
+  var n = Object.keys(DL).length, busy = Object.keys(BUSY).length, st = $('state');
+  st.classList.toggle('wait', busy > 0);
+  $('stateT').textContent = busy ? 'Téléchargement…' : n ? n+' langue'+(n > 1 ? 's' : '')+' hors ligne' : 'Aucune langue';
+  paintMiss(); paintLangs(); paintHist();
+}
+function needed(){
+  var src = S.src === 'auto' ? detected : S.src, out = [];
+  if(src && src !== 'und' && !has(src)) out.push(src);
+  if(!has(S.dst)) out.push(S.dst);
+  return out;
+}
+function paintMiss(){
+  var m = needed().filter(function(c, i, a){ return a.indexOf(c) === i; }), el = $('miss');
+  if(!m.length || !B){ el.hidden = true; return; }
+  el.hidden = false;
+  var anyBusy = m.some(function(c){ return BUSY[c]; });
+  el.innerHTML = '';
+  var t = document.createElement('div');
+  t.textContent = anyBusy ? 'Téléchargement de '+m.map(function(c){ return nm(c).toLowerCase(); }).join(' et ')+' en cours…'
+    : 'Pour traduire sans connexion, télécharge '+m.map(function(c){ return 'l’'+nm(c).toLowerCase(); }).join(' et ').replace(/l’([^aeiouyéèêh])/gi, 'le $1')+' (environ 30 Mo chacune).';
+  el.appendChild(t);
+  if(!anyBusy){
+    var row = document.createElement('div'); row.className = 'row';
+    var b = document.createElement('button'); b.className = 'btn pri sm'; b.textContent = 'Télécharger';
+    b.onclick = function(){ m.forEach(download); };
+    row.appendChild(b); el.appendChild(row);
+  }
+}
+function langRow(c, on){
+  var d = document.createElement('div'); d.className = 'li';
+  var t = document.createElement('div'); t.className = 't';
+  var b = document.createElement('b'); b.textContent = nm(c);
+  var s = document.createElement('small');
+  if(BUSY[c]){ s.textContent = 'Téléchargement…'; }
+  else if(on){ s.textContent = 'Hors ligne'; s.className = 'ok'; }
+  else s.textContent = '≈ 30 Mo';
+  t.appendChild(b); t.appendChild(s); d.appendChild(t);
+  if(BUSY[c]){ var sp = document.createElement('span'); sp.className = 'spin'; d.appendChild(sp); }
+  else if(on){
+    if(c !== 'en'){   // l'anglais sert de relais entre les autres langues : on le garde
+      var x = document.createElement('button'); x.className = 'btn sm'; x.textContent = 'Supprimer';
+      x.onclick = function(){
+        if(x.dataset.sure){ remove(c); return; }
+        x.dataset.sure = '1'; x.textContent = 'Confirmer'; setTimeout(function(){ if(x.isConnected){ delete x.dataset.sure; x.textContent = 'Supprimer'; } }, 3000);
+      };
+      d.appendChild(x);
+    }
+  } else {
+    var g = document.createElement('button'); g.className = 'btn sm'; g.textContent = 'Télécharger';
+    g.onclick = function(){ download(c); };
+    d.appendChild(g);
+  }
+  return d;
+}
+function paintLangs(){
+  var on = $('llOn'), off = $('llOff'), q = $('q').value.trim().toLowerCase();
+  on.innerHTML = ''; off.innerHTML = '';
+  ALL.filter(function(c){ return has(c) || BUSY[c]; }).forEach(function(c){ on.appendChild(langRow(c, has(c))); });
+  if(!on.children.length){ var e = document.createElement('div'); e.className = 'empty'; e.textContent = 'Aucune langue pour l’instant.'; on.appendChild(e); }
+  ALL.filter(function(c){ return !has(c) && !BUSY[c] && (!q || nm(c).toLowerCase().indexOf(q) >= 0 || c === q); }).forEach(function(c){ off.appendChild(langRow(c, false)); });
+  $('wifi').checked = !!S.wifi;
+}
+function paintHist(){
+  var h = $('hist'); h.innerHTML = '';
+  $('bHistClr').hidden = !S.hist.length;
+  if(!S.hist.length){ var e = document.createElement('div'); e.className = 'empty'; e.textContent = 'Tes dernières traductions apparaîtront ici.'; h.appendChild(e); return; }
+  S.hist.slice(0, 20).forEach(function(x){
+    var b = document.createElement('button');
+    var s = document.createElement('small'); s.textContent = nm(x.s).toUpperCase()+' → '+nm(x.d).toUpperCase();
+    var a = document.createElement('span'); a.className = 'a'; a.textContent = x.i;
+    var o = document.createElement('span'); o.className = 'b'; o.textContent = x.o;
+    b.appendChild(s); b.appendChild(a); b.appendChild(o);
+    b.onclick = function(){ S.src = x.s; S.dst = x.d; save(); $('in').value = x.i; setOut(x.o); count(); paint(); $('in').focus(); };
+    h.appendChild(b);
+  });
+}
+
+/* ---------- Traduction ---------- */
+var tok = 0, detected = '', last = { i:'', o:'', s:'', d:'' }, tT = null, hT = null;
+function setOut(t, ph){ var o = $('out'); o.textContent = t; o.classList.toggle('ph', !!ph); o.classList.remove('busy'); }
+function count(){ var n = $('in').value.length; $('cnt').textContent = n ? n+' caractère'+(n > 1 ? 's' : '') : ''; }
+function translate(){
+  var text = $('in').value, my = ++tok;
+  clearTimeout(hT);
+  if(!text.trim()){ setOut('La traduction s’affiche ici', true); $('det').textContent = ''; detected = ''; paintMiss(); return; }
+  if(!B){ setOut('Ouvre l’application sur le téléphone pour traduire.', true); return; }
+  $('out').classList.add('busy');
+  var srcP = S.src === 'auto'
+    ? req('detecter', text.slice(0, 600)).then(function(r){ detected = r.lang || 'und'; $('det').textContent = detected === 'und' ? 'Langue non reconnue' : 'Détecté : '+nm(detected); return detected; })
+    : Promise.resolve(S.src);
+  srcP.then(function(src){
+    if(my !== tok) return;
+    if(src === 'und'){ setOut('Je ne reconnais pas la langue : choisis-la en haut à gauche.', true); return; }
+    if(S.src !== 'auto') $('det').textContent = '';
+    if(src === S.dst){ setOut(text); return; }
+    var m = [src, S.dst].filter(function(c){ return !has(c); });
+    paintMiss();
+    if(m.length){ setOut('Télécharge d’abord '+m.map(function(c){ return nm(c).toLowerCase(); }).join(' et ')+' pour traduire sans connexion.', true); return; }
+    // ligne par ligne : la mise en forme (paragraphes, listes) est gardée
+    var lines = text.split('\n'), out = new Array(lines.length);
+    return lines.reduce(function(p, l, k){
+      return p.then(function(){
+        if(my !== tok) return;
+        if(!l.trim()){ out[k] = l; return; }
+        return req('traduire', src, S.dst, l).then(function(r){
+          if(!r.ok) throw new Error(r.err || 'erreur');
+          out[k] = r.text;
+        });
+      });
+    }, Promise.resolve()).then(function(){
+      if(my !== tok) return;
+      var o = out.join('\n'); setOut(o);
+      last = { i:text.trim(), o:o.trim(), s:src, d:S.dst };
+      hT = setTimeout(remember, 2500);
+    });
+  }).catch(function(e){
+    if(my !== tok) return;
+    setOut('Traduction impossible ('+(e && e.message || e)+'). Vérifie que les deux langues sont téléchargées.', true);
+    refresh();
+  });
+}
+function remember(){
+  if(!last.i || !last.o) return;
+  S.hist = S.hist.filter(function(x){ return !(x.i === last.i && x.s === last.s && x.d === last.d); });
+  S.hist.unshift({ i:last.i, o:last.o, s:last.s, d:last.d, t:Date.now() });
+  S.hist = S.hist.slice(0, 40); save(); paintHist();
+}
+
+/* ---------- Voix ---------- */
+var speaking = '';
+onParole = function(d){
+  if(d.etat === 'debut') return;
+  if(d.etat === 'erreur') toast(d.err === 'voix absente' ? 'La voix de cette langue n’est pas installée sur le téléphone (Paramètres › Synthèse vocale)' : 'Lecture impossible');
+  speaking = ''; $('bSayIn').classList.remove('on'); $('bSayOut').classList.remove('on');
+};
+function say(which){
+  var btn = which === 'in' ? $('bSayIn') : $('bSayOut');
+  if(speaking === which){ try{ B.taire(); }catch(e){} speaking = ''; btn.classList.remove('on'); return; }
+  var text = which === 'in' ? $('in').value : ($('out').classList.contains('ph') ? '' : $('out').textContent);
+  var lang = which === 'in' ? (S.src === 'auto' ? detected : S.src) : S.dst;
+  if(!text.trim() || !lang || lang === 'und' || !B) return;
+  $('bSayIn').classList.remove('on'); $('bSayOut').classList.remove('on');
+  speaking = which; btn.classList.add('on');
+  req('parler', text, lang);
+  remember();
+}
+
+/* ---------- Choix d'une langue ---------- */
+function pick(side){
+  var cur = side === 'src' ? S.src : S.dst, bd = $('shB');
+  $('shT').textContent = side === 'src' ? 'Langue du texte' : 'Traduire en';
+  bd.innerHTML = '';
+  var list = (side === 'src' ? ['auto'] : []).concat(ALL.filter(has), ALL.filter(function(c){ return !has(c); }));
+  var seen = {};
+  list.forEach(function(c, i){
+    if(seen[c]) return; seen[c] = 1;
+    if(i > 0 && !has(c) && c !== 'auto' && !bd.querySelector('.sect')){ var s = document.createElement('div'); s.className = 'sect'; s.textContent = 'À télécharger (≈ 30 Mo)'; bd.appendChild(s); }
+    var b = document.createElement('button'); b.className = 'opt'+(c === cur ? ' cur' : '');
+    var t = document.createElement('span'); t.className = 't'; t.textContent = nm(c);
+    var sm = document.createElement('small'); sm.textContent = c === 'auto' ? 'La langue est reconnue toute seule' : has(c) ? 'Hors ligne' : BUSY[c] ? 'Téléchargement…' : 'Touche pour choisir et télécharger';
+    t.appendChild(sm); b.appendChild(t);
+    b.onclick = function(){
+      if(side === 'src') S.src = c; else S.dst = c;
+      save(); close(); paint();
+      if(c !== 'auto' && !has(c) && !BUSY[c]) download(c);
+      translate();
+    };
+    bd.appendChild(b);
+  });
+  $('shade').classList.add('on'); $('sheet').classList.add('on');
+}
+function close(){ $('shade').classList.remove('on'); $('sheet').classList.remove('on'); }
+
+/* ---------- Divers ---------- */
+var toT = null;
+function toast(m){ var t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toT); toT = setTimeout(function(){ t.classList.remove('on'); }, 3200); }
+function copy(text){
+  function fb(){ var ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); toast('Traduction copiée'); }catch(e){ toast('Copie impossible : sélectionne le texte'); } ta.remove(); }
+  try{ navigator.clipboard.writeText(text).then(function(){ toast('Traduction copiée'); }, fb); }catch(e){ fb(); }
+}
+
+/* ---------- Événements ---------- */
+$('in').addEventListener('input', function(){ count(); clearTimeout(tT); tT = setTimeout(translate, 550); });
+$('bClr').onclick = function(){ remember(); $('in').value = ''; count(); translate(); $('in').focus(); };
+$('bSwap').onclick = function(){
+  var src = S.src === 'auto' ? (detected && detected !== 'und' ? detected : 'fr') : S.src;
+  S.src = S.dst; S.dst = src; save();
+  if(!$('out').classList.contains('ph')){ $('in').value = $('out').textContent; count(); }
+  paint(); translate();
+};
+$('bSrc').onclick = function(){ pick('src'); };
+$('bDst').onclick = function(){ pick('dst'); };
+$('shX').onclick = close; $('shade').onclick = close;
+$('bCopy').onclick = function(){ if(!$('out').classList.contains('ph')){ copy($('out').textContent); remember(); } };
+$('bSayIn').onclick = function(){ say('in'); };
+$('bSayOut').onclick = function(){ say('out'); };
+$('bHistClr').onclick = function(){
+  var b = $('bHistClr');
+  if(!b.dataset.sure){ b.dataset.sure = '1'; b.textContent = 'Confirmer'; setTimeout(function(){ delete b.dataset.sure; b.textContent = 'Effacer'; }, 3000); return; }
+  S.hist = []; save(); paintHist(); delete b.dataset.sure; b.textContent = 'Effacer';
+};
+$('wifi').onchange = function(){ S.wifi = this.checked; save(); };
+$('q').addEventListener('input', paintLangs);
+document.querySelectorAll('#tabs button').forEach(function(b){
+  b.onclick = function(){
+    document.querySelectorAll('#tabs button').forEach(function(x){ x.classList.toggle('on', x === b); });
+    $('vTrad').hidden = b.dataset.v !== 'vTrad'; $('vLang').hidden = b.dataset.v !== 'vLang';
+    if(b.dataset.v === 'vLang') refresh();
+  };
+});
+document.addEventListener('visibilitychange', function(){ if(!document.hidden) refresh(); });
+
+/* ---------- Démarrage ---------- */
+$('nobridge').hidden = !!B;
+count(); paint();
+if(B) refresh().then(prepare);
+})();
+</script>
+</body>
+</html>
