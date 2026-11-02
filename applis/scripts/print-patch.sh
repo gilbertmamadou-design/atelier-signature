@@ -398,7 +398,7 @@ public class MainActivity extends BridgeActivity {
     private final java.util.List<Object> extraBridges = new java.util.ArrayList<Object>();
     private void loadExtraBridges(WebView wv) {
         String pkg = MainActivity.class.getPackage().getName();
-        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge", "ReseauBridge", "LecteurBridge", "PdfBridge", "SolaireBridge", "SocleBridge", "FichiersBridge", "ActualitesBridge", "ToileBridge", "OfficeBridge", "MajordomeBridge", "VoyageBridge", "TraducteurBridge" }) {
+        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge", "ReseauBridge", "LecteurBridge", "PdfBridge", "SolaireBridge", "SocleBridge", "FichiersBridge", "ActualitesBridge", "ToileBridge", "OfficeBridge", "MajordomeBridge", "VoyageBridge", "TraducteurBridge", "SereniteBridge" }) {
             try {
                 Class<?> k = Class.forName(pkg + "." + n);
                 Object o = k.getConstructor(android.app.Activity.class, WebView.class).newInstance(this, wv);
@@ -1624,7 +1624,7 @@ FSV="$(dirname "$F")/FileService.java"
 cp scripts/FileService.java "$FSV"
 sed -i "s/__PKG__/$PKG/" "$FSV"
 # Réveil, lever de soleil et endormissement (application Aube)
-for J in $(ls scripts/*Bridge.java 2>/dev/null | xargs -n1 basename 2>/dev/null | sed 's/\.java$//' | grep -vxE 'PdfBridge|MajordomeBridge|TraducteurBridge'); do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
+for J in $(ls scripts/*Bridge.java 2>/dev/null | xargs -n1 basename 2>/dev/null | sed 's/\.java$//' | grep -vxE 'PdfBridge|MajordomeBridge|TraducteurBridge|SereniteBridge'); do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
 for J in AlarmService AlarmReceiver WallpaperJob WallpaperTile LauncherService LauncherA11y LauncherMedia WidgetProvider SauvegardeJob PhotoCamera EcranPlayer DictaService MeteoPersoJob MelodieVolume; do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
 # Bibliothèque des tâches de fond
 G=android/app/build.gradle
@@ -1924,6 +1924,15 @@ GRADLE
   addperm INTERNET ACCESS_NETWORK_STATE RECORD_AUDIO
   addraw '<uses-feature android:name="android.hardware.microphone" android:required="false" /><queries><intent><action android:name="android.intent.action.TTS_SERVICE" /></intent><intent><action android:name="android.speech.RecognitionService" /></intent></queries>'
   grep -n "mlkit" "$G"; grep -n "minSdkVersion" android/variables.gradle
+fi
+# Sérénité : sons de méditation joués par le téléphone, écran éteint compris (SereniteBridge.java, service au premier plan
+# « Séance en cours », verrou de veille, consignes guidées dites par la voix du téléphone). Copié dans cette appli seule.
+if [ "$APP" = "serenite" ]; then
+  cp scripts/SereniteBridge.java "$(dirname "$F")/SereniteBridge.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/SereniteBridge.java"
+  addperm FOREGROUND_SERVICE FOREGROUND_SERVICE_MEDIA_PLAYBACK WAKE_LOCK POST_NOTIFICATIONS
+  addactivity '<service android:name=".SereniteBridge$Seance" android:exported="false" android:foregroundServiceType="mediaPlayback" />'
+  addraw '<queries><intent><action android:name="android.intent.action.TTS_SERVICE" /></intent></queries>'
+  grep -n "SereniteBridge\$Seance\|FOREGROUND_SERVICE_MEDIA" "$MAN"
 fi
 # Majordome : assistant vocal à commandes. MajordomeBridge.java copié ici seulement (il dépend de Vosk et JNA, ajoutés à cette appli seule) :
 # reconnaissance hors ligne (com.alphacephei:vosk-android, Apache-2.0 ; modèle téléchargé au premier lancement), écoute continue
