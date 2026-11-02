@@ -240,7 +240,9 @@ public class TraducteurBridge {
                 try { any = SpeechRecognizer.isRecognitionAvailable(a); } catch (Throwable e) { }
                 try { dev = android.os.Build.VERSION.SDK_INT >= 31 && SpeechRecognizer.isOnDeviceRecognitionAvailable(a); } catch (Throwable e) { }
                 if (!any && !dev) { send("micro", o("req", req, "etat", "erreur", "msg", "Aucune reconnaissance vocale sur ce téléphone (installe l'appli Google)")); return; }
-                creer(dev);
+                // service standard d'abord (hors ligne si le pack de langue est installé) : plus fiable que la reconnaissance
+                // « sur l'appareil », qui sur certains téléphones rend un résultat final vide ; celle-ci sert de repli
+                creer(!any && dev);
                 ecoute();
             } catch (Throwable t) { send("micro", o("req", req, "etat", "erreur", "msg", msg(t))); }
         } });
@@ -263,6 +265,7 @@ public class TraducteurBridge {
             public void onBufferReceived(byte[] b) { }
             public void onEndOfSpeech() { }
             public void onError(int err) {
+                if (sr == null) return;   // après le résultat (certains téléphones envoient encore une erreur) : ignorée
                 // langue absente de la reconnaissance « sur l'appareil » : repli sur le service standard (hors ligne si le pack est installé)
                 if (srOnDevice && (err == 12 || err == 13)) { creer(false); ecoute(); return; }
                 String m;
@@ -281,8 +284,9 @@ public class TraducteurBridge {
             }
             public void onResults(Bundle b) {
                 ArrayList<String> r = b == null ? null : b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                final SpeechRecognizer done = sr; sr = null;
                 send("micro", o("req", micReq, "etat", "fin", "final", r != null && !r.isEmpty() ? r.get(0) : ""));
-                detruire();
+                wv.postDelayed(new Runnable() { public void run() { try { done.destroy(); } catch (Throwable e) { } } }, 300);
             }
             public void onPartialResults(Bundle b) {
                 ArrayList<String> r = b == null ? null : b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);

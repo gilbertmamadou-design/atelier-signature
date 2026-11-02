@@ -473,7 +473,7 @@ function say(which){
    puis j'inverse les langues pour lui traduire la réponse dans ma langue. */
 var TAG = { fr:'fr-FR', en:'en-US', es:'es-ES', pt:'pt-PT', it:'it-IT', de:'de-DE', nl:'nl-NL', ar:'ar', zh:'zh-CN', ja:'ja-JP', ru:'ru-RU', ko:'ko-KR', tr:'tr-TR', pl:'pl-PL', el:'el-GR', ro:'ro-RO', sv:'sv-SE', da:'da-DK', no:'nb-NO', fi:'fi-FI', cs:'cs-CZ', hu:'hu-HU', uk:'uk-UA', he:'he-IL', hi:'hi-IN', th:'th-TH', vi:'vi-VN', id:'id-ID', ca:'ca-ES' };
 var mic = null;   // {side:'in'|'out', lang, btn}
-function micStop(){ if(!mic) return; mic.btn.classList.remove('on'); mic.btn.style.removeProperty('--lvl'); mic = null; $('in').placeholder = 'Écris ou colle ton texte'; }
+function micStop(){ $('in').readOnly = false; if(!mic) return; mic.btn.classList.remove('on'); mic.btn.style.removeProperty('--lvl'); mic = null; $('in').placeholder = 'Écris ou colle ton texte'; }
 function listen(side){
   if(!B || !B.ecouter){ toast('Le micro marche dans l’application sur le téléphone'); return; }
   if(mic){ var same = mic.side === side; try{ B.arreter(); }catch(e){} if(same) return; micStop(); }
@@ -485,30 +485,34 @@ function listen(side){
   if(side === 'in' && (S.src !== me || S.dst !== other)){ S.src = me; S.dst = other; save(); paint(); }
   var lang = side === 'in' ? me : other;
   mic = { side:side, lang:lang, btn: side === 'in' ? $('bMicIn') : $('bMicOut') };
-  mic.btn.classList.add('on');
-  $('in').value = ''; count();
+  mic.btn.classList.add('on'); mic.heard = '';
+  var ta = $('in'); ta.blur(); ta.readOnly = true;   // clavier fermé : il ne doit pas reprendre la case pendant l'écoute
+  ta.value = ''; count();
   $('in').placeholder = 'Je t’écoute… parle en '+nm(lang).toLowerCase();
   setOut(side === 'in' ? 'La traduction s’affiche ici' : 'L’autre personne parle en '+nm(lang).toLowerCase()+'…', true);
-  B.ecouter('m'+(++seq), TAG[lang] || lang);
+  mic.req = 'm'+(++seq);
+  B.ecouter(mic.req, TAG[lang] || lang);
 }
 onMicro = function(d){
   if(d.etat === 'perm'){ toast('Autorise le micro pour parler au traducteur'); return; }
   if(d.etat === 'refuse'){ toast('Micro refusé : autorise-le dans Paramètres › Applis › Traducteur › Autorisations'); micStop(); return; }
   if(d.etat === 'autorise'){ var side = mic && mic.side; micStop(); if(side) listen(side); return; }
-  if(!mic) return;
+  if(!mic || (d.req && mic.req && d.req !== mic.req)) return;   // événement d'une écoute précédente : ignoré
   if(typeof d.niveau === 'number'){ mic.btn.style.setProperty('--lvl', d.niveau.toFixed(2)); return; }
-  if(d.partiel != null){ $('in').value = d.partiel; count(); return; }
+  if(d.partiel != null){ if(d.partiel.trim()) mic.heard = d.partiel; $('in').value = mic.heard; count(); return; }
+  if(d.etat === 'erreur' && mic.heard && [5, 6, 7, 8].indexOf(d.code) >= 0){ d = { etat:'fin', final: mic.heard }; }   // compris puis « rien entendu » : on garde ce qui a été compris
   if(d.etat === 'erreur'){
     var m = d.msg || 'Écoute impossible';
     if(/hors connexion/.test(m)) m += ' : Paramètres › Système › Langues › Reconnaissance vocale hors connexion (ou appli Google › Voix), télécharge '+nm(mic.lang).toLowerCase()+'.';
     toast(m); micStop(); translate(); return;
   }
   if(d.etat === 'fin'){
-    var side = mic.side, lang = mic.lang, text = (d.final || $('in').value || '').trim();
+    var side = mic.side, lang = mic.lang, text = ((d.final && d.final.trim()) || mic.heard || '').trim();
     micStop();
     if(!text){ toast('Je n’ai rien entendu'); translate(); return; }
     if(side === 'out'){ S.src = lang; S.dst = S.moi || 'fr'; save(); paint(); }   // réponse de l'autre personne, traduite dans ma langue
     $('in').value = text; count();
+    setOut('Traduction…', true);
     autoSay = true; translate();
   }
 };
