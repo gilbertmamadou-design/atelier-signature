@@ -424,6 +424,8 @@ var BOOKS=[];
 var DEF={flip:true, fs:16, lh:1.45, mg:'m', font:'serif', theme:'sombre', mode:'pages', just:true, dim:0, rate:1};
 var S=Object.assign({}, DEF, J(localStorage.getItem('liseuse-set'),{}));
 // texte « page de livre » : une seule fois, on ramène l'ancienne taille par défaut (19) et plus à 16 ; réglable ensuite de 11 à 34
+// une seule fois avec cette version : pages qui se tournent comme un livre (mode Pages)
+if(!S.livre2){ S.livre2=1; S.flip=true; S.mode='pages'; try{ localStorage.setItem('liseuse-set', JSON.stringify(S)); }catch(e){} }
 if(!S.livre){ if(S.fs>=17) S.fs=16; if(S.lh>1.5) S.lh=1.45; S.livre=1; try{ localStorage.setItem('liseuse-set', JSON.stringify(S)); }catch(e){} }
 var L=Object.assign({sort:'recent', filter:'all', colls:['À lire','Classiques'], last:'', openId:'', group:'none', bar:'', fold:{}}, J(localStorage.getItem('liseuse-lib'),{}));
 if(!Array.isArray(L.colls)) L.colls=['À lire','Classiques'];
@@ -1795,8 +1797,8 @@ async function prev(){
    La page suivante (ou la page actuelle quand on revient en arrière) est copiée dans #under, dessous. La page lue (#frame)
    pivote autour du bord gauche, comme une page autour du dos du livre, avec un reflet (#fGloss) et une ombre portée sur la
    page de dessous (#fShade). Le doigt fait tourner la page ; lâchée, elle finit de tourner ou retombe. */
-var FL=null, flipRaf=0;
-function flipOn(){ return S.mode==='pages' && S.flip!==false && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); }
+var FL=null, flipRaf=0, flipErr=0;
+function flipOn(){ return S.mode==='pages' && S.flip!==false; }   // réglage de la Liseuse seulement (le réglage « moins d'animations » d'Android ne le coupe pas)
 function syncUnder(page){
   var u=$('under'), ud=u.contentDocument; if(!ud) return false;
   var c=R.fd.getElementById('c'), sig=R.s+'|'+R.W+'|'+R.H+'|'+R.fd.getElementById('us').textContent.length+'|'+R.fd.getElementById('bk').textContent.length+'|'+c.innerHTML.length;
@@ -1811,11 +1813,12 @@ function flipStart(dir){
   if(!flipOn() || FL) return false;
   if(dir>0 && R.page>=R.pages-1) return false;
   if(dir<0 && R.page<=0) return false;
-  try{ if(!syncUnder(dir>0 ? R.page+1 : R.page)) return false; }catch(e){ return false; }
+  var underOk=false;
+  try{ underOk=syncUnder(dir>0 ? R.page+1 : R.page); }catch(e){ underOk=false; if(!flipErr){ flipErr=1; toast('Effet de page : la page de dessous n\u2019a pas pu être préparée ('+(e&&e.message||e)+')'); } }
   FL={ dir:dir, a:dir>0?0:-180 };
   if(dir<0) scroller().scrollLeft=(R.page-1)*R.W;   // la page d'avant arrive par la gauche
   $('frame').classList.add('flip'); $('fGloss').classList.add('flip');
-  $('under').style.visibility='visible'; $('fGloss').style.visibility='visible'; $('fShade').style.visibility='visible';
+  $('under').style.visibility=underOk?'visible':'hidden'; $('fGloss').style.visibility='visible'; $('fShade').style.visibility='visible';
   setAngle(FL.a);
   return true;
 }
@@ -2063,14 +2066,14 @@ $('rNotes').onclick=function(){ tocSheet('hl'); };
 
 /* Réglages d'affichage */
 function setSheet(){
-  var body='<div class="set"><div class="lab">Taille du texte <span id="vFs">'+S.fs+'</span></div><div class="stp"><button data-fs="-1" style="font-size:14px">A</button><div class="v"><input type="range" id="sFs" min="11" max="34" step="1" value="'+S.fs+'"></div><button data-fs="1" style="font-size:22px">A</button></div></div>'+
+  var body='<div class="set"><div class="swl"><div class="t">Tourner les pages comme un livre<small>La page pivote et suit le doigt</small></div><label class="sw"><input type="checkbox" id="sFlip"'+(S.flip!==false?' checked':'')+'><span></span></label></div></div>'+
+    '<div class="set"><div class="lab">Taille du texte <span id="vFs">'+S.fs+'</span></div><div class="stp"><button data-fs="-1" style="font-size:14px">A</button><div class="v"><input type="range" id="sFs" min="11" max="34" step="1" value="'+S.fs+'"></div><button data-fs="1" style="font-size:22px">A</button></div></div>'+
     '<div class="set"><div class="lab">Thème</div><div class="themes">'+Object.keys(THEMES).map(function(k){ var T=THEMES[k]; return '<button data-th="'+k+'" style="background:'+T.bg+';color:'+T.tx+';'+(k==='nuit'?'box-shadow:0 0 0 1px #ffffff26 inset;':'')+'"'+(S.theme===k?' class="on"':'')+'><b>Aa</b>'+T.name+'</button>'; }).join('')+'</div></div>'+
     '<div class="set"><div class="lab">Police</div><div class="seg" data-k="font"><button data-v="serif" style="font-family:Georgia,serif">Serif</button><button data-v="sans">Sans</button><button data-v="cond" style="font-stretch:condensed">Étroite</button><button data-v="mono" style="font-family:monospace">Mono</button></div></div>'+
     '<div class="set"><div class="lab">Interligne <span id="vLh">'+String(S.lh).replace('.',',')+'</span></div><input type="range" id="sLh" min="1.2" max="2.2" step="0.05" value="'+S.lh+'"></div>'+
     '<div class="set"><div class="lab">Marges</div><div class="seg" data-k="mg"><button data-v="s">Étroites</button><button data-v="m">Moyennes</button><button data-v="l">Larges</button></div></div>'+
     '<div class="set"><div class="lab">Lecture</div><div class="seg" data-k="mode"><button data-v="pages">Pages</button><button data-v="scroll">Défilement</button></div></div>'+
     '<div class="set"><div class="swl"><div class="t">Texte justifié<small>Lignes alignées des deux côtés</small></div><label class="sw"><input type="checkbox" id="sJust"'+(S.just?' checked':'')+'><span></span></label></div></div>'+
-    '<div class="set"><div class="swl"><div class="t">Tourner les pages comme un livre<small>La page pivote et suit le doigt (mode Pages)</small></div><label class="sw"><input type="checkbox" id="sFlip"'+(S.flip!==false?' checked':'')+'><span></span></label></div></div>'+
     '<div class="set"><div class="lab">Luminosité de la page <span id="vDim">'+Math.round((1-S.dim)*100)+' %</span></div><input type="range" id="sDim" min="0" max="0.75" step="0.05" value="'+(0.75-S.dim)+'"></div>';
   var sh=openSheet('Affichage', body);
   var sb=sh.querySelector('.sb');
@@ -2086,7 +2089,7 @@ function setSheet(){
   sb.querySelector('#sFs').oninput=function(){ S.fs=+this.value; sb.querySelector('#vFs').textContent=S.fs; relayout(); };
   sb.querySelector('#sLh').oninput=function(){ S.lh=+this.value; sb.querySelector('#vLh').textContent=String(S.lh).replace('.',','); relayout(); };
   sb.querySelector('#sJust').onchange=function(){ S.just=this.checked; relayout(true); };
-  sb.querySelector('#sFlip').onchange=function(){ S.flip=this.checked; saveS(); };
+  sb.querySelector('#sFlip').onchange=function(){ S.flip=this.checked; saveS(); if(S.flip && S.mode!=='pages'){ S.mode='pages'; relayout(true); var m=sb.querySelector('[data-mode="pages"]'); if(m){ sb.querySelectorAll('[data-mode]').forEach(function(x){ x.classList.toggle('on', x===m); }); } toast('Mode Pages activé : les pages se tournent comme un livre'); } };
   sb.querySelector('#sDim').oninput=function(){ S.dim=Math.round((0.75-this.value)*100)/100; $('dim').style.opacity=S.dim; sb.querySelector('#vDim').textContent=Math.round((1-S.dim)*100)+' %'; saveS(); };
 }
 function relayoutKeep(){
