@@ -316,5 +316,13 @@
   "name": "Repères",
   "icons": "android-icons-reperes",
   "file": "Reperes.apk"
+ },
+ {
+  "app": "serenite",
+  "web": "www-serenite",
+  "appid": "fr.magformation13.serenite",
+  "name": "Sérénité",
+  "icons": "android-icons-serenite",
+  "file": "Serenite.apk"
  }
 ]

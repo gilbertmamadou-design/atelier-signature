@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Sérénité</title>
+<meta name="theme-color" content="#101624">
+<style>
+/* Sérénité : grand cercle de séance en haut, onglets Séance / Sons / Respirer / Guidées en bas */
+:root{
+  color-scheme:dark;
+  --bg:#101624;--bg2:#172033;--bg3:#202b43;--line:#ffffff12;
+  --tx:#eef1f8;--tx2:#aeb6cc;--tx3:#717b95;
+  --acc:#9fc7ff;--acc2:#c7b3ff;--warm:#ffd7a0;--ink:#0d1626;
+  --safeT:env(safe-area-inset-top,0px);--safeB:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none}
+body{background:radial-gradient(120% 60% at 50% 0%,#1d2a48 0%,var(--bg) 60%) fixed}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none;display:block}
+[hidden]{display:none!important}
+#app{display:flex;flex-direction:column;height:100%}
+header{padding:calc(12px + var(--safeT)) 18px 4px;display:flex;align-items:baseline;gap:10px}
+header h1{margin:0;font:600 23px/1.1 Georgia,"Noto Serif",serif;letter-spacing:.01em;flex:1}
+header small{color:var(--tx3);font-size:12.5px;font-variant-numeric:tabular-nums}
+main{flex:1;overflow:auto;padding:6px 16px 20px}
+section.v{display:flex;flex-direction:column;gap:14px;max-width:560px;margin:0 auto}
+.sect{font-size:11.5px;letter-spacing:.7px;text-transform:uppercase;color:var(--tx3);font-weight:700;margin:6px 2px -4px}
+.card{background:#ffffff08;border:1px solid var(--line);border-radius:20px;padding:14px}
+.chips{display:flex;gap:7px;flex-wrap:wrap}
+.chip{padding:8px 13px;border-radius:99px;background:var(--bg3);border:1px solid var(--line);font-weight:600;font-size:13.5px;color:var(--tx2)}
+.chip[aria-pressed="true"]{background:var(--acc);border-color:var(--acc);color:var(--ink)}
+/* Cercle */
+.orb{position:relative;width:min(70vw,290px);aspect-ratio:1;margin:8px auto 4px}
+.orb svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.orb .glow{position:absolute;inset:14%;border-radius:50%;background:radial-gradient(circle at 50% 40%,#c7b3ff55,#9fc7ff22 55%,transparent 72%);transition:transform 4s ease-in-out}
+.orb.play .glow{animation:breathe 10s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(.86)}50%{transform:scale(1.06)}}
+.orb .mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.orb .mid b{font:300 52px/1 system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.orb .mid span{color:var(--tx2);font-size:13.5px;margin-top:6px;max-width:70%}
+.big{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:15px;border-radius:18px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:var(--ink);font-weight:800;font-size:17px}
+.big.stop{background:var(--bg3);color:var(--tx)}
+.row{display:flex;align-items:center;gap:10px}
+.row .t{flex:1;min-width:0}
+.row .t small{display:block;color:var(--tx3);font-size:12.5px}
+.sw{appearance:none;width:46px;height:28px;border-radius:99px;background:var(--bg3);border:1px solid var(--line);position:relative;flex:none;margin:0;transition:.2s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}
+.sw:checked{background:var(--acc)}.sw:checked::after{left:21px}
+.list{display:flex;flex-direction:column;gap:12px}
+/* Sons */
+.snd{display:grid;grid-template-columns:42px 1fr 44px;align-items:center;gap:10px}
+.snd .ic{width:42px;height:42px;border-radius:13px;background:var(--bg3);display:flex;align-items:center;justify-content:center;color:var(--tx3);border:1px solid var(--line)}
+.snd.on .ic{background:#9fc7ff22;color:var(--acc);border-color:#9fc7ff55}
+.snd .t b{display:block;font-size:15px}
+.snd input[type=range]{width:100%;accent-color:var(--acc)}
+.snd .tg{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--tx3)}
+.snd.on .tg{color:var(--acc)}
+.amb{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.amb button{text-align:left;padding:13px;border-radius:16px;background:var(--bg2);border:1px solid var(--line)}
+.amb button b{display:block;font-size:15px}
+.amb button small{color:var(--tx3);font-size:12px}
+.amb button[aria-pressed="true"]{border-color:var(--acc);background:#9fc7ff14}
+/* Respiration */
+.breath{position:relative;width:min(74vw,300px);aspect-ratio:1;margin:6px auto 0;display:flex;align-items:center;justify-content:center}
+.breath .ball{position:absolute;width:44%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 40% 35%,#d9ccff,#9fc7ff 55%,#5b7fd1);box-shadow:0 0 60px #9fc7ff55;transform:scale(.62)}
+.breath .ring{position:absolute;inset:4%;border-radius:50%;border:1.5px dashed #ffffff22}
+.breath .lab{position:relative;text-align:center;pointer-events:none}
+.breath .lab b{display:block;font-size:24px;font-weight:700;text-shadow:0 1px 10px #0008}
+.breath .lab span{font-size:15px;color:#ffffffcc;font-variant-numeric:tabular-nums}
+.pat{display:flex;flex-direction:column;gap:8px}
+.pat button{display:flex;flex-direction:column;text-align:left;padding:12px 14px;border-radius:16px;background:var(--bg2);border:1px solid var(--line)}
+.pat button b{font-size:15px}
+.pat button small{color:var(--tx3);font-size:12.5px}
+.pat button[aria-pressed="true"]{border-color:var(--acc);background:#9fc7ff14}
+/* Guidées */
+.gd{display:flex;align-items:center;gap:12px;padding:13px;border-radius:16px;background:var(--bg2);border:1px solid var(--line);text-align:left;width:100%}
+.gd .n{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#9fc7ff33,#c7b3ff33);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:var(--acc);flex:none;font-variant-numeric:tabular-nums}
+.gd .t{flex:1}
+.gd .t b{display:block}
+.gd .t small{color:var(--tx3);font-size:12.5px}
+#gText{font:400 21px/1.5 Georgia,"Noto Serif",serif;text-align:center;min-height:5em;display:flex;align-items:center;justify-content:center;padding:0 6px;transition:opacity .8s}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;text-align:center}
+.stats b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+.stats small{color:var(--tx3);font-size:12px}
+nav{display:flex;justify-content:space-around;padding:6px 6px calc(8px + var(--safeB));background:#0c1220ee;border-top:1px solid var(--line)}
+nav button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11.5px;font-weight:600;color:var(--tx3);padding:6px 10px;border-radius:14px;min-width:72px}
+nav button.on{color:var(--acc);background:#9fc7ff14}
+#night{position:fixed;inset:0;background:#000;z-index:50;display:flex;align-items:flex-end;justify-content:center;padding-bottom:calc(40px + var(--safeB));color:#ffffff40;font-size:13px}
+#toast{position:fixed;left:16px;right:16px;bottom:calc(84px + var(--safeB));background:#243049;border:1px solid #ffffff1f;padding:12px 14px;border-radius:14px;font-size:14px;z-index:60;opacity:0;transform:translateY(16px);transition:.22s;pointer-events:none}
+#toast.on{opacity:1;transform:none}
+.tip{color:var(--tx3);font-size:13px;line-height:1.5}
+@media (prefers-reduced-motion:reduce){.orb.play .glow{animation:none}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header><h1>Sérénité</h1><small id="hStat"></small></header>
+  <main>
+    <!-- SÉANCE -->
+    <section class="v" id="vSeance">
+      <div class="orb" id="orb">
+        <div class="glow"></div>
+        <svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46" fill="none" stroke="#ffffff14" stroke-width="2"/><circle id="arc" cx="50" cy="50" r="46" fill="none" stroke="url(#gr)" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289"/><defs><linearGradient id="gr" x1="0" x2="1"><stop offset="0" stop-color="#9fc7ff"/><stop offset="1" stop-color="#c7b3ff"/></linearGradient></defs></svg>
+        <div class="mid"><b id="tLeft">10:00</b><span id="tSub">Pluie douce</span></div>
+      </div>
+      <button class="big" id="bGo"><svg class="i" viewBox="0 0 24 24"><path d="M7 5v14l12-7z" fill="currentColor"/></svg><span>Commencer</span></button>
+      <div class="sect">Minuterie</div>
+      <div class="chips" id="durs"></div>
+      <div class="sect">Ambiance</div>
+      <div class="amb" id="ambs"></div>
+      <div class="card list">
+        <label class="row"><span class="t">Cloche au début et à la fin<small>Un bol tibétain marque la séance</small></span><input type="checkbox" class="sw" id="oBell" checked></label>
+        <label class="row"><span class="t">Cloche toutes les 5 minutes<small>Pour revenir à la respiration</small></span><input type="checkbox" class="sw" id="oInt"></label>
+        <label class="row"><span class="t">Écran noir pendant la séance<small>Touche l'écran pour le rallumer</small></span><input type="checkbox" class="sw" id="oNight"></label>
+      </div>
+      <div class="sect">Mes séances</div>
+      <div class="card stats"><div><b id="sTot">0</b><small>minutes en tout</small></div><div><b id="sWeek">0</b><small>cette semaine</small></div><div><b id="sStreak">0</b><small>jours de suite</small></div></div>
+    </section>
+
+    <!-- SONS -->
+    <section class="v" id="vSons" hidden>
+      <p class="tip">Mélange les sons à ton goût : chacun se règle séparément. Ils sont créés en direct par le téléphone, sans connexion, et ne se répètent jamais.</p>
+      <div class="sect">Musiques</div>
+      <div class="card list" id="lMus"></div>
+      <div class="sect">Nature</div>
+      <div class="card list" id="lNat"></div>
+      <button class="big" id="bSnd"><span>Écouter</span></button>
+    </section>
+
+    <!-- RESPIRER -->
+    <section class="v" id="vResp" hidden>
+      <div class="breath" id="breath"><div class="ring"></div><div class="ball" id="ball"></div><div class="lab"><b id="bWord">Prêt</b><span id="bCount">Choisis un rythme</span></div></div>
+      <button class="big" id="bBreath"><span>Commencer</span></button>
+      <div class="pat" id="pats"></div>
+      <label class="card row"><span class="t">Son et vibration à chaque temps<small>Pour respirer les yeux fermés</small></span><input type="checkbox" class="sw" id="oCue" checked></label>
+    </section>
+
+    <!-- GUIDÉES -->
+    <section class="v" id="vGuide" hidden>
+      <div id="gPlay" hidden>
+        <div class="orb play" style="width:min(48vw,190px)"><div class="glow"></div><div class="mid"><b id="gLeft" style="font-size:34px">0:00</b></div></div>
+        <div id="gText"></div>
+        <button class="big stop" id="gStop"><span>Arrêter</span></button>
+      </div>
+      <div id="gList" class="list"></div>
+      <label class="card row"><span class="t">Lire les consignes à voix haute<small>Avec la voix du téléphone</small></span><input type="checkbox" class="sw" id="oVoice" checked></label>
+    </section>
+  </main>
+  <nav>
+    <button class="on" data-v="vSeance"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></svg>Séance</button>
+    <button data-v="vSons"><svg class="i" viewBox="0 0 24 24"><path d="M9 18V6l11-2v12"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>Sons</button>
+    <button data-v="vResp"><svg class="i" viewBox="0 0 24 24"><path d="M3 8h11a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h8"/></svg>Respirer</button>
+    <button data-v="vGuide"><svg class="i" viewBox="0 0 24 24"><path d="M12 3c-3 3-3 6 0 9 3-3 3-6 0-9zM4 13c2 4 5 6 8 6s6-2 8-6c-3 0-6 1-8 3-2-2-5-3-8-3z"/></svg>Guidées</button>
+  </nav>
+</div>
+<div id="night" hidden>Touche l'écran pour le rallumer</div>
+<div id="toast" role="status"></div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var P = window.MAGPrint || null;
+
+/* =====================================================================
+   Moteur sonore : tout est fabriqué en direct (Web Audio), sans fichier
+   ===================================================================== */
+var ctx = null, master = null, verb = null, verbIn = null, NOISE = {}, SND = {};
+function ac(){
+  if(ctx) return ctx;
+  var C = window.AudioContext || window.webkitAudioContext; ctx = new C();
+  var comp = ctx.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 3; comp.connect(ctx.destination);
+  master = ctx.createGain(); master.gain.value = 0; master.connect(comp);
+  // réverbération de grande salle
+  verb = ctx.createConvolver(); var n = ctx.sampleRate * 4.5, ir = ctx.createBuffer(2, n, ctx.sampleRate);
+  for(var c = 0; c < 2; c++){ var d = ir.getChannelData(c); for(var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2.6); }
+  verb.buffer = ir; var vg = ctx.createGain(); vg.gain.value = 0.55; verb.connect(vg); vg.connect(master);
+  verbIn = verb;
+  NOISE.white = noiseBuf('white'); NOISE.pink = noiseBuf('pink'); NOISE.brown = noiseBuf('brown');
+  return ctx;
+}
+function noiseBuf(kind){
+  var n = ctx.sampleRate * 6, b = ctx.createBuffer(2, n, ctx.sampleRate);
+  for(var c = 0; c < 2; c++){
+    var d = b.getChannelData(c), b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0, last = 0;
+    for(var i = 0; i < n; i++){
+      var w = Math.random() * 2 - 1;
+      if(kind === 'white') d[i] = w * 0.5;
+      else if(kind === 'pink'){ b0 = .99886*b0 + w*.0555179; b1 = .99332*b1 + w*.0750759; b2 = .969*b2 + w*.153852; b3 = .8665*b3 + w*.3104856; b4 = .55*b4 + w*.5329522; b5 = -.7616*b5 - w*.016898; d[i] = (b0+b1+b2+b3+b4+b5+b6+w*.5362) * .11; b6 = w*.115926; }
+      else { last = (last + .02 * w) / 1.02; d[i] = last * 3.2; }
+    }
+    // fondu pour une boucle sans clic
+    var f = 2000; for(var j = 0; j < f; j++){ var k = j / f; d[j] *= k; d[n - 1 - j] *= k; }
+  }
+  return b;
+}
+function loopNoise(kind, dest){
+  var s = ctx.createBufferSource(); s.buffer = NOISE[kind]; s.loop = true; s.loopStart = 0.05; s.loopEnd = NOISE[kind].duration - 0.05;
+  s.playbackRate.value = 0.97 + Math.random() * 0.06; s.connect(dest); s.start(0, Math.random() * 5); return s;
+}
+function filt(type, f, q){ var x = ctx.createBiquadFilter(); x.type = type; x.frequency.value = f; if(q) x.Q.value = q; return x; }
+function gain(v){ var g = ctx.createGain(); g.gain.value = v; return g; }
+function chain(){ for(var i = 0; i < arguments.length - 1; i++) arguments[i].connect(arguments[i + 1]); return arguments[arguments.length - 1]; }
+function lfo(param, rate, depth, base){ var o = ctx.createOscillator(), g = gain(depth); o.frequency.value = rate; o.connect(g); g.connect(param); if(base != null) param.value = base; o.start(); return o; }
+function rnd(a, b){ return a + Math.random() * (b - a); }
+
+/* chaque son : start(out) → {stop()} ; out est le gain réglé par le curseur */
+var DEFS = {
+  pluie: { name:'Pluie douce', grp:'nat', ic:'<path d="M7 13a5 5 0 1 1 9.6-2H17a3.5 3.5 0 0 1 0 7H8a4 4 0 0 1-1-5zM8 21l1-2M12 21l1-2M16 21l1-2"/>',
+    start: function(out){
+      var n = [], a = loopNoise('pink', chain(filt('highpass', 400), filt('lowpass', 7000), gain(0.55), out)); n.push(a);
+      var b = loopNoise('white', chain(filt('bandpass', 3000, 0.6), gain(0.12), out)); n.push(b);
+      var alive = true;
+      (function drop(){ if(!alive) return;   // gouttes sur les feuilles
+        var t = ctx.currentTime, s = ctx.createBufferSource(); s.buffer = NOISE.white; var f = filt('bandpass', rnd(1500, 5000), 8), g = gain(0);
+        chain(s, f, g, out); g.gain.setValueAtTime(rnd(.05, .25), t); g.gain.exponentialRampToValueAtTime(.0001, t + .05); s.start(t, rnd(0, 5), .06);
+        setTimeout(drop, rnd(40, 260)); })();
+      return { stop: function(){ alive = false; n.forEach(function(x){ try{ x.stop(); }catch(e){} }); } };
+    } },
+  mer: { name:'Vagues', grp:'nat', ic:'<path d="M2 12c2-2 4-2 6 0s4 2 6 0 4-2 6 0M2 17c2-2 4-2 6 0s4 2 6 0 4-2 6 0M2 7c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/>',
+    start: function(out){
+      var g = gain(0.1), f = filt('lowpass', 500), s = loopNoise('brown', chain(f, g, out));
+      var s2 = loopNoise('pink', chain(filt('bandpass', 1200, .5), gain(0), g));
+      var alive = true;
+      (function wave(){ if(!alive) return;   // une vague : montée, déferlement, retrait
+        var t = ctx.currentTime, d = rnd(6, 11);
+        g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t);
+        g.gain.linearRampToValueAtTime(rnd(.75, 1), t + d * .42); g.gain.linearRampToValueAtTime(rnd(.08, .18), t + d);
+        f.frequency.cancelScheduledValues(t); f.frequency.setValueAtTime(f.frequency.value, t);
+        f.frequency.linearRampToValueAtTime(rnd(900, 1600), t + d * .45); f.frequency.linearRampToValueAtTime(380, t + d);
+        setTimeout(wave, d * 1000 - 200); })();
+      return { stop: function(){ alive = false; [s, s2].forEach(function(x){ try{ x.stop(); }catch(e){} }); } };
+    } },
+  vent: { name:'Vent', grp:'nat', ic:'<path d="M3 8h10a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h7"/>',
+    start: function(out){
+      var f = filt('bandpass', 500, 1.2), g = gain(0.75), s = loopNoise('pink', chain(f, g, out));
+      var o1 = lfo(f.frequency, 0.07, 260, 520), o2 = lfo(g.gain, 0.05, 0.4, 0.75);
+      return { stop: function(){ [s, o1, o2].forEach(function(x){ try{ x.stop(); }catch(e){} }); } };
+    } },
+  ruisseau: { name:'Ruisseau', grp:'nat', ic:'<path d="M4 4c4 2 0 6 4 8s0 6 4 8M12 4c4 2 0 6 4 8s0 6 4 8"/>',
+    start: function(out){
+      var f = filt('bandpass', 1800, 2), s = loopNoise('white', chain(filt('highpass', 600), f, gain(0.35), out));
+      var f2 = filt('bandpass', 900, 3), s2 = loopNoise('pink', chain(f2, gain(0.4), out));
+      var o1 = lfo(f.frequency, 3.1, 700, 1800), o2 = lfo(f2.frequency, 1.7, 300, 900);
+      return { stop: function(){ [s, s2, o1, o2].forEach(function(x){ try{ x.stop(); }catch(e){} }); } };
+    } },
+  feu: { name:'Feu de bois', grp:'nat', ic:'<path d="M12 22c4 0 7-3 7-7 0-5-5-7-5-12-3 2-4 5-4 7-1-1-2-2-2-3-2 2-3 5-3 8 0 4 3 7 7 7z"/>',
+    start: function(out){
+      var s = loopNoise('brown', chain(filt('lowpass', 300), gain(0.65), out)), alive = true;
+      (function crack(){ if(!alive) return;   // crépitements
+        var t = ctx.currentTime, k = Math.random() < .25 ? 3 : 1;
+        for(var i = 0; i < k; i++){ var b = ctx.createBufferSource(); b.buffer = NOISE.white; var g = gain(0), f = filt('bandpass', rnd(1500, 6000), 1.5); chain(b, f, g, out);
+          var tt = t + i * rnd(.01, .04); g.gain.setValueAtTime(rnd(.25, .8), tt); g.gain.exponentialRampToValueAtTime(.0001, tt + rnd(.01, .04)); b.start(tt, rnd(0, 5), .05); }
+        setTimeout(crack, rnd(60, 500)); })();
+      return { stop: function(){ alive = false; try{ s.stop(); }catch(e){} } };
+    } },
+  oiseaux: { name:'Oiseaux', grp:'nat', ic:'<path d="M16 7h.01M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.3-2.3L2 20M20 7l2 .5-2 .5M10 18v3M14 17.7V21"/>',
+    start: function(out){
+      var alive = true, pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+      var dest = pan ? (pan.connect(out), pan) : out;
+      function chirp(t, f0, f1, d, v){ var o = ctx.createOscillator(), g = gain(0); o.type = 'sine'; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + d);
+        chain(o, g, dest); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + d * .2); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.start(t); o.stop(t + d + .02); try{ g.connect(verbIn); }catch(e){} }
+      (function song(){ if(!alive) return;   // un petit chant, d'un côté ou de l'autre
+        if(pan) pan.pan.value = rnd(-.8, .8);
+        var t = ctx.currentTime + .05, f = rnd(2600, 4200), n = Math.floor(rnd(2, 7)), kind = Math.random();
+        for(var i = 0; i < n; i++){
+          if(kind < .4) chirp(t, f * rnd(1, 1.15), f * rnd(.7, .85), rnd(.06, .12), .22);
+          else if(kind < .75) chirp(t, f * .8, f * 1.25, rnd(.08, .14), .19);
+          else chirp(t, f, f * 1.02, .05, .17);
+          t += rnd(.09, .2);
+        }
+        setTimeout(song, rnd(1800, 6500)); })();
+      return { stop: function(){ alive = false; } };
+    } },
+  nappes: { name:'Nappes douces', grp:'mus', ic:'<path d="M3 12c3-6 6-6 9 0s6 6 9 0"/>',
+    start: function(out){
+      // accords lents qui se fondent les uns dans les autres (ré majeur, couleurs suspendues)
+      var CH = [[50, 57, 62, 66, 69], [47, 54, 59, 62, 66], [43, 50, 55, 59, 62], [45, 52, 57, 61, 64]], k = 0, alive = true, live = [];
+      var bus = chain(filt('lowpass', 1400), gain(0.5), out); var send = gain(0.6); bus.connect(send); send.connect(verbIn);
+      function hz(m){ return 440 * Math.pow(2, (m - 69) / 12); }
+      function chord(){ if(!alive) return;
+        var t = ctx.currentTime, dur = 18, notes = CH[k++ % CH.length], g = gain(0); g.connect(bus);
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.16, t + 6); g.gain.setValueAtTime(.16, t + dur - 6); g.gain.linearRampToValueAtTime(0, t + dur + 4);
+        var os = [];
+        notes.forEach(function(m){ [-4, 4].forEach(function(det){ var o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = hz(m); o.detune.value = det + rnd(-2, 2); o.connect(g); o.start(t); o.stop(t + dur + 5); os.push(o); }); });
+        live.push(os); if(live.length > 3) live.shift();
+        setTimeout(chord, (dur - 4) * 1000);
+      }
+      chord();
+      return { stop: function(){ alive = false; live.forEach(function(os){ os.forEach(function(o){ try{ o.stop(); }catch(e){} }); }); } };
+    } },
+  bols: { name:'Bols chantants', grp:'mus', ic:'<path d="M3 10h18a9 9 0 0 1-18 0zM8 21h8"/>',
+    start: function(out){
+      var alive = true, NOTES = [196, 220, 261.6, 293.7, 329.6];
+      (function strike(){ if(!alive) return; bowl(NOTES[Math.floor(Math.random() * NOTES.length)], out, rnd(.35, .6)); setTimeout(strike, rnd(9000, 17000)); })();
+      return { stop: function(){ alive = false; } };
+    } },
+  piano: { name:'Piano rêveur', grp:'mus', ic:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M8 5v8M12 5v8M16 5v8M8 13v6M12 13v6M16 13v6"/>',
+    start: function(out){
+      // notes éparses en gamme pentatonique, comme un piano au loin
+      var SC = [62, 64, 66, 69, 71, 74, 76, 78, 81], alive = true, i = Math.floor(rnd(2, 6));
+      function hz(m){ return 440 * Math.pow(2, (m - 69) / 12); }
+      function note(m, t, v){
+        var f = hz(m), g = gain(0); g.connect(out); g.connect(verbIn);
+        [[1, 1], [2, .35], [3, .12], [4, .06]].forEach(function(h){ var o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f * h[0]; var gg = gain(h[1]); o.connect(gg); gg.connect(g); o.start(t); o.stop(t + 5); });
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + .006); g.gain.exponentialRampToValueAtTime(v * .25, t + .8); g.gain.exponentialRampToValueAtTime(.0001, t + 4.8);
+      }
+      (function phrase(){ if(!alive) return;
+        var t = ctx.currentTime + .05, n = Math.floor(rnd(2, 5));
+        for(var k = 0; k < n; k++){ i = Math.max(0, Math.min(SC.length - 1, i + Math.floor(rnd(-2, 3)))); note(SC[i], t, rnd(.22, .32)); if(Math.random() < .25) note(SC[Math.max(0, i - 3)] - 12, t, .18); t += rnd(.6, 1.4); }
+        setTimeout(phrase, (t - ctx.currentTime) * 1000 + rnd(2500, 6000)); })();
+      return { stop: function(){ alive = false; } };
+    } }
+};
+/* bol tibétain : partiels inharmoniques qui battent lentement */
+function bowl(f, out, v){
+  ac(); var t = ctx.currentTime + .02, g = gain(0); g.connect(out || master); g.connect(verbIn);
+  [[1, 1, 0], [2.71, .45, 1.2], [5.15, .2, 2.1], [8.2, .07, 3]].forEach(function(p){
+    [0, 1].forEach(function(j){ var o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f * p[0] * (j ? 1.0035 : 1); var gg = gain(p[1] / 2); o.connect(gg); gg.connect(g); o.start(t); o.stop(t + 14); });
+  });
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + .01); g.gain.exponentialRampToValueAtTime(v * .35, t + 1.5); g.gain.exponentialRampToValueAtTime(.0001, t + 13);
+}
+
+/* mélangeur : réglages gardés sur le téléphone */
+var MIX = {};
+try{ MIX = JSON.parse(localStorage.getItem('serenite-mix') || '{}'); }catch(e){}
+Object.keys(DEFS).forEach(function(k){ if(!MIX[k]) MIX[k] = { on:false, v:0.6 }; });
+function saveMix(){ try{ localStorage.setItem('serenite-mix', JSON.stringify(MIX)); }catch(e){} }
+var playing = false;
+function sndOn(k){
+  if(SND[k] || !ctx) return;
+  var out = gain(0); out.connect(master);
+  var vol = MIX[k].v * (DEFS[k].grp === 'mus' ? 0.9 : 0.8);
+  out.gain.setValueAtTime(0, ctx.currentTime); out.gain.linearRampToValueAtTime(vol, ctx.currentTime + 3);
+  SND[k] = { out:out, h: DEFS[k].start(out) };
+}
+function sndOff(k){
+  var s = SND[k]; if(!s) return; delete SND[k];
+  var t = ctx.currentTime; s.out.gain.cancelScheduledValues(t); s.out.gain.setValueAtTime(s.out.gain.value, t); s.out.gain.linearRampToValueAtTime(0, t + 2);
+  setTimeout(function(){ try{ s.h.stop(); }catch(e){} try{ s.out.disconnect(); }catch(e){} }, 2300);
+}
+function sndVol(k){ var s = SND[k]; if(s){ var t = ctx.currentTime; s.out.gain.cancelScheduledValues(t); s.out.gain.setTargetAtTime(MIX[k].v * (DEFS[k].grp === 'mus' ? 0.9 : 0.8), t, .3); } }
+function startSounds(){
+  ac(); if(ctx.state === 'suspended') ctx.resume();
+  playing = true;
+  master.gain.cancelScheduledValues(ctx.currentTime); master.gain.setValueAtTime(master.gain.value, ctx.currentTime); master.gain.linearRampToValueAtTime(0.9, ctx.currentTime + 2);
+  Object.keys(MIX).forEach(function(k){ if(MIX[k].on) sndOn(k); else sndOff(k); });
+  paintSons();
+}
+function stopSounds(fade){
+  if(!ctx) return; playing = false;
+  var t = ctx.currentTime, d = fade || 2;
+  master.gain.cancelScheduledValues(t); master.gain.setValueAtTime(master.gain.value, t); master.gain.linearRampToValueAtTime(0, t + d);
+  var ks = Object.keys(SND);
+  setTimeout(function(){ if(playing) return; ks.forEach(function(k){ var s = SND[k]; if(s){ delete SND[k]; try{ s.h.stop(); }catch(e){} try{ s.out.disconnect(); }catch(e){} } }); }, d * 1000 + 200);
+  paintSons();
+}
+
+/* ambiances prêtes */
+var AMB = [
+  ['pluie', 'Pluie douce', 'Pluie et nappes', { pluie:.7, nappes:.45 }],
+  ['mer', 'Bord de mer', 'Vagues et bols', { mer:.75, bols:.4, vent:.2 }],
+  ['foret', 'Forêt', 'Oiseaux et ruisseau', { oiseaux:.5, ruisseau:.45, vent:.25 }],
+  ['feu', 'Coin du feu', 'Feu et piano', { feu:.65, piano:.5 }],
+  ['zen', 'Méditation', 'Bols et nappes', { bols:.6, nappes:.5 }],
+  ['nuit', 'Sommeil', 'Pluie, vagues lointaines', { pluie:.5, mer:.3, nappes:.3 }]
+];
+var cur = localStorage.getItem('serenite-amb') || 'pluie';
+function applyAmb(id){
+  var a = AMB.filter(function(x){ return x[0] === id; })[0]; if(!a) return;
+  cur = id; try{ localStorage.setItem('serenite-amb', id); }catch(e){}
+  Object.keys(MIX).forEach(function(k){ MIX[k].on = k in a[3]; if(k in a[3]) MIX[k].v = a[3][k]; });
+  saveMix(); if(playing) Object.keys(MIX).forEach(function(k){ if(MIX[k].on){ sndOn(k); sndVol(k); } else sndOff(k); });
+  paintAmb(); paintSons(); $('tSub').textContent = a[1];
+}
+function paintAmb(){
+  var box = $('ambs'); box.innerHTML = '';
+  AMB.forEach(function(a){ var b = document.createElement('button'); b.setAttribute('aria-pressed', a[0] === cur); b.innerHTML = '<b></b><small></small>';
+    b.querySelector('b').textContent = a[1]; b.querySelector('small').textContent = a[2]; b.onclick = function(){ applyAmb(a[0]); }; box.appendChild(b); });
+  var perso = document.createElement('button'); perso.setAttribute('aria-pressed', cur === 'perso'); perso.innerHTML = '<b>Mon mélange</b><small>Réglé dans Sons</small>';
+  perso.onclick = function(){ cur = 'perso'; try{ localStorage.setItem('serenite-amb', 'perso'); }catch(e){} paintAmb(); $('tSub').textContent = 'Mon mélange'; show('vSons'); };
+  box.appendChild(perso);
+}
+function paintSons(){
+  ['mus', 'nat'].forEach(function(grp){
+    var box = $(grp === 'mus' ? 'lMus' : 'lNat');
+    if(!box.children.length){
+      Object.keys(DEFS).filter(function(k){ return DEFS[k].grp === grp; }).forEach(function(k){
+        var r = document.createElement('div'); r.className = 'snd'; r.dataset.k = k;
+        r.innerHTML = '<span class="ic"><svg class="i" viewBox="0 0 24 24">' + DEFS[k].ic + '</svg></span><span class="t"><b></b><input type="range" min="0" max="1" step="0.01"></span><button class="tg"></button>';
+        r.querySelector('b').textContent = DEFS[k].name;
+        var rg = r.querySelector('input'); rg.setAttribute('aria-label', 'Volume : ' + DEFS[k].name);
+        rg.oninput = function(){ MIX[k].v = +rg.value; if(!MIX[k].on){ MIX[k].on = true; if(playing) sndOn(k); } sndVol(k); markPerso(); saveMix(); paintSons(); };
+        r.querySelector('.tg').onclick = function(){ MIX[k].on = !MIX[k].on; if(playing){ if(MIX[k].on) sndOn(k); else sndOff(k); } markPerso(); saveMix(); paintSons(); };
+        box.appendChild(r);
+      });
+    }
+    Array.prototype.forEach.call(box.children, function(r){
+      var k = r.dataset.k, on = MIX[k].on; r.classList.toggle('on', on);
+      r.querySelector('input').value = MIX[k].v;
+      var tg = r.querySelector('.tg'); tg.setAttribute('aria-label', (on ? 'Couper : ' : 'Activer : ') + DEFS[k].name);
+      tg.innerHTML = on ? '<svg class="i" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>' : '<svg class="i" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4zM22 9l-6 6M16 9l6 6"/></svg>';
+    });
+  });
+  var b = $('bSnd'); b.classList.toggle('stop', playing); b.querySelector('span').textContent = playing ? (session ? 'Séance en cours' : 'Arrêter le son') : 'Écouter';
+}
+function markPerso(){ if(cur !== 'perso'){ cur = 'perso'; try{ localStorage.setItem('serenite-amb', 'perso'); }catch(e){} paintAmb(); $('tSub').textContent = 'Mon mélange'; } }
+
+/* =====================================================================
+   Séance minutée
+   ===================================================================== */
+var DURS = [3, 5, 10, 15, 20, 30, 45, 60, 0], dur = +(localStorage.getItem('serenite-dur') || 10), session = null;
+function fmt(s){ s = Math.max(0, Math.round(s)); var m = Math.floor(s / 60); return (m >= 60 ? Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0') : m) + ':' + String(s % 60).padStart(2, '0'); }
+function paintDurs(){
+  var box = $('durs'); box.innerHTML = '';
+  DURS.forEach(function(d){ var b = document.createElement('button'); b.className = 'chip'; b.textContent = d ? d + ' min' : 'Sans fin'; b.setAttribute('aria-pressed', d === dur);
+    b.onclick = function(){ if(session) return; dur = d; try{ localStorage.setItem('serenite-dur', d); }catch(e){} paintDurs(); idleOrb(); }; box.appendChild(b); });
+}
+function idleOrb(){ $('tLeft').textContent = dur ? fmt(dur * 60) : '∞'; $('arc').style.strokeDashoffset = 289; }
+function startSession(){
+  ac(); if(ctx.state === 'suspended') ctx.resume();
+  if(cur !== 'perso'){ var a = AMB.filter(function(x){ return x[0] === cur; })[0]; if(a) applyAmb(cur); }
+  if(!Object.keys(MIX).some(function(k){ return MIX[k].on; })) applyAmb('pluie');
+  session = { t0: Date.now(), len: dur * 60, lastBell: 0, ended:false };
+  startSounds();
+  if($('oBell').checked) setTimeout(function(){ bowl(220, master, .7); }, 600);
+  $('orb').classList.add('play'); setGo(true);
+  try{ if(P && P.keepScreen) P.keepScreen(true); }catch(e){}
+  if($('oNight').checked) setTimeout(function(){ if(session) $('night').hidden = false; }, 4000);
+  tick();
+}
+function endSession(done){
+  if(!session) return;
+  var mins = (Date.now() - session.t0) / 60000;
+  session = null;
+  if(done && $('oBell').checked){ bowl(220, master, .75); setTimeout(function(){ bowl(261.6, master, .55); }, 2600); }
+  stopSounds(done ? 9 : 2);
+  $('orb').classList.remove('play'); setGo(false); $('night').hidden = true; idleOrb();
+  try{ if(P && P.keepScreen) P.keepScreen(false); }catch(e){}
+  if(mins >= 1) addMinutes(mins);
+  if(done) toast('Séance terminée. Prends un instant avant de te lever.');
+}
+function setGo(on){ var b = $('bGo'); b.classList.toggle('stop', on); b.innerHTML = on ? '<svg class="i" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg><span>Arrêter</span>' : '<svg class="i" viewBox="0 0 24 24"><path d="M7 5v14l12-7z" fill="currentColor"/></svg><span>Commencer</span>'; paintSons(); }
+function tick(){
+  if(!session) return;
+  var el = (Date.now() - session.t0) / 1000;
+  if(session.len){
+    var left = session.len - el;
+    $('tLeft').textContent = fmt(left);
+    $('arc').style.strokeDashoffset = 289 * (1 - Math.min(1, el / session.len));
+    if(left <= 25 && !session.fading){ session.fading = true; var t = ctx.currentTime; master.gain.cancelScheduledValues(t); master.gain.setValueAtTime(master.gain.value, t); master.gain.linearRampToValueAtTime(0.25, t + 24); }   // le son baisse doucement
+    if(left <= 0){ endSession(true); return; }
+  } else {
+    $('tLeft').textContent = fmt(el); $('arc').style.strokeDashoffset = 289 * (1 - (el % 60) / 60);
+  }
+  if($('oInt').checked && el - session.lastBell >= 300 && el > 10 && (!session.len || session.len - el > 60)){ session.lastBell = el; bowl(293.7, master, .45); }
+  setTimeout(tick, 250);
+}
+$('bGo').onclick = function(){ if(session) endSession(false); else startSession(); };
+$('night').onclick = function(){ $('night').hidden = true; };
+
+/* minutes de méditation */
+var LOG = {}; try{ LOG = JSON.parse(localStorage.getItem('serenite-log') || '{}'); }catch(e){}
+function dayKey(d){ d = d || new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function addMinutes(m){ var k = dayKey(); LOG[k] = Math.round(((LOG[k] || 0) + m) * 10) / 10; try{ localStorage.setItem('serenite-log', JSON.stringify(LOG)); }catch(e){} paintStats(); }
+function paintStats(){
+  var tot = 0, week = 0, now = new Date(), streak = 0;
+  Object.keys(LOG).forEach(function(k){ tot += LOG[k]; if((now - new Date(k + 'T12:00')) / 864e5 < 7) week += LOG[k]; });
+  for(var i = 0; i < 400; i++){ var d = new Date(now); d.setDate(d.getDate() - i); if(LOG[dayKey(d)]) streak++; else if(i > 0) break; }
+  $('sTot').textContent = Math.round(tot); $('sWeek').textContent = Math.round(week); $('sStreak').textContent = streak;
+  $('hStat').textContent = LOG[dayKey()] ? Math.round(LOG[dayKey()]) + ' min aujourd’hui' : '';
+}
+
+/* =====================================================================
+   Respiration
+   ===================================================================== */
+var PATS = [
+  ['coherence', 'Cohérence cardiaque', '5 s inspire · 5 s expire, 5 minutes', [['Inspire', 5, 1], ['Expire', 5, 0]], 300],
+  ['calme', 'Respiration apaisante', '4 s inspire · 6 s expire', [['Inspire', 4, 1], ['Expire', 6, 0]], 0],
+  ['carre', 'Respiration carrée', '4 s inspire · 4 s retiens · 4 s expire · 4 s retiens', [['Inspire', 4, 1], ['Retiens', 4, 1], ['Expire', 4, 0], ['Retiens', 4, 0]], 0],
+  ['478', 'Respiration 4-7-8', 'Pour s’endormir : 4 s inspire · 7 s retiens · 8 s expire', [['Inspire', 4, 1], ['Retiens', 7, 1], ['Expire', 8, 0]], 0]
+];
+var pat = localStorage.getItem('serenite-pat') || 'coherence', br = null;
+function paintPats(){
+  var box = $('pats'); box.innerHTML = '';
+  PATS.forEach(function(p){ var b = document.createElement('button'); b.setAttribute('aria-pressed', p[0] === pat); b.innerHTML = '<b></b><small></small>';
+    b.querySelector('b').textContent = p[1]; b.querySelector('small').textContent = p[2];
+    b.onclick = function(){ pat = p[0]; try{ localStorage.setItem('serenite-pat', pat); }catch(e){} if(br) stopBreath(); paintPats(); }; box.appendChild(b); });
+}
+function cue(up){
+  if(!$('oCue').checked) return;
+  try{ navigator.vibrate && navigator.vibrate(up ? 40 : [20, 60, 20]); }catch(e){}
+  if(!ctx) return;
+  var t = ctx.currentTime, o = ctx.createOscillator(), g = gain(0); o.type = 'sine';
+  o.frequency.setValueAtTime(up ? 330 : 440, t); o.frequency.linearRampToValueAtTime(up ? 440 : 330, t + .8);
+  o.connect(g); g.connect(master); g.connect(verbIn); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.12, t + .1); g.gain.exponentialRampToValueAtTime(.0001, t + 1.4); o.start(t); o.stop(t + 1.5);
+}
+function startBreath(){
+  ac(); if(ctx.state === 'suspended') ctx.resume();
+  if(!playing){ master.gain.cancelScheduledValues(ctx.currentTime); master.gain.setValueAtTime(0.9, ctx.currentTime); }
+  var p = PATS.filter(function(x){ return x[0] === pat; })[0];
+  br = { p:p, i:-1, t0:Date.now(), cycles:0 };
+  try{ if(P && P.keepScreen) P.keepScreen(true); }catch(e){}
+  $('bBreath').classList.add('stop'); $('bBreath').querySelector('span').textContent = 'Arrêter';
+  step();
+}
+function step(){
+  if(!br) return;
+  var ph = br.p[3]; br.i = (br.i + 1) % ph.length; if(br.i === 0 && br.t0 && Date.now() - br.t0 > 500) br.cycles++;
+  var s = ph[br.i], ball = $('ball'), prevUp = ph[(br.i + ph.length - 1) % ph.length][2];
+  $('bWord').textContent = s[0];
+  ball.style.transition = 'transform ' + s[1] + 's ' + (s[0] === 'Retiens' ? 'linear' : 'ease-in-out');
+  ball.style.transform = 'scale(' + (s[2] ? 1.6 : .62) + ')';
+  if(s[0] !== 'Retiens') cue(s[2] === 1);
+  var end = Date.now() + s[1] * 1000;
+  (function count(){ if(!br) return; var l = Math.ceil((end - Date.now()) / 1000); $('bCount').textContent = l > 0 ? l + (br.p[4] ? ' · ' + fmt(br.p[4] - (Date.now() - br.t0) / 1000) : '') : ''; if(Date.now() < end) setTimeout(count, 200); })();
+  br.tm = setTimeout(function(){
+    if(br && br.p[4] && (Date.now() - br.t0) / 1000 >= br.p[4] && br.i === ph.length - 1){ var m = (Date.now() - br.t0) / 60000; stopBreath(); addMinutes(m); toast('Bravo : 5 minutes de cohérence cardiaque'); bowl(261.6, master, .5); return; }
+    step();
+  }, s[1] * 1000);
+}
+function stopBreath(){
+  if(!br) return; clearTimeout(br.tm); var m = (Date.now() - br.t0) / 60000; br = null;
+  if(m >= 1) addMinutes(m);
+  $('ball').style.transition = 'transform 1.5s ease'; $('ball').style.transform = 'scale(.62)';
+  $('bWord').textContent = 'Prêt'; $('bCount').textContent = 'Choisis un rythme';
+  $('bBreath').classList.remove('stop'); $('bBreath').querySelector('span').textContent = 'Commencer';
+  if(!session) try{ if(P && P.keepScreen) P.keepScreen(false); }catch(e){}
+}
+$('bBreath').onclick = function(){ if(br) stopBreath(); else startBreath(); };
+
+/* =====================================================================
+   Méditations guidées (textes originaux)
+   ===================================================================== */
+var GUIDES = [
+  ['Respiration consciente', 5, 'zen', [
+    [0, 'Installe-toi confortablement, le dos droit et détendu. Ferme doucement les yeux.'],
+    [20, 'Porte ton attention sur ta respiration, sans chercher à la changer. Elle va et vient, simplement.'],
+    [50, 'Sens l’air frais qui entre par le nez, et l’air tiède qui ressort.'],
+    [85, 'Si une pensée arrive, remarque-la, comme un nuage qui passe. Puis reviens au souffle.'],
+    [130, 'Laisse le ventre se gonfler à l’inspiration, et se relâcher à l’expiration.'],
+    [180, 'À chaque expiration, laisse les épaules descendre un peu plus.'],
+    [230, 'Il n’y a rien à réussir. Juste respirer, ici, maintenant.'],
+    [270, 'Doucement, prends une inspiration un peu plus profonde. Bouge les doigts, puis ouvre les yeux quand tu le souhaites.']]],
+  ['Détente du corps', 10, 'pluie', [
+    [0, 'Allonge-toi ou assieds-toi confortablement. Ferme les yeux et prends trois respirations lentes.'],
+    [30, 'Porte ton attention sur tes pieds. Sens leur poids, leur chaleur. Laisse-les se détendre.'],
+    [80, 'Remonte vers les mollets et les genoux. Relâche ce qui peut se relâcher.'],
+    [130, 'Les cuisses deviennent lourdes, le bassin s’enfonce doucement dans le support.'],
+    [185, 'Le ventre se soulève et redescend au rythme du souffle. Rien à faire, juste observer.'],
+    [245, 'Le dos s’allonge, vertèbre après vertèbre. Les tensions fondent comme la neige au soleil.'],
+    [305, 'Les épaules descendent. Les bras deviennent lourds, jusqu’au bout des doigts.'],
+    [365, 'La nuque se libère. La mâchoire se desserre. Le front devient lisse.'],
+    [430, 'Ressens maintenant le corps tout entier, calme et détendu, de la tête aux pieds.'],
+    [520, 'Reste encore un moment dans ce calme.'],
+    [570, 'Peu à peu, bouge les mains et les pieds. Étire-toi, et ouvre les yeux à ton rythme.']]],
+  ['Gratitude', 5, 'feu', [
+    [0, 'Installe-toi et ferme les yeux. Respire calmement quelques instants.'],
+    [30, 'Pense à une chose simple qui t’a fait du bien aujourd’hui. Un repas, un sourire, un rayon de soleil.'],
+    [80, 'Revis ce moment. Où étais-tu ? Qu’as-tu ressenti ?'],
+    [130, 'Pense maintenant à une personne qui compte pour toi. Envoie-lui, en pensée, un merci sincère.'],
+    [190, 'Remarque la chaleur que cela fait naître dans la poitrine.'],
+    [240, 'Garde cette sensation avec toi. Elle t’accompagnera dans la suite de ta journée.'],
+    [280, 'Prends une grande inspiration, et ouvre doucement les yeux.']]],
+  ['Avant de dormir', 15, 'nuit', [
+    [0, 'Allonge-toi confortablement. Laisse ton corps peser de tout son poids sur le lit.'],
+    [30, 'Respire lentement. Inspire en comptant jusqu’à quatre, expire en comptant jusqu’à six.'],
+    [90, 'La journée est terminée. Ce qui n’est pas fait attendra demain. Tu as le droit de te reposer.'],
+    [160, 'Imagine une plage au crépuscule. Les vagues arrivent et repartent, lentement.'],
+    [240, 'À chaque vague, une tension s’en va avec l’eau.'],
+    [330, 'Ton souffle devient lent et profond, comme la mer.'],
+    [430, 'Les paupières sont lourdes. Les bras sont lourds. Tout le corps est lourd et chaud.'],
+    [560, 'Laisse les pensées passer sans les suivre. Il n’y a plus rien à faire.'],
+    [700, 'Tu peux maintenant te laisser glisser doucement vers le sommeil.']]],
+  ['Pause anti-stress', 3, 'mer', [
+    [0, 'Arrête-toi un instant. Pose les pieds bien à plat sur le sol.'],
+    [15, 'Inspire profondément par le nez. Retiens un instant. Souffle lentement par la bouche.'],
+    [45, 'Encore une fois. Inspire… et souffle, comme pour éteindre une bougie sans la faire vaciller.'],
+    [80, 'Nomme en silence trois choses que tu vois autour de toi.'],
+    [115, 'Puis deux sons que tu entends.'],
+    [145, 'Et une sensation dans ton corps : le contact des pieds, la chaleur des mains.'],
+    [165, 'Tu es ici. Tout va bien pour l’instant. Reprends ta journée en douceur.']]]
+];
+var gd = null;
+function paintGuides(){
+  var box = $('gList'); box.innerHTML = '';
+  GUIDES.forEach(function(g, i){ var b = document.createElement('button'); b.className = 'gd'; b.innerHTML = '<span class="n">' + g[1] + '′</span><span class="t"><b></b><small></small></span>';
+    b.querySelector('b').textContent = g[0]; b.querySelector('small').textContent = g[1] + ' minutes · ambiance ' + AMB.filter(function(a){ return a[0] === g[2]; })[0][1].toLowerCase();
+    b.onclick = function(){ startGuide(i); }; box.appendChild(b); });
+}
+function say(t){ if(!$('oVoice').checked) return; try{ if(P && P.speak) P.speak(t); }catch(e){} }
+function startGuide(i){
+  var g = GUIDES[i]; stopGuide(true);
+  ac(); if(ctx.state === 'suspended') ctx.resume();
+  applyAmb(g[2]); startSounds();
+  // la voix passe devant : musique un peu plus basse
+  master.gain.cancelScheduledValues(ctx.currentTime); master.gain.linearRampToValueAtTime(0.55, ctx.currentTime + 2);
+  gd = { g:g, t0:Date.now(), k:0 };
+  $('gPlay').hidden = false; $('gList').hidden = true;
+  bowl(220, master, .55);
+  try{ if(P && P.keepScreen) P.keepScreen(true); }catch(e){}
+  (function loop(){
+    if(!gd) return;
+    var el = (Date.now() - gd.t0) / 1000, len = g[1] * 60;
+    $('gLeft').textContent = fmt(len - el);
+    while(gd.k < g[3].length && el >= g[3][gd.k][0]){
+      var txt = g[3][gd.k][1], tg = $('gText'); tg.style.opacity = 0;
+      (function(t){ setTimeout(function(){ tg.textContent = t; tg.style.opacity = 1; }, 700); })(txt);
+      setTimeout(function(t){ return function(){ say(t); }; }(txt), 1800);
+      gd.k++;
+    }
+    if(el >= len){ var m = len / 60; stopGuide(true); addMinutes(m); bowl(220, master, .7); setTimeout(function(){ stopSounds(8); }, 300); toast('Méditation terminée'); return; }
+    setTimeout(loop, 300);
+  })();
+}
+function stopGuide(quiet){
+  if(!gd) return; var m = (Date.now() - gd.t0) / 60000, full = m >= gd.g[1] - .05; gd = null;
+  $('gPlay').hidden = true; $('gList').hidden = false; $('gText').textContent = '';
+  if(!quiet){ if(m >= 1) addMinutes(m); stopSounds(3); }
+  if(!session) try{ if(P && P.keepScreen) P.keepScreen(false); }catch(e){}
+}
+$('gStop').onclick = function(){ stopGuide(false); };
+
+/* =====================================================================
+   Onglets, divers
+   ===================================================================== */
+function show(v){
+  document.querySelectorAll('nav button').forEach(function(b){ b.classList.toggle('on', b.dataset.v === v); });
+  ['vSeance', 'vSons', 'vResp', 'vGuide'].forEach(function(x){ $(x).hidden = x !== v; });
+}
+document.querySelectorAll('nav button').forEach(function(b){ b.onclick = function(){ show(b.dataset.v); }; });
+$('bSnd').onclick = function(){ if(session) return; if(playing) stopSounds(2); else startSounds(); };
+['oBell', 'oInt', 'oNight', 'oCue', 'oVoice'].forEach(function(id){
+  try{ var v = localStorage.getItem('serenite-' + id); if(v != null) $(id).checked = v === '1'; }catch(e){}
+  $(id).onchange = function(){ try{ localStorage.setItem('serenite-' + id, this.checked ? '1' : '0'); }catch(e){} };
+});
+var toT = null;
+function toast(m){ var t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toT); toT = setTimeout(function(){ t.classList.remove('on'); }, 3500); }
+
+paintDurs(); paintAmb(); paintSons(); paintPats(); paintGuides(); paintStats(); idleOrb();
+var a0 = AMB.filter(function(x){ return x[0] === cur; })[0]; $('tSub').textContent = a0 ? a0[1] : 'Mon mélange';
+})();
+</script>
+</body>
+</html>
