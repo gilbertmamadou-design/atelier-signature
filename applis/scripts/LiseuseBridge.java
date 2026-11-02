@@ -699,6 +699,8 @@ public class LiseuseBridge {
         }
         static void clear(boolean keep) {
             synchronized (L) { q.clear(); if (!keep) { cur = null; hist.clear(); } emptySent = false; L.notifyAll(); }
+            // une phrase suivante déjà confiée à la voix n'est plus la bonne : elle est retirée (la phrase en cours continue)
+            if (preId != null) { preId = null; if (!keep) stopVoice(); }
         }
         static void stop() { stop(true); }
         /** notify : prévenir la page (arrêt venu de la notification, d'Android Auto, de Jarvis) */
@@ -706,7 +708,7 @@ public class LiseuseBridge {
             synchronized (L) { alive = false; playing = false; q.clear(); hist.clear(); cur = null; sleepAt = 0; sleepChap = -1; L.notifyAll(); }
             h.removeCallbacks(sleepRun);
             focus(false); noisy(false); wake(false);
-            try { if (tts != null) tts.stop(); } catch (Throwable t) { }
+            stopVoice();
             if (session != null) { session.setPlaybackState(new PlaybackState.Builder().setState(PlaybackState.STATE_STOPPED, 0, 1f).build()); session.setActive(false); }
             Lecture s = Lecture.me; if (s != null) s.finish();
             foreground = false;
@@ -811,40 +813,81 @@ public class LiseuseBridge {
             if (!still(it)) { t.pause(); t.flush(); return; }
             finished(it);
         }
+        /** Phrase suivante déjà confiée à la voix (enchaînement sans blanc) ; phrases finies (onDone) */
+        static volatile String preId = null;
+        static volatile boolean noGoogle = false;
+        static final java.util.Set<String> done = java.util.Collections.synchronizedSet(new java.util.HashSet<String>());
+        static void say(Item it, int mode) {
+            tts.setSpeechRate(it.rate);
+            Bundle b = new Bundle(); b.putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_MUSIC);
+            tts.speak(it.text, mode, b, it.id);
+            // fin de paragraphe : un vrai silence, comme un lecteur qui tourne la page
+            if (it.meta.optBoolean("p", false)) tts.playSilentUtterance(Math.round(380 / Math.max(0.75f, it.rate)), TextToSpeech.QUEUE_ADD, it.id + "~");
+        }
+        static void stopVoice() { preId = null; done.clear(); try { if (tts != null) tts.stop(); } catch (Throwable x) { } }
         static void playText(final Item it) {
             if (!ttsReady()) { finished(it); return; }
             while (still(it)) {
                 if (!playing) { synchronized (L) { while (alive && !playing && cur == it) { try { L.wait(1000); } catch (InterruptedException e) { return; } } } continue; }
-                ttsDone = "";
-                try { tts.setSpeechRate(it.rate); Bundle b = new Bundle(); b.putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_MUSIC); tts.speak(it.text, TextToSpeech.QUEUE_FLUSH, b, it.id); } catch (Throwable x) { finished(it); return; }
+                boolean queued = it.id.equals(preId);
+                preId = null;
+                try { if (!queued) { done.clear(); say(it, TextToSpeech.QUEUE_FLUSH); } } catch (Throwable x) { finished(it); return; }
+                // la phrase suivante est confiée tout de suite à la voix : elle la prépare pendant celle-ci et l'enchaîne sans blanc
+                Item nx; synchronized (L) { nx = q.peekFirst(); }
+                if (nx != null && nx.pcm == null && sleepChap < 0 && sleepAt == 0) { try { say(nx, TextToSpeech.QUEUE_ADD); preId = nx.id; } catch (Throwable x) { preId = null; } }
                 long end = System.currentTimeMillis() + 8000 + (long) (it.text.length() * 160 / it.rate);
-                while (still(it) && playing && !it.id.equals(ttsDone) && System.currentTimeMillis() < end) { try { Thread.sleep(40); } catch (InterruptedException e) { return; } }
-                if (still(it) && playing) { finished(it); return; }
-                try { tts.stop(); } catch (Throwable x) { }   // pause (la phrase reprendra au début) ou phrase passée
+                while (still(it) && playing && !done.contains(it.id) && System.currentTimeMillis() < end) { try { Thread.sleep(25); } catch (InterruptedException e) { return; } }
+                if (still(it) && playing) { done.remove(it.id); finished(it); return; }
+                stopVoice();   // pause (la phrase reprendra au début) ou phrase passée
                 if (!still(it)) return;
             }
+        }
+        /** Moteur de voix : celui de Google s'il est installé (voix françaises plus naturelles), sinon celui du téléphone */
+        static String engine(Context c) {
+            try { c.getPackageManager().getPackageInfo("com.google.android.tts", 0); return "com.google.android.tts"; } catch (Throwable t) { return null; }
+        }
+        /** Meilleure voix française installée sur le téléphone (sans réseau), France d'abord */
+        static void bestVoice(TextToSpeech t) {
+            try {
+                android.speech.tts.Voice best = null; int bs = -1;
+                for (android.speech.tts.Voice v : t.getVoices()) {
+                    Locale l = v.getLocale();
+                    if (l == null || !"fr".equals(l.getLanguage()) || v.isNetworkConnectionRequired()) continue;
+                    java.util.Set<String> f = v.getFeatures();
+                    if (f != null && f.contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED)) continue;
+                    int sc = v.getQuality() + ("FR".equals(l.getCountry()) ? 50 : 0) - v.getLatency() / 10;
+                    if (sc > bs) { bs = sc; best = v; }
+                }
+                if (best != null) t.setVoice(best);
+            } catch (Throwable e) { }
         }
         static boolean ttsReady() {
             if (ttsState == 0) {
                 ttsState = 1;
                 h.post(new Runnable() { public void run() {
+                    final String eng = noGoogle ? null : engine(app);
                     try {
                         tts = new TextToSpeech(app, new TextToSpeech.OnInitListener() { public void onInit(int st) {
-                            if (st != TextToSpeech.SUCCESS) { ttsState = -1; return; }
-                            try { int r = tts.setLanguage(Locale.FRANCE); if (r < 0) tts.setLanguage(Locale.FRENCH); } catch (Exception e) { }
+                            if (st != TextToSpeech.SUCCESS) { if (!noGoogle && eng != null) { noGoogle = true; ttsState = 0; } else ttsState = -1; return; }
+                            int r = -2;
+                            try { r = tts.setLanguage(Locale.FRANCE); if (r < 0) r = tts.setLanguage(Locale.FRENCH); } catch (Exception e) { }
+                            // français absent du moteur de Google : on revient au moteur choisi dans le téléphone
+                            if (r < 0 && eng != null && !noGoogle) { noGoogle = true; try { tts.shutdown(); } catch (Throwable x) { } tts = null; ttsState = 0; return; }
+                            bestVoice(tts);
                             try { tts.setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()); } catch (Throwable t) { }
                             tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
                                 public void onStart(String id) { }
-                                public void onDone(String id) { ttsDone = id; }
-                                @Deprecated public void onError(String id) { ttsDone = id; }
+                                public void onDone(String id) { ttsDone = id; done.add(id); }
+                                @Deprecated public void onError(String id) { ttsDone = id; done.add(id); }
                             });
                             ttsState = 2;
-                        } });
+                        } }, eng);
                     } catch (Throwable t) { ttsState = -1; }
                 } });
             }
             long end = System.currentTimeMillis() + 6000;
             while (ttsState == 1 && System.currentTimeMillis() < end) { try { Thread.sleep(50); } catch (InterruptedException e) { return false; } }
+            if (ttsState == 0 && noGoogle) return ttsReady();   // second essai avec le moteur du téléphone
             return ttsState == 2;
         }
 

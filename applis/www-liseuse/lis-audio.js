@@ -39,15 +39,31 @@
     if (/^(?:\p{Lu}\.){1,3}\p{Lu}?$/u.test(text.slice(Math.max(0, j - 4), dot))) return true;   // sigles « S.N.C.F. »
     return !!ABBR[w.toLowerCase()];
   }
-  /** Bornes de blocs : coupures données + retours à la ligne */
+  /** Bornes de blocs. Avec des coupures données (paragraphes d'un EPUB, d'un PDF), les retours à la ligne du texte ne coupent
+      rien : dans beaucoup de livres ils sont seulement la mise en page du fichier, au milieu des phrases. Sans coupures
+      (texte brut), un retour à la ligne coupe seulement après une ponctuation finale, avant un tiret de dialogue ou sur une ligne vide.
+      Enfin, un bloc qui finit sans ponctuation et dont le suivant commence par une minuscule est recollé : c'est la même phrase. */
+  var ENDP = /[.!?…:;»”"’)\]]\s*$/;
   function blocks(text, breaks) {
-    var cuts = {}, out = [], i;
+    var cuts = {}, out = [], i, given = breaks && breaks.length;
     (breaks || []).forEach(function (b) { if (b > 0 && b < text.length) cuts[b] = 1; });
-    for (i = 0; i < text.length; i++) if (text.charCodeAt(i) === 10) { cuts[i] = 1; cuts[i + 1] = 1; }
+    if (!given) for (i = 0; i < text.length; i++) if (text.charCodeAt(i) === 10) {
+      var before = text.slice(Math.max(0, i - 4), i), after = text.slice(i + 1, i + 3);
+      if (ENDP.test(before) || /^\s*\n/.test(after) || /^\s*[—–\-•]/.test(after)) { cuts[i] = 1; cuts[i + 1] = 1; }
+    }
     var keys = Object.keys(cuts).map(Number).sort(function (a, b) { return a - b; }), a = 0;
     keys.forEach(function (k) { if (k > a) out.push([a, k]); a = Math.max(a, k); });
     if (a < text.length) out.push([a, text.length]);
-    return out;
+    var merged = [];
+    out.forEach(function (b) {
+      var prev = merged[merged.length - 1];
+      if (prev) {
+        var pt = text.slice(prev[0], prev[1]).replace(/\s+$/, ''), nt = text.slice(b[0], b[1]).replace(/^\s+/, '');
+        if (pt && nt && !ENDP.test(pt) && /^\p{Ll}/u.test(nt)) { prev[1] = b[1]; return; }
+      }
+      merged.push([b[0], b[1]]);
+    });
+    return merged;
   }
   var MAXLEN = 300;
   function split(text, breaks) {
@@ -326,7 +342,7 @@
     }
     function produce(it, my) {
       var st = settings(), text = speakable(it.text), id = 'p' + my + '-' + it.s + '-' + it.i;
-      var meta = { s: it.s, i: it.i, o: it.o, n: it.n, label: opt.source.label ? opt.source.label(it.s) : '' };
+      var meta = { s: it.s, i: it.i, o: it.o, n: it.n, p: !!it.p && ENDP.test(it.text), label: opt.source.label ? opt.source.label(it.s) : '' };
       if (!text) { return Promise.resolve(); }
       if (!usePiper(st)) {
         var rate = +st.rate || 1, d = Math.max(0.6, text.length / (14.5 * rate));
