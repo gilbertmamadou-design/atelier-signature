@@ -51,6 +51,7 @@ textarea#in::placeholder{color:var(--tx3)}
 .btn.sm{padding:7px 11px;font-size:13px;border-radius:11px}
 .note{background:#ffd68c14;border:1px solid #ffd68c3d;border-radius:14px;padding:12px 14px;font-size:14px;color:#ffe5b5;display:flex;flex-direction:column;gap:10px}
 .note.info{background:var(--bg2);border-color:var(--line);color:var(--tx2)}
+.sync{font-size:13px;color:var(--tx2)}
 .note .row{display:flex;gap:8px;flex-wrap:wrap}
 .prog{height:5px;border-radius:3px;background:#ffffff14;overflow:hidden}
 .prog b{display:block;height:100%;background:var(--acc2);width:0;transition:width .3s}
@@ -119,6 +120,7 @@ nav#tabs button.on{color:var(--acc);background:#4fc2c91a}
     <div class="note" id="prep" hidden>
       <div id="prepT">Préparation des langues de base…</div>
       <div class="prog"><b id="prepB"></b></div>
+      <div class="sync" id="dlInfo" hidden></div>
       <div class="row" id="prepMob"><button class="btn sm" id="bMobile">Télécharger maintenant avec les données mobiles</button></div>
     </div>
     <div class="note" id="miss" hidden></div>
@@ -148,6 +150,7 @@ nav#tabs button.on{color:var(--acc);background:#4fc2c91a}
 
   <main id="vLang" hidden>
     <label class="swl"><span class="t">Télécharger seulement en Wi-Fi<small>Chaque langue pèse environ 30 Mo. Une fois sur le téléphone, elle marche en mode avion.</small></span><input type="checkbox" class="sw" id="wifi"></label>
+    <div class="note info" id="dlInfo2" hidden></div>
     <div class="sect">Sur le téléphone</div>
     <div class="ll" id="llOn"></div>
     <div class="sect">Autres langues</div>
@@ -233,15 +236,36 @@ function refresh(){
 function download(c){
   if(BUSY[c]) return BUSY[c];
   paintLangs();
-  BUSY[c] = req('telecharger', c, !!S.wifi).then(function(r){
-    delete BUSY[c];
+  var mine = BUSY[c] = req('telecharger', c, !!S.wifi).then(function(r){
+    var current = BUSY[c] === mine;   // une demande remplacée (passage aux données mobiles) ne compte plus si elle échoue
+    if(!r.ok && !current) return r;
+    if(current) delete BUSY[c]; watch();
     if(r.ok && !S.init && BASE.every(function(x){ return x === c || has(x); })){ S.init = true; save(); $('prep').hidden = true; }
     if(r.ok){ if(DL[c]) return r; DL[c] = 1; toast(nm(c)+' est sur le téléphone : traduction hors ligne prête'); if((c === S.dst || c === S.src || c === detected) && $('in').value.trim()) setTimeout(translate, 0); }
-    else toast('Téléchargement de '+nm(c).toLowerCase()+' impossible'+(S.wifi ? ' : vérifie le Wi-Fi' : ' : vérifie la connexion'));
+    else toast('Téléchargement de '+nm(c).toLowerCase()+' impossible'+(r.err ? ' ('+r.err+')' : '')+(S.wifi ? ' : vérifie le Wi-Fi' : ' : vérifie la connexion'));
     paint(); return r;
   });
-  paint();
-  return BUSY[c];
+  paint(); watch();
+  return mine;
+}
+/* Avancement réel (gestionnaire de téléchargements d'Android) : Mo reçus et raison d'une attente */
+var watchT = null;
+var RAISON = { 1:'nouvel essai dans un instant', 2:'en attente de réseau', 3:'en attente du Wi-Fi', 4:'en pause' };
+function watch(){
+  clearInterval(watchT); watchT = null;
+  if(!Object.keys(BUSY).length || !B || !B.etat){ $('dlInfo').hidden = true; $('dlInfo2').hidden = true; return; }
+  function tick(){
+    var l = []; try{ l = JSON.parse(B.etat() || '[]'); }catch(e){}
+    var got = 0, tot = 0, why = '', fail = false;
+    l.forEach(function(x){ got += Math.max(0, x.recu); if(x.total > 0) tot += x.total; if(x.statut === 4 && RAISON[x.raison]) why = RAISON[x.raison]; if(x.statut === 16) fail = true; });
+    var mo = function(b){ return (b / 1048576).toLocaleString('fr-FR', { maximumFractionDigits: 1 }); }, el = $('dlInfo');
+    el.hidden = false;
+    var txt = !l.length ? 'Téléchargement en préparation…'
+      : fail ? 'Le téléchargement a échoué : vérifie la connexion et la place libre sur le téléphone.'
+      : 'Reçu '+mo(got)+' Mo'+(tot ? ' sur '+mo(tot)+' Mo' : '')+(why ? ' · '+why+(why.indexOf('Wi-Fi') >= 0 && !S.wifi ? ' : Android retient les gros téléchargements en données mobiles. Vérifie l\u2019économiseur de données et les données mobiles autorisées pour Traducteur (Paramètres › Applis).' : '') : '');
+    el.textContent = txt; var e2 = $('dlInfo2'); e2.hidden = false; e2.textContent = txt;
+  }
+  tick(); watchT = setInterval(tick, 1500);
 }
 function remove(c){
   return req('supprimer', c).then(function(r){
@@ -255,8 +279,10 @@ function remove(c){
 function useMobile(){
   S.wifi = false; save(); $('wifi').checked = false;
   var wait = Object.keys(BUSY); BUSY = {};
-  wait.forEach(download);
-  if(!S.init) BASE.filter(function(c){ return !has(c) && wait.indexOf(c) < 0; }).forEach(download);
+  try{ if(B && B.viderFile) B.viderFile(); }catch(e){}
+  if(!S.init) BASE.forEach(function(c){ if(!has(c) && wait.indexOf(c) < 0) wait.push(c); });
+  // une langue après l'autre
+  wait.reduce(function(p, c){ return p.then(function(){ return has(c) ? null : download(c); }); }, Promise.resolve());
   $('prepMob').hidden = true;
   toast('Téléchargement avec les données mobiles (≈ 30 Mo par langue)');
 }
@@ -308,7 +334,7 @@ function paintMiss(){
     var b = document.createElement('button'); b.className = 'btn pri sm'; b.textContent = 'Télécharger';
     b.onclick = function(){ m.forEach(download); };
     row.appendChild(b);
-    if(S.wifi){ var mb = document.createElement('button'); mb.className = 'btn sm'; mb.textContent = 'Avec les données mobiles'; mb.onclick = function(){ useMobile(); m.forEach(download); }; row.appendChild(mb); }
+    if(S.wifi){ var mb = document.createElement('button'); mb.className = 'btn sm'; mb.textContent = 'Avec les données mobiles'; mb.onclick = function(){ useMobile(); m.reduce(function(p, c){ return p.then(function(){ return has(c) ? null : download(c); }); }, Promise.resolve()); }; row.appendChild(mb); }
     el.appendChild(row);
   }
 }

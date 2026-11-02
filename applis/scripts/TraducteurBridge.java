@@ -8,7 +8,8 @@ package __PKG__;
    sur le téléphone, sans connexion. Les réponses arrivent dans la page par window.tradEvent(type, json) :
      langues()                       → liste JSON des codes de langue disponibles (synchrone)
      modeles(req)                    → « modeles » {req, ok, list:[codes téléchargés]}
-     telecharger(req, lang, wifi)    → « telecharge » {req, lang, ok, err}
+     telecharger(req, lang, wifi)    → « telecharge » {req, lang, ok, err} (wifi faux : file d'attente Wi-Fi annulée d'abord)
+     etat()                          → téléchargements en cours [{statut, raison, recu, total}] (synchrone)
      supprimer(req, lang)            → « supprime » {req, lang, ok, err}
      traduire(req, src, dst, texte)  → « traduit » {req, ok, text, err}
      detecter(req, texte)            → « detecte » {req, lang} (« und » si inconnue)
@@ -74,14 +75,64 @@ public class TraducteurBridge {
     @JavascriptInterface public void telecharger(final String req, final String lang, final boolean wifi) {
         a.runOnUiThread(new Runnable() { public void run() {
             try {
-                TranslateRemoteModel m = new TranslateRemoteModel.Builder(lang).build();
-                DownloadConditions.Builder b = new DownloadConditions.Builder();
-                if (wifi) b.requireWifi();
-                RemoteModelManager.getInstance().download(m, b.build())
-                    .addOnSuccessListener(new OnSuccessListener<Void>() { public void onSuccess(Void v) { send("telecharge", o("req", req, "lang", lang, "ok", true)); } })
-                    .addOnFailureListener(new OnFailureListener() { public void onFailure(Exception e) { send("telecharge", o("req", req, "lang", lang, "ok", false, "err", msg(e))); } });
+                final TranslateRemoteModel m = new TranslateRemoteModel.Builder(lang).build();
+                if (wifi) { lancer(req, lang, m, true); return; }
+                // données mobiles permises : un téléchargement de ce modèle demandé plus tôt « en Wi-Fi seulement » serait repris
+                // tel quel ; on l'efface d'abord (s'il n'est pas déjà complet), puis on relance sans condition de réseau
+                RemoteModelManager.getInstance().isModelDownloaded(m)
+                    .addOnSuccessListener(new OnSuccessListener<Boolean>() { public void onSuccess(Boolean ok) {
+                        if (ok != null && ok) { send("telecharge", o("req", req, "lang", lang, "ok", true)); return; }
+                        RemoteModelManager.getInstance().deleteDownloadedModel(m)
+                            .addOnCompleteListener(new com.google.android.gms.tasks.OnCompleteListener<Void>() { public void onComplete(com.google.android.gms.tasks.Task<Void> t) { lancer(req, lang, m, false); } });
+                    } })
+                    .addOnFailureListener(new OnFailureListener() { public void onFailure(Exception e) { lancer(req, lang, m, false); } });
             } catch (Throwable t) { send("telecharge", o("req", req, "lang", lang, "ok", false, "err", msg(t))); }
         } });
+    }
+    private void lancer(final String req, final String lang, TranslateRemoteModel m, boolean wifi) {
+        try {
+            DownloadConditions.Builder b = new DownloadConditions.Builder();
+            if (wifi) b.requireWifi();
+            RemoteModelManager.getInstance().download(m, b.build())
+                .addOnSuccessListener(new OnSuccessListener<Void>() { public void onSuccess(Void v) { send("telecharge", o("req", req, "lang", lang, "ok", true)); } })
+                .addOnFailureListener(new OnFailureListener() { public void onFailure(Exception e) { send("telecharge", o("req", req, "lang", lang, "ok", false, "err", msg(e))); } });
+        } catch (Throwable t) { send("telecharge", o("req", req, "lang", lang, "ok", false, "err", msg(t))); }
+    }
+    /** Téléchargements de l'appli encore en attente dans le gestionnaire d'Android (ML Kit s'en sert) : annulés.
+     *  Appelé une fois par la page quand on passe aux données mobiles, avant de relancer les langues une à une. */
+    @JavascriptInterface public void viderFile() {
+        try {
+            android.app.DownloadManager dm = (android.app.DownloadManager) a.getSystemService(android.content.Context.DOWNLOAD_SERVICE);
+            android.database.Cursor c = dm.query(new android.app.DownloadManager.Query().setFilterByStatus(
+                android.app.DownloadManager.STATUS_PENDING | android.app.DownloadManager.STATUS_PAUSED));
+            if (c == null) return;
+            java.util.List<Long> ids = new java.util.ArrayList<Long>();
+            while (c.moveToNext()) ids.add(c.getLong(c.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_ID)));
+            c.close();
+            for (Long id : ids) dm.remove(id);
+        } catch (Throwable t) { }
+    }
+    /** État des téléchargements en cours : [{statut, raison, recu, total}] (octets ; total −1 si inconnu) */
+    @JavascriptInterface public String etat() {
+        JSONArray l = new JSONArray();
+        try {
+            android.app.DownloadManager dm = (android.app.DownloadManager) a.getSystemService(android.content.Context.DOWNLOAD_SERVICE);
+            android.database.Cursor c = dm.query(new android.app.DownloadManager.Query().setFilterByStatus(
+                android.app.DownloadManager.STATUS_PENDING | android.app.DownloadManager.STATUS_RUNNING | android.app.DownloadManager.STATUS_PAUSED | android.app.DownloadManager.STATUS_FAILED));
+            if (c != null) {
+                long now = System.currentTimeMillis();
+                while (c.moveToNext()) {
+                    int st = c.getInt(c.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_STATUS));
+                    long mod = c.getLong(c.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_LAST_MODIFIED_TIMESTAMP));
+                    if (st == android.app.DownloadManager.STATUS_FAILED && now - mod > 10 * 60 * 1000L) continue;
+                    l.put(o("statut", st, "raison", c.getInt(c.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_REASON)),
+                        "recu", c.getLong(c.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)),
+                        "total", c.getLong(c.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_TOTAL_SIZE_BYTES))));
+                }
+                c.close();
+            }
+        } catch (Throwable t) { }
+        return l.toString();
     }
 
     @JavascriptInterface public void supprimer(final String req, final String lang) {
