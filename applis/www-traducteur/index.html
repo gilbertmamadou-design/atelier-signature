@@ -119,6 +119,7 @@ nav#tabs button.on{color:var(--acc);background:#4fc2c91a}
     <div class="note" id="prep" hidden>
       <div id="prepT">Préparation des langues de base…</div>
       <div class="prog"><b id="prepB"></b></div>
+      <div class="row" id="prepMob"><button class="btn sm" id="bMobile">Télécharger maintenant avec les données mobiles</button></div>
     </div>
     <div class="note" id="miss" hidden></div>
     <div class="note info" id="nobridge" hidden>Cette page est l'interface de l'application Traducteur pour Android. Installe l'APK sur le téléphone pour traduire sans connexion.</div>
@@ -234,7 +235,8 @@ function download(c){
   paintLangs();
   BUSY[c] = req('telecharger', c, !!S.wifi).then(function(r){
     delete BUSY[c];
-    if(r.ok){ DL[c] = 1; toast(nm(c)+' est sur le téléphone : traduction hors ligne prête'); if((c === S.dst || c === S.src || c === detected) && $('in').value.trim()) setTimeout(translate, 0); }
+    if(r.ok && !S.init && BASE.every(function(x){ return x === c || has(x); })){ S.init = true; save(); $('prep').hidden = true; }
+    if(r.ok){ if(DL[c]) return r; DL[c] = 1; toast(nm(c)+' est sur le téléphone : traduction hors ligne prête'); if((c === S.dst || c === S.src || c === detected) && $('in').value.trim()) setTimeout(translate, 0); }
     else toast('Téléchargement de '+nm(c).toLowerCase()+' impossible'+(S.wifi ? ' : vérifie le Wi-Fi' : ' : vérifie la connexion'));
     paint(); return r;
   });
@@ -249,6 +251,16 @@ function remove(c){
   });
 }
 
+/* Données mobiles : relance tout de suite les téléchargements qui attendaient le Wi-Fi (avant un voyage, par exemple) */
+function useMobile(){
+  S.wifi = false; save(); $('wifi').checked = false;
+  var wait = Object.keys(BUSY); BUSY = {};
+  wait.forEach(download);
+  if(!S.init) BASE.filter(function(c){ return !has(c) && wait.indexOf(c) < 0; }).forEach(download);
+  $('prepMob').hidden = true;
+  toast('Téléchargement avec les données mobiles (≈ 30 Mo par langue)');
+}
+
 /* Premier lancement : français, anglais, espagnol, portugais, italien */
 function prepare(){
   var miss = BASE.filter(function(c){ return !has(c); });
@@ -256,7 +268,7 @@ function prepare(){
   if(S.init) return;
   var done = BASE.length - miss.length, total = BASE.length;
   function show(){
-    $('prep').hidden = false;
+    $('prep').hidden = false; $('prepMob').hidden = !S.wifi;
     $('prepT').textContent = 'Préparation des langues de base : '+done+' sur '+total+' (français, anglais, espagnol, portugais, italien)'+(S.wifi ? '. Le téléchargement attend le Wi-Fi si tu es en données mobiles.' : '.');
     $('prepB').style.width = Math.round(done / total * 100)+'%';
   }
@@ -295,7 +307,9 @@ function paintMiss(){
     var row = document.createElement('div'); row.className = 'row';
     var b = document.createElement('button'); b.className = 'btn pri sm'; b.textContent = 'Télécharger';
     b.onclick = function(){ m.forEach(download); };
-    row.appendChild(b); el.appendChild(row);
+    row.appendChild(b);
+    if(S.wifi){ var mb = document.createElement('button'); mb.className = 'btn sm'; mb.textContent = 'Avec les données mobiles'; mb.onclick = function(){ useMobile(); m.forEach(download); }; row.appendChild(mb); }
+    el.appendChild(row);
   }
 }
 function langRow(c, on){
@@ -471,7 +485,8 @@ $('bHistClr').onclick = function(){
   if(!b.dataset.sure){ b.dataset.sure = '1'; b.textContent = 'Confirmer'; setTimeout(function(){ delete b.dataset.sure; b.textContent = 'Effacer'; }, 3000); return; }
   S.hist = []; save(); paintHist(); delete b.dataset.sure; b.textContent = 'Effacer';
 };
-$('wifi').onchange = function(){ S.wifi = this.checked; save(); };
+$('wifi').onchange = function(){ if(!this.checked) useMobile(); else { S.wifi = true; save(); } };
+$('bMobile').onclick = useMobile;
 $('q').addEventListener('input', paintLangs);
 document.querySelectorAll('#tabs button').forEach(function(b){
   b.onclick = function(){
