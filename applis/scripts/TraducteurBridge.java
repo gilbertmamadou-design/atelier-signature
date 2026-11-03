@@ -314,22 +314,18 @@ public class TraducteurBridge {
             public void onError(int err) {
                 if (sr == null) return;   // après le résultat (certains téléphones envoient encore une erreur) : ignorée
                 // langue absente de la reconnaissance « sur l'appareil » : repli sur le service standard (hors ligne si le pack est installé)
-                // langue absente ou réseau absent : on essaie les autres façons d'écouter avant d'abandonner
-                //   1) service standard hors ligne → 2) service standard en ligne → 3) reconnaissance « sur l'appareil »
+                // langue absente, réseau absent ou service d'écoute déconnecté (code 11) : on essaie les autres façons
+                // d'écouter avant d'abandonner : 1) service standard hors ligne → 2) en ligne → 3) « sur l'appareil »
+                // → 4) fenêtre d'écoute de Google (elle sait télécharger la langue ou passer par le réseau)
                 boolean langErr = err == 12 || err == 13, netErr = err == SpeechRecognizer.ERROR_NETWORK || err == SpeechRecognizer.ERROR_NETWORK_TIMEOUT || err == SpeechRecognizer.ERROR_SERVER;
-                if (!srOnDevice && langErr && preferOffline) { preferOffline = false; attempt++; creer(false); ecoute(); return; }
-                if (!srOnDevice && (langErr || netErr) && devOk && attempt < 3) { attempt = 3; preferOffline = true; creer(true); ecoute(); return; }
-                if (srOnDevice && langErr && anyOk && attempt < 2) { attempt = 2; preferOffline = false; creer(false); ecoute(); return; }
-                // reconnaissance « sur l'appareil » sans cette langue : on demande au téléphone de la télécharger (Android 13 et plus)
-                if (langErr && devOk && android.os.Build.VERSION.SDK_INT >= 33) {
-                    try {
-                        Intent di = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-                        di.putExtra(RecognizerIntent.EXTRA_LANGUAGE, micLang);
-                        SpeechRecognizer.createOnDeviceSpeechRecognizer(a).triggerModelDownload(di);
-                        send("micro", o("req", micReq, "etat", "erreur", "code", err, "telechargement", true,
-                            "msg", "Le téléphone télécharge l'écoute de cette langue (quelques Mo). Réessaie dans une minute"));
-                        detruire(); return;
-                    } catch (Throwable x) { }
+                boolean svcErr = err == 11 || err == SpeechRecognizer.ERROR_CLIENT || err == SpeechRecognizer.ERROR_RECOGNIZER_BUSY;
+                if (langErr || netErr || svcErr) {
+                    if (!srOnDevice && preferOffline && (langErr || svcErr) && attempt < 1) { attempt = 1; preferOffline = false; relance(false); return; }
+                    if (devOk && attempt < 3 && !srOnDevice) { attempt = 3; preferOffline = true; relance(true); return; }
+                    if (srOnDevice && langErr && devOk && android.os.Build.VERSION.SDK_INT >= 33) {
+                        try { Intent di = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH); di.putExtra(RecognizerIntent.EXTRA_LANGUAGE, micLang); SpeechRecognizer.createOnDeviceSpeechRecognizer(a).triggerModelDownload(di); } catch (Throwable x) { }
+                    }
+                    if (attempt < 4) { attempt = 4; detruire(); fenetre(); return; }
                 }
                 String m;
                 switch (err) {
@@ -339,6 +335,7 @@ public class TraducteurBridge {
                     case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS: m = "Autorisation du micro refusée"; break;
                     case SpeechRecognizer.ERROR_AUDIO: m = "Micro occupé par une autre appli"; break;
                     case SpeechRecognizer.ERROR_RECOGNIZER_BUSY: m = "Reconnaissance vocale occupée, réessaie"; break;
+                    case 11: m = "Service d'écoute du téléphone déconnecté, réessaie"; break;
                     case 12: case 13: m = "L'écoute de cette langue n'est pas installée sur le téléphone"; break;
                     default: m = "Écoute interrompue (code " + err + ")";
                 }
@@ -358,6 +355,35 @@ public class TraducteurBridge {
             public void onEvent(int t, Bundle b) { }
         });
     }
+    /** Nouvel essai un peu plus tard : relancer dans le rappel d'erreur déconnecte parfois le service (code 11) */
+    private void relance(final boolean onDevice) {
+        detruire();
+        wv.postDelayed(new Runnable() { public void run() { try { creer(onDevice); ecoute(); } catch (Throwable t) { fenetre(); } } }, 350);
+    }
+    /** Dernier recours : la fenêtre d'écoute du téléphone (Google) ; résultat dans onResult */
+    static final int REQ_DIALOG = 6302;
+    private void fenetre() {
+        try {
+            Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+            i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+            i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, micLang);
+            i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, micLang);
+            i.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
+            i.putExtra(RecognizerIntent.EXTRA_PROMPT, "Je vous écoute…");
+            a.startActivityForResult(i, REQ_DIALOG);
+            send("micro", o("req", micReq, "etat", "fenetre"));
+        } catch (Throwable t) {
+            send("micro", o("req", micReq, "etat", "erreur", "code", 11, "msg", "Aucune écoute disponible : installe ou mets à jour l'appli Google"));
+        }
+    }
+    /** Appelé par MainActivity.onActivityResult (extraCall « onResult ») */
+    public void onResult(int code, int res, Intent data) {
+        if (code != REQ_DIALOG) return;
+        ArrayList<String> r = data == null ? null : data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+        if (res == Activity.RESULT_OK && r != null && !r.isEmpty()) send("micro", o("req", micReq, "etat", "fin", "final", r.get(0)));
+        else send("micro", o("req", micReq, "etat", "erreur", "code", 7, "msg", "Je n'ai rien entendu"));
+    }
+
     private void ecoute() {
         if (sr == null) return;
         Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
