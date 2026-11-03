@@ -9,7 +9,9 @@ package __PKG__;
      pousser(base64)         : tranche de son (PCM 16 bits petit-boutiste)
      avance()                : secondes de son prêtes, pas encore entendues
      position()              : secondes entendues depuis le début
-     finir()                 : plus de tranche à venir ; le service s'arrête à la fin du son
+     duree(s) / finale(b64)  : fin de séance tenue par le téléphone (fondu de 8 s et cloches), même si la page dort ;
+                               s'il manque de son, il rejoue les 2 dernières minutes
+     finir()                 : plus de tranche à venir (écoute sans fin) ; le service s'arrête à la fin du son
      arreter(ms)             : fondu puis arrêt
      dire(json)              : [[seconde, texte], …] à dire à ces moments du son
    Événements vers la page : window.sereniteEvent('fin' | 'stop')
@@ -75,6 +77,15 @@ public class SereniteBridge {
     @JavascriptInterface public void finir() { Player.finish(); }
     @JavascriptInterface public void arreter(int ms) { Player.fadeStop(Math.max(50, ms), false); }
     @JavascriptInterface public void dire(String json) { Player.say(json); }
+    /** Durée prévue de la séance en secondes (0 : sans fin) : le téléphone finit seul, même si la page dort */
+    @JavascriptInterface public void duree(double sec) { Player.total = sec > 0 ? Math.round(sec * Player.sr) : 0; }
+    /** Cloches de fin (PCM 16 bits, base64), jouées par-dessus le fondu final */
+    @JavascriptInterface public void finale(String b64) {
+        try {
+            byte[] by = Base64.decode(b64, Base64.DEFAULT); short[] f = new short[by.length / 2];
+            ByteBuffer.wrap(by).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(f); Player.finale = f;
+        } catch (Throwable t) { }
+    }
 
     // =====================================================================
     static final class Player {
@@ -93,7 +104,7 @@ public class SereniteBridge {
 
         static void start(Context c, int rate, WebView w) {
             stopNow(false);
-            app = c; wv = w; sr = rate; ending = false; gain = 1f; target = 1f; step = 0f;
+            app = c; wv = w; sr = rate; ending = false; gain = 1f; target = 1f; step = 0f; total = 0; finale = null;
             synchronized (L) { q.clear(); queued = 0; speech.clear(); }
             written = 0;
             int min = AudioTrack.getMinBufferSize(sr, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT);
@@ -122,37 +133,80 @@ public class SereniteBridge {
         static double pos() { return head() / (double) sr; }
         static void finish() { synchronized (L) { ending = true; L.notifyAll(); } }
 
+        // ---- fin de séance tenue par le téléphone, même si la page dort ----
+        static volatile long total = 0;          // durée prévue en échantillons (0 : sans fin)
+        static volatile short[] finale = null;   // cloches de fin, jouées par-dessus le fondu
+        static boolean endPhase = false; static int fpos = 0;
+        // ---- son déjà entendu (2 min), rejoué si la page n'a pas fourni la suite à temps ----
+        static short[] hist = null; static int hpos = 0, hfill = 0, hread = -1;
+        static short[] cur = null; static int curPos = 0;
+
+        static void remember(short[] s) {
+            if (hist == null) return;
+            for (int i = 0; i < s.length; i++) { hist[hpos] = s[i]; hpos = (hpos + 1) % hist.length; }
+            hfill = Math.min(hist.length, hfill + s.length); hread = -1;
+        }
+        static short[] fromHistory(int len) {
+            int H = hist.length, oldest = (hpos - hfill + H) % H;
+            if (hread < 0) hread = oldest;
+            short[] o = new short[len];
+            for (int i = 0; i < len; i++) {
+                o[i] = hist[hread]; hread = (hread + 1) % H;
+                if (hread == hpos) hread = oldest;   // retour au début de la réserve
+            }
+            return o;
+        }
+        /** remplit out ; rend le nombre d'échantillons, 0 s'il faut attendre, -1 si la séance est finie */
+        static int fill(short[] out) {
+            int n = out.length, got = 0;
+            if (total > 0 && written >= total && !endPhase) {   // heure de fin : fondu de 8 s, cloches par-dessus
+                endPhase = true; fpos = 0; target = 0f; step = -gain / (8f * sr);
+            }
+            if (endPhase && gain <= 0.0005f && (finale == null || fpos >= finale.length)) return -1;
+            while (got < n) {
+                if (cur == null || curPos >= cur.length) {
+                    short[] nx;
+                    synchronized (L) { nx = q.poll(); if (nx != null) queued -= nx.length; }
+                    if (nx != null) { remember(nx); cur = nx; curPos = 0; }
+                    else if (ending && total == 0 && !endPhase) { return got > 0 ? got : -1; }
+                    else if (hfill >= sr * 15) { cur = fromHistory(sr * 2); curPos = 0; }   // la page dort : on rejoue la réserve
+                    else break;
+                }
+                int k = Math.min(n - got, cur.length - curPos);
+                System.arraycopy(cur, curPos, out, got, k); got += k; curPos += k;
+            }
+            if (got == 0 && !endPhase) return 0;
+            if (got < n) java.util.Arrays.fill(out, got, n, (short) 0);
+            return n;
+        }
         static void loop() {
             final int SLICE = 2048;
-            AudioTrack tr = t;
+            AudioTrack tr = t; short[] buf = new short[SLICE];
+            hist = new short[sr * 120]; hpos = 0; hfill = 0; hread = -1; cur = null; curPos = 0; endPhase = false; fpos = 0;
             while (run && tr == t) {
-                short[] s;
-                synchronized (L) {
-                    while (run && q.isEmpty() && !ending) { try { L.wait(300); } catch (InterruptedException e) { return; } speakDue(); }
-                    if (!run) return;
-                    s = q.poll();
-                    if (s != null) queued -= s.length;
-                }
-                if (s == null) {   // fin : laisser le son se terminer
-                    long end = System.currentTimeMillis() + 6000;
+                int n = fill(buf);
+                if (n < 0) {   // fin : laisser le son se terminer
+                    long end = System.currentTimeMillis() + 3000;
                     while (run && ahead() > 0.05 && System.currentTimeMillis() < end) { speakDue(); try { Thread.sleep(60); } catch (InterruptedException e) { return; } }
                     h.post(new Runnable() { public void run() { stopNow(true); event("fin"); } });
                     return;
                 }
-                for (int off = 0; run && off < s.length; ) {
-                    int n = Math.min(SLICE, s.length - off);
-                    if (gain != 1f || target != 1f) {
-                        for (int i = off; i < off + n; i++) {
-                            if (gain != target) { gain += step; if ((step > 0 && gain > target) || (step < 0 && gain < target) || step == 0) gain = target; }
-                            s[i] = (short) Math.max(-32768, Math.min(32767, Math.round(s[i] * gain)));
-                        }
-                    }
+                if (n == 0) { synchronized (L) { try { L.wait(200); } catch (InterruptedException e) { return; } } speakDue(); continue; }
+                for (int i = 0; i < n; i++) {
+                    if (gain != target) { gain += step; if ((step > 0 && gain > target) || (step < 0 && gain < target) || step == 0) gain = target; }
+                    int v = Math.round(buf[i] * gain);
+                    short[] fin = finale;
+                    if (endPhase && fin != null && fpos < fin.length) v += fin[fpos++];
+                    buf[i] = (short) Math.max(-32768, Math.min(32767, v));
+                }
+                int off = 0;
+                while (run && off < n) {
                     int w;
-                    try { w = tr.write(s, off, n); } catch (Throwable e) { return; }
+                    try { w = tr.write(buf, off, n - off); } catch (Throwable e) { return; }
                     if (w < 0) return;
                     off += w; written += w;
-                    speakDue();
                 }
+                speakDue();
             }
         }
         static void fadeStop(int ms, final boolean fromNotif) {

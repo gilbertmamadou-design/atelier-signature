@@ -118,6 +118,7 @@ nav button.on{color:var(--acc);background:#9fc7ff14}
       </div>
       <div class="sect">Mes séances</div>
       <div class="card stats"><div><b id="sTot">0</b><small>minutes en tout</small></div><div><b id="sWeek">0</b><small>cette semaine</small></div><div><b id="sStreak">0</b><small>jours de suite</small></div></div>
+      <button class="chip" id="bReset" style="align-self:center">Remettre le suivi à zéro</button>
     </section>
 
     <!-- SONS -->
@@ -355,13 +356,28 @@ function envAt(E, t){
 /* sortie : le téléphone (MAGSerenite) ou, dans un navigateur, Web Audio */
 function nativeSink(){
   return {
-    start: function(){ NB.demarrer(SR); },
-    push: function(f){
+    start: function(E){
+      NB.demarrer(SR);
+      if(E && E.len && NB.duree){
+        NB.duree(E.len);   // le téléphone finit seul la séance, même si la page dort
+        var fin = (E.endBells || []);
+        if(fin.length && NB.finale){
+          var c = new OfflineAudioContext(1, Math.round(15 * SR), SR), m = c.createGain(); m.connect(c.destination);
+          var rv = c.createConvolver(); rv.buffer = BUF.ir; var rg = c.createGain(); rg.gain.value = .45; rv.connect(rg); rg.connect(m);
+          var X = { c:c, t0:0, len:15, rv:rv };
+          fin.forEach(function(b){ bowlX(X, b[1], m, b[0] - E.len + .05, b[2]); });
+          var me = this;
+          c.startRendering().then(function(buf){ if(ENG === E) NB.finale(me.b64(buf.getChannelData(0))); });
+        }
+      }
+    },
+    b64: function(f){
       var b = new Uint8Array(f.length * 2), dv = new DataView(b.buffer);
       for(var i = 0; i < f.length; i++){ var x = f[i]; if(x > .95 || x < -.95) x = Math.tanh(x); dv.setInt16(i * 2, Math.max(-32767, Math.min(32767, Math.round(x * 32767))), true); }
       var s = '', step = 0x8000; for(var j = 0; j < b.length; j += step) s += String.fromCharCode.apply(null, b.subarray(j, j + step));
-      NB.pousser(btoa(s));
+      return btoa(s);
     },
+    push: function(f){ NB.pousser(this.b64(f)); },
     ahead: function(){ try{ return NB.avance(); }catch(e){ return 0; } },
     finish: function(){ NB.finir(); },
     stop: function(ms){ NB.arreter(ms || 1500); },
@@ -389,9 +405,11 @@ var ENG = null;
 function engStart(o){
   engStop(0, true);
   prep();
-  var E = { sink: NB && NB.demarrer ? nativeSink() : webSink(), t:0, tail:new Float32Array(TAIL * SR), len:o.len || 0, bells:o.bells || [], st:{}, done:false, busy:false, duck:o.duck || 1, onEnd:o.onEnd };
+  var native = !!(NB && NB.demarrer && NB.duree);
+  var E = { sink: NB && NB.demarrer ? nativeSink() : webSink(), native:native, t:0, tail:new Float32Array(TAIL * SR), len:o.len || 0, bells:o.bells || [], st:{}, done:false, busy:false, duck:o.duck || 1, onEnd:o.onEnd };
+  if(native && E.len){ E.endBells = E.bells.filter(function(b){ return b[0] >= E.len; }); E.bells = E.bells.filter(function(b){ return b[0] < E.len; }); }
   ENG = E;
-  E.sink.start();
+  E.sink.start(E);
   if(E.sink.onEnd === undefined) E.sink.onEnd = function(){ if(ENG === E){ ENG = null; if(E.onEnd) E.onEnd(); } };
   if(o.voice) E.sink.voice(o.voice);
   pump();
@@ -422,6 +440,7 @@ function pump(){
       E.tail = nt;
       E.sink.push(seg);
       E.t += CH;
+      if(E.native && E.len && E.t >= E.len){ E.done = true; E.busy = false; return; }
       if(E.len && E.t >= E.len + 12){
         var tt = E.tail, last = 0; for(var q = tt.length - 1; q >= 0; q--){ if(Math.abs(tt[q]) > 2e-4){ last = q + 1; break; } }
         if(last) E.sink.push(tt.slice(0, Math.min(tt.length, last + SR / 2)));   // fin de la traîne, sans silence inutile
@@ -519,11 +538,11 @@ function finishSession(){   // fin normale (son terminé)
   uiIdle(); addMinutes(mins); toast('Séance terminée. Prends un instant avant de te lever.');
 }
 function stopSession(){     // arrêt par la personne
-  if(!session) return; var mins = (Date.now() - session.t0) / 60000; session = null;
+  if(!session) return; var mins = (Date.now() - session.t0) / 60000; if(session.len) mins = Math.min(mins, session.len / 60); else mins = Math.min(mins, 240); session = null;
   engStop(1500); uiIdle(); if(mins >= 1) addMinutes(mins);
 }
 function uiStopped(fromNotif){   // arrêt venu de la notification
-  if(session){ var mins = (Date.now() - session.t0) / 60000; session = null; uiIdle(); if(mins >= 1) addMinutes(mins); }
+  if(session){ var mins = (Date.now() - session.t0) / 60000; mins = session.len ? Math.min(mins, session.len / 60) : Math.min(mins, 240); session = null; uiIdle(); if(mins >= 1) addMinutes(mins); }
   if(gd){ stopGuide(true); }
   listen = false; paintSons();
   try{ if(P && P.keepScreen) P.keepScreen(false); }catch(e){}
@@ -538,15 +557,23 @@ function tick(){
     $('tLeft').textContent = fmt(session.len - el);
     $('arc').style.strokeDashoffset = 289 * (1 - Math.min(1, el / session.len));
     if(el > session.len + 14 && !ENG){ finishSession(); return; }
+    if(el > session.len + 30){ engStop(0); finishSession(); return; }   // la fin n'a pas été signalée : on termine quand même
   } else { $('tLeft').textContent = fmt(el); $('arc').style.strokeDashoffset = 289 * (1 - (el % 60) / 60); }
   setTimeout(tick, 250);
 }
 function tickAll(){ pump(); if(session) tick(); }
 $('bGo').onclick = function(){ if(session) stopSession(); else startSession(); };
+$('bReset').onclick = function(){
+  var b = this;
+  if(!b.dataset.sure){ b.dataset.sure = '1'; b.textContent = 'Confirmer : tout remettre à zéro'; setTimeout(function(){ delete b.dataset.sure; b.textContent = 'Remettre le suivi à zéro'; }, 3500); return; }
+  LOG = {}; try{ localStorage.setItem('serenite-log', '{}'); }catch(e){} paintStats(); delete b.dataset.sure; b.textContent = 'Remettre le suivi à zéro'; toast('Suivi remis à zéro');
+};
 $('night').onclick = function(){ $('night').hidden = true; };
 
 /* minutes de méditation */
 var LOG = {}; try{ LOG = JSON.parse(localStorage.getItem('serenite-log') || '{}'); }catch(e){}
+// une fois : on retire les journées faussées par une séance qui ne s'arrêtait pas (plus de 3 h comptées)
+try{ if(!localStorage.getItem('serenite-fix1')){ Object.keys(LOG).forEach(function(k){ if(LOG[k] > 180) delete LOG[k]; }); localStorage.setItem('serenite-log', JSON.stringify(LOG)); localStorage.setItem('serenite-fix1', '1'); } }catch(e){}
 function dayKey(d){ d = d || new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 function addMinutes(m){ var k = dayKey(); LOG[k] = Math.round(((LOG[k] || 0) + m) * 10) / 10; try{ localStorage.setItem('serenite-log', JSON.stringify(LOG)); }catch(e){} paintStats(); }
 function paintStats(){
@@ -694,12 +721,13 @@ function startGuide(i){
     var k = -1; for(var j = 0; j < g[3].length; j++) if(el >= g[3][j][0] + 1.5) k = j;
     if(k !== gd.k){ gd.k = k; var tg = $('gText'); tg.style.opacity = 0; setTimeout(function(){ tg.textContent = k >= 0 ? g[3][k][1] : ''; tg.style.opacity = 1; }, 600); }
     if(el > gd.len + 14 && !ENG){ addMinutes(gd.len / 60); stopGuide(true); return; }
+    if(el > gd.len + 30){ engStop(0); addMinutes(gd.len / 60); stopGuide(true); return; }
     setTimeout(loop, 400);
   })();
   paintSons();
 }
 function stopGuide(quiet){
-  if(!gd) return; var m = (Date.now() - gd.t0) / 60000; gd = null;
+  if(!gd) return; var m = Math.min((Date.now() - gd.t0) / 60000, gd.len / 60); gd = null;
   $('gPlay').hidden = true; $('gList').hidden = false; $('gText').textContent = '';
   if(!quiet){ if(m >= 1) addMinutes(m); engStop(2000); }
   paintSons();
