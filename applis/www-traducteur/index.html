@@ -212,11 +212,16 @@ function barres(){
   try{
     if(!B || !B.barres) return;
     var b = JSON.parse(B.barres() || '{}'), r = document.documentElement.style;
-    if(b.bas > 0) r.setProperty('--safeB', 'max(env(safe-area-inset-bottom,0px), '+b.bas+'px)');
-    if(b.haut > 0) r.setProperty('--safeT', 'max(env(safe-area-inset-top,0px), '+b.haut+'px)');
+    // seulement si la page passe vraiment sous les barres : sinon (barres opaques) la marge serait en trop
+    var gap = (screen.height || 0) - window.innerHeight, top = 0, bot = 0;
+    if(gap <= 6){ top = b.haut || 0; bot = b.bas || 0; }
+    else if(b.bas && Math.abs(gap - b.bas) <= 8) top = b.haut || 0;
+    else if(b.haut && Math.abs(gap - b.haut) <= 8) bot = b.bas || 0;
+    r.setProperty('--safeB', bot > 0 ? 'max(env(safe-area-inset-bottom,0px), '+bot+'px)' : 'env(safe-area-inset-bottom,0px)');
+    r.setProperty('--safeT', top > 0 ? 'max(env(safe-area-inset-top,0px), '+top+'px)' : 'env(safe-area-inset-top,0px)');
   }catch(e){}
 }
-barres(); addEventListener('load', barres); setTimeout(barres, 800);
+barres(); addEventListener('load', barres); addEventListener('resize', function(){ setTimeout(barres, 200); }); setTimeout(barres, 800);
 
 /* ---------- Réglages et historique ---------- */
 var S = { src:'fr', dst:'en', wifi:true, init:false, hist:[] };
@@ -526,7 +531,8 @@ onMicro = function(d){
   if(d.etat === 'erreur' && mic.heard && [5, 6, 7, 8].indexOf(d.code) >= 0){ d = { etat:'fin', final: mic.heard }; }   // compris puis « rien entendu » : on garde ce qui a été compris
   if(d.etat === 'erreur'){
     var m = d.msg || 'Écoute impossible';
-    if(/hors connexion/.test(m)) m += ' : Paramètres › Système › Langues › Reconnaissance vocale hors connexion (ou appli Google › Voix), télécharge '+nm(mic.lang).toLowerCase()+'.';
+    if(!d.telechargement && (/hors connexion|n.est pas installée/.test(m) || d.code === 12 || d.code === 13))
+      m = 'L\u2019écoute en '+nm(mic.lang).toLowerCase()+' n\u2019est pas installée sur le téléphone. Installe-la : appli Google › Paramètres › Voix › Reconnaissance vocale hors connexion (ou Paramètres › Système › Langues), puis ajoute '+nm(mic.lang).toLowerCase()+'.';
     toast(m); micStop(); translate(); return;
   }
   if(d.etat === 'fin'){
@@ -663,7 +669,7 @@ function close(){ $('shade').classList.remove('on'); $('sheet').classList.remove
 
 /* ---------- Divers ---------- */
 var toT = null;
-function toast(m){ var t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toT); toT = setTimeout(function(){ t.classList.remove('on'); }, 3200); }
+function toast(m){ var t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toT); toT = setTimeout(function(){ t.classList.remove('on'); }, Math.max(3200, m.length * 55)); }
 function copy(text){
   function fb(){ var ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); toast('Traduction copiée'); }catch(e){ toast('Copie impossible : sélectionne le texte'); } ta.remove(); }
   try{ navigator.clipboard.writeText(text).then(function(){ toast('Traduction copiée'); }, fb); }catch(e){ fb(); }

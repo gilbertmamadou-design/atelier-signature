@@ -268,7 +268,8 @@ public class TraducteurBridge {
     /* ================= Micro : reconnaissance vocale d'Android (hors ligne si la langue est installée) ================= */
     static final int REQ_MIC = 6301;
     private SpeechRecognizer sr = null;
-    private boolean srOnDevice = false;
+    private boolean srOnDevice = false, preferOffline = true, devOk = false, anyOk = false;
+    private int attempt = 0;
     private String micReq = "", micLang = "";
     private long lastLvl = 0;
     private boolean micOk() { return a.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED; }
@@ -277,7 +278,7 @@ public class TraducteurBridge {
         if (code == REQ_MIC) send("micro", o("req", micReq, "etat", micOk() ? "autorise" : "refuse"));
     }
     @JavascriptInterface public void ecouter(final String req, final String lang) {
-        micReq = req; micLang = lang;
+        micReq = req; micLang = lang; attempt = 0; preferOffline = true;
         a.runOnUiThread(new Runnable() { public void run() {
             try {
                 if (!micOk()) { send("micro", o("req", req, "etat", "perm")); a.requestPermissions(new String[]{ Manifest.permission.RECORD_AUDIO }, REQ_MIC); return; }
@@ -287,6 +288,7 @@ public class TraducteurBridge {
                 if (!any && !dev) { send("micro", o("req", req, "etat", "erreur", "msg", "Aucune reconnaissance vocale sur ce téléphone (installe l'appli Google)")); return; }
                 // service standard d'abord (hors ligne si le pack de langue est installé) : plus fiable que la reconnaissance
                 // « sur l'appareil », qui sur certains téléphones rend un résultat final vide ; celle-ci sert de repli
+                anyOk = any; devOk = dev;
                 creer(!any && dev);
                 ecoute();
             } catch (Throwable t) { send("micro", o("req", req, "etat", "erreur", "msg", msg(t))); }
@@ -312,7 +314,23 @@ public class TraducteurBridge {
             public void onError(int err) {
                 if (sr == null) return;   // après le résultat (certains téléphones envoient encore une erreur) : ignorée
                 // langue absente de la reconnaissance « sur l'appareil » : repli sur le service standard (hors ligne si le pack est installé)
-                if (srOnDevice && (err == 12 || err == 13)) { creer(false); ecoute(); return; }
+                // langue absente ou réseau absent : on essaie les autres façons d'écouter avant d'abandonner
+                //   1) service standard hors ligne → 2) service standard en ligne → 3) reconnaissance « sur l'appareil »
+                boolean langErr = err == 12 || err == 13, netErr = err == SpeechRecognizer.ERROR_NETWORK || err == SpeechRecognizer.ERROR_NETWORK_TIMEOUT || err == SpeechRecognizer.ERROR_SERVER;
+                if (!srOnDevice && langErr && preferOffline) { preferOffline = false; attempt++; creer(false); ecoute(); return; }
+                if (!srOnDevice && (langErr || netErr) && devOk && attempt < 3) { attempt = 3; preferOffline = true; creer(true); ecoute(); return; }
+                if (srOnDevice && langErr && anyOk && attempt < 2) { attempt = 2; preferOffline = false; creer(false); ecoute(); return; }
+                // reconnaissance « sur l'appareil » sans cette langue : on demande au téléphone de la télécharger (Android 13 et plus)
+                if (langErr && devOk && android.os.Build.VERSION.SDK_INT >= 33) {
+                    try {
+                        Intent di = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                        di.putExtra(RecognizerIntent.EXTRA_LANGUAGE, micLang);
+                        SpeechRecognizer.createOnDeviceSpeechRecognizer(a).triggerModelDownload(di);
+                        send("micro", o("req", micReq, "etat", "erreur", "code", err, "telechargement", true,
+                            "msg", "Le téléphone télécharge l'écoute de cette langue (quelques Mo). Réessaie dans une minute"));
+                        detruire(); return;
+                    } catch (Throwable x) { }
+                }
                 String m;
                 switch (err) {
                     case SpeechRecognizer.ERROR_NO_MATCH: case SpeechRecognizer.ERROR_SPEECH_TIMEOUT: m = "Je n'ai rien entendu"; break;
@@ -321,7 +339,7 @@ public class TraducteurBridge {
                     case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS: m = "Autorisation du micro refusée"; break;
                     case SpeechRecognizer.ERROR_AUDIO: m = "Micro occupé par une autre appli"; break;
                     case SpeechRecognizer.ERROR_RECOGNIZER_BUSY: m = "Reconnaissance vocale occupée, réessaie"; break;
-                    case 12: case 13: m = "Cette langue n'est pas disponible pour la reconnaissance vocale sur ce téléphone"; break;
+                    case 12: case 13: m = "L'écoute de cette langue n'est pas installée sur le téléphone"; break;
                     default: m = "Écoute interrompue (code " + err + ")";
                 }
                 send("micro", o("req", micReq, "etat", "erreur", "msg", m, "code", err));
@@ -347,7 +365,7 @@ public class TraducteurBridge {
         i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, micLang);
         i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, micLang);
         i.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
-        i.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
+        i.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, preferOffline);
         i.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
         i.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1800);
         i.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1500);
