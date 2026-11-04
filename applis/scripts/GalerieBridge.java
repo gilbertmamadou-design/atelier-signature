@@ -108,6 +108,7 @@ public class GalerieBridge {
             Thread t = new Thread(this::thumbLoop, "galerie-mini-" + i);
             t.setDaemon(true); t.setPriority(Thread.NORM_PRIORITY - 1); t.start();
         }
+        takePick(a.getIntent());
         try { handleIntent(a.getIntent()); } catch (Throwable e) { }
         try {
             observer = new ContentObserver(main) {
@@ -150,7 +151,7 @@ public class GalerieBridge {
     }
     public void onPermissions(int requestCode) { if (requestCode == REQ_PERM) emit("perm", permState()); }
     public void onResume() { emit("resume", permState()); }
-    public void onIntent(Intent i) { try { handleIntent(i); } catch (Throwable e) { } }
+    public void onIntent(Intent i) { takePick(i); try { handleIntent(i); } catch (Throwable e) { } }
 
     // ================= Outils =================
     private ContentResolver cr() { return a.getContentResolver(); }
@@ -686,6 +687,46 @@ public class GalerieBridge {
         try { String m = cr().getType(u); if (m != null) return m; } catch (Throwable e) { }
         return u.toString().contains("/video/") ? "video/*" : "image/*";
     }
+    /* ---------- Carnet de voyage ---------- */
+    /** Envoie les photos (pas les vidéos) au Carnet de voyage, dans le carnet choisi.
+     *  carnet : id d'un carnet existant, ou "" avec titre pour en créer un. Le carnet les reçoit comme un partage,
+     *  avec l'extra « mag_carnet » {open:id} ou {nouveau:titre}. */
+    @JavascriptInterface public boolean versCarnet(final String csv, final String carnet, final String titre) {
+        final ArrayList<Uri> l = new ArrayList<>();
+        for (Uri u : uris(csv)) if (!mimeOf(u).startsWith("video")) l.add(u);
+        if (l.isEmpty()) return false;
+        ui(() -> {
+            try {
+                Intent i = l.size() == 1 ? new Intent(Intent.ACTION_SEND).putExtra(Intent.EXTRA_STREAM, l.get(0))
+                                         : new Intent(Intent.ACTION_SEND_MULTIPLE).putParcelableArrayListExtra(Intent.EXTRA_STREAM, l);
+                i.setType("image/*").setPackage("fr.magformation13.voyage");
+                ClipData cd = ClipData.newRawUri("", l.get(0));
+                for (int k = 1; k < l.size(); k++) cd.addItem(new ClipData.Item(l.get(k)));
+                i.setClipData(cd);
+                i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                JSONObject x = new JSONObject();
+                if (carnet != null && !carnet.isEmpty()) x.put("open", carnet); else x.put("nouveau", titre == null || titre.trim().isEmpty() ? "Nouveau voyage" : titre.trim());
+                i.putExtra("mag_carnet", x.toString());
+                a.startActivity(i);
+            } catch (Throwable e) { toast("Carnet de voyage n'est pas installé"); }
+        });
+        return true;
+    }
+
+    /* ---------- Choisir des photos pour un carnet (demandé par Carnet de voyage, extra « mag_pick ») ---------- */
+    private volatile String pickReq = "";
+    private void takePick(Intent i) {
+        try {
+            String p = i == null ? null : i.getStringExtra("mag_pick");
+            if (p == null) return;
+            i.removeExtra("mag_pick"); pickReq = p;
+            emit("pick", p);
+        } catch (Throwable e) { }
+    }
+    /** {carnet, titre} si Carnet de voyage a demandé des photos, sinon "" */
+    @JavascriptInterface public String pickMode() { return pickReq; }
+    @JavascriptInterface public void pickClear() { pickReq = ""; }
+
     @JavascriptInterface public void share(final String csv) {
         ui(() -> {
             ArrayList<Uri> l = uris(csv);

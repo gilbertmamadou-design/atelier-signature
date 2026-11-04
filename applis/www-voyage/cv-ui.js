@@ -210,11 +210,18 @@
   U.photosMenu = function (at) {
     O.menu(at, [
       { label: window.MAGPC ? 'Ajouter des photos du PC…' : (window.MAGOffice ? 'Choisir dans la galerie…' : 'Ajouter des photos…'), icon: 'image-plus', on: () => U.addPhotos() },
+      window.MAGVoyage && window.MAGVoyage.ouvrirGalerie ? { label: 'Depuis ma Galerie…', icon: 'gallery-horizontal', on: () => U.fromGalerie() } : null,
       { label: 'Photos du carnet…', icon: 'images', on: () => U.tray() },
       window.MAGPC ? { label: 'Importer un dossier de voyage…', icon: 'folder-input', on: () => CV.V.importFolder() }
         : { label: 'Photos du voyage (appli Photo)…', icon: 'plane', on: () => { if (CV.V.check(false)) CV.V.choose(CV.V.pending.slice()); } },
       E.c && E.c.pages.length ? { label: 'Composer une page (3 à 6 photos)…', icon: 'layout-dashboard', on: () => U.compose() } : null
     ], { title: 'Photos' });
+  };
+  /** Galerie (appli MAG) s'ouvre pour choisir des photos ; elle les renvoie dans ce carnet (U.receive) */
+  U.fromGalerie = function () {
+    if (!E.c) return;
+    let ok = false; try { ok = window.MAGVoyage.ouvrirGalerie(E.c.id, E.c.title || ''); } catch (e) { }
+    if (!ok) O.toast('L\u2019appli Galerie n\u2019est pas installée', { bad: true });
   };
   /** Choix des photos : sélecteur d'Android (plusieurs à la fois) ou fichiers du PC */
   U.pickImages = async function () {
@@ -864,6 +871,10 @@
       catch (e) { U.progress('', 1)(-1); O.alert('Fichier illisible', '<p>' + esc(x.name) + ' : ' + esc(e.message) + '</p>'); }
     }
     if (imgs.length) {
+      // photos envoyées par Galerie avec le carnet choisi : {open:id} ou {nouveau:titre}
+      let want = {}; try { const r = window.MAGVoyage && window.MAGVoyage.carnetDemande && window.MAGVoyage.carnetDemande(); if (r) want = JSON.parse(r); } catch (e) { }
+      if (want.open && (!E.c || E.c.id !== want.open)) { const c = await M.getCarnet(want.open); if (c) await U.open(c.id); }
+      else if (want.nouveau) { const n = M.newCarnet({ title: want.nouveau }); await M.putCarnet(n); await U.open(n.id, 0); }
       if (!E.c) { const last = localStorage.getItem('voyage.last'); const c = last && await M.getCarnet(last); if (c) await U.open(c.id); else { const n = M.newCarnet({ title: 'Nouveau voyage' }); await M.putCarnet(n); await U.open(n.id, 0); } }
       if (E.pi < 0) E.go(0, true);
       U.addPhotos(imgs.map((x) => ({ blob: x.blob, name: x.name })));

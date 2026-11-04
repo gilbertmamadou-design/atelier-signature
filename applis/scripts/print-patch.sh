@@ -1883,7 +1883,7 @@ fi
 if [ "$APP" = "voyage" ]; then
   bash scripts/office-deps.sh www-voyage
   addactivity '<provider android:name=".VoyageBridge$Carnets" android:authorities="${applicationId}.carnets" android:exported="true" android:permission="fr.magformation13.permission.WIDGET" />'
-  addraw '<queries><package android:name="fr.magformation13.photo" /></queries>'
+  addraw '<queries><package android:name="fr.magformation13.photo" /><package android:name="fr.magformation13.galerie" /></queries>'
   grep -n "VoyageBridge\$Carnets" "$MAN"
   addfilters '<intent-filter android:label="Ouvrir avec Carnet de voyage"><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.DEFAULT" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="content" /><data android:scheme="file" /><data android:mimeType="application/x-magcarnet" /></intent-filter><intent-filter android:label="Ouvrir avec Carnet de voyage"><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.DEFAULT" /><data android:scheme="content" /><data android:scheme="file" /><data android:host="*" /><data android:mimeType="application/octet-stream" /><data android:mimeType="application/zip" /><data android:pathPattern=".*\\.magcarnet" /><data android:pathPattern=".*\\..*\\.magcarnet" /><data android:pathPattern=".*\\..*\\..*\\.magcarnet" /></intent-filter><intent-filter android:label="Carnet de voyage"><action android:name="android.intent.action.SEND" /><action android:name="android.intent.action.SEND_MULTIPLE" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="image/*" /><data android:mimeType="application/x-magcarnet" /></intent-filter>'
 fi
@@ -2117,6 +2117,8 @@ if [ "$APP" = "ondes" ]; then
 fi
 if [ "$APP" = "galerie" ]; then
   addperm READ_MEDIA_IMAGES READ_MEDIA_VIDEO READ_MEDIA_VISUAL_USER_SELECTED SET_WALLPAPER
+  # Carnet de voyage : liste des carnets (fournisseur VoyageBridge$Carnets) et envoi des photos dans un carnet
+  addraw '<queries><package android:name="fr.magformation13.voyage" /><provider android:authorities="fr.magformation13.voyage.carnets" /></queries>'
   grep -q 'READ_EXTERNAL_STORAGE' "$MAN" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />\n</manifest>#' "$MAN"
   addfilters '<intent-filter><action android:name="android.intent.action.VIEW"/><action android:name="com.android.camera.action.REVIEW"/><category android:name="android.intent.category.DEFAULT"/><category android:name="android.intent.category.BROWSABLE"/><data android:mimeType="image/*"/><data android:mimeType="video/*"/></intent-filter><intent-filter><action android:name="android.intent.action.SEND"/><category android:name="android.intent.category.DEFAULT"/><data android:mimeType="image/*"/></intent-filter>'
   grep -q 'ATTACH_DATA' "$MAN" || sed -i 's#</manifest>#    <queries><intent><action android:name="android.intent.action.VIEW" /><data android:mimeType="image/*" /></intent><intent><action android:name="android.intent.action.EDIT" /><data android:mimeType="image/*" /></intent><intent><action android:name="android.intent.action.ATTACH_DATA" /><data android:mimeType="image/*" /></intent></queries>\n</manifest>#' "$MAN"

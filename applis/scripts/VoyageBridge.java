@@ -65,6 +65,28 @@ public class VoyageBridge {
 
     @JavascriptInterface public String version() { return "2"; }
 
+    /* ---------- Photos envoyées par Galerie ---------- */
+    // Galerie joint aux photos partagées l'extra « mag_carnet » : {open:id} (carnet choisi) ou {nouveau:titre}
+    private static volatile String carnetReq = "";
+    private void takeCarnet(Intent i) {
+        try { String c = i == null ? null : i.getStringExtra("mag_carnet"); if (c != null) { i.removeExtra("mag_carnet"); carnetReq = c; } } catch (Throwable e) { }
+    }
+    public void onIntent(Intent i) { takeCarnet(i); }
+    /** carnet demandé avec les photos reçues ({open:id} ou {nouveau:titre}), une seule fois ; "" sinon */
+    @JavascriptInterface public String carnetDemande() { if (carnetReq.isEmpty()) takeCarnet(a.getIntent()); String c = carnetReq; carnetReq = ""; return c; }
+    /** Ouvre Galerie pour y choisir des photos à envoyer dans ce carnet */
+    @JavascriptInterface public boolean ouvrirGalerie(String carnet, String titre) {
+        try {
+            Intent i = a.getPackageManager().getLaunchIntentForPackage("fr.magformation13.galerie");
+            if (i == null) return false;
+            JSONObject o = new JSONObject(); o.put("carnet", carnet == null ? "" : carnet); o.put("titre", titre == null ? "" : titre);
+            i.putExtra("mag_pick", o.toString());
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            a.startActivity(i);
+            return true;
+        } catch (Throwable e) { return false; }
+    }
+
     /** Hauteur des barres système en px CSS {haut, bas} : la page passe sous la barre de navigation (bord à bord)
      *  et env(safe-area-inset-bottom) vaut 0 dans certaines WebView ; la page s'en sert pour garder ses boutons visibles. */
     @JavascriptInterface public String barres() {
