@@ -2133,6 +2133,11 @@ if [ "$APP" = "fonds" ] && ! grep -q "WallpaperJob" "$MAN"; then
 </vector>
 XML
   sed -i 's#</application>#    <service android:name=".WallpaperJob" android:permission="android.permission.BIND_JOB_SERVICE" android:exported="false" />\n        <service android:name=".WallpaperTile" android:label="Fond suivant" android:icon="@drawable/ic_toile_tile" android:permission="android.permission.BIND_QUICK_SETTINGS_TILE" android:exported="true"><intent-filter><action android:name="android.service.quicksettings.action.QS_TILE" /></intent-filter></service>\n    </application>#' "$MAN"
+  # Fond « Toile (double tap) » : WallpaperJob$Live, l'image change quand on tapote deux fois l'accueil
+  mkdir -p android/app/src/main/res/xml
+  echo '<wallpaper xmlns:android="http://schemas.android.com/apk/res/android" android:thumbnail="@mipmap/ic_launcher" />' > android/app/src/main/res/xml/toile_live.xml
+  addraw '<uses-feature android:name="android.software.live_wallpaper" android:required="false" />'
+  addactivity '<service android:name=".WallpaperJob$Live" android:label="Toile : double tap" android:permission="android.permission.BIND_WALLPAPER" android:exported="true"><intent-filter><action android:name="android.service.wallpaper.WallpaperService" /></intent-filter><meta-data android:name="android.service.wallpaper" android:resource="@xml/toile_live" /></service>'
   # INTERNET, ACCESS_NETWORK_STATE : « Images en ligne » (ToileBridge.java, sources libres en liste blanche)
   for P in SET_WALLPAPER RECEIVE_BOOT_COMPLETED INTERNET ACCESS_NETWORK_STATE; do
     grep -q "android.permission.$P" "$MAN" || sed -i "s#</manifest>#    <uses-permission android:name=\"android.permission.$P\" />\n</manifest>#" "$MAN"

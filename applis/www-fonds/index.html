@@ -208,6 +208,10 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
       <div class="t"><div>Tuile « Fond suivant »</div><div>Dans le volet du haut : un appui change le fond sans ouvrir l'appli</div></div>
       <button class="btn" id="bTile" style="flex:none">Ajouter</button>
     </div>
+    <div class="set" id="liveRow">
+      <div class="t"><div>Double tap sur l'accueil</div><div id="liveTxt">Tapote deux fois une zone vide de l'écran d'accueil pour passer au fond suivant</div></div>
+      <button class="btn" id="bLive" style="flex:none">Activer</button>
+    </div>
   </section>
 
   <p class="foot" id="last"></p>
@@ -316,6 +320,21 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
   $('bNext').onclick = function(){ if(!A) return; if(!S._f){ toast("Choisis d'abord un dossier d'images"); return; } setBusy('bNext', true); A.wpChange(); };
   $('bPrev').onclick = function(){ if(A){ setBusy('bPrev', true); A.wpPrevious(); } };
   $('bTile').onclick = function(){ if(A&&A.wpAddTile) A.wpAddTile(); };
+  function liveUi(){
+    var L = window.MAGToile, on = false;
+    if(!L || !L.liveOpen){ $('liveRow').hidden = true; return; }
+    try{ on = L.liveOn(); }catch(e){}
+    $('bLive').textContent = on ? 'Actif ✓' : 'Activer';
+    $('liveTxt').textContent = on ? "Actif : tapote deux fois une zone vide de l'accueil pour changer de fond" : "Tapote deux fois une zone vide de l'écran d'accueil pour passer au fond suivant";
+  }
+  $('bLive').onclick = function(){
+    var L = window.MAGToile; if(!L || !L.liveOpen) return;
+    if(!S._f){ toast("Choisis d'abord un dossier d'images"); return; }
+    toast("Android va afficher l'aperçu : appuie sur « Appliquer » (ou « Définir le fond d'écran »)");
+    L.liveOpen();
+  };
+  liveUi();
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) liveUi(); });
 
   /* ---------- Onglet « Images en ligne » (en-ligne.js, pont MAGToile) ---------- */
   var T = window.MAGToile, WEB = null, TAB = 'fonds';

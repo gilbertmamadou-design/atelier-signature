@@ -744,6 +744,23 @@ public class ToileBridge {
 
     // ---------------------------------------------------------------- pont JavaScript
     @JavascriptInterface public String version() { return "1"; }
+    // Fond « Toile (double tap) » : état et activation (aperçu d'Android avec « Appliquer »)
+    @JavascriptInterface public boolean liveOn() { return WallpaperJob.liveOn(a); }
+    @JavascriptInterface public void liveOpen() {
+        new Thread(new Runnable() { public void run() {
+            WallpaperJob.livePrepare(a.getApplicationContext());
+            a.runOnUiThread(new Runnable() { public void run() {
+                try {
+                    Intent i = new Intent(android.app.WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER);
+                    i.putExtra(android.app.WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT, new android.content.ComponentName(a, WallpaperJob.Live.class));
+                    a.startActivity(i);
+                } catch (Throwable t) {
+                    try { a.startActivity(new Intent(android.app.WallpaperManager.ACTION_LIVE_WALLPAPER_CHOOSER)); }
+                    catch (Throwable t2) { Toast.makeText(a, "Ce téléphone ne propose pas de fonds d'écran animés", Toast.LENGTH_LONG).show(); }
+                }
+            } });
+        } }).start();
+    }
 
     @JavascriptInterface public String config() { return ok() ? cfg(a).toString() : "{}"; }
 

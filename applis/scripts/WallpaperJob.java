@@ -35,6 +35,8 @@ import android.view.Display;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -266,7 +268,15 @@ public class WallpaperJob extends JobService {
     static void apply(Context c, Uri u, int flags) throws Exception {
         Res r = process(c, u, false);
         try {
-            WallpaperManager.getInstance(c).setBitmap(r.out, null, true, flags);
+            WallpaperManager wm = WallpaperManager.getInstance(c);
+            if ((flags & WallpaperManager.FLAG_SYSTEM) != 0 && liveOn(c)) {
+                // Fond « Toile (double tap) » actif : l'image de l'accueil est dessinée par Live, pas posée par Android
+                writeLive(c, r.out);
+                if ((flags & WallpaperManager.FLAG_LOCK) != 0) {
+                    int lockId = -1; try { lockId = wm.getWallpaperId(WallpaperManager.FLAG_LOCK); } catch (Throwable t) { }
+                    if (lockId >= 0) wm.setBitmap(r.out, null, true, WallpaperManager.FLAG_LOCK);   // verrouillage avec sa propre image
+                }
+            } else wm.setBitmap(r.out, null, true, flags);
             // Miniature pour la tuile « Fond d'écran » de Socle
             if ((flags & WallpaperManager.FLAG_SYSTEM) != 0) {
                 try {
@@ -700,5 +710,145 @@ public class WallpaperJob extends JobService {
         cv.drawBitmap(scaled, x, y, p);
         scaled.recycle();
         return out;
+    }
+
+    // ================= Fond « Toile (double tap) » =================
+    // Fond d'écran Android tenu par Toile : il affiche l'image recadrée de l'accueil et passe à la suivante
+    // quand on tapote deux fois une zone vide de l'écran d'accueil (commande « tap » envoyée par le lanceur ;
+    // à défaut, toucher direct). Rien n'est animé : dessin uniquement au changement d'image ou à l'affichage.
+    static File liveFile(Context c) { return new File(c.getFilesDir(), "toile-live.jpg"); }
+
+    static boolean liveOn(Context c) {
+        try {
+            android.app.WallpaperInfo wi = WallpaperManager.getInstance(c).getWallpaperInfo();
+            return wi != null && c.getPackageName().equals(wi.getPackageName()) && wi.getServiceName().endsWith("WallpaperJob$Live");
+        } catch (Throwable t) { return false; }
+    }
+
+    static void writeLive(Context c, Bitmap b) throws Exception {
+        File f = liveFile(c), tmp = new File(c.getFilesDir(), "toile-live.tmp");
+        try (FileOutputStream o = new FileOutputStream(tmp)) { b.compress(Bitmap.CompressFormat.JPEG, 95, o); }
+        if (!tmp.renameTo(f)) { f.delete(); if (!tmp.renameTo(f)) throw new Exception("Écriture du fond impossible"); }
+        Live.refresh();
+    }
+
+    /** Prépare l'image du fond Toile avant son activation : dernier fond posé par Toile, sinon une image du dossier. */
+    static void livePrepare(Context c) {
+        if (liveFile(c).exists()) return;
+        synchronized (LOCK) {
+            try {
+                List<String> h = history(c);
+                Uri u = null;
+                if (!h.isEmpty()) u = Uri.parse(h.get(h.size() - 1));
+                else { List<Uri> all = list(c); if (!all.isEmpty()) u = pick(c, all); }
+                if (u == null) return;
+                Res r = process(c, u, false);
+                try { File f = liveFile(c); try (FileOutputStream o = new FileOutputStream(f)) { r.out.compress(Bitmap.CompressFormat.JPEG, 95, o); } }
+                finally { r.out.recycle(); }
+            } catch (Throwable t) { }
+        }
+    }
+
+    public static class Live extends android.service.wallpaper.WallpaperService {
+        static final Set<Live.Eng> engines = Collections.synchronizedSet(new HashSet<Live.Eng>());
+        static volatile boolean gotCommand = false;   // le lanceur envoie « tap » : on ignore alors le toucher brut
+        static void refresh() { Live.Eng[] a; synchronized (engines) { a = engines.toArray(new Live.Eng[0]); } for (Live.Eng e : a) e.reload(); }
+
+        @Override public Engine onCreateEngine() { return new Eng(); }
+
+        final class Eng extends Engine {
+            private final android.os.Handler h = new android.os.Handler(android.os.Looper.getMainLooper());
+            private Bitmap bm, old; private long fadeAt; private boolean visible, changing;
+            private long lastTap; private float lx, ly, dx0, dy0; private int w, hh;
+            private final Paint p = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.ANTI_ALIAS_FLAG);
+
+            @Override public void onCreate(android.view.SurfaceHolder s) { super.onCreate(s); setTouchEventsEnabled(true); engines.add(this); load(); }
+            @Override public void onDestroy() { engines.remove(this); h.removeCallbacksAndMessages(null); super.onDestroy(); }
+            @Override public void onVisibilityChanged(boolean v) { visible = v; if (v) draw(); }
+            @Override public void onSurfaceChanged(android.view.SurfaceHolder s, int f, int width, int height) { w = width; hh = height; draw(); }
+            @Override public void onSurfaceRedrawNeeded(android.view.SurfaceHolder s) { draw(); }
+
+            void reload() { h.post(new Runnable() { public void run() { old = bm; load(); fadeAt = android.os.SystemClock.uptimeMillis(); frame(); } }); }
+
+            private void load() {
+                try {
+                    File f = liveFile(getApplicationContext());
+                    bm = f.exists() ? BitmapFactory.decodeFile(f.getAbsolutePath()) : null;
+                    if (bm == null && !changing) next();   // première fois : on prend une image
+                } catch (Throwable t) { bm = null; }
+            }
+
+            private void frame() {
+                draw();
+                if (old != null) {
+                    if (android.os.SystemClock.uptimeMillis() - fadeAt < 450) h.postDelayed(new Runnable() { public void run() { frame(); } }, 30);
+                    else { old = null; draw(); }
+                }
+            }
+
+            private void drawImg(Canvas c, Bitmap b, int alpha) {
+                if (b == null || b.isRecycled()) return;
+                int cw = c.getWidth(), ch = c.getHeight();
+                float sc = Math.max(cw / (float) b.getWidth(), ch / (float) b.getHeight());
+                float dw = b.getWidth() * sc, dh = b.getHeight() * sc;
+                p.setAlpha(alpha);
+                c.drawBitmap(b, null, new android.graphics.RectF((cw - dw) / 2, (ch - dh) / 2, (cw + dw) / 2, (ch + dh) / 2), p);
+            }
+
+            private void draw() {
+                android.view.SurfaceHolder s = getSurfaceHolder();
+                Canvas c = null;
+                try {
+                    c = s.lockCanvas();
+                    if (c == null) return;
+                    c.drawColor(0xff101418);
+                    if (bm == null) {
+                        Paint t = new Paint(Paint.ANTI_ALIAS_FLAG); t.setColor(0xffcfd6e0); t.setTextAlign(Paint.Align.CENTER);
+                        t.setTextSize(c.getWidth() / 22f);
+                        c.drawText("Toile : choisis un dossier d'images", c.getWidth() / 2f, c.getHeight() / 2f, t);
+                        return;
+                    }
+                    if (old != null) {
+                        float k = Math.min(1f, (android.os.SystemClock.uptimeMillis() - fadeAt) / 450f);
+                        drawImg(c, old, 255); drawImg(c, bm, Math.round(255 * k));
+                    } else drawImg(c, bm, 255);
+                } catch (Throwable t) {
+                } finally { if (c != null) try { s.unlockCanvasAndPost(c); } catch (Throwable t) { } }
+            }
+
+            @Override public android.os.Bundle onCommand(String action, int x, int y, int z, android.os.Bundle extras, boolean res) {
+                if (WallpaperManager.COMMAND_TAP.equals(action)) { gotCommand = true; tap(x, y); }
+                return null;
+            }
+
+            @Override public void onTouchEvent(android.view.MotionEvent e) {
+                if (gotCommand) return;
+                if (e.getActionMasked() == android.view.MotionEvent.ACTION_DOWN) { dx0 = e.getX(); dy0 = e.getY(); }
+                else if (e.getActionMasked() == android.view.MotionEvent.ACTION_UP && e.getEventTime() - e.getDownTime() < 300
+                        && Math.hypot(e.getX() - dx0, e.getY() - dy0) < 24 * getResources().getDisplayMetrics().density) tap(e.getX(), e.getY());
+            }
+
+            private void tap(float x, float y) {
+                long t = android.os.SystemClock.uptimeMillis();
+                float tol = 60 * getResources().getDisplayMetrics().density;
+                if (t - lastTap < 450 && Math.hypot(x - lx, y - ly) < tol) { lastTap = 0; next(); }
+                else { lastTap = t; lx = x; ly = y; }
+            }
+
+            private void next() {
+                if (changing) return;
+                changing = true;
+                final Context ctx = getApplicationContext();
+                new Thread(new Runnable() { public void run() {
+                    String err = null;
+                    try { change(ctx); } catch (Throwable t) { err = t.getMessage(); }
+                    final String m = err;
+                    h.post(new Runnable() { public void run() {
+                        changing = false;
+                        if (m != null) try { android.widget.Toast.makeText(ctx, "Toile : " + m, android.widget.Toast.LENGTH_SHORT).show(); } catch (Throwable t) { }
+                    } });
+                } }).start();
+            }
+        }
     }
 }
