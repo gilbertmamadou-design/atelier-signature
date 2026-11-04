@@ -404,6 +404,7 @@ public class PhotoCamera extends Activity {
         commitCaption();
         cancelCountdown();
         if (recording) stopRecording(false);
+        if (panoOn) panoStop(true);
         closeCamera();
         stopBg();
         orient.disable();
@@ -415,7 +416,7 @@ public class PhotoCamera extends Activity {
     @Override protected void onDestroy() {
         try { if (sound != null) sound.release(); } catch (Throwable e) { }
         try { if (tone != null) tone.release(); } catch (Throwable e) { }
-        saver.shutdown(); geoEx.shutdown();
+        saver.shutdown(); geoEx.shutdown(); panoEx.shutdown();
         super.onDestroy();
     }
 
@@ -860,6 +861,7 @@ public class PhotoCamera extends Activity {
     private void shutterPressed() {
         commitCaption();
         if (videoMode) { if (recording) stopRecording(true); else startRecording(); return; }
+        if (panoMode) { if (panoOn) panoStop(true); else panoStart(); return; }
         if (countdown > 0) { cancelCountdown(); return; }
         shutter.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
         int t = sp.getInt("timer", 0);
@@ -878,7 +880,7 @@ public class PhotoCamera extends Activity {
     // ================= Métadonnées d'une prise =================
     static final class Meta {
         long t; Location l; String addr = "", site = "", siteDir = "", note = "", client = "";
-        boolean siteMode, stamp, keepOrig, geo, front;
+        boolean siteMode, stamp, keepOrig, geo, front, pano;
         // mode voyage
         boolean voyMode, vStamp, vKeep; String voyTitle = "", voyDir = "", vStyle = "carte", vPos = "bas", city = "", country = ""; JSONObject voyage = new JSONObject();
     }
@@ -952,11 +954,11 @@ public class PhotoCamera extends Activity {
             if (ori == ExifInterface.ORIENTATION_UNDEFINED) { ori = ExifInterface.ORIENTATION_NORMAL; }
             fillExif(ex, m);
             ex.saveAttributes();
-            String name = "Photo_" + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date(m.t));
+            String name = (m.pano ? "Panorama_" : "Photo_") + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date(m.t));
             String dir = m.voyMode ? "Voyage/" + m.voyDir : m.siteMode ? m.siteDir : "";
             String desc = m.voyMode ? locLine(m) : locLine(m) + (m.note.trim().isEmpty() ? "" : "\n" + m.note.trim());
             if (captureIntent) { deliverCapture(tmp); return; }
-            if (m.voyMode && m.vStamp) {
+            if (m.voyMode && m.vStamp && !m.pano) {
                 // bandeau « carte postale » ; l'original sans bandeau reste dans Originaux si demandé
                 t2 = new File(getCacheDir(), "carte-" + m.t + ".jpg");
                 postcardFile(tmp, t2, ori, m);
@@ -966,7 +968,7 @@ public class PhotoCamera extends Activity {
                 e2.saveAttributes();
                 main = insert(t2, name + ".jpg", dir, m.t, desc, false);
                 if (m.vKeep) insert(tmp, name + "_original.jpg", dir + "/Originaux", m.t, desc, false);
-            } else if (m.siteMode && m.stamp) {
+            } else if (m.siteMode && m.stamp && !m.pano) {
                 t2 = new File(getCacheDir(), "stamp-" + m.t + ".jpg");
                 stampFile(tmp, t2, ori, bannerLines(m));
                 ExifInterface e2 = new ExifInterface(t2.getAbsolutePath());
@@ -982,7 +984,7 @@ public class PhotoCamera extends Activity {
                 lastUri = main; lastVideo = false;
                 sp.edit().putString("lastUri", main.toString()).putLong("lastAt", m.t).putBoolean("lastVideo", false).apply();
                 final Bitmap th = smallThumb(t2 != null ? t2 : tmp, ori);
-                final String where = m.voyMode ? "Enregistrée dans le voyage « " + m.voyTitle + " »" : m.siteMode ? "Enregistrée dans " + m.site : "Enregistrée";
+                final String where = m.pano ? (m.voyMode ? "Panorama enregistré dans le voyage « " + m.voyTitle + " »" : "Panorama enregistré dans la Galerie") : m.voyMode ? "Enregistrée dans le voyage « " + m.voyTitle + " »" : m.siteMode ? "Enregistrée dans " + m.site : "Enregistrée";
                 String vid = "";
                 if (m.voyMode) {
                     // index du voyage et voyage.json du dossier (nom réel donné par MediaStore, taille affichée)
@@ -1568,6 +1570,325 @@ public class PhotoCamera extends Activity {
         } });
     }
 
+    // ================= Panorama =================
+    // On tourne lentement sur soi-même : le gyroscope déclenche une vue toutes les ~55 % de champ,
+    // chaque vue est projetée sur un cylindre, recalée (gradients) puis fondue avec la précédente.
+    private boolean panoMode; private TextView mPano;
+    private volatile boolean panoOn;
+    private float panoYaw, panoNext, panoStep, panoFv, panoF, panoRate, panoPitch0;
+    private int panoDir, panoCount, panoFw, panoFh;
+    private long panoGyT;
+    private Meta panoMeta;
+    private final ExecutorService panoEx = Executors.newSingleThreadExecutor();
+    static final class PFrame { byte[] jpg; float[] g, lum; float x, y, gain = 1f, yaw; }
+    private final List<PFrame> pFrames = new ArrayList<>();   // n'est touchée que par panoEx
+
+    private Sensor gyro() { return sm == null ? null : sm.getDefaultSensor(Sensor.TYPE_GYROSCOPE); }
+
+    private void setPanoMode(boolean p) {
+        if (recording || panoOn || p == panoMode) return;
+        if (p && captureIntent) return;
+        if (p && gyro() == null) { info("Panorama impossible : ce téléphone n'a pas de gyroscope"); return; }
+        panoMode = p; if (p) videoMode = false;
+        if (p) info("Panorama : tenez le téléphone droit, appuyez puis tournez lentement sur vous-même");
+        refreshUi();
+    }
+
+    private float pitchNow() { return (float) Math.toDegrees(Math.atan2(-gz, gy)); }
+
+    /** Focale de l'aperçu, en pixels de la vue. */
+    private float viewFocal() {
+        double hf = 0;
+        try {
+            SizeF ps = lens.lc.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE);
+            float sh = Math.min(ps.getWidth(), ps.getHeight());
+            if (lens.focal > 0 && sh > 0) hf = 2 * Math.atan(sh / 2 / lens.focal);
+        } catch (Throwable e) { }
+        if (!(hf > Math.toRadians(25) && hf < Math.toRadians(125))) hf = Math.toRadians(52);
+        return (float) (tv.getWidth() / 2.0 / Math.tan(hf / 2)) * Math.max(1f, zoom);
+    }
+
+    private void panoLock(boolean on) {
+        if (pb == null || session == null) return;
+        try { pb.set(CaptureRequest.CONTROL_AE_LOCK, on); pb.set(CaptureRequest.CONTROL_AWB_LOCK, on); repeat(); } catch (Throwable e) { }
+    }
+
+    private void panoStart() {
+        Sensor g = gyro();
+        if (g == null || session == null || tv.getWidth() == 0) { info("Caméra pas prête"); return; }
+        panoMeta = snapshot();
+        panoFv = viewFocal();
+        panoFw = Math.min(tv.getWidth(), 1080);
+        panoFh = Math.round(panoFw * tv.getHeight() / (float) tv.getWidth());
+        panoF = panoFv * panoFw / tv.getWidth();
+        double hfov = Math.toDegrees(2 * Math.atan(tv.getWidth() / 2.0 / panoFv));
+        panoStep = (float) Math.max(10, Math.min(40, hfov * 0.5));
+        panoYaw = 0; panoDir = 0; panoGyT = 0; panoRate = 0; panoCount = 0; panoNext = panoStep;
+        panoPitch0 = pitchNow();
+        panoEx.execute(new Runnable() { public void run() { pFrames.clear(); } });
+        panoLock(true);
+        sm.registerListener(gyroL, g, SensorManager.SENSOR_DELAY_GAME);
+        panoOn = true;
+        shutter.setRec(true);
+        shutter.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+        refreshUi();
+        ui.postDelayed(new Runnable() { public void run() { if (panoOn && panoCount == 0) grabPano(0); } }, 250);
+    }
+
+    private void panoStop(boolean keep) {
+        if (!panoOn) return;
+        panoOn = false;
+        try { sm.unregisterListener(gyroL); } catch (Throwable e) { }
+        panoLock(false);
+        shutter.setRec(false);
+        final Meta m = panoMeta;
+        if (keep && panoCount >= 2) {
+            shutter.busy(true);
+            info("Assemblage du panorama…");
+            panoEx.execute(new Runnable() { public void run() { panoStitch(m); } });
+        } else {
+            if (keep) info("Panorama annulé : tournez un peu plus avant d'arrêter");
+            panoEx.execute(new Runnable() { public void run() { pFrames.clear(); } });
+        }
+        refreshUi();
+    }
+
+    private float panoProg() { return panoDir == 0 ? Math.abs(panoYaw) : panoDir > 0 ? -panoYaw : panoYaw; }
+
+    private final SensorEventListener gyroL = new SensorEventListener() {
+        @Override public void onSensorChanged(SensorEvent e) {
+            if (!panoOn) return;
+            if (panoGyT == 0) { panoGyT = e.timestamp; return; }
+            float dt = (e.timestamp - panoGyT) * 1e-9f; panoGyT = e.timestamp;
+            if (dt <= 0 || dt > 0.2f) return;
+            float g = (float) Math.sqrt(gx * gx + gy * gy + gz * gz); if (g < 1) return;
+            float w = (e.values[0] * gx + e.values[1] * gy + e.values[2] * gz) / g;   // rad/s autour de la verticale, + = vers la gauche
+            panoYaw += (float) Math.toDegrees(w * dt);
+            panoRate = panoRate * 0.85f + (float) Math.toDegrees(Math.abs(w)) * 0.15f;
+            if (panoDir == 0 && Math.abs(panoYaw) > 4) panoDir = panoYaw < 0 ? 1 : -1;
+            float p = panoProg();
+            if (panoDir != 0 && panoCount > 0 && p >= panoNext && panoRate < 32 && Math.abs(pitchNow() - panoPitch0) < 10) {
+                grabPano(p);
+                panoNext = p + panoStep;
+            }
+            if (p >= 352) { panoStop(true); return; }
+            ov.invalidate();
+        }
+        @Override public void onAccuracyChanged(Sensor s, int a) { }
+    };
+
+    private void grabPano(float prog) {
+        if (panoCount >= 40) { panoStop(true); return; }
+        final Bitmap b;
+        try { b = tv.getBitmap(panoFw, panoFh); } catch (Throwable e) { return; }
+        if (b == null) return;
+        panoCount++;
+        final float yaw = panoYaw;
+        try { ov.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP); } catch (Throwable e) { }
+        ov.invalidate();
+        panoEx.execute(new Runnable() { public void run() { panoAdd(b, yaw); } });
+    }
+
+    /** Projection cylindrique d'une image en niveaux de gris (valeur -1 hors image). */
+    private static float[] cylGray(int[] px, int w, int h, float f, int ww) {
+        float[] o = new float[ww * h];
+        float cx = w / 2f, cy = h / 2f, cw = ww / 2f;
+        for (int x = 0; x < ww; x++) {
+            double th = (x + 0.5 - cw) / f;
+            float xs = (float) (f * Math.tan(th) + cx - 0.5), sec = (float) (1 / Math.cos(th));
+            int xi = (int) Math.floor(xs); float ax = xs - xi;
+            for (int y = 0; y < h; y++) {
+                float ys = (y + 0.5f - cy) * sec + cy - 0.5f;
+                int yi = (int) Math.floor(ys); float ay = ys - yi;
+                if (xi < 0 || yi < 0 || xi + 1 >= w || yi + 1 >= h) { o[y * ww + x] = -1; continue; }
+                int i = yi * w + xi;
+                float a = lumOf(px[i]), b = lumOf(px[i + 1]), c = lumOf(px[i + w]), d = lumOf(px[i + w + 1]);
+                o[y * ww + x] = (a * (1 - ax) + b * ax) * (1 - ay) + (c * (1 - ax) + d * ax) * ay;
+            }
+        }
+        return o;
+    }
+    private static float lumOf(int c) { return ((c >> 16 & 255) * 77 + (c >> 8 & 255) * 150 + (c & 255) * 29) / 256f; }
+
+    private static float[] grad(float[] l, int w, int h) {
+        float[] g = new float[w * h];
+        Arrays.fill(g, -1);
+        for (int y = 1; y < h - 1; y++) for (int x = 1; x < w - 1; x++) {
+            int i = y * w + x;
+            float a = l[i - 1], b = l[i + 1], c = l[i - w], d = l[i + w];
+            if (a < 0 || b < 0 || c < 0 || d < 0 || l[i] < 0) continue;
+            g[i] = Math.abs(b - a) + Math.abs(d - c);
+        }
+        return g;
+    }
+
+    private void panoAdd(Bitmap b, float yaw) {
+        try {
+            PFrame fr = new PFrame(); fr.yaw = yaw;
+            java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream(400000);
+            b.compress(Bitmap.CompressFormat.JPEG, 93, bo);
+            fr.jpg = bo.toByteArray();
+            int sw = Math.max(32, panoFw / 4), sh = Math.max(32, panoFh / 4);
+            Bitmap s = Bitmap.createScaledBitmap(b, sw, sh, true);
+            b.recycle();
+            int[] px = new int[sw * sh]; s.getPixels(px, 0, sw, 0, 0, sw, sh); if (s != b) s.recycle();
+            float fs = panoF * sw / panoFw;
+            int sww = (int) Math.round(2 * fs * Math.atan(sw / 2.0 / fs));
+            fr.lum = cylGray(px, sw, sh, fs, sww);
+            fr.g = grad(fr.lum, sww, sh);
+            if (!pFrames.isEmpty()) {
+                PFrame pv = pFrames.get(pFrames.size() - 1);
+                float pred = (float) (-Math.toRadians(yaw - pv.yaw) * fs);
+                float[] r = register(pv, fr, sww, sh, pred);
+                float k = panoFw / (float) sw;
+                fr.x = pv.x + r[0] * k; fr.y = pv.y + r[1] * k;
+                fr.gain = Math.max(0.7f, Math.min(1.4f, pv.gain * r[2]));
+            }
+            pFrames.add(fr);
+        } catch (Throwable e) { }
+    }
+
+    /** Recalage de la vue b sur a : décalage (dx, dy) en petits pixels + rapport de luminosité a/b. */
+    private static float[] register(PFrame a, PFrame b, int w, int h, float pred) {
+        float span = Math.max(10, Math.abs(pred) * 0.4f);
+        int lo = Math.round(pred - span), hi = Math.round(pred + span), R = Math.max(4, h / 22);
+        double best = Double.MAX_VALUE; int bx = Math.round(pred), by = 0;
+        double tex = 0; int texN = 0;
+        for (int dy = -R; dy <= R; dy++) for (int dx = lo; dx <= hi; dx++) {
+            int x0 = Math.max(0, dx), x1 = Math.min(w, w + dx), y0 = Math.max(0, dy) + 2, y1 = Math.min(h, h + dy) - 2;
+            if (x1 - x0 < w / 8 || y1 - y0 < h / 2) continue;
+            double s = 0; int n = 0;
+            for (int y = y0; y < y1; y += 2) {
+                int ra = y * w, rb = (y - dy) * w - dx;
+                for (int x = x0; x < x1; x += 2) {
+                    float ga = a.g[ra + x], gb = b.g[rb + x];
+                    if (ga < 0 || gb < 0) continue;
+                    s += Math.abs(ga - gb); n++;
+                }
+            }
+            if (n < 200) continue;
+            s = s / n * (1 + 0.25 * Math.abs(dx - pred) / w);
+            if (s < best) { best = s; bx = dx; by = dy; }
+        }
+        // texture du recouvrement : ciel uni ou mur blanc → on garde la prédiction du gyroscope
+        double ma = 0, mb = 0; int n = 0;
+        int x0 = Math.max(0, bx), x1 = Math.min(w, w + bx), y0 = Math.max(0, by) + 2, y1 = Math.min(h, h + by) - 2;
+        for (int y = y0; y < y1; y += 2) for (int x = x0; x < x1; x += 2) {
+            int ia = y * w + x, ib = (y - by) * w + x - bx;
+            if (ia < 0 || ib < 0 || ia >= a.lum.length || ib >= b.lum.length) continue;
+            float la = a.lum[ia], lb = b.lum[ib];
+            if (la < 0 || lb < 0) continue;
+            ma += la; mb += lb; n++;
+            if (a.g[ia] >= 0) { tex += a.g[ia]; texN++; }
+        }
+        if (texN == 0 || tex / texN < 3.0 || best == Double.MAX_VALUE) { bx = Math.round(pred); by = 0; }
+        float gain = n > 0 && mb > 1 ? (float) (ma / mb) : 1f;
+        return new float[]{ bx, by, gain };
+    }
+
+    private void panoStitch(Meta m) {
+        try {
+            int n = pFrames.size();
+            if (n < 2) { info("Panorama annulé : pas assez de vues"); pFrames.clear(); ui.post(new Runnable() { public void run() { shutter.busy(false); } }); return; }
+            int fw = panoFw, fh = panoFh; float f = panoF;
+            double thE = Math.atan(fw / 2.0 / f);
+            int ww = (int) Math.round(2 * f * thE);
+            float minX = Float.MAX_VALUE, maxX = -Float.MAX_VALUE, minY = Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
+            for (PFrame p : pFrames) { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); }
+            int cut = (int) Math.ceil(fh / 2.0 * (1 - Math.cos(thE))) + 2;
+            float gW = maxX - minX + ww, gH = fh - (maxY - minY) - 2 * cut;
+            if (gH < fh * 0.4f) gH = fh * 0.4f;
+            double sc = Math.min(1.0, Math.sqrt(11e6 / (gW * gH)));
+            sc = Math.min(sc, 9000.0 / gW);
+            int oW = (int) (gW * sc), oH = (int) (gH * sc);
+            Bitmap out = Bitmap.createBitmap(oW, oH, Bitmap.Config.ARGB_8888);
+            out.eraseColor(Color.BLACK);
+            float top = maxY + cut;   // ligne globale correspondant à la ligne 0 de la sortie
+            float[] tanT = new float[oW], secT = new float[oW];
+            for (int i = 0; i < n; i++) {
+                PFrame p = pFrames.get(i);
+                Bitmap src = BitmapFactory.decodeByteArray(p.jpg, 0, p.jpg.length);
+                if (src == null) continue;
+                int sw = src.getWidth(), sh = src.getHeight();
+                int[] spx = new int[sw * sh]; src.getPixels(spx, 0, sw, 0, 0, sw, sh); src.recycle();
+                float kx = sw / (float) fw;
+                // colonnes de sortie couvertes par cette vue
+                int c0 = Math.max(0, (int) Math.floor((p.x - minX) * sc)), c1 = Math.min(oW, (int) Math.ceil((p.x - minX + ww) * sc));
+                if (c1 <= c0) continue;
+                // fondu avec la vue précédente sur le centre du recouvrement
+                float rs = 0, re = 0; boolean ramp = false, toRight = true;
+                if (i > 0) {
+                    PFrame q = pFrames.get(i - 1);
+                    toRight = p.x >= q.x;
+                    float a0 = toRight ? p.x : q.x, a1 = toRight ? q.x + ww : p.x + ww;
+                    if (a1 > a0) {
+                        float mid = (a0 + a1) / 2, half = Math.min((a1 - a0) / 2, ww * 0.12f);
+                        rs = mid - half; re = mid + half; ramp = true;
+                    }
+                }
+                int cw = c1 - c0;
+                int[] buf = new int[cw * oH];
+                out.getPixels(buf, 0, cw, c0, 0, cw, oH);
+                float g = p.gain;
+                for (int cx = c0; cx < c1; cx++) {
+                    float gxw = cx / (float) sc + minX;                 // abscisse globale
+                    double th = (gxw - p.x - ww / 2.0) / f;
+                    if (Math.abs(th) >= thE) { tanT[cx] = Float.NaN; continue; }
+                    tanT[cx] = (float) Math.tan(th); secT[cx] = (float) (1 / Math.cos(th));
+                }
+                for (int cx = c0; cx < c1; cx++) {
+                    if (Float.isNaN(tanT[cx])) continue;
+                    float gxw = cx / (float) sc + minX;
+                    float al = 1f;
+                    if (ramp) {
+                        float t = (gxw - rs) / Math.max(1f, re - rs);
+                        if (!toRight) t = 1 - t;
+                        al = Math.max(0f, Math.min(1f, t));
+                        if (al <= 0) continue;
+                    }
+                    float xs = (f * tanT[cx] + fw / 2f) * kx - 0.5f;
+                    int xi = (int) Math.floor(xs); float ax = xs - xi;
+                    if (xi < 0 || xi + 1 >= sw) continue;
+                    for (int ry = 0; ry < oH; ry++) {
+                        float gyw = ry / (float) sc + top;
+                        float ys = ((gyw - p.y - fh / 2f) * secT[cx] + fh / 2f) * kx - 0.5f;
+                        int yi = (int) Math.floor(ys); float ay = ys - yi;
+                        if (yi < 0 || yi + 1 >= sh) continue;
+                        int si = yi * sw + xi;
+                        int A = spx[si], B = spx[si + 1], C = spx[si + sw], D = spx[si + sw + 1];
+                        float w00 = (1 - ax) * (1 - ay), w01 = ax * (1 - ay), w10 = (1 - ax) * ay, w11 = ax * ay;
+                        float r = ((A >> 16 & 255) * w00 + (B >> 16 & 255) * w01 + (C >> 16 & 255) * w10 + (D >> 16 & 255) * w11) * g;
+                        float gg = ((A >> 8 & 255) * w00 + (B >> 8 & 255) * w01 + (C >> 8 & 255) * w10 + (D >> 8 & 255) * w11) * g;
+                        float bb = ((A & 255) * w00 + (B & 255) * w01 + (C & 255) * w10 + (D & 255) * w11) * g;
+                        int bi = ry * cw + (cx - c0);
+                        if (al < 1f) {
+                            int o = buf[bi];
+                            r = r * al + (o >> 16 & 255) * (1 - al); gg = gg * al + (o >> 8 & 255) * (1 - al); bb = bb * al + (o & 255) * (1 - al);
+                        }
+                        buf[bi] = 0xff000000 | (Math.min(255, Math.round(r)) << 16) | (Math.min(255, Math.round(gg)) << 8) | Math.min(255, Math.round(bb));
+                    }
+                }
+                out.setPixels(buf, 0, cw, c0, 0, cw, oH);
+                p.jpg = null;
+            }
+            pFrames.clear();
+            java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream(4 << 20);
+            out.compress(Bitmap.CompressFormat.JPEG, 92, bo);
+            out.recycle();
+            m.pano = true;
+            m.t = System.currentTimeMillis();
+            save(bo.toByteArray(), m);
+        } catch (OutOfMemoryError e) {
+            pFrames.clear();
+            info("Mémoire insuffisante pour assembler ce panorama : faites-le un peu plus court");
+            ui.post(new Runnable() { public void run() { shutter.busy(false); } });
+        } catch (Throwable e) {
+            pFrames.clear();
+            info("Panorama impossible : " + e.getMessage());
+            ui.post(new Runnable() { public void run() { shutter.busy(false); } });
+        }
+    }
+
     // ================= Niveau =================
     private final SensorEventListener sensorL = new SensorEventListener() {
         @Override public void onSensorChanged(SensorEvent e) {
@@ -1713,11 +2034,12 @@ public class PhotoCamera extends Activity {
         bottom.addView(hs, hl);
 
         LinearLayout modes = new LinearLayout(this); modes.setGravity(Gravity.CENTER);
-        mPhoto = text("PHOTO", 14, C_ACC, true); mVideo = text("VIDÉO", 14, C_TX2, true);
-        mPhoto.setPadding(dpi(18), dpi(10), dpi(18), dpi(10)); mVideo.setPadding(dpi(18), dpi(10), dpi(18), dpi(10));
-        mPhoto.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { setVideoMode(false); } });
-        mVideo.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { setVideoMode(true); } });
-        modes.addView(mPhoto); modes.addView(mVideo);
+        mPhoto = text("PHOTO", 14, C_ACC, true); mVideo = text("VIDÉO", 14, C_TX2, true); mPano = text("PANORAMA", 14, C_TX2, true);
+        mPhoto.setPadding(dpi(18), dpi(10), dpi(18), dpi(10)); mVideo.setPadding(dpi(18), dpi(10), dpi(18), dpi(10)); mPano.setPadding(dpi(14), dpi(10), dpi(14), dpi(10));
+        mPhoto.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { if (panoOn) return; setPanoMode(false); setVideoMode(false); } });
+        mPano.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { setPanoMode(true); } });
+        mVideo.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { if (panoOn) return; setPanoMode(false); setVideoMode(true); } });
+        modes.addView(mPhoto); if (!captureIntent) modes.addView(mPano); modes.addView(mVideo);
         LinearLayout.LayoutParams ml = new LinearLayout.LayoutParams(-2, -2); ml.topMargin = dpi(4);
         bottom.addView(modes, ml);
 
@@ -1895,7 +2217,7 @@ public class PhotoCamera extends Activity {
             c.setBackground(round(sel ? 0xe6f2f3f7 : 0x99181b23, dp(23), 0x22ffffff));
             if (c instanceof TextView) ((TextView) c).setTextColor(sel ? 0xff10131c : C_TX);
         }
-        mPhoto.setTextColor(videoMode ? C_TX2 : C_ACC); mVideo.setTextColor(videoMode ? C_ACC : C_TX2);
+        mPhoto.setTextColor(videoMode || panoMode ? C_TX2 : C_ACC); mVideo.setTextColor(videoMode ? C_ACC : C_TX2); mPano.setTextColor(panoMode ? C_ACC : C_TX2);
         shutter.setVideo(videoMode);
         refreshZoomChips();
         ov.invalidate();
@@ -2283,7 +2605,8 @@ public class PhotoCamera extends Activity {
             if (prefB("grid", false)) {
                 for (int i = 1; i < 3; i++) { c.drawLine(w * i / 3, 0, w * i / 3, h, line); c.drawLine(0, h * i / 3, w, h * i / 3, line); }
             }
-            if (prefB("level", true)) drawLevel(c, w, h);
+            if (panoMode) drawPano(c, w, h);
+            else if (prefB("level", true)) drawLevel(c, w, h);
             long now = System.currentTimeMillis();
             if (fx >= 0 && now - fAt < 2500) {
                 fp.setColor(fState > 0 ? C_OK : fState < 0 ? C_BAD : Color.WHITE);
@@ -2298,7 +2621,8 @@ public class PhotoCamera extends Activity {
                 c.drawText(String.format(Locale.FRANCE, "%.1f×", zoom), w / 2, h * 0.3f, txt);
                 postInvalidateDelayed(200);
             }
-            if (prefB("siteMode", false) && !captureIntent && !videoMode) drawBannerPreview(c, w, h);
+            if (panoMode) { }
+            else if (prefB("siteMode", false) && !captureIntent && !videoMode) drawBannerPreview(c, w, h);
             else if (prefB("geo", true)) {
                 Location l = loc;
                 txt.setTextSize(dp(12)); txt.setTextAlign(Paint.Align.LEFT);
@@ -2309,6 +2633,53 @@ public class PhotoCamera extends Activity {
         }
 
         private String trim(String s, Paint p, float max) { if (p.measureText(s) <= max) return s; while (s.length() > 2 && p.measureText(s + "…") > max) s = s.substring(0, s.length() - 1); return s + "…"; }
+
+        private void drawPano(Canvas c, float w, float h) {
+            float cx = w / 2, cy = h / 2;
+            Paint p = new Paint(Paint.ANTI_ALIAS_FLAG); p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(dp(2)); p.setStrokeCap(Paint.Cap.ROUND);
+            p.setColor(0x80ffffff);
+            c.drawLine(dp(18), cy, cx - dp(40), cy, p); c.drawLine(cx + dp(40), cy, w - dp(18), cy, p);
+            float R = dp(30);
+            if (!panoOn) {
+                p.setColor(Color.WHITE); c.drawCircle(cx, cy, R, p);
+                txt.setTextSize(dp(15));
+                c.drawText("Tenez le téléphone droit,", cx, h * 0.18f, txt);
+                c.drawText("appuyez puis tournez lentement", cx, h * 0.18f + dp(22), txt);
+                c.drawText("sur vous-même ← ou →", cx, h * 0.18f + dp(44), txt);
+                return;
+            }
+            float prog = panoProg();
+            // barre de progression (360°)
+            float bw = w - dp(56), bx = dp(28), by = dp(22);
+            Paint f = new Paint(Paint.ANTI_ALIAS_FLAG); f.setColor(0x55ffffff);
+            c.drawRoundRect(new RectF(bx, by, bx + bw, by + dp(8)), dp(4), dp(4), f);
+            f.setColor(C_ACC);
+            float pw = bw * Math.min(1f, prog / 360f);
+            if (panoDir >= 0) c.drawRoundRect(new RectF(bx, by, bx + pw, by + dp(8)), dp(4), dp(4), f);
+            else c.drawRoundRect(new RectF(bx + bw - pw, by, bx + bw, by + dp(8)), dp(4), dp(4), f);
+            txt.setTextSize(dp(14));
+            c.drawText(panoCount + (panoCount > 1 ? " vues" : " vue") + " · " + Math.round(prog) + "°", cx, by + dp(30), txt);
+            float dPitch = pitchNow() - panoPitch0;
+            boolean tilt = Math.abs(dPitch) >= 8, fast = panoRate >= 28;
+            // anneau de visée fixe et point cible (prochaine vue) dans le monde
+            p.setColor(tilt || fast ? 0xffffd36b : Color.WHITE);
+            c.drawCircle(cx, cy, R, p);
+            if (panoDir == 0) {
+                txt.setTextSize(dp(34)); c.drawText("←   →", cx, cy + dp(78), txt);
+                txt.setTextSize(dp(15)); c.drawText("Tournez lentement d'un côté", cx, cy + dp(108), txt);
+            } else {
+                float rem = Math.max(0f, panoNext - prog);
+                float tx = cx + panoDir * panoFv * (float) Math.tan(Math.toRadians(Math.min(rem, 50)));
+                float ty = cy + panoFv * (float) Math.tan(Math.toRadians(Math.max(-30, Math.min(30, dPitch))));
+                Paint d = new Paint(Paint.ANTI_ALIAS_FLAG); d.setColor(tilt ? 0xffffd36b : C_OK);
+                c.drawCircle(tx, ty, dp(13), d);
+                txt.setTextSize(dp(15));
+                String s = fast ? "Plus lentement" : tilt ? (dPitch > 0 ? "Baissez un peu le téléphone" : "Levez un peu le téléphone") : "Visez le point vert " + (panoDir > 0 ? "→" : "←");
+                c.drawText(s, cx, cy + dp(78), txt);
+            }
+            txt.setTextSize(dp(13));
+            c.drawText("Appuyez sur ■ pour terminer", cx, h - dp(18), txt);
+        }
 
         private void drawLevel(Canvas c, float w, float h) {
             float g = (float) Math.sqrt(gx * gx + gy * gy + gz * gz); if (g < 1) return;
