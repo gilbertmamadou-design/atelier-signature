@@ -122,25 +122,51 @@
     ctl.addEventListener('change', (e) => { if (e.target.matches('[data-ppeq]')) { st.eq = e.target.checked; hint(); if (onChange) onChange(st); } });
     ctl._hint = hint;
   };
+  /* ---------------- Ordre des photos : réglage du carnet ---------------- */
+  VX.ord = (c) => M.ordre(c);
+  VX.setOrd = function (c, st) { if (!c) return; c.ordre = { mode: st.mode || 'date', fill: !!st.fill }; persist(c); };
+  VX.ordLabel = (st) => (M.ORD.find((x) => x[0] === st.mode) || M.ORD[0])[1];
+  /** Choix « Ordre des photos » (date, sélection, nom) et « Optimiser le remplissage » : HTML, puis VX.ordBind */
+  VX.ordHtml = function (st) {
+    return '<div class="ordCtl"><div class="ppHd"><b>Ordre des photos</b></div><div class="ordK" role="radiogroup" aria-label="Ordre des photos">' +
+      M.ORD.map((o) => '<button type="button" class="chip' + (st.mode === o[0] ? ' on' : '') + '" role="radio" aria-checked="' + (st.mode === o[0]) + '" data-ordm="' + o[0] + '" title="' + esc(o[2]) + '">' + esc(o[1]) + '</button>').join('') + '</div>' +
+      '<p class="hint ordHint">' + esc((M.ORD.find((x) => x[0] === st.mode) || M.ORD[0])[2]) + '. Les photos sont posées à la suite : de gauche à droite, puis de haut en bas, page après page.</p>' +
+      '<label class="o-check ordFill"><input type="checkbox" data-ordfill' + (st.fill ? ' checked' : '') + '><span>Optimiser le remplissage (photos larges dans les cases larges : peut changer l’ordre)</span></label></div>';
+  };
+  VX.ordBind = function (root, st, onChange) {
+    const ctl = root.querySelector('.ordCtl'); if (!ctl) return;
+    ctl.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-ordm]'); if (!b) return;
+      st.mode = b.dataset.ordm;
+      ctl.querySelectorAll('[data-ordm]').forEach((x) => { x.classList.toggle('on', x === b); x.setAttribute('aria-checked', String(x === b)); });
+      const h = ctl.querySelector('.ordHint'); if (h) h.firstChild.textContent = (M.ORD.find((x) => x[0] === st.mode) || M.ORD[0])[2] + '. Les photos sont posées à la suite : de gauche à droite, puis de haut en bas, page après page.';
+      if (onChange) onChange(st);
+    });
+    ctl.addEventListener('change', (e) => { if (e.target.matches('[data-ordfill]')) { st.fill = e.target.checked; if (onChange) onChange(st); } });
+  };
   /** Petite feuille « Photos par page » (bandeau, menu Photos, après un ajout) → réglage enregistré, ou null si annulé */
   VX.ppDialog = async function (c, what) {
     c = c || E.c; if (!c) return null;
-    const st = VX.pp(c), body = O.h('div', { cls: 'ppDlg' });
-    body.innerHTML = VX.ppHtml(st) + '<p class="hint">Réglage du carnet « ' + esc(c.title) + ' » : il sert aux imports du voyage, aux ajouts de plusieurs photos et aux photos en trop de « Composer ». Aussi dans ⋮ › Réglages du carnet.</p>';
-    VX.ppBind(body, st, what);
+    const st = VX.pp(c), od = VX.ord(c), body = O.h('div', { cls: 'ppDlg' });
+    body.innerHTML = VX.ppHtml(st) + VX.ordHtml(od) + '<p class="hint">Réglages du carnet « ' + esc(c.title) + ' » : ils servent aux imports du voyage, aux ajouts de plusieurs photos et aux photos en trop de « Composer ». Aussi dans ⋮ › Réglages du carnet.</p>';
+    VX.ppBind(body, st, what); VX.ordBind(body, od);
     const v = await O.dialog({ title: 'Photos par page', body, cls: 'cv-dlg', buttons: [{ label: 'Annuler', value: null }, { label: 'OK', value: 'ok', primary: true }] });
     if (v !== 'ok') return null;
-    VX.setPp(c, st); VX.banner($('#voyBan') ? VX.pending.length : 0);
+    VX.setPp(c, st); VX.setOrd(c, od); VX.banner($('#voyBan') ? VX.pending.length : 0);
     return st;
   };
   /** Réglages du carnet : style des pages du voyage et photos par page (enregistrés aussitôt) */
   VX.carnetSettings = async function (c) {
     c = c || E.c; if (!c) return;
-    const memo = VX.memo(c), st = VX.pp(c), body = O.h('div', { cls: 'voyStyles cvSet' });
-    body.innerHTML = VX.ppHtml(st) + '<h5>Style des pages du voyage</h5>' +
+    const memo = VX.memo(c), st = VX.pp(c), od = VX.ord(c), body = O.h('div', { cls: 'voyStyles cvSet' });
+    body.innerHTML = VX.ppHtml(st) + VX.ordHtml(od) +
+      (E.c && E.c.id === c.id ? '<div class="row ordAct"><button type="button" class="btn" data-ordgo="page">' + ic('list-ordered') + 'Remettre cette page dans l’ordre</button><button type="button" class="btn" data-ordgo="all">' + ic('list-ordered') + 'Tout le carnet</button><button type="button" class="btn" data-ordgo="pages">' + ic('calendar-days') + 'Trier les pages par date</button></div>' : '') +
+      '<h5>Style des pages du voyage</h5>' +
       VX.STYLES.map((s) => '<button type="button" class="vsb' + (s[0] === (memo.style || '') ? ' on' : '') + '" data-st="' + s[0] + '"><b>' + esc(s[1]) + '</b><small>' + esc(s[2]) + '</small></button>').join('') +
       '<p class="hint">Ces réglages valent pour les prochaines pages de ce carnet ; les pages déjà faites se réagencent avec « Composer ».</p>';
     VX.ppBind(body, st, 0, () => VX.setPp(c, st));
+    VX.ordBind(body, od, () => VX.setOrd(c, od));
+    body.addEventListener('click', (e) => { const g = e.target.closest('[data-ordgo]'); if (g) { if (g.dataset.ordgo === 'pages') U.sortPages(); else U.reorder(g.dataset.ordgo); } });
     body.addEventListener('click', (e) => { const b = e.target.closest('[data-st]'); if (!b) return; memo.style = b.dataset.st; $$('.vsb', body).forEach((x) => x.classList.toggle('on', x === b)); persist(c); });
     await O.dialog({ title: 'Réglages du carnet', body, cls: 'cv-dlg', buttons: [{ label: 'Fermer', value: null, primary: true }] });
     VX.banner($('#voyBan') ? VX.pending.length : 0);
@@ -211,24 +237,24 @@
   VX.choose = async function (list) {
     if (!list.length) return;
     const body = O.h('div', { cls: 'tray voyPick' });
-    const chosen = new Set(list.map((e, i) => i)), st = VX.pp(E.c);
+    const chosen = new Set(list.map((e, i) => i)), st = VX.pp(E.c), od = VX.ord(E.c);
     const byDay = {}; list.forEach((e, i) => { (byDay[dayKey(e.date)] = byDay[dayKey(e.date)] || []).push(i); });
     body.innerHTML = '<p class="hint"><b id="vpN">' + list.length + '</b> photo(s) cochée(s) sur ' + list.length + '.</p>' +
       Object.keys(byDay).sort().map((d) => '<h5 class="vpDay">' + esc(VX.dayTitle(d, VX.mainPlace(byDay[d].map((i) => list[i])))) + '</h5><div class="trayGrid">' +
         byDay[d].map((i) => { const e = list[i]; return '<button type="button" class="tph sel on" data-vi="' + i + '"><img alt="" data-vt="' + i + '"' + (e.url ? ' src="' + esc(e.url) + '"' : '') + '><i>' + ic('check') + '</i>' + (e.legende ? '<span>' + esc(e.legende) + '</span>' : '') + '</button>'; }).join('') + '</div>').join('') +
-      '<label class="o-check"><input type="checkbox" id="vpForget" checked><span>Ne plus proposer les photos non cochées</span></label>' + VX.ppHtml(st);
+      '<label class="o-check"><input type="checkbox" id="vpForget" checked><span>Ne plus proposer les photos non cochées</span></label>' + VX.ppHtml(st) + VX.ordHtml(od);
     const fill = async () => { if (!B()) return; for (let i = 0; i < list.length; i++) { const im = body.querySelector('[data-vt="' + i + '"]'); if (!im || im.src) continue; const d = await thumbOf(list[i].id); if (d) im.src = d; } };
     const v = await O.dialog({
       title: 'Photos du voyage', body, wide: true, cls: 'cv-dlg',
       onOpen: () => {
         fill();
-        VX.ppBind(body, st, () => list.filter((e, i) => chosen.has(i)));
+        VX.ppBind(body, st, () => list.filter((e, i) => chosen.has(i))); VX.ordBind(body, od);
         body.addEventListener('click', (e) => { const b = e.target.closest('[data-vi]'); if (!b) return; const i = +b.dataset.vi; if (chosen.has(i)) chosen.delete(i); else chosen.add(i); b.classList.toggle('on', chosen.has(i)); $('#vpN', body).textContent = chosen.size; const c = $('.ppCtl', body); if (c && c._hint) c._hint(); });
       },
       buttons: [{ label: 'Annuler', value: null }, { label: 'Ajouter au carnet', value: 'ok', primary: true }]
     });
     if (v !== 'ok') return;
-    VX.setPp(E.c, st);
+    VX.setPp(E.c, st); VX.setOrd(E.c, od);
     const forget = $('#vpForget', body).checked;
     const pick = list.filter((e, i) => chosen.has(i)), drop = list.filter((e, i) => !chosen.has(i));
     if (forget && drop.length) { const memo = VX.memo(E.c); drop.forEach((e) => { memo.imp[VX.cle(e)] = ''; }); E.save(); }
@@ -243,16 +269,16 @@
     const memo = VX.memo(c);
     if (memo.style && !force) return memo.style;
     let st = memo.style || 'melange';
-    const pp = VX.pp(c), body = O.h('div', { cls: 'voyStyles' });
+    const pp = VX.pp(c), od = VX.ord(c), body = O.h('div', { cls: 'voyStyles' });
     body.innerHTML = '<p class="hint">Une page par journée (jamais deux jours sur une page), titre avec la date et le lieu, légendes écrites à la main. Le style vaut pour tout le carnet (modifiable ensuite dans ⋮ › Réglages du carnet).</p>' +
-      VX.STYLES.map((s) => '<button type="button" class="vsb' + (s[0] === st ? ' on' : '') + '" data-st="' + s[0] + '"><b>' + esc(s[1]) + '</b><small>' + esc(s[2]) + '</small></button>').join('') + VX.ppHtml(pp);
+      VX.STYLES.map((s) => '<button type="button" class="vsb' + (s[0] === st ? ' on' : '') + '" data-st="' + s[0] + '"><b>' + esc(s[1]) + '</b><small>' + esc(s[2]) + '</small></button>').join('') + VX.ppHtml(pp) + VX.ordHtml(od);
     const v = await O.dialog({
       title: opt.title || 'Style des pages du voyage', body, cls: 'cv-dlg',
-      onOpen: () => { VX.ppBind(body, pp, opt.list || 0); body.addEventListener('click', (e) => { const b = e.target.closest('[data-st]'); if (!b) return; st = b.dataset.st; $$('.vsb', body).forEach((x) => x.classList.toggle('on', x === b)); }); },
+      onOpen: () => { VX.ppBind(body, pp, opt.list || 0); VX.ordBind(body, od); body.addEventListener('click', (e) => { const b = e.target.closest('[data-st]'); if (!b) return; st = b.dataset.st; $$('.vsb', body).forEach((x) => x.classList.toggle('on', x === b)); }); },
       buttons: [{ label: 'Annuler', value: null }, { label: opt.ok || 'Choisir', value: 'ok', primary: true }]
     });
     if (v !== 'ok') return null;
-    memo.style = st; VX.setPp(c, pp); E.save();
+    memo.style = st; VX.setPp(c, pp); VX.setOrd(c, od); E.save();
     return st;
   };
 
@@ -266,7 +292,10 @@
     VX.banner(0);
     const memo = VX.memo(c);
     if (!memo.style) memo.style = style;   // style imposé (essais, Majordome) : retenu pour le carnet
-    list = list.filter((e) => !(VX.cle(e) in memo.imp)).sort((a, b) => (a.date || 0) - (b.date || 0));
+    // importées dans l'ordre de la liste reçue (« Ordre de sélection »), sinon chronologique ; rangées ensuite selon le réglage
+    const mode = VX.ord(c).mode;
+    list = list.filter((e) => !(VX.cle(e) in memo.imp));
+    if (mode !== 'selection') list = list.slice().sort((a, b) => (a.date || 0) - (b.date || 0));
     if (!list.length) { O.toast('Ces photos sont déjà dans le carnet'); return 0; }
     const pr = U.progress('Photos du voyage…', list.length), done = [];
     for (let i = 0; i < list.length; i++) {
@@ -320,7 +349,9 @@
     const days = Object.keys(byDay).sort(); let pages = 0, first = -1;
     const bg = (c.pages.find((p) => p.items && p.items.length) || c.pages[0] || {}).bg || 'creme';
     days.forEach((day) => {
-      const list = byDay[day].sort((a, b) => (a.m.exif.t || 0) - (b.m.exif.t || 0));
+      // photos du jour selon « Ordre des photos » (par défaut chronologique) ; les jours toujours dans l'ordre du calendrier
+      const by = {}; byDay[day].forEach((x) => { by[x.m.id] = x; });
+      const list = M.sortIds(byDay[day].map((x) => x.m.id), VX.ord(c).mode).map((id) => by[id]);
       const place = VX.mainPlace(list.map((x) => x.e)), again = c.pages.some((p) => p.jour === day) ? 1 : 0;
       VX.chunks(list, VX.pp(c)).forEach((chunk, k) => {
         const page = M.newPage(bg); page.jour = day; page.voyage = 1;
@@ -364,6 +395,7 @@
     const fit = {};
     const capBox = (txt, cw, size) => { const q = { type: 'text', text: txt, font: 'manuscrit', size, align: 'center', style: 'aucun', w: Math.min(W - 40, Math.max(n >= 7 ? 150 : 240, cw * 0.96)) }; q.h = R.textLayout(q).h; return q; };
     const props = M.compose(ids, {
+      fill: opt.fill != null ? opt.fill : VX.ord(E.c).fill,
       area: opt.area || { x: 0, y: 0, w: 1, h: 1 },
       frame: frameOf ? (f) => frameOf(f) : null,
       rot: style === 'polaroid' ? (i, r) => r || [-3, 2.5, -1.5, 3, -2, 1.5, -2.5, 2, -1][i % 9] : null,   // Polaroid posés à la main
@@ -492,7 +524,9 @@
       entries.push(e);
     }
     const car = (j && j.carnet) || {};
-    return { carnet: { id: car.id || '', titre: car.titre || dirName || 'Voyage', debut: car.debut || '', fin: car.fin || '' }, entries: entries.sort((a, b) => a.date - b.date), json: !!j };
+    // l'ordre rendu par le navigateur (FileSystemAccess, sélecteur de dossier) n'est pas garanti : noms en ordre naturel, comme
+    // dans l'explorateur (c'est « l'ordre de sélection » d'un dossier) ; VX.add range ensuite selon « Ordre des photos »
+    return { carnet: { id: car.id || '', titre: car.titre || dirName || 'Voyage', debut: car.debut || '', fin: car.fin || '' }, entries: entries.sort((a, b) => M.natCmp(a.nom, b.nom)), json: !!j };
   };
   /** Choisir le dossier du voyage (sélecteur de dossier du navigateur) → [{name, blob, path}] */
   VX.pickFolder = async function () {
