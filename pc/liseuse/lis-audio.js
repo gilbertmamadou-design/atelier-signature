@@ -40,15 +40,31 @@
     if (/^(?:\p{Lu}\.){1,3}\p{Lu}?$/u.test(text.slice(Math.max(0, j - 4), dot))) return true;   // sigles « S.N.C.F. »
     return !!ABBR[w.toLowerCase()];
   }
-  /** Bornes de blocs : coupures données + retours à la ligne */
+  /** Bornes de blocs. Avec des coupures données (paragraphes d'un EPUB, d'un PDF), les retours à la ligne du texte ne coupent
+      rien : dans beaucoup de livres ils sont seulement la mise en page du fichier, au milieu des phrases. Sans coupures
+      (texte brut), un retour à la ligne coupe seulement après une ponctuation finale, avant un tiret de dialogue ou sur une ligne vide.
+      Enfin, un bloc qui finit sans ponctuation et dont le suivant commence par une minuscule est recollé : c'est la même phrase. */
+  var ENDP = /[.!?…:;»”"’)\]]\s*$/;
   function blocks(text, breaks) {
-    var cuts = {}, out = [], i;
+    var cuts = {}, out = [], i, given = breaks && breaks.length;
     (breaks || []).forEach(function (b) { if (b > 0 && b < text.length) cuts[b] = 1; });
-    for (i = 0; i < text.length; i++) if (text.charCodeAt(i) === 10) { cuts[i] = 1; cuts[i + 1] = 1; }
+    if (!given) for (i = 0; i < text.length; i++) if (text.charCodeAt(i) === 10) {
+      var before = text.slice(Math.max(0, i - 4), i), after = text.slice(i + 1, i + 3);
+      if (ENDP.test(before) || /^\s*\n/.test(after) || /^\s*[—–\-•]/.test(after)) { cuts[i] = 1; cuts[i + 1] = 1; }
+    }
     var keys = Object.keys(cuts).map(Number).sort(function (a, b) { return a - b; }), a = 0;
     keys.forEach(function (k) { if (k > a) out.push([a, k]); a = Math.max(a, k); });
     if (a < text.length) out.push([a, text.length]);
-    return out;
+    var merged = [];
+    out.forEach(function (b) {
+      var prev = merged[merged.length - 1];
+      if (prev) {
+        var pt = text.slice(prev[0], prev[1]).replace(/\s+$/, ''), nt = text.slice(b[0], b[1]).replace(/^\s+/, '');
+        if (pt && nt && !ENDP.test(pt) && /^\p{Ll}/u.test(nt)) { prev[1] = b[1]; return; }
+      }
+      merged.push([b[0], b[1]]);
+    });
+    return merged;
   }
   var MAXLEN = 300;
   function split(text, breaks) {
@@ -97,6 +113,46 @@
     if (only && roman(only[1])) t = String(roman(only[1])) + '.';
     if (/^[\p{Lu}\s\d'’,.\-]{4,}$/u.test(t) && /\p{Lu}{3}/u.test(t)) t = t.charAt(0) + t.slice(1).toLowerCase();   // titres en capitales
     return t.replace(/\s+/g, ' ').replace(/\s+([,.;:!?…])/g, '$1').trim();
+  }
+
+  /* Membres d'une phrase et silences de ponctuation (en secondes, à vitesse 1).
+     Une phrase courte est dite d'une traite (intonation naturelle) ; une phrase longue est coupée à ses virgules,
+     points-virgules, deux-points et points de suspension, en membres d'une demi-ligne au moins. */
+  var PAUSE = { ',': 0.16, ';': 0.3, ':': 0.26, '…': 0.4 }, LONG = 110, MINC = 28;
+  function letters(x) { return x.replace(/[^\p{L}\p{N}]/gu, '').length; }
+  function clauses(t) {
+    if (t.length <= LONG) return [{ t: t, pause: 0 }];
+    var out = [], re = /([,;:…]+)[»”"’)\]]*\s+/g, m, a = 0;
+    while ((m = re.exec(t))) {
+      var e = m.index + m[0].length, piece = t.slice(a, e).trim();
+      if (letters(piece) < MINC) continue;                  // trop court : reste avec la suite
+      if (letters(t.slice(e)) < MINC) break;                // la fin serait trop courte : on ne coupe plus
+      out.push({ t: piece, pause: PAUSE[m[1].slice(-1)] || 0.16 });
+      a = e;
+    }
+    var rest = t.slice(a).trim();
+    if (rest) out.push({ t: rest, pause: 0 });
+    return out.length ? out : [{ t: t, pause: 0 }];
+  }
+  /** Silence après la phrase. Sans ponctuation finale (fin de page d'un PDF, retour à la ligne au milieu d'une phrase) :
+      micro-pause, la phrase continue. */
+  function endPause(t, para) {
+    var c = String(t).replace(/[\s»”"’)\]]+$/, '').slice(-1);
+    if (!/[.!?…:;]/.test(c)) return 0.08;
+    if (para) return 0.75;
+    return c === '…' ? 0.55 : c === '?' || c === '!' ? 0.46 : c === ':' || c === ';' ? 0.32 : 0.4;
+  }
+  /** Retire le silence que la voix laisse au début et à la fin d'un morceau (les pauses sont alors exactement celles
+      voulues) et adoucit les bords (6 ms) pour éviter les clics. */
+  function trim(x, sr) {
+    var th = 0.012, a = 0, b = x.length - 1, keep = Math.round(sr * 0.012), f = Math.round(sr * 0.006), k;
+    while (a < b && Math.abs(x[a]) < th) a++;
+    while (b > a && Math.abs(x[b]) < th) b--;
+    a = Math.max(0, a - keep); b = Math.min(x.length - 1, b + keep * 3);   // la fin d'un mot retombe doucement
+    if (b <= a) return x;
+    var y = x.slice(a, b + 1);
+    for (k = 0; k < f && k < y.length; k++) { var g = k / f; y[k] *= g; y[y.length - 1 - k] *= g; }
+    return y;
   }
 
   /* ---------------- Lecteur dans la page (PC, navigateur) ---------------- */
@@ -287,7 +343,7 @@
     }
     function produce(it, my) {
       var st = settings(), text = speakable(it.text), id = 'p' + my + '-' + it.s + '-' + it.i;
-      var meta = { s: it.s, i: it.i, o: it.o, n: it.n, label: opt.source.label ? opt.source.label(it.s) : '' };
+      var meta = { s: it.s, i: it.i, o: it.o, n: it.n, p: !!it.p && ENDP.test(it.text), label: opt.source.label ? opt.source.label(it.s) : '' };
       if (!text) { return Promise.resolve(); }
       if (!usePiper(st)) {
         var rate = +st.rate || 1, d = Math.max(0.6, text.length / (14.5 * rate));
@@ -295,16 +351,27 @@
         sink.pushText(id, text, rate, meta);
         return Promise.resolve();
       }
-      var g0 = Date.now();
-      return opt.vx.chunk(text, { voice: st.voice, rate: st.rate, fx: st.fx || 'aucun', fxo: st.fxo || null, volume: 1 }).then(function (o) {
-        if (my !== tok) return;
+      var g0 = Date.now(), cfg = { voice: st.voice, rate: st.rate, fx: st.fx || 'aucun', fxo: st.fxo || null, volume: 1 }, sp = Math.max(0.75, +st.rate || 1);
+      // la phrase est dite membre par membre (virgule, point-virgule, deux-points, points de suspension) avec un vrai silence
+      // à chaque signe, comme un lecteur qui respire : plus de phrase « d'un bloc » ; la ponctuation reste collée au membre
+      // pour que la voix garde l'intonation suspendue
+      var parts = clauses(text);
+      return parts.reduce(function (pr, c) {
+        return pr.then(function (acc) {
+          if (my !== tok) return acc;
+          return opt.vx.chunk(c.t, cfg).then(function (o) { acc.push({ o: o, pause: c.pause }); return acc; });
+        });
+      }, Promise.resolve([])).then(function (acc) {
+        if (my !== tok || !acc.length) return;
         L.voice = st.voice;
-        var gap = Math.round(o.sr * (it.p ? 0.55 : 0.18) / Math.max(0.75, +st.rate || 1)), pcm = new Float32Array(o.samples.length + gap);
-        pcm.set(o.samples, 0);
-        it.id = id; it.dur = pcm.length / o.sr; q.push(it);
-        L.stats.gen.push({ dur: o.dur, ms: Date.now() - g0, genMs: o.genMs, chars: text.length });
+        var sr = acc[0].o.sr, end = endPause(text, it.p), n = 0, k = 0, genMs = 0, dur = 0;
+        acc.forEach(function (a, j) { a.o.samples = trim(a.o.samples, sr); a.gap = Math.round(sr * (j < acc.length - 1 ? a.pause : end) / sp); n += a.o.samples.length + a.gap; genMs += a.o.genMs || 0; dur += a.o.dur || 0; });
+        var pcm = new Float32Array(n);
+        acc.forEach(function (a) { pcm.set(a.o.samples, k); k += a.o.samples.length + a.gap; });
+        it.id = id; it.dur = pcm.length / sr; q.push(it);
+        L.stats.gen.push({ dur: dur, ms: Date.now() - g0, genMs: genMs, chars: text.length });
         if (L.stats.gen.length > 400) L.stats.gen.shift();
-        sink.pushPcm(id, pcm, o.sr, meta);
+        sink.pushPcm(id, pcm, sr, meta);
       }, function (e) {
         if (my !== tok) return;
         // Piper indisponible (moteur, voix) : voix du système pour la suite, sans arrêter la lecture

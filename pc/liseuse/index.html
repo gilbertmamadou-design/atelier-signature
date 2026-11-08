@@ -236,6 +236,14 @@ textarea.inp,input.inp{width:100%;background:var(--bg3);border:1px solid var(--l
 #selbar .sa{display:flex;flex-direction:column;align-items:center;font-size:10.5px;font-weight:600;gap:1px;flex:1;min-width:0;padding:2px 0}
 #selbar .sa svg.i{width:19px;height:19px}
 #reader.tts #frame{height:calc(100% - 30px - 158px - var(--safe-t) - var(--safe-b))}
+/* Tourner la page comme un livre : la page suivante attend dessous (#under), la page lue pivote autour du dos (bord gauche) */
+#under,#fGloss,#fShade{position:absolute;left:0;top:calc(30px + var(--safe-t));width:100vw;height:calc(100% - 58px - var(--safe-t) - var(--safe-b));border:0;display:block;pointer-events:none;visibility:hidden}
+#reader.tts #under,#reader.tts #fGloss,#reader.tts #fShade{height:calc(100% - 30px - 158px - var(--safe-t) - var(--safe-b))}
+#under{background:var(--pbg)}
+#fShade{background:linear-gradient(90deg,rgba(0,0,0,.38),rgba(0,0,0,0) 46px) no-repeat;background-size:100% 100%}
+#fGloss{background:linear-gradient(90deg,rgba(0,0,0,.30) 0,rgba(0,0,0,.06) 18%,rgba(255,255,255,.07) 70%,rgba(0,0,0,.22) 100%)}
+#frame.flip,#fGloss.flip{transform-origin:0 50%;backface-visibility:hidden;-webkit-backface-visibility:hidden;will-change:transform;box-shadow:12px 0 28px rgba(0,0,0,.35)}
+#fGloss.flip{box-shadow:none}
 #reader.tts #rInfoB{visibility:hidden}
 /* Lecture à voix haute (livre audio) : barre commune à l'EPUB et au PDF */
 #abar{position:fixed;left:10px;right:10px;bottom:calc(8px + var(--safe-b));z-index:45;background:#262a35;color:#f2f3f7;border:1px solid #ffffff22;border-radius:20px;padding:7px 10px 9px;box-shadow:0 10px 30px #000a;max-width:640px;margin:0 auto}
@@ -296,7 +304,10 @@ body.aud #pInd{bottom:calc(172px + var(--safe-b))}
 
 <div id="reader" hidden class="t-sombre">
   <div class="rinfo" id="rInfoT"><span id="rChap"></span></div>
+  <iframe id="under" title="" aria-hidden="true" tabindex="-1"></iframe>
+  <div id="fShade"></div>
   <iframe id="frame" title="Page du livre"></iframe>
+  <div id="fGloss"></div>
   <div class="rinfo" id="rInfoB"><span id="rPage"></span><span id="rPct"></span></div>
   <div id="ribbon" hidden><svg viewBox="0 0 16 28"><path d="M0 0h16v28l-8-6-8 6z"/></svg></div>
   <div id="rLoad"><div class="spin"></div></div>
@@ -422,8 +433,12 @@ function dbDel(st,id){ return tx(st,'readwrite',function(s){ return s.delete(id)
 function dbAll(st){ return tx(st,'readonly',function(s){ return s.getAll(); }); }
 
 var BOOKS=[];
-var DEF={fs:19, lh:1.55, mg:'m', font:'serif', theme:'sombre', mode:'pages', just:true, dim:0, rate:1};
+var DEF={flip:true, fs:16, lh:1.45, mg:'m', font:'serif', theme:'sombre', mode:'pages', just:true, dim:0, rate:1};
 var S=Object.assign({}, DEF, J(localStorage.getItem('liseuse-set'),{}));
+// texte « page de livre » : une seule fois, on ramène l'ancienne taille par défaut (19) et plus à 16 ; réglable ensuite de 11 à 34
+// une seule fois avec cette version : pages qui se tournent comme un livre (mode Pages)
+if(!S.livre2){ S.livre2=1; S.flip=true; S.mode='pages'; try{ localStorage.setItem('liseuse-set', JSON.stringify(S)); }catch(e){} }
+if(!S.livre){ if(S.fs>=17) S.fs=16; if(S.lh>1.5) S.lh=1.45; S.livre=1; try{ localStorage.setItem('liseuse-set', JSON.stringify(S)); }catch(e){} }
 var L=Object.assign({sort:'recent', filter:'all', colls:['À lire','Classiques'], last:'', openId:'', group:'none', bar:'', fold:{}}, J(localStorage.getItem('liseuse-lib'),{}));
 if(!Array.isArray(L.colls)) L.colls=['À lire','Classiques'];
 if(!L.fold || typeof L.fold!=='object') L.fold={};
@@ -1598,7 +1613,7 @@ function initFrame(){
   R.fd=d; R.fw=fr.contentWindow;
   bindFrame(d);
 }
-function measure(){ var fr=$('frame'); fr.style.width=Math.floor(window.innerWidth)+'px'; R.W=fr.clientWidth||Math.floor(window.innerWidth); R.H=fr.clientHeight; }
+function measure(){ var fr=$('frame'); fr.style.width=Math.floor(window.innerWidth)+'px'; ['under','fGloss','fShade'].forEach(function(id){ $(id).style.width=fr.style.width; }); R.W=fr.clientWidth||Math.floor(window.innerWidth); R.H=fr.clientHeight; }
 function applyCss(){ measure(); R.fd.getElementById('us').textContent=frameCss(); }
 
 /* Parcours du texte : positions = décalage en caractères dans le texte du chapitre */
@@ -1773,7 +1788,8 @@ function savePos(now){
 }
 async function next(){
   if(S.mode==='pages'){
-    if(R.page<R.pages-1){ goPage(R.page+1); return; }
+    if(FL) return;
+    if(R.page<R.pages-1){ if(flipStart(1)) flipTo(-180, function(){ flipEnd(true); }); else goPage(R.page+1); return; }
   } else {
     var se=scroller(); if(se.scrollTop+R.H<se.scrollHeight-4){ se.scrollTo({top:se.scrollTop+R.H*0.9, behavior:'smooth'}); return; }
   }
@@ -1782,12 +1798,75 @@ async function next(){
 }
 async function prev(){
   if(S.mode==='pages'){
-    if(R.page>0){ goPage(R.page-1); return; }
+    if(FL) return;
+    if(R.page>0){ if(flipStart(-1)) flipTo(0, function(){ flipEnd(true); }); else goPage(R.page-1); return; }
   } else {
     var se=scroller(); if(se.scrollTop>4){ se.scrollTo({top:se.scrollTop-R.H*0.9, behavior:'smooth'}); return; }
   }
   if(R.s>0) await render(R.s-1,{page:'last'});
 }
+/* ---------- Tourner la page comme un livre ----------
+   La page suivante (ou la page actuelle quand on revient en arrière) est copiée dans #under, dessous. La page lue (#frame)
+   pivote autour du bord gauche, comme une page autour du dos du livre, avec un reflet (#fGloss) et une ombre portée sur la
+   page de dessous (#fShade). Le doigt fait tourner la page ; lâchée, elle finit de tourner ou retombe. */
+var FL=null, flipRaf=0, flipErr=0;
+function flipOn(){ return S.mode==='pages' && S.flip!==false; }   // réglage de la Liseuse seulement (le réglage « moins d'animations » d'Android ne le coupe pas)
+function syncUnder(page){
+  var u=$('under'), ud=u.contentDocument; if(!ud) return false;
+  var c=R.fd.getElementById('c'), sig=R.s+'|'+R.W+'|'+R.H+'|'+R.fd.getElementById('us').textContent.length+'|'+R.fd.getElementById('bk').textContent.length+'|'+c.innerHTML.length;
+  if(u.dataset.sig!==sig){
+    ud.open(); ud.write('<!doctype html>'+R.fd.documentElement.outerHTML); ud.close();
+    u.dataset.sig=sig;
+  }
+  var se=ud.scrollingElement||ud.documentElement; se.scrollLeft=page*R.W;
+  return true;
+}
+function flipStart(dir){
+  if(!flipOn() || FL) return false;
+  if(dir>0 && R.page>=R.pages-1) return false;
+  if(dir<0 && R.page<=0) return false;
+  var underOk=false;
+  try{ underOk=syncUnder(dir>0 ? R.page+1 : R.page); }catch(e){ underOk=false; if(!flipErr){ flipErr=1; toast('Effet de page : la page de dessous n\u2019a pas pu être préparée ('+(e&&e.message||e)+')'); } }
+  FL={ dir:dir, a:dir>0?0:-180 };
+  if(dir<0) scroller().scrollLeft=(R.page-1)*R.W;   // la page d'avant arrive par la gauche
+  $('frame').classList.add('flip'); $('fGloss').classList.add('flip');
+  $('under').style.visibility=underOk?'visible':'hidden'; $('fGloss').style.visibility='visible'; $('fShade').style.visibility='visible';
+  setAngle(FL.a);
+  return true;
+}
+function setAngle(a){
+  if(!FL) return;
+  FL.a=a;
+  var t='perspective(2400px) rotateY('+a.toFixed(2)+'deg)', k=Math.abs(a)/180;
+  $('frame').style.transform=t; $('fGloss').style.transform=t;
+  $('fGloss').style.opacity=Math.min(1, Math.sin(k*Math.PI)*1.6).toFixed(3);
+  var edge=Math.max(0, R.W*Math.cos(a*Math.PI/180)), sh=$('fShade');
+  sh.style.backgroundPosition=edge+'px 0'; sh.style.backgroundSize=(R.W)+'px 100%';
+  sh.style.opacity=(1-k).toFixed(3);
+}
+function flipTo(target, done){
+  cancelAnimationFrame(flipRaf);
+  var a0=FL.a, d=target-a0, ms=Math.max(140, 460*Math.abs(d)/180), t0=performance.now();
+  (function step(now){
+    if(!FL) return;
+    var p=Math.min(1,(now-t0)/ms), e=p<.5 ? 2*p*p : 1-Math.pow(-2*p+2,2)/2;
+    setAngle(a0+d*e);
+    if(p<1) flipRaf=requestAnimationFrame(step); else done();
+  })(t0);
+}
+function flipEnd(commit){
+  if(!FL) return;
+  var dir=FL.dir;
+  if(dir>0){ if(commit) R.page=R.page+1; }
+  else { if(commit) R.page=R.page-1; }
+  scroller().scrollLeft=R.page*R.W;
+  FL=null;
+  $('frame').style.transform=''; $('fGloss').style.transform='';
+  $('frame').classList.remove('flip'); $('fGloss').classList.remove('flip');
+  ['under','fGloss','fShade'].forEach(function(id){ $(id).style.visibility='hidden'; });
+  afterMove();
+}
+
 function goPage(p, instant){
   R.page=clamp(p,0,R.pages-1);
   var se=scroller(), x=R.page*R.W;
@@ -1799,10 +1878,10 @@ function showUi(on){ R.ui=on; $('reader').classList.toggle('ui',on); }
 
 /* Gestes dans la page */
 function bindFrame(d){
-  var x0=0,y0=0,sl0=0,drag=false,moved=false,t0=0,touching=false;
+  var x0=0,y0=0,sl0=0,drag=false,moved=false,t0=0,touching=false,sx0=0,fdrag=false;
   d.addEventListener('touchstart',function(e){
     if(e.touches.length!==1) return;
-    touching=true; moved=false; drag=false; x0=e.touches[0].clientX; y0=e.touches[0].clientY; t0=Date.now(); sl0=scroller().scrollLeft;
+    touching=true; moved=false; drag=false; fdrag=false; x0=e.touches[0].clientX; y0=e.touches[0].clientY; sx0=e.touches[0].screenX; t0=Date.now(); sl0=scroller().scrollLeft;
   },{passive:true});
   d.addEventListener('touchmove',function(e){
     if(!touching||e.touches.length!==1) return;
@@ -1810,12 +1889,24 @@ function bindFrame(d){
     if(Math.abs(dx)>8||Math.abs(dy)>8) moved=true;
     if(S.mode!=='pages' || hasSel()) return;
     if(!drag && Math.abs(dx)>12 && Math.abs(dx)>Math.abs(dy)*1.2) drag=true;
+    if(drag && !fdrag && !FL && flipOn()){
+      // la page suit le doigt (coordonnées de l'écran : la page pivote, ses coordonnées internes aussi)
+      var dir=dx<0?1:-1; if(flipStart(dir)){ fdrag=true; FL.drag=true; }
+    }
+    if(drag && fdrag && FL){ e.preventDefault(); var sdx=e.touches[0].screenX-sx0; setAngle(FL.dir>0 ? clamp(sdx/R.W*180,-180,0) : clamp(-180+sdx/R.W*180,-180,0)); return; }
     if(drag){ e.preventDefault(); scroller().scrollLeft=sl0-dx; }
   },{passive:false});
   d.addEventListener('touchend',function(e){
     if(!touching) return; touching=false;
     var t=e.changedTouches[0], dx=t.clientX-x0, dy=t.clientY-y0;
     if(S.mode==='pages'){
+      if(drag && fdrag && FL){
+        drag=false; fdrag=false;
+        var sdx=t.screenX-sx0, quick=Date.now()-t0<300&&Math.abs(sdx)>30, f=FL;
+        var ok=f.dir>0 ? (sdx<-R.W*0.18||(quick&&sdx<0)) : (sdx>R.W*0.18||(quick&&sdx>0));
+        flipTo(ok ? (f.dir>0?-180:0) : (f.dir>0?0:-180), function(){ flipEnd(ok); });
+        return;
+      }
       if(drag){ drag=false; var fast=Date.now()-t0<300&&Math.abs(dx)>30;
         if(dx<-R.W*0.18||(fast&&dx<0)){ if(R.page<R.pages-1) goPage(R.page+1); else { goPage(R.page); next(); } }
         else if(dx>R.W*0.18||(fast&&dx>0)){ if(R.page>0) goPage(R.page-1); else { goPage(R.page); prev(); } }
@@ -1987,7 +2078,8 @@ $('rNotes').onclick=function(){ tocSheet('hl'); };
 
 /* Réglages d'affichage */
 function setSheet(){
-  var body='<div class="set"><div class="lab">Taille du texte <span id="vFs">'+S.fs+'</span></div><div class="stp"><button data-fs="-1" style="font-size:14px">A</button><div class="v"><input type="range" id="sFs" min="13" max="34" step="1" value="'+S.fs+'"></div><button data-fs="1" style="font-size:22px">A</button></div></div>'+
+  var body='<div class="set"><div class="swl"><div class="t">Tourner les pages comme un livre<small>La page pivote et suit le doigt</small></div><label class="sw"><input type="checkbox" id="sFlip"'+(S.flip!==false?' checked':'')+'><span></span></label></div></div>'+
+    '<div class="set"><div class="lab">Taille du texte <span id="vFs">'+S.fs+'</span></div><div class="stp"><button data-fs="-1" style="font-size:14px">A</button><div class="v"><input type="range" id="sFs" min="11" max="34" step="1" value="'+S.fs+'"></div><button data-fs="1" style="font-size:22px">A</button></div></div>'+
     '<div class="set"><div class="lab">Thème</div><div class="themes">'+Object.keys(THEMES).map(function(k){ var T=THEMES[k]; return '<button data-th="'+k+'" style="background:'+T.bg+';color:'+T.tx+';'+(k==='nuit'?'box-shadow:0 0 0 1px #ffffff26 inset;':'')+'"'+(S.theme===k?' class="on"':'')+'><b>Aa</b>'+T.name+'</button>'; }).join('')+'</div></div>'+
     '<div class="set"><div class="lab">Police</div><div class="seg" data-k="font"><button data-v="serif" style="font-family:Georgia,serif">Serif</button><button data-v="sans">Sans</button><button data-v="cond" style="font-stretch:condensed">Étroite</button><button data-v="mono" style="font-family:monospace">Mono</button></div></div>'+
     '<div class="set"><div class="lab">Interligne <span id="vLh">'+String(S.lh).replace('.',',')+'</span></div><input type="range" id="sLh" min="1.2" max="2.2" step="0.05" value="'+S.lh+'"></div>'+
@@ -2002,13 +2094,14 @@ function setSheet(){
   var relayT=null;
   var relayout=function(now){ saveS(); clearTimeout(relayT); relayT=setTimeout(function(){ relayoutKeep(); }, now?0:120); };
   sb.onclick=function(e){
-    var f=e.target.closest('[data-fs]'); if(f){ S.fs=clamp(S.fs+(+f.dataset.fs),13,34); sb.querySelector('#sFs').value=S.fs; sb.querySelector('#vFs').textContent=S.fs; relayout(); return; }
+    var f=e.target.closest('[data-fs]'); if(f){ S.fs=clamp(S.fs+(+f.dataset.fs),11,34); sb.querySelector('#sFs').value=S.fs; sb.querySelector('#vFs').textContent=S.fs; relayout(); return; }
     var t=e.target.closest('[data-th]'); if(t){ S.theme=t.dataset.th; applyTheme(); mark(); relayout(true); return; }
     var b=e.target.closest('.seg[data-k] button'); if(b){ var k=b.parentNode.dataset.k; S[k]=b.dataset.v; mark(); relayout(true); }
   };
   sb.querySelector('#sFs').oninput=function(){ S.fs=+this.value; sb.querySelector('#vFs').textContent=S.fs; relayout(); };
   sb.querySelector('#sLh').oninput=function(){ S.lh=+this.value; sb.querySelector('#vLh').textContent=String(S.lh).replace('.',','); relayout(); };
   sb.querySelector('#sJust').onchange=function(){ S.just=this.checked; relayout(true); };
+  sb.querySelector('#sFlip').onchange=function(){ S.flip=this.checked; saveS(); if(S.flip && S.mode!=='pages'){ S.mode='pages'; relayout(true); var m=sb.querySelector('[data-mode="pages"]'); if(m){ sb.querySelectorAll('[data-mode]').forEach(function(x){ x.classList.toggle('on', x===m); }); } toast('Mode Pages activé : les pages se tournent comme un livre'); } };
   sb.querySelector('#sDim').oninput=function(){ S.dim=Math.round((0.75-this.value)*100)/100; $('dim').style.opacity=S.dim; sb.querySelector('#vDim').textContent=Math.round((1-S.dim)*100)+' %'; saveS(); };
 }
 function relayoutKeep(){

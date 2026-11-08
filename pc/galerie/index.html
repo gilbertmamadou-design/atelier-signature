@@ -293,6 +293,7 @@ input[type=range]{width:100%;margin:6px 0 8px;accent-color:var(--acc)}
   <symbol id="i-select" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="m8 12 3 3 5-6"/></symbol>
   <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
   <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.3-4.3L4 8.5m0-4.5v4.5h4.5M4 13a8 8 0 0 0 14.3 4.3L20 15.5m0 4.5v-4.5h-4.5"/></symbol>
+  <symbol id="i-carnet" viewBox="0 0 24 24"><path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v16H6.5A1.5 1.5 0 0 0 5 20.5zM5 20.5A1.5 1.5 0 0 0 6.5 22H19v-3"/><rect x="10" y="7" width="6" height="6" rx=".5"/></symbol>
   <symbol id="i-heartf" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-9-9.3C2 7.4 4.2 4.5 7.4 4.5c2 0 3.6 1.2 4.6 2.8 1-1.6 2.6-2.8 4.6-2.8 3.2 0 5.4 2.9 4.4 6.2C19.5 15.4 12 20 12 20z"/></symbol>
 </svg>
 
@@ -907,6 +908,7 @@ function enterSel(grid){
     '<button class="ib" data-a="restore" aria-label="Restaurer">' + ico("restore") + "</button>" +
     '<button class="ib" data-a="delete" aria-label="Supprimer définitivement">' + ico("trash") + "</button>" :
     '<button class="ib" data-a="all" aria-label="Tout sélectionner">' + ico("select") + "</button>" +
+    '<button class="ib" data-a="carnet" aria-label="Ajouter à un carnet de voyage">' + ico("carnet") + "</button>" +
     '<button class="ib" data-a="share" aria-label="Partager">' + ico("share") + "</button>" +
     '<button class="ib" data-a="fav" aria-label="Favori">' + ico("heart") + "</button>" +
     '<button class="ib" data-a="trash" aria-label="Supprimer">' + ico("trash") + "</button>");
@@ -915,6 +917,7 @@ function enterSel(grid){
 }
 function exitSel(fromHistory){
   if (!SEL.on) return;
+  if (PICK) endPick();
   SEL.on = false; SEL.set = new Set();
   var g = SEL.grid; SEL.grid = null;
   $("selbar").classList.remove("on");
@@ -923,7 +926,7 @@ function exitSel(fromHistory){
 }
 function updSel(){
   if (!SEL.on) return;
-  $("selN").textContent = SEL.set.size ? plural(SEL.set.size, "sélectionné") : "Sélectionne des éléments";
+  $("selN").textContent = SEL.set.size ? plural(SEL.set.size, "sélectionné") : (PICK ? "Choisis les photos" : "Sélectionne des éléments");
   if (SEL.grid) SEL.grid.updSel();
   var dis = !SEL.set.size;
   $("selActs").querySelectorAll("button").forEach(function(b){ if (b.dataset.a !== "all") b.disabled = dis; });
@@ -938,12 +941,56 @@ $("selActs").onclick = function(e){
   var l = selItems(), a = b.dataset.a;
   if (a === "all"){ var g = SEL.grid, all = SEL.set.size === g.items.length; SEL.set = all ? new Set() : new Set(g.items.map(function(i){ return i.k; })); updSel(); return; }
   if (!l.length) return;
+  if (a === "carnet"){ toCarnet(l); return; }
   if (a === "share"){ if (l.length > 300){ toast("300 éléments au maximum pour un partage", true); return; } call("share", toks(l)); }
   else if (a === "fav"){ var on = !l.every(function(i){ return i.fav; }); call("favorite", toks(l), on); }
   else if (a === "trash") doTrash(l);
   else if (a === "restore") call("restore", toks(l));
   else if (a === "delete") call("deleteForever", toks(l));
 };
+/* ---------- Carnet de voyage : envoyer des photos dans un carnet ----------
+   La liste des carnets vient de Carnet de voyage (MAGVoyage.carnets) ; les photos partent avec le carnet choisi
+   (GalerieBridge.versCarnet). Quand Carnet de voyage ouvre Galerie pour choisir des photos (« Depuis ma Galerie »),
+   la sélection s'ouvre toute seule avec un bouton « Ajouter au carnet ». */
+var PICK = null;
+function carnetsList(){ try { var V = window.MAGVoyage; if (!V || !V.carnets) return null; var r = V.carnets(); return r && r !== "null" ? JSON.parse(r) : null; } catch (e) { return null; } }
+function sendCarnet(list, id, titre){
+  var ph = list.filter(function(i){ return !i.v && !i.ext; });
+  if (!ph.length){ toast("Les vidéos ne vont pas dans un carnet : choisis des photos", true); return; }
+  if (ph.length > 60){ toast("60 photos au maximum à la fois", true); return; }
+  var ok = call("versCarnet", toks(ph), id || "", titre || "");
+  if (ok === false){ toast("Aucune photo à envoyer", true); return; }
+  if (SEL.on) exitSel();
+  toast(plural(ph.length, "photo") + " envoyée" + (ph.length > 1 ? "s" : "") + " au carnet" + (titre ? " « " + titre + " »" : ""));
+}
+function toCarnet(list){
+  if (PICK){ var p = PICK; endPick(); sendCarnet(list, p.carnet, p.titre); return; }
+  var cs = carnetsList();
+  if (cs === null){ toast("Installe l’appli Carnet de voyage pour y ranger tes photos", true); return; }
+  var items = cs.map(function(c){ return { icon:"carnet", label:c.titre || "Carnet", sub:[c.dates || "", c.pages ? c.pages + " pages" : ""].filter(Boolean).join(" · "), fn:function(){ sendCarnet(list, c.id, c.titre); } }; });
+  items.push({ icon:"edit", label:"Nouveau carnet…", fn:function(){ newCarnet(list); } });
+  menu("Ajouter à un carnet de voyage", items);
+}
+function newCarnet(list){
+  var sh = openSheet('<h4>Nouveau carnet</h4><input class="inp" id="ncT" maxlength="60" placeholder="Titre (ex. Espagne 2026)" style="width:100%;padding:12px;border-radius:12px;border:1px solid #ffffff22;background:#ffffff0d;color:inherit;font:inherit;font-size:16px"><div class="row" style="margin-top:12px"><button class="btn" data-r="0">Annuler</button><button class="btn main" data-r="1">Créer et ajouter</button></div>');
+  var inp = sh.querySelector("#ncT"); setTimeout(function(){ inp.focus(); }, 250);
+  sh.onclick = function(e){ var b = e.target.closest("[data-r]"); if (!b) return; var t = inp.value.trim(); closeSheet(); if (b.dataset.r === "1") sendCarnet(list, "", t || "Nouveau voyage"); };
+  inp.onkeydown = function(e){ if (e.key === "Enter"){ var t = inp.value.trim(); closeSheet(); sendCarnet(list, "", t || "Nouveau voyage"); } };
+}
+function startPick(p){
+  if (!p) return;
+  PICK = p;
+  if (SEL.on) exitSel();
+  try { goTab("photos"); } catch (e) {}
+  enterSel(MAIN);
+  $("selActs").innerHTML = '<button class="btn main" data-a="carnet" style="padding:8px 14px;border-radius:12px;font-weight:700;display:flex;align-items:center;gap:6px">' + ico("carnet") + "Ajouter au carnet</button>";
+  updSel();
+  $("selN").textContent = "Choisis les photos";
+  toast("Touche les photos pour « " + (p.titre || "ton carnet") + " », puis « Ajouter au carnet »");
+}
+function endPick(){ PICK = null; call("pickClear"); }
+H.pick = function(d){ startPick(d && (d.carnet != null) ? d : null); };
+(function(){ var r = call("pickMode"); if (r){ try { var d = JSON.parse(r); setTimeout(function(){ startPick(d); }, 400); } catch (e) {} } })();
 function doTrash(l){
   if (!l.length) return;
   if (PERM.trash) { call("trash", toks(l)); return; }
@@ -1463,7 +1510,8 @@ V.bar = function(){
   if (V.opts.trash){
     b = '<button data-a="restore">' + ico("restore") + "Restaurer</button><button data-a=\"delete\">" + ico("trash") + "Supprimer</button>";
   } else {
-    b = '<button data-a="share">' + ico("share") + "Partager</button>" +
+    b = (it.v || it.ext ? "" : '<button data-a="carnet">' + ico("carnet") + "Carnet</button>") +
+      '<button data-a="share">' + ico("share") + "Partager</button>" +
       (it.ext ? "" : '<button data-a="fav" class="' + (it.fav ? "favon" : "") + '">' + ico(it.fav ? "heartf" : "heart") + "Favori</button>") +
       '<button data-a="edit">' + ico("edit") + "Modifier</button>" +
       (it.ext ? '<button data-a="open">' + ico("open") + "Ouvrir avec</button>" : '<button data-a="trash">' + ico("trash") + "Supprimer</button>");
@@ -1476,6 +1524,7 @@ $("vbot").onclick = function(e){
   var it = V.cur(); if (!it) return;
   var a = b.dataset.a;
   if (a === "share") call("share", it.tok);
+  else if (a === "carnet") toCarnet([it]);
   else if (a === "fav") call("favorite", it.tok, !it.fav);
   else if (a === "edit"){ if (it.v){ call("editWith", it.tok); } else openEditor(it); }
   else if (a === "trash") doTrash([it]);
