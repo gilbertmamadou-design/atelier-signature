@@ -320,6 +320,26 @@ de `Office.Files.pickMedia` ou d'un dépôt sur la page (`#stage[data-mpc-drop]`
   postales trop petits deviennent des bords blancs (`M.lightFrame`). `VX.dress` habille une proposition : cadres du style,
   légende manuscrite rattachée à sa photo (`cap`), taille décidée une fois pour la case (raccourcie en dernier recours), place
   réservée sous la photo ; 1 photo seule : pleine page avec légende (légende, sinon lieu et date).
+- **Ordre des photos** (réglage du carnet, `carnet.ordre = {mode, fill}`, dans le .magcarnet) : **Date de prise de vue**
+  (par défaut : EXIF ou index du voyage, sinon date du fichier, sinon arrivée dans le carnet), **Ordre de sélection** (rang
+  d'arrivée `media.rank` ; un dossier n'a pas d'ordre de sélection fiable : ses fichiers sont lus en ordre naturel des noms,
+  comme dans l'explorateur) ou **Nom du fichier** (ordre naturel : IMG_2 avant IMG_10, `M.natCmp`). Tri `M.sortIds`, stable.
+  Réglage dans ⋮ › Réglages du carnet ; raccourcis : menu Photos et menu Page (« Ordre des photos… »), feuille « Par page… »
+  après un ajout, Choisir…, feuille du style et d'« Importer un dossier de voyage », Composer. **Placement à la suite** : les
+  cases de chaque agencement sont rangées une fois pour toutes dans l'**ordre de lecture** (`M.readingOrder` : rangées de haut
+  en bas, de gauche à droite dans la rangée ; une grande case « vedette » sur deux rangées est lue d'abord) et la photo n° i va
+  dans la case n° i, page après page (double page : gauche puis droite) ; les inclinaisons viennent de l'agencement (même page
+  → mêmes inclinaisons ; `jitter` éventuel tiré à graine fixe, `M.seeded`). Option **Optimiser le remplissage** (décochée) :
+  photos larges dans les cases larges, l'ordre peut changer. Chaque photo garde sa case (`item.cell`). Import par jour : jours
+  dans l'ordre du calendrier, photos du jour selon le réglage ; nouvelles photos d'un jour déjà présent insérées après sa
+  dernière page. Ajout sur une page déjà commencée : les nouvelles photos se mettent **après** celles de la page (page
+  recomposée, textes et décorations gardés) jusqu'à « Photos par page » (6 en Automatique), le reste sur des pages juste
+  après. **Remettre dans l'ordre** (menu Page : la page ; menu ⋮ : tout le carnet, à la suite d'une page à l'autre sans
+  mélanger les jours) : photos replacées dans les cases existantes (`M.reorderPages`), textes et décorations ajoutés à la main
+  intacts, légende rattachée qui suit sa photo ; un seul « Annuler ». **Mettre en vedette** (propriétés d'une photo ›
+  Disposition) : la photo prend la première case (la grande), les autres suivent ; retenu par la page (`page.vedette`).
+  **Pages** : glisser une vignette (souris dans la barre des pages sur PC, poignée au doigt dans « Toutes les pages ») ;
+  « Trier les pages par date » (⋮ et « Toutes les pages » : `M.sortPagesByDate`, une page sans date reste après la précédente).
 - **Composer** : « Nombre de photos » 1 à 9 ; page réagencée dans la zone libre (sous le titre ou la date du jour, au-dessus
   d'un texte du bas), légendes refaites ; les photos de la page sans place partent sur des pages ajoutées juste après
   (`VX.morePages`, selon « Photos par page » ; page du voyage : même jour, « (suite) ») ; un seul « Annuler » défait tout.
