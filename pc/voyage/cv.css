@@ -289,3 +289,23 @@ html.pc .selbox .hd{width:12px;height:12px;margin:-7px 0 0 -7px}
 .voyBan .ppB{gap:4px;padding:5px 10px}
 .voyBan .ppB .oi{width:16px;height:16px}
 .cvSet h5{margin:12px 0 2px}
+/* Ordre des photos : réglage, numéros de place, glisser des pages */
+.ordCtl{margin:10px 0 2px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--paper2)}
+.ordK{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.ordK .chip{min-height:44px;padding:4px 6px;text-align:center;font-size:14px;line-height:1.15;white-space:normal}
+.ordCtl .ordHint{margin:6px 0 2px}
+.ordAct{flex-wrap:wrap;gap:6px;margin-top:8px}
+.cpOrd{margin-top:6px}
+.cpOrd summary{cursor:pointer;display:flex;align-items:center;gap:6px;min-height:40px;font-size:14px;color:var(--ink2)}
+.cpOrd summary .oi{width:18px;height:18px}
+.tph .ordN{position:absolute;top:6px;left:6px;min-width:24px;height:24px;padding:0 5px;border-radius:12px;background:var(--acc);color:#fff;font:700 14px/24px system-ui,sans-serif;text-align:center;box-shadow:0 0 0 2px #fff}
+.pgTop{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.pgTop .hint{margin:0;display:flex;align-items:center;gap:4px}
+.pgTop .hint .oi{width:16px;height:16px}
+.pgAct .pgGrip{cursor:grab;touch-action:none;color:var(--ink3)}
+.pgc.dragging,.pth.dragging{opacity:.45}
+.pgc.dropB,.pth.dropB{box-shadow:-4px 0 0 var(--acc)}
+.pgc.dropA,.pth.dropA{box-shadow:4px 0 0 var(--acc)}
+#pagesBar .pth.dropB{box-shadow:0 -4px 0 var(--acc)}
+#pagesBar .pth.dropA{box-shadow:0 4px 0 var(--acc)}
+#pagesBar .pth{touch-action:pan-y}

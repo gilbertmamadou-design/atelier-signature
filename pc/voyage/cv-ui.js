@@ -197,6 +197,8 @@
       window.MAGPC ? null : { label: 'Actualiser les photos du voyage', icon: 'refresh-cw', on: () => CV.V.check(false) },
       window.MAGPC ? { label: 'Importer un dossier de voyage…', icon: 'folder-input', on: () => CV.V.importFolder() } : null,
       { label: 'Réglages du carnet…', icon: 'sliders-horizontal', on: () => CV.V.carnetSettings(E.c) },
+      { label: 'Remettre tout le carnet dans l\u2019ordre', icon: 'list-ordered', on: () => U.reorder('all') },
+      { label: 'Trier les pages par date', icon: 'calendar-days', on: () => U.sortPages() },
       '-',
       { label: E.view === 'double' ? 'Page simple' : 'Double page', icon: 'book-open', on: () => U.topClick({ target: { closest: () => ({ dataset: { top: 'view' } }) } }) },
       { label: 'Toutes les pages…', icon: 'layout-grid', on: () => U.pagesDialog() },
@@ -217,6 +219,7 @@
       window.MAGPC ? { label: 'Importer un dossier de voyage…', icon: 'folder-input', on: () => CV.V.importFolder() }
         : { label: 'Photos du voyage (appli Photo)…', icon: 'plane', on: () => { if (CV.V.check(false)) CV.V.choose(CV.V.pending.slice()); } },
       { label: 'Photos par page : ' + CV.V.ppLabel(CV.V.pp(E.c)) + '…', icon: 'layout-grid', on: () => CV.V.ppDialog(E.c) },
+      { label: 'Ordre des photos : ' + CV.V.ordLabel(M.ordre(E.c)) + '…', icon: 'arrow-down-up', on: () => U.ordreDialog() },
       E.c && E.c.pages.length ? { label: 'Composer une page (1 à 9 photos)…', icon: 'layout-dashboard', on: () => U.compose() } : null
     ], { title: 'Photos' });
   };
@@ -280,20 +283,14 @@
     if (CV.settings.geo) U.geocode(added);
     return added;
   };
-  /** Pose les photos importées sur la page : « Photos par page » du carnet (1 à 9 : une ou plusieurs pages composées),
-      sinon (Automatique) composition automatique de 3 à 6 photos sur une page vide, ou en cascade */
+  /** Pose les photos importées, à la suite : rangées selon « Ordre des photos » du carnet, elles complètent la page courante
+      après les photos déjà là (la page est recomposée, textes et décorations gardés) jusqu'à « Photos par page » (6 en
+      Automatique), puis continuent sur des pages ajoutées juste après. Couverture : posées en cascade. */
   U.place = function (added) {
-    const page = E.page(E.pi), ids = added.map((m) => m.id), pp = CV.V.pp(E.c);
+    const page = E.page(E.pi), pp = CV.V.pp(E.c), ids = M.sortIds(added.map((m) => m.id), M.ordre(E.c).mode);
     U._lastAdd = { added, pi: E.pi };
     const again = { label: 'Par page…', fn: () => U.placeAgain() };
-    if (pp.k !== 'auto' && page && !page.cover && (ids.length > 1 || pp.k === 1)) { U.placePages(ids, pp, again); return; }
-    if (page && !page.cover && !page.items.length && ids.length >= 3 && ids.length <= 6) {
-      const props = M.compose(ids); const p = props[1] || props[0];
-      p.items.forEach((it) => page.items.push(it));
-      E.renderItems(E.pi); E.select(p.items.map((x) => x.id)); E.commit('Ajouter des photos');
-      O.toast(ids.length + ' photos posées en « ' + p.name + ' » : « Composer » propose d\'autres agencements', { action: again, ms: 6000 });
-      return;
-    }
+    if (page && !page.cover) { U.placeFlow(ids, pp, again); return; }
     const n = ids.length, sel = [];
     ids.forEach((id, i) => {
       const inf = M.info(id) || {}, w = n === 1 ? 560 : 420, h = A.idealH('bord', w, inf);
@@ -303,22 +300,35 @@
     E.renderItems(E.pi); E.select(sel); E.commit('Ajouter des photos');
     O.toast(n > 1 ? n + ' photos ajoutées' : 'Photo ajoutée', n > 1 ? { action: again, ms: 6000 } : {});
   };
-  /** Plusieurs photos réparties selon « Photos par page » : la page courante si elle est vide, puis des pages ajoutées après */
-  U.placePages = function (ids, pp, again) {
-    const sizes = M.split(ids.length, pp.k, pp.eq), bg = (E.page(E.pi) || {}).bg || 'creme';
-    let at = E.pi, k = 0, first = -1;
-    sizes.forEach((n, i) => {
-      let page = E.page(at);
-      if (!(i === 0 && page && !page.cover && !page.items.length)) { page = M.newPage(bg); E.c.pages.splice(at + 1, 0, page); at++; }
-      const chunk = ids.slice(k, k + n), caps = {}; k += n;
-      if (n === 1) caps[chunk[0]] = CV.V.soloCap(chunk[0]);   // pleine page avec légende
-      const props = CV.V.dress(chunk, { caps }), p = props[1] || props[0];
-      page.items = page.items.concat(p.items);
-      if (first < 0) first = at;
-    });
+  /** Photos d'une page, dans l'ordre de lecture (sans doublon) */
+  U.pagePhotos = (page) => Array.from(new Set(M.photosInOrder(page).map((x) => x.media))).filter((id) => M.info(id));
+  /** Recompose une page avec ces photos, dans cet ordre (textes, décorations, titre gardés ; légendes refaites).
+      want : agencement voulu ; sinon celui du style du voyage, celui de la page, ou le deuxième proposé → proposition choisie */
+  U.recompose = function (page, ids, want) {
+    const V = CV.V, k = U.capsOf(page, ids), caps = {};
+    ids.forEach((id) => { caps[id] = k.caps[id] || ((M.info(id) || {}).exif || {}).legende || (ids.length === 1 ? V.soloCap(id) : ''); });
+    const kept = page.items.filter((it) => it.type !== 'photo' && !k.capIds.has(it.id));
+    const style = page.voyage && E.c.voyage && E.c.voyage.style ? E.c.voyage.style : '';
+    const props = V.dress(ids, { style, area: U.freeArea(page, kept), caps });
+    const p = props.find((x) => x.name === want) || (style ? props.find((x) => x.name === (V.PREF[style] || {})[ids.length]) : null) || props.find((x) => x.name === page.lay) || props[1] || props[0];
+    page.items = kept.concat(p.items); page.lay = p.name;
+    return p;
+  };
+  U.placeFlow = function (ids, pp, again) {
+    const page = E.page(E.pi), cap = Math.min(M.MAXN, pp.k === 'auto' ? 6 : pp.k), have = U.pagePhotos(page);
+    // page utilisable : vide, avec des photos, ou seulement du texte (titre) ; sinon (carte, dessin…) tout va sur des pages après
+    const usable = have.length || page.items.every((it) => it.type === 'text');
+    let rest = ids.slice(), here = [];
+    if (usable) here = rest.splice(0, have.length ? Math.max(0, cap - have.length) : M.split(ids.length, pp.k, pp.eq)[0]);
+    let p = null, more = 0;
+    if (here.length) p = U.recompose(page, have.concat(here));
+    if (rest.length) more = CV.V.morePages(E.c, E.pi, rest, page, {});
+    const pi = here.length ? E.pi : E.pi + 1;
     E.sel = []; E.render(); E.commit('Ajouter des photos'); U.pagesBar();
-    E.go(first, true);
-    O.toast(ids.length + ' photos sur ' + sizes.length + ' page' + (sizes.length > 1 ? 's' : '') + ' (' + sizes.join(' + ') + ')', { action: again, ms: 6000 });
+    E.go(pi, true);
+    if (p) E.select(p.items.filter((x) => x.type === 'photo' && here.includes(x.media)).map((x) => x.id));
+    const n = ids.length;
+    O.toast((n > 1 ? n + ' photos ajoutées à la suite' : 'Photo ajoutée à la suite') + (here.length && have.length ? ' des ' + have.length + ' de la page' : '') + (more ? ' · ' + more + ' nouvelle' + (more > 1 ? 's pages' : ' page') : ''), { action: again, ms: 6000 });
   };
   /** « Par page… » juste après un ajout : autre réglage, les photos ajoutées sont reposées (l'ajout est défait puis refait) */
   U.placeAgain = async function () {
@@ -546,6 +556,9 @@
       { label: 'Déplacer vers la gauche', icon: 'arrow-left', disabled: E.pi <= 0, on: () => U.movePage(-1) },
       { label: 'Déplacer vers la droite', icon: 'arrow-right', disabled: E.pi >= E.c.pages.length - 1, on: () => U.movePage(1) },
       { label: 'Toutes les pages…', icon: 'layout-grid', on: () => U.pagesDialog() },
+      '-',
+      { label: 'Remettre les photos dans l\u2019ordre', icon: 'list-ordered', disabled: U.pagePhotos(p).length < 2, on: () => U.reorder('page') },
+      { label: 'Ordre des photos : ' + CV.V.ordLabel(M.ordre(E.c)) + '…', icon: 'arrow-down-up', on: () => U.ordreDialog() },
       { label: 'Supprimer la page', icon: 'trash', danger: true, disabled: E.c.pages.length <= 1, on: () => U.delPage() }
     ], { title: 'Page ' + (E.pi + 1), cls: 'pageMenu' });
   };
@@ -564,6 +577,113 @@
     const i = E.pi, j = i + d; if (i < 0 || j < 0 || j >= E.c.pages.length) return;
     const p = E.c.pages.splice(i, 1)[0]; E.c.pages.splice(j, 0, p); E.commit('Déplacer la page'); E.pi = j; E.render(); U.pagesBar(); E.onPage();
   };
+  /** Déplace une page (glisser dans les vignettes) : from → place finale « to » */
+  U.movePageTo = function (from, to) {
+    const n = E.c.pages.length; if (from === to || from < 0 || to < 0 || from >= n || to >= n) return false;
+    const p = E.c.pages.splice(from, 1)[0]; E.c.pages.splice(to, 0, p);
+    E.pi = to; E.sel = []; E.commit('Déplacer la page'); E.render(); U.pagesBar(); E.onPage();
+    O.toast('Page ' + (from + 1) + ' déplacée en ' + (to + 1));
+    return true;
+  };
+  /** Glisser pour réordonner des vignettes de pages (souris, doigt ou stylet) : root contient des éléments itemSel portant
+      data-pi ; on les saisit par la poignée gripSel, ou à la souris par toute la vignette. drop(from, to) */
+  U.dragPages = function (root, itemSel, gripSel, drop) {
+    let st = null, noClick = 0;
+    const clear = () => root.querySelectorAll('.dropB,.dropA,.dragging').forEach((x) => x.classList.remove('dropB', 'dropA', 'dragging'));
+    const target = (e) => {
+      const el = document.elementFromPoint(e.clientX, e.clientY), t = el && el.closest(itemSel);
+      if (!t || !root.contains(t) || !(+t.dataset.pi >= 0)) return null;
+      const r = t.getBoundingClientRect(), vert = root.getBoundingClientRect().width < r.width * 1.8;   // une seule colonne
+      return { t, pi: +t.dataset.pi, after: vert ? e.clientY > r.top + r.height / 2 : e.clientX > r.left + r.width / 2 };
+    };
+    const move = (e) => {
+      if (!st || e.pointerId !== st.id) return;
+      if (!st.on && Math.hypot(e.clientX - st.x, e.clientY - st.y) < 8) return;
+      st.on = true; if (e.cancelable) e.preventDefault(); clear(); st.el.classList.add('dragging');
+      const g = target(e);
+      if (g && g.pi !== st.from) g.t.classList.add(g.after ? 'dropA' : 'dropB');
+    };
+    const up = (e) => {
+      if (!st || e.pointerId !== st.id) return;
+      document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); document.removeEventListener('pointercancel', up);
+      const s = st; st = null; clear();
+      if (!s.on) return;
+      noClick = Date.now();
+      const g = e.type === 'pointerup' ? target(e) : null; if (!g) return;
+      let to = g.after ? g.pi + 1 : g.pi; if (s.from < to) to--;
+      if (to !== s.from) drop(s.from, to);
+    };
+    root.addEventListener('pointerdown', (e) => {
+      if (e.button) return;
+      const grip = e.target.closest(gripSel), el = e.target.closest(itemSel);
+      if (!el || !root.contains(el) || !(+el.dataset.pi >= 0)) return;
+      if (!grip && e.pointerType !== 'mouse') return;
+      if (grip) e.preventDefault();
+      st = { el, from: +el.dataset.pi, x: e.clientX, y: e.clientY, on: false, id: e.pointerId };
+      document.addEventListener('pointermove', move, { passive: false }); document.addEventListener('pointerup', up); document.addEventListener('pointercancel', up);
+    });
+    root.addEventListener('click', (e) => { if (Date.now() - noClick < 400) { e.stopPropagation(); e.preventDefault(); } }, true);
+    root.addEventListener('dragstart', (e) => e.preventDefault());
+  };
+
+  /* ---------------- Ordre des photos : remettre dans l'ordre, trier les pages ---------------- */
+  /** « Remettre dans l'ordre » : photos replacées selon « Ordre des photos » dans les cases existantes, de la page (« page »)
+      ou de tout le carnet (« all » : à la suite d'une page à l'autre, sans mélanger les jours du voyage). Textes et
+      décorations ajoutés à la main ne bougent pas. Un seul « Annuler » revient en arrière. → nombre de pages changées */
+  U.reorder = function (scope) {
+    if (!E.c) return 0;
+    const mode = M.ordre(E.c).mode, before = E.c.pages.map((p) => JSON.stringify(p.items));
+    if (scope === 'all') U.groupsForOrder().forEach((g) => { M.reorderPages(g, mode); g.forEach((p) => M.reorderPage(p, mode)); });
+    else { const p = E.page(E.pi); if (p && !p.cover) M.reorderPage(p, mode); }
+    const n = E.c.pages.filter((p, i) => JSON.stringify(p.items) !== before[i]).length;
+    if (!n) { O.toast(scope === 'all' ? 'Les photos du carnet sont déjà dans l’ordre' : 'Les photos de cette page sont déjà dans l’ordre'); return 0; }
+    E.sel = []; E.render(); E.commit('Remettre dans l’ordre'); U.pagesBar(); U.props();
+    O.toast((scope === 'all' ? n + ' page' + (n > 1 ? 's remises' : ' remise') : 'Page remise') + ' dans l’ordre (' + CV.V.ordLabel(M.ordre(E.c)).toLowerCase() + ')', { action: { label: 'Annuler', fn: () => E.hist.undo() }, ms: 6000 });
+    return n;
+  };
+  /** Groupes de pages dont les photos se suivent : un jour du voyage (ses pages), ou une suite de pages hors voyage */
+  U.groupsForOrder = function () {
+    const out = [], byDay = {};
+    let run = null;
+    E.c.pages.forEach((p) => {
+      if (p.jour) { run = null; if (!byDay[p.jour]) { byDay[p.jour] = []; out.push(byDay[p.jour]); } byDay[p.jour].push(p); }
+      else { if (!run) { run = []; out.push(run); } run.push(p); }
+    });
+    return out;
+  };
+  /** « Trier les pages par date » (pages sans date attachées à la précédente) */
+  U.sortPages = function () {
+    if (!E.c) return false;
+    const cur = E.page(E.pi);
+    if (!M.sortPagesByDate(E.c)) { O.toast('Les pages sont déjà dans l’ordre des dates'); return false; }
+    const k = E.c.pages.indexOf(cur); E.pi = k >= 0 ? k : 0;
+    E.sel = []; E.render(); E.commit('Trier les pages par date'); U.pagesBar(); E.onPage();
+    O.toast('Pages triées par date', { action: { label: 'Annuler', fn: () => E.hist.undo() }, ms: 6000 });
+    return true;
+  };
+  /** Feuille « Ordre des photos » : réglage du carnet et commandes */
+  U.ordreDialog = async function () {
+    if (!E.c) return;
+    const V = CV.V, od = M.ordre(E.c), body = O.h('div', { cls: 'ordDlg' }), pg = E.page(E.pi);
+    body.innerHTML = V.ordHtml(od) + '<p class="hint">Réglage du carnet « ' + esc(E.c.title) + ' » : il sert aux ajouts de photos, aux imports du voyage et à « Composer ». Les pages déjà faites se rangent avec « Remettre dans l’ordre » (textes et décorations ne bougent pas ; « Annuler » revient en arrière).</p>';
+    V.ordBind(body, od, () => V.setOrd(E.c, od));
+    const v = await O.dialog({
+      title: 'Ordre des photos', body, cls: 'cv-dlg ordDlgW',
+      buttons: [{ label: 'Trier les pages par date', value: 'pages', left: true }, { label: 'Fermer', value: null }].concat(pg && !pg.cover ? [{ label: 'Cette page', value: 'page' }] : []).concat([{ label: 'Tout le carnet', value: 'all', primary: true }])
+    });
+    if (v === 'pages') U.sortPages(); else if (v === 'page' || v === 'all') U.reorder(v);
+  };
+  /** « Mettre en vedette » : la photo passe en tête de sa page (grande case), les autres suivent dans le même ordre */
+  U.vedette = function (it) {
+    const r = E.find(it.id); if (!r || r.pi < 0) return;
+    const page = E.page(r.pi), mode = M.ordre(E.c).mode;
+    if (page.vedette === it.media) { delete page.vedette; M.reorderPage(page, mode); E.sel = []; E.render(); E.commit('Vedette'); O.toast('Plus de photo vedette : ordre du carnet'); U.props(); return; }
+    const cur = U.pagePhotos(page);
+    page.vedette = it.media;
+    M.reorderPage(page, mode, [it.media].concat(cur.filter((x) => x !== it.media)));
+    E.sel = []; E.render(); E.commit('Vedette'); U.props();
+    O.toast('Photo en vedette : en tête de la page');
+  };
   U.delPage = async function () {
     if (E.c.pages.length <= 1 || E.pi < 0) return;
     const p = E.page(E.pi);
@@ -574,7 +694,7 @@
   U.pagesBar = function () {
     const b = $('#pagesBar'); if (!b || !E.c) return;
     if (PHONE()) { b.innerHTML = ''; return; }
-    const th = (pi) => { const p = E.page(pi); return '<button class="pth' + (E.visible().includes(pi) ? ' on' : '') + '" data-go="' + pi + '" draggable="' + (pi >= 0) + '">' + R.pageSvg(E.c, p, { pfx: 't' + pi + '-', href: M.url, media: M.info, cover: pi === -1 }) + '<span>' + (pi === -1 ? 'Couverture' : pi + 1) + '</span></button>'; };
+    const th = (pi) => { const p = E.page(pi); return '<button class="pth' + (E.visible().includes(pi) ? ' on' : '') + '" data-go="' + pi + '" data-pi="' + pi + '" draggable="false"' + (pi >= 0 ? ' title="Glisser pour déplacer la page"' : '') + '>' + R.pageSvg(E.c, p, { pfx: 't' + pi + '-', href: M.url, media: M.info, cover: pi === -1 }) + '<span>' + (pi === -1 ? 'Couverture' : pi + 1) + '</span></button>'; };
     b.innerHTML = th(-1) + E.c.pages.map((p, i) => th(i)).join('') + '<button class="pth add" data-addp="1">' + ic('plus') + '<span>Page</span></button>';
   };
   U.pagesThumbSoon = function () { clearTimeout(U._pt); U._pt = setTimeout(U.pagesBar, 700); };
@@ -585,17 +705,18 @@
   U.pagesDialog = async function () {
     const body = O.h('div', { cls: 'pagesAll' });
     const draw = () => {
-      body.innerHTML = '<div class="pgGrid">' + [-1].concat(E.c.pages.map((p, i) => i)).map((pi) => '<div class="pgc' + (pi === E.pi ? ' on' : '') + '" data-pi="' + pi + '"><button class="pgThumb" data-open="' + pi + '">' + R.pageSvg(E.c, E.page(pi), { pfx: 'pa' + pi + '-', href: M.url, media: M.info, cover: pi === -1 }) + '</button><div class="pgAct"><b>' + (pi === -1 ? 'Couverture' : pi + 1) + '</b>' + (pi >= 0 ? '<button class="ibtn" data-mv="' + pi + ':-1" aria-label="Avant"' + (pi === 0 ? ' disabled' : '') + '>' + ic('chevron-left') + '</button><button class="ibtn" data-mv="' + pi + ':1" aria-label="Après"' + (pi === E.c.pages.length - 1 ? ' disabled' : '') + '>' + ic('chevron-right') + '</button><button class="ibtn" data-dup="' + pi + '" aria-label="Dupliquer">' + ic('copy') + '</button><button class="ibtn" data-del="' + pi + '" aria-label="Supprimer"' + (E.c.pages.length <= 1 ? ' disabled' : '') + '>' + ic('trash') + '</button>' : '') + '</div></div>').join('') + '</div>';
+      body.innerHTML = '<div class="row pgTop"><span class="hint">Glisse une page par sa poignée ' + ic('grip-vertical') + ' pour la déplacer.</span><button type="button" class="btn" data-sortp>' + ic('calendar-days') + 'Trier par date</button></div><div class="pgGrid">' + [-1].concat(E.c.pages.map((p, i) => i)).map((pi) => '<div class="pgc' + (pi === E.pi ? ' on' : '') + '" data-pi="' + pi + '"><button class="pgThumb" data-open="' + pi + '" draggable="false">' + R.pageSvg(E.c, E.page(pi), { pfx: 'pa' + pi + '-', href: M.url, media: M.info, cover: pi === -1 }) + '</button><div class="pgAct">' + (pi >= 0 ? '<button class="ibtn pgGrip" data-grip aria-label="Glisser pour déplacer la page ' + (pi + 1) + '" title="Glisser pour déplacer">' + ic('grip-vertical') + '</button>' : '') + '<b>' + (pi === -1 ? 'Couverture' : pi + 1) + '</b>' + (pi >= 0 ? '<button class="ibtn" data-mv="' + pi + ':-1" aria-label="Avant"' + (pi === 0 ? ' disabled' : '') + '>' + ic('chevron-left') + '</button><button class="ibtn" data-mv="' + pi + ':1" aria-label="Après"' + (pi === E.c.pages.length - 1 ? ' disabled' : '') + '>' + ic('chevron-right') + '</button><button class="ibtn" data-dup="' + pi + '" aria-label="Dupliquer">' + ic('copy') + '</button><button class="ibtn" data-del="' + pi + '" aria-label="Supprimer"' + (E.c.pages.length <= 1 ? ' disabled' : '') + '>' + ic('trash') + '</button>' : '') + '</div></div>').join('') + '</div>';
     };
     draw();
     await O.dialog({
       title: 'Pages du carnet', body, wide: true, cls: 'cv-dlg',
-      onOpen: (w, close) => body.addEventListener('click', (e) => {
+      onOpen: (w, close) => (U.dragPages(body, '.pgc', '[data-grip]', (a, b) => { U.movePageTo(a, b); draw(); }), body.addEventListener('click', (e) => {
         const o = e.target.closest('[data-open]'); if (o) { close(null); E.go(+o.dataset.open, true); return; }
         const mv = e.target.closest('[data-mv]'); if (mv) { const [i, d] = mv.dataset.mv.split(':').map(Number); E.pi = i; U.movePage(d); draw(); return; }
         const du = e.target.closest('[data-dup]'); if (du) { E.pi = +du.dataset.dup; U.dupPage(); draw(); return; }
         const de = e.target.closest('[data-del]'); if (de) { E.pi = +de.dataset.del; const p = E.page(E.pi); E.c.pages.splice(E.pi, 1); void p; E.commit('Supprimer la page'); E.pi = Math.min(E.pi, E.c.pages.length - 1); E.render(); U.pagesBar(); draw(); O.toast('Page supprimée (Ctrl+Z pour annuler)'); }
-      }),
+        const so = e.target.closest('[data-sortp]'); if (so) { U.sortPages(); draw(); }
+      })),
       buttons: [{ label: 'Ajouter une page', value: 'add', left: true }, { label: 'Fermer', value: null, primary: true }]
     }).then((v) => { if (v === 'add') U.addPage(E.c.pages.length - 1); });
   };
@@ -680,7 +801,7 @@
     if (!all.length) { const v = await O.dialog({ title: 'Composer une page', body: '<p>Il n\'y a pas encore de photo dans ce carnet.</p>', buttons: [{ label: 'Fermer', value: null }, { label: 'Ajouter des photos…', value: 'add', primary: true }] }); if (v === 'add') U.addPhotos(); return; }
     await M.ensureUrls(all.map((m) => m.id));
     const page = E.page(E.pi), byT = (a, b) => ((M.info(a) || {}).exif || {}).t - ((M.info(b) || {}).exif || {}).t || 0;
-    const onPage = Array.from(new Set(page.items.filter((x) => x.type === 'photo').map((x) => x.media))).filter((id) => M.info(id));
+    const onPage = U.pagePhotos(page), od = M.ordre(E.c);
     const used = M.mediaIds(E.c), pp = V.pp(E.c);
     const free = () => all.map((m) => m.id).filter((id) => !used.has(id) && !chosen.includes(id));
     let pre = Array.from(new Set(E.selItems().filter((x) => x.type === 'photo').map((x) => x.media)));
@@ -692,13 +813,16 @@
     const style = page.voyage && E.c.voyage && E.c.voyage.style ? E.c.voyage.style : '';
     const body = O.h('div', { cls: 'compose' });
     let step = 1, props = [], where = 'here', kept = [], area = null, caps = {};
+    // ordre des photos posées : réglage du carnet (en « Ordre de sélection » : l'ordre où elles sont choisies ici) ; la
+    // photo « vedette » de la page d'abord
+    const ordered = () => od.mode === 'selection' ? (page.vedette && chosen.includes(page.vedette) ? [page.vedette].concat(chosen.filter((x) => x !== page.vedette)) : chosen.slice()) : M.wantedOrder(chosen, od.mode, page.vedette);
     const extras = () => where === 'here' ? onPage.filter((id) => !chosen.includes(id)) : [];
     const build = () => {
       const k = U.capsOf(page, onPage.concat(chosen));
       caps = {}; chosen.forEach((id) => { caps[id] = k.caps[id] || ((M.info(id) || {}).exif || {}).legende || (chosen.length === 1 ? V.soloCap(id) : ''); });
       kept = where === 'here' ? page.items.filter((it) => it.type !== 'photo' && !k.capIds.has(it.id)) : [];
       area = where === 'here' ? U.freeArea(page, kept) : { x: 0, y: 0, w: 1, h: 1 };
-      props = chosen.length ? V.dress(chosen, { style, area, caps }) : [];
+      props = chosen.length ? V.dress(ordered(), { style, area, caps, fill: od.fill }) : [];
       U._capsAll = k.caps;
     };
     const nRow = () => '<div class="cpN"><b>Nombre de photos</b><div class="cpK" role="radiogroup" aria-label="Nombre de photos sur la page">' + Array.from({ length: MAXN }, (x, i) => i + 1).map((k) => '<button type="button" class="chip' + (chosen.length === k ? ' on' : '') + '" role="radio" aria-checked="' + (chosen.length === k) + '" data-cn="' + k + '">' + k + '</button>').join('') + '</div></div>';
@@ -707,17 +831,20 @@
       return '<p class="hint cpNote"><b id="cpN">' + chosen.length + '</b> photo' + (chosen.length > 1 ? 's' : '') + ' sur ' + (where === 'here' ? 'cette page' : 'la nouvelle page') + '.' +
         (ex.length ? ' <span class="cpExtra">' + ex.length + ' photo' + (ex.length > 1 ? 's' : '') + ' de la page n\'' + (ex.length > 1 ? 'ont' : 'a') + ' plus de place : ' + (ex.length > 1 ? 'elles iront' : 'elle ira') + ' sur ' + (M.split(ex.length, pp.k, pp.eq).length > 1 ? M.split(ex.length, pp.k, pp.eq).length + ' nouvelles pages' : 'une nouvelle page') + ', juste après.</span>' : '') + '</p>';
     };
-    const ppBox = () => '<details class="cpPP"><summary>' + ic('layout-grid') + 'Photos par page du carnet : <b class="cpPPv">' + esc(V.ppLabel(pp)) + '</b></summary>' + V.ppHtml(pp) + '<p class="hint">Sert aux photos en trop, aux imports du voyage et aux ajouts de plusieurs photos.</p></details>';
+    const ppBox = () => '<details class="cpPP"><summary>' + ic('layout-grid') + 'Photos par page du carnet : <b class="cpPPv">' + esc(V.ppLabel(pp)) + '</b></summary>' + V.ppHtml(pp) + '<p class="hint">Sert aux photos en trop, aux imports du voyage et aux ajouts de plusieurs photos.</p></details>' +
+      '<details class="cpOrd"' + (U._cpOrdOpen ? ' open' : '') + '><summary>' + ic('list-ordered') + 'Ordre des photos : <b class="cpOrdV">' + esc(V.ordLabel(od)) + '</b></summary>' + V.ordHtml(od) + '</details>';
     const draw = () => {
       const top = nRow() + note();
       if (step === 1) {
-        body.innerHTML = top + '<div class="trayGrid">' + all.map((m) => '<button type="button" class="tph sel' + (chosen.includes(m.id) ? ' on' : '') + (extras().includes(m.id) ? ' extra' : '') + '" data-m="' + m.id + '"><img src="' + M.url(m.id) + '" alt=""><i>' + ic('check') + '</i>' + (extras().includes(m.id) ? '<span>Nouvelle page</span>' : '') + '</button>').join('') + '</div>' + ppBox();
+        const ord = ordered();
+        body.innerHTML = top + '<div class="trayGrid">' + all.map((m) => '<button type="button" class="tph sel' + (chosen.includes(m.id) ? ' on' : '') + (extras().includes(m.id) ? ' extra' : '') + '" data-m="' + m.id + '"><img src="' + M.url(m.id) + '" alt=""><i>' + ic('check') + '</i>' + (chosen.includes(m.id) ? '<b class="ordN" aria-label="Place sur la page">' + (ord.indexOf(m.id) + 1) + '</b>' : '') + (extras().includes(m.id) ? '<span>Nouvelle page</span>' : '') + '</button>').join('') + '</div>' + ppBox();
       } else {
         build();
         body.innerHTML = top + '<p class="hint">Touche l\'agencement qui te plaît.</p><div class="propGrid">' + props.map((p, i) => '<button class="prop" data-p="' + i + '">' + R.pageSvg(E.c, { id: 'cp' + i, bg: page.bg, items: kept.concat(p.items) }, { pfx: 'cp' + i + '-', href: M.url, media: M.info }) + '<span>' + esc(p.name) + '</span></button>').join('') + '</div>' +
           '<div class="chips"><button class="chip' + (where === 'here' ? ' on' : '') + '" data-w="here">Sur cette page</button><button class="chip' + (where === 'new' ? ' on' : '') + '" data-w="new">Sur une nouvelle page</button></div>' + ppBox();
       }
       V.ppBind(body, pp, () => extras().length, () => { V.setPp(E.c, pp); const v = body.querySelector('.cpPPv'); if (v) v.textContent = V.ppLabel(pp); const n = body.querySelector('.cpNote'); if (n) n.outerHTML = note(); });
+      V.ordBind(body, od, () => { V.setOrd(E.c, od); U._cpOrdOpen = true; draw(); U._cpOrdOpen = false; });
     };
     /** Nombre de photos choisi : on retire les dernières, ou on complète avec des photos pas encore posées */
     const setN = (k) => {
@@ -757,11 +884,11 @@
     let pi = E.pi, more = 0;
     const ex = extras();
     if (where === 'new') {
-      const np = M.newPage(page.bg); np.items = p.items.slice();
+      const np = M.newPage(page.bg); np.items = p.items.slice(); np.lay = p.name;
       E.c.pages.splice(E.pi + 1, 0, np); pi = E.pi + 1;
     } else {
       const capsAll = U._capsAll || {};
-      page.items = kept.concat(p.items);
+      page.items = kept.concat(p.items); page.lay = p.name;
       // photos de la page sans place : pages ajoutées juste après (jamais perdues)
       if (ex.length) more = V.morePages(E.c, pi, ex, page, capsAll);
     }
@@ -865,7 +992,9 @@
   SEC.carte = (it) => '<p>' + (it.points || []).length + ' étape(s) · ' + esc((R.REGIONS.find((r) => r[0] === it.region) || [0, ''])[1]) + '</p><button class="btn pri" data-pa="map">' + ic('map') + 'Modifier la carte…</button>';
   SEC.dispo = (it, its) => {
     const one = its.length === 1;
+    const ved = one && it.type === 'photo' && E.pi >= 0 && E.page(E.pi) && U.pagePhotos(E.page(E.pi)).length > 1;
     return (one ? slider('pRot', 'Rotation', -180, 180, 1, Math.round(it.rot || 0), '°') + '<div class="row"><button class="btn" data-pa="tilt">' + ic('dices') + 'De travers</button><button class="btn" data-pa="straight">' + ic('square') + 'Droit</button></div>' : '') +
+      (ved ? '<div class="row"><button class="btn" data-pa="vedette" title="La photo passe en tête de la page (grande case), les autres suivent">' + ic('star') + (E.page(E.pi).vedette === it.media ? 'Retirer la vedette' : 'Mettre en vedette') + '</button></div>' : '') +
       '<h5>Ordre</h5><div class="row"><button class="btn" data-pa="front" title="Premier plan">' + ic('bring-to-front') + 'Devant</button><button class="btn" data-pa="up" title="Avancer">' + ic('arrow-up') + '</button><button class="btn" data-pa="down" title="Reculer">' + ic('arrow-down') + '</button><button class="btn" data-pa="back" title="Arrière-plan">' + ic('send-to-back') + 'Derrière</button></div>' +
       '<h5>Aligner' + (one ? ' sur la page' : '') + '</h5><div class="row al">' + [['left', 'align-start-vertical', 'À gauche'], ['hcenter', 'align-center-vertical', 'Au centre'], ['right', 'align-end-vertical', 'À droite'], ['top', 'align-start-horizontal', 'En haut'], ['vcenter', 'align-center-horizontal', 'Au milieu'], ['bottom', 'align-end-horizontal', 'En bas']].map((a) => '<button class="ibtn" data-al="' + a[0] + '" title="' + a[2] + '" aria-label="' + a[2] + '">' + ic(a[1]) + '</button>').join('') + '</div>' +
       (its.length > 1 ? '<div class="row"><button class="btn" data-pa="group">' + ic('group') + 'Grouper</button>' + (its.some((x) => x.group) ? '<button class="btn" data-pa="ungroup">' + ic('ungroup') + 'Dégrouper</button>' : '') + '</div>' : (it.group ? '<div class="row"><button class="btn" data-pa="ungroup">' + ic('ungroup') + 'Dégrouper</button></div>' : '')) +
@@ -891,6 +1020,7 @@
       else if (['front', 'back', 'up', 'down'].includes(a)) E.order(a);
       else if (a === 'group') E.group(true); else if (a === 'ungroup') E.group(false);
       else if (a === 'tilt') { E.change(it, { rot: Math.round(((Math.random() < 0.5 ? -1 : 1) * (2 + Math.random() * 5)) * 10) / 10 }, 'De travers', true); U.props(); }
+      else if (a === 'vedette') U.vedette(it);
       else if (a === 'straight') { E.change(it, { rot: 0 }, 'Droit', true); U.props(); }
       else if (a === 'resetAdj') { E.change(it, { adj: {}, grain: 0, crop: {} }, 'Réglages', true); U.props(); }
       else if (a === 'map') U.mapDialog(it);
@@ -1025,7 +1155,7 @@
     $('#drawBar').addEventListener('click', U.drawClick);
     $('#drawBar').addEventListener('input', (e) => { if (e.target.id === 'penW') E.pen.width = parseFloat(e.target.value); });
     $('#pageNav').addEventListener('click', U.navClick);
-    $('#pagesBar').addEventListener('click', U.pagesBarClick);
+    $('#pagesBar').addEventListener('click', U.pagesBarClick); U.dragPages($('#pagesBar'), '.pth', '.pth', (a, b) => U.movePageTo(a, b));
     const pr = $('#props'); pr.addEventListener('click', U.propsClick); pr.addEventListener('input', U.propsInput); pr.addEventListener('change', U.propsChange);
     const st = $('#stage');
     st.addEventListener('pointerdown', E.pointerDown);
