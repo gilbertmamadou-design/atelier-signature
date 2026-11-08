@@ -245,47 +245,122 @@
     return { code, tmax, tmin, sym: w[0], txt: w[1] };
   };
 
-  /* ---------------- Composer : mises en page automatiques de 3 à 6 photos (1 et 2 : pages du voyage) ---------------- */
-  // Chaque agencement : liste de cases [x, y, w, h, rot, cadre] en fractions de page ; la photo est ajustée à la case.
+  /* ---------------- Composer : mises en page automatiques de 1 à 9 photos ---------------- */
+  // Chaque agencement : liste de cases [x, y, w, h, rot, cadre] en fractions de la zone utilisée ; les cases ne se chevauchent
+  // jamais et la photo (inclinée comprise) est ajustée à l'intérieur de sa case : aucune photo n'en recouvre une autre.
+  /** Grille en blocs : cols × rows unités, chaque bloc [col, rang, largeur, hauteur] (en unités), marges et gouttières */
+  function blocks(cols, rows, list, o) {
+    o = o || {};
+    const mx = o.mx == null ? 0.05 : o.mx, my = o.my == null ? 0.035 : o.my, gx = o.gx == null ? 0.04 : o.gx, gy = o.gy == null ? 0.03 : o.gy;
+    const uw = (1 - 2 * mx - gx * (cols - 1)) / cols, uh = (1 - 2 * my - gy * (rows - 1)) / rows;
+    return list.map((b, i) => [mx + b[0] * (uw + gx), my + b[1] * (uh + gy), b[2] * uw + (b[2] - 1) * gx, b[3] * uh + (b[3] - 1) * gy, 0, (o.frames || ['bord'])[i % (o.frames || ['bord']).length]]);
+  }
+  /** Rangées de cases égales : [3, 2, 3] → 3 cases, puis 2 (centrées), puis 3 */
+  function rows(spec, o) {
+    o = o || {};
+    const most = Math.max.apply(null, spec), list = [];
+    spec.forEach((n, r) => { const off = (most - n) / 2; for (let i = 0; i < n; i++) list.push([off + i, r, 1, 1]); });
+    return blocks(most, spec.length, list, o);
+  }
+  /** Façon scrapbook : chaque photo légèrement de travers et décalée dans sa case (sans en sortir) */
+  function askew(cells, rots, frames, k) {
+    k = k == null ? 0.07 : k;
+    return cells.map((c, i) => {
+      const dx = (i % 2 ? 1 : -1) * c[2] * k * 0.5, dy = ((i >> 1) % 2 ? 1 : -1) * c[3] * k * 0.4;
+      return [c[0] + c[2] * k / 2 + dx, c[1] + c[3] * k / 2 + dy, c[2] * (1 - k), c[3] * (1 - k), rots[i % rots.length], frames[i % frames.length]];
+    });
+  }
+  const TILT = [-4, 3, -2, 4, -3, 2, -5, 3.5, -1.5];
+  const MIX = ['polaroid', 'washi', 'timbre', 'coins', 'punaise', 'bord', 'trombone', 'dechire', 'polaroid'];
   const L = {
     1: [
-      { name: 'Vedette', cells: [[0.1, 0.06, 0.8, 0.86, -1.5, 'polaroid']] }
+      { name: 'Vedette', cells: [[0.1, 0.06, 0.8, 0.86, -1.5, 'polaroid']] },
+      { name: 'Pleine page', cells: [[0.05, 0.04, 0.9, 0.92, 0, 'bord']] },
+      { name: 'Coins photo', cells: [[0.1, 0.08, 0.8, 0.8, 0, 'coins']] },
+      { name: 'Carte postale', cells: [[0.05, 0.1, 0.9, 0.78, -2, 'carte-postale']] }
     ],
     2: [
-      { name: 'Duo', cells: [[0.06, 0.03, 0.6, 0.5, -3, 'polaroid'], [0.34, 0.5, 0.6, 0.48, 3, 'timbre']] },
-      { name: 'Duo empilé', cells: [[0.12, 0.03, 0.76, 0.46, -1.5, 'bord'], [0.12, 0.52, 0.76, 0.46, 1.5, 'bord']] }
+      { name: 'Duo', cells: [[0.06, 0.03, 0.58, 0.46, -3, 'polaroid'], [0.36, 0.51, 0.58, 0.46, 3, 'timbre']] },
+      { name: 'Duo empilé', cells: [[0.12, 0.03, 0.76, 0.46, -1.5, 'bord'], [0.12, 0.52, 0.76, 0.46, 1.5, 'bord']] },
+      { name: 'Côte à côte', cells: [[0.04, 0.12, 0.44, 0.74, -2.5, 'polaroid'], [0.52, 0.16, 0.44, 0.74, 2.5, 'polaroid']] },
+      { name: 'Cartes postales', cells: [[0.06, 0.04, 0.88, 0.44, -2, 'carte-postale'], [0.06, 0.52, 0.88, 0.44, 2, 'carte-postale']] }
     ],
     3: [
       { name: 'Classique', cells: [[0.07, 0.05, 0.86, 0.42, 0, 'bord'], [0.07, 0.52, 0.41, 0.38, 0, 'bord'], [0.52, 0.52, 0.41, 0.38, 0, 'bord']] },
-      { name: 'Polaroids', cells: [[0.1, 0.06, 0.5, 0.42, -5, 'polaroid'], [0.42, 0.3, 0.5, 0.42, 4, 'polaroid'], [0.12, 0.54, 0.5, 0.42, -2, 'polaroid']] },
+      { name: 'Polaroids', cells: [[0.04, 0.03, 0.5, 0.46, -5, 'polaroid'], [0.56, 0.1, 0.4, 0.4, 4, 'polaroid'], [0.2, 0.52, 0.6, 0.45, -2, 'polaroid']] },
       { name: 'Timbres', cells: [[0.1, 0.1, 0.38, 0.32, -4, 'timbre'], [0.53, 0.2, 0.38, 0.32, 5, 'timbre'], [0.25, 0.56, 0.45, 0.36, -2, 'timbre']] },
-      { name: 'Bandeau', cells: [[0, 0, 1, 0.4, 0, 'aucun'], [0.08, 0.46, 0.4, 0.46, 3, 'washi'], [0.53, 0.5, 0.4, 0.42, -3, 'washi']] }
+      { name: 'Bandeau', cells: [[0, 0, 1, 0.4, 0, 'aucun'], [0.08, 0.46, 0.4, 0.46, 3, 'washi'], [0.53, 0.5, 0.4, 0.42, -3, 'washi']] },
+      { name: 'Colonne', cells: rows([1, 1, 1], { mx: 0.14 }) },
+      { name: 'De travers', cells: askew(rows([2, 1]), [-4, 3.5, -1.5], ['polaroid', 'polaroid', 'polaroid']) }
     ],
     4: [
       { name: 'Grille', cells: [[0.06, 0.05, 0.42, 0.42, 0, 'bord'], [0.52, 0.05, 0.42, 0.42, 0, 'bord'], [0.06, 0.52, 0.42, 0.42, 0, 'bord'], [0.52, 0.52, 0.42, 0.42, 0, 'bord']] },
       { name: 'Album', cells: [[0.08, 0.06, 0.4, 0.38, -2, 'coins'], [0.53, 0.1, 0.4, 0.34, 2, 'coins'], [0.07, 0.52, 0.4, 0.34, 1, 'coins'], [0.52, 0.5, 0.41, 0.4, -2, 'coins']] },
       { name: 'Vedette', cells: [[0.06, 0.04, 0.88, 0.48, 0, 'bord'], [0.05, 0.58, 0.29, 0.34, -3, 'polaroid'], [0.36, 0.6, 0.29, 0.34, 2, 'polaroid'], [0.67, 0.58, 0.29, 0.34, -1, 'polaroid']] },
-      { name: 'Bric-à-brac', cells: [[0.05, 0.05, 0.5, 0.36, -6, 'punaise'], [0.5, 0.12, 0.45, 0.33, 5, 'trombone'], [0.08, 0.5, 0.42, 0.4, 3, 'dechire'], [0.52, 0.52, 0.42, 0.36, -4, 'timbre']] }
+      { name: 'Bric-à-brac', cells: [[0.04, 0.04, 0.47, 0.38, -6, 'punaise'], [0.53, 0.1, 0.43, 0.34, 5, 'trombone'], [0.06, 0.5, 0.43, 0.4, 3, 'dechire'], [0.52, 0.52, 0.43, 0.38, -4, 'timbre']] },
+      { name: 'De travers', cells: askew(rows([2, 2]), TILT, ['polaroid']) }
     ],
     5: [
       { name: 'Mosaïque', cells: [[0.05, 0.04, 0.9, 0.36, 0, 'bord'], [0.05, 0.44, 0.43, 0.25, 0, 'bord'], [0.52, 0.44, 0.43, 0.25, 0, 'bord'], [0.05, 0.72, 0.43, 0.25, 0, 'bord'], [0.52, 0.72, 0.43, 0.25, 0, 'bord']] },
-      { name: 'Éparpillé', cells: [[0.04, 0.04, 0.46, 0.34, -6, 'polaroid'], [0.5, 0.06, 0.45, 0.33, 5, 'polaroid'], [0.27, 0.33, 0.46, 0.34, -2, 'polaroid'], [0.04, 0.62, 0.45, 0.34, 4, 'polaroid'], [0.51, 0.61, 0.45, 0.34, -5, 'polaroid']] },
+      { name: 'Éparpillé', cells: [[0.04, 0.03, 0.44, 0.3, -6, 'polaroid'], [0.52, 0.05, 0.44, 0.3, 5, 'polaroid'], [0.28, 0.36, 0.44, 0.28, -2, 'polaroid'], [0.04, 0.67, 0.44, 0.3, 4, 'polaroid'], [0.52, 0.67, 0.44, 0.3, -5, 'polaroid']] },
       { name: 'Collection de timbres', cells: [[0.07, 0.06, 0.4, 0.27, -3, 'timbre'], [0.53, 0.06, 0.4, 0.27, 2, 'timbre'], [0.3, 0.37, 0.4, 0.27, -1, 'timbre'], [0.07, 0.68, 0.4, 0.27, 3, 'timbre'], [0.53, 0.68, 0.4, 0.27, -2, 'timbre']] },
-      { name: 'Washi', cells: [[0.06, 0.05, 0.55, 0.38, -2, 'washi'], [0.63, 0.08, 0.32, 0.3, 4, 'washi'], [0.06, 0.48, 0.32, 0.3, 3, 'washi'], [0.4, 0.46, 0.55, 0.32, -3, 'washi'], [0.25, 0.79, 0.5, 0.18, 1, 'washi']] }
+      { name: 'Washi', cells: [[0.06, 0.05, 0.55, 0.38, -2, 'washi'], [0.63, 0.08, 0.32, 0.3, 4, 'washi'], [0.06, 0.48, 0.32, 0.3, 3, 'washi'], [0.4, 0.46, 0.55, 0.32, -3, 'washi'], [0.25, 0.79, 0.5, 0.18, 1, 'washi']] },
+      { name: 'Grille', cells: rows([2, 1, 2]) }
     ],
     6: [
       { name: 'Planche contact', cells: [[0.05, 0.04, 0.43, 0.29, 0, 'bord'], [0.52, 0.04, 0.43, 0.29, 0, 'bord'], [0.05, 0.355, 0.43, 0.29, 0, 'bord'], [0.52, 0.355, 0.43, 0.29, 0, 'bord'], [0.05, 0.67, 0.43, 0.29, 0, 'bord'], [0.52, 0.67, 0.43, 0.29, 0, 'bord']] },
-      { name: 'Polaroids', cells: [[0.03, 0.04, 0.46, 0.3, -5, 'polaroid'], [0.51, 0.05, 0.46, 0.3, 4, 'polaroid'], [0.05, 0.36, 0.46, 0.3, 3, 'polaroid'], [0.5, 0.36, 0.46, 0.3, -3, 'polaroid'], [0.03, 0.67, 0.46, 0.3, -2, 'polaroid'], [0.51, 0.68, 0.46, 0.3, 5, 'polaroid']] },
+      { name: 'Polaroids', cells: [[0.03, 0.04, 0.46, 0.3, -5, 'polaroid'], [0.51, 0.05, 0.46, 0.3, 4, 'polaroid'], [0.03, 0.36, 0.46, 0.3, 3, 'polaroid'], [0.52, 0.36, 0.45, 0.3, -3, 'polaroid'], [0.03, 0.67, 0.46, 0.3, -2, 'polaroid'], [0.51, 0.68, 0.46, 0.3, 5, 'polaroid']] },
       { name: 'Vedette et timbres', cells: [[0.05, 0.04, 0.9, 0.42, 0, 'coins'], [0.05, 0.52, 0.28, 0.2, -3, 'timbre'], [0.36, 0.52, 0.28, 0.2, 2, 'timbre'], [0.67, 0.52, 0.28, 0.2, -1, 'timbre'], [0.1, 0.76, 0.38, 0.2, 2, 'bord'], [0.52, 0.76, 0.38, 0.2, -2, 'bord']] },
-      { name: 'Souvenirs', cells: [[0.04, 0.04, 0.44, 0.27, -4, 'trombone'], [0.52, 0.05, 0.44, 0.3, 3, 'punaise'], [0.08, 0.36, 0.4, 0.28, 2, 'dechire'], [0.52, 0.4, 0.42, 0.26, -3, 'washi'], [0.05, 0.69, 0.44, 0.27, 3, 'coins'], [0.52, 0.7, 0.43, 0.26, -2, 'timbre']] }
+      { name: 'Souvenirs', cells: [[0.04, 0.04, 0.44, 0.27, -4, 'trombone'], [0.52, 0.05, 0.44, 0.3, 3, 'punaise'], [0.08, 0.36, 0.4, 0.28, 2, 'dechire'], [0.52, 0.4, 0.42, 0.26, -3, 'washi'], [0.05, 0.69, 0.44, 0.27, 3, 'coins'], [0.52, 0.7, 0.43, 0.26, -2, 'timbre']] },
+      { name: 'Mosaïque', cells: blocks(3, 3, [[0, 0, 2, 2], [2, 0, 1, 1], [2, 1, 1, 1], [0, 2, 1, 1], [1, 2, 1, 1], [2, 2, 1, 1]]) }
+    ],
+    7: [
+      { name: 'Mosaïque', cells: blocks(3, 4, [[0, 0, 3, 2], [0, 2, 1, 1], [1, 2, 1, 1], [2, 2, 1, 1], [0, 3, 1, 1], [1, 3, 1, 1], [2, 3, 1, 1]]) },
+      { name: 'De travers', cells: askew(rows([2, 3, 2]), TILT, ['polaroid']) },
+      { name: 'Grille', cells: rows([2, 3, 2]) },
+      { name: 'Collection de timbres', cells: askew(rows([3, 1, 3]), TILT, ['timbre'], 0.05) },
+      { name: 'Souvenirs', cells: askew(rows([2, 3, 2]), TILT, MIX) }
+    ],
+    8: [
+      { name: 'Grille', cells: blocks(2, 4, [[0, 0, 1, 1], [1, 0, 1, 1], [0, 1, 1, 1], [1, 1, 1, 1], [0, 2, 1, 1], [1, 2, 1, 1], [0, 3, 1, 1], [1, 3, 1, 1]]) },
+      { name: 'De travers', cells: askew(rows([3, 2, 3]), TILT, ['polaroid']) },
+      { name: 'Mosaïque', cells: blocks(3, 4, [[0, 0, 2, 2], [2, 0, 1, 1], [2, 1, 1, 1], [0, 2, 1, 1], [1, 2, 1, 1], [2, 2, 1, 2], [0, 3, 1, 1], [1, 3, 1, 1]]) },
+      { name: 'Collection de timbres', cells: askew(rows([3, 2, 3]), TILT, ['timbre'], 0.05) },
+      { name: 'Souvenirs', cells: askew(rows([3, 2, 3]), TILT, MIX) }
+    ],
+    9: [
+      { name: 'Grille', cells: rows([3, 3, 3]) },
+      { name: 'De travers', cells: askew(rows([3, 3, 3]), TILT, ['polaroid']) },
+      { name: 'Mosaïque', cells: blocks(3, 4, [[0, 0, 2, 2], [2, 0, 1, 1], [2, 1, 1, 1], [0, 2, 1, 1], [1, 2, 1, 1], [2, 2, 1, 1], [0, 3, 1, 1], [1, 3, 1, 1], [2, 3, 1, 1]]) },
+      { name: 'Collection de timbres', cells: askew(rows([3, 3, 3]), TILT, ['timbre'], 0.05) },
+      { name: 'Souvenirs', cells: askew(rows([3, 3, 3]), TILT, MIX) }
     ]
   };
-  /** Propositions pour n photos (3 à 6 ; 1 et 2 pour les pages du voyage) : [{name, items, cells}] — les photos les plus horizontales
-      vont dans les cases larges. opt : jitter ; area {x, y, w, h} (fractions de page : zone utilisée, sous un titre par exemple) ;
-      frame(cadre, i) → cadre imposé ; room(id) → part de la case (0 à 0,3) laissée sous la photo pour une légende. */
+  M.LAYOUTS = L;
+  M.MAXN = 9;
+  /** Cadres lourds (billet, étiquette, carte postale) illisibles en petit : simplifiés en bord blanc */
+  M.lightFrame = function (fr, w) {
+    if ((fr === 'ticket' || fr === 'etiquette') && w < 380) return 'bord';
+    if (fr === 'carte-postale' && w < 320) return 'bord';
+    return fr;
+  };
+  /** Répartition de n photos en pages de k au plus : sans « équilibrer », k, k, … et le reste (10 à 4 : 4 + 4 + 2) ;
+      en équilibrant, pages de tailles voisines sans dépasser k (10 à 4 : 4 + 3 + 3). k « auto » : 6 au plus, équilibré. */
+  M.split = function (n, k, eq) {
+    if (!(n > 0)) return [];
+    if (!(+k >= 1)) { k = 6; eq = true; }
+    k = Math.min(M.MAXN, Math.floor(+k));
+    const pages = Math.ceil(n / k), out = [];
+    for (let i = 0; i < pages; i++) out.push(eq ? Math.floor(n / pages) + (i < n % pages ? 1 : 0) : Math.min(k, n - i * k));
+    return out;
+  };
+  /** Propositions pour n photos (1 à 9) : [{name, items, cells}] — les photos les plus horizontales vont dans les cases larges.
+      opt : jitter ; area {x, y, w, h} (fractions de page : zone utilisée, sous un titre par exemple) ;
+      frame(cadre, i) → cadre imposé ; rot(i, rot) → inclinaison imposée ; room(id, largeur, hauteur de la case, inclinaison) → part de la case
+      (0 à 0,4) laissée sous la photo pour une légende. Chaque photo, inclinée comprise, tient dans sa case. */
   M.compose = function (mediaIds, opt) {
     opt = opt || {};
-    const n = Math.max(mediaIds.length < 3 ? 1 : 3, Math.min(6, mediaIds.length)), ids = mediaIds.slice(0, n);
+    const n = Math.max(1, Math.min(M.MAXN, mediaIds.length)), ids = mediaIds.slice(0, n);
     const ar0 = opt.area || { x: 0, y: 0, w: 1, h: 1 };
     const ratio = (id) => { const i = info[id] || {}; return i.w && i.h ? i.w / i.h : 4 / 3; };
     return (L[n] || []).map((lay, k) => {
@@ -294,14 +369,21 @@
       const assign = {}; byCell.forEach((c, i) => { assign[c.i] = byPhoto[i]; });
       const rects = [];
       const items = lay.cells.map((c, i) => {
-        const id = assign[i], fr = opt.frame ? opt.frame(c[5], i) : c[5];
+        const id = assign[i];
         const cw = c[2] * ar0.w * W, ch0 = c[3] * ar0.h * H, x0 = (ar0.x + c[0] * ar0.w) * W, y0 = (ar0.y + c[1] * ar0.h) * H;
-        const room = opt.room ? Math.max(0, Math.min(0.3, opt.room(id) || 0)) : 0, ch = ch0 * (1 - room);
-        const cx = x0 + cw / 2, cy = y0 + ch / 2;
+        let rot = opt.rot ? opt.rot(i, c[4]) : c[4];
+        if (opt.jitter) rot += (Math.random() - 0.5) * 2;
+        const room = opt.room ? Math.max(0, Math.min(0.4, opt.room(id, cw, ch0, rot) || 0)) : 0, ch = ch0 * (1 - room);
+        let fr = opt.frame ? opt.frame(c[5], i) : c[5];
+        fr = M.lightFrame(fr, cw);
         let w = cw, h = A.idealH(fr, w, info[id]);
         if (h > ch) { w = w * ch / h; h = ch; }
-        rects.push({ x: x0, y: y0, w: cw, h: ch0, rot: c[4], frame: fr, media: id });
-        return M.photoItem(id, { frame: fr, x: cx - w / 2, y: cy - h / 2, w, h, rot: c[4] + (opt.jitter ? (Math.random() - 0.5) * 2 : 0), seq: k });
+        // inclinée, la photo occupe une boîte plus grande : réduite pour rester dans sa case
+        const ra = Math.abs(rot) * Math.PI / 180, bw = w * Math.cos(ra) + h * Math.sin(ra), bh = w * Math.sin(ra) + h * Math.cos(ra);
+        const kf = Math.min(1, cw / bw, ch / bh); w *= kf; h *= kf;
+        const cx = x0 + cw / 2, cy = y0 + ch / 2;
+        rects.push({ x: x0, y: y0, w: cw, h: ch0, rot, frame: fr, media: id });
+        return M.photoItem(id, { frame: fr, x: cx - w / 2, y: cy - h / 2, w, h, rot, seq: k });
       });
       return { name: lay.name, items, cells: rects };
     });

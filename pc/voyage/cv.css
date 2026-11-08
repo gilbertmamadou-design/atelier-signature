@@ -223,17 +223,23 @@ html.calme *{transition:none!important}
   #pageNav .pgLabel{padding:6px 7px;font-size:12px}
   #edTop .ibtn{width:38px}
   #props{position:absolute;left:0;right:0;bottom:0;max-height:0;border-top:1px solid var(--line);border-radius:16px 16px 0 0;box-shadow:0 -6px 20px #3a240f30;transition:max-height .2s}
-  body.hasSel #props{max-height:62px;overflow:hidden}
-  body.hasSel.sheetOpen #props{max-height:48vh;overflow:auto}
+  /* panneau des réglages : titre ET onglets toujours visibles, poignée pour l'ouvrir en grand */
+  #props::before{content:"";display:block;width:44px;height:5px;border-radius:3px;background:var(--ink3);opacity:.45;margin:7px auto 0}
+  body.hasSel #props{max-height:calc(122px + var(--safeB));padding-bottom:var(--safeB);overflow:hidden;border-top:2px solid var(--line);box-shadow:0 -8px 26px #3a240f45}
+  #props .pHead{cursor:pointer}
+  body.hasSel.sheetOpen #props{max-height:calc(44vh + var(--safeB));overflow:auto}
   body.hasSel #tools{display:none}
-  body.hasSel #stage{margin-bottom:62px}
-  body.hasSel.sheetOpen #stage{margin-bottom:48vh}
+  body.hasSel #stage{margin-bottom:calc(122px + var(--safeB))}
+  body.hasSel.sheetOpen #stage{margin-bottom:calc(44vh + var(--safeB))}
   #props .chips.tabs{flex-wrap:nowrap;overflow-x:auto;padding:0 10px;margin:0}
   #props .chips.tabs .chip{flex:none}
   .covGrid{grid-template-columns:1fr}
   .covPv{width:150px;margin:0 auto}
   .o-dlg-wrap.cv-dlg{align-items:flex-end;padding:0}
-  .cv-dlg .o-dlg{width:100%;max-height:88vh;border-radius:18px 18px 0 0}
+  .cv-dlg .o-dlg{width:100%;max-height:calc(88vh - var(--safeT));border-radius:18px 18px 0 0}
+  /* boutons du bas au-dessus de la barre de navigation Android (flèches retour, accueil) */
+  .o-dlg-ft{padding-bottom:calc(12px + var(--safeB))}
+  .o-dlg-ft:empty{display:block;padding:0 0 var(--safeB);border:0}
 }
 /* ---------- PC ---------- */
 @media (min-width:900px){
@@ -260,3 +266,26 @@ html.pc .selbox .hd{width:12px;height:12px;margin:-7px 0 0 -7px}
 .vsb.on{border-color:var(--acc);box-shadow:0 0 0 2px #b5532f40;background:#fff}
 .vpDay{margin:12px 2px 6px;font-size:14px;color:var(--ink2)}
 .voyPick .trayGrid{max-height:none}
+
+/* Photos par page (réglage du carnet) et nombre de photos de Composer : grandes cases au doigt */
+.ppCtl{margin:10px 0 2px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--paper2)}
+.ppHd{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+.ppK,.cpK{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.ppK .chip,.cpK .chip{min-height:44px;padding:4px 0;text-align:center;font-size:15px}
+.cpK{grid-template-columns:repeat(9,1fr)}
+@media (max-width:520px){.cpK{grid-template-columns:repeat(5,1fr)}}
+@media (min-width:700px){.ppK{grid-template-columns:repeat(9,1fr)}}
+.ppEq{margin-top:8px}
+.ppEq input:disabled+span{opacity:.5}
+.ppHint{margin:6px 0 0;font-weight:600;color:var(--ink2)}
+.cpN{margin:0 0 6px}
+.cpN>b{display:block;margin-bottom:4px}
+.cpExtra{color:var(--acc);font-weight:600}
+.tph.extra{outline:3px dashed var(--acc2);outline-offset:-3px}
+.tph.extra span{background:var(--acc2)}
+.cpPP{margin-top:10px}
+.cpPP summary{cursor:pointer;display:flex;align-items:center;gap:6px;min-height:40px;font-size:14px;color:var(--ink2)}
+.cpPP summary .oi{width:18px;height:18px}
+.voyBan .ppB{gap:4px;padding:5px 10px}
+.voyBan .ppB .oi{width:16px;height:16px}
+.cvSet h5{margin:12px 0 2px}

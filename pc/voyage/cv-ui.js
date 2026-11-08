@@ -68,6 +68,7 @@
         { label: 'Ouvrir', icon: 'book-open', on: () => U.open(id) },
         { label: 'Diaporama', icon: 'play', on: async () => { await U.open(id); CV.X.show(-1); } },
         { label: 'Sauvegarde .magcarnet', icon: 'archive', on: async () => { await M.loadMedia(id); CV.X.saveFile(c); } },
+        { label: 'Réglages du carnet…', icon: 'sliders-horizontal', on: () => CV.V.carnetSettings(c) },
         { label: 'Supprimer…', icon: 'trash', danger: true, on: async () => { if (await O.confirm('Supprimer « ' + c.title + ' » ?', 'Le carnet et ses photos seront effacés de cet appareil (les photos d\'origine ne sont pas touchées).', 'Supprimer', true)) { await M.delCarnet(id); O.toast('Carnet supprimé'); U.home(); } } }
       ], { title: c.title });
     }
@@ -195,7 +196,7 @@
       '-',
       window.MAGPC ? null : { label: 'Actualiser les photos du voyage', icon: 'refresh-cw', on: () => CV.V.check(false) },
       window.MAGPC ? { label: 'Importer un dossier de voyage…', icon: 'folder-input', on: () => CV.V.importFolder() } : null,
-      { label: 'Style des pages du voyage…', icon: 'palette', on: () => CV.V.askStyle(E.c, true) },
+      { label: 'Réglages du carnet…', icon: 'sliders-horizontal', on: () => CV.V.carnetSettings(E.c) },
       '-',
       { label: E.view === 'double' ? 'Page simple' : 'Double page', icon: 'book-open', on: () => U.topClick({ target: { closest: () => ({ dataset: { top: 'view' } }) } }) },
       { label: 'Toutes les pages…', icon: 'layout-grid', on: () => U.pagesDialog() },
@@ -211,11 +212,19 @@
   U.photosMenu = function (at) {
     O.menu(at, [
       { label: window.MAGPC ? 'Ajouter des photos du PC…' : (window.MAGOffice ? 'Choisir dans la galerie…' : 'Ajouter des photos…'), icon: 'image-plus', on: () => U.addPhotos() },
+      window.MAGVoyage && window.MAGVoyage.ouvrirGalerie ? { label: 'Depuis ma Galerie…', icon: 'gallery-horizontal', on: () => U.fromGalerie() } : null,
       { label: 'Photos du carnet…', icon: 'images', on: () => U.tray() },
       window.MAGPC ? { label: 'Importer un dossier de voyage…', icon: 'folder-input', on: () => CV.V.importFolder() }
         : { label: 'Photos du voyage (appli Photo)…', icon: 'plane', on: () => { if (CV.V.check(false)) CV.V.choose(CV.V.pending.slice()); } },
-      E.c && E.c.pages.length ? { label: 'Composer une page (3 à 6 photos)…', icon: 'layout-dashboard', on: () => U.compose() } : null
+      { label: 'Photos par page : ' + CV.V.ppLabel(CV.V.pp(E.c)) + '…', icon: 'layout-grid', on: () => CV.V.ppDialog(E.c) },
+      E.c && E.c.pages.length ? { label: 'Composer une page (1 à 9 photos)…', icon: 'layout-dashboard', on: () => U.compose() } : null
     ], { title: 'Photos' });
+  };
+  /** Galerie (appli MAG) s'ouvre pour choisir des photos ; elle les renvoie dans ce carnet (U.receive) */
+  U.fromGalerie = function () {
+    if (!E.c) return;
+    let ok = false; try { ok = window.MAGVoyage.ouvrirGalerie(E.c.id, E.c.title || ''); } catch (e) { }
+    if (!ok) O.toast('L\u2019appli Galerie n\u2019est pas installée', { bad: true });
   };
   /** Choix des photos : sélecteur d'Android (plusieurs à la fois) ou fichiers du PC */
   U.pickImages = async function () {
@@ -271,14 +280,18 @@
     if (CV.settings.geo) U.geocode(added);
     return added;
   };
-  /** Pose les photos importées sur la page : composition automatique (3 à 6 sur une page vide) ou en cascade */
+  /** Pose les photos importées sur la page : « Photos par page » du carnet (1 à 9 : une ou plusieurs pages composées),
+      sinon (Automatique) composition automatique de 3 à 6 photos sur une page vide, ou en cascade */
   U.place = function (added) {
-    const page = E.page(E.pi), ids = added.map((m) => m.id);
+    const page = E.page(E.pi), ids = added.map((m) => m.id), pp = CV.V.pp(E.c);
+    U._lastAdd = { added, pi: E.pi };
+    const again = { label: 'Par page…', fn: () => U.placeAgain() };
+    if (pp.k !== 'auto' && page && !page.cover && (ids.length > 1 || pp.k === 1)) { U.placePages(ids, pp, again); return; }
     if (page && !page.cover && !page.items.length && ids.length >= 3 && ids.length <= 6) {
       const props = M.compose(ids); const p = props[1] || props[0];
       p.items.forEach((it) => page.items.push(it));
       E.renderItems(E.pi); E.select(p.items.map((x) => x.id)); E.commit('Ajouter des photos');
-      O.toast(ids.length + ' photos posées en « ' + p.name + ' » : « Composer » propose d\'autres agencements');
+      O.toast(ids.length + ' photos posées en « ' + p.name + ' » : « Composer » propose d\'autres agencements', { action: again, ms: 6000 });
       return;
     }
     const n = ids.length, sel = [];
@@ -288,7 +301,32 @@
       page.items.push(it); sel.push(it.id);
     });
     E.renderItems(E.pi); E.select(sel); E.commit('Ajouter des photos');
-    O.toast(n > 1 ? n + ' photos ajoutées' : 'Photo ajoutée');
+    O.toast(n > 1 ? n + ' photos ajoutées' : 'Photo ajoutée', n > 1 ? { action: again, ms: 6000 } : {});
+  };
+  /** Plusieurs photos réparties selon « Photos par page » : la page courante si elle est vide, puis des pages ajoutées après */
+  U.placePages = function (ids, pp, again) {
+    const sizes = M.split(ids.length, pp.k, pp.eq), bg = (E.page(E.pi) || {}).bg || 'creme';
+    let at = E.pi, k = 0, first = -1;
+    sizes.forEach((n, i) => {
+      let page = E.page(at);
+      if (!(i === 0 && page && !page.cover && !page.items.length)) { page = M.newPage(bg); E.c.pages.splice(at + 1, 0, page); at++; }
+      const chunk = ids.slice(k, k + n), caps = {}; k += n;
+      if (n === 1) caps[chunk[0]] = CV.V.soloCap(chunk[0]);   // pleine page avec légende
+      const props = CV.V.dress(chunk, { caps }), p = props[1] || props[0];
+      page.items = page.items.concat(p.items);
+      if (first < 0) first = at;
+    });
+    E.sel = []; E.render(); E.commit('Ajouter des photos'); U.pagesBar();
+    E.go(first, true);
+    O.toast(ids.length + ' photos sur ' + sizes.length + ' page' + (sizes.length > 1 ? 's' : '') + ' (' + sizes.join(' + ') + ')', { action: again, ms: 6000 });
+  };
+  /** « Par page… » juste après un ajout : autre réglage, les photos ajoutées sont reposées (l'ajout est défait puis refait) */
+  U.placeAgain = async function () {
+    const last = U._lastAdd; if (!last || !E.c) return;
+    const st = await CV.V.ppDialog(E.c, last.added.length); if (!st) return;
+    if (E.hist.undoLabel() !== 'Ajouter des photos') { O.toast('Réglage enregistré : il servira au prochain ajout'); return; }
+    E.hist.undo(); E.pi = Math.min(last.pi, E.c.pages.length - 1); E.sel = [];
+    U.place(last.added);
   };
   U.geocode = async function (ms) {
     let n = 0;
@@ -609,26 +647,87 @@
   };
 
   /* ---------------- Composer ---------------- */
+  // « Nombre de photos » (1 à 9) : la page est réagencée avec plus ou moins d'emplacements ; les photos de la page qui n'ont plus
+  // de place partent sur une ou plusieurs pages ajoutées juste après (« Photos par page » du carnet) : aucune n'est perdue.
+  // Page du voyage : titre gardé, cadres du style du carnet, légendes manuscrites refaites sous les photos.
+  /** Légendes de la page (textes rattachés à une photo, ou légende du voyage écrite en manuscrit) */
+  U.capsOf = function (page, ids) {
+    const set = new Set(ids), caps = {}, capIds = new Set();
+    (page.items || []).forEach((it) => {
+      if (it.type !== 'text') return;
+      let m = it.cap && set.has(it.cap) ? it.cap : '';
+      if (!m && !it.cap && it.font === 'manuscrit') m = ids.find((id) => { const ex = (M.info(id) || {}).exif || {}; return ex.legende && ex.legende.trim() === String(it.text).trim(); }) || '';
+      if (m) { caps[m] = caps[m] || it.text; capIds.add(it.id); }
+    });
+    return { caps, capIds };
+  };
+  /** Zone libre pour les photos : sous le titre ou la date du jour (en haut), au-dessus d'un texte du bas */
+  U.freeArea = function (page, kept) {
+    let top = 0, bot = H;
+    if (page.voyage || page.jour) top = CV.V.AREA.y * H;
+    kept.filter((it) => it.type === 'text').forEach((it) => {
+      const b = E.aabb(it), t = top, bb = bot;
+      if ((b[1] + b[3]) / 2 < H / 2) top = Math.max(top, b[3] + 10); else bot = Math.min(bot, b[1] - 10);
+      if (bot - top < H * 0.55) { top = t; bot = bb; }   // un texte au milieu de la page : ignoré
+    });
+    return { x: 0, y: top / H, w: 1, h: (bot - top) / H };
+  };
   U.compose = async function () {
     if (!E.c) return;
     if (E.pi < 0) { E.go(0, true); }
+    const V = CV.V, MAXN = M.MAXN;
     const all = (await M.mediaOf(E.c.id)).sort((a, b) => (a.exif && a.exif.t || a.added) - (b.exif && b.exif.t || b.added));
-    if (all.length < 3) { const v = await O.dialog({ title: 'Composer une page', body: '<p>Il faut au moins 3 photos dans le carnet (tu en as ' + all.length + ').</p>', buttons: [{ label: 'Fermer', value: null }, { label: 'Ajouter des photos…', value: 'add', primary: true }] }); if (v === 'add') U.addPhotos(); return; }
+    if (!all.length) { const v = await O.dialog({ title: 'Composer une page', body: '<p>Il n\'y a pas encore de photo dans ce carnet.</p>', buttons: [{ label: 'Fermer', value: null }, { label: 'Ajouter des photos…', value: 'add', primary: true }] }); if (v === 'add') U.addPhotos(); return; }
     await M.ensureUrls(all.map((m) => m.id));
-    const page = E.page(E.pi);
-    let pre = E.selItems().filter((x) => x.type === 'photo').map((x) => x.media);
-    if (pre.length < 3) pre = page.items.filter((x) => x.type === 'photo').map((x) => x.media);
-    if (pre.length < 3) { const used = M.mediaIds(E.c); pre = all.filter((m) => !used.has(m.id)).map((m) => m.id); }
-    if (pre.length < 3) pre = all.map((m) => m.id);
-    const chosen = new Set(pre.slice(0, 6));
+    const page = E.page(E.pi), byT = (a, b) => ((M.info(a) || {}).exif || {}).t - ((M.info(b) || {}).exif || {}).t || 0;
+    const onPage = Array.from(new Set(page.items.filter((x) => x.type === 'photo').map((x) => x.media))).filter((id) => M.info(id));
+    const used = M.mediaIds(E.c), pp = V.pp(E.c);
+    const free = () => all.map((m) => m.id).filter((id) => !used.has(id) && !chosen.includes(id));
+    let pre = Array.from(new Set(E.selItems().filter((x) => x.type === 'photo').map((x) => x.media)));
+    if (pre.length < 2) pre = onPage.slice();
+    if (!pre.length) pre = all.map((m) => m.id).filter((id) => !used.has(id));
+    if (!pre.length) pre = all.map((m) => m.id);
+    if (!onPage.length) pre = pre.slice(0, pp.k === 'auto' ? 6 : pp.k);
+    let chosen = pre.slice(0, MAXN);
+    const style = page.voyage && E.c.voyage && E.c.voyage.style ? E.c.voyage.style : '';
     const body = O.h('div', { cls: 'compose' });
-    let step = 1, props = [], where = page.items.some((x) => x.type === 'photo') ? 'here' : 'here';
+    let step = 1, props = [], where = 'here', kept = [], area = null, caps = {};
+    const extras = () => where === 'here' ? onPage.filter((id) => !chosen.includes(id)) : [];
+    const build = () => {
+      const k = U.capsOf(page, onPage.concat(chosen));
+      caps = {}; chosen.forEach((id) => { caps[id] = k.caps[id] || ((M.info(id) || {}).exif || {}).legende || (chosen.length === 1 ? V.soloCap(id) : ''); });
+      kept = where === 'here' ? page.items.filter((it) => it.type !== 'photo' && !k.capIds.has(it.id)) : [];
+      area = where === 'here' ? U.freeArea(page, kept) : { x: 0, y: 0, w: 1, h: 1 };
+      props = chosen.length ? V.dress(chosen, { style, area, caps }) : [];
+      U._capsAll = k.caps;
+    };
+    const nRow = () => '<div class="cpN"><b>Nombre de photos</b><div class="cpK" role="radiogroup" aria-label="Nombre de photos sur la page">' + Array.from({ length: MAXN }, (x, i) => i + 1).map((k) => '<button type="button" class="chip' + (chosen.length === k ? ' on' : '') + '" role="radio" aria-checked="' + (chosen.length === k) + '" data-cn="' + k + '">' + k + '</button>').join('') + '</div></div>';
+    const note = () => {
+      const ex = extras();
+      return '<p class="hint cpNote"><b id="cpN">' + chosen.length + '</b> photo' + (chosen.length > 1 ? 's' : '') + ' sur ' + (where === 'here' ? 'cette page' : 'la nouvelle page') + '.' +
+        (ex.length ? ' <span class="cpExtra">' + ex.length + ' photo' + (ex.length > 1 ? 's' : '') + ' de la page n\'' + (ex.length > 1 ? 'ont' : 'a') + ' plus de place : ' + (ex.length > 1 ? 'elles iront' : 'elle ira') + ' sur ' + (M.split(ex.length, pp.k, pp.eq).length > 1 ? M.split(ex.length, pp.k, pp.eq).length + ' nouvelles pages' : 'une nouvelle page') + ', juste après.</span>' : '') + '</p>';
+    };
+    const ppBox = () => '<details class="cpPP"><summary>' + ic('layout-grid') + 'Photos par page du carnet : <b class="cpPPv">' + esc(V.ppLabel(pp)) + '</b></summary>' + V.ppHtml(pp) + '<p class="hint">Sert aux photos en trop, aux imports du voyage et aux ajouts de plusieurs photos.</p></details>';
     const draw = () => {
+      const top = nRow() + note();
       if (step === 1) {
-        body.innerHTML = '<p class="hint"><b id="cpN">' + chosen.size + '</b> photo(s) choisie(s) — choisis-en de 3 à 6.</p><div class="trayGrid">' + all.map((m) => '<button type="button" class="tph sel' + (chosen.has(m.id) ? ' on' : '') + '" data-m="' + m.id + '"><img src="' + M.url(m.id) + '" alt=""><i>' + ic('check') + '</i></button>').join('') + '</div>';
+        body.innerHTML = top + '<div class="trayGrid">' + all.map((m) => '<button type="button" class="tph sel' + (chosen.includes(m.id) ? ' on' : '') + (extras().includes(m.id) ? ' extra' : '') + '" data-m="' + m.id + '"><img src="' + M.url(m.id) + '" alt=""><i>' + ic('check') + '</i>' + (extras().includes(m.id) ? '<span>Nouvelle page</span>' : '') + '</button>').join('') + '</div>' + ppBox();
       } else {
-        body.innerHTML = '<p class="hint">Touche l\'agencement qui te plaît.</p><div class="propGrid">' + props.map((p, i) => '<button class="prop" data-p="' + i + '">' + R.pageSvg(E.c, { id: 'cp' + i, bg: page.bg, items: p.items }, { pfx: 'cp' + i + '-', href: M.url, media: M.info }) + '<span>' + esc(p.name) + '</span></button>').join('') + '</div>' +
-          '<div class="chips"><button class="chip' + (where === 'here' ? ' on' : '') + '" data-w="here">Sur cette page</button><button class="chip' + (where === 'new' ? ' on' : '') + '" data-w="new">Sur une nouvelle page</button></div>';
+        build();
+        body.innerHTML = top + '<p class="hint">Touche l\'agencement qui te plaît.</p><div class="propGrid">' + props.map((p, i) => '<button class="prop" data-p="' + i + '">' + R.pageSvg(E.c, { id: 'cp' + i, bg: page.bg, items: kept.concat(p.items) }, { pfx: 'cp' + i + '-', href: M.url, media: M.info }) + '<span>' + esc(p.name) + '</span></button>').join('') + '</div>' +
+          '<div class="chips"><button class="chip' + (where === 'here' ? ' on' : '') + '" data-w="here">Sur cette page</button><button class="chip' + (where === 'new' ? ' on' : '') + '" data-w="new">Sur une nouvelle page</button></div>' + ppBox();
+      }
+      V.ppBind(body, pp, () => extras().length, () => { V.setPp(E.c, pp); const v = body.querySelector('.cpPPv'); if (v) v.textContent = V.ppLabel(pp); const n = body.querySelector('.cpNote'); if (n) n.outerHTML = note(); });
+    };
+    /** Nombre de photos choisi : on retire les dernières, ou on complète avec des photos pas encore posées */
+    const setN = (k) => {
+      if (k < chosen.length) chosen = chosen.slice(0, k);
+      else if (k > chosen.length) {
+        const add = free().slice(0, k - chosen.length);
+        // pas assez de photos libres : celles de la page qui étaient parties en trop reviennent d'abord
+        const back = onPage.filter((id) => !chosen.includes(id)).slice(0, k - chosen.length - add.length);
+        chosen = chosen.concat(back, add).slice(0, k);
+        if (chosen.length < k) O.toast('Plus de photo libre : choisis d\'autres photos dans la grille, ou ajoutes-en au carnet');
       }
     };
     draw();
@@ -636,36 +735,54 @@
       title: 'Composer une page', body, wide: true, cls: 'cv-dlg compose-dlg',
       onOpen: (w, close) => {
         body.addEventListener('click', (e) => {
+          const cn = e.target.closest('[data-cn]');
+          if (cn) { setN(+cn.dataset.cn); draw(); return; }
           const m = e.target.closest('[data-m]');
-          if (m) { const id = m.dataset.m; if (chosen.has(id)) chosen.delete(id); else if (chosen.size < 6) chosen.add(id); else O.toast('6 photos au plus'); m.classList.toggle('on', chosen.has(id)); $('#cpN', body).textContent = chosen.size; return; }
+          if (m) { const id = m.dataset.m; if (chosen.includes(id)) chosen = chosen.filter((x) => x !== id); else if (chosen.length < MAXN) chosen.push(id); else O.toast(MAXN + ' photos au plus par page'); draw(); return; }
           const p = e.target.closest('[data-p]'); if (p) { close('p' + p.dataset.p); return; }
-          const wh = e.target.closest('[data-w]'); if (wh) { where = wh.dataset.w; $$('[data-w]', body).forEach((b) => b.classList.toggle('on', b === wh)); }
+          const wh = e.target.closest('[data-w]'); if (wh) { where = wh.dataset.w; draw(); }
         });
         const go = w.querySelector('.o-dlg-ft .pri'); go.id = 'cpGo';
       },
       buttons: [{ label: 'Annuler', value: null }, { label: 'Composer', primary: true, onClick: (close, w) => {
         const go = w.querySelector('#cpGo');
-        if (step === 1) { if (chosen.size < 3) { O.toast('Choisis au moins 3 photos', { bad: true }); return false; } props = M.compose(Array.from(chosen)); step = 2; go.textContent = 'Autres photos'; draw(); }
+        if (step === 1) { if (!chosen.length) { O.toast('Choisis au moins une photo', { bad: true }); return false; } step = 2; go.textContent = 'Autres photos'; draw(); }
         else { step = 1; go.textContent = 'Composer'; draw(); }
         return false;
       } }]
     });
     if (!v || v[0] !== 'p') return;
+    if (!props.length) build();
     const p = props[+v.slice(1)];
-    let pi = E.pi;
-    if (where === 'new') { E.c.pages.splice(E.pi + 1, 0, M.newPage(page.bg)); pi = E.pi + 1; }
-    const tgt = E.page(pi);
-    if (where === 'here') { for (let i = tgt.items.length - 1; i >= 0; i--) if (tgt.items[i].type === 'photo' && chosen.has(tgt.items[i].media)) tgt.items.splice(i, 1); }
-    p.items.forEach((it) => tgt.items.push(it));
-    E.sel = p.items.map((x) => x.id);
+    let pi = E.pi, more = 0;
+    const ex = extras();
+    if (where === 'new') {
+      const np = M.newPage(page.bg); np.items = p.items.slice();
+      E.c.pages.splice(E.pi + 1, 0, np); pi = E.pi + 1;
+    } else {
+      const capsAll = U._capsAll || {};
+      page.items = kept.concat(p.items);
+      // photos de la page sans place : pages ajoutées juste après (jamais perdues)
+      if (ex.length) more = V.morePages(E.c, pi, ex, page, capsAll);
+    }
+    E.sel = p.items.filter((x) => x.type === 'photo').map((x) => x.id);
     E.pi = pi; E.render(); E.commit('Composer « ' + p.name + ' »'); U.pagesBar(); E.onPage();
-    O.toast('Page composée : « ' + p.name + ' »');
+    O.toast('Page composée : « ' + p.name + ' »' + (ex.length ? ' · ' + ex.length + ' photo' + (ex.length > 1 ? 's' : '') + ' sur ' + (more > 1 ? more + ' nouvelles pages' : 'une nouvelle page') : ''), ex.length ? { ms: 5000 } : {});
   };
 
   /* ---------------- Panneau des propriétés ---------------- */
   const SEC = {};
   U.sheetTab = null;
   U.openSheet = function () { document.body.classList.add('sheetOpen'); };
+  (function () {   // tirer la poignée du panneau vers le haut pour l'ouvrir, vers le bas pour le replier
+    let y0 = null;
+    document.addEventListener('touchstart', (e) => { const p = $('#props'); if (!p || !PHONE() || !document.body.classList.contains('hasSel')) return; const r = p.getBoundingClientRect(); const y = e.touches[0].clientY; y0 = y >= r.top && y <= r.top + 64 ? y : null; }, { passive: true });
+    document.addEventListener('touchend', (e) => {
+      if (y0 == null) return; const dy = e.changedTouches[0].clientY - y0; y0 = null;
+      if (dy < -30 && !document.body.classList.contains('sheetOpen')) { document.body.classList.add('sheetOpen'); U.props(); }
+      else if (dy > 30 && document.body.classList.contains('sheetOpen')) { document.body.classList.remove('sheetOpen'); U.props(); }
+    }, { passive: true });
+  })();
   U.props = function () {
     const box = $('#props'); if (!box || !E.c) return;
     const its = E.selItems();
@@ -761,6 +878,8 @@
   };
   // événements du panneau (délégués)
   U.propsClick = function (e) {
+    // toucher le titre ou la poignée du panneau : l'ouvrir en grand ou le replier (téléphone)
+    if (PHONE() && document.body.classList.contains('hasSel') && !e.target.closest('button') && (e.target.closest('.pHead') || e.target === $('#props'))) { document.body.classList.toggle('sheetOpen'); U.props(); return; }
     const t = e.target.closest('button'); if (!t) return;
     const its = E.selItems(), it = its[0], d = t.dataset;
     if (d.bg && !it) { U.setBg(d.bg); $$('#props .bgb').forEach((b) => b.classList.toggle('on', b === t)); return; }
@@ -854,6 +973,10 @@
       catch (e) { U.progress('', 1)(-1); O.alert('Fichier illisible', '<p>' + esc(x.name) + ' : ' + esc(e.message) + '</p>'); }
     }
     if (imgs.length) {
+      // photos envoyées par Galerie avec le carnet choisi : {open:id} ou {nouveau:titre}
+      let want = {}; try { const r = window.MAGVoyage && window.MAGVoyage.carnetDemande && window.MAGVoyage.carnetDemande(); if (r) want = JSON.parse(r); } catch (e) { }
+      if (want.open && (!E.c || E.c.id !== want.open)) { const c = await M.getCarnet(want.open); if (c) await U.open(c.id); }
+      else if (want.nouveau) { const n = M.newCarnet({ title: want.nouveau }); await M.putCarnet(n); await U.open(n.id, 0); }
       if (!E.c) { const last = localStorage.getItem('voyage.last'); const c = last && await M.getCarnet(last); if (c) await U.open(c.id); else { const n = M.newCarnet({ title: 'Nouveau voyage' }); await M.putCarnet(n); await U.open(n.id, 0); } }
       if (E.pi < 0) E.go(0, true);
       U.addPhotos(imgs.map((x) => ({ blob: x.blob, name: x.name })));

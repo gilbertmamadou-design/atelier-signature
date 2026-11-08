@@ -18,6 +18,27 @@
 <link rel="stylesheet" href="../shared/office/office.css">
 <link rel="stylesheet" href="../shared/vendor/fonts-carnet/fonts.css">
 <link rel="stylesheet" href="cv.css">
+<script>
+/* Barres système d'Android : la page passe dessous (bord à bord). env(safe-area-inset-*) vaut parfois 0 dans la WebView,
+   on prend alors la hauteur réelle donnée par l'appli (MAGVoyage.barres) pour garder les boutons du bas au-dessus des flèches. */
+(function(){
+  function barres(){
+    try{
+      var v = window.MAGVoyage; if(!v || !v.barres) return;
+      var b = JSON.parse(v.barres() || '{}'), r = document.documentElement.style;
+      // seulement si la page passe vraiment sous les barres : sinon (barres opaques) la marge serait en trop
+      var gap = (screen.height || 0) - window.innerHeight, top = 0, bot = 0;
+      if(gap <= 6){ top = b.haut || 0; bot = b.bas || 0; }
+      else if(b.bas && Math.abs(gap - b.bas) <= 8) top = b.haut || 0;
+      else if(b.haut && Math.abs(gap - b.haut) <= 8) bot = b.bas || 0;
+      r.setProperty('--safeB', bot > 0 ? 'max(env(safe-area-inset-bottom,0px), '+bot+'px)' : 'env(safe-area-inset-bottom,0px)');
+      r.setProperty('--safeT', top > 0 ? 'max(env(safe-area-inset-top,0px), '+top+'px)' : 'env(safe-area-inset-top,0px)');
+    }catch(e){}
+  }
+  barres(); addEventListener('load', barres); addEventListener('resize', function(){ setTimeout(barres, 200); }); addEventListener('orientationchange', function(){ setTimeout(barres, 300); });
+  setTimeout(barres, 800);
+})();
+</script>
 </head>
 <body data-screen="home">
 <section id="home" class="screen">

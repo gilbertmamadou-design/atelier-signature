@@ -265,3 +265,26 @@ html.pc .selbox .hd{width:12px;height:12px;margin:-7px 0 0 -7px}
 .vsb.on{border-color:var(--acc);box-shadow:0 0 0 2px #b5532f40;background:#fff}
 .vpDay{margin:12px 2px 6px;font-size:14px;color:var(--ink2)}
 .voyPick .trayGrid{max-height:none}
+
+/* Photos par page (réglage du carnet) et nombre de photos de Composer : grandes cases au doigt */
+.ppCtl{margin:10px 0 2px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--paper2)}
+.ppHd{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+.ppK,.cpK{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.ppK .chip,.cpK .chip{min-height:44px;padding:4px 0;text-align:center;font-size:15px}
+.cpK{grid-template-columns:repeat(9,1fr)}
+@media (max-width:520px){.cpK{grid-template-columns:repeat(5,1fr)}}
+@media (min-width:700px){.ppK{grid-template-columns:repeat(9,1fr)}}
+.ppEq{margin-top:8px}
+.ppEq input:disabled+span{opacity:.5}
+.ppHint{margin:6px 0 0;font-weight:600;color:var(--ink2)}
+.cpN{margin:0 0 6px}
+.cpN>b{display:block;margin-bottom:4px}
+.cpExtra{color:var(--acc);font-weight:600}
+.tph.extra{outline:3px dashed var(--acc2);outline-offset:-3px}
+.tph.extra span{background:var(--acc2)}
+.cpPP{margin-top:10px}
+.cpPP summary{cursor:pointer;display:flex;align-items:center;gap:6px;min-height:40px;font-size:14px;color:var(--ink2)}
+.cpPP summary .oi{width:18px;height:18px}
+.voyBan .ppB{gap:4px;padding:5px 10px}
+.voyBan .ppB .oi{width:16px;height:16px}
+.cvSet h5{margin:12px 0 2px}

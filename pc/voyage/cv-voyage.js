@@ -4,7 +4,8 @@
    Téléphone : à l'ouverture d'un carnet (et « Actualiser les photos du voyage »), les nouvelles photos de
    DCIM/Photo/Voyage/<titre> sont lues par le fournisseur protégé de Photo (MAGVoyage.photos / photoLire : index du
    voyage, mêmes données que voyage.json, photo d'origine avec sa position GPS). Bandeau « N nouvelles photos du voyage » :
-   Ajouter (tout) ou Choisir… (grille). Une page par jour (plusieurs s'il y en a beaucoup), mise en page par Composer
+   Ajouter (tout) ou Choisir… (grille). Une page par jour (plusieurs s'il y en a beaucoup : « Photos par page », réglage du
+   carnet, Automatique = 6 au plus, ou 1 à 9 avec « Équilibrer » ; jamais deux jours sur une page), mise en page par Composer
    (M.compose), titre = date en français + lieu principal du jour, légendes en manuscrit, cadres selon le style choisi une
    fois (Classique, Timbres, Polaroid, Mélange). Étapes ajoutées à la carte de l'itinéraire, sans doublon de ville.
    Mémoire par carnet (c.voyage.imp, clé « dossier/fichier ») : une photo n'est jamais ajoutée deux fois, et une photo
@@ -32,11 +33,11 @@
     ['melange', 'Mélange', 'Polaroid, timbres, washi, coins photo…']
   ];
   // agencement de Composer préféré, selon le style et le nombre de photos de la page
-  const PREF = {
-    classique: { 1: 'Vedette', 2: 'Duo empilé', 3: 'Classique', 4: 'Grille', 5: 'Mosaïque', 6: 'Planche contact' },
-    timbres: { 1: 'Vedette', 2: 'Duo empilé', 3: 'Timbres', 4: 'Album', 5: 'Collection de timbres', 6: 'Planche contact' },
-    polaroid: { 1: 'Vedette', 2: 'Duo empilé', 3: 'Classique', 4: 'Album', 5: 'Mosaïque', 6: 'Planche contact' },   // sans chevauchement : légendes lisibles
-    melange: { 1: 'Vedette', 2: 'Duo', 3: 'Bandeau', 4: 'Bric-à-brac', 5: 'Washi', 6: 'Souvenirs' }
+  const PREF = VX.PREF = {
+    classique: { 1: 'Pleine page', 2: 'Duo empilé', 3: 'Classique', 4: 'Grille', 5: 'Mosaïque', 6: 'Planche contact', 7: 'Mosaïque', 8: 'Grille', 9: 'Grille' },
+    timbres: { 1: 'Pleine page', 2: 'Duo empilé', 3: 'Timbres', 4: 'Album', 5: 'Collection de timbres', 6: 'Planche contact', 7: 'Collection de timbres', 8: 'Collection de timbres', 9: 'Collection de timbres' },
+    polaroid: { 1: 'Vedette', 2: 'Duo empilé', 3: 'Classique', 4: 'Album', 5: 'Mosaïque', 6: 'Planche contact', 7: 'De travers', 8: 'De travers', 9: 'De travers' },   // légendes lisibles
+    melange: { 1: 'Vedette', 2: 'Duo', 3: 'Bandeau', 4: 'Bric-à-brac', 5: 'Washi', 6: 'Souvenirs', 7: 'Souvenirs', 8: 'Souvenirs', 9: 'Souvenirs' }
   };
   const FRAME = { classique: () => 'bord', timbres: () => 'timbre', polaroid: () => 'polaroid', melange: (f) => f === 'aucun' ? 'bord' : f };
   const TITLE = {
@@ -69,11 +70,81 @@
     list.forEach((e) => { const v = (e.ville || '').trim(); if (!v) return; n[v] = (n[v] || 0) + 1; if (n[v] > bn) { bn = n[v]; best = v; } });
     return best;
   };
-  /** Répartit n photos en pages de 6 au plus, de tailles voisines (7 → 4 + 3) */
-  VX.chunks = function (list) {
-    const n = list.length, pages = Math.max(1, Math.ceil(n / 6)), out = []; let k = 0;
-    for (let i = 0; i < pages; i++) { const size = Math.floor(n / pages) + (i < n % pages ? 1 : 0); out.push(list.slice(k, k + size)); k += size; }
-    return out;
+  /** Répartit une liste en pages selon « Photos par page » (pp : {k, eq} ; sans pp : automatique, 6 au plus, 7 → 4 + 3) */
+  VX.chunks = function (list, pp) {
+    const sizes = M.split(list.length, pp ? pp.k : 'auto', pp ? pp.eq : true), out = []; let k = 0;
+    sizes.forEach((n) => { out.push(list.slice(k, k + n)); k += n; });
+    return out.length ? out : [list.slice()];
+  };
+
+  /* ---------------- Photos par page : réglage du carnet ---------------- */
+  VX.PP = ['auto', 1, 2, 3, 4, 5, 6, 8, 9];
+  /** Réglage du carnet : {k: 'auto' | 1…9, eq: équilibrer} */
+  VX.pp = function (c) { const p = (c && c.parPage) || {}; const k = VX.PP.includes(+p.k) ? +p.k : 'auto'; return { k, eq: p.eq !== false }; };
+  VX.setPp = function (c, st) {
+    if (!c) return;
+    c.parPage = { k: st.k === 'auto' ? 'auto' : +st.k, eq: st.eq !== false };
+    persist(c);
+  };
+  const persist = (c) => { if (E.c && E.c.id === c.id) E.save(); else { c.updated = Date.now(); M.putCarnet(c).catch(() => { }); } };
+  VX.ppLabel = (st) => st.k === 'auto' ? 'Auto' : st.k + ' par page';
+  const sizesTxt = (l) => l.length > 6 ? l.slice(0, 5).join(' + ') + ' + … (' + l.length + ' pages)' : l.join(' + ');
+  /** Résumé de la répartition : photos d'un voyage (par jour) ou simple nombre de photos */
+  VX.ppPlan = function (st, what) {
+    if (Array.isArray(what) && what.length && what[0] && what[0].date != null) {
+      const by = {}; what.forEach((e) => { const d = dayKey(e.date || Date.now()); by[d] = (by[d] || 0) + 1; });
+      const days = Object.keys(by).sort(), per = days.map((d) => M.split(by[d], st.k, st.eq)), pages = per.reduce((s, l) => s + l.length, 0);
+      return what.length + ' photo' + (what.length > 1 ? 's' : '') + (days.length > 1 ? ' sur ' + days.length + ' jours' : '') + ' → ' + pages + ' page' + (pages > 1 ? 's' : '') + ' (' + (days.length > 1 ? per.map((l) => l.join('+')).join(' · ') : sizesTxt(per[0])) + ')';
+    }
+    const n = Array.isArray(what) ? what.length : +what;
+    if (!n) return st.k === 'auto' ? 'Automatique : de 1 à 6 photos par page, selon le nombre.' : 'Ex. : 10 photos → ' + sizesTxt(M.split(10, st.k, st.eq));
+    const l = M.split(n, st.k, st.eq);
+    return n + ' photo' + (n > 1 ? 's' : '') + ' → ' + l.length + ' page' + (l.length > 1 ? 's' : '') + ' (' + sizesTxt(l) + ')';
+  };
+  /** Choix « Photos par page » (Automatique, 1 à 6, 8, 9) et « Équilibrer » : HTML, puis VX.ppBind */
+  VX.ppHtml = function (st, title) {
+    return '<div class="ppCtl"><div class="ppHd"><b>' + esc(title || 'Photos par page') + '</b></div><div class="ppK" role="radiogroup" aria-label="Photos par page">' +
+      VX.PP.map((k) => '<button type="button" class="chip' + (st.k === k ? ' on' : '') + '" role="radio" aria-checked="' + (st.k === k) + '" data-ppk="' + k + '"' + (k === 'auto' ? ' title="Automatique : comme avant, 6 au plus"' : ' aria-label="' + k + ' par page"') + '>' + (k === 'auto' ? 'Auto' : k) + '</button>').join('') + '</div>' +
+      '<label class="o-check ppEq"><input type="checkbox" data-ppeq' + (st.eq ? ' checked' : '') + (st.k === 'auto' ? ' disabled' : '') + '><span>Équilibrer (pages de tailles voisines : 10 à 4 par page → 4 + 3 + 3)</span></label>' +
+      '<p class="hint ppHint"></p></div>';
+  };
+  /** Branche le choix : st modifié sur place, hint recalculé (what : liste ou nombre), onChange(st) */
+  VX.ppBind = function (root, st, what, onChange) {
+    const ctl = root.querySelector('.ppCtl'); if (!ctl) return;
+    const hint = () => { const h = ctl.querySelector('.ppHint'); if (h) h.textContent = VX.ppPlan(st, typeof what === 'function' ? what() : what); };
+    hint();
+    ctl.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-ppk]'); if (!b) return;
+      st.k = b.dataset.ppk === 'auto' ? 'auto' : +b.dataset.ppk;
+      ctl.querySelectorAll('[data-ppk]').forEach((x) => { x.classList.toggle('on', x === b); x.setAttribute('aria-checked', String(x === b)); });
+      ctl.querySelector('[data-ppeq]').disabled = st.k === 'auto';
+      hint(); if (onChange) onChange(st);
+    });
+    ctl.addEventListener('change', (e) => { if (e.target.matches('[data-ppeq]')) { st.eq = e.target.checked; hint(); if (onChange) onChange(st); } });
+    ctl._hint = hint;
+  };
+  /** Petite feuille « Photos par page » (bandeau, menu Photos, après un ajout) → réglage enregistré, ou null si annulé */
+  VX.ppDialog = async function (c, what) {
+    c = c || E.c; if (!c) return null;
+    const st = VX.pp(c), body = O.h('div', { cls: 'ppDlg' });
+    body.innerHTML = VX.ppHtml(st) + '<p class="hint">Réglage du carnet « ' + esc(c.title) + ' » : il sert aux imports du voyage, aux ajouts de plusieurs photos et aux photos en trop de « Composer ». Aussi dans ⋮ › Réglages du carnet.</p>';
+    VX.ppBind(body, st, what);
+    const v = await O.dialog({ title: 'Photos par page', body, cls: 'cv-dlg', buttons: [{ label: 'Annuler', value: null }, { label: 'OK', value: 'ok', primary: true }] });
+    if (v !== 'ok') return null;
+    VX.setPp(c, st); VX.banner($('#voyBan') ? VX.pending.length : 0);
+    return st;
+  };
+  /** Réglages du carnet : style des pages du voyage et photos par page (enregistrés aussitôt) */
+  VX.carnetSettings = async function (c) {
+    c = c || E.c; if (!c) return;
+    const memo = VX.memo(c), st = VX.pp(c), body = O.h('div', { cls: 'voyStyles cvSet' });
+    body.innerHTML = VX.ppHtml(st) + '<h5>Style des pages du voyage</h5>' +
+      VX.STYLES.map((s) => '<button type="button" class="vsb' + (s[0] === (memo.style || '') ? ' on' : '') + '" data-st="' + s[0] + '"><b>' + esc(s[1]) + '</b><small>' + esc(s[2]) + '</small></button>').join('') +
+      '<p class="hint">Ces réglages valent pour les prochaines pages de ce carnet ; les pages déjà faites se réagencent avec « Composer ».</p>';
+    VX.ppBind(body, st, 0, () => VX.setPp(c, st));
+    body.addEventListener('click', (e) => { const b = e.target.closest('[data-st]'); if (!b) return; memo.style = b.dataset.st; $$('.vsb', body).forEach((x) => x.classList.toggle('on', x === b)); persist(c); });
+    await O.dialog({ title: 'Réglages du carnet', body, cls: 'cv-dlg', buttons: [{ label: 'Fermer', value: null, primary: true }] });
+    VX.banner($('#voyBan') ? VX.pending.length : 0);
   };
 
   /* ---------------- Événements du pont (photos, vignettes, ville) ---------------- */
@@ -128,33 +199,37 @@
         const a = e.target.closest('[data-vb]'); if (!a) return;
         if (a.dataset.vb === 'add') VX.add(VX.pending.slice());
         else if (a.dataset.vb === 'pick') VX.choose(VX.pending.slice());
+        else if (a.dataset.vb === 'pp') VX.ppDialog(E.c, VX.pending.slice());
         else VX.banner(0);
       });
     }
     b.innerHTML = '<span class="vbIc">' + ic('plane') + '</span><b>' + n + ' nouvelle' + (n > 1 ? 's' : '') + ' photo' + (n > 1 ? 's' : '') + ' du voyage</b>' +
-      '<button class="btn pri" data-vb="add">' + ic('image-plus') + 'Ajouter</button><button class="btn" data-vb="pick">Choisir…</button><button class="ibtn" data-vb="x" aria-label="Plus tard">' + ic('x') + '</button>';
+      '<button class="btn pri" data-vb="add">' + ic('image-plus') + 'Ajouter</button><button class="btn" data-vb="pick">Choisir…</button>' +
+      '<button class="btn ppB" data-vb="pp" title="Photos par page" aria-label="Photos par page : ' + esc(VX.ppLabel(VX.pp(E.c))) + '">' + ic('layout-grid') + esc(VX.pp(E.c).k === 'auto' ? 'Auto' : VX.pp(E.c).k + '/page') + '</button><button class="ibtn" data-vb="x" aria-label="Plus tard">' + ic('x') + '</button>';
   };
 
   /** Grille de sélection : les photos non cochées peuvent être écartées pour de bon */
   VX.choose = async function (list) {
     if (!list.length) return;
     const body = O.h('div', { cls: 'tray voyPick' });
-    const chosen = new Set(list.map((e, i) => i));
+    const chosen = new Set(list.map((e, i) => i)), st = VX.pp(E.c);
     const byDay = {}; list.forEach((e, i) => { (byDay[dayKey(e.date)] = byDay[dayKey(e.date)] || []).push(i); });
     body.innerHTML = '<p class="hint"><b id="vpN">' + list.length + '</b> photo(s) cochée(s) sur ' + list.length + '.</p>' +
       Object.keys(byDay).sort().map((d) => '<h5 class="vpDay">' + esc(VX.dayTitle(d, VX.mainPlace(byDay[d].map((i) => list[i])))) + '</h5><div class="trayGrid">' +
         byDay[d].map((i) => { const e = list[i]; return '<button type="button" class="tph sel on" data-vi="' + i + '"><img alt="" data-vt="' + i + '"' + (e.url ? ' src="' + esc(e.url) + '"' : '') + '><i>' + ic('check') + '</i>' + (e.legende ? '<span>' + esc(e.legende) + '</span>' : '') + '</button>'; }).join('') + '</div>').join('') +
-      '<label class="o-check"><input type="checkbox" id="vpForget" checked><span>Ne plus proposer les photos non cochées</span></label>';
+      '<label class="o-check"><input type="checkbox" id="vpForget" checked><span>Ne plus proposer les photos non cochées</span></label>' + VX.ppHtml(st);
     const fill = async () => { if (!B()) return; for (let i = 0; i < list.length; i++) { const im = body.querySelector('[data-vt="' + i + '"]'); if (!im || im.src) continue; const d = await thumbOf(list[i].id); if (d) im.src = d; } };
     const v = await O.dialog({
       title: 'Photos du voyage', body, wide: true, cls: 'cv-dlg',
       onOpen: () => {
         fill();
-        body.addEventListener('click', (e) => { const b = e.target.closest('[data-vi]'); if (!b) return; const i = +b.dataset.vi; if (chosen.has(i)) chosen.delete(i); else chosen.add(i); b.classList.toggle('on', chosen.has(i)); $('#vpN', body).textContent = chosen.size; });
+        VX.ppBind(body, st, () => list.filter((e, i) => chosen.has(i)));
+        body.addEventListener('click', (e) => { const b = e.target.closest('[data-vi]'); if (!b) return; const i = +b.dataset.vi; if (chosen.has(i)) chosen.delete(i); else chosen.add(i); b.classList.toggle('on', chosen.has(i)); $('#vpN', body).textContent = chosen.size; const c = $('.ppCtl', body); if (c && c._hint) c._hint(); });
       },
       buttons: [{ label: 'Annuler', value: null }, { label: 'Ajouter au carnet', value: 'ok', primary: true }]
     });
     if (v !== 'ok') return;
+    VX.setPp(E.c, st);
     const forget = $('#vpForget', body).checked;
     const pick = list.filter((e, i) => chosen.has(i)), drop = list.filter((e, i) => !chosen.has(i));
     if (forget && drop.length) { const memo = VX.memo(E.c); drop.forEach((e) => { memo.imp[VX.cle(e)] = ''; }); E.save(); }
@@ -162,21 +237,23 @@
     else { VX.check(true); E.saveNow(); }
   };
 
-  /** Style des pages, choisi une fois par carnet */
-  VX.askStyle = async function (c, force) {
+  /** Style des pages, choisi une fois par carnet (avec « Photos par page ») ; opt : {list (photos à importer), title, ok} :
+      feuille d'import montrée même si le style est déjà choisi (« Importer un dossier de voyage ») */
+  VX.askStyle = async function (c, force, opt) {
+    opt = opt || {};
     const memo = VX.memo(c);
     if (memo.style && !force) return memo.style;
     let st = memo.style || 'melange';
-    const body = O.h('div', { cls: 'voyStyles' });
-    body.innerHTML = '<p class="hint">Une page par journée, titre avec la date et le lieu, légendes écrites à la main. Le style vaut pour tout le carnet (modifiable ensuite dans « Photos du voyage »).</p>' +
-      VX.STYLES.map((s) => '<button type="button" class="vsb' + (s[0] === st ? ' on' : '') + '" data-st="' + s[0] + '"><b>' + esc(s[1]) + '</b><small>' + esc(s[2]) + '</small></button>').join('');
+    const pp = VX.pp(c), body = O.h('div', { cls: 'voyStyles' });
+    body.innerHTML = '<p class="hint">Une page par journée (jamais deux jours sur une page), titre avec la date et le lieu, légendes écrites à la main. Le style vaut pour tout le carnet (modifiable ensuite dans ⋮ › Réglages du carnet).</p>' +
+      VX.STYLES.map((s) => '<button type="button" class="vsb' + (s[0] === st ? ' on' : '') + '" data-st="' + s[0] + '"><b>' + esc(s[1]) + '</b><small>' + esc(s[2]) + '</small></button>').join('') + VX.ppHtml(pp);
     const v = await O.dialog({
-      title: 'Style des pages du voyage', body, cls: 'cv-dlg',
-      onOpen: () => body.addEventListener('click', (e) => { const b = e.target.closest('[data-st]'); if (!b) return; st = b.dataset.st; $$('.vsb', body).forEach((x) => x.classList.toggle('on', x === b)); }),
-      buttons: [{ label: 'Annuler', value: null }, { label: 'Choisir', value: 'ok', primary: true }]
+      title: opt.title || 'Style des pages du voyage', body, cls: 'cv-dlg',
+      onOpen: () => { VX.ppBind(body, pp, opt.list || 0); body.addEventListener('click', (e) => { const b = e.target.closest('[data-st]'); if (!b) return; st = b.dataset.st; $$('.vsb', body).forEach((x) => x.classList.toggle('on', x === b)); }); },
+      buttons: [{ label: 'Annuler', value: null }, { label: opt.ok || 'Choisir', value: 'ok', primary: true }]
     });
     if (v !== 'ok') return null;
-    memo.style = st; E.save();
+    memo.style = st; VX.setPp(c, pp); E.save();
     return st;
   };
 
@@ -189,6 +266,7 @@
     if (!style) return 0;
     VX.banner(0);
     const memo = VX.memo(c);
+    if (!memo.style) memo.style = style;   // style imposé (essais, Majordome) : retenu pour le carnet
     list = list.filter((e) => !(VX.cle(e) in memo.imp)).sort((a, b) => (a.date || 0) - (b.date || 0));
     if (!list.length) { O.toast('Ces photos sont déjà dans le carnet'); return 0; }
     const pr = U.progress('Photos du voyage…', list.length), done = [];
@@ -245,7 +323,7 @@
     days.forEach((day) => {
       const list = byDay[day].sort((a, b) => (a.m.exif.t || 0) - (b.m.exif.t || 0));
       const place = VX.mainPlace(list.map((x) => x.e)), again = c.pages.some((p) => p.jour === day) ? 1 : 0;
-      VX.chunks(list).forEach((chunk, k) => {
+      VX.chunks(list, VX.pp(c)).forEach((chunk, k) => {
         const page = M.newPage(bg); page.jour = day; page.voyage = 1;
         page.items = VX.pageItems(chunk, style, VX.dayTitle(day, place, k + 1 + again));
         const at = VX.placePage(c, page);
@@ -255,47 +333,105 @@
     });
     return { pages, days: days.length, first };
   };
-  /** Éléments d'une page : titre, photos composées, légendes */
-  VX.pageItems = function (chunk, style, title) {
-    const ids = chunk.map((x) => x.m.id), cap = {};
-    chunk.forEach((x) => { cap[x.m.id] = (x.m.exif.legende || x.e.legende || '').trim(); });
-    const n = ids.length, polaroidCap = (id, fr) => fr === 'polaroid' && cap[id] && cap[id].length <= 30;
-    const frameOf = FRAME[style] || FRAME.melange;
-    const props = M.compose(ids, {
-      area: AREA, frame: (f) => frameOf(f),
-      room: (id) => cap[id] ? (style === 'polaroid' && cap[id].length <= 30 ? 0 : (n <= 2 ? 0.1 : 0.17)) : 0
-    });
-    const want = (PREF[style] || PREF.melange)[n];
-    const p = props.find((x) => x.name === want) || props[0];
-    const items = [];
+  /** Titre d'une page du voyage (date et lieu), au style du carnet */
+  VX.titleItem = function (style, title) {
     const T = TITLE[style] || TITLE.melange;
     const t = { id: M.uid('i'), type: 'text', text: title, font: T.font, size: T.size, color: T.color, align: 'center', style: T.style, rot: style === 'polaroid' ? -1.5 : 0, w: 860, bg: style === 'melange' ? '#2F6F73' : '' };
     t.h = R.textLayout(t).h;
     while (t.h > AREA.y * H - 24 && t.size > 30) { t.size -= 4; t.h = R.textLayout(t).h; }   // titre sur une ligne si possible
     t.x = (W - t.w) / 2; t.y = Math.max(14, (AREA.y * H - t.h) / 2);
     if (!t.bg) delete t.bg;
-    items.push(t);
-    p.items.forEach((it, i) => {
-      const cell = p.cells[i], id = it.media, txt = cap[id], ex = (M.info(id) || {}).exif || {};
-      const town = (ex.place || '').split(',')[0];
-      it.o = it.o || {};
-      if (style === 'polaroid' && !it.rot) it.rot = [-3, 2.5, -1.5, 3, -2, 1.5][i % 6];   // Polaroid posés à la main
-      if (it.frame === 'timbre') { it.o.pm = i % 2 === 0 || n <= 2; if (town) it.o.pmCity = town.toUpperCase(); it.o.sc = ''; it.o.st = ''; }
-      if (it.frame === 'polaroid') it.o.cap = polaroidCap(id, 'polaroid') ? txt : (town || it.o.cap || '');
-      if (it.frame === 'carte-postale') it.o.cap = (town || 'Souvenir').toUpperCase();
-      items.push(it);
-      if (txt && !polaroidCap(id, it.frame)) {
-        const b = E.aabb ? E.aabb(it) : [it.x, it.y, it.x + it.w, it.y + it.h];
-        const q = { id: M.uid('i'), type: 'text', text: txt, font: 'manuscrit', size: n <= 2 ? 46 : 38, color: '#2E2620', align: 'center', style: 'aucun', rot: Math.max(-4, Math.min(4, (cell.rot || 0) * 0.6)), w: Math.min(W - 40, Math.max(240, cell.w * 0.96)) };
-        q.h = R.textLayout(q).h;
-        const room = cell.y + cell.h - b[3];
-        if (q.h > room + 24 && q.size > 30) { q.size = 30; q.h = R.textLayout(q).h; }
-        q.x = Math.max(20, Math.min(W - q.w - 20, cell.x + (cell.w - q.w) / 2));
-        q.y = Math.min(H - q.h - 8, b[3] + 2);
-        items.push(q);
+    return t;
+  };
+  /** Légende d'une photo seule sur sa page (pleine page) : légende, sinon lieu, sinon date */
+  VX.soloCap = function (id) {
+    const ex = (M.info(id) || {}).exif || {};
+    if (ex.legende) return ex.legende;
+    const town = (ex.place || '').split(',')[0].trim(), d = ex.t ? new Date(ex.t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+    return [town, d].filter(Boolean).join(', ');
+  };
+  /** Propositions habillées : photos composées (cadres du style), légendes manuscrites sous les photos, dans leur case.
+      opt : style (classique, timbres, polaroid, melange ; vide : cadres de l'agencement), area, caps {media: légende} */
+  VX.dress = function (ids, opt) {
+    opt = opt || {};
+    const style = opt.style || '', cap = {}, n = Math.min(ids.length, M.MAXN);
+    ids.forEach((id) => { cap[id] = String((opt.caps || {})[id] || '').trim(); });
+    const inFrame = (id, fr) => fr === 'polaroid' && cap[id] && cap[id].length <= 30;
+    const frameOf = style ? (FRAME[style] || FRAME.melange) : null;
+    const capSize = n <= 2 ? 46 : n <= 6 ? 38 : 30;
+    // légende inclinée comme sa photo (moins) : sa boîte grandit, comptée pour rester sous la photo, dans sa case
+    const capRot = (r) => Math.max(-3, Math.min(3, (r || 0) * 0.6));
+    const tiltX = (q, r) => { const a = Math.abs(r) * Math.PI / 180; return (q.w * Math.sin(a) + q.h * Math.cos(a) - q.h) / 2; };
+    const fit = {};
+    const capBox = (txt, cw, size) => { const q = { type: 'text', text: txt, font: 'manuscrit', size, align: 'center', style: 'aucun', w: Math.min(W - 40, Math.max(n >= 7 ? 150 : 240, cw * 0.96)) }; q.h = R.textLayout(q).h; return q; };
+    const props = M.compose(ids, {
+      area: opt.area || { x: 0, y: 0, w: 1, h: 1 },
+      frame: frameOf ? (f) => frameOf(f) : null,
+      rot: style === 'polaroid' ? (i, r) => r || [-3, 2.5, -1.5, 3, -2, 1.5, -2.5, 2, -1][i % 9] : null,   // Polaroid posés à la main
+      room: (id, cw, ch, rot) => {
+        if (!cap[id] || (style === 'polaroid' && cap[id].length <= 30)) return 0;
+        // taille (et au besoin texte raccourci) décidée une fois pour cette case, reprise au placement
+        const need = (q) => q.h + 2 * tiltX(q, capRot(rot)) + 8;
+        let q = capBox(cap[id], cw, capSize);
+        if (need(q) > ch * 0.3 && capSize > 26) q = capBox(cap[id], cw, 26);
+        while (need(q) > ch * 0.38 && q.text.length > 12) q = capBox(q.text.replace(/\s*\S+…?$/, '') + '…', cw, q.size);
+        fit[id + '|' + Math.round(cw) + '|' + Math.round(ch)] = q;
+        return Math.max(n <= 2 ? 0.1 : 0.12, need(q) / ch);
       }
     });
-    return items;
+    return props.map((p) => {
+      const items = [];
+      p.items.forEach((it, i) => {
+        const cell = p.cells[i], id = it.media, txt = cap[id], ex = (M.info(id) || {}).exif || {};
+        const town = (ex.place || '').split(',')[0];
+        it.o = it.o || {};
+        if (style && it.frame === 'timbre') { it.o.pm = n >= 7 ? i % 3 === 0 : (i % 2 === 0 || n <= 2); if (town) it.o.pmCity = town.toUpperCase(); it.o.sc = ''; it.o.st = ''; }
+        if (it.frame === 'polaroid') it.o.cap = inFrame(id, 'polaroid') ? txt : (town || it.o.cap || '');
+        if (it.frame === 'carte-postale') it.o.cap = (town || 'Souvenir').toUpperCase();
+        items.push(it);
+        if (txt && !inFrame(id, it.frame)) {
+          const b = E.aabb ? E.aabb(it) : [it.x, it.y, it.x + it.w, it.y + it.h];
+          const q = Object.assign({}, fit[id + '|' + Math.round(cell.w) + '|' + Math.round(cell.h)] || capBox(txt, cell.w, capSize));
+          Object.assign(q, { id: M.uid('i'), cap: id, color: '#2E2620', rot: capRot(cell.rot) });
+          const ex = tiltX(q, q.rot);
+          q.x = Math.max(20, Math.min(W - q.w - 20, cell.x + (cell.w - q.w) / 2));
+          q.y = Math.min(H - q.h - ex - 8, cell.y + cell.h - q.h - ex, b[3] + 2 + ex);   // sous la photo, dans sa case
+          items.push(q);
+        }
+      });
+      return { name: p.name, items, cells: p.cells };
+    });
+  };
+  /** Éléments d'une page : titre, photos composées, légendes */
+  VX.pageItems = function (chunk, style, title) {
+    const ids = chunk.map((x) => x.m.id), caps = {}, n = ids.length;
+    chunk.forEach((x) => { caps[x.m.id] = (x.m.exif.legende || x.e.legende || '').trim() || (n === 1 ? (x.e.lieu || VX.soloCap(x.m.id) || '').split(',')[0] : ''); });
+    const props = VX.dress(ids, { style, area: AREA, caps });
+    const want = (PREF[style] || PREF.melange)[n];
+    const p = props.find((x) => x.name === want) || props[0];
+    return [VX.titleItem(style, title)].concat(p.items);
+  };
+  VX.AREA = AREA;
+  /** Pages en plus après la page « at » pour des photos (Composer : photos en trop), selon « Photos par page ».
+      ref : page d'origine (page du voyage : même jour, titre « (suite) », style du carnet). → nombre de pages */
+  VX.morePages = function (c, at, ids, ref, caps) {
+    ref = ref || {};
+    const style = ref.voyage && c.voyage && c.voyage.style ? c.voyage.style : '';
+    let k = 0;
+    VX.chunks(ids, VX.pp(c)).forEach((chunk) => {
+      const page = M.newPage(ref.bg), cc = {};
+      chunk.forEach((id) => { cc[id] = (caps && caps[id]) || (chunk.length === 1 ? VX.soloCap(id) : ''); });
+      if (ref.jour) { page.jour = ref.jour; page.voyage = 1; }
+      if (ref.jour) {
+        const props = VX.dress(chunk, { style, area: AREA, caps: cc }), p = props.find((x) => x.name === (PREF[style] || PREF.melange)[chunk.length]) || props[0];
+        page.items = [VX.titleItem(style || 'melange', VX.dayTitle(ref.jour, '', 2))].concat(p.items);
+      } else {
+        const props = VX.dress(chunk, { style, caps: cc });
+        page.items = (props[1] || props[0]).items;
+      }
+      c.pages.splice(at + 1 + k, 0, page); k++;
+    });
+    return k;
   };
   /** Insère une page du voyage dans l'ordre des jours (réutilise une page vide à cet endroit) → index */
   VX.placePage = function (c, page) {
@@ -393,7 +529,10 @@
     }
     const memo = VX.memo(E.c), fresh = r.entries.filter((e) => !(VX.cle(e) in memo.imp));
     if (!fresh.length) { O.toast('Toutes les photos de ce dossier sont déjà dans le carnet'); return 0; }
-    return VX.add(fresh);
+    // feuille d'import : style (choisi une fois) et photos par page, avec la répartition prévue
+    const style = await VX.askStyle(E.c, true, memo.style ? { list: fresh, title: 'Importer ' + fresh.length + ' photo' + (fresh.length > 1 ? 's' : '') + ' du voyage', ok: 'Importer' } : { list: fresh });
+    if (!style) return 0;
+    return VX.add(fresh, { style });
   };
   /** Fichiers reçus (« Ouvrir avec », dépôt) contenant voyage.json : avec ses photos, ou demande du dossier */
   VX.receive = async function (list) {
