@@ -298,7 +298,7 @@ de `Office.Files.pickMedia` ou d'un dépôt sur la page (`#stage[data-mpc-drop]`
 - **Carnet** : à l'ouverture d'un carnet, au retour dans l'appli et par « Actualiser les photos du voyage », bandeau
   « N nouvelles photos du voyage » (Ajouter, Choisir… : grille par jour, photos non cochées écartées). Style choisi une fois
   par carnet : Classique (bords blancs), Timbres (timbres et cachets), Polaroid (légende dans le cadre), Mélange. Une page par
-  jour (6 photos au plus, réparties : 7 → 4 + 3), mise en page par Composer (`M.compose` : zone sous le titre, cadres imposés,
+  jour (selon « Photos par page », ci-dessous ; Automatique : 6 au plus, 7 → 4 + 3), mise en page par Composer (`M.compose` : zone sous le titre, cadres imposés,
   place pour la légende) ; titre = date en français + ville la plus fréquente du jour ; légendes en manuscrit sous la photo (ou
   dans le Polaroid) ; pages insérées dans l'ordre des jours (« (suite) » pour un jour déjà présent). Étapes ajoutées à la carte
   de l'itinéraire (créée sur sa page au besoin), sans doublon de ville. Mémoire `carnet.voyage.imp` (clé « dossier/fichier ») :
@@ -307,6 +307,22 @@ de `Office.Files.pickMedia` ou d'un dépôt sur la page (`#stage[data-mpc-drop]`
   `webkitdirectory`), photos + `voyage.json` (sans lui : date et GPS de l'EXIF), carnet retrouvé par id ou titre, sinon créé ;
   « Ouvrir avec » (`file_handlers` .json et .jpg : `voyage.json` et ses photos sélectionnés ensemble ; `voyage.json` seul → choix
   du dossier) et dépôt.
+- **Photos par page** (réglage du carnet, `carnet.parPage = {k, eq}`, dans le .magcarnet) : **Automatique** (comportement
+  d'origine) ou 1, 2, 3, 4, 5, 6, 8, 9, avec **Équilibrer** (coché par défaut). Réglage dans ⋮ › Réglages du carnet (avec le
+  style), raccourcis : bouton « 4/page » du bandeau, Choisir…, feuille du style, feuille d'« Importer un dossier de voyage »
+  (montrée à chaque import, avec la répartition prévue), menu Photos, « Par page… » dans le message qui suit un ajout de
+  plusieurs photos (l'ajout est défait puis refait), et Composer. Répartition `M.split(n, k, eq)` : pages de k (10 à 4 :
+  4 + 4 + 2) ou de tailles voisines sans dépasser k (4 + 3 + 3) ; l'import par jour découpe chaque jour à part (jamais deux
+  jours sur une page). Avec un nombre choisi, les photos de la galerie remplissent la page vide puis des pages ajoutées après.
+- **Agencements** (`M.LAYOUTS`, 1 à 9 photos, au moins 4 par nombre : grilles, mosaïques, « De travers » façon scrapbook,
+  timbres, souvenirs, pleine page…) : cases en fractions de la zone libre, **disjointes** ; `M.compose` ajuste chaque photo,
+  inclinaison comprise, à l'intérieur de sa case (aucune photo n'en recouvre une autre) ; billets, étiquettes et cartes
+  postales trop petits deviennent des bords blancs (`M.lightFrame`). `VX.dress` habille une proposition : cadres du style,
+  légende manuscrite rattachée à sa photo (`cap`), taille décidée une fois pour la case (raccourcie en dernier recours), place
+  réservée sous la photo ; 1 photo seule : pleine page avec légende (légende, sinon lieu et date).
+- **Composer** : « Nombre de photos » 1 à 9 ; page réagencée dans la zone libre (sous le titre ou la date du jour, au-dessus
+  d'un texte du bas), légendes refaites ; les photos de la page sans place partent sur des pages ajoutées juste après
+  (`VX.morePages`, selon « Photos par page » ; page du voyage : même jour, « (suite) ») ; un seul « Annuler » défait tout.
 - **Jarvis** (`mj-nlu.js` → intention `voyage`, `mj-app.js` → `H.voyage`) : « mode voyage », « active le mode voyage »,
   « commence le carnet Italie » (crée le carnet si besoin et active le mode voyage dans Photo), « arrête le mode voyage »,
   « ajoute les photos du jour au carnet », « ouvre mon carnet de voyage ». Téléphone : `MAGVoyage` (`creer`, `photoMode`) et
