@@ -340,6 +340,26 @@ de `Office.Files.pickMedia` ou d'un dépôt sur la page (`#stage[data-mpc-drop]`
   Disposition) : la photo prend la première case (la grande), les autres suivent ; retenu par la page (`page.vedette`).
   **Pages** : glisser une vignette (souris dans la barre des pages sur PC, poignée au doigt dans « Toutes les pages ») ;
   « Trier les pages par date » (⋮ et « Toutes les pages » : `M.sortPagesByDate`, une page sans date reste après la précédente).
+- **Pages libres d'abord** : un ajout de photos (galerie, fichiers, dépôt, « Replacer ») remplit la page affichée jusqu'à
+  « Photos par page » (6 en Automatique), puis les pages vides ou incomplètes qui suivent sans interruption (une page pleine
+  ou la page de la carte arrête la suite), et seulement ensuite des pages ajoutées juste après la dernière page remplie
+  (`U.fillPages`). Option du menu Photos, mémorisée sur l'appareil : « Remplir les pages libres (recommandé) » ou « Toujours
+  sur de nouvelles pages ». Sur une page qui a déjà des photos, les nouvelles viennent après (`U.fillPage`) : cases libres de
+  l'agencement (`page.slots`, enregistrées à la composition ; une photo retirée à la main libère sa case) remplies puis photos
+  remises dans l'ordre de lecture, sinon photos seules recomposées (réglages de chaque photo gardés) ; textes et décorations
+  ne bougent jamais. Ordre cassé par l'ajout : le message propose « Remettre dans l'ordre ». Import par jour (`VX.layout`) :
+  pages du jour vides ou incomplètes (titre seul, photos en moins) et pages vides glissées entre deux pages du jour remplies
+  d'abord, puis pages « (suite) » ; une page vide sans jour à la bonne date est reprise ; titres refaits (`VX.fixDayTitles`).
+- **Supprimer des pages** (`U.deletePages`) : menu Page (« Supprimer la page », « Supprimer des pages… »), appui long au doigt
+  ou clic droit sur une vignette (barre des pages, « Toutes les pages » : Ouvrir, Dupliquer, Déplacer, Supprimer), corbeille et
+  sélection multiple dans « Toutes les pages » (« Sélectionner » ou Ctrl+clic, « Supprimer la sélection »), « Supprimer les
+  pages vides » (⋮, « Toutes les pages », et proposé quand une modification laisse une page vide). Toujours une confirmation
+  avec le nombre de pages et de photos, puis bandeau « Page supprimée — Annuler » (ou Ctrl+Z) ; la couverture ne se supprime
+  pas. Photos qui ne sont sur aucune autre page : **gardées** dans « Photos non placées » (`carnet.reserve`, menu Photos et ⋮ :
+  Replacer, Supprimer du carnet ; proposées en tête par Composer ; replacées à leur date par « Remettre tout le carnet dans
+  l'ordre ») ou **supprimées du carnet** (`carnet.trash`, dans l'historique, effacées du stockage à la fermeture ou à la
+  réouverture ; les étapes de la carte qui ne venaient que d'elles sont retirées, une étape posée à la main reste). Dans les
+  deux cas la mémoire de l'import (`voyage.imp`) garde la photo : jamais réimportée.
 - **Composer** : « Nombre de photos » 1 à 9 ; page réagencée dans la zone libre (sous le titre ou la date du jour, au-dessus
   d'un texte du bas), légendes refaites ; les photos de la page sans place partent sur des pages ajoutées juste après
   (`VX.morePages`, selon « Photos par page » ; page du voyage : même jour, « (suite) ») ; un seul « Annuler » défait tout.
