@@ -309,3 +309,41 @@ html.pc .selbox .hd{width:12px;height:12px;margin:-7px 0 0 -7px}
 #pagesBar .pth.dropB{box-shadow:0 -4px 0 var(--acc)}
 #pagesBar .pth.dropA{box-shadow:0 4px 0 var(--acc)}
 #pagesBar .pth{touch-action:pan-y}
+/* ---------- Supprimer des pages : sélection multiple, confirmation, réserve ---------- */
+.pgTopB{display:flex;gap:6px;flex-wrap:wrap}
+.pgTopB .btn.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.pgThumb{position:relative;-webkit-touch-callout:none}
+.pgc .pgThumb>svg{transition:opacity .15s}
+.pgc.empty .pgThumb>svg{opacity:.55}
+.pgEmpty{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:600 12px/1 system-ui,sans-serif;font-style:normal;color:var(--ink2);background:#fffc;border:1px dashed var(--ink3);border-radius:10px;padding:4px 8px;pointer-events:none}
+.pgChk{position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;border:2px solid #fff;background:#0005;display:flex;align-items:center;justify-content:center;color:transparent;box-shadow:0 1px 3px #0004}
+.pgChk .oi{width:18px;height:18px}
+.pgc.picked .pgChk{background:var(--acc);color:#fff}
+.pgc.picked .pgThumb>svg{outline:3px solid var(--acc);outline-offset:2px;opacity:.8}
+.selMode .pgc.cov .pgThumb>svg{opacity:.4}
+.pgAct .ibtn{width:34px;height:34px;flex:0 0 auto}
+.pgAct .pgDel{color:var(--acc)}
+.pgSelBar{position:sticky;bottom:-1px;z-index:2;display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;padding:10px;border-radius:12px;background:var(--paper2);border:1px solid var(--line);box-shadow:0 -4px 14px #3a240f22}
+.pgSelBar b{flex:1;min-width:140px}
+.pgSelBar .btn{min-height:44px}
+.pgSelBar .btn.bad{color:#fff;background:#B23A2A;border-color:#B23A2A}
+.pgSelBar .btn.bad[disabled]{opacity:.45}
+.delSum{margin:0 0 10px}
+.delOpts{display:flex;flex-direction:column;gap:8px;margin:4px 0 8px}
+.delOpt{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--paper2);cursor:pointer;min-height:48px}
+.delOpt input{width:20px;height:20px;margin:2px 0 0;accent-color:var(--acc);flex:0 0 auto}
+.delOpt span{display:flex;flex-direction:column;gap:2px}
+.delOpt small{color:var(--ink2);font-size:12.5px}
+.delOpt:has(input:checked){border-color:var(--acc);box-shadow:0 0 0 1px var(--acc)}
+.tph span.resv{background:var(--acc2)}
+@media (max-width:899px){
+  .pgTop .hint{flex-basis:100%}
+}
+/* téléphone étroit : 3 vignettes par rangée ; Dupliquer et Déplacer par l'appui long (la corbeille reste) */
+@media (max-width:479px){
+  .pagesDlg .pgGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .pagesDlg .pgAct [data-pmore]{display:none}
+  .pagesDlg .pgAct b{font-size:12px}
+}
+.pagesAll .pgTop .hint{display:block}
+.pagesAll .pgTop .hint .oi{vertical-align:-3px}

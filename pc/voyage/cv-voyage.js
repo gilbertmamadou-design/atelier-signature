@@ -332,42 +332,91 @@
       const v = await VX.villeDe(x.m.exif.lat, x.m.exif.lon).catch(() => '');
       if (v) { x.e.ville = v; if (!x.m.exif.place) { x.m.exif.place = v; await M.putMedia(x.m); const inf = M.info(x.m.id); if (inf) inf.exif = x.m.exif; } }
     }
+    const b0 = U.orderBroken();
     const res = VX.layout(c, done, style);
     VX.addToMap(c, done);
     const ids = new Set(done.map((x) => x.m.id)), firstPage = c.pages.findIndex((p) => (p.items || []).some((it) => ids.has(it.media)));
     E.sel = []; E.render(); E.commit('Photos du voyage'); U.pagesBar(); U.tools();
     if (firstPage >= 0) E.go(firstPage, true);
     await E.saveNow();
-    O.toast(done.length + ' photo' + (done.length > 1 ? 's' : '') + ' du voyage ajoutée' + (done.length > 1 ? 's' : '') + ' : ' + res.pages + ' page' + (res.pages > 1 ? 's' : '') + ', ' + res.days + ' jour' + (res.days > 1 ? 's' : ''));
+    const broken = U.orderBroken() > b0;
+    O.toast(done.length + ' photo' + (done.length > 1 ? 's' : '') + ' du voyage ajoutée' + (done.length > 1 ? 's' : '') + ' : ' + (res.filled ? res.filled + ' page' + (res.filled > 1 ? 's' : '') + ' complétée' + (res.filled > 1 ? 's' : '') + ', ' : '') + (res.pages || !res.filled ? res.pages + ' nouvelle' + (res.pages > 1 ? 's' : '') + ' page' + (res.pages > 1 ? 's' : '') + ', ' : '') + res.days + ' jour' + (res.days > 1 ? 's' : '') + (broken ? ' · ordre des dates à revoir' : ''), broken ? { action: { label: 'Remettre dans l’ordre', fn: () => U.reorder('all') }, ms: 9000 } : {});
     if (B()) VX.check(true);
     return done.length;
   };
 
-  /** Pages par jour (titre, Composer, cadres du style, légendes manuscrites). done : [{e, m}] */
+  /** Pages par jour (titre, Composer, cadres du style, légendes manuscrites). done : [{e, m}]
+      Les pages libres du jour d'abord : pages du jour vides ou incomplètes (titre seul, moins de photos que « Photos par
+      page »), et pages vides sans jour placées entre deux pages de ce jour ; ensuite seulement des pages « (suite) », après la
+      dernière page du jour (une page vide sans jour à cet endroit est reprise). Titres « (suite) » remis à jour à la fin. */
   VX.layout = function (c, done, style) {
     const byDay = {};
     done.forEach((x) => { const t = x.m.exif.t || x.e.date || Date.now(); (byDay[dayKey(t)] = byDay[dayKey(t)] || []).push(x); });
-    const days = Object.keys(byDay).sort(); let pages = 0, first = -1;
+    const days = Object.keys(byDay).sort(); let pages = 0, first = -1, filled = 0;
     const bg = (c.pages.find((p) => p.items && p.items.length) || c.pages[0] || {}).bg || 'creme';
+    const pp = VX.pp(c), cap = U.capOf(pp);
     days.forEach((day) => {
       // photos du jour selon « Ordre des photos » (par défaut chronologique) ; les jours toujours dans l'ordre du calendrier
       const by = {}; byDay[day].forEach((x) => { by[x.m.id] = x; });
       const list = M.sortIds(byDay[day].map((x) => x.m.id), VX.ord(c).mode).map((id) => by[id]);
       const place = VX.mainPlace(list.map((x) => x.e)), again = c.pages.some((p) => p.jour === day) ? 1 : 0;
-      VX.chunks(list, VX.pp(c)).forEach((chunk, k) => {
+      let rest = list.slice();
+      // 1. pages libres de ce jour (dans l'ordre des pages)
+      const own = c.pages.map((p, i) => p.jour === day ? i : -1).filter((i) => i >= 0);
+      if (own.length) {
+        for (let i = own[0]; i <= own[own.length - 1] && rest.length; i++) {
+          const p = c.pages[i], gap = !p.jour && M.isEmptyPage(p);
+          if ((p.jour !== day && !gap) || !U.usablePage(p)) continue;
+          const have = U.pagePhotos(p).length, room = have ? cap - have : M.split(rest.length, pp.k, pp.eq)[0];
+          if (room <= 0) continue;
+          const take = rest.splice(0, room);
+          if (gap) { p.jour = day; p.voyage = 1; p.items = [VX.titleItem(style, VX.dayTitle(day, '', 2))]; }
+          if (!p.voyage) p.voyage = 1;
+          U.fillPage(p, take.map((x) => x.m.id));
+          filled++;
+          if (first < 0 || i <= first) first = i;
+        }
+      }
+      // 2. le reste sur des pages ajoutées après le jour
+      VX.chunks(rest, pp).forEach((chunk, k) => {
+        if (!chunk.length) return;
         const page = M.newPage(bg); page.jour = day; page.voyage = 1;
-        page.items = VX.pageItems(chunk, style, VX.dayTitle(day, place, k + 1 + again));
+        page.items = VX.pageItems(chunk, style, VX.dayTitle(day, place, k + 1 + again)); M.setSlots(page);
         const at = VX.placePage(c, page);
         if (first < 0 || at <= first) first = at;
         pages++;
       });
     });
-    return { pages, days: days.length, first };
+    VX.fixDayTitles(c);
+    return { pages, days: days.length, first, filled };
+  };
+  /** Titres des pages d'un jour : la première porte la date et le lieu, les suivantes « (suite) » (après une suppression, un
+      remplissage, un import). Seuls les titres posés par l'appli sont réécrits. */
+  VX.fixDayTitles = function (c) {
+    const by = {}; c.pages.forEach((p) => { if (p.jour) (by[p.jour] = by[p.jour] || []).push(p); });
+    let n = 0;
+    Object.keys(by).forEach((day) => {
+      const base = VX.dayTitle(day, '', 1);
+      const auto = (x) => x === base || x === base + ' (suite)' || (x.indexOf(base + ' · ') === 0 && x.indexOf('\n') < 0);
+      const tt = (p) => (p.items || []).find((it) => it.type === 'text' && typeof it.text === 'string' && auto(it.text) && (it.dt || it.y < AREA.y * H + 20));
+      const list = by[day].filter((p) => tt(p)); if (!list.length) return;
+      let place = '';
+      list.forEach((p) => { const m = / · (.+)$/.exec(tt(p).text); if (m && !place) place = m[1]; });
+      if (!place) place = VX.mainPlace(by[day].flatMap((p) => M.pageMedia(p)).map((id) => ({ ville: (((M.info(id) || {}).exif || {}).place || '').split(',')[0].trim() })));
+      list.forEach((p, k) => {
+        const t = tt(p), want = VX.dayTitle(day, place, k ? 2 : 1);
+        if (t.text === want) return;
+        t.text = want; t.h = R.textLayout(t).h;
+        if (t.dt) { while (t.h > AREA.y * H - 24 && t.size > 30) { t.size -= 4; t.h = R.textLayout(t).h; } t.y = Math.max(14, (AREA.y * H - t.h) / 2); }
+        n++;
+      });
+    });
+    return n;
   };
   /** Titre d'une page du voyage (date et lieu), au style du carnet */
   VX.titleItem = function (style, title) {
     const T = TITLE[style] || TITLE.melange;
-    const t = { id: M.uid('i'), type: 'text', text: title, font: T.font, size: T.size, color: T.color, align: 'center', style: T.style, rot: style === 'polaroid' ? -1.5 : 0, w: 860, bg: style === 'melange' ? '#2F6F73' : '' };
+    const t = { id: M.uid('i'), type: 'text', text: title, font: T.font, size: T.size, color: T.color, align: 'center', style: T.style, rot: style === 'polaroid' ? -1.5 : 0, w: 860, bg: style === 'melange' ? '#2F6F73' : '', dt: 1 };
     t.h = R.textLayout(t).h;
     while (t.h > AREA.y * H - 24 && t.size > 30) { t.size -= 4; t.h = R.textLayout(t).h; }   // titre sur une ligne si possible
     t.x = (W - t.w) / 2; t.y = Math.max(14, (AREA.y * H - t.h) / 2);
@@ -461,6 +510,7 @@
         const props = VX.dress(chunk, { style, caps: cc });
         page.items = (props[1] || props[0]).items;
       }
+      M.setSlots(page);
       c.pages.splice(at + 1 + k, 0, page); k++;
     });
     return k;
@@ -471,7 +521,7 @@
     c.pages.forEach((p, i) => { if (p.jour) { if (p.jour <= page.jour) after = i; else if (before < 0) before = i; } if ((p.items || []).length) last = i; });
     const at = after >= 0 ? after + 1 : before >= 0 ? before : last + 1;
     const here = c.pages[at];
-    if (here && !(here.items || []).length && !here.jour) { here.items = page.items; here.jour = page.jour; here.voyage = 1; return at; }
+    if (here && !(here.items || []).length && !here.jour) { here.items = page.items; here.jour = page.jour; here.voyage = 1; if (page.slots) here.slots = page.slots; return at; }
     c.pages.splice(at, 0, page);
     return at;
   };
@@ -500,6 +550,22 @@
       else c.pages.splice(at, 0, page);
     }
     return added;
+  };
+
+  /** Photos supprimées du carnet : les étapes de la carte qui ne venaient que d'elles disparaissent. Une étape posée à la main
+      (manual) reste ; une étape qui correspond encore à une photo du carnet (posée ou en réserve) aussi. → étapes retirées */
+  VX.pruneMap = function (c, deadIds) {
+    const loc = (id) => { const ex = (M.info(id) || {}).exif || {}; return ex.lat != null ? { lat: ex.lat, lon: ex.lon, name: (ex.place || '').split(',')[0].trim() } : null; };
+    const dead = deadIds.map(loc).filter(Boolean); if (!dead.length) return 0;
+    const live = Array.from(M.mediaIds(c)).concat(c.reserve || []).filter((id) => !deadIds.includes(id)).map(loc).filter(Boolean);
+    const match = (pt, q) => (pt.name && q.name && norm(pt.name) === norm(q.name)) || Math.hypot(pt.lat - q.lat, pt.lon - q.lon) < 0.05;
+    let n = 0;
+    c.pages.forEach((p) => (p.items || []).forEach((it) => {
+      if (it.type !== 'map' || !it.points) return;
+      const keep = it.points.filter((pt) => pt.manual || !dead.some((q) => match(pt, q)) || live.some((q) => match(pt, q)));
+      n += it.points.length - keep.length; it.points = keep;
+    }));
+    return n;
   };
 
   /* ---------------- PC (et téléphone) : dossier de voyage copié depuis le téléphone ---------------- */

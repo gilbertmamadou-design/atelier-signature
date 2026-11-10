@@ -113,6 +113,8 @@
   /* ---------------- Ouvrir un carnet ---------------- */
   U.open = async function (id, pi) {
     const c = await M.getCarnet(id); if (!c) { O.toast('Carnet introuvable', { bad: true }); return; }
+    // photos supprimées avec leur page lors d'une séance précédente : effacées pour de bon (plus d'« Annuler » possible)
+    if (c.trash && c.trash.length) { await M.purgeTrash(c); await M.putCarnet(c); }
     M.releaseUrls();
     await M.loadMedia(id);
     await M.ensureUrls(Array.from(M.mediaIds(c)));
@@ -123,6 +125,7 @@
     if (document.body.dataset.screen !== 'ed') U.push(() => U.close(true));
     document.body.dataset.screen = 'ed';
     $('#edTitle').textContent = c.title;
+    U._emptyN = U.emptyPages().length;
     U.tools(); E.render(); U.props(); U.pagesBar(); U.hist();
     setTimeout(() => E.layout(), 30);
     // photos prises avec Photo en mode voyage : bandeau « N nouvelles photos du voyage »
@@ -131,6 +134,7 @@
   U.close = async function (fromBack) {
     if (E.drawing) E.endDraw();
     await E.saveNow();
+    if (E.c && E.c.trash && E.c.trash.length) { const c = E.c; await M.purgeTrash(c); await M.putCarnet(JSON.parse(JSON.stringify(c))); }
     E.c = null; E.sel = [];
     if (CV.V) CV.V.banner(0);
     document.body.dataset.screen = 'home';
@@ -143,7 +147,7 @@
   E.onPage = () => { if (E.c) E.c.lastPage = E.pi; U.pagesBar(); U.props(); U.tools(); };
   E.onLive = (it) => { const r = $('#pRot'); if (r && it.rot != null) { r.value = Math.round(it.rot); const o = $('#pRotV'); if (o) o.textContent = Math.round(it.rot) + '°'; } };
   E.onDouble = (it) => { if (it.type === 'text') U.editText(it); else if (it.type === 'map') U.mapDialog(it); else if (PHONE()) U.openSheet(); };
-  E.onChange = () => { U.pagesThumbSoon(); };
+  E.onChange = (k, label) => { U.pagesThumbSoon(); if (k === 'edit') U.emptyCheck(label); };
   E.onSaved = () => { clearTimeout(U._sT); U._sT = setTimeout(() => U.socle(), 2500); };
 
   /* ---------------- Barre du haut et outils ---------------- */
@@ -202,6 +206,8 @@
       '-',
       { label: E.view === 'double' ? 'Page simple' : 'Double page', icon: 'book-open', on: () => U.topClick({ target: { closest: () => ({ dataset: { top: 'view' } }) } }) },
       { label: 'Toutes les pages…', icon: 'layout-grid', on: () => U.pagesDialog() },
+      { label: 'Supprimer les pages vides' + (U.emptyPages().length ? ' (' + U.emptyPages().length + ')' : ''), icon: 'file-x', disabled: !U.emptyPages().length, on: () => U.deleteEmpty() },
+      { label: 'Photos non placées (' + M.reserveOf(E.c).length + ')…', icon: 'archive-arrow-up', on: () => U.reserveDialog() },
       { label: 'Couverture…', icon: 'book', on: () => U.coverDialog() },
       { label: 'Sélection multiple', icon: 'square-check', checked: E.multi, on: () => { E.multi = !E.multi; O.toast(E.multi ? 'Sélection multiple : touche les éléments un par un' : 'Sélection simple'); } },
       { label: 'Magnétisme', icon: 'magnet', checked: CV.settings.snap !== false, on: () => { CV.settings.snap = CV.settings.snap === false; CV.saveSettings(); } },
@@ -216,11 +222,15 @@
       { label: window.MAGPC ? 'Ajouter des photos du PC…' : (window.MAGOffice ? 'Choisir dans la galerie…' : 'Ajouter des photos…'), icon: 'image-plus', on: () => U.addPhotos() },
       window.MAGVoyage && window.MAGVoyage.ouvrirGalerie ? { label: 'Depuis ma Galerie…', icon: 'gallery-horizontal', on: () => U.fromGalerie() } : null,
       { label: 'Photos du carnet…', icon: 'images', on: () => U.tray() },
+      { label: 'Photos non placées (' + M.reserveOf(E.c).length + ')…', icon: 'archive-arrow-up', on: () => U.reserveDialog() },
       window.MAGPC ? { label: 'Importer un dossier de voyage…', icon: 'folder-input', on: () => CV.V.importFolder() }
         : { label: 'Photos du voyage (appli Photo)…', icon: 'plane', on: () => { if (CV.V.check(false)) CV.V.choose(CV.V.pending.slice()); } },
       { label: 'Photos par page : ' + CV.V.ppLabel(CV.V.pp(E.c)) + '…', icon: 'layout-grid', on: () => CV.V.ppDialog(E.c) },
       { label: 'Ordre des photos : ' + CV.V.ordLabel(M.ordre(E.c)) + '…', icon: 'arrow-down-up', on: () => U.ordreDialog() },
-      E.c && E.c.pages.length ? { label: 'Composer une page (1 à 9 photos)…', icon: 'layout-dashboard', on: () => U.compose() } : null
+      E.c && E.c.pages.length ? { label: 'Composer une page (1 à 9 photos)…', icon: 'layout-dashboard', on: () => U.compose() } : null,
+      { head: 'Photos ajoutées' },
+      { label: 'Remplir les pages libres (recommandé)', checked: U.addMode() === 'fill', title: 'La page affichée, puis les pages vides ou incomplètes qui suivent ; de nouvelles pages seulement ensuite', on: () => U.setAddMode('fill') },
+      { label: 'Toujours sur de nouvelles pages', checked: U.addMode() === 'new', title: 'Les photos ajoutées vont sur des pages ajoutées après la page affichée', on: () => U.setAddMode('new') }
     ], { title: 'Photos' });
   };
   /** Galerie (appli MAG) s'ouvre pour choisir des photos ; elle les renvoie dans ce carnet (U.receive) */
@@ -283,9 +293,10 @@
     if (CV.settings.geo) U.geocode(added);
     return added;
   };
-  /** Pose les photos importées, à la suite : rangées selon « Ordre des photos » du carnet, elles complètent la page courante
-      après les photos déjà là (la page est recomposée, textes et décorations gardés) jusqu'à « Photos par page » (6 en
-      Automatique), puis continuent sur des pages ajoutées juste après. Couverture : posées en cascade. */
+  /** Pose les photos importées, rangées selon « Ordre des photos » du carnet. « Remplir les pages libres » (par défaut) : la
+      page affichée jusqu'à « Photos par page » (6 en Automatique), après les photos déjà là, puis les pages vides ou
+      incomplètes qui suivent, et seulement ensuite des pages ajoutées juste après la dernière page remplie. « Toujours sur de
+      nouvelles pages » : pages ajoutées après la page affichée. Couverture : posées en cascade. */
   U.place = function (added) {
     const page = E.page(E.pi), pp = CV.V.pp(E.c), ids = M.sortIds(added.map((m) => m.id), M.ordre(E.c).mode);
     U._lastAdd = { added, pi: E.pi };
@@ -300,8 +311,15 @@
     E.renderItems(E.pi); E.select(sel); E.commit('Ajouter des photos');
     O.toast(n > 1 ? n + ' photos ajoutées' : 'Photo ajoutée', n > 1 ? { action: again, ms: 6000 } : {});
   };
+  /** Placement des photos ajoutées (réglage mémorisé sur l'appareil) : « fill » (pages libres d'abord) ou « new » */
+  U.addMode = () => CV.settings.addMode === 'new' ? 'new' : 'fill';
+  U.setAddMode = (m) => { CV.settings.addMode = m === 'new' ? 'new' : 'fill'; CV.saveSettings(); O.toast(m === 'new' ? 'Photos ajoutées : toujours sur de nouvelles pages' : 'Photos ajoutées : les pages libres d’abord'); };
   /** Photos d'une page, dans l'ordre de lecture (sans doublon) */
   U.pagePhotos = (page) => Array.from(new Set(M.photosInOrder(page).map((x) => x.media))).filter((id) => M.info(id));
+  /** Nombre de photos visé par page : « Photos par page » (6 en Automatique) */
+  U.capOf = (pp) => Math.min(M.MAXN, pp.k === 'auto' ? 6 : pp.k);
+  /** Page qui peut recevoir des photos : pas la couverture ni la page de la carte de l'itinéraire */
+  U.usablePage = (p) => !!p && !p.cover && !p.carte && !(p.items || []).some((it) => it.type === 'map');
   /** Recompose une page avec ces photos, dans cet ordre (textes, décorations, titre gardés ; légendes refaites).
       want : agencement voulu ; sinon celui du style du voyage, celui de la page, ou le deuxième proposé → proposition choisie */
   U.recompose = function (page, ids, want) {
@@ -312,23 +330,67 @@
     const props = V.dress(ids, { style, area: U.freeArea(page, kept), caps });
     const p = props.find((x) => x.name === want) || (style ? props.find((x) => x.name === (V.PREF[style] || {})[ids.length]) : null) || props.find((x) => x.name === page.lay) || props[1] || props[0];
     page.items = kept.concat(p.items); page.lay = p.name;
+    M.setSlots(page);
     return p;
   };
+  /** Complète une page avec des photos, après celles déjà là. Textes et décorations ne bougent jamais. Cases libres de
+      l'agencement (photo retirée à la main) : les nouvelles y vont, puis les photos sont remises dans l'ordre de lecture
+      (comme « Remettre dans l'ordre ») ; sinon seules les photos sont recomposées (réglages de chaque photo gardés). */
+  U.fillPage = function (page, add) {
+    const have = U.pagePhotos(page), mode = M.ordre(E.c).mode;
+    if (!add.length) return;
+    const free = have.length ? M.freeSlots(page) : [];
+    if (have.length && free.length >= add.length) {
+      M.putInSlots(page, add, free.slice(0, add.length));
+      M.reorderPage(page, mode, have.concat(add));
+      return 'slots';
+    }
+    const old = {}; (page.items || []).forEach((it) => { if (it.type === 'photo' && it.media && !old[it.media]) old[it.media] = it; });
+    U.recompose(page, have.concat(add));
+    page.items.forEach((it) => { const o = it.type === 'photo' && old[it.media]; if (o) ['filter', 'adj', 'crop', 'grain', 'vignette'].forEach((k) => { if (o[k] !== undefined) it[k] = JSON.parse(JSON.stringify(o[k])); }); });
+    return have.length ? 'recompose' : 'new';
+  };
+  /** Remplit à partir de la page « start » : elle d'abord (si elle a de la place), puis les pages vides ou incomplètes qui
+      suivent sans interruption (une page pleine ou la page de la carte arrête la suite) ; le reste sur des pages ajoutées
+      juste après la dernière page remplie. opt.mode « new » : tout sur des pages ajoutées après « start ».
+      → {filled: [indices], more: pages ajoutées, last} */
+  U.fillPages = function (ids, start, opt) {
+    opt = opt || {};
+    const c = E.c, pp = CV.V.pp(c), cap = U.capOf(pp), rest = ids.slice(), filled = [];
+    let last = start;
+    if (opt.mode !== 'new') {
+      for (let i = Math.max(0, start); i < c.pages.length && rest.length; i++) {
+        const p = c.pages[i], ok = U.usablePage(p), have = ok ? U.pagePhotos(p).length : 0;
+        const room = !ok ? 0 : have ? Math.max(0, cap - have) : M.split(rest.length, pp.k, pp.eq)[0];
+        if (!room) { if (i === start) continue; break; }
+        U.fillPage(p, rest.splice(0, room));
+        filled.push(i); last = i;
+      }
+    }
+    let more = 0;
+    if (rest.length) more = CV.V.morePages(c, last, rest, c.pages[last] || {}, {});
+    return { filled, more, last };
+  };
+  /** Groupes de pages dont l'ordre des photos ne suit pas « Ordre des photos » (un jour du voyage, ou une suite de pages) */
+  U.orderBroken = function () {
+    if (!E.c) return 0;
+    const mode = M.ordre(E.c).mode; if (mode === 'selection') return 0;
+    return U.groupsForOrder().filter((g) => {
+      const seq = []; g.forEach((p) => M.photosInOrder(p).forEach((it) => { if (!seq.includes(it.media)) seq.push(it.media); }));
+      const want = M.sortIds(seq, mode);
+      return want.some((id, i) => id !== seq[i]);
+    }).length;
+  };
   U.placeFlow = function (ids, pp, again) {
-    const page = E.page(E.pi), cap = Math.min(M.MAXN, pp.k === 'auto' ? 6 : pp.k), have = U.pagePhotos(page);
-    // page utilisable : vide, avec des photos, ou seulement du texte (titre) ; sinon (carte, dessin…) tout va sur des pages après
-    const usable = have.length || page.items.every((it) => it.type === 'text');
-    let rest = ids.slice(), here = [];
-    if (usable) here = rest.splice(0, have.length ? Math.max(0, cap - have.length) : M.split(ids.length, pp.k, pp.eq)[0]);
-    let p = null, more = 0;
-    if (here.length) p = U.recompose(page, have.concat(here));
-    if (rest.length) more = CV.V.morePages(E.c, E.pi, rest, page, {});
-    const pi = here.length ? E.pi : E.pi + 1;
+    const b0 = U.orderBroken(), start = E.pi;
+    const r = U.fillPages(ids, start, { mode: U.addMode() });
+    const pi = r.filled.length ? r.filled[0] : start + 1;
     E.sel = []; E.render(); E.commit('Ajouter des photos'); U.pagesBar();
     E.go(pi, true);
-    if (p) E.select(p.items.filter((x) => x.type === 'photo' && here.includes(x.media)).map((x) => x.id));
-    const n = ids.length;
-    O.toast((n > 1 ? n + ' photos ajoutées à la suite' : 'Photo ajoutée à la suite') + (here.length && have.length ? ' des ' + have.length + ' de la page' : '') + (more ? ' · ' + more + ' nouvelle' + (more > 1 ? 's pages' : ' page') : ''), { action: again, ms: 6000 });
+    const pg = E.page(pi); if (pg) E.select(pg.items.filter((x) => x.type === 'photo' && ids.includes(x.media)).map((x) => x.id));
+    const n = ids.length, broken = U.orderBroken() > b0, f = r.filled.length;
+    O.toast((n > 1 ? n + ' photos ajoutées' : 'Photo ajoutée') + (f ? ' · ' + (f > 1 ? f + ' pages remplies' : 'page ' + (r.filled[0] + 1) + ' remplie') : '') + (r.more ? ' · ' + r.more + ' nouvelle' + (r.more > 1 ? 's pages' : ' page') : '') + (broken ? ' · plus dans l’ordre des dates' : ''),
+      { action: broken ? { label: 'Remettre dans l’ordre', fn: () => U.reorder('all') } : again, ms: broken ? 9000 : 6000 });
   };
   /** « Par page… » juste après un ajout : autre réglage, les photos ajoutées sont reposées (l'ajout est défait puis refait) */
   U.placeAgain = async function () {
@@ -358,7 +420,7 @@
   /** Photos du carnet (plateau) : poser sur la page, couverture, supprimer */
   U.tray = async function (opt) {
     opt = opt || {};
-    const ms = (await M.mediaOf(E.c.id)).sort((a, b) => (a.exif && a.exif.t || a.added) - (b.exif && b.exif.t || b.added));
+    const ms = (await M.liveMedia(E.c)).sort((a, b) => (a.exif && a.exif.t || a.added) - (b.exif && b.exif.t || b.added));
     await M.ensureUrls(ms.map((m) => m.id));
     const used = M.mediaIds(E.c);
     const body = O.h('div', { cls: 'tray' });
@@ -501,7 +563,7 @@
     const m = it ? JSON.parse(JSON.stringify(it)) : { id: M.uid('i'), type: 'map', region: 'auto', style: 'ancienne', title: '', points: [], w: 640, h: 480, rot: 0 };
     if (fresh) {
       // étapes : lieux des photos du carnet (dans l'ordre des dates)
-      const ms = (await M.mediaOf(E.c.id)).filter((x) => x.exif && x.exif.lat != null).sort((a, b) => (a.exif.t || 0) - (b.exif.t || 0));
+      const ms = (await M.liveMedia(E.c)).filter((x) => x.exif && x.exif.lat != null).sort((a, b) => (a.exif.t || 0) - (b.exif.t || 0));
       const pts = []; ms.forEach((x) => { const l = pts[pts.length - 1]; if (!l || Math.hypot(l.lat - x.exif.lat, l.lon - x.exif.lon) > 0.05) pts.push({ lat: x.exif.lat, lon: x.exif.lon, name: (x.exif.place || '').split(',')[0] }); });
       m.points = pts.slice(0, 12);
     }
@@ -531,7 +593,7 @@
             if (m.region === 'auto') m.region = R.REGIONS.find((q) => q[2] && q[2][0] <= b[0] + 0.01 && q[2][2] >= b[2] - 0.01) ? m.region : m.region;
             const lon = b[0] + x / aw * (b[2] - b[0]), lat = b[3] - y / ah * (b[3] - b[1]);
             if (m.region === 'auto') m.region = m.points.length ? 'auto' : 'france';
-            m.points.push({ lat: Math.round(lat * 1000) / 1000, lon: Math.round(lon * 1000) / 1000, name: 'Étape ' + (m.points.length + 1) });
+            m.points.push({ lat: Math.round(lat * 1000) / 1000, lon: Math.round(lon * 1000) / 1000, name: 'Étape ' + (m.points.length + 1), manual: 1 });
             draw();
           }
         });
@@ -559,7 +621,9 @@
       '-',
       { label: 'Remettre les photos dans l\u2019ordre', icon: 'list-ordered', disabled: U.pagePhotos(p).length < 2, on: () => U.reorder('page') },
       { label: 'Ordre des photos : ' + CV.V.ordLabel(M.ordre(E.c)) + '…', icon: 'arrow-down-up', on: () => U.ordreDialog() },
-      { label: 'Supprimer la page', icon: 'trash', danger: true, disabled: E.c.pages.length <= 1, on: () => U.delPage() }
+      '-',
+      { label: 'Supprimer des pages…', icon: 'square-check', on: () => U.pagesDialog({ selectMode: true, select: [E.pi] }) },
+      { label: 'Supprimer la page', icon: 'trash', danger: true, on: () => U.delPage() }
     ], { title: 'Page ' + (E.pi + 1), cls: 'pageMenu' });
   };
   U.setBg = function (bg) { const p = E.page(E.pi); if (!p || p.cover) return; p.bg = bg; E.renderBg(E.pi); E.commit('Fond'); U.pagesBar(); };
@@ -633,12 +697,14 @@
   U.reorder = function (scope) {
     if (!E.c) return 0;
     const mode = M.ordre(E.c).mode, before = E.c.pages.map((p) => JSON.stringify(p.items));
+    const back = scope === 'all' ? U.replaceReserve() : 0;
     if (scope === 'all') U.groupsForOrder().forEach((g) => { M.reorderPages(g, mode); g.forEach((p) => M.reorderPage(p, mode)); });
     else { const p = E.page(E.pi); if (p && !p.cover) M.reorderPage(p, mode); }
-    const n = E.c.pages.filter((p, i) => JSON.stringify(p.items) !== before[i]).length;
+    let n = E.c.pages.filter((p, i) => JSON.stringify(p.items) !== before[i]).length;
+    if (back && !n) n = 1;
     if (!n) { O.toast(scope === 'all' ? 'Les photos du carnet sont déjà dans l’ordre' : 'Les photos de cette page sont déjà dans l’ordre'); return 0; }
     E.sel = []; E.render(); E.commit('Remettre dans l’ordre'); U.pagesBar(); U.props();
-    O.toast((scope === 'all' ? n + ' page' + (n > 1 ? 's remises' : ' remise') : 'Page remise') + ' dans l’ordre (' + CV.V.ordLabel(M.ordre(E.c)).toLowerCase() + ')', { action: { label: 'Annuler', fn: () => E.hist.undo() }, ms: 6000 });
+    O.toast((back ? plural(back, 'photo non placée replacée', 'photos non placées replacées') + ' · ' : '') + (scope === 'all' ? (back ? 'carnet remis' : n + ' page' + (n > 1 ? 's remises' : ' remise')) : 'Page remise') + ' dans l’ordre (' + CV.V.ordLabel(M.ordre(E.c)).toLowerCase() + ')', { action: { label: 'Annuler', fn: () => E.hist.undo() }, ms: 6000 });
     return n;
   };
   /** Groupes de pages dont les photos se suivent : un jour du voyage (ses pages), ou une suite de pages hors voyage */
@@ -684,17 +750,123 @@
     E.sel = []; E.render(); E.commit('Vedette'); U.props();
     O.toast('Photo en vedette : en tête de la page');
   };
-  U.delPage = async function () {
-    if (E.c.pages.length <= 1 || E.pi < 0) return;
-    const p = E.page(E.pi);
-    if (p.items.length && !(await O.confirm('Supprimer la page ' + (E.pi + 1) + ' ?', 'Elle contient ' + p.items.length + ' élément(s). « Annuler » (Ctrl+Z) la fera revenir.', 'Supprimer', true))) return;
-    E.c.pages.splice(E.pi, 1); E.sel = []; E.commit('Supprimer la page'); E.pi = Math.min(E.pi, E.c.pages.length - 1); E.render(); U.pagesBar(); E.onPage();
+  /* ---------------- Supprimer des pages ---------------- */
+  // Partout : menu Page, appui long (ou clic droit) sur une vignette, corbeille et sélection multiple dans « Toutes les pages »,
+  // « Supprimer les pages vides » (menu ⋮, et proposé quand une modification laisse des pages vides). Toujours une
+  // confirmation (nombre de pages et de photos), puis « Annuler » dans le bandeau ou Ctrl+Z. La couverture ne se supprime pas.
+  U.delPage = () => E.pi >= 0 ? U.deletePages([E.pi]) : Promise.resolve(false);
+  U.emptyPages = () => E.c ? E.c.pages.map((p, i) => M.isEmptyPage(p) ? i : -1).filter((i) => i >= 0) : [];
+  const plural = (n, one, many) => n + ' ' + (n > 1 ? many : one);
+  /** Supprime des pages (indices) après confirmation. Photos qui ne sont sur aucune autre page : gardées dans « Photos non
+      placées » (par défaut) ou supprimées du carnet (étapes de la carte qui ne venaient que d'elles retirées).
+      → true si supprimées */
+  U.deletePages = async function (pis, opt) {
+    opt = opt || {};
+    const c = E.c; if (!c) return false;
+    pis = Array.from(new Set(pis)).filter((i) => i >= 0 && i < c.pages.length).sort((a, b) => a - b);
+    if (!pis.length) { O.toast('La couverture ne peut pas être supprimée'); return false; }
+    const dead = new Set(pis.map((i) => c.pages[i])), rest = c.pages.filter((p) => !dead.has(p));
+    const elsewhere = M.mediaIds({ cover: c.cover, coverItems: c.coverItems, pages: rest });
+    const photos = Array.from(new Set(pis.flatMap((i) => M.pageMedia(c.pages[i])))).filter((id) => !elsewhere.has(id));
+    const n = pis.length, empty = pis.every((i) => M.isEmptyPage(c.pages[i]));
+    const what = n > 1 ? (empty ? plural(n, 'page vide', 'pages vides') : 'ces ' + n + ' pages') : 'la page ' + (pis[0] + 1);
+    const body = O.h('div', { cls: 'delDlg' });
+    body.innerHTML = '<p class="delSum">' + (n > 1 ? '<b>' + n + ' pages</b> (' + esc(U.pagesTxt(pis)) + ')' : '<b>Page ' + (pis[0] + 1) + '</b>') +
+      (photos.length ? ' · <b>' + plural(photos.length, 'photo', 'photos') + '</b>' + (photos.length > 1 ? ' qui ne sont' : ' qui n’est') + ' sur aucune autre page.' : empty ? (n > 1 ? ' : elles sont vides.' : ' : elle est vide.') : ' · aucune photo à perdre.') + '</p>' +
+      (photos.length ? '<div class="delOpts" role="radiogroup" aria-label="Que faire des photos ?">' +
+        '<label class="delOpt"><input type="radio" name="delPh" value="keep" checked><span><b>Les garder pour les replacer</b><small>Elles vont dans « Photos non placées » (menu Photos) ; Composer et « Remettre dans l’ordre » les proposent.</small></span></label>' +
+        '<label class="delOpt"><input type="radio" name="delPh" value="del"><span><b>Supprimer aussi les photos du carnet</b><small>Elles disparaissent du carnet (et de la carte de l’itinéraire) ; les photos d’origine du téléphone ou du PC ne sont pas touchées.</small></span></label></div>' : '') +
+      '<p class="hint">Tu pourras revenir en arrière avec « Annuler ».</p>';
+    const v = await O.dialog({ title: 'Supprimer ' + what + ' ?', body, cls: 'cv-dlg delDlgW', buttons: [{ label: 'Annuler', value: null }, { label: 'Supprimer', value: 'ok', primary: true, bad: true }] });
+    if (v !== 'ok') return false;
+    const keep = !photos.length || (body.querySelector('input[name="delPh"]:checked') || {}).value !== 'del';
+    const cur = E.page(E.pi), bg = (c.pages[pis[0]] || {}).bg || 'creme';
+    c.pages = rest;
+    if (!c.pages.length) c.pages.push(M.newPage(bg));
+    let steps = 0;
+    if (photos.length) {
+      if (keep) c.reserve = (c.reserve || []).concat(photos.filter((id) => !(c.reserve || []).includes(id)));
+      else { c.trash = (c.trash || []).concat(photos); if (c.reserve) c.reserve = c.reserve.filter((id) => !photos.includes(id)); steps = CV.V.pruneMap(c, photos); }
+    }
+    CV.V.fixDayTitles(c);
+    const k = c.pages.indexOf(cur);
+    E.pi = k >= 0 ? k : Math.min(pis[0], c.pages.length - 1);
+    const label = n > 1 ? 'Supprimer des pages' : 'Supprimer la page';
+    E.sel = []; E.render(); E.commit(label); U.pagesBar(); E.onPage();
+    U._emptyN = U.emptyPages().length;
+    O.toast((n > 1 ? n + ' pages supprimées' : 'Page supprimée') + (photos.length ? (keep ? ' · ' + plural(photos.length, 'photo', 'photos') + ' dans « Photos non placées »' : ' avec ' + plural(photos.length, 'photo', 'photos')) : '') + (steps ? ' · ' + plural(steps, 'étape retirée', 'étapes retirées') + ' de la carte' : ''),
+      { action: { label: 'Annuler', fn: () => { if (E.hist.undoLabel() === label) { E.hist.undo(); O.toast(n > 1 ? 'Pages rétablies' : 'Page rétablie'); } } }, ms: 8000 });
+    if (opt.after) opt.after();
+    return true;
+  };
+  /** « 2, 3, 5 à 7 » */
+  U.pagesTxt = function (pis) {
+    const out = []; let a = null, b = null;
+    pis.concat([null]).forEach((i) => { if (a != null && i === b + 1) { b = i; return; } if (a != null) out.push(a === b ? String(a + 1) : b === a + 1 ? (a + 1) + ', ' + (b + 1) : (a + 1) + ' à ' + (b + 1)); a = b = i; });
+    return out.join(', ');
+  };
+  /** « Supprimer les pages vides » (au moins une page reste) */
+  U.deleteEmpty = async function (opt) {
+    let l = U.emptyPages();
+    if (E.c && l.length === E.c.pages.length) l = l.slice(1);
+    if (!l.length) { O.toast('Aucune page vide'); return false; }
+    return U.deletePages(l, opt);
+  };
+  /** Une modification laisse de nouvelles pages vides (photos retirées, réagencement…) : on propose de les supprimer */
+  const REORG = /^(Supprimer$|Composer|Remettre|Trier|Déplacer la page|Couper)/;
+  U.emptyCheck = function (label) {
+    const n = U.emptyPages().length, before = U._emptyN == null ? n : U._emptyN;
+    U._emptyN = n;
+    if (n > before && REORG.test(label || '')) setTimeout(() => O.toast(plural(n, 'page vide', 'pages vides') + ' dans le carnet', { action: { label: 'Supprimer…', fn: () => U.deleteEmpty() }, ms: 8000 }), 60);
+  };
+  /** Menu d'une page (appui long, clic droit, ⋮ d'une vignette) : ouvrir, dupliquer, déplacer, sélectionner, supprimer */
+  U.pageCtx = function (pi, at, opt) {
+    opt = opt || {};
+    const n = E.c.pages.length, redraw = opt.redraw || (() => { });
+    if (pi < 0) { O.menu(at, [{ label: 'Ouvrir la couverture', icon: 'book', on: () => { if (opt.close) opt.close(); E.go(-1, true); } }, { label: 'La couverture ne peut pas être supprimée', icon: 'lock', disabled: true }], { title: 'Couverture' }); return; }
+    const mv = (to) => { if (U.movePageTo(pi, Math.max(0, Math.min(n - 1, to)))) redraw(); };
+    O.menu(at, [
+      { label: 'Ouvrir', icon: 'book-open', on: () => { if (opt.close) opt.close(); E.go(pi, true); } },
+      { label: 'Dupliquer', icon: 'copy', on: () => { E.pi = pi; U.dupPage(); redraw(); } },
+      { label: 'Déplacer', icon: 'arrow-left-right', sub: [
+        { label: 'Avant (page ' + pi + ')', icon: 'arrow-left', disabled: pi <= 0, on: () => mv(pi - 1) },
+        { label: 'Après (page ' + (pi + 2) + ')', icon: 'arrow-right', disabled: pi >= n - 1, on: () => mv(pi + 1) },
+        { label: 'Au début', icon: 'arrow-left-to-line', disabled: pi <= 0, on: () => mv(0) },
+        { label: 'À la fin', icon: 'arrow-right-to-line', disabled: pi >= n - 1, on: () => mv(n - 1) },
+        { label: 'Vers la page…', icon: 'hash', on: async () => { const v = await O.prompt('Déplacer la page ' + (pi + 1), 'Nouvelle place (1 à ' + n + ')', String(pi + 1)); const k = parseInt(v, 10); if (k >= 1) mv(k - 1); } }
+      ] },
+      opt.select ? { label: 'Sélectionner plusieurs pages', icon: 'square-check', on: () => opt.select(pi) } : { label: 'Toutes les pages…', icon: 'layout-grid', on: () => U.pagesDialog() },
+      '-',
+      { label: 'Supprimer la page…', icon: 'trash', danger: true, on: () => U.deletePages([pi], { after: redraw }) }
+    ], { title: 'Page ' + (pi + 1) + (M.isEmptyPage(E.c.pages[pi]) ? ' (vide)' : '') });
+  };
+  /** Appui long au doigt (ou clic droit à la souris) sur un élément « sel » de root → fn(élément, {x, y}) ; le relâchement
+      ne compte pas comme un toucher, et un glisser (plus de 8 px) l'annule */
+  U.longPress = function (root, sel, fn) {
+    let t = null, st = null, fired = 0;
+    const stop = () => { clearTimeout(t); t = null; st = null; };
+    root.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse' || e.button) return;
+      const el = e.target.closest(sel); if (!el || !root.contains(el)) return;
+      st = { x: e.clientX, y: e.clientY, id: e.pointerId };
+      clearTimeout(t); t = setTimeout(() => { t = null; fired = Date.now(); if (navigator.vibrate) try { navigator.vibrate(12); } catch (x) { } fn(el, { x: st.x, y: st.y }); }, 520);
+    });
+    // suivis sur tout le document : un glisser qui part de la vignette (poignée) annule l'appui long
+    document.addEventListener('pointermove', (e) => { if (st && e.pointerId === st.id && Math.hypot(e.clientX - st.x, e.clientY - st.y) > 8) stop(); }, true);
+    ['pointerup', 'pointercancel'].forEach((k) => document.addEventListener(k, (e) => { if (st && e.pointerId === st.id) stop(); }, true));
+    root.addEventListener('contextmenu', (e) => {
+      const el = e.target.closest(sel); if (!el || !root.contains(el)) return;
+      e.preventDefault();
+      if (Date.now() - fired < 900 || t) { stop(); if (Date.now() - fired < 900) return; }
+      fired = Date.now(); fn(el, { x: e.clientX, y: e.clientY });
+    });
+    root.addEventListener('click', (e) => { if (Date.now() - fired < 700) { e.stopPropagation(); e.preventDefault(); } }, true);
   };
   /** Vignettes des pages (barre latérale sur PC) */
   U.pagesBar = function () {
     const b = $('#pagesBar'); if (!b || !E.c) return;
     if (PHONE()) { b.innerHTML = ''; return; }
-    const th = (pi) => { const p = E.page(pi); return '<button class="pth' + (E.visible().includes(pi) ? ' on' : '') + '" data-go="' + pi + '" data-pi="' + pi + '" draggable="false"' + (pi >= 0 ? ' title="Glisser pour déplacer la page"' : '') + '>' + R.pageSvg(E.c, p, { pfx: 't' + pi + '-', href: M.url, media: M.info, cover: pi === -1 }) + '<span>' + (pi === -1 ? 'Couverture' : pi + 1) + '</span></button>'; };
+    const th = (pi) => { const p = E.page(pi); return '<button class="pth' + (E.visible().includes(pi) ? ' on' : '') + '" data-go="' + pi + '" data-pi="' + pi + '" draggable="false"' + (pi >= 0 ? ' title="Glisser pour déplacer la page · clic droit : supprimer, dupliquer, déplacer"' : '') + '>' + R.pageSvg(E.c, p, { pfx: 't' + pi + '-', href: M.url, media: M.info, cover: pi === -1 }) + '<span>' + (pi === -1 ? 'Couverture' : pi + 1) + '</span></button>'; };
     b.innerHTML = th(-1) + E.c.pages.map((p, i) => th(i)).join('') + '<button class="pth add" data-addp="1">' + ic('plus') + '<span>Page</span></button>';
   };
   U.pagesThumbSoon = function () { clearTimeout(U._pt); U._pt = setTimeout(U.pagesBar, 700); };
@@ -702,23 +874,105 @@
     const g = e.target.closest('[data-go]'); if (g) { E.go(+g.dataset.go); return; }
     if (e.target.closest('[data-addp]')) U.addPage(E.c.pages.length - 1);
   };
-  U.pagesDialog = async function () {
+  /** « Toutes les pages » : ouvrir, glisser par la poignée, menu de la page (⋮, appui long, clic droit), corbeille,
+      sélection multiple (« Sélectionner », ou Ctrl+clic) puis « Supprimer la sélection », « Supprimer les pages vides » */
+  U.pagesDialog = async function (opt) {
+    opt = opt || {};
     const body = O.h('div', { cls: 'pagesAll' });
+    const sel = new Set(opt.select || []); let selMode = !!opt.selectMode || sel.size > 0, close0 = null;
     const draw = () => {
-      body.innerHTML = '<div class="row pgTop"><span class="hint">Glisse une page par sa poignée ' + ic('grip-vertical') + ' pour la déplacer.</span><button type="button" class="btn" data-sortp>' + ic('calendar-days') + 'Trier par date</button></div><div class="pgGrid">' + [-1].concat(E.c.pages.map((p, i) => i)).map((pi) => '<div class="pgc' + (pi === E.pi ? ' on' : '') + '" data-pi="' + pi + '"><button class="pgThumb" data-open="' + pi + '" draggable="false">' + R.pageSvg(E.c, E.page(pi), { pfx: 'pa' + pi + '-', href: M.url, media: M.info, cover: pi === -1 }) + '</button><div class="pgAct">' + (pi >= 0 ? '<button class="ibtn pgGrip" data-grip aria-label="Glisser pour déplacer la page ' + (pi + 1) + '" title="Glisser pour déplacer">' + ic('grip-vertical') + '</button>' : '') + '<b>' + (pi === -1 ? 'Couverture' : pi + 1) + '</b>' + (pi >= 0 ? '<button class="ibtn" data-mv="' + pi + ':-1" aria-label="Avant"' + (pi === 0 ? ' disabled' : '') + '>' + ic('chevron-left') + '</button><button class="ibtn" data-mv="' + pi + ':1" aria-label="Après"' + (pi === E.c.pages.length - 1 ? ' disabled' : '') + '>' + ic('chevron-right') + '</button><button class="ibtn" data-dup="' + pi + '" aria-label="Dupliquer">' + ic('copy') + '</button><button class="ibtn" data-del="' + pi + '" aria-label="Supprimer"' + (E.c.pages.length <= 1 ? ' disabled' : '') + '>' + ic('trash') + '</button>' : '') + '</div></div>').join('') + '</div>';
+      const empties = U.emptyPages(), n = E.c.pages.length;
+      Array.from(sel).forEach((i) => { if (i >= n) sel.delete(i); });
+      body.classList.toggle('selMode', selMode);
+      body.innerHTML = '<div class="row pgTop">' + (selMode ? '<span class="hint">' + (window.MAGPC ? 'Clique sur' : 'Touche') + ' les pages à supprimer.</span>' : '<span class="hint">Glisse une page par sa poignée ' + ic('grip-vertical') + ' pour la déplacer ; ' + (window.MAGPC ? 'clic droit' : 'appui long') + ' : plus d’actions.</span>') +
+        '<div class="pgTopB"><button type="button" class="btn' + (selMode ? ' on' : '') + '" data-selmode aria-pressed="' + selMode + '">' + ic('square-check') + (selMode ? 'Terminer' : 'Sélectionner') + '</button>' +
+        (selMode ? '' : '<button type="button" class="btn" data-sortp>' + ic('calendar-days') + 'Trier par date</button>') +
+        (empties.length && !selMode ? '<button type="button" class="btn" data-delempty>' + ic('file-x') + 'Supprimer les pages vides (' + empties.length + ')</button>' : '') + '</div></div>' +
+        '<div class="pgGrid">' + [-1].concat(E.c.pages.map((p, i) => i)).map((pi) => {
+          const empty = pi >= 0 && M.isEmptyPage(E.c.pages[pi]), on = sel.has(pi);
+          return '<div class="pgc' + (pi === E.pi ? ' on' : '') + (on ? ' picked' : '') + (empty ? ' empty' : '') + (pi < 0 ? ' cov' : '') + '" data-pi="' + pi + '"><button class="pgThumb" data-open="' + pi + '" draggable="false"' + (selMode && pi >= 0 ? ' role="checkbox" aria-checked="' + on + '" aria-label="Page ' + (pi + 1) + '"' : '') + '>' + R.pageSvg(E.c, E.page(pi), { pfx: 'pa' + pi + '-', href: M.url, media: M.info, cover: pi === -1 }) + (empty ? '<em class="pgEmpty">vide</em>' : '') + (selMode && pi >= 0 ? '<i class="pgChk">' + ic('check') + '</i>' : '') + '</button>' +
+            '<div class="pgAct">' + (pi >= 0 && !selMode ? '<button class="ibtn pgGrip" data-grip aria-label="Glisser pour déplacer la page ' + (pi + 1) + '" title="Glisser pour déplacer">' + ic('grip-vertical') + '</button>' : '') + '<b>' + (pi === -1 ? 'Couverture' : pi + 1) + '</b>' +
+            (pi >= 0 && !selMode ? '<button class="ibtn" data-pmore="' + pi + '" aria-label="Actions de la page ' + (pi + 1) + '" title="Dupliquer, déplacer…">' + ic('ellipsis-vertical') + '</button><button class="ibtn pgDel" data-del="' + pi + '" aria-label="Supprimer la page ' + (pi + 1) + '" title="Supprimer la page">' + ic('trash') + '</button>' : '') + '</div></div>';
+        }).join('') + '</div>' +
+        (selMode ? '<div class="pgSelBar"><b>' + (sel.size ? plural(sel.size, 'page sélectionnée', 'pages sélectionnées') : 'Aucune page sélectionnée') + '</b><button type="button" class="btn" data-selall>' + (sel.size === n ? 'Aucune' : 'Toutes') + '</button>' + (empties.length ? '<button type="button" class="btn" data-selempty>Les vides (' + empties.length + ')</button>' : '') + '<button type="button" class="btn bad" data-seldel' + (sel.size ? '' : ' disabled') + '>' + ic('trash') + 'Supprimer la sélection</button></div>' : '');
     };
+    const after = () => { sel.clear(); selMode = false; draw(); };
+    const startSel = (pi) => { selMode = true; if (pi >= 0) sel.add(pi); draw(); };
     draw();
     await O.dialog({
-      title: 'Pages du carnet', body, wide: true, cls: 'cv-dlg',
-      onOpen: (w, close) => (U.dragPages(body, '.pgc', '[data-grip]', (a, b) => { U.movePageTo(a, b); draw(); }), body.addEventListener('click', (e) => {
-        const o = e.target.closest('[data-open]'); if (o) { close(null); E.go(+o.dataset.open, true); return; }
-        const mv = e.target.closest('[data-mv]'); if (mv) { const [i, d] = mv.dataset.mv.split(':').map(Number); E.pi = i; U.movePage(d); draw(); return; }
-        const du = e.target.closest('[data-dup]'); if (du) { E.pi = +du.dataset.dup; U.dupPage(); draw(); return; }
-        const de = e.target.closest('[data-del]'); if (de) { E.pi = +de.dataset.del; const p = E.page(E.pi); E.c.pages.splice(E.pi, 1); void p; E.commit('Supprimer la page'); E.pi = Math.min(E.pi, E.c.pages.length - 1); E.render(); U.pagesBar(); draw(); O.toast('Page supprimée (Ctrl+Z pour annuler)'); }
-        const so = e.target.closest('[data-sortp]'); if (so) { U.sortPages(); draw(); }
-      })),
+      title: 'Pages du carnet', body, wide: true, cls: 'cv-dlg pagesDlg',
+      onOpen: (w, close) => {
+        close0 = close;
+        U.dragPages(body, '.pgc', '[data-grip]', (a, b) => { if (!selMode) { U.movePageTo(a, b); draw(); } });
+        U.longPress(body, '.pgc', (el) => { const pi = +el.dataset.pi; if (selMode) { if (pi >= 0) { if (sel.has(pi)) sel.delete(pi); else sel.add(pi); draw(); } return; } U.pageCtx(pi, el.querySelector('.pgThumb'), { redraw: draw, close, select: startSel }); });
+        body.addEventListener('click', (e) => {
+          const t = e.target;
+          if (t.closest('[data-selmode]')) { selMode = !selMode; if (!selMode) sel.clear(); draw(); return; }
+          if (t.closest('[data-selall]')) { if (sel.size === E.c.pages.length) sel.clear(); else E.c.pages.forEach((p, i) => sel.add(i)); draw(); return; }
+          if (t.closest('[data-selempty]')) { sel.clear(); U.emptyPages().forEach((i) => sel.add(i)); draw(); return; }
+          if (t.closest('[data-seldel]')) { if (sel.size) U.deletePages(Array.from(sel), { after }); return; }
+          if (t.closest('[data-delempty]')) { U.deleteEmpty({ after }); return; }
+          const o = t.closest('[data-open]');
+          if (o) {
+            const pi = +o.dataset.open;
+            if (!selMode && (e.ctrlKey || e.metaKey || e.shiftKey) && pi >= 0) { startSel(pi); if (E.pi >= 0 && E.pi !== pi && e.shiftKey) { for (let i = Math.min(E.pi, pi); i <= Math.max(E.pi, pi); i++) sel.add(i); draw(); } return; }
+            if (selMode) { if (pi < 0) { O.toast('La couverture ne peut pas être supprimée'); return; } if (sel.has(pi)) sel.delete(pi); else sel.add(pi); draw(); return; }
+            close(null); E.go(pi, true); return;
+          }
+          const pm = t.closest('[data-pmore]'); if (pm) { U.pageCtx(+pm.dataset.pmore, pm, { redraw: draw, close, select: startSel }); return; }
+          const de = t.closest('[data-del]'); if (de) { U.deletePages([+de.dataset.del], { after: draw }); return; }
+          if (t.closest('[data-sortp]')) { U.sortPages(); draw(); }
+        });
+      },
       buttons: [{ label: 'Ajouter une page', value: 'add', left: true }, { label: 'Fermer', value: null, primary: true }]
     }).then((v) => { if (v === 'add') U.addPage(E.c.pages.length - 1); });
+    void close0;
+  };
+
+  /* ---------------- Photos non placées (réserve) ---------------- */
+  /** Feuille « Photos non placées » : replacer (pages libres à partir de la page affichée) ou supprimer du carnet */
+  U.reserveDialog = async function () {
+    if (!E.c) return;
+    const ids = M.reserveOf(E.c);
+    await M.ensureUrls(ids);
+    const pick = new Set(ids), body = O.h('div', { cls: 'tray resDlg' });
+    const draw = () => {
+      body.innerHTML = ids.length ? '<p class="hint"><b>' + plural(ids.length, 'photo', 'photos') + '</b> gardée' + (ids.length > 1 ? 's' : '') + ' après la suppression de leur page. Composer les propose, et « Remettre tout le carnet dans l’ordre » les replace à leur date.</p><div class="trayGrid">' +
+        M.sortIds(ids, M.ordre(E.c).mode).map((id) => { const ex = (M.info(id) || {}).exif || {}; return '<button type="button" class="tph sel' + (pick.has(id) ? ' on' : '') + '" data-m="' + id + '"><img src="' + M.url(id) + '" alt=""><i>' + ic('check') + '</i><span>' + esc(ex.t ? new Date(ex.t).toLocaleDateString('fr-FR') : '') + '</span></button>'; }).join('') + '</div><p class="hint"><b class="resN">' + pick.size + '</b> cochée' + (pick.size > 1 ? 's' : '') + '. « Replacer » remplit d’abord la page affichée et les pages libres qui suivent.</p>'
+        : '<p class="hint">Aucune photo en attente. Quand tu supprimes une page, tu peux garder ses photos ici pour les replacer plus tard.</p>';
+    };
+    draw();
+    const v = await O.dialog({
+      title: 'Photos non placées', body, wide: true, cls: 'cv-dlg',
+      onOpen: () => body.addEventListener('click', (e) => { const b = e.target.closest('[data-m]'); if (!b) return; const id = b.dataset.m; if (pick.has(id)) pick.delete(id); else pick.add(id); draw(); }),
+      buttons: ids.length ? [{ label: 'Supprimer du carnet', value: 'del', left: true, bad: true }, { label: 'Fermer', value: null }, { label: 'Replacer', value: 'put', primary: true }] : [{ label: 'Fermer', value: null, primary: true }]
+    });
+    const l = ids.filter((id) => pick.has(id));
+    if (!l.length || !v) return;
+    if (v === 'put') { if (E.pi < 0) E.go(0, true); U._lastAdd = null; U.placeFlow(M.sortIds(l, M.ordre(E.c).mode), CV.V.pp(E.c), { label: 'Annuler', fn: () => E.hist.undo() }); return; }
+    if (v === 'del') {
+      if (!(await O.confirm('Supprimer ' + plural(l.length, 'photo', 'photos') + ' du carnet ?', 'Elles ne sont sur aucune page. Les photos d’origine ne sont pas touchées ; « Annuler » les fait revenir.', 'Supprimer', true))) return;
+      E.c.trash = (E.c.trash || []).concat(l); E.c.reserve = (E.c.reserve || []).filter((id) => !l.includes(id));
+      const steps = CV.V.pruneMap(E.c, l);
+      E.render(); E.commit('Supprimer des photos'); U.pagesBar();
+      O.toast(plural(l.length, 'photo supprimée', 'photos supprimées') + (steps ? ' · ' + plural(steps, 'étape retirée', 'étapes retirées') + ' de la carte' : ''), { action: { label: 'Annuler', fn: () => { if (E.hist.undoLabel() === 'Supprimer des photos') E.hist.undo(); } }, ms: 8000 });
+    }
+  };
+  /** Photos non placées replacées par « Remettre tout le carnet dans l'ordre » : chacune à sa place dans l'ordre (date : après
+      la dernière page plus ancienne ; sinon à la fin), en remplissant les pages libres → nombre de photos replacées */
+  U.replaceReserve = function () {
+    const ids = M.reserveOf(E.c); if (!ids.length) return 0;
+    const mode = M.ordre(E.c).mode, l = M.sortIds(ids, mode), pages = E.c.pages;
+    const startOf = (id) => {
+      if (mode !== 'date') { let k = -1; pages.forEach((p, i) => { if (U.pagePhotos(p).length) k = i; }); return Math.max(0, k); }
+      const t = M.timeOf(id); let k = -1;
+      pages.forEach((p, i) => { const pt = M.pageTime(p); if (pt && pt <= t && U.usablePage(p)) k = i; });
+      return Math.max(0, k);
+    };
+    // par lots de photos qui vont au même endroit, de la fin vers le début (les indices plus haut restent justes)
+    const groups = []; l.forEach((id) => { const s = startOf(id), g = groups[groups.length - 1]; if (g && g.s === s) g.ids.push(id); else groups.push({ s, ids: [id] }); });
+    groups.reverse().forEach((g) => U.fillPages(g.ids, g.s, { mode: 'fill' }));
+    return l.length;
   };
 
   /* ---------------- Couverture ---------------- */
@@ -797,16 +1051,16 @@
     if (!E.c) return;
     if (E.pi < 0) { E.go(0, true); }
     const V = CV.V, MAXN = M.MAXN;
-    const all = (await M.mediaOf(E.c.id)).sort((a, b) => (a.exif && a.exif.t || a.added) - (b.exif && b.exif.t || b.added));
+    const all = (await M.liveMedia(E.c)).sort((a, b) => (a.exif && a.exif.t || a.added) - (b.exif && b.exif.t || b.added));
     if (!all.length) { const v = await O.dialog({ title: 'Composer une page', body: '<p>Il n\'y a pas encore de photo dans ce carnet.</p>', buttons: [{ label: 'Fermer', value: null }, { label: 'Ajouter des photos…', value: 'add', primary: true }] }); if (v === 'add') U.addPhotos(); return; }
     await M.ensureUrls(all.map((m) => m.id));
     const page = E.page(E.pi), byT = (a, b) => ((M.info(a) || {}).exif || {}).t - ((M.info(b) || {}).exif || {}).t || 0;
     const onPage = U.pagePhotos(page), od = M.ordre(E.c);
-    const used = M.mediaIds(E.c), pp = V.pp(E.c);
+    const used = M.mediaIds(E.c), pp = V.pp(E.c), resv = new Set(M.reserveOf(E.c));
     const free = () => all.map((m) => m.id).filter((id) => !used.has(id) && !chosen.includes(id));
     let pre = Array.from(new Set(E.selItems().filter((x) => x.type === 'photo').map((x) => x.media)));
     if (pre.length < 2) pre = onPage.slice();
-    if (!pre.length) pre = all.map((m) => m.id).filter((id) => !used.has(id));
+    if (!pre.length) pre = M.sortIds(Array.from(resv), od.mode).concat(all.map((m) => m.id).filter((id) => !used.has(id) && !resv.has(id)));
     if (!pre.length) pre = all.map((m) => m.id);
     if (!onPage.length) pre = pre.slice(0, pp.k === 'auto' ? 6 : pp.k);
     let chosen = pre.slice(0, MAXN);
@@ -837,7 +1091,7 @@
       const top = nRow() + note();
       if (step === 1) {
         const ord = ordered();
-        body.innerHTML = top + '<div class="trayGrid">' + all.map((m) => '<button type="button" class="tph sel' + (chosen.includes(m.id) ? ' on' : '') + (extras().includes(m.id) ? ' extra' : '') + '" data-m="' + m.id + '"><img src="' + M.url(m.id) + '" alt=""><i>' + ic('check') + '</i>' + (chosen.includes(m.id) ? '<b class="ordN" aria-label="Place sur la page">' + (ord.indexOf(m.id) + 1) + '</b>' : '') + (extras().includes(m.id) ? '<span>Nouvelle page</span>' : '') + '</button>').join('') + '</div>' + ppBox();
+        body.innerHTML = top + '<div class="trayGrid">' + all.map((m) => '<button type="button" class="tph sel' + (chosen.includes(m.id) ? ' on' : '') + (extras().includes(m.id) ? ' extra' : '') + '" data-m="' + m.id + '"><img src="' + M.url(m.id) + '" alt=""><i>' + ic('check') + '</i>' + (chosen.includes(m.id) ? '<b class="ordN" aria-label="Place sur la page">' + (ord.indexOf(m.id) + 1) + '</b>' : '') + (extras().includes(m.id) ? '<span>Nouvelle page</span>' : resv.has(m.id) ? '<span class="resv">Non placée</span>' : '') + '</button>').join('') + '</div>' + ppBox();
       } else {
         build();
         body.innerHTML = top + '<p class="hint">Touche l\'agencement qui te plaît.</p><div class="propGrid">' + props.map((p, i) => '<button class="prop" data-p="' + i + '">' + R.pageSvg(E.c, { id: 'cp' + i, bg: page.bg, items: kept.concat(p.items) }, { pfx: 'cp' + i + '-', href: M.url, media: M.info }) + '<span>' + esc(p.name) + '</span></button>').join('') + '</div>' +
@@ -884,11 +1138,11 @@
     let pi = E.pi, more = 0;
     const ex = extras();
     if (where === 'new') {
-      const np = M.newPage(page.bg); np.items = p.items.slice(); np.lay = p.name;
+      const np = M.newPage(page.bg); np.items = p.items.slice(); np.lay = p.name; M.setSlots(np);
       E.c.pages.splice(E.pi + 1, 0, np); pi = E.pi + 1;
     } else {
       const capsAll = U._capsAll || {};
-      page.items = kept.concat(p.items); page.lay = p.name;
+      page.items = kept.concat(p.items); page.lay = p.name; M.setSlots(page);
       // photos de la page sans place : pages ajoutées juste après (jamais perdues)
       if (ex.length) more = V.morePages(E.c, pi, ex, page, capsAll);
     }
@@ -1156,6 +1410,7 @@
     $('#drawBar').addEventListener('input', (e) => { if (e.target.id === 'penW') E.pen.width = parseFloat(e.target.value); });
     $('#pageNav').addEventListener('click', U.navClick);
     $('#pagesBar').addEventListener('click', U.pagesBarClick); U.dragPages($('#pagesBar'), '.pth', '.pth', (a, b) => U.movePageTo(a, b));
+    U.longPress($('#pagesBar'), '.pth[data-pi]', (el) => U.pageCtx(+el.dataset.pi, el));
     const pr = $('#props'); pr.addEventListener('click', U.propsClick); pr.addEventListener('input', U.propsInput); pr.addEventListener('change', U.propsChange);
     const st = $('#stage');
     st.addEventListener('pointerdown', E.pointerDown);

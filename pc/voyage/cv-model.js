@@ -307,10 +307,63 @@
   };
   M.stats = function (c) { const ids = M.mediaIds(c); return (c.pages || []).length + ' page' + ((c.pages || []).length > 1 ? 's' : '') + ' · ' + ids.size + ' photo' + (ids.size > 1 ? 's' : ''); };
 
+  /* ---------------- Pages vides, réserve « Photos non placées », photos supprimées ---------------- */
+  // c.reserve : photos gardées après la suppression de leur page, pas encore replacées (proposées par Composer, reprises par
+  // « Remettre dans l'ordre » et « Replacer ») ; c.trash : photos supprimées du carnet avec leur page, effacées du stockage à la
+  // fermeture ou à la réouverture du carnet (d'ici là, « Annuler » les fait revenir). Les deux suivent l'historique.
+  /** Page vide : ni photo, ni texte, ni décoration (le fond ne compte pas) */
+  M.isEmptyPage = (p) => !!p && !p.cover && !(p.items || []).length;
+  M.pageMedia = (p) => Array.from(new Set((p.items || []).filter((x) => x.type === 'photo' && x.media).map((x) => x.media)));
+  M.trashSet = (c) => new Set((c && c.trash) || []);
+  /** Réserve à jour : photos ni posées, ni supprimées, toujours présentes */
+  M.syncReserve = function (c) {
+    if (!c || !c.reserve) return [];
+    const used = M.mediaIds(c), tr = M.trashSet(c), seen = new Set();
+    c.reserve = c.reserve.filter((id) => !used.has(id) && !tr.has(id) && !seen.has(id) && (seen.add(id), true));
+    if (!c.reserve.length) delete c.reserve;
+    return c.reserve || [];
+  };
+  M.reserveOf = (c) => M.syncReserve(c).filter((id) => info[id]);
+  /** Photos du carnet encore présentes (sans celles supprimées avec leur page) */
+  M.liveMedia = async function (c) { const tr = M.trashSet(c); return (await M.mediaOf(c.id)).filter((m) => !tr.has(m.id)); };
+  /** Efface pour de bon les photos supprimées (fermeture, réouverture) : jamais une photo encore posée ou en réserve */
+  M.purgeTrash = async function (c) {
+    if (!c || !c.trash || !c.trash.length) return 0;
+    const used = M.mediaIds(c), res = new Set(c.reserve || []), gone = c.trash.filter((id) => !used.has(id) && !res.has(id));
+    for (const id of gone) { try { await M.delMedia(id); } catch (e) { } delete info[id]; }
+    delete c.trash;
+    return gone.length;
+  };
+  /** Cases de l'agencement d'une page (enregistrées à la composition) : [{cell, rot, frame, shape, shadow}] */
+  M.setSlots = function (page) {
+    const ph = (page.items || []).filter((x) => x.type === 'photo' && x.media && x.cell);
+    if (ph.length) page.slots = ph.map((x) => { const s = { cell: x.cell.slice(), rot: x.rot || 0, frame: x.frame }; if (x.shape) s.shape = x.shape; if (x.shadow != null) s.shadow = x.shadow; return s; });
+    else delete page.slots;
+  };
+  /** Cases libres d'une page : cases de son agencement qu'aucune photo n'occupe (photo retirée à la main), dans l'ordre de lecture */
+  M.freeSlots = function (page) {
+    const sl = page.slots || []; if (!sl.length) return [];
+    const ph = (page.items || []).filter((x) => x.type === 'photo' && x.cell);
+    const near = (a, b) => Math.abs(a[0] - b[0]) < 3 && Math.abs(a[1] - b[1]) < 3;
+    const free = sl.filter((s) => !ph.some((x) => near(x.cell, s.cell)));
+    return M.readingOrder(free.map((s) => s.cell)).map((i) => free[i]);
+  };
+  /** Pose des photos dans des cases libres (mêmes cadre et inclinaison que la case) → éléments ajoutés */
+  M.putInSlots = function (page, ids, slots) {
+    return ids.map((id, i) => {
+      const s = slots[i], f = M.fitIn(s.cell, id, s.frame, s.rot);
+      const it = M.photoItem(id, { frame: s.frame, rot: s.rot, x: f.x, y: f.y, w: f.w, h: f.h });
+      it.cell = s.cell.slice(); if (s.shape) it.shape = s.shape; if (s.shadow != null) it.shadow = s.shadow;
+      page.items.push(it);
+      return it;
+    });
+  };
+
   /* ---------------- .magcarnet (zip : carnet.json + photos) ---------------- */
   M.exportFile = async function (c) {
     if (!window.JSZip) throw new Error('JSZip manquant');
-    const z = new window.JSZip(), ms = await M.mediaOf(c.id), list = [];
+    const z = new window.JSZip(), ms = await M.liveMedia(c), list = [];
+    c = Object.assign({}, c); delete c.trash;
     for (const m of ms) {
       z.file('photos/' + m.id + '.jpg', m.full);
       if (m.mid) z.file('photos/' + m.id + '-mid.jpg', m.mid);
@@ -341,6 +394,8 @@
     const fix = (it) => { if (it.media && remap[it.media]) it.media = remap[it.media]; };
     (c.pages || []).forEach((p) => (p.items || []).forEach(fix)); (c.coverItems || []).forEach(fix);
     if (c.cover && c.cover.photo && remap[c.cover.photo]) c.cover.photo = remap[c.cover.photo];
+    if (c.reserve) c.reserve = c.reserve.map((id) => remap[id] || id).filter((id) => Object.values(remap).includes(id));
+    delete c.trash;
     c.updated = Date.now();
     await M.putCarnet(c);
     return c;

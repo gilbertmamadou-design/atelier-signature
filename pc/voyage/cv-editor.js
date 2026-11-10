@@ -34,17 +34,20 @@
 
   /* ---------------- Historique et enregistrement ---------------- */
   E.hist = O.History({
-    parts: () => { const c = E.c; if (!c) return []; return [JSON.stringify({ title: c.title, dates: c.dates, cover: c.cover }), JSON.stringify(c.coverItems || [])].concat(c.pages.map((p) => JSON.stringify(p))); },
+    parts: () => { const c = E.c; if (!c) return []; return [JSON.stringify({ title: c.title, dates: c.dates, cover: c.cover, reserve: c.reserve || null, trash: c.trash || null }), JSON.stringify(c.coverItems || [])].concat(c.pages.map((p) => JSON.stringify(p))); },
     restore: (parts) => {
       const c = E.c, m = JSON.parse(parts[0]);
-      c.title = m.title; c.dates = m.dates; c.cover = m.cover; c.coverItems = JSON.parse(parts[1]); c.pages = parts.slice(2).map((s) => JSON.parse(s));
+      c.title = m.title; c.dates = m.dates; c.cover = m.cover;
+      if (m.reserve) c.reserve = m.reserve; else delete c.reserve;
+      if (m.trash) c.trash = m.trash; else delete c.trash; c.coverItems = JSON.parse(parts[1]); c.pages = parts.slice(2).map((s) => JSON.parse(s));
       E.sel = E.sel.filter((id) => E.find(id));
       if (E.pi >= c.pages.length) E.pi = c.pages.length - 1;
       M.ensureUrls(Array.from(M.mediaIds(c))).then(() => { E.render(); E.save(); E.onChange('history'); });
     },
     onChange: () => E.onHist && E.onHist()
   });
-  E.commit = function (label) { if (E.hist.commit(label)) { E.save(); E.onChange('edit'); } };
+  // réserve « Photos non placées » tenue à jour (une photo replacée en sort) avant chaque étape d'historique
+  E.commit = function (label) { if (E.c) M.syncReserve(E.c); if (E.hist.commit(label)) { E.save(); E.onChange('edit', label); } };
   let saveT = null;
   E.save = function () {
     clearTimeout(saveT);
