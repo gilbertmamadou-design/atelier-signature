@@ -12,6 +12,8 @@ package __PKG__;
 //  - Tâche de fond WorkManager (classe Collecte) : N images par jour ou par semaine, Wi-Fi seulement par défaut,
 //    plafond de stockage, suppression des plus anciennes non favorites.
 //  - Les clés (Pixabay, NASA) restent sur le téléphone : fichier dans getNoBackupFilesDir() (exclu des sauvegardes).
+//  - Recadrage manuel (éditeur recadrage.js) : cropOpen (image réduite, dimensions, zone automatique), cropSave, cropAll,
+//    srcList / srcThumbs (images de la rotation), haptic ; les cadrages sont rangés par WallpaperJob (préférence « crops »).
 // Ce pont est chargé dans toutes les applis : il ne fait rien hors de Toile (paquet ….toile).
 // Le constructeur ne fait rien : aucune connexion tant que la page ou la tâche de fond ne le demande pas.
 
@@ -866,8 +868,8 @@ public class ToileBridge {
             List<String> h = WallpaperJob.history(a);
             if (h.isEmpty()) return "null";
             Uri u = Uri.parse(h.get(h.size() - 1));
-            if (ours(a, u)) { JSONObject o = byFile(a, new File(u.getPath()).getName()); if (o != null) return o.toString(); }
-            return new JSONObject().put("local", true).put("name", WallpaperJob.name(a, u)).toString();
+            if (ours(a, u)) { JSONObject o = byFile(a, new File(u.getPath()).getName()); if (o != null) return new JSONObject(o.toString()).put("uri", u.toString()).toString(); }
+            return new JSONObject().put("local", true).put("name", WallpaperJob.name(a, u)).put("uri", u.toString()).toString();
         } catch (Exception e) { return "null"; }
     }
 
@@ -877,6 +879,113 @@ public class ToileBridge {
                 if (url == null || !url.startsWith("https://")) return;
                 a.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             } catch (Throwable t) { Toast.makeText(a, "Impossible d'ouvrir le lien", Toast.LENGTH_SHORT).show(); }
+        } });
+    }
+
+    // ---------------------------------------------------------------- recadrage manuel
+    private static final java.util.concurrent.ExecutorService CROP = java.util.concurrent.Executors.newSingleThreadExecutor();
+    private void emit(final String kind, final boolean ok, final String data) {
+        final String js = "window.toileEvent&&toileEvent(" + JSONObject.quote(kind) + "," + ok + "," + JSONObject.quote(data == null ? "" : data) + ")";
+        ui.post(new Runnable() { public void run() { try { wv.evaluateJavascript(js, null); } catch (Throwable t) { } } });
+    }
+    private static String jpegData(Bitmap b, int q) {
+        ByteArrayOutputStream bo = new ByteArrayOutputStream();
+        b.compress(Bitmap.CompressFormat.JPEG, q, bo);
+        return "data:image/jpeg;base64," + Base64.encodeToString(bo.toByteArray(), Base64.NO_WRAP);
+    }
+
+    /** Ouvre l'éditeur : image réduite (1 600 px au plus), dimensions d'origine, zone gardée par le calcul automatique,
+     *  écran, cible et cadrages déjà rangés. Réponse : toileEvent('crop', ok, JSON). */
+    @JavascriptInterface public void cropOpen(final String uri) {
+        if (!ok()) return;
+        CROP.execute(new Runnable() { public void run() {
+            Context c = a.getApplicationContext();
+            try {
+                Uri u = Uri.parse(uri);
+                int[] s = WallpaperJob.screen(c), dim = WallpaperJob.bounds(c, u);
+                Bitmap src = WallpaperJob.load(c, u, s[1], dim, null, s[0], s[1]);
+                JSONObject o = new JSONObject();
+                try {
+                    WallpaperJob.Res r = WallpaperJob.processBitmap(src, s[0], s[1], WallpaperJob.settings(c), null);
+                    float W = src.getWidth(), H = src.getHeight();
+                    o.put("auto", new JSONObject().put("x", r.keep.left / W).put("y", r.keep.top / H).put("w", r.keep.width() / W).put("h", r.keep.height() / H).put("fill", r.fill));
+                    o.put("info", r.info);
+                    r.out.recycle();
+                    float k = Math.min(1f, 1600f / Math.max(src.getWidth(), src.getHeight()));
+                    Bitmap sm = k < 1f ? Bitmap.createScaledBitmap(src, Math.max(1, Math.round(src.getWidth() * k)), Math.max(1, Math.round(src.getHeight() * k)), true) : src;
+                    o.put("src", jpegData(sm, 88));
+                    if (sm != src) sm.recycle();
+                } finally { src.recycle(); }
+                o.put("uri", uri); o.put("name", WallpaperJob.name(c, u));
+                o.put("ow", dim[0]); o.put("oh", dim[1]); o.put("sw", s[0]); o.put("sh", s[1]);
+                o.put("target", WallpaperJob.settings(c).optString("target", "both"));
+                o.put("crops", WallpaperJob.cropsOf(c, uri));
+                emit("crop", true, o.toString());
+            } catch (Throwable t) { emit("crop", false, WallpaperJob.msg(t)); }
+        } });
+    }
+
+    /** Range les cadrages d'une image ({ "9:20": {...}, "9:20@lock": {...} } ; vide : retour au recadrage automatique). */
+    @JavascriptInterface public boolean cropSave(String uri, String json) {
+        if (!ok() || uri == null || uri.isEmpty()) return false;
+        JSONObject e;
+        try { e = new JSONObject(json == null || json.isEmpty() ? "{}" : json); } catch (Exception x) { return false; }
+        WallpaperJob.saveCropsOf(a.getApplicationContext(), uri, e);
+        return true;
+    }
+
+    /** Images qui ont un cadrage manuel : { "<uri>": nombre de formats }. */
+    @JavascriptInterface public String cropAll() {
+        if (!ok()) return "{}";
+        JSONObject all = WallpaperJob.crops(a), out = new JSONObject();
+        java.util.Iterator<String> it = all.keys();
+        while (it.hasNext()) { String k = it.next(); JSONObject o = all.optJSONObject(k); if (o != null && o.length() > 0) try { out.put(k, o.length()); } catch (Exception e) { } }
+        return out.toString();
+    }
+
+    @JavascriptInterface public void haptic() {
+        ui.post(new Runnable() { public void run() { try { wv.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK); } catch (Throwable t) { } } });
+    }
+
+    /** Images de la rotation (dossier choisi et images en ligne) : toileEvent('list', ok, [{uri, name}]). */
+    @JavascriptInterface public void srcList() {
+        if (!ok()) return;
+        CROP.execute(new Runnable() { public void run() {
+            Context c = a.getApplicationContext();
+            try {
+                List<Uri> l = WallpaperJob.list(c);
+                JSONArray out = new JSONArray();
+                for (Uri u : l) out.put(new JSONObject().put("uri", u.toString()).put("name", WallpaperJob.name(c, u)));
+                emit("list", true, out.toString());
+            } catch (Throwable t) { emit("list", false, WallpaperJob.msg(t)); }
+        } });
+    }
+
+    /** Vignettes (240 px) : un toileEvent('thumb', ok, {uri, src}) par image. */
+    @JavascriptInterface public void srcThumbs(final String json) {
+        if (!ok()) return;
+        CROP.execute(new Runnable() { public void run() {
+            Context c = a.getApplicationContext();
+            JSONArray l; try { l = new JSONArray(json); } catch (Exception e) { return; }
+            for (int i = 0; i < l.length(); i++) {
+                String uri = l.optString(i);
+                try {
+                    Uri u = Uri.parse(uri);
+                    int[] dim = WallpaperJob.bounds(c, u);
+                    BitmapFactory.Options o = new BitmapFactory.Options();
+                    int ss = 1; while (Math.min(dim[2], dim[3]) / (ss * 2) >= 240) ss *= 2;
+                    o.inSampleSize = ss;
+                    Bitmap b;
+                    try (InputStream in = c.getContentResolver().openInputStream(u)) { b = BitmapFactory.decodeStream(in, null, o); }
+                    if (b == null) throw new Exception("illisible");
+                    if (dim[4] != 0) { Matrix m = new Matrix(); m.postRotate(dim[4]); Bitmap rb = Bitmap.createBitmap(b, 0, 0, b.getWidth(), b.getHeight(), m, true); if (rb != b) b.recycle(); b = rb; }
+                    float k = Math.min(1f, 320f / Math.max(b.getWidth(), b.getHeight()));
+                    Bitmap t = k < 1f ? Bitmap.createScaledBitmap(b, Math.max(1, Math.round(b.getWidth() * k)), Math.max(1, Math.round(b.getHeight() * k)), true) : b;
+                    String d = jpegData(t, 75);
+                    if (t != b) t.recycle(); b.recycle();
+                    emit("thumb", true, new JSONObject().put("uri", uri).put("src", d).toString());
+                } catch (Throwable t) { try { emit("thumb", false, new JSONObject().put("uri", uri).toString()); } catch (Exception e) { } }
+            }
         } });
     }
 }

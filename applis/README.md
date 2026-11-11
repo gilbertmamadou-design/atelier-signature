@@ -5,7 +5,7 @@ Petites applications Android faites sur mesure pour un téléphone Oukitel WP60 
 | Appli | Rôle |
 |---|---|
 | Socle | Écran d'accueil en tableau de bord (tuiles, tiroir d'applis, gestes) ; page Jarvis plein écran (panneau Majordome en taille « Plein écran » ou Ajouter › page plein écran : grande sphère, heure, météo et seuil de vent, rendez-vous, réveil, minuteurs, lumières Hue et 3 pièces, titres, batterie, dernier échange ; peut devenir la page principale ; la sphère réagit au niveau sonore de Majordome quand il écoute ou parle, et en option, désactivée par défaut, aux sons de la pièce : micro de Socle ouvert seulement page Jarvis visible et écran allumé, niveau seulement, rien d'enregistré) et mode Station Jarvis en charge (écran allumé, nuit atténuée, coupé au débranchement) |
-| Toile | Fonds d'écran automatiques, recadrés (bordures, bandeaux de texte, format de l'écran) ; « Images en ligne » par thèmes, sources libres seulement (Wikimedia Commons, Openverse, NASA, Pixabay avec clé), crédits, tâche de fond Wi-Fi |
+| Toile | Fonds d'écran automatiques, recadrés (bordures, bandeaux de texte, format de l'écran) ; **recadrage manuel** par image (cadre au format de l'écran déplacé au doigt, pincé pour la taille, accueil / verrouillage, format libre sur bandes floues ou de couleur), prioritaire sur l'automatique ; « Images en ligne » par thèmes, sources libres seulement (Wikimedia Commons, Openverse, NASA, Pixabay avec clé), crédits, tâche de fond Wi-Fi |
 | Galerie | Photos et vidéos (remplace Google Photos) |
 | Agenda | Agenda (remplace Google Agenda) |
 | Contacts | Contacts (remplace Google Contacts) |

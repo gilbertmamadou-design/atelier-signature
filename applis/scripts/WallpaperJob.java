@@ -6,6 +6,8 @@ package __PKG__;
 //  - adaptation au format de l'écran : recadrage intelligent, centré, ou image entière sur fond flou
 //  - changement automatique (JobScheduler, survit au redémarrage), précédent, aperçu
 //  - « Images en ligne » (ToileBridge.java) : les images récupérées rejoignent la rotation, avec les mêmes traitements
+//  - cadrage manuel par image (éditeur applis/www-fonds/recadrage.js) : prioritaire sur le mode automatique,
+//    rangé à part (préférence « crops »), un cadrage par format d'écran et pour le verrouillage ; fichiers jamais modifiés
 
 import android.app.WallpaperManager;
 import android.app.job.JobInfo;
@@ -266,16 +268,23 @@ public class WallpaperJob extends JobService {
     }
 
     static void apply(Context c, Uri u, int flags) throws Exception {
-        Res r = process(c, u, false);
+        boolean home = (flags & WallpaperManager.FLAG_SYSTEM) != 0, lock = (flags & WallpaperManager.FLAG_LOCK) != 0;
+        Res r = process(c, u, false, home ? "home" : "lock");
+        Res rl = null;
         try {
+            // cadrage manuel propre au verrouillage : image préparée à part
+            if (home && lock && hasExactCrop(c, u.toString(), "lock")) rl = process(c, u, false, "lock");
             WallpaperManager wm = WallpaperManager.getInstance(c);
-            if ((flags & WallpaperManager.FLAG_SYSTEM) != 0 && liveOn(c)) {
+            if (home && liveOn(c)) {
                 // Fond « Toile (double tap) » actif : l'image de l'accueil est dessinée par Live, pas posée par Android
                 writeLive(c, r.out);
-                if ((flags & WallpaperManager.FLAG_LOCK) != 0) {
+                if (lock) {
                     int lockId = -1; try { lockId = wm.getWallpaperId(WallpaperManager.FLAG_LOCK); } catch (Throwable t) { }
-                    if (lockId >= 0) wm.setBitmap(r.out, null, true, WallpaperManager.FLAG_LOCK);   // verrouillage avec sa propre image
+                    if (lockId >= 0 || rl != null) wm.setBitmap(rl != null ? rl.out : r.out, null, true, WallpaperManager.FLAG_LOCK);   // verrouillage avec sa propre image
                 }
+            } else if (rl != null) {
+                wm.setBitmap(r.out, null, true, WallpaperManager.FLAG_SYSTEM);
+                wm.setBitmap(rl.out, null, true, WallpaperManager.FLAG_LOCK);
             } else wm.setBitmap(r.out, null, true, flags);
             // Miniature pour la tuile « Fond d'écran » de Socle
             if ((flags & WallpaperManager.FLAG_SYSTEM) != 0) {
@@ -286,7 +295,7 @@ public class WallpaperJob extends JobService {
                 } catch (Throwable t) { }
             }
         }
-        finally { r.out.recycle(); }
+        finally { r.out.recycle(); if (rl != null) rl.out.recycle(); }
     }
 
     static String applyUri(Context c, Uri u) throws Exception {
@@ -331,7 +340,7 @@ public class WallpaperJob extends JobService {
             if (all.isEmpty()) throw new Exception("Aucune image dans ce dossier");
             u = all.get(new Random().nextInt(all.size()));
         } else u = Uri.parse(uri);
-        Res r = process(c, u, true);
+        Res r = process(c, u, true, "home");
         try {
             int bw = r.src.getWidth(), bh = r.src.getHeight();
             float s = Math.min(1f, 640f / Math.max(bw, bh));
@@ -357,6 +366,7 @@ public class WallpaperJob extends JobService {
             o.put("w", r.src.getWidth()); o.put("h", r.src.getHeight());
             o.put("kw", r.keep.width()); o.put("kh", r.keep.height());
             o.put("info", r.info);
+            o.put("manual", r.manual);
             before.recycle(); after.recycle();
             return o.toString();
         } finally { r.src.recycle(); r.out.recycle(); }
@@ -368,8 +378,32 @@ public class WallpaperJob extends JobService {
         return "data:image/jpeg;base64," + Base64.encodeToString(bo.toByteArray(), Base64.NO_WRAP);
     }
 
+    // ---------- Cadrage manuel : rangement ----------
+    // Préférence « crops » : { "<uri>": { "9:20": {x, y, w, h, free, bg, at}, "9:20@lock": {…} } },
+    // rectangle en fractions de l'image d'origine (orientation EXIF comprise). L'image elle-même n'est jamais modifiée.
+    static JSONObject crops(Context c) {
+        try { return new JSONObject(prefs(c).getString("crops", "{}")); } catch (Exception e) { return new JSONObject(); }
+    }
+    static JSONObject cropsOf(Context c, String uri) {
+        JSONObject o = crops(c).optJSONObject(uri);
+        return o == null ? new JSONObject() : o;
+    }
+    static void saveCropsOf(Context c, String uri, JSONObject entries) {
+        synchronized (LOCK) {
+            JSONObject all = crops(c);
+            try {
+                if (entries == null || entries.length() == 0) all.remove(uri); else all.put(uri, entries);
+            } catch (Exception e) { return; }
+            prefs(c).edit().putString("crops", all.toString()).apply();
+        }
+    }
+    static boolean hasExactCrop(Context c, String uri, String variant) {
+        int[] s = screen(c);
+        return cropsOf(c, uri).optJSONObject(cropKey(s[0], s[1], variant)) != null;
+    }
+
     // ---------- Traitement de l'image ----------
-    static class Res { Bitmap src, out; Rect keep; String info = ""; }
+    static class Res { Bitmap src, out; Rect keep; String info = ""; boolean manual, fill; }
 
     static int[] screen(Context c) {
         DisplayMetrics dm = new DisplayMetrics();
@@ -378,12 +412,145 @@ public class WallpaperJob extends JobService {
         return new int[]{ Math.min(dm.widthPixels, dm.heightPixels), Math.max(dm.widthPixels, dm.heightPixels) };
     }
 
-    static Res process(Context c, Uri u, boolean keepSrc) throws Exception {
+    static Res process(Context c, Uri u, boolean keepSrc) throws Exception { return process(c, u, keepSrc, "home"); }
+
+    /** variant : « home » (accueil) ou « lock » (verrouillage) : choisit le cadrage manuel à appliquer. */
+    static Res process(Context c, Uri u, boolean keepSrc, String variant) throws Exception {
         int[] s = screen(c);
         int sw = s[0], sh = s[1];
         JSONObject o = settings(c);
-        Bitmap src = load(c, u, sh);
+        int[] dim = bounds(c, u);
+        float[] man = resolveCrop(cropsOf(c, u.toString()), sw, sh, variant, dim[0], dim[1]);
+        Bitmap src = load(c, u, sh, dim, man, sw, sh);
+        Res res = processBitmap(src, sw, sh, o, man);
+        if (!keepSrc) { src.recycle(); res.src = null; }
+        return res;
+    }
+
+    /** Dimensions affichées de l'image d'origine (orientation EXIF comprise) : {largeur, hauteur, largeur brute, hauteur brute, rotation}. */
+    static int[] bounds(Context c, Uri u) throws Exception {
+        ContentResolver cr = c.getContentResolver();
+        BitmapFactory.Options o = new BitmapFactory.Options();
+        o.inJustDecodeBounds = true;
+        try (InputStream in = cr.openInputStream(u)) { BitmapFactory.decodeStream(in, null, o); }
+        if (o.outWidth <= 0 || o.outHeight <= 0) throw new Exception("Image illisible : " + name(c, u));
+        int rot = 0;
+        try (InputStream in = cr.openInputStream(u)) {
+            int or = new ExifInterface(in).getAttributeInt(ExifInterface.TAG_ORIENTATION, 1);
+            rot = or == 6 ? 90 : or == 3 ? 180 : or == 8 ? 270 : 0;
+        } catch (Exception e) { }
+        boolean sw = rot == 90 || rot == 270;
+        return new int[]{ sw ? o.outHeight : o.outWidth, sw ? o.outWidth : o.outHeight, o.outWidth, o.outHeight, rot };
+    }
+
+    static Bitmap load(Context c, Uri u, int target) throws Exception { return load(c, u, target, bounds(c, u), null, 0, 0); }
+
+    // Réduction à la lecture (inSampleSize) : le petit côté reste ≥ target ; avec un cadrage manuel, c'est la zone
+    // choisie qui doit rester au moins aussi grande que l'écran (zoom sur un détail = lecture plus fine). 16 Mpx au plus.
+    static Bitmap load(Context c, Uri u, int target, int[] dim, float[] man, int sw, int sh) throws Exception {
+        ContentResolver cr = c.getContentResolver();
+        int w = dim[2], h = dim[3], ss = 1, rot = dim[4];
+        while (true) {
+            int n = ss * 2;
+            boolean more;
+            if (man == null) more = Math.min(w, h) / n >= target;
+            else {
+                float zw = man[2] * dim[0] / n, zh = man[3] * dim[1] / n;
+                more = man[4] > 0 ? (zw >= sw || zh >= sh) : (zw >= sw && zh >= sh);
+            }
+            if (more || (long) w * h / ((long) ss * ss) > 16000000L) ss *= 2; else break;
+        }
+        BitmapFactory.Options d = new BitmapFactory.Options();
+        d.inSampleSize = ss;
+        d.inPreferredConfig = Bitmap.Config.ARGB_8888;
+        d.inMutable = false;
+        Bitmap b;
+        try (InputStream in = cr.openInputStream(u)) { b = BitmapFactory.decodeStream(in, null, d); }
+        if (b == null) throw new Exception("Image illisible : " + name(c, u));
+        if (rot != 0) {
+            Matrix m = new Matrix();
+            m.postRotate(rot);
+            Bitmap rb = Bitmap.createBitmap(b, 0, 0, b.getWidth(), b.getHeight(), m, true);
+            if (rb != b) b.recycle();
+            b = rb;
+        }
+        return b;
+    }
+
+    // ================= Partie sans Context (testée telle quelle sur la JVM, avec un faux android.graphics) =================
+    static String cropKey(int sw, int sh, String variant) {
+        int a = sw, b = sh; while (b != 0) { int t = a % b; a = b; b = t; } if (a == 0) a = 1;
+        return (sw / a) + ":" + (sh / a) + ("lock".equals(variant) ? "@lock" : "");
+    }
+    private static boolean cropOk(JSONObject e) {
+        if (e == null) return false;
+        double w = e.optDouble("w", -1), h = e.optDouble("h", -1), x = e.optDouble("x", Double.NaN), y = e.optDouble("y", Double.NaN);
+        return !Double.isNaN(x) && !Double.isNaN(y) && !Double.isInfinite(x) && !Double.isInfinite(y) && w > 0 && h > 0 && w <= 4 && h <= 4;
+    }
+    private static int cropBg(JSONObject e) {
+        String bg = e.optString("bg", "blur");
+        if (bg.matches("^#[0-9a-fA-F]{6}$")) return Integer.parseInt(bg.substring(1), 16);
+        return -1;
+    }
+    /** Cadrage à appliquer pour cet écran : celui du format exact, sinon celui d'un autre format recentré
+     *  (même centre, même surface, nouveau ratio, dans l'image). {x, y, w, h, libre (0/1), fond (-1 flou ou 0xRRGGBB), exact (0/1)}.
+     *  Même calcul que resolve() de recadrage.js et resolveCrop() de toile-worker.js. */
+    static float[] resolveCrop(JSONObject E, int sw, int sh, String variant, int ow, int oh) {
+        if (E == null || E.length() == 0 || ow <= 0 || oh <= 0) return null;
+        String k = cropKey(sw, sh, variant), other = "lock".equals(variant) ? cropKey(sw, sh, null) : cropKey(sw, sh, "lock");
+        JSONObject e = E.optJSONObject(k);
+        if (cropOk(e)) return new float[]{ (float) e.optDouble("x"), (float) e.optDouble("y"), (float) e.optDouble("w"), (float) e.optDouble("h"), e.optBoolean("free") ? 1 : 0, cropBg(e), 1 };
+        final JSONObject EE = E;
+        List<String> rest = new ArrayList<>();
+        java.util.Iterator<String> it = E.keys();
+        while (it.hasNext()) { String q = it.next(); if (!q.equals(k) && !q.equals(other) && cropOk(E.optJSONObject(q))) rest.add(q); }
+        Collections.sort(rest, (a, b) -> {
+            int c = Double.compare(EE.optJSONObject(b).optDouble("at", 0), EE.optJSONObject(a).optDouble("at", 0));
+            return c != 0 ? c : a.compareTo(b);
+        });
+        List<String> order = new ArrayList<>();
+        if (cropOk(E.optJSONObject(other))) order.add(other);
+        order.addAll(rest);
+        if (order.isEmpty()) return null;
+        JSONObject f = E.optJSONObject(order.get(0));
+        double x = f.optDouble("x"), y = f.optDouble("y"), w = f.optDouble("w"), h = f.optDouble("h");
+        if (f.optBoolean("free")) return new float[]{ (float) x, (float) y, (float) w, (float) h, 1, cropBg(f), 0 };
+        double tr = sw / (double) sh, cx = (x + w / 2) * ow, cy = (y + h / 2) * oh, A = (w * ow) * (h * oh);
+        double nw = Math.sqrt(A * tr), nh = nw / tr, s = Math.min(1, Math.min(ow / nw, oh / nh));
+        nw *= s; nh *= s;
+        double nx = Math.max(0, Math.min(ow - nw, cx - nw / 2)), ny = Math.max(0, Math.min(oh - nh, cy - nh / 2));
+        return new float[]{ (float) (nx / ow), (float) (ny / oh), (float) (nw / ow), (float) (nh / oh), 0, cropBg(f), 0 };
+    }
+
+    /** Traitement complet d'une image déjà lue : cadrage manuel s'il y en a un (prioritaire), sinon le mode automatique choisi. */
+    static Res processBitmap(Bitmap src, int sw, int sh, JSONObject o, float[] man) {
         Rect full = new Rect(0, 0, src.getWidth(), src.getHeight());
+        Res res = new Res();
+        res.src = src;
+        if (man != null) {
+            int W = src.getWidth(), H = src.getHeight();
+            Rect f = new Rect(Math.round(man[0] * W), Math.round(man[1] * H), Math.round((man[0] + man[2]) * W), Math.round((man[1] + man[3]) * H));
+            if (f.right <= f.left) f.right = f.left + 1;
+            if (f.bottom <= f.top) f.bottom = f.top + 1;
+            res.manual = true;
+            if (man[4] > 0) {
+                // format libre : partie de l'image dans le cadre, centrée sur l'écran, bandes floues ou de couleur autour
+                Rect k = new Rect(Math.max(0, f.left), Math.max(0, f.top), Math.min(W, f.right), Math.min(H, f.bottom));
+                if (k.width() <= 0 || k.height() <= 0) { f = new Rect(full); k = new Rect(full); }
+                res.keep = k;
+                res.fill = true;
+                res.out = freeFit(src, f, k, sw, sh, (int) man[5]);
+                res.info = "cadrage manuel, format libre" + (aspectClose(f, sw, sh) && f.equals(k) ? "" : (int) man[5] == -1 ? ", bandes floues" : ", bandes de couleur");
+            } else {
+                // cadre au format de l'écran, toujours dans l'image
+                int w = Math.max(1, Math.min(W, f.width())), h = Math.max(1, Math.min(H, f.height()));
+                int l = Math.max(0, Math.min(W - w, f.left)), t = Math.max(0, Math.min(H - h, f.top));
+                res.keep = new Rect(l, t, l + w, t + h);
+                res.out = scaleRegion(src, res.keep, sw, sh);
+                res.info = "cadrage manuel" + (res.keep.width() < sw ? ", agrandi (moins net)" : "");
+            }
+            return res;
+        }
         Rect r = new Rect(full);
         List<String> info = new ArrayList<>();
         int tol = Math.max(4, Math.min(80, o.optInt("tol", 24)));
@@ -403,47 +570,43 @@ public class WallpaperJob extends JobService {
         int trim = Math.max(0, Math.min(15, o.optInt("trim", 0)));
         if (trim > 0) { r.inset(r.width() * trim / 100, r.height() * trim / 100); info.add("bords rognés de " + trim + " %"); }
         if (r.width() < full.width() / 4 || r.height() < full.height() / 4 || r.isEmpty()) { r = new Rect(full); info.clear(); }
-        Res res = new Res();
-        res.src = src;
         String fit = o.optString("fit", "smart");
         if (autoFit) fit = "width"; // recadrage automatique : seuls bordures, bandeaux, logos et écritures détectés sont retirés, le reste en pleine largeur
         res.keep = new Rect(r);
         res.out = fit(src, r, sw, sh, fit, res);
-        if (("blur".equals(fit) || ("width".equals(fit) && r.width() / (float) r.height() > sw / (float) sh)) && !aspectClose(r, sw, sh)) info.add("width".equals(fit) ? "pleine largeur, bandes floues" : "image entière sur fond flou");
+        if (("blur".equals(fit) || ("width".equals(fit) && r.width() / (float) r.height() > sw / (float) sh)) && !aspectClose(r, sw, sh)) { info.add("width".equals(fit) ? "pleine largeur, bandes floues" : "image entière sur fond flou"); res.fill = true; }
         else info.add("ajustée à l'écran " + sw + "×" + sh);
         res.info = String.join(", ", info);
-        if (!keepSrc) { src.recycle(); res.src = null; }
         return res;
     }
 
-    static Bitmap load(Context c, Uri u, int target) throws Exception {
-        ContentResolver cr = c.getContentResolver();
-        BitmapFactory.Options o = new BitmapFactory.Options();
-        o.inJustDecodeBounds = true;
-        try (InputStream in = cr.openInputStream(u)) { BitmapFactory.decodeStream(in, null, o); }
-        if (o.outWidth <= 0 || o.outHeight <= 0) throw new Exception("Image illisible : " + name(c, u));
-        int w = o.outWidth, h = o.outHeight, ss = 1;
-        while (Math.min(w, h) / (ss * 2) >= target || (long) w * h / ((long) ss * ss) > 16000000L) ss *= 2;
-        BitmapFactory.Options d = new BitmapFactory.Options();
-        d.inSampleSize = ss;
-        d.inPreferredConfig = Bitmap.Config.ARGB_8888;
-        d.inMutable = false;
-        Bitmap b;
-        try (InputStream in = cr.openInputStream(u)) { b = BitmapFactory.decodeStream(in, null, d); }
-        if (b == null) throw new Exception("Image illisible : " + name(c, u));
-        int rot = 0;
-        try (InputStream in = cr.openInputStream(u)) {
-            int or = new ExifInterface(in).getAttributeInt(ExifInterface.TAG_ORIENTATION, 1);
-            rot = or == 6 ? 90 : or == 3 ? 180 : or == 8 ? 270 : 0;
-        } catch (Exception e) { }
-        if (rot != 0) {
-            Matrix m = new Matrix();
-            m.postRotate(rot);
-            Bitmap rb = Bitmap.createBitmap(b, 0, 0, b.getWidth(), b.getHeight(), m, true);
-            if (rb != b) b.recycle();
-            b = rb;
-        }
-        return b;
+    // Format libre : le cadre f (qui peut dépasser l'image) est ajusté dans l'écran ; la partie k de l'image qu'il contient
+    // est dessinée à sa place, le reste est rempli de flou (comme blurFit, à partir de k) ou d'une couleur unie.
+    static Bitmap freeFit(Bitmap src, Rect f, Rect k, int sw, int sh, int bg) {
+        Bitmap out = Bitmap.createBitmap(sw, sh, Bitmap.Config.ARGB_8888);
+        Canvas cv = new Canvas(out);
+        Paint p = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.ANTI_ALIAS_FLAG);
+        if (bg == -1) {
+            float cover = Math.max(sw / (float) k.width(), sh / (float) k.height());
+            int cw = Math.min(k.width(), Math.round(sw / cover)), ch = Math.min(k.height(), Math.round(sh / cover));
+            Rect cr = new Rect(k.left + (k.width() - cw) / 2, k.top + (k.height() - ch) / 2, k.left + (k.width() - cw) / 2 + cw, k.top + (k.height() - ch) / 2 + ch);
+            int tw = Math.max(2, sw / 40), th = Math.max(2, sh / 40);
+            Bitmap tiny = Bitmap.createBitmap(tw, th, Bitmap.Config.ARGB_8888);
+            new Canvas(tiny).drawBitmap(src, cr, new Rect(0, 0, tw, th), p);
+            Bitmap mid = Bitmap.createScaledBitmap(tiny, tw * 4, th * 4, true);
+            tiny.recycle();
+            cv.drawBitmap(mid, null, new Rect(0, 0, sw, sh), p);
+            mid.recycle();
+            cv.drawColor(0x73000000);
+        } else cv.drawColor(0xFF000000 | bg);
+        float s = Math.min(sw / (float) f.width(), sh / (float) f.height());
+        float fx = (sw - f.width() * s) / 2f, fy = (sh - f.height() * s) / 2f;
+        int dl = Math.round(fx + (k.left - f.left) * s), dt = Math.round(fy + (k.top - f.top) * s);
+        int dw = Math.max(1, Math.round(k.width() * s)), dh = Math.max(1, Math.round(k.height() * s));
+        Bitmap scaled = scaleRegion(src, k, dw, dh);
+        cv.drawBitmap(scaled, dl, dt, p);
+        scaled.recycle();
+        return out;
     }
 
     // Bordures : lignes unies depuis chaque bord. Gardées seulement si la couleur est neutre (noir, blanc, gris)
@@ -712,6 +875,8 @@ public class WallpaperJob extends JobService {
         return out;
     }
 
+    // ================= Fin de la partie sans Context =================
+
     // ================= Fond « Toile (double tap) » =================
     // Fond d'écran Android tenu par Toile : il affiche l'image recadrée de l'accueil et passe à la suivante
     // quand on tapote deux fois une zone vide de l'écran d'accueil (commande « tap » envoyée par le lanceur ;
@@ -742,7 +907,7 @@ public class WallpaperJob extends JobService {
                 if (!h.isEmpty()) u = Uri.parse(h.get(h.size() - 1));
                 else { List<Uri> all = list(c); if (!all.isEmpty()) u = pick(c, all); }
                 if (u == null) return;
-                Res r = process(c, u, false);
+                Res r = process(c, u, false, "home");
                 try { File f = liveFile(c); try (FileOutputStream o = new FileOutputStream(f)) { r.out.compress(Bitmap.CompressFormat.JPEG, 95, o); } }
                 finally { r.out.recycle(); }
             } catch (Throwable t) { }

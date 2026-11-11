@@ -83,7 +83,7 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
 .folder .t div+div{font-size:12.5px;color:var(--tx3)}
 .folder .btn{flex:none}
 .foot{font-size:12.5px;color:var(--tx3);text-align:center;margin:14px 8px 0;line-height:1.5}
-#toast{position:fixed;left:16px;right:16px;bottom:calc(18px + var(--safe-b));background:#2b3042;border:1px solid #ffffff1f;color:var(--tx);padding:12px 14px;border-radius:14px;font-size:14px;box-shadow:0 10px 30px #0008;transform:translateY(140%);transition:transform .25s;z-index:30}
+#toast{position:fixed;left:16px;right:16px;bottom:calc(18px + var(--safe-b));background:#2b3042;border:1px solid #ffffff1f;color:var(--tx);padding:12px 14px;border-radius:14px;font-size:14px;box-shadow:0 10px 30px #0008;transform:translateY(calc(100% + 40px + var(--safe-b)));transition:transform .25s;z-index:300}
 #toast.on{transform:none}
 #toast.bad{border-color:#ff7b7b66}
 /* Onglets : Mes fonds / Images en ligne */
@@ -92,6 +92,26 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
 .tabs button.on{background:var(--bg4);color:var(--tx);box-shadow:0 0 0 1px #ffffff1c inset}
 .webline{font-size:12.5px;color:var(--tx3);margin-top:8px}
 .webline a{color:var(--acc)}
+/* Recadrage manuel : pastille, liste des images */
+.cmark{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:2px 8px 2px 6px;border-radius:99px;background:#b79bffe6;color:#10131c}
+.cmark svg{width:12px;height:12px;stroke-width:2.4}
+.frame,.phone{position:relative}
+.frame .cmark,.phone .cmark{position:absolute;left:6px;bottom:6px}
+.sheet{position:fixed;inset:0;z-index:120;background:var(--bg);display:flex;flex-direction:column}
+.sheet .hd{display:flex;align-items:center;gap:10px;padding:calc(10px + var(--safe-t)) 14px 10px;border-bottom:1px solid var(--line)}
+.sheet .hd b{flex:1;font-size:17px}
+.sheet .hd small{display:block;font-size:12px;color:var(--tx3);font-weight:500}
+.sheet .x{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--bg2);border:1px solid var(--line)}
+.sheet .bd{flex:1;overflow:auto;padding:12px 12px calc(20px + var(--safe-b))}
+.sheet .chips{display:flex;gap:6px;margin-bottom:10px}
+.sheet .chip{padding:6px 11px;border-radius:99px;background:var(--bg2);border:1px solid var(--line);font-size:12.5px;font-weight:600;color:var(--tx2)}
+.sheet .chip.on{color:var(--tx);border-color:#8fb4ff66;background:#8fb4ff1a}
+.sgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.sgrid button{display:flex;flex-direction:column;gap:4px;text-align:left;min-width:0}
+.sgrid .im{aspect-ratio:3/4;width:100%;border-radius:11px;background:var(--bg3) center/cover no-repeat;position:relative;border:1px solid var(--line)}
+.sgrid .im .cmark{position:absolute;left:5px;bottom:5px;font-size:10px;padding:2px 6px 2px 5px}
+.sgrid .nm{font-size:11.5px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%}
+.sheet .more{display:block;margin:14px auto 0}
 </style>
 </head>
 <body>
@@ -121,6 +141,7 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
       <button class="btn" id="bPick"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m3 16 5-5 4 4 3-3 6 6"/></svg>Choisir</button>
     </div>
     <div class="row">
+      <button class="btn" id="bCrop" disabled><svg class="ic" viewBox="0 0 24 24"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg><span class="spin"></span>Recadrer</button>
       <button class="btn" id="bApply" disabled><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span class="spin"></span>Mettre cette image</button>
     </div>
   </section>
@@ -138,6 +159,11 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
       <button class="btn" id="bFolder">Choisir</button>
     </div>
     <div class="webline" id="webLine" hidden></div>
+    <div class="row" id="cropRow">
+      <button class="btn" id="bBrowse"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span class="spin"></span>Parcourir et recadrer</button>
+      <button class="btn" id="bCropCur" style="flex:.8"><svg class="ic" viewBox="0 0 24 24"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg><span class="spin"></span>Fond actuel</button>
+    </div>
+    <div class="hint" id="cropHint" style="font-size:12.5px;color:var(--tx3);margin-top:6px">Choisis toi-même le cadrage d'une image : il passe avant le recadrage automatique.</div>
     <div class="set" style="margin-top:10px;border-top:1px solid var(--line);padding-top:11px">
       <div class="t"><div>Inclure les sous-dossiers</div></div>
       <label class="sw"><input type="checkbox" data-k="sub"><span></span></label>
@@ -219,6 +245,7 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
 <div id="toast"></div>
 
 <script src="en-ligne.js"></script>
+<script src="recadrage.js"></script>
 <script>
 (function(){
   var A = window.MAGPrint, $ = function(i){return document.getElementById(i)};
@@ -226,7 +253,7 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
   var FIT = {smart:"Garde la partie la plus détaillée de l'image.", center:"Garde le centre de l'image.", auto:"Ne recadre que si une bordure, un bandeau, un logo ou une écriture est détecté ; sinon l'image est gardée en pleine largeur.", width:"Garde toute la largeur de l'image : si elle est plus large que l'écran, le haut et le bas sont complétés par une version floutée ; si elle est plus haute, seul le haut ou le bas est recadré.", blur:"Montre toute l'image, le vide est rempli par une version floutée."};
 
   function toast(t, bad){ var e=$('toast'); e.textContent=t; e.className='on'+(bad?' bad':''); clearTimeout(toast.t); toast.t=setTimeout(function(){e.className=''},3200); }
-  function setBusy(id, on){ var b=$(id); if(!b) return; b.classList.toggle('busy', on); b.disabled = on || (id==='bApply' && !cur); }
+  function setBusy(id, on){ var b=$(id); if(!b) return; b.classList.toggle('busy', on); b.disabled = on || ((id==='bApply'||id==='bCrop') && !cur); }
 
   if(!A || !A.wpSettings){ $('noBridge').hidden=false; S={auto:false,interval:360,charging:false,order:'random',sub:true,borders:true,tol:24,text:false,trim:0,fit:'smart',target:'both'}; }
   else { try{ S = JSON.parse(A.wpSettings()); }catch(e){} }
@@ -301,9 +328,13 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
       $('meta').innerHTML = '<b></b><br><span></span>';
       $('meta').querySelector('b').textContent = p.name;
       $('meta').querySelector('span').textContent = p.w+'×'+p.h+' → zone gardée '+p.kw+'×'+p.kh+(p.info?' · '+p.info:'');
-      setBusy('bApply', false);
+      if(p.manual || CROPS[p.uri]) $('after').insertAdjacentHTML('beforeend', CMARK);
+      setBusy('bApply', false); setBusy('bCrop', false);
       return;
     }
+    if(kind==='crop'){ var w=cropWait; cropWait=null; if(w) w(ok, data); return; }
+    if(kind==='list'){ sheetList(ok, data); return; }
+    if(kind==='thumb'){ sheetThumb(ok, data); return; }
     if(kind==='folder'){ toast('Dossier choisi : '+data); state(); A.wpScan(); return; }
     if(kind==='scan'){ state(); if(ok && +data>0) preview(''); else if(!ok) toast(data,true); return; }
     if(kind==='image'){ preview(data); return; }
@@ -336,6 +367,100 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
   liveUi();
   document.addEventListener('visibilitychange', function(){ if(!document.hidden) liveUi(); });
 
+  /* ---------- Recadrage manuel (recadrage.js, pont MAGToile.crop…) ---------- */
+  var CMARK = '<span class="cmark" title="Cadrage choisi à la main"><svg class="ic" viewBox="0 0 24 24"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>cadrage manuel</span>';
+  var CROPS = {}, cropWait = null, cropping = false;
+  function cropsLoad(){ var T0 = window.MAGToile; try{ CROPS = T0 && T0.cropAll ? JSON.parse(T0.cropAll()||'{}') : {}; }catch(e){ CROPS = {}; } }
+  cropsLoad();
+  function cropReady(){ var T0 = window.MAGToile; return !!(T0 && T0.cropOpen && window.TCROP); }
+  function openCrop(uri, btn){
+    var T0 = window.MAGToile;
+    if(!cropReady()){ toast("Le recadrage fonctionne dans l'application Android Toile", true); return Promise.resolve(null); }
+    if(!uri || cropping) return Promise.resolve(null);
+    cropping = true; if(btn) setBusy(btn, true);
+    return new Promise(function(res){
+      cropWait = function(ok, data){
+        if(btn) setBusy(btn, false);
+        if(!ok){ cropping = false; toast(data || 'Image illisible', true); res(null); return; }
+        var d; try{ d = JSON.parse(data); }catch(e){ cropping = false; res(null); return; }
+        TCROP.open({ name: d.name, src: d.src, ow: d.ow, oh: d.oh, sw: d.sw, sh: d.sh, entries: d.crops || {}, auto: d.auto,
+          variants: [{ id: 'home', label: 'Accueil' }, { id: 'lock', label: 'Verrouillage' }], variant: d.target === 'lock' ? 'lock' : 'home',
+          platform: 'android', haptic: function(){ try{ T0.haptic(); }catch(e){} }, toast: toast
+        }).then(function(r){
+          cropping = false;
+          if(!r){ res(null); return; }
+          T0.cropSave(uri, JSON.stringify(r.entries));
+          cropsLoad();
+          toast(r.unset ? 'Retour au recadrage automatique pour cette image' : 'Cadrage enregistré : il sera utilisé à chaque passage de cette image');
+          if(cur === uri) preview(uri);
+          sheetMark(uri);
+          res(r);
+        });
+      };
+      T0.cropOpen(uri);
+    });
+  }
+  $('bCrop').onclick = function(){ if(cur) openCrop(cur, 'bCrop'); };
+  $('bCropCur').onclick = function(){
+    var T0 = window.MAGToile, c = null;
+    try{ c = T0 && T0.current ? JSON.parse(T0.current()) : null; }catch(e){}
+    if(!c || !c.uri){ toast("Toile n'a pas encore posé de fond d'écran", true); return; }
+    openCrop(c.uri, 'bCropCur');
+  };
+  // Liste des images de la rotation (dossier et images en ligne), vignettes à la demande
+  var SH = null;
+  $('bBrowse').onclick = function(){
+    var T0 = window.MAGToile;
+    if(!T0 || !T0.srcList){ toast("La liste des images fonctionne dans l'application Android Toile", true); return; }
+    if(!S._f){ toast("Choisis d'abord un dossier d'images"); return; }
+    setBusy('bBrowse', true); T0.srcList();
+  };
+  function sheetList(ok, data){
+    setBusy('bBrowse', false);
+    if(!ok){ toast(data, true); return; }
+    var l = []; try{ l = JSON.parse(data); }catch(e){}
+    if(!l.length){ toast('Aucune image trouvée', true); return; }
+    if(SH) SH.el.remove();
+    var el = document.createElement('div'); el.className = 'sheet'; el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true'); el.setAttribute('aria-label','Mes images');
+    el.innerHTML = '<div class="hd"><b>Mes images<small id="shN"></small></b><button class="x" data-x aria-label="Fermer"><svg class="ic" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div><div class="bd"><div class="chips"><button class="chip on" data-f="all">Toutes</button><button class="chip" data-f="man">Cadrage manuel</button></div><div class="sgrid" id="shG"></div></div>';
+    document.body.appendChild(el);
+    SH = { el: el, list: l, shown: 90, f: 'all', th: {}, io: null };
+    el.addEventListener('click', function(e){
+      if(e.target.closest('[data-x]')){ sheetClose(); return; }
+      var f = e.target.closest('[data-f]'); if(f){ SH.f = f.dataset.f; SH.shown = 90; sheetPaint(); return; }
+      if(e.target.closest('[data-more]')){ SH.shown += 150; sheetPaint(); return; }
+      var t = e.target.closest('[data-u]'); if(t) openCrop(t.dataset.u);
+    });
+    sheetPaint();
+  }
+  function sheetClose(){ if(SH){ if(SH.io) SH.io.disconnect(); SH.el.remove(); SH = null; } }
+  function sheetPaint(){
+    if(!SH) return;
+    var l = SH.list.filter(function(x){ return SH.f === 'all' || CROPS[x.uri]; }), n = Object.keys(CROPS).filter(function(u){ return SH.list.some(function(x){ return x.uri === u; }); }).length;
+    SH.el.querySelectorAll('[data-f]').forEach(function(b){ b.classList.toggle('on', b.dataset.f === SH.f); });
+    $('shN').textContent = SH.list.length + ' image' + (SH.list.length > 1 ? 's' : '') + (n ? ' · ' + n + ' en cadrage manuel' : '') + ' · touche une image pour la recadrer';
+    var g = $('shG');
+    g.innerHTML = l.slice(0, SH.shown).map(function(x){ var t = SH.th[x.uri];
+      return '<button data-u="'+escA(x.uri)+'" aria-label="Recadrer '+escA(x.name)+'"><span class="im" style="'+(t?"background-image:url('"+t+"')":'')+'">'+(CROPS[x.uri]?CMARK:'')+'</span><span class="nm">'+escA(x.name)+'</span></button>'; }).join('') +
+      (l.length > SH.shown ? '<button class="btn more" data-more style="grid-column:1/-1">Afficher plus ('+(l.length-SH.shown)+')</button>' : '') +
+      (!l.length ? '<div class="empty" style="grid-column:1/-1">Aucune image en cadrage manuel pour le moment.</div>' : '');
+    if(SH.io) SH.io.disconnect();
+    var want = [], tm = 0;
+    SH.io = new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(!e.isIntersecting) return; SH.io.unobserve(e.target); var u = e.target.closest('[data-u]').dataset.u; if(SH.th[u] === undefined){ SH.th[u] = null; want.push(u); } });
+      clearTimeout(tm); tm = setTimeout(function(){ if(want.length && window.MAGToile){ MAGToile.srcThumbs(JSON.stringify(want)); want = []; } }, 60);
+    }, { root: SH.el.querySelector('.bd'), rootMargin: '300px' });
+    g.querySelectorAll('[data-u] .im').forEach(function(i){ if(SH.th[i.parentNode.dataset.u] === undefined) SH.io.observe(i); });
+  }
+  function sheetThumb(ok, data){
+    if(!SH) return; var d; try{ d = JSON.parse(data); }catch(e){ return; }
+    SH.th[d.uri] = ok ? d.src : '';
+    if(ok) SH.el.querySelectorAll('[data-u]').forEach(function(b){ if(b.dataset.u === d.uri) b.querySelector('.im').style.backgroundImage = "url('"+d.src+"')"; });
+  }
+  function sheetMark(uri){ if(SH) sheetPaint(); }
+  function escA(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && SH && !document.querySelector('.tcr')) sheetClose(); });
+
   /* ---------- Onglet « Images en ligne » (en-ligne.js, pont MAGToile) ---------- */
   var T = window.MAGToile, WEB = null, TAB = 'fonds';
   function J(f, d){ try{ var v = f(); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
@@ -366,6 +491,8 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
     report: function(x){ T.report(x.id, x.page || ''); setTimeout(state, 200); },
     open: function(u){ if(T && T.openUrl) T.openUrl(u); },
     current: function(){ return J(function(){ return T.current(); }, null); },
+    crop: function(x){ return openCrop(x.uri); },
+    cropped: function(x){ return !!(x && x.uri && CROPS[x.uri]); },
     preview: function(x){ tab('fonds'); window.scrollTo(0, 0); preview(x.uri); }
   };
   function tab(t){
