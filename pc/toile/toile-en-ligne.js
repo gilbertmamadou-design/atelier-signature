@@ -410,7 +410,8 @@
      Interface commune. Adaptateur A (Android : pont MAGToile ; PC : Engine + OPFS) :
        platform, features:{auto, current, apply, lookup}, screen(), getConfig(), setConfig(cfg),
        keys() → {src: masque}, setKey(src, clé), items(), thumb(item) → url, status(), fetch(n, prog),
-       fav(id, on), refuse(id), report(item), open(url), current(), preview(item), apply(item), lookup(nom)
+       fav(id, on), refuse(id), report(item), open(url), current(), preview(item), apply(item), lookup(nom),
+     crop(item) (recadrage manuel, recadrage.js), cropped(item) → pastille « cadrage manuel »
      ===================================================================== */
   var CSS = [
     '.tel{container-type:inline-size;--tel-gap:12px}',
@@ -468,6 +469,7 @@
     '.tel .it .im{all:unset;cursor:pointer;display:block;aspect-ratio:3/4;background:var(--bg4,#2c3140) center/cover no-repeat;position:relative}',
     '.tel.land .it .im{aspect-ratio:16/10}',
     '.tel .it .im .fv{position:absolute;right:6px;top:6px;background:#000a;color:#ffd76a;border-radius:99px;padding:1px 7px;font-size:13px}',
+    '.tel .it .im .cm{position:absolute;left:6px;bottom:6px;background:#b79bffe6;color:#10131c;border-radius:99px;padding:2px 8px;font-size:11px;font-weight:700}',
     '.tel .it .bd{padding:7px 9px 8px;min-width:0}.tel .it .nm{font-weight:600;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     '.tel .it .sb{font-size:11px;color:var(--tx3,#7d8294);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}',
     '.tel .it .ac{display:flex;gap:4px;margin-top:6px}.tel .it .ac button{all:unset;cursor:pointer;flex:1;text-align:center;padding:5px 0;border-radius:8px;background:var(--bg2,#181b23);font-size:13px;color:var(--tx2,#b4b8c7)}',
@@ -583,9 +585,11 @@
       if (!list.length) return h + '<div class="empty">Rien dans ce filtre.</div></section>';
       h += '<div class="gal">' + list.slice(0, shown).map(function (x) {
         var t = thumbs[x.id];
-        return '<div class="it" data-id="' + esc(x.id) + '"><button class="im" data-d aria-label="Détails de ' + esc(x.title) + '" style="' + (t ? "background-image:url('" + t + "')" : '') + '">' + (x.fav ? '<span class="fv">★</span>' : '') + '</button>' +
+        var cm = A.cropped && A.cropped(x);
+        return '<div class="it" data-id="' + esc(x.id) + '"><button class="im" data-d aria-label="Détails de ' + esc(x.title) + '" style="' + (t ? "background-image:url('" + t + "')" : '') + '">' + (x.fav ? '<span class="fv">★</span>' : '') + (cm ? '<span class="cm">✂ cadrage manuel</span>' : '') + '</button>' +
           '<div class="bd"><div class="nm" title="' + esc(x.title) + '">' + esc(x.title) + '</div><div class="sb" title="' + esc(credit(x)) + '">' + esc(x.author) + ' · ' + esc(x.license) + '</div><div class="sb">' + esc(x.via) + '</div>' +
           '<div class="ac"><button data-fav class="' + (x.fav ? 'on' : '') + '" title="' + (x.fav ? 'Retirer des favoris' : 'Garder (favori)') + '" aria-label="Favori">' + (x.fav ? '★' : '☆') + '</button>' +
+          (A.crop ? '<button data-crop title="Recadrer" aria-label="Recadrer" class="' + (cm ? 'on' : '') + '">✂</button>' : '') +
           '<button data-orig title="Page d\'origine" aria-label="Page d\'origine">↗</button><button data-ref title="Ne plus montrer" aria-label="Ne plus montrer">⊘</button><button data-rep title="Signaler" aria-label="Signaler">⚑</button></div></div></div>';
       }).join('') + '</div>' + (list.length > shown ? '<div class="row"><button class="tb grow" id="telMore">Afficher plus (' + (list.length - shown) + ')</button></div>' : '');
       return h + '</section>';
@@ -649,6 +653,7 @@
         '<dt>Source</dt><dd>' + esc(x.via) + '</dd><dt>Thème</dt><dd>' + esc(x.themeName || x.theme || '') + '</dd><dt>Taille</dt><dd>' + (x.w ? x.w + '×' + x.h + ' · ' : '') + fsz(x.bytes || 0) + ' · ' + esc(ago(x.at)) + '</dd>' +
         (x.file ? '<dt>Fichier</dt><dd>' + esc(x.file) + '</dd>' : '') + '</dl><div class="cr">' + esc(credit(x)) + '</div>' +
         '<div class="btns"><button class="tb" data-a="orig">Page d\'origine ↗</button><button class="tb" data-a="fav">' + (x.fav ? '★ Favori' : '☆ Garder') + '</button><button class="tb" data-a="ref">Ne plus montrer</button><button class="tb" data-a="rep">Signaler</button>' +
+        (A.crop ? '<button class="tb" data-a="crop">✂ Recadrer</button>' : '') +
         (A.preview ? '<button class="tb main" data-a="pv">' + (A.features.apply ? 'Aperçu sur l\'écran' : 'Aperçu recadré') + '</button>' : '') + '<button class="tb" data-close>Fermer</button></div>', function (d, close) {
         d.querySelector('.btns').onclick = function (e) { var b = e.target.closest('[data-a]'); if (!b) return; close(); act(b.dataset.a, x); };
       });
@@ -667,6 +672,7 @@
         return;
       }
       if (a === 'pv' && A.preview) return A.preview(x);
+      if (a === 'crop' && A.crop) { await A.crop(x); paint(); return; }
     }
     function confirmDlg(title, html, yes) {
       return new Promise(function (res) {
@@ -734,6 +740,7 @@
         if (t.closest('[data-d]')) return detail(x);
         if (t.closest('[data-fav]')) return act('fav', x);
         if (t.closest('[data-orig]')) return act('orig', x);
+        if (t.closest('[data-crop]')) return act('crop', x);
         if (t.closest('[data-ref]')) return act('ref', x);
         if (t.closest('[data-rep]')) return act('rep', x);
       }

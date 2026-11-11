@@ -127,6 +127,8 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
 .badge.new,.badge.changed{background:#8fb4ffe6;color:#10131c}
 .badge.ok{background:#6fd6a4e6;color:#10131c}
 .badge.err{background:#ff7b7be6;color:#10131c}
+.cmark{position:absolute;left:8px;bottom:8px;font-size:11px;font-weight:700;padding:3px 8px 3px 6px;border-radius:99px;background:#b79bffe6;color:#10131c;display:flex;align-items:center;gap:4px}
+.cmark svg{width:13px;height:13px;stroke-width:2.4}
 .it .bd{padding:8px 10px 10px;display:flex;flex-direction:column;gap:6px}
 .it .nm{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .it .sb{font-size:11.5px;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -135,6 +137,7 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
 .it .ex{width:32px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--bg3);border:1px solid var(--line);color:var(--tx2);flex:none}
 .it .ex:hover{color:var(--tx)}
 .it .ex.on{color:var(--bad)}
+.it .ex.cr.on{color:var(--acc2)}
 .empty{color:var(--tx3);font-size:14px;text-align:center;padding:40px 18px;background:var(--bg2);border:1px dashed var(--line);border-radius:var(--r)}
 .empty b{display:block;color:var(--tx);font-size:16px;margin-bottom:6px}
 .more{text-align:center;margin:14px 0}
@@ -161,7 +164,7 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
 .guide li{margin:8px 0;color:var(--mpc-tx2)}
 .guide li b{color:var(--mpc-tx)}
 .guide .path{display:inline-block;background:var(--bg3);border:1px solid var(--line);border-radius:8px;padding:1px 7px;color:var(--tx);font-weight:600;font-size:13.5px}
-#toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,140%);width:min(560px,calc(100vw - 32px));background:#2b3042;border:1px solid #ffffff1f;color:var(--tx);padding:12px 14px;border-radius:14px;font-size:14px;box-shadow:0 10px 30px #0008;transition:transform .25s;z-index:80}
+#toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,140%);width:min(560px,calc(100vw - 32px));background:#2b3042;border:1px solid #ffffff1f;color:var(--tx);padding:12px 14px;border-radius:14px;font-size:14px;box-shadow:0 10px 30px #0008;transition:transform .25s;z-index:300}
 #toast.on{transform:translate(-50%,0)}
 #toast.bad{border-color:#ff7b7b66}
 /* Onglets : Fonds / Images en ligne (toile-en-ligne.js) */
@@ -189,6 +192,7 @@ html.mag-pc ::-webkit-scrollbar-track{background:transparent}
 <symbol id="i-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
 <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></symbol>
 <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
+<symbol id="i-crop" viewBox="0 0 24 24"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></symbol>
 <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m10.8 12.2 9.2-9.2M17 6l3 3M14 9l2 2"/></symbol>
 </defs></svg>
 
@@ -303,12 +307,14 @@ html.mag-pc ::-webkit-scrollbar-track{background:transparent}
   <div class="meta" id="vMeta"></div>
   <div class="ctrl">
     <div class="seg" id="vFit"></div>
+    <button class="btn main" id="vCrop"><svg class="ic"><use href="#i-crop"/></svg>Recadrer</button>
     <button class="btn" id="vExcl"></button>
   </div>
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script src="toile-en-ligne.js"></script>
+<script src="toile-recadrage.js"></script>
 <script>
 'use strict';
 (function () {
@@ -376,8 +382,10 @@ html.mag-pc ::-webkit-scrollbar-track{background:transparent}
     return PREFIX + stem + '-' + hash(it.key) + '.jpg';
   }
   function effFit(it) { var o = OVR[it.key]; return (o && o.fit) || S.fit; }
-  function opts(it, extra) { return Object.assign({ sw: S.w, sh: S.h, tol: S.tol, borders: S.borders, text: S.text, trim: S.trim, fit: effFit(it), q: S.q }, extra || {}); }
-  function sig(it) { var o = opts(it); return [o.fit, o.borders ? 1 : 0, o.tol, o.text ? 1 : 0, o.trim, o.sw, o.sh, o.q].join('|'); }
+  // cadrage manuel (éditeur toile-recadrage.js) : { "16:9": {x, y, w, h, free, bg, at} }, prioritaire sur l'ajustement
+  function cropOf(it) { var o = OVR[it.key]; return o && o.crop && window.TCROP && TCROP.count(o.crop) ? o.crop : null; }
+  function opts(it, extra) { return Object.assign({ sw: S.w, sh: S.h, tol: S.tol, borders: S.borders, text: S.text, trim: S.trim, fit: effFit(it), q: S.q, crops: cropOf(it), variant: 'home' }, extra || {}); }
+  function sig(it) { var o = opts(it), c = cropOf(it); return [o.fit, o.borders ? 1 : 0, o.tol, o.text ? 1 : 0, o.trim, o.sw, o.sh, o.q].join('|') + (c ? '|c' + hash(JSON.stringify(c)) : ''); }
   async function perm(h, mode, ask) {
     try {
       if (await h.queryPermission({ mode: mode }) === 'granted') return true;
@@ -654,9 +662,10 @@ html.mag-pc ::-webkit-scrollbar-track{background:transparent}
   function card(it) {
     var o = OVR[it.key] || {}, t = THUMB.get(it.key);
     return '<div class="it' + (it.st === 'excl' ? ' excl' : '') + '" data-k="' + esc(it.key) + '"><div class="th" data-v="1" title="Aperçu avant / après" style="' + (t ? "background-image:url('" + t + "')" : '') + '">' + (t ? '' : t === '' ? 'aperçu indisponible' : '') +
-      '<span class="badge ' + it.st + '"' + (it.msg && it.st === 'err' ? ' title="' + esc(it.msg) + '"' : '') + '>' + BADGE[it.st] + '</span></div>' +
+      '<span class="badge ' + it.st + '"' + (it.msg && it.st === 'err' ? ' title="' + esc(it.msg) + '"' : '') + '>' + BADGE[it.st] + '</span>' + (cropOf(it) ? '<span class="cmark" title="Cadrage choisi à la main, prioritaire sur l\'ajustement automatique">' + icon('crop') + 'cadrage manuel</span>' : '') + '</div>' +
       '<div class="bd"><div class="nm" title="' + esc(it.web ? TEL.credit(it.web) : it.rel) + '">' + esc(it.web ? it.web.title : it.name) + '</div><div class="sb">' + esc(it.st === 'err' && it.msg ? it.msg : it.web ? 'En ligne · ' + it.web.author + ' · ' + it.web.license : srcName(it.src) + (it.rel.indexOf('/') > 0 ? ' › ' + it.rel.slice(0, it.rel.lastIndexOf('/')).split('/').join(' › ') : '') + ' · ' + fsz(it.size)) + '</div>' +
       '<div class="ctl"><select data-fit aria-label="Ajustement de cette image"><option value="">Général (' + esc(FITN[S.fit]) + ')</option>' + Object.keys(FITN).map(function (k) { return '<option value="' + k + '"' + (o.fit === k ? ' selected' : '') + '>' + FITN[k] + '</option>'; }).join('') + '</select>' +
+      '<button class="ex cr' + (cropOf(it) ? ' on' : '') + '" data-crop title="Recadrer à la main" aria-label="Recadrer ' + esc(it.name) + '">' + icon('crop') + '</button>' +
       '<button class="ex' + (o.excl ? ' on' : '') + '" data-ex title="' + (o.excl ? 'Remettre cette image' : 'Exclure cette image') + '" aria-label="' + (o.excl ? 'Remettre' : 'Exclure') + ' ' + esc(it.name) + '">' + icon(o.excl ? 'eyeoff' : 'eye') + '</button></div></div></div>';
   }
   function paintItem(it) {
@@ -676,6 +685,7 @@ html.mag-pc ::-webkit-scrollbar-track{background:transparent}
     var el = e.target.closest('.it'); if (!el) return;
     var it = byKey(el.dataset.k); if (!it) return;
     if (e.target.closest('[data-ex]')) { setOvr(it, { excl: !(OVR[it.key] || {}).excl }); paintItem(it); paintCounts(); toast(OVR[it.key] && OVR[it.key].excl ? '« ' + it.name + ' » exclue : son fond sera retiré à la prochaine mise à jour' : '« ' + it.name + ' » remise dans la liste'); return; }
+    if (e.target.closest('[data-crop]')) { openCrop(it); return; }
     if (e.target.closest('[data-v]')) openViewer(it);
   });
   function paintCounts() { var y = window.scrollY; paint(); window.scrollTo(0, y); }
@@ -685,6 +695,29 @@ html.mag-pc ::-webkit-scrollbar-track{background:transparent}
     Object.keys(o).forEach(function (k) { if (o[k] === undefined || o[k] === false || o[k] === '') delete o[k]; });
     if (Object.keys(o).length) OVR[it.key] = o; else delete OVR[it.key];
     saveOvr();
+  }
+
+  /* ---------------- Recadrage manuel (toile-recadrage.js) ---------------- */
+  var CROPPING = false;
+  async function openCrop(it) {
+    if (!window.TCROP || CROPPING) return;
+    CROPPING = true;
+    var url = null;
+    try {
+      toast('Ouverture du recadrage…', false, 1500);
+      var f = await it.fh.getFile();
+      var r = await UIENG.call({ cmd: 'edit', file: f, opt: opts(it) });
+      url = URL.createObjectURL(r.img);
+      var res = await TCROP.open({ name: it.web ? it.web.title : it.rel, src: url, ow: r.ow, oh: r.oh, sw: S.w, sh: S.h, entries: cropOf(it) || {}, auto: r.auto, platform: 'pc', toast: function (t) { toast(t, false, 2200); } });
+      if (res) {
+        setOvr(it, { crop: TCROP.count(res.entries) ? res.entries : undefined });
+        paintItem(it); paintCounts();
+        toast(res.unset ? '« ' + it.name + ' » : retour au recadrage automatique' : 'Cadrage enregistré pour l\'écran ' + S.w + '×' + S.h + (OUT ? ' : « Mettre à jour les fonds » pour l\'écrire dans « ' + OUT.handle.name + ' »' : ''), false, 5200);
+        if (VIT === it) openViewer(it);
+        if (WEBUI && WEBUI.refresh && it.web) WEBUI.refresh();
+      }
+    } catch (e) { toast('Recadrage impossible : ' + ((e && e.message) || e), true); }
+    finally { CROPPING = false; if (url) setTimeout(function () { URL.revokeObjectURL(url); }, 1000); }
   }
 
   /* ---------------- Vignettes (à l'écran seulement) ---------------- */
@@ -714,6 +747,7 @@ html.mag-pc ::-webkit-scrollbar-track{background:transparent}
     $('vName').textContent = it.web ? 'Images en ligne › ' + it.web.title + ' · ' + it.web.author + ' · ' + it.web.license : srcName(it.src) + ' › ' + it.rel;
     $('vFit').innerHTML = '<button data-v=""' + (!o.fit ? ' class="on"' : '') + '>Général</button>' + Object.keys(FITN).map(function (k) { return '<button data-v="' + k + '"' + (o.fit === k ? ' class="on"' : '') + '>' + FITN[k] + '</button>'; }).join('');
     $('vExcl').innerHTML = icon(o.excl ? 'eye' : 'eyeoff') + (o.excl ? 'Remettre cette image' : 'Exclure cette image');
+    $('vCrop').innerHTML = icon('crop') + (cropOf(it) ? 'Modifier le cadrage' : 'Recadrer');
     $('vAfterCap').textContent = 'Après · écran ' + S.w + '×' + S.h;
     $('vBefore').innerHTML = $('vAfter').innerHTML = '<div class="spin"></div>'; $('vMeta').textContent = 'Calcul de l\'aperçu…';
     var my = ++VSEQ;
@@ -738,9 +772,10 @@ html.mag-pc ::-webkit-scrollbar-track{background:transparent}
   $('vPrev').onclick = function () { step(-1); };
   $('vNext').onclick = function () { step(1); };
   $('vFit').onclick = function (e) { var b = e.target.closest('button'); if (!b || !VIT) return; setOvr(VIT, { fit: b.dataset.v || undefined }); paintItem(VIT); openViewer(VIT); };
+  $('vCrop').onclick = function () { if (VIT) openCrop(VIT); };
   $('vExcl').onclick = function () { if (!VIT) return; setOvr(VIT, { excl: !(OVR[VIT.key] || {}).excl }); paintItem(VIT); openViewer(VIT); };
   document.addEventListener('keydown', function (e) {
-    if ($('viewer').hidden) return;
+    if ($('viewer').hidden || CROPPING) return;
     if (e.key === 'Escape') { e.preventDefault(); closeViewer(); }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
     else if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
@@ -823,6 +858,12 @@ html.mag-pc ::-webkit-scrollbar-track{background:transparent}
       var m = MAN || await readManifest(), e = Object.keys(m.items).filter(function (k) { return k.toLowerCase() === n || k.toLowerCase() === n + '.jpg'; })[0];
       var file = e && /^web:/.test(m.items[e].src) ? m.items[e].src.slice(4) : null;
       return a.filter(function (x) { return x.file === file || x.file.toLowerCase() === n || x.id.toLowerCase() === n; })[0] || null;
+    },
+    cropped: function (x) { var it = ITEMS.find(function (y) { return y.key === 'web:' + x.file; }); return !!(it && cropOf(it)); },
+    crop: async function (x) {
+      var it = ITEMS.find(function (y) { return y.key === 'web:' + x.file; });
+      if (!it) { await refresh(true); it = ITEMS.find(function (y) { return y.key === 'web:' + x.file; }); }
+      if (it) await openCrop(it); else toast('Activez « Préparer dans « Fonds Toile » » pour recadrer cette image', true);
     },
     preview: async function (x) {
       tab('fonds');
