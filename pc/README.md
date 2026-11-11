@@ -699,6 +699,34 @@ Une page web ne peut pas changer le fond d'écran de Windows. Toile prépare don
 orientation EXIF appliquée par le navigateur. Formats : JPEG, PNG, WebP, AVIF, BMP ; HEIC seulement si le navigateur
 le décode (sinon image « Ignorée » avec un message).
 
+### Toile : recadrage manuel
+
+Éditeur commun à l'APK et au PC : `applis/www-fonds/recadrage.js` (copié en `pc/toile/toile-recadrage.js`, champ
+`copies`). Ouverture : bouton **✂** sous chaque vignette, « Recadrer » dans l'aperçu avant / après, bouton ✂ de la galerie
+« Images en ligne » ; sur le téléphone, « Recadrer » sous l'aperçu, « Parcourir et recadrer » (toutes les images de la
+rotation, vignettes à la demande, filtre « Cadrage manuel ») et « Fond actuel ».
+
+- Cadre au **format exact de l'écran** (PC : la résolution choisie ; téléphone : l'écran, avec **Accueil / Verrouillage**).
+  Glisser au doigt ou à la souris, **pincer** à deux doigts, molette (autour du pointeur), **poignées d'angle** (coin opposé
+  fixe), clavier : flèches (2 % du cadre, Maj : 10 %), `+` / `−` (×1,1), Entrée valide, Échap ferme. Ratio toujours conservé ;
+  le cadre ne sort jamais de l'image (zoom minimal = plus grand cadre possible) ; plus petit que l'écran : « l'image sera
+  floue » (zoom maximal : 6 % du plus grand cadre). Pointer Events, `touch-action: none`, rendu par `requestAnimationFrame`
+  (transformations CSS, vue figée pendant le geste) ; retour haptique au contact d'un bord (Android : `MAGToile.haptic()`).
+- **Ajuster au format libre** : ratio libre, cadre pouvant dépasser l'image (jusqu'à 3 fois), bandes **floues** (même flou
+  que « Entière, fond flou ») ou de **couleur** (couleur moyenne de l'image, noir, blanc, au choix) ; « Image entière ».
+- Grille des tiers, aperçu en direct avec heure et icônes factices (accueil, verrouillage, barre des tâches du PC),
+  **Réinitialiser** (plus grand cadre centré), **Recadrage auto** (zone du calcul automatique ; image « entière sur fond
+  flou » → format libre), **Valider**, « Revenir au recadrage automatique ».
+- Rangement avec l'image, jamais dans le fichier : `{ "16:9": {x, y, w, h, free, bg, at}, "9:20@lock": {…} }` (fractions de
+  l'image d'origine, orientation EXIF comprise ; format = ratio réduit de l'écran). PC : IndexedDB `toile-pc` › `images` ›
+  `crop` (pris dans la signature `sig` : un cadrage modifié refait le fond) ; APK : préférence `crops` de `WallpaperJob`.
+- **Prioritaire** sur l'ajustement : `toile-worker.js` (`resolveCrop`, `manual`, `freeFit`) et `WallpaperJob.java`
+  (`resolveCrop`, `processBitmap`, `freeFit`, même calcul). Format absent (autre résolution, écran tourné, verrouillage sans
+  cadrage propre) : repli sur le cadrage de l'autre variante, puis le plus récent, **recentré sur le même centre** avec la
+  même surface au nouveau ratio, dans l'image. Lecture : la zone choisie garde au moins la taille de l'écran (réduction
+  `inSampleSize` / `resizeWidth` calculée sur la zone). Android : accueil et verrouillage posés séparément si le verrouillage
+  a son propre cadrage (aussi avec le fond « double tap »).
+
 `toile-manifest.json` (dossier de sortie) : pour chaque fond, la source, sa taille, sa date et les réglages
 (`sig`). « Mettre à jour » ne traite que les images nouvelles ou modifiées (ou dont le réglage a changé), et ne
 supprime que les fichiers listés dans ce manifeste (préfixe `toile-`) dont la source a disparu ou a été exclue.
@@ -838,6 +866,13 @@ service worker maître de la page, rechargement hors ligne, fonctions principale
 Android (pages `applis/` avec ponts simulés, sans `MAGPC`). Toile : comparer les zones gardées de `toile-worker.js`
 avec les fonctions de `WallpaperJob.java` compilées telles quelles (faux `android.graphics` en Java : `Bitmap`,
 `Rect`, `Canvas` bilinéaire) sur des images construites exprès (bordures, bandeau, logo, paysage, portrait).
+Toile, recadrage manuel (`/home/claude/tests-toile/`) : partie sans Context de `WallpaperJob.java` (entre les repères
+« Partie sans Context » et « Fin de la partie sans Context ») extraite telle quelle et lancée sur la JVM ; image dont
+R = x et G = y pour lire le rectangle gardé dans les pixels produits (Java et worker, cadre verrouillé, format libre,
+autre format, verrouillage, EXIF, petite image) ; non-régression des modes automatiques (Java ↔ JS, et worker ↔ version
+précédente au pixel près) ; téléphone 412×915 au doigt (CDP `Input.dispatchTouchEvent` à un et deux points : glisser,
+pincer, poignée, fluidité) avec pont `MAGToile` simulé ; PC 1366×768 souris, molette, clavier, sortie « Fonds Toile »
+relue et comparée à la sortie Java.
 Autorisations « à redemander » : `queryPermission` simulé à `prompt` jusqu'au clic ; aussi refus (`denied`), fenêtre fermée
 (`prompt`), et un dossier par demande avec clic « consommé » (fenêtre « Encore N dossiers »).
 Liseuse, lecture à voix haute (`/home/claude/tests-liseuse/`) : EPUB de 3 chapitres et PDF de 3 pages générés, vraie voix
