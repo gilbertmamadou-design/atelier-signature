@@ -10,7 +10,11 @@
      fit         auto (= retire seulement ce qui est détecté, puis pleine largeur),
                  smart (bestOffset), width (pleine largeur, bandes floues),
                  center, blur (blurFit)
-   Messages reçus  : {id, cmd:'process', file, opt:{sw, sh, tol, borders, text, trim, fit, q, out, preview}}
+     cadrage manuel (opt.crops : cadrages rangés de l'image, recadrage.js) : prioritaire,
+                 resolveCrop (format exact ou autre format recentré) puis manualFit / freeFit,
+                 comme WallpaperJob.processBitmap ; la lecture garde la zone choisie à la taille de l'écran
+   Messages reçus  : {id, cmd:'process', file, opt:{sw, sh, tol, borders, text, trim, fit, q, out, preview, crops, variant}}
+                     {id, cmd:'edit', file, opt} → image réduite pour l'éditeur (2 048 px), {ow, oh}, zone automatique
                      {id, cmd:'thumb', file, size}
                      {id, cmd:'measure', file}  → {ow, oh} (dimensions affichées, orientation EXIF comprise ; « Images en ligne »)
    Réponses        : {id, ok:true, ...} ou {id, ok:false, error, code}
@@ -286,8 +290,94 @@ function blurFit(S, r, sw, sh) {
 }
 
 /* ---------------- Traitement complet (WallpaperJob.process) ---------------- */
+/* ---------------- Cadrage manuel (WallpaperJob.resolveCrop, processBitmap, freeFit) ---------------- */
+function cropKey(sw, sh, variant) {
+  var a = sw, b = sh; while (b !== 0) { var t = a % b; a = b; b = t; } if (a === 0) a = 1;
+  return (sw / a) + ':' + (sh / a) + (variant === 'lock' ? '@lock' : '');
+}
+function cropOk(e) {
+  if (!e || typeof e !== 'object') return false;
+  var w = typeof e.w === 'number' ? e.w : -1, h = typeof e.h === 'number' ? e.h : -1;
+  return typeof e.x === 'number' && isFinite(e.x) && typeof e.y === 'number' && isFinite(e.y) && w > 0 && h > 0 && w <= 4 && h <= 4;
+}
+function cropBg(e) { var bg = String(e.bg || 'blur'); return /^#[0-9a-fA-F]{6}$/.test(bg) ? parseInt(bg.slice(1), 16) : -1; }
+function resolveCrop(E, sw, sh, variant, ow, oh) {
+  if (!E || typeof E !== 'object' || !Object.keys(E).length || ow <= 0 || oh <= 0) return null;
+  var k = cropKey(sw, sh, variant), other = variant === 'lock' ? cropKey(sw, sh, null) : cropKey(sw, sh, 'lock');
+  var e = E[k];
+  if (cropOk(e)) return { x: f32(e.x), y: f32(e.y), w: f32(e.w), h: f32(e.h), free: e.free ? 1 : 0, bg: cropBg(e), exact: 1 };
+  var rest = Object.keys(E).filter(function (q) { return q !== k && q !== other && cropOk(E[q]); })
+    .sort(function (a, b) { var c = (+E[b].at || 0) - (+E[a].at || 0); return c !== 0 ? (c > 0 ? 1 : -1) : (a < b ? -1 : a > b ? 1 : 0); });
+  var order = (cropOk(E[other]) ? [other] : []).concat(rest);
+  if (!order.length) return null;
+  var f = E[order[0]], x = f.x, y = f.y, w = f.w, h = f.h;
+  if (f.free) return { x: f32(x), y: f32(y), w: f32(w), h: f32(h), free: 1, bg: cropBg(f), exact: 0 };
+  var tr = sw / sh, cx = (x + w / 2) * ow, cy = (y + h / 2) * oh, A = (w * ow) * (h * oh);
+  var nw = Math.sqrt(A * tr), nh = nw / tr, s = Math.min(1, Math.min(ow / nw, oh / nh));
+  nw *= s; nh *= s;
+  var nx = Math.max(0, Math.min(ow - nw, cx - nw / 2)), ny = Math.max(0, Math.min(oh - nh, cy - nh / 2));
+  return { x: f32(nx / ow), y: f32(ny / oh), w: f32(nw / ow), h: f32(nh / oh), free: 0, bg: cropBg(f), exact: 0 };
+}
+function manual(S, o, man) {
+  var sw = o.sw, sh = o.sh, Wd = S.w, Hd = S.h, full = R(0, 0, Wd, Hd);
+  var f = R(jround(f32(man.x * Wd)), jround(f32(man.y * Hd)), jround(f32(f32(man.x + man.w) * Wd)), jround(f32(f32(man.y + man.h) * Hd)));
+  if (f.r <= f.l) f.r = f.l + 1;
+  if (f.b <= f.t) f.b = f.t + 1;
+  var res = { manual: true, steps: {} };
+  if (man.free) {
+    var k = R(Math.max(0, f.l), Math.max(0, f.t), Math.min(Wd, f.r), Math.min(Hd, f.b));
+    if (W(k) <= 0 || H(k) <= 0) { f = cp(full); k = cp(full); }
+    res.keep = k; res.detected = cp(k); res.frame = cp(f); res.fill = true;
+    res.out = freeFit(S, f, k, sw, sh, man.bg);
+    res.info = 'cadrage manuel, format libre' + (aspectClose(f, sw, sh) && eq(f, k) ? '' : man.bg === -1 ? ', bandes floues' : ', bandes de couleur');
+  } else {
+    var w = Math.max(1, Math.min(Wd, W(f))), h = Math.max(1, Math.min(Hd, H(f)));
+    var l = Math.max(0, Math.min(Wd - w, f.l)), t = Math.max(0, Math.min(Hd - h, f.t));
+    res.keep = R(l, t, l + w, t + h); res.detected = cp(res.keep);
+    res.out = scaleRegion(S.canvas, res.keep, sw, sh);
+    res.info = 'cadrage manuel' + (W(res.keep) < sw ? ', agrandi (moins net)' : '');
+  }
+  return res;
+}
+// Format libre : le cadre f (qui peut dépasser l'image) est ajusté dans l'écran ; la partie k de l'image est dessinée
+// à sa place, le reste est rempli de flou (comme blurFit, à partir de k) ou d'une couleur unie.
+function freeFit(S, f, k, sw, sh, bg) {
+  var out = new OffscreenCanvas(sw, sh), cv = out.getContext('2d');
+  cv.imageSmoothingEnabled = true; cv.imageSmoothingQuality = 'low';
+  if (bg === -1) {
+    var cover = f32(Math.max(f32(sw / W(k)), f32(sh / H(k))));
+    var cw = Math.min(W(k), jround(f32(sw / cover))), ch = Math.min(H(k), jround(f32(sh / cover)));
+    var cl = k.l + idiv(W(k) - cw, 2), ct = k.t + idiv(H(k) - ch, 2);
+    var tw = Math.max(2, idiv(sw, 40)), th = Math.max(2, idiv(sh, 40));
+    var tiny = new OffscreenCanvas(tw, th), gt = tiny.getContext('2d');
+    gt.imageSmoothingEnabled = true; gt.imageSmoothingQuality = 'low';
+    gt.drawImage(S.canvas, cl, ct, cw, ch, 0, 0, tw, th);
+    var mid = new OffscreenCanvas(tw * 4, th * 4), gm = mid.getContext('2d');
+    gm.imageSmoothingEnabled = true; gm.imageSmoothingQuality = 'low';
+    gm.drawImage(tiny, 0, 0, tw * 4, th * 4);
+    tiny.width = 0;
+    cv.drawImage(mid, 0, 0, sw, sh);
+    mid.width = 0;
+    cv.fillStyle = 'rgba(0,0,0,' + (0x73 / 255) + ')';
+    cv.fillRect(0, 0, sw, sh);
+  } else {
+    cv.fillStyle = '#' + ('00000' + bg.toString(16)).slice(-6);
+    cv.fillRect(0, 0, sw, sh);
+  }
+  var s = f32(Math.min(f32(sw / W(f)), f32(sh / H(f))));
+  var fx = f32(f32(sw - f32(W(f) * s)) / 2), fy = f32(f32(sh - f32(H(f) * s)) / 2);
+  var dl = jround(f32(fx + f32((k.l - f.l) * s))), dt = jround(f32(fy + f32((k.t - f.t) * s)));
+  var dw = Math.max(1, jround(f32(W(k) * s))), dh = Math.max(1, jround(f32(H(k) * s)));
+  var scaled = scaleRegion(S.canvas, k, dw, dh);
+  cv.imageSmoothingQuality = 'high';
+  cv.drawImage(scaled, dl, dt);
+  scaled.width = 0;
+  return out;
+}
+
 function process(S, o) {
   var sw = o.sw, sh = o.sh;
+  if (S.man) return manual(S, o, S.man);
   var full = R(0, 0, S.w, S.h), r = cp(full), info = [], steps = {};
   var tol = Math.max(4, Math.min(80, o.tol == null ? 24 : +o.tol));
   var autoFit = o.fit === 'auto';
@@ -309,7 +399,7 @@ function process(S, o) {
   var mode = autoFit ? 'width' : (o.fit || 'smart');
   var res = { keep: cp(r), detected: cp(r) };
   var out = fit(S, r, sw, sh, mode, res);
-  if ((mode === 'blur' || (mode === 'width' && f32(W(r) / H(r)) > f32(sw / sh))) && !aspectClose(r, sw, sh)) info.push(mode === 'width' ? 'pleine largeur, bandes floues' : 'image entière sur fond flou');
+  if ((mode === 'blur' || (mode === 'width' && f32(W(r) / H(r)) > f32(sw / sh))) && !aspectClose(r, sw, sh)) { info.push(mode === 'width' ? 'pleine largeur, bandes floues' : 'image entière sur fond flou'); res.fill = true; }
   else info.push('ajustée à l\'écran ' + sw + '×' + sh);
   res.out = out; res.info = info.join(', '); res.steps = steps;
   return res;
@@ -375,16 +465,26 @@ function unreadable(file) {
 }
 // Décodage à la bonne taille, comme WallpaperJob.load : réduction par 2, 4, 8… tant que le petit côté reste ≥ target
 // et au plus 16 millions de pixels ; orientation EXIF appliquée.
-async function load(file, target) {
+// Avec un cadrage manuel (o.crops), c'est la zone choisie qui doit rester au moins aussi grande que l'écran.
+async function load(file, target, o) {
   var head = new Uint8Array(await file.slice(0, 512 * 1024).arrayBuffer());
   var d = probe(head), bm;
   if (!d || !(d.w > 0 && d.h > 0)) {
-    try { bm = await createImageBitmap(file); } catch (e) { throw unreadable(file); }
+    try { bm = await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch (e) { throw unreadable(file); }
     d = { w: bm.width, h: bm.height, swap: false };
   }
   var w = d.w, h = d.h, ss = 1;
-  while (idiv(Math.min(w, h), ss * 2) >= target || w * h / (ss * ss) > 16000000) ss *= 2;
   var ow = d.swap ? h : w, oh = d.swap ? w : h;          // dimensions affichées (après orientation)
+  var man = o && o.crops ? resolveCrop(o.crops, o.sw, o.sh, o.variant || 'home', ow, oh) : null;
+  for (;;) {
+    var n = ss * 2, more;
+    if (!man) more = idiv(Math.min(w, h), n) >= target;
+    else {
+      var zw = f32(f32(man.w * ow) / n), zh = f32(f32(man.h * oh) / n);
+      more = man.free ? (zw >= o.sw || zh >= o.sh) : (zw >= o.sw && zh >= o.sh);
+    }
+    if (more || w * h / (ss * ss) > 16000000) ss *= 2; else break;
+  }
   var tw = Math.max(1, Math.round(ow / ss)), th = Math.max(1, Math.round(oh / ss));
   if (!bm || bm.width !== tw || bm.height !== th) {
     if (bm) bm.close();
@@ -394,7 +494,7 @@ async function load(file, target) {
   var c = new OffscreenCanvas(bm.width, bm.height), g = c.getContext('2d', { willReadFrequently: true });
   g.drawImage(bm, 0, 0);
   bm.close();
-  return { w: c.width, h: c.height, canvas: c, px: pixelsOf(c), ow: ow, oh: oh, ss: ss };
+  return { w: c.width, h: c.height, canvas: c, px: pixelsOf(c), ow: ow, oh: oh, ss: ss, man: man };
 }
 
 /* ---------------- Aperçu avant / après (WallpaperJob.preview) ---------------- */
@@ -445,13 +545,26 @@ async function handle(m) {
     }
     if (m.cmd === 'process') {
       var o = m.opt || {};
-      var S = await load(m.file, Math.max(o.sw, o.sh));
-      var res = process(S, o), msg = { id: m.id, ok: true, info: res.info, keep: res.keep, detected: res.detected, steps: res.steps, w: S.w, h: S.h, ow: S.ow, oh: S.oh, ss: S.ss };
+      var S = await load(m.file, Math.max(o.sw, o.sh), o);
+      var res = process(S, o), msg = { id: m.id, ok: true, info: res.info, keep: res.keep, detected: res.detected, steps: res.steps, w: S.w, h: S.h, ow: S.ow, oh: S.oh, ss: S.ss, manual: !!res.manual, fill: !!res.fill, frame: res.frame || null };
       if (o.out !== false) msg.out = await res.out.convertToBlob({ type: 'image/jpeg', quality: Math.max(0.3, Math.min(1, (o.q || 90) / 100)) });
       if (o.preview) { var p = await previews(S, res); msg.before = p.before; msg.after = p.after; }
       if (o.pixels) msg.outSize = [res.out.width, res.out.height];
       res.out.width = 0; S.canvas.width = 0; S.px = null;
       self.postMessage({ id: m.id, ok: true, ...msg });
+      return;
+    }
+    if (m.cmd === 'edit') {
+      // éditeur de cadrage : image réduite, dimensions d'origine et zone gardée par le calcul automatique (sans cadrage manuel)
+      var oe = Object.assign({}, m.opt || {}, { crops: null });
+      var SE = await load(m.file, Math.max(oe.sw, oe.sh), oe), re = process(SE, oe);
+      var ke = Math.min(1, 2048 / Math.max(SE.w, SE.h)), dw = Math.max(1, Math.round(SE.w * ke)), dh = Math.max(1, Math.round(SE.h * ke));
+      var dc = new OffscreenCanvas(dw, dh), dg = dc.getContext('2d'); dg.imageSmoothingEnabled = true; dg.imageSmoothingQuality = 'high';
+      dg.drawImage(SE.canvas, 0, 0, dw, dh);
+      var img = await dc.convertToBlob({ type: 'image/jpeg', quality: 0.9 }); dc.width = 0;
+      var k = re.keep;
+      self.postMessage({ id: m.id, ok: true, img: img, ow: SE.ow, oh: SE.oh, info: re.info, auto: { x: k.l / SE.w, y: k.t / SE.h, w: W(k) / SE.w, h: H(k) / SE.h, fill: !!re.fill } });
+      re.out.width = 0; SE.canvas.width = 0; SE.px = null;
       return;
     }
     throw new Error('commande inconnue');

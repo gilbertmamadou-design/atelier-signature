@@ -420,7 +420,7 @@
       "background_color": "#0f1116",
       "vendor": [],
       "workers": ["toile-worker.js"],
-      "copies": { "toile-en-ligne.js": "applis/www-fonds/en-ligne.js" },
+      "copies": { "toile-en-ligne.js": "applis/www-fonds/en-ligne.js", "toile-recadrage.js": "applis/www-fonds/recadrage.js" },
       "patches": [],
       "data": { "ls": ["toile-pc:"], "idb": ["toile-pc"], "note": "Les fonds préparés sont dans le dossier de sortie (« Fonds Toile ») avec leur liste toile-manifest.json ; seuls les réglages, les choix par image et la liste des images en ligne sont exportés ici (pas les fichiers téléchargés ni les clés d'API, qui restent sur ce PC)." }
     },
