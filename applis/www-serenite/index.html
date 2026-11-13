@@ -182,14 +182,16 @@ function mkBuf(sec){ return new AudioBuffer({ length: Math.round(sec * SR), samp
 function prep(){
   if(BUF) return; BUF = {};
   ['white', 'pink', 'brown'].forEach(function(kind){
-    var b = mkBuf(8), d = b.getChannelData(0), n = d.length, b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0, last = 0;
-    for(var i = 0; i < n; i++){
+    // 12 s + 0,5 s de rab : le rab est fondu dans le début, la boucle se referme sans trou ni clic
+    var n = Math.round(12 * SR), m = Math.round(.5 * SR), a = new Float32Array(n + m), b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0, last = 0;
+    for(var i = 0; i < n + m; i++){
       var w = Math.random() * 2 - 1;
-      if(kind === 'white') d[i] = w * 0.5;
-      else if(kind === 'pink'){ b0 = .99886*b0 + w*.0555179; b1 = .99332*b1 + w*.0750759; b2 = .969*b2 + w*.153852; b3 = .8665*b3 + w*.3104856; b4 = .55*b4 + w*.5329522; b5 = -.7616*b5 - w*.016898; d[i] = (b0+b1+b2+b3+b4+b5+b6+w*.5362) * .11; b6 = w*.115926; }
-      else { last = (last + .02 * w) / 1.02; d[i] = last * 3.2; }
+      if(kind === 'white') a[i] = w * 0.5;
+      else if(kind === 'pink'){ b0 = .99886*b0 + w*.0555179; b1 = .99332*b1 + w*.0750759; b2 = .969*b2 + w*.153852; b3 = .8665*b3 + w*.3104856; b4 = .55*b4 + w*.5329522; b5 = -.7616*b5 - w*.016898; a[i] = (b0+b1+b2+b3+b4+b5+b6+w*.5362) * .11; b6 = w*.115926; }
+      else { last = (last + .02 * w) / 1.02; a[i] = last * 3.2; }
     }
-    var f = 1600; for(var j = 0; j < f; j++){ var k = j / f; d[j] *= k; d[n - 1 - j] *= k; }
+    var b = mkBuf(12), d = b.getChannelData(0); d.set(a.subarray(0, n));
+    for(var j = 0; j < m; j++){ var x = (j + .5) / m * Math.PI / 2; d[j] = a[j] * Math.sin(x) + a[n + j] * Math.cos(x); }
     BUF[kind] = b;
   });
   var ir = mkBuf(4.5), r = ir.getChannelData(0);
@@ -201,18 +203,20 @@ function hz(m){ return 440 * Math.pow(2, (m - 69) / 12); }
 /* outils d'une tranche X = {c (contexte hors ligne), t0 (début, en s de séance), len (CH), rv (réverbération)} */
 function G(X, v){ var g = X.c.createGain(); g.gain.value = v; return g; }
 function F(X, type, f, q){ var x = X.c.createBiquadFilter(); x.type = type; x.frequency.value = f; if(q) x.Q.value = q; return x; }
-function chain(){ for(var i = 0; i < arguments.length - 1; i++) arguments[i].connect(arguments[i + 1]); return arguments[arguments.length - 1]; }
+function chain(){ for(var i = 0; i < arguments.length - 1; i++) arguments[i].connect(arguments[i + 1]); return arguments[0]; }   // renvoie l'entrée de la chaîne
 function curve(param, fn, t0, dur, step){
   step = step || 0.25; var n = Math.max(2, Math.ceil(dur / step) + 1), a = new Float32Array(n);
   for(var i = 0; i < n; i++) a[i] = fn(t0 + i * dur / (n - 1));
   param.setValueCurveAtTime(a, 0, dur);
 }
 /* couche continue : de 0 à la fin de la tranche, fondue avec la tranche voisine */
+var FIN = new Float32Array(33), FOUT = new Float32Array(33);
+for(var fi = 0; fi < 33; fi++){ FIN[fi] = Math.sin(fi / 32 * Math.PI / 2); FOUT[fi] = Math.cos(fi / 32 * Math.PI / 2); }
 function cont(X, kind, dest){
   var s = X.c.createBufferSource(); s.buffer = BUF[kind]; s.loop = true;
   var g = G(X, 0); s.connect(g); g.connect(dest);
-  g.gain.setValueAtTime(0, 0); g.gain.linearRampToValueAtTime(1, XF); g.gain.setValueAtTime(1, X.len); g.gain.linearRampToValueAtTime(0, X.len + XF);
-  s.start(0, rnd(0, 7)); s.stop(X.len + XF + 0.01);
+  g.gain.setValueCurveAtTime(FIN, 0, XF); g.gain.setValueCurveAtTime(FOUT, X.len, XF);   // fondu à puissance constante : pas de creux au raccord
+  s.start(0, rnd(0, 11)); s.stop(X.len + XF + 0.01);
   return s;
 }
 /* événements : st.next = prochain moment (s de séance) ; fn(rt) avec rt relatif à la tranche */
@@ -234,42 +238,165 @@ function bowlX(X, f, dest, rt, v){
   g.gain.setValueAtTime(0, rt); g.gain.linearRampToValueAtTime(v, rt + .01); g.gain.exponentialRampToValueAtTime(v * .35, rt + 1.5); g.gain.exponentialRampToValueAtTime(.0001, rt + 13.5);
 }
 
+/* ---- synthèse au point près : gouttes, bulles, écume, craquements ----
+   Un tampon couvre la tranche et sa traîne ; chaque petit son y est écrit à son instant exact. */
+function layer(X, dest, rv){
+  var b = X.c.createBuffer(1, Math.round((X.len + TAIL) * SR), SR), s = X.c.createBufferSource(); s.buffer = b; s.connect(dest);
+  if(rv){ var g = G(X, rv); s.connect(g); g.connect(X.rv); }
+  s.start(0); return b.getChannelData(0);
+}
+/* impact (goutte, grain, crépitement) : bruit bref qui s'éteint ; lp de 0 (sourd) à 1 (clair) */
+function imp(d, t, amp, tau, lp){
+  var i0 = Math.round(t * SR); if(i0 < 0 || i0 >= d.length) return;
+  var n = Math.min(d.length - i0, Math.ceil(tau * 5 * SR) + 2), k = Math.exp(-1 / (tau * SR)), e = amp, y = 0;
+  for(var i = 0; i < n; i++){ y += lp * ((Math.random() * 2 - 1) - y); d[i0 + i] += y * e; e *= k; }
+}
+/* bulle d'air dans l'eau (résonance de Minnaert) : note pure qui monte en s'éteignant */
+function bub(d, t, f0, rise, tau, amp){
+  var i0 = Math.round(t * SR); if(i0 < 0 || i0 >= d.length) return;
+  var n = Math.min(d.length - i0, Math.ceil(tau * 5 * SR)), k = Math.exp(-1 / (tau * SR)), ka = Math.exp(-1 / (.0007 * SR)), e = amp, ae = 1, ph = Math.random() * 6.283, w0 = 6.2832 * f0 / SR, dr = rise / (tau * SR);
+  for(var i = 0; i < n; i++){ ph += w0 * (1 + dr * i); d[i0 + i] += Math.sin(ph) * e * (1 - ae); e *= k; ae *= ka; }
+}
+/* instants au hasard (loi de Poisson) dans la tranche ; dens(t) entre 0 et 1 module le débit */
+function poisson(X, rate, fn, dens){
+  var t = -Math.log(1 - Math.random()) / rate;
+  while(t < X.len){ if(!dens || Math.random() < dens(X.t0 + t)) fn(t); t += -Math.log(1 - Math.random()) / rate; }
+}
+function lfo(t, sp){ var v = 0; for(var i = 0; i < sp.length; i++) v += sp[i][1] * Math.sin(6.2832 * sp[i][0] * t + i * 1.7); return v; }
+function autom(param, arr, t, dur){ param.setValueCurveAtTime(arr, t, dur); }
+
 var DEFS = {
-  pluie: { name:'Pluie douce', grp:'nat', ic:'<path d="M7 13a5 5 0 1 1 9.6-2H17a3.5 3.5 0 0 1 0 7H8a4 4 0 0 1-1-5zM8 21l1-2M12 21l1-2M16 21l1-2"/>',
+  pluie: { name:'Pluie douce', grp:'nat', lv:3, ic:'<path d="M7 13a5 5 0 1 1 9.6-2H17a3.5 3.5 0 0 1 0 7H8a4 4 0 0 1-1-5zM8 21l1-2M12 21l1-2M16 21l1-2"/>',
     render: function(X, out, st){
-      cont(X, 'pink', chain(F(X, 'highpass', 400), F(X, 'lowpass', 7000), G(X, .55), out));
-      cont(X, 'white', chain(F(X, 'bandpass', 3000, .6), G(X, .12), out));
-      events(X, st, function(){ return rnd(0, .3); }, function(){ return rnd(.04, .26); }, function(rt){ burst(X, out, rt, rnd(1500, 5000), 8, rnd(.05, .25), .05); });
+      // la pluie forcit et faiblit doucement, comme une vraie averse
+      function I(t){ return Math.max(.35, Math.min(1, .78 + lfo(t, [[.013, .14], [.037, .09], [.091, .05]]))); }
+      var bg = G(X, .38), lg = G(X, .25);
+      cont(X, 'pink', chain(F(X, 'highpass', 350), F(X, 'lowpass', 6500), bg, out));          // le rideau de pluie au loin
+      cont(X, 'brown', chain(F(X, 'lowpass', 260), lg, out));                                   // le grondement sourd de l'averse
+      curve(bg.gain, function(t){ return .38 * I(t); }, X.t0, X.len + XF);
+      curve(lg.gain, function(t){ return .25 * I(t); }, X.t0, X.len + XF);
+      var d = layer(X, out, .12), A = 1.25;
+      // milliers de gouttes fines sur les feuilles, le sol, les vitres
+      poisson(X, 1500, function(t){ imp(d, t, A * rnd(.012, .05), rnd(.00015, .0007), rnd(.25, .9)); }, I);
+      // gouttes plus grosses, parfois avec le petit « plic » de la bulle
+      poisson(X, 45, function(t){
+        var a = A * rnd(.05, .2); imp(d, t, a, rnd(.0008, .0035), rnd(.12, .55));
+        if(Math.random() < .35) bub(d, t + .001, rnd(1800, 4800), rnd(.15, .5), rnd(.003, .01), a * rnd(.4, .9));
+      }, I);
+      // gouttes proches dans une flaque
+      poisson(X, 2.2, function(t){
+        var a = A * rnd(.12, .28); imp(d, t, a, rnd(.002, .004), rnd(.08, .2));
+        bub(d, t + .002, rnd(650, 1600), rnd(.2, .45), rnd(.008, .022), a * rnd(.5, .9));
+      }, I);
+      // une gouttière qui goutte, à son rythme, toujours dans la même flaque
+      if(st.df == null){ st.df = rnd(850, 1250); st.dn = X.t0 + rnd(.3, 1.2); }
+      while(st.dn < X.t0 + X.len){
+        var t = st.dn - X.t0, a2 = rnd(.07, .12);
+        imp(d, t, a2 * .8, .0025, .15); bub(d, t + .002, st.df * rnd(.96, 1.04), rnd(.25, .4), rnd(.012, .02), a2);
+        st.dn += rnd(.7, 1.9);
+      }
     } },
-  mer: { name:'Vagues', grp:'nat', ic:'<path d="M2 12c2-2 4-2 6 0s4 2 6 0 4-2 6 0M2 17c2-2 4-2 6 0s4 2 6 0 4-2 6 0M2 7c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/>',
+  orage: { name:'Orage', grp:'nat', lv:1.8, ic:'<path d="M7 15a5 5 0 1 1 9.6-4H17a3.5 3.5 0 0 1 1.5 6.7M13 11l-3 5h4l-3 5"/>',
     render: function(X, out, st){
-      cont(X, 'brown', chain(F(X, 'lowpass', 350), G(X, .14), out));
-      events(X, st, function(){ return rnd(.2, 1.5); }, function(){ return rnd(5.5, 9.5); }, function(rt){   // une vague : montée, déferlement, retrait
-        var d = rnd(6, 11), pk = rnd(.75, 1);
-        var s = X.c.createBufferSource(); s.buffer = BUF.brown; s.loop = true;
-        var f = F(X, 'lowpass', 380), g = G(X, 0); chain(s, f, g, out);
-        f.frequency.setValueAtTime(380, rt); f.frequency.linearRampToValueAtTime(rnd(900, 1600), rt + d * .45); f.frequency.linearRampToValueAtTime(380, rt + d);
-        g.gain.setValueAtTime(0, rt); g.gain.linearRampToValueAtTime(pk, rt + d * .42); g.gain.linearRampToValueAtTime(pk * .15, rt + d); g.gain.linearRampToValueAtTime(0, rt + d + 1.5);
-        s.start(rt, rnd(0, 7)); s.stop(rt + d + 1.6);
-        var s2 = X.c.createBufferSource(); s2.buffer = BUF.pink; s2.loop = true; var g2 = G(X, 0); chain(s2, F(X, 'bandpass', 1300, .6), g2, out);
-        g2.gain.setValueAtTime(0, rt + d * .3); g2.gain.linearRampToValueAtTime(pk * .35, rt + d * .48); g2.gain.linearRampToValueAtTime(0, rt + d * .95);
-        s2.start(rt, rnd(0, 7)); s2.stop(rt + d);
+      // grondements de tonnerre : surtout lointains, parfois plus proches (sans claquement brutal)
+      var d = null;
+      events(X, st, function(){ return rnd(2, 8); }, function(){ return rnd(14, 38); }, function(rt){
+        var near = Math.random() < .3, len = near ? rnd(9, 13) : rnd(6, 12), amp = near ? rnd(1, 1.25) : rnd(.45, .85);
+        len = Math.min(len, CH + TAIL - rt - .5);
+        // enveloppe roulante : plusieurs coups qui s'enchaînent et s'éloignent
+        var STEP = .03, N = Math.ceil(len / STEP) + 1, env = new Float32Array(N), nb = Math.floor(rnd(3, 8)), tb = near ? 0 : rnd(.1, .6), bumps = [];
+        for(var k = 0; k < nb; k++){ bumps.push([tb, (k ? rnd(.35, .95) : 1) * Math.pow(.82, k), rnd(.08, near && !k ? .12 : .6), rnd(.7, 2.4)]); tb += rnd(.35, 1.8); if(tb > len * .7) break; }
+        var mx = 0;
+        for(var j = 0; j < N; j++){
+          var t = j * STEP, v = 0;
+          bumps.forEach(function(B){ var u = t - B[0]; if(u > 0) v += B[1] * (u < B[2] ? u / B[2] : Math.exp(-(u - B[2]) / B[3])); });
+          v *= 1 + .18 * Math.sin(t * 17 + rt) * Math.sin(t * 5.3);   // petites irrégularités du roulement
+          v *= Math.min(1, (len - t) / 1.5);
+          env[j] = Math.max(0, v); if(env[j] > mx) mx = env[j];
+        }
+        for(j = 0; j < N; j++) env[j] = env[j] / (mx || 1) * amp;
+        var lo = X.c.createBufferSource(); lo.buffer = BUF.brown; lo.loop = true;
+        var lf = F(X, 'lowpass', near ? 520 : 240), lgn = G(X, 0); chain(lo, lf, lgn, out); var sd = G(X, .35); lgn.connect(sd); sd.connect(X.rv);
+        lf.frequency.setValueAtTime(near ? 520 : 240, rt); lf.frequency.exponentialRampToValueAtTime(near ? 160 : 110, rt + len);
+        autom(lgn.gain, env, rt, len); lo.start(rt, rnd(0, 11)); lo.stop(rt + len + .05);
+        var mi = X.c.createBufferSource(); mi.buffer = BUF.pink; mi.loop = true;
+        var mf = F(X, 'lowpass', near ? 1400 : 600), mg = G(X, 0); chain(mi, mf, mg, out);
+        var env2 = env.map(function(x){ return x * (near ? .3 : .16); }); autom(mg.gain, env2, rt, len); mi.start(rt, rnd(0, 11)); mi.stop(rt + len + .05);
+        if(near){   // le craquement de la foudre, adouci, juste avant le grondement
+          if(!d) d = layer(X, out, .3);
+          var c = rt, n = Math.floor(rnd(5, 11));
+          for(var q = 0; q < n; q++){ imp(d, c, rnd(.08, .22) * amp, rnd(.008, .04), rnd(.2, .6)); c += rnd(.015, .07); }
+        }
       });
     } },
-  vent: { name:'Vent', grp:'nat', ic:'<path d="M3 8h10a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h7"/>',
+  mer: { name:'Vagues', grp:'nat', lv:2.2, ic:'<path d="M2 12c2-2 4-2 6 0s4 2 6 0 4-2 6 0M2 17c2-2 4-2 6 0s4 2 6 0 4-2 6 0M2 7c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/>',
+    render: function(X, out, st){
+      // le ressac lointain, toujours présent
+      cont(X, 'brown', chain(F(X, 'lowpass', 300), G(X, .09), out));
+      var hg = G(X, .018); cont(X, 'pink', chain(F(X, 'bandpass', 900, .5), hg, out));
+      curve(hg.gain, function(t){ return .018 * (.75 + lfo(t, [[.05, .2], [.017, .1]])); }, X.t0, X.len + XF);
+      var d = layer(X, out, .08);
+      events(X, st, function(){ return rnd(.2, 1.5); }, function(){ return rnd(8, 13); }, function(rt){
+        var big = rnd(.5, 1), dw = rnd(7, 10), tb = rt + dw * rnd(.35, .45), s, f, g;
+        // 1. la vague monte (grondement)
+        s = X.c.createBufferSource(); s.buffer = BUF.brown; s.loop = true; f = F(X, 'lowpass', 220); g = G(X, 0); chain(s, f, g, out);
+        f.frequency.setValueAtTime(220, rt); f.frequency.linearRampToValueAtTime(rnd(550, 800), tb); f.frequency.linearRampToValueAtTime(260, rt + dw);
+        g.gain.setValueAtTime(0, rt); g.gain.linearRampToValueAtTime(.5 * big, tb); g.gain.linearRampToValueAtTime(.06 * big, tb + 2.2); g.gain.linearRampToValueAtTime(0, rt + dw + 1);
+        s.start(rt, rnd(0, 11)); s.stop(rt + dw + 1.1);
+        // 2. elle déferle (fracas qui s'ouvre vers les aigus)
+        s = X.c.createBufferSource(); s.buffer = BUF.pink; s.loop = true; f = F(X, 'lowpass', 500); g = G(X, 0); chain(s, f, g, out); var sd = G(X, .25); g.connect(sd); sd.connect(X.rv);
+        f.frequency.setValueAtTime(500, tb - .5); f.frequency.exponentialRampToValueAtTime(rnd(3500, 6500) * big, tb + .25); f.frequency.exponentialRampToValueAtTime(1300, tb + 2.5); f.frequency.exponentialRampToValueAtTime(600, tb + 5.5);
+        g.gain.setValueAtTime(0, tb - .5); g.gain.linearRampToValueAtTime(1.1 * big, tb + .25); g.gain.exponentialRampToValueAtTime(.18 * big, tb + 1.6); g.gain.linearRampToValueAtTime(0, tb + 4.5);
+        s.start(tb - .5, rnd(0, 11)); s.stop(tb + 5.6);
+        // 3. les embruns
+        s = X.c.createBufferSource(); s.buffer = BUF.white; s.loop = true; f = F(X, 'highpass', 2800); g = G(X, 0); chain(s, f, g, out);
+        g.gain.setValueAtTime(0, tb - .1); g.gain.linearRampToValueAtTime(.16 * big, tb + .15); g.gain.exponentialRampToValueAtTime(.001, tb + 1.4);
+        s.start(tb - .1, rnd(0, 11)); s.stop(tb + 1.5);
+        // 4. l'écume qui pétille sur le sable
+        var fd = rnd(4, 6);
+        poisson({ len: fd, t0: 0 }, 2600 * big, function(u){
+          var e = Math.exp(-u / 1.5);
+          imp(d, tb + .1 + u, rnd(.015, .06) * e * big, rnd(.00015, .0006), rnd(.5, 1));
+          if(Math.random() < .07) bub(d, tb + .1 + u, rnd(2500, 6500), rnd(.2, .5), rnd(.002, .005), rnd(.01, .03) * e * big);
+        }, function(u){ return .05 + .95 * Math.exp(-u / 1.1); });
+        // 5. l'eau se retire
+        s = X.c.createBufferSource(); s.buffer = BUF.pink; s.loop = true; f = F(X, 'bandpass', 2000, .7); g = G(X, 0); chain(s, f, g, out);
+        f.frequency.setValueAtTime(2000, tb + 1.5); f.frequency.exponentialRampToValueAtTime(800, rt + dw + 1.4);
+        g.gain.setValueAtTime(0, tb + 1.5); g.gain.linearRampToValueAtTime(.11 * big, tb + 3); g.gain.linearRampToValueAtTime(0, rt + dw + 1.5);
+        s.start(tb + 1.5, rnd(0, 11)); s.stop(rt + dw + 1.6);
+      });
+    } },
+  vent: { name:'Vent', grp:'nat', lv:3.5, ic:'<path d="M3 8h10a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h7"/>',
     render: function(X, out){
       var f = F(X, 'bandpass', 500, 1.2), g = G(X, .7); cont(X, 'pink', chain(f, g, out));
       curve(f.frequency, function(t){ return 520 + 260 * Math.sin(2 * Math.PI * .07 * t) + 90 * Math.sin(2 * Math.PI * .19 * t); }, X.t0, X.len + XF);
       curve(g.gain, function(t){ return Math.max(.12, .75 + .4 * Math.sin(2 * Math.PI * .05 * t + 1) + .12 * Math.sin(2 * Math.PI * .23 * t)); }, X.t0, X.len + XF);
     } },
-  ruisseau: { name:'Ruisseau', grp:'nat', ic:'<path d="M4 4c4 2 0 6 4 8s0 6 4 8M12 4c4 2 0 6 4 8s0 6 4 8"/>',
+  ruisseau: { name:'Ruisseau', grp:'nat', lv:3.6, ic:'<path d="M4 4c4 2 0 6 4 8s0 6 4 8M12 4c4 2 0 6 4 8s0 6 4 8"/>',
     render: function(X, out){
-      var f = F(X, 'bandpass', 1800, 2); cont(X, 'white', chain(F(X, 'highpass', 600), f, G(X, .35), out));
-      var f2 = F(X, 'bandpass', 900, 3); cont(X, 'pink', chain(f2, G(X, .4), out));
-      curve(f.frequency, function(t){ return 1800 + 700 * Math.sin(2 * Math.PI * 3.1 * t) + 250 * Math.sin(2 * Math.PI * 7.3 * t); }, X.t0, X.len + XF, .015);
-      curve(f2.frequency, function(t){ return 900 + 300 * Math.sin(2 * Math.PI * 1.7 * t); }, X.t0, X.len + XF, .02);
+      // l'eau qui court : un souffle clair qui frémit sans cesse
+      var rg = G(X, .09), rf = F(X, 'bandpass', 2300, .55);
+      cont(X, 'white', chain(F(X, 'highpass', 700), rf, rg, out));
+      cont(X, 'brown', chain(F(X, 'lowpass', 480), G(X, .16), out));
+      curve(rg.gain, function(t){ return .09 * (.72 + lfo(t, [[.9, .1], [2.3, .08], [5.1, .06], [.11, .08]])); }, X.t0, X.len + XF, .02);
+      curve(rf.frequency, function(t){ return 2300 + lfo(t, [[.07, 500], [.4, 200]]); }, X.t0, X.len + XF, .1);
+      var d = layer(X, out, .1);
+      function D(t){ return .55 + lfo(t, [[.021, .25], [.07, .15], [.19, .08]]); }
+      // le babil : des grappes de bulles qui glougloutent entre les pierres
+      poisson(X, 8, function(t){
+        var n = Math.floor(rnd(2, 10)), base = Math.exp(rnd(Math.log(380), Math.log(2200)));
+        for(var i = 0; i < n; i++){
+          var f0 = base * rnd(.75, 1.35), tau = Math.max(.004, Math.min(.04, .026 * Math.pow(400 / f0, .7) * rnd(.6, 1.4)));
+          bub(d, t + rnd(0, .25), f0, rnd(.12, .55), tau, rnd(.03, .11) * Math.pow(600 / f0, .25));
+        }
+      }, D);
+      // petites bulles et éclaboussures partout
+      poisson(X, 170, function(t){ bub(d, t, rnd(1500, 4500), rnd(.15, .5), rnd(.003, .008), rnd(.008, .035)); }, D);
+      poisson(X, 40, function(t){ imp(d, t, rnd(.015, .05), rnd(.0005, .002), rnd(.4, .9)); }, D);
+      // de temps en temps un glouglou plus grave
+      poisson(X, .8, function(t){ var k = Math.floor(rnd(1, 4)); for(var i = 0; i < k; i++) bub(d, t + i * rnd(.04, .1), rnd(220, 420), rnd(.2, .5), rnd(.03, .06), rnd(.06, .12)); });
     } },
-  feu: { name:'Feu de bois', grp:'nat', ic:'<path d="M12 22c4 0 7-3 7-7 0-5-5-7-5-12-3 2-4 5-4 7-1-1-2-2-2-3-2 2-3 5-3 8 0 4 3 7 7 7z"/>',
+  feu: { name:'Feu de bois', grp:'nat', lv:1.5, ic:'<path d="M12 22c4 0 7-3 7-7 0-5-5-7-5-12-3 2-4 5-4 7-1-1-2-2-2-3-2 2-3 5-3 8 0 4 3 7 7 7z"/>',
     render: function(X, out, st){
       cont(X, 'brown', chain(F(X, 'lowpass', 300), G(X, .65), out));
       events(X, st, function(){ return rnd(0, .4); }, function(){ return rnd(.06, .5); }, function(rt){
@@ -335,7 +462,7 @@ function renderChunk(E, t0){
   curve(master.gain, function(t){ return envAt(E, t); }, t0, CH + TAIL);
   Object.keys(MIX).forEach(function(k){
     if(!MIX[k].on) return;
-    var out = c.createGain(); out.gain.value = MIX[k].v * (DEFS[k].grp === 'mus' ? 0.9 : 0.8); out.connect(master);
+    var out = c.createGain(); out.gain.value = MIX[k].v * (DEFS[k].grp === 'mus' ? 0.9 : 0.8) * (DEFS[k].lv || 1); out.connect(master);
     if(!E.st[k]) E.st[k] = {};
     DEFS[k].render(X, out, E.st[k]);
   });
@@ -466,6 +593,7 @@ function bellPlan(len, start, end, every){
 /* ambiances prêtes */
 var AMB = [
   ['pluie', 'Pluie douce', 'Pluie et nappes', { pluie:.7, nappes:.45 }],
+  ['orage', 'Orage', 'Pluie, tonnerre et vent', { pluie:.85, orage:.75, vent:.3 }],
   ['mer', 'Bord de mer', 'Vagues et bols', { mer:.75, bols:.4, vent:.2 }],
   ['foret', 'Forêt', 'Oiseaux et ruisseau', { oiseaux:.5, ruisseau:.45, vent:.25 }],
   ['feu', 'Coin du feu', 'Feu et piano', { feu:.65, piano:.5 }],
