@@ -639,5 +639,10 @@
       ],
       "data": { "ls": ["tableur:", "office:"], "idb": ["office-tableur"], "note": "Les classeurs (.magcalc, .xlsx, .ods, .csv…) restent dans tes dossiers : seuls les réglages, les classeurs récents et l'enregistrement automatique sont dans le navigateur." }
     }
+  ],
+  "liens": [
+    { "name": "Outlook (perso)", "url": "https://outlook.live.com/mail/", "description": "Mails, agenda et contacts du compte Outlook.com / Hotmail, dans le navigateur.", "icone": "mail", "couleur": "#1f6f8b" },
+    { "name": "Outlook (pro)", "url": "https://outlook.office.com/mail/", "description": "Mails et agenda du compte professionnel Microsoft 365, dans le navigateur.", "icone": "mail", "couleur": "#2b4f7a" },
+    { "name": "Agenda Outlook", "url": "https://outlook.office.com/calendar/", "description": "Agenda du compte professionnel (compte perso : outlook.live.com/calendar).", "icone": "agenda", "couleur": "#2b4f7a" }
   ]
 }

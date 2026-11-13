@@ -429,6 +429,15 @@ def launcher(conf, versions, apps_android):
             '<span class="tx"><b>%(name)s</b><small>%(desc)s</small><i class="ver" title="Code de version %(v)s">Version du %(date)s</i></span><span class="go" aria-hidden="true">›</span></a>%(dat)s</div>'
             % {'id': a['id'], 'name': html.escape(a['name']), 'desc': html.escape(a.get('description', '')), 'v': vinfo[a['id']]['v'], 'date': fr_date(vinfo[a['id']]['date'])[:5] if vinfo[a['id']]['date'] else '',
                'dat': ('<button class="dat" type="button" data-app="%s">⇅ Exporter / importer mes données</button>' % a['id']) if d else ''})
+    # liens externes (pc-apps.json « liens ») : services en ligne ouverts dans un nouvel onglet, icône générique (pas de logo de marque)
+    ICO = {'mail': '<path d="M3 6h18v12H3z"/><path d="m3 7 9 6 9-6"/>', 'agenda': '<path d="M4 5h16v15H4z"/><path d="M4 9h16M8 3v4M16 3v4"/>', 'lien': '<path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>'}
+    for l in conf.get('liens', []):
+        tiles.append(
+            '<div class="tw tw-lien"><a class="tile" href="%(url)s" target="_blank" rel="noopener noreferrer">'
+            '<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:0 0 64px;padding:12px;box-sizing:border-box;border-radius:16px;background:%(bg)s;color:#fff">%(ico)s</svg>'
+            '<span class="tx"><b>%(name)s</b><small>%(desc)s</small><i class="ver">Lien externe · s\'ouvre dans le navigateur</i></span><span class="go" aria-hidden="true">↗</span></a></div>'
+            % {'url': html.escape(l['url'], quote=True), 'name': html.escape(l['name']), 'desc': html.escape(l.get('description', '')),
+               'bg': html.escape(l.get('couleur', '#1f6f8b')), 'ico': ICO.get(l.get('icone', 'lien'), ICO['lien'])})
     tpl = read(os.path.join(SHARED, 'launcher.html'))
     # date du lanceur : la plus récente des applis et du modèle du lanceur
     lh = hashlib.sha256((tpl + json.dumps(conf['apps'], sort_keys=True, ensure_ascii=False)).encode()).hexdigest()[:12]
