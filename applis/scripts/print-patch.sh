@@ -2016,6 +2016,9 @@ fi
 #    Un serveur n'est pas concerné par la règle « trafic en clair » d'Android (elle vise les connexions sortantes).
 if [ "$APP" = "majordome" ]; then
   cp scripts/MajordomeBridge.java "$(dirname "$F")/MajordomeBridge.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/MajordomeBridge.java"
+  # Messages reçus : lecture des notifications de messagerie (accès à autoriser dans Android), réponse par le bouton de la notification
+  cp scripts/MajordomeNotifs.java "$(dirname "$F")/MajordomeNotifs.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/MajordomeNotifs.java"
+  grep -q "MajordomeNotifs" "$MAN" || addactivity '<service android:name=".MajordomeNotifs" android:label="Majordome : messages reçus" android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" android:exported="true"><intent-filter><action android:name="android.service.notification.NotificationListenerService" /></intent-filter></service>'
   grep -q "com.alphacephei:vosk-android" "$G" || sed -i '0,/^dependencies {/s//dependencies {\n    implementation "net.java.dev.jna:jna:5.13.0@aar"\n    implementation "com.alphacephei:vosk-android:0.3.47@aar"/' "$G"
   cat >> "$G" <<'GRADLE'
 

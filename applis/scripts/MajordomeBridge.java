@@ -162,6 +162,28 @@ public class MajordomeBridge {
 
     @JavascriptInterface public String version() { return "1"; }
 
+    /* ---- Messages reçus (MajordomeNotifs.java : notifications de WhatsApp, SMS, Outlook, Gmail…) ---- */
+    @JavascriptInterface public boolean notifAccess() {
+        try { String s = Settings.Secure.getString(a.getContentResolver(), "enabled_notification_listeners"); return s != null && s.contains(a.getPackageName() + "/"); } catch (Throwable t) { return false; }
+    }
+    @JavascriptInterface public void notifSettings() {
+        ui.post(new Runnable() { public void run() {
+            try {
+                Intent i;
+                if (Build.VERSION.SDK_INT >= 30) { i = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS); i.putExtra(Settings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME, new android.content.ComponentName(a, MajordomeNotifs.class).flattenToString()); }
+                else i = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
+                a.startActivity(i);
+            } catch (Throwable t) { try { a.startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)); } catch (Throwable t2) { } }
+        } });
+    }
+    /** Infos de l'appli (Android 13 et plus : « Autoriser les paramètres restreints » pour une appli installée hors Play Store) */
+    @JavascriptInterface public void appInfo() {
+        ui.post(new Runnable() { public void run() { try { a.startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + a.getPackageName()))); } catch (Throwable t) { } } });
+    }
+    @JavascriptInterface public String notifList() { return MajordomeNotifs.list(a); }
+    @JavascriptInterface public String notifReply(String key, String text) { return MajordomeNotifs.reply(a, key, text); }
+    @JavascriptInterface public void notifClear() { MajordomeNotifs.clear(a); }
+
     // =====================================================================
     // Modèle Vosk
     // =====================================================================

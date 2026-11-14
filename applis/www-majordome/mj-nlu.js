@@ -996,7 +996,7 @@
     ['agenda', 'Qu\'est-ce que j\'ai aujourd\'hui ?'], ['agenda', 'Mes rendez-vous de demain'], ['agenda_add', 'Ajoute un rendez-vous chez le dentiste jeudi à 14 h'],
     ['note_add', 'Note : commander les vis de 6'], ['list_add', 'Ajoute du pain à la liste de courses'], ['list_read', 'Lis ma liste de courses'],
     ['budget_add', 'J\'ai dépensé 45 euros de carburant sur le compte courant'], ['open_app', 'Ouvre Présentation'], ['open_app', 'Ouvre le lecteur PDF'],
-    ['music', 'Mets de la musique'], ['music', 'Chanson suivante'], ['call', 'Appelle Paul'], ['sms', 'Envoie un SMS à Paul : j\'arrive dans 10 minutes'],
+    ['music', 'Mets de la musique'], ['music', 'Chanson suivante'], ['call', 'Appelle Paul'], ['sms', 'Envoie un SMS à Paul : j\'arrive dans 10 minutes'], ['msgs', 'J\'ai des messages ?'], ['msgs', 'Lis-moi mes messages WhatsApp'], ['msg_reply', 'Réponds à Marie : j\'arrive'],
     ['torch', 'Allume la lampe'], ['volume', 'Monte le son'], ['silent', 'Mode silencieux'], ['wifi', 'Active le Wi-Fi'], ['bluetooth', 'Ouvre le Bluetooth'],
     ['battery', 'Niveau de batterie'], ['fullscreen', 'Plein écran'], ['website', 'Ouvre YouTube'], ['routine', 'Bonjour Majordome'], ['routine', 'Bonne nuit'],
     ['light', 'Allume le salon'], ['light', 'Éteins tout'], ['light', 'Mets le salon à 30 %'], ['light', 'Mets la chambre en bleu'], ['light', 'Lumière chaude dans le salon'],
@@ -1189,6 +1189,40 @@
       if (/\b(arrete|stop|stoppe|pause|bloque|fige|coupe)\b/.test(t)) return R('stopwatch', { cmd: 'stop' });
       if (/\b(combien|ou en est|temps|il affiche|dis moi)\b/.test(t) && !/\b(lance|demarre|declenche|commence|start|mets|active|reprends)\b/.test(t)) return R('stopwatch', { cmd: 'query' });
       return R('stopwatch', { cmd: 'start' });
+    }
+    // --- messages reçus (notifications : WhatsApp, SMS, Outlook, Gmail…) ---
+    var MW = '(?:messages?|mails?|e mails?|emails?|courriels?|sms|textos?|notifications?|messages? whatsapp|whatsapps?)';
+    var appOf = function (s) { var a = /\b(whatsapp|messenger|telegram|signal|outlook|gmail|teams|instagram|viber|snapchat|sms|textos?|mails?|e mails?|emails?|courriels?)\b/.exec(s); if (!a) return ''; return /^(sms|texto)/.test(a[1]) ? 'sms' : /mail|courriel/.test(a[1]) ? 'mail' : a[1]; };
+    if ((m = /^(?:est ce que |est ce qu )?(?:quelqu un|quelqu 1|qui) (?:m a ecrit|m a envoye un message|m a laisse un message)/.exec(t))) return R('msgs', { act: 'count', app: appOf(t) });
+    if ((m = /^(?:qu est ce que|que|qu est ce qu|qu) ([a-z][a-z \-]{1,40}?) (?:m a (?:dit|ecrit|envoye|repondu)|a (?:dit|ecrit|envoye|repondu))$/.exec(t))) return R('msgs', { act: 'read', from: orig(P, t.indexOf(m[1]), t.indexOf(m[1]) + m[1].length) });
+    if ((m = new RegExp('^(?:lis|lit|lire|relis|relire|lisez|tu peux (?:me )?lire|peux tu (?:me )?lire|donne moi|dis moi|annonce moi|montre moi)(?: moi)? (?:mes |les |le |mon |ma |nos |un |une )?(?:derniers? |dernieres? |nouveaux? |nouvelles? |non lus? )?' + MW + '(?: (?:whatsapp|messenger|telegram|signal|outlook|gmail|teams|instagram|viber))?(?: non lus?)?(?: (?:de|d|du|des|sur|venant de) (.+))?$').exec(t))) {
+      var fr = m[1] || '', ap = appOf(t);
+      if (fr && appOf(fr) && fr.replace(/\b(whatsapp|messenger|telegram|signal|outlook|gmail|teams|instagram|viber|snapchat)\b/, '').trim() === '') fr = '';
+      return R('msgs', { act: /^(relis|relire)/.test(t) ? 'last' : 'read', app: ap, from: fr ? orig(P, t.lastIndexOf(fr), t.lastIndexOf(fr) + fr.length) : '' });
+    }
+    if (/^(?:lis|relis|redis|repete)(?: moi)? (?:le )?dernier message$|^(?:c est quoi|quel est) (?:le )?dernier message$/.test(t)) return R('msgs', { act: 'last' });
+    if (/^(?:la suite|lis la suite|message suivant|les suivants|continue (?:la lecture|de lire)|suivant)$/.test(t)) return R('msgs', { act: 'more' });
+    if (new RegExp('^(?:est ce que |est ce qu )?(?:j ai|ai je|y a t il|il y a|tu as|on a|j ai recu|j ai eu|des|de|combien de|combien j ai de|combien ai je de)(?: des| de| du| d| un| une| nouveaux?| nouvelles?)*(?: nouveaux?| nouvelles?)? ' + MW + '\\b').test(t) || new RegExp('^(?:nouveaux? |des nouveaux? )?' + MW + '(?: non lus?)?$').test(t) && !/^(?:sms|messages?|textos?)$/.test(t)) return R('msgs', { act: 'count', app: appOf(t) });
+    if (new RegExp('^(?:efface|supprime|oublie|vide)(?: moi)? (?:mes |les |tous les |toutes les )?' + MW + '(?: lus?)?$').test(t)) return R('msgs', { act: 'clear' });
+    if (new RegExp('^(?:marque|mets?) (?:mes |les |tous les )?' + MW + ' (?:comme )?lus?$').test(t)) return R('msgs', { act: 'markread' });
+    if ((m = /^(?:reponds|repond|repondre|reponse|reponds lui|repond lui|reponds leur|repondez|repondez lui)\b ?(.*)$/.exec(t))) {
+      var rest = m[1] || '', who = '', body = '', colon2 = P.raw.indexOf(':');
+      var lui = /^(?:reponds|repond|repondez) (?:lui|leur)\b/.test(t) || /^(?:reponds|repond|repondez)(?:lui|leur)/.test(t.replace(/ /g, ''));
+      if (colon2 > 0) {
+        body = P.raw.slice(colon2 + 1).trim();
+        var pre = prep(P.raw.slice(0, colon2), {}).t.replace(/^(?:reponds|repond|repondre|reponse|repondez)(?: lui| leur)?\s*/, '').replace(/^(?:a|au|aux)\s+/, '').trim();
+        if (pre) who = orig(P, t.indexOf(pre), t.indexOf(pre) + pre.length);
+      } else {
+        var mm = /^(?:(?:a|au|aux) )?(.+?) (?:que|qu|pour dire|pour lui dire|en disant|disant) (.+)$/.exec(rest);
+        if (mm && !lui) { who = orig(P, t.indexOf(mm[1], m.index), t.indexOf(mm[1], m.index) + mm[1].length); body = orig(P, t.lastIndexOf(mm[2])); }
+        else {
+          var r2 = rest.replace(/^(?:lui|leur)\s+/, '').replace(/^(?:que|qu|pour dire|en disant)\s+/, '');
+          var mto = /^(?:a|au|aux) (.+)$/.exec(r2);
+          if (mto && !lui) who = orig(P, t.lastIndexOf(mto[1]), t.lastIndexOf(mto[1]) + mto[1].length);
+          else if (r2) body = orig(P, t.lastIndexOf(r2));
+        }
+      }
+      return R('msg_reply', { who: who.replace(/^(?:a|à|au)\s+/i, ''), text: body });
     }
     // --- appels et SMS ---
     if ((m = /^(?:envoie|envoyer|envoi|ecris|ecrit|ecrire|redige|tape|manda) (?:un |une )?(?:sms|message|msg|petit message) (?:a|au|aux|pour) (.+)$/.exec(t)) || (m = /^(?:sms|message) (?:a|au|pour) (.+)$/.exec(t)) || (m = /^(?:ecris|ecrit|dis|dit|previens) (?:a|au) (.+?) (?:que|qu) (.+)$/.exec(t))) {
