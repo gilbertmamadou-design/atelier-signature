@@ -480,6 +480,8 @@ public class MainActivity extends BridgeActivity {
         if (!isMj()) return;
         boolean full = getSharedPreferences("socle", MODE_PRIVATE).getBoolean("mjFull", false);
         if (!full && isSocle()) return;   // accueil complet sans plein écran : réglage « barre du haut » de l'accueil
+        // fond sombre derrière la page : la zone de la caméra (barre masquée) n'apparaît plus en blanc
+        if (!isSocle()) try { getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0xFF070B14)); getWindow().getDecorView().setBackgroundColor(0xFF070B14); } catch (Exception e) { }
         try {
             if (Build.VERSION.SDK_INT >= 30) {
                 android.view.WindowInsetsController c = getWindow().getInsetsController();

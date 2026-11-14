@@ -201,6 +201,19 @@ input[type=range]{width:160px;accent-color:var(--acc)}
   .mo{padding:5px 3px}.mo i{font-size:8.5px;letter-spacing:.06em}.mo b{font-size:13px}.mo b.big{font-size:15px}.mo span{display:none}
   #title{font-size:18px}#greet{display:none}
 }
+/* téléphone en hauteur : sphère plus petite et textes resserrés, pour que les cases d'infos restent visibles ;
+   si l'écran est vraiment court, la scène défile (les réponses gardent au moins 120 px) */
+@media (orientation:portrait) and (max-width:600px){
+  main{overflow-y:auto;grid-template-rows:max-content minmax(120px,1fr)}
+  #stage{min-height:max-content}
+  #orbBox{width:min(64vw,calc((100vh - var(--safe-t) - var(--safe-b)) * .27),420px);margin-top:2px}
+  #who{margin-top:2px}#title{font-size:18px}#greet{font-size:13px}
+  #status{margin-top:2px}
+  #heard{margin-top:3px;font-size:15px;-webkit-line-clamp:1}
+  #rts{margin-top:5px}.rt{padding:6px 12px;font-size:12.5px}
+  #moment{gap:6px;margin-top:7px}
+  .mo{padding:5px 6px 6px}
+}
 @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
 
 /* Routines : boutons sous la sphère */
