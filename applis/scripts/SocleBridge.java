@@ -74,7 +74,8 @@ public class SocleBridge {
     private int healthReloads = 0;
 
     public SocleBridge(Activity a, WebView wv) {
-        if (!a.getPackageName().endsWith(".socle")) throw new IllegalStateException("Réservé à Socle");
+        // Socle, ou Majordome en « accueil complet » (interface de Socle avec Majordome en page principale)
+        if (!(a.getPackageName().endsWith(".socle") || (a.getPackageName().endsWith(".majordome") && a.getSharedPreferences("socle", Context.MODE_PRIVATE).getBoolean("mjInt", false)))) throw new IllegalStateException("Réservé à Socle");
         this.a = a; this.wv = wv;
         created = true;
         current = new WeakReference<SocleBridge>(this);

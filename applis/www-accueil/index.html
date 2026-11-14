@@ -24,6 +24,9 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stro
 #home{position:fixed;inset:0;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior:none}
 #home::-webkit-scrollbar,.page::-webkit-scrollbar{display:none}
 #pages{display:flex;height:100%;width:100%}
+.page.mjint{padding:0!important;overflow:hidden;position:relative}
+.page.mjint>.phd,.page.mjint>.grid{display:none!important}
+#mjf{position:absolute;inset:0;display:block;width:100%;height:100%;border:0;background:#070b14}
 .page{flex:0 0 100%;width:100%;height:100%;overflow-y:auto;overflow-x:hidden;scroll-snap-align:start;scroll-snap-stop:always;padding:calc(var(--st) + 10px) 12px calc(var(--nb) + 96px);scrollbar-width:none}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 #pages.snap{pointer-events:none}
@@ -400,6 +403,10 @@ input[type=range]{width:100%;accent-color:var(--acc)}
 (function(){
 "use strict";
 var A = window.MAGPrint && window.MAGPrint.homeApps ? window.MAGPrint : null;
+/* Accueil complet de Majordome : cette page est livrée dans Majordome (socle.html, window.MJ_INTEGRE). La page principale
+   est alors Majordome lui-même (index.html?integre=1 dans un cadre qui reste chargé), les autres pages sont celles de Socle. */
+var INT = !!window.MJ_INTEGRE;
+if(INT && A && A.homeMjIntGet && !A.homeMjIntGet()){ location.replace('index.html'); return; }
 /* MAGSocle : journal, sauvegarde de la disposition, stockage, fin du démarrage (SocleBridge.java) */
 var S = window.MAGSocle && window.MAGSocle.ready ? window.MAGSocle : null;
 var $ = function(id){ return document.getElementById(id); };
@@ -557,6 +564,7 @@ function loadConf(){
     var b=null; try{ if(S && S.stateLoad) b=J(S.stateLoad(),null); }catch(e){}
     confFixed=!!raw || !!b;
     if(b && b.c && typeof b.c==='object' && cleanPages(b.c)){ c=b.c; restoreNotes(b.n); logErr(raw ? 'Disposition illisible : copie de secours restaurée' : 'Disposition restaurée depuis la copie de secours'); }
+    else if(!raw && INT && (c=intSocle())){ confFixed=true; logErr('Disposition reprise de Socle'); }
     else { if(raw) logErr('Disposition illisible : disposition d\'origine remise'); c={}; }
   }
   var o=Object.assign({}, DEF, c);
@@ -570,7 +578,29 @@ function loadConf(){
   return o;
 }
 var confFixed=false;
+/* Accueil complet : disposition publiée par Socle (canal privé .widget/backup), si Socle est installé et à jour */
+function intSocle(){
+  if(!A || !A.homeBackup) return null;
+  try{ var o=J(A.homeBackup('fr.magformation13.socle'),null), d=o&&o.data; if(d && d.app==='Socle' && d.c && cleanPages(d.c)){ restoreNotes(d.n); return d.c; } }catch(e){}
+  return null;
+}
+/* Accueil complet : la page Majordome est toujours la première (son cadre reste chargé), une seule fois */
+function intFix(){
+  if(!INT) return false;
+  var before=JSON.stringify(C.pages), extra=[];
+  var pg=C.pages.map(function(p,i){
+    var had=p.some(isFull), rest=p.filter(function(t){ return !isFull(t); });
+    if(i===0 && had){ extra=rest; return null; }   // tuiles posées sur la page Majordome : elles passent sur la page suivante
+    return had&&!rest.length ? null : rest;
+  }).filter(Boolean);
+  if(extra.length){ if(pg.length) pg[0]=extra.concat(pg[0]); else pg.push(extra); }
+  pg.unshift([{t:'mjpanel',w:2,h:2,full:1}]);
+  if(pg.length<2) pg.push(clone(DEF.tiles));
+  C.pages=pg.slice(0,9); C.mjOffer=1;
+  return JSON.stringify(C.pages)!==before;
+}
 var C = loadConf();
+if(intFix()) confFixed=true;
 var bkT=null;
 function save(){
   C.tiles=C.pages[0];   // compatibilité : l'ancienne version lisait « tiles »
@@ -583,11 +613,12 @@ function backupNow(){
   try{
     var n={}; for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(/^socle-note/.test(k)) n[k]=localStorage.getItem(k); }
     S.stateSave(JSON.stringify({c:C, n:n, at:Date.now()}));
+    if(!INT && A && A.backupPut) A.backupPut(JSON.stringify({app:'Socle', c:C, n:n}));   // reprise possible par l'accueil complet de Majordome
   }catch(e){ logErr('Copie de secours : '+e.message); }
 }
 if(confFixed) save();   // disposition réparée : on la réenregistre tout de suite
 /* Ajout unique de la tuile Musique pour une disposition déjà enregistrée */
-if(!C.musicAdded){ var P0=C.pages[0]; if(!C.pages.some(function(p){ return p.some(function(t){ return t.t==='music'; }); })){ var ci=P0.findIndex(function(t){ return t.t==='clock'; }); P0.splice(ci+1,0,{t:'music',w:2}); } C.musicAdded=true; save(); }
+if(!C.musicAdded){ var P0=C.pages[INT?1:0]; if(!C.pages.some(function(p){ return p.some(function(t){ return t.t==='music'; }); })){ var ci=P0.findIndex(function(t){ return t.t==='clock'; }); P0.splice(ci+1,0,{t:'music',w:2}); } C.musicAdded=true; save(); }
 function allTiles(){ return [].concat.apply([], C.pages); }
 function hasTile(t){ return allTiles().some(function(x){ return x.t===t; }); }
 
@@ -710,7 +741,7 @@ function pumpIcons(){
   if(iconQ.length) setTimeout(pumpIcons,16); else iconBusy=false;
 }
 function appBtn(a){ return '<button class="app" data-app="'+esc(a.key)+'">'+iconHtml(a)+'<span class="sh">'+esc(a.label)+'</span></button>'; }
-function launch(a){ if(A) A.homeLaunch(a.pkg, a.cls); }
+function launch(a){ if(INT && a && a.pkg===MJ){ intShow(); return; } if(A) A.homeLaunch(a.pkg, a.cls); }
 
 /* ---------- Tuiles ---------- */
 var W = J(localStorage.getItem('socle-meteo'), null), BAT=[], weatherBusy=false;
@@ -796,14 +827,47 @@ function ensurePages(){
 }
 function renderPage(p){
   var pg=pageEls()[p]; if(!pg || !C.pages[p]) return;
+  if(INT && p===0){ pg.classList.add('mjint','jvpage','nodock'); intHost(pg); return; }
   var n=C.pages.length;
   var jvp=isJvPage(p); pg.classList.toggle('jvpage', jvp); pg.classList.toggle('nodock', jvp && !!C.jv.nodock);
   pg.querySelector('.phd').innerHTML='<span class="sh">'+(n>1?(p===0?'Page principale':'Page '+(p+1))+' sur '+n:'Page principale')+'</span>'+(p>0?'<button data-pg="main" data-p="'+p+'">'+ic('star')+'Principale</button>':'')+(n>1?'<button data-pg="del" data-p="'+p+'">'+ic('trash')+'Supprimer</button>':'');
   pg.querySelector('.grid').innerHTML=(p===0?mjOfferHtml():'')+C.pages[p].map(function(c,i){ return tileHtml(c,p,i); }).join('')+(C.pages[p].length?'':'<div class="pempty">Page vide : touche <b>Ajouter</b> pour y mettre une appli, un contact, un site ou un panneau.</div>');
   mjOrbSync();
 }
+/* ---------- Accueil complet de Majordome ---------- */
+var mjQ=[], mjLoaded=false;
+function intHost(pg){
+  if($('mjf')) return;
+  var f=document.createElement('iframe'); f.id='mjf'; f.src='index.html?integre=1'; f.title=mjName();
+  f.setAttribute('allow','microphone; camera; autoplay; geolocation; clipboard-write');
+  f.onload=function(){ mjLoaded=true; var q=mjQ; mjQ=[]; q.forEach(function(x){ mjCall(x[0], x[1]); }); };
+  pg.appendChild(f);
+}
+function mjWin(){ var f=$('mjf'); try{ return f && f.contentWindow; }catch(e){ return null; } }
+function mjCall(fn, arg){
+  var w=mjWin();
+  if(!mjLoaded || !w || typeof w[fn]!=='function'){ mjQ.push([fn,arg]); if(mjQ.length>40) mjQ.shift(); return false; }
+  try{ var r=w[fn].apply(w, Array.isArray(arg)?arg:[arg]); return r; }catch(e){ logErr('Majordome : '+(e&&e.message||e)); return false; }
+}
+function intShow(){ closeSheet(); closeDrawer(); endEdit(); if(CP!==0) goPage(0, true); }
+if(INT){
+  // Majordome lui-même, en page principale : mêmes chemins que l'appli à part, sans quitter l'accueil
+  window.majordomeEvent=function(t,d){ mjCall('majordomeEvent',[t,d]); };
+  window.onSocle=function(a){ intShow(); mjCall('onSocle', a); };
+  window.mjInt={
+    show: intShow,
+    drawer: function(){ openDrawer(true); },
+    settings: function(){ settingsSheet(); },
+    drag: function(ph, dx){
+      if(ph==='start'){ home.style.scrollSnapType='none'; home.dataset.d0=home.scrollLeft; }
+      else if(ph==='move'){ home.scrollLeft=Math.max(0,(+home.dataset.d0||0)-dx); }
+      else { home.style.scrollSnapType=''; goPage(dx < -home.clientWidth*.2 && C.pages.length>1 ? 1 : 0, true); }
+    }
+  };
+}
+function mjAct(o){ if(INT){ intShow(); mjCall('onSocle', JSON.stringify(o)); return; } if(A) A.homeLaunchWith(MJ, JSON.stringify(o)); }
 function mjBtn(){ var b=$('bMj'); if(b) b.toggleAttribute('hidden', !(C.mjBtn!==false && app(MJ))); }
-function render(){ mjBtn(); ensurePages(); for(var p=0;p<C.pages.length;p++) renderPage(p); snapSoon(); jvChrome(); }
+function render(){ if(intFix()) save(); mjBtn(); ensurePages(); for(var p=0;p<C.pages.length;p++) renderPage(p); snapSoon(); jvChrome(); }
 /* Démarrage : la page affichée d'abord, les autres juste après (l'écran apparaît plus tôt) */
 function renderProgressive(done){
   ensurePages(); renderPage(CP); jvChrome();
@@ -841,6 +905,7 @@ function snapSoon(){ clearTimeout(snapT); snapT=setTimeout(safe(saveSnap,'Instan
 function saveSnap(){
   var pe=$('pages'); if(!A || pe.classList.contains('snap') || document.body.classList.contains('edit') || !pe.children.length) return;
   var h=pe.children[0].outerHTML;   // la page principale suffit : c'est elle qui s'affiche au démarrage
+  if(INT) h=h.replace(/<iframe[^>]*><\/iframe>/g,'<div style="width:100%;height:100%;background:#070b14"></div>');   // accueil complet : pas de second Majordome au démarrage
   if(h.length>900000) h=h.replace(/src="data:[^"]{2000,}"/g,'src=""');   // trop lourd : on garde la mise en page, sans les grandes images
   if(h===lastSnap) return; lastSnap=h;
   lsSet('socle-snap', JSON.stringify({h:h, w:window.innerWidth, css:document.documentElement.getAttribute('style')||'', jv:isJvPage(0)&&C.jv.nodock?1:0, at:Date.now()}));
@@ -1117,7 +1182,7 @@ function wallHtml(cfg){
 }
 /* Photo, Scan, Mesure, Sauvegarde, Écran */
 var PHOTO='fr.magformation13.photo', SCANP='fr.magformation13.scan', MESURE='fr.magformation13.mesure', SAUVE='fr.magformation13.sauvegarde', ECRAN='fr.magformation13.ecran';
-function app(p){ return findApp(function(a){ return a.pkg===p; }); }
+function app(p){ if(INT && p===MJ) return {pkg:MJ, cls:'', label:mjName(), k:MJ}; return findApp(function(a){ return a.pkg===p; }); }
 function wd(p){ return WCACHE[p]!==undefined?WCACHE[p]:wdata(p); }
 function ago2(t){ if(!t) return ''; var m=Math.round((Date.now()-t)/60000); if(m<1) return "à l'instant"; if(m<60) return 'il y a '+m+' min'; var h=Math.round(m/60); if(h<24) return 'il y a '+h+' h'; var d=new Date(t); return 'le '+d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}); }
 function cameraHtml(cfg){
@@ -1250,7 +1315,7 @@ function mjHtml(cfg){
   var la=d.last&&d.last.a&&Date.now()-d.last.at<6*3600000?'<div class="sub" style="overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">'+esc(d.last.a)+'</div>':'<div class="sub">'+(d.wake?'J\'écoute : dites « '+nm+' »':'Appui long : parler')+'</div>';
   return hd+la+nx+'<button class="mini" data-act="mj-listen">'+ic('mic')+'Parler</button>';
 }
-function mjListen(back){ if(A && app(MJ)) A.homeLaunchWith(MJ, JSON.stringify(back?{listen:1,back:1}:{listen:1})); }
+function mjListen(back){ if(INT){ intShow(); mjCall('onSocle', JSON.stringify({listen:1})); return; } if(A && app(MJ)) A.homeLaunchWith(MJ, JSON.stringify(back?{listen:1,back:1}:{listen:1})); }
 
 /* Panneau Majordome (2×2) : sphère de particules légère, nom choisi dans Majordome (« Jarvis »), salutation selon l'heure,
    résumé (minuteur, réveil, rendez-vous, météo et vent, rappel, dernière réponse). Aucune requête réseau : la météo est celle
@@ -1298,7 +1363,7 @@ function mjMenu(tile){
     if(!A || !app(MJ)) return;
     if(m==='hueoff'){ hueOff(); return; }
     var o={listen:{listen:1},routine:{routine:'matin'},timer:{timer:1},note:{note:1},settings:{settings:1}}[m];
-    if(o) A.homeLaunchWith(MJ, JSON.stringify(o));
+    if(o) mjAct(o);
   },'Majordome');
 }
 /* Lumières Philips Hue (pont jumelé dans Majordome) : une ligne « Lumières : 3 allumées » dans le panneau, appui long › « Éteindre
@@ -1326,7 +1391,7 @@ function hueOff(){
 }
 /* Proposition unique (en haut de la page principale) : « Ajouter Jarvis à l'accueil ? » */
 function mjOfferHtml(){
-  if(!A || C.mjOffer || !app(MJ) || hasTile('mjpanel')) return '';
+  if(INT || !A || C.mjOffer || !app(MJ) || hasTile('mjpanel')) return '';
   var nm=esc(mjName());
   return '<div class="mjoffer sh">'+ic('orb')+'<div class="t">Ajouter '+nm+' à l\'accueil ?<small>Sa sphère, votre journée en bref ; touchez pour lui parler</small></div><button class="n" data-mjo="no">Non merci</button><button class="y" data-mjo="yes">Ajouter</button></div>';
 }
@@ -1412,11 +1477,13 @@ function jvChrome(){
   stationApply(); roomSync();
 }
 function setMainPage(p){
+  if(INT){ if(!(p>1) || !C.pages[p]) return; C.pages.splice(1,0,C.pages.splice(p,1)[0]); save(); render(); goPage(1, true); closeSheet(); toast('Page placée juste après '+mjName()); return; }
   if(!(p>0) || !C.pages[p]) return;
   C.pages.unshift(C.pages.splice(p,1)[0]); save(); render(); goPage(0, true); closeSheet();
   toast('Page principale : elle s\'affiche au bouton d\'accueil');
 }
 function jvAddPage(){
+  if(INT){ closeSheet(); endEdit(); goPage(0, true); toast(mjName()+' est déjà la page principale'); return; }
   if(!app(MJ)){ toast('Installe Majordome pour utiliser cette page'); return; }
   var ex=jvFullPage(); if(ex>=0){ closeSheet(); endEdit(); goPage(ex, true); toast('La page '+mjName()+' existe déjà'); return; }
   if(C.pages.length>=9){ toast('9 pages au maximum'); return; }
@@ -1499,7 +1566,7 @@ function jvAct(k, el){
     return;
   }
   if(k==='jv-mj'){ var m=app(MJ); if(m) launch(m); return; }
-  if(k==='jv-news'){ if(A && app(MJ)) A.homeLaunchWith(MJ, JSON.stringify({cmd:'les titres', back:C.jv.back?1:undefined})); return; }
+  if(k==='jv-news'){ if(A && app(MJ)) mjAct({cmd:'les titres', back:C.jv.back?1:undefined}); return; }
   if(k==='jv-wx'){ if(C.city) weatherSheet(); else locateMe(); return; }
   if(k==='jv-cal'){ openRole('calendar','calendar',''); return; }
   if(k==='jv-al'){ var aube=magApp('clock'); if(aube && C.preferMag) launch(aube); else if(A) A.homeOpen('alarms',''); return; }
@@ -1969,7 +2036,7 @@ $('bAddPage').onclick=safe(function(){
   C.pages.push([]); save(); render(); goPage(C.pages.length-1, true); toast('Page '+C.pages.length+' ajoutée : touche « Ajouter » pour la remplir');
 }, 'Ajouter une page');
 function delPage(p){
-  if(C.pages.length<2 || !C.pages[p]) return;
+  if(C.pages.length<2 || !C.pages[p] || (INT && (p===0 || C.pages.length<3))) return;
   var go=function(){ C.pages.splice(p,1); save(); render(); goPage(Math.min(p, C.pages.length-1), true); closeSheet(); };
   if(!C.pages[p].length){ go(); return; }
   openSheet('<h2>Supprimer la page '+(p+1)+' ?</h2><div class="empty" style="font-size:14px">Ses '+C.pages[p].length+' tuile'+(C.pages[p].length>1?'s':'')+' seront retirées de l\'accueil (les applis ne sont pas désinstallées).</div><div style="display:flex;gap:8px;margin-top:16px"><button class="pbtn" id="dpN">Annuler</button><button class="pbtn main" id="dpY" style="background:#ff8a8a">Supprimer</button></div>','delpage');
@@ -1978,6 +2045,7 @@ function delPage(p){
 function newId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function addTile(cfg){
   var p=Math.min(CP, C.pages.length-1);
+  if(INT && p===0){ if(cfg.t==='mjpanel' && cfg.full) return; p=1; }
   C.pages[p].push(cfg); save(); render(); closeSheet();
   if((cfg.t==='weather' || cfg.t==='wxdetail') && !C.city) weatherSheet();
   if(cfg.t==='wxdetail' || cfg.t==='weather') fetchWeather(false);
@@ -2125,7 +2193,7 @@ function appMenu(a, fromHome){
     (a.sys?'':'<button class="bad" data-m="del">'+ic('trash')+'Désinstaller</button>')+'</div>','app');
   $('sbody').onclick=function(e){
     var b=e.target.closest('[data-m]'); if(!b) return; var m=b.dataset.m;
-    if(m==='fav'){ C.favs=C.favs||[]; if(fav) C.favs.splice(C.favs.indexOf(a.key),1); else { if(C.favs.length>=12) C.favs.shift(); C.favs.push(a.key); if(!hasTile('favs')) C.pages[0].push({t:'favs',w:2}); } save(); render(); toast(fav?'Retirée des favoris':'Ajoutée aux favoris'); }
+    if(m==='fav'){ C.favs=C.favs||[]; if(fav) C.favs.splice(C.favs.indexOf(a.key),1); else { if(C.favs.length>=12) C.favs.shift(); C.favs.push(a.key); if(!hasTile('favs')) C.pages[INT?1:0].push({t:'favs',w:2}); } save(); render(); toast(fav?'Retirée des favoris':'Ajoutée aux favoris'); }
     if(m==='hide'){ if(hid) C.hidden.splice(C.hidden.indexOf(a.key),1); else C.hidden.push(a.key); save(); renderList(); }
     if(m==='info') A.homeOpen('appinfo', a.pkg);
     if(m==='del') A.homeOpen('uninstall', a.pkg);
@@ -2193,7 +2261,8 @@ function stopLevel(){ window.removeEventListener('deviceorientation', levH); }
 var PAL=['auto','#8fb4ff','#b79bff','#7fe0c4','#ffc46b','#ff9a8a','#f59fd0','#e6e6e6'];
 function settingsSheet(){
   var p=A?J(A.homePerms(),{}):{};
-  var h='<h2>Réglages de Socle</h2>'+
+  var h=(INT?'<h2>Réglages de l\'accueil</h2><div class="row"><div class="t"><div>Accueil complet de '+esc(mjName())+'</div><div>Page principale : '+esc(mjName())+' ; les autres pages comme dans Socle</div></div><button class="sbtn ghost" data-s="mjsimple">Accueil simple</button></div>'+
+     '<div class="row"><div class="t"><div>Disposition de Socle</div><div>Reprendre les pages et tuiles de Socle (Socle à jour, ouvert une fois)</div></div><button class="sbtn ghost" data-s="mjimport">Reprendre</button></div>':'<h2>Réglages de Socle</h2>')+
    '<div class="row"><div class="t"><div>Écran d\'accueil par défaut</div><div>'+(p.home?'Socle est ton écran d\'accueil':'Choisis Socle dans « Appli d\'accueil »')+'</div></div>'+(p.home?'<span class="ok">Actif</span>':'<button class="sbtn" data-s="home">Choisir</button>')+'</div>'+
    '<div class="row"><div class="t"><div>Masquer la barre du haut</div><div>Heure, wifi, réseau et batterie cachés sur l\'accueil (glisser depuis le haut les montre un instant)</div></div><label class="sw"><input type="checkbox" id="sBar"'+(C.hideBar?' checked':'')+'><span></span></label></div>'+
    '<div class="row"><div class="t"><div>Gestes</div><div>Double appui : verrouiller · glisser vers le bas : notifications</div></div><label class="sw"><input type="checkbox" id="sGest"'+(C.gestures?' checked':'')+'><span></span></label></div>'+
@@ -2221,6 +2290,8 @@ function settingsSheet(){
     var u=e.target.closest('[data-unhide]'); if(u){ C.hidden.splice(C.hidden.indexOf(u.dataset.unhide),1); save(); settingsSheet(); return; }
     var s=e.target.closest('[data-s]'); if(!s) return; var k=s.dataset.s;
     if(k==='home') A.homeOpen('home','');
+    if(k==='mjsimple'){ if(confirm('Revenir à l\'accueil simple de '+mjName()+' (sphère, dock et tiroir d\'applis) ?')) A.homeMjInt(false); return; }
+    if(k==='mjimport'){ var c=intSocle(); if(!c){ toast('Pas de disposition de Socle : mets Socle à jour et ouvre-le une fois'); return; } if(!confirm('Remplacer les pages actuelles par celles de Socle ?')) return; C.pages=cleanPages(c); intFix(); save(); render(); goPage(1, true); closeSheet(); toast('Disposition de Socle reprise'); return; }
     if(k==='a11y') gestureHelp();
     if(k==='calendar'||k==='contacts') A.homeAsk(k);
     if(k==='edit'){ closeSheet(); startEdit(); }
@@ -2259,11 +2330,12 @@ $('sbody').addEventListener('click', safe(function(e){
 /* ---------- Événements Android ---------- */
 window.accueilBack=safe(function(){
   if(sheetType){ closeSheet(); return; }
+  if(INT && CP===0 && !$('drawer').classList.contains('on')){ mjCall('mjBack'); return; }
   if($('drawer').classList.contains('on')){ closeDrawer(); return; }
   if(document.body.classList.contains('edit')){ endEdit(); return; }
   if(CP>0) goPage(0, true);
 },'Retour');
-window.accueilHome=safe(function(){ closeSheet(); closeDrawer(); endEdit(); if(CP>0) goPage(0, true); else curPage().scrollTo({top:0,behavior:'smooth'}); },'Accueil');
+window.accueilHome=safe(function(){ closeSheet(); closeDrawer(); endEdit(); if(INT) mjCall('mjHome'); if(CP>0) goPage(0, true); else if(!INT) curPage().scrollTo({top:0,behavior:'smooth'}); },'Accueil');
 window.accueilColors=safe(function(){ theme(); },'Couleurs');
 window.accueilPerms=safe(function(){
   render(); roomSync(); if(sheetType==='settings') settingsSheet();

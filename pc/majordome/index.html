@@ -12,6 +12,20 @@
 <script src="../shared/pc-shim.js"></script>
 <script src="../shared/apps/majordome.js"></script>
 
+<script>
+/* Accueil complet : Majordome s'ouvre sur l'interface de Socle (socle.html), qui l'affiche lui-même en page principale
+   (index.html?integre=1 dans un cadre). Réglage natif « mjInt » (MainActivity), lu ici avant tout le reste. */
+(function () {
+  var inFrame = /[?&]integre=1/.test(location.search) && window.parent !== window;
+  window.MJ_DANS_ACCUEIL = inFrame;
+  if (inFrame) {
+    document.documentElement.classList.add('integre');
+    try { if (!window.Capacitor && parent.Capacitor) window.Capacitor = parent.Capacitor; } catch (e) { }
+    return;
+  }
+  try { if (window.MAGPrint && MAGPrint.homeMjIntGet && MAGPrint.homeMjIntGet()) location.replace('socle.html'); } catch (e) { }
+})();
+</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>Majordome</title>
 <meta name="theme-color" content="#070b14">

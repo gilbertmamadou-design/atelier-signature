@@ -330,6 +330,23 @@ public class MainActivity extends BridgeActivity {
         public void homeOpenPhoto(final String uri, final String pkg) { runOnUiThread(new Runnable() { public void run() { if (!LauncherService.openPhoto(MainActivity.this, uri, pkg)) toast("Impossible d'ouvrir la photo"); } }); }
         @JavascriptInterface
         public String homeFavContacts(int n) { return LauncherService.favContacts(getApplicationContext(), n); }
+        // Majordome : accueil complet (interface de Socle avec Majordome en page principale, socle.html) ; relance l'écran
+        @JavascriptInterface
+        public boolean homeMjIntGet() { return isMj() && getSharedPreferences("socle", MODE_PRIVATE).getBoolean("mjInt", false); }
+        @JavascriptInterface
+        public void homeMjInt(final boolean on) {
+            if (!isMj()) return;
+            getSharedPreferences("socle", MODE_PRIVATE).edit().putBoolean("mjInt", on).commit();
+            runOnUiThread(new Runnable() { public void run() { try { recreate(); } catch (Exception e) { } } });
+        }
+        // Copie de secours publiée par une autre appli MAG (canal privé .widget/backup), ex. la disposition de Socle
+        @JavascriptInterface
+        public String homeBackup(String pkg) {
+            try (android.database.Cursor cur = getContentResolver().query(android.net.Uri.parse("content://" + pkg + ".widget/backup"), null, null, null, null)) {
+                if (cur != null && cur.moveToFirst()) return cur.getString(0);
+            } catch (Throwable t) { }
+            return "";
+        }
         @JavascriptInterface
         public void homeStatusBar(final boolean hide) { getSharedPreferences("socle", MODE_PRIVATE).edit().putBoolean("hideBar", hide).apply(); runOnUiThread(new Runnable() { public void run() { socleBars(); } }); }
         @JavascriptInterface
@@ -421,7 +438,8 @@ public class MainActivity extends BridgeActivity {
         getBridge().getWebView().postDelayed(new Runnable() { public void run() { try { getBridge().getWebView().evaluateJavascript(js, null); } catch (Exception e) { } } }, delay);
     }
     // ----- Socle : l'application sert d'écran d'accueil -----
-    private boolean isSocle() { return getPackageName().endsWith(".socle"); }
+    // Interface Socle : l'appli Socle, ou Majordome en « accueil complet » (réglage mjInt, socle.html)
+    private boolean isSocle() { return getPackageName().endsWith(".socle") || (isMj() && getSharedPreferences("socle", MODE_PRIVATE).getBoolean("mjInt", false)); }
     private boolean isMj() { return getPackageName().endsWith(".majordome"); }
     private void socleJs(final String js) {
         runOnUiThread(new Runnable() { public void run() { try { getBridge().getWebView().evaluateJavascript(js, null); } catch (Exception e) { } } });
@@ -1990,6 +2008,34 @@ GRADLE
   # Lanceur : Majordome peut être choisi comme écran d'accueil (Paramètres › Applis par défaut › Écran d'accueil) ; mj-lanceur.js
   grep -q "category.HOME" "$MAN" || sed -i -E '0,/<category android:name="android.intent.category.LAUNCHER" ?\/>/s##<category android:name="android.intent.category.LAUNCHER" />\n                <category android:name="android.intent.category.HOME" />\n                <category android:name="android.intent.category.DEFAULT" />#' "$MAN"
   grep -c "category.HOME" "$MAN"
+  # Accueil complet : l'interface de Socle (www-accueil) livrée dans Majordome sous socle.html, en mode intégré
+  python3 - www-accueil/index.html www-majordome/socle.html <<'PY'
+import sys
+s = open(sys.argv[1], encoding='utf-8').read()
+assert '<head>' in s
+s = s.replace('<head>', '<head>\n<script>window.MJ_INTEGRE=1;</script>', 1)
+open(sys.argv[2], 'w', encoding='utf-8').write(s)
+PY
+  ls -la www-majordome/socle.html
+  # Gestes de l'accueil (double appui pour verrouiller, volet des notifications) et autorisations des tuiles de Socle
+  mkdir -p android/app/src/main/res/xml android/app/src/main/res/values
+  cat > android/app/src/main/res/xml/socle_a11y.xml <<'XML'
+<?xml version="1.0" encoding="utf-8"?>
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeAnnouncement"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:notificationTimeout="1000"
+    android:canRetrieveWindowContent="false"
+    android:description="@string/socle_a11y_desc" />
+XML
+  cat > android/app/src/main/res/values/socle.xml <<'XML'
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="socle_a11y_desc">Permet à l’accueil de Majordome de verrouiller l’écran par un double appui et d’ouvrir le volet des notifications en glissant vers le bas. Il ne lit jamais le contenu de l’écran.</string>
+</resources>
+XML
+  grep -q "LauncherA11y" "$MAN" || addactivity '<service android:name=".LauncherA11y" android:label="Majordome : gestes de l’accueil" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:exported="false"><intent-filter><action android:name="android.accessibilityservice.AccessibilityService" /></intent-filter><meta-data android:name="android.accessibilityservice" android:resource="@xml/socle_a11y" /></service>'
+  addperm READ_CALENDAR READ_CONTACTS EXPAND_STATUS_BAR READ_MEDIA_IMAGES READ_MEDIA_VISUAL_USER_SELECTED
   addactivity '<receiver android:name=".MajordomeBridge$Rappel" android:exported="true"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED" /><action android:name="android.intent.action.MY_PACKAGE_REPLACED" /></intent-filter></receiver>'
   # Widget Android « Jarvis » (MajordomeWidget) et fond d'écran animé (MajordomeWallpaper) : pour n'importe quel lanceur.
   # Widget : 4 mises en page (petite, moyenne, grande, plein écran), redimensionnable dans les deux sens sans taille maximale,

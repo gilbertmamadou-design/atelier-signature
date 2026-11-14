@@ -1589,7 +1589,7 @@
     else if (o.cmd) handle(String(o.cmd), 'socle');
   };
   /* Assistant du téléphone (appui long sur le bouton d'accueil) : MajordomeBridge garde la demande, la page la prend une fois */
-  function takeAssist() { try { if (B && B.takeAssist && B.takeAssist()) { closeSheet(); setTimeout(function () { startListen(); }, 250); return true; } } catch (e) { } return false; }
+  function takeAssist() { try { if (B && B.takeAssist && B.takeAssist()) { if (MJ.onAssist) try { MJ.onAssist(); } catch (e) { } closeSheet(); setTimeout(function () { startListen(); }, 250); return true; } } catch (e) { } return false; }
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) return;
     refreshInfo(); tick(); applyName(); moment();

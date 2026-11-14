@@ -21,7 +21,11 @@
   var save = X.saveS;
 
   function isHome() { try { return !!(J(P.homePerms(), {}) || {}).home; } catch (e) { return false; } }
-  function active() { return S.launcher === 'on' || (S.launcher === 'auto' && isHome()); }
+  /* Accueil complet : Majordome est la page principale de l'interface Socle (socle.html), dans un cadre */
+  var INT = !!window.MJ_DANS_ACCUEIL, PI = null;
+  try { PI = INT ? window.parent.mjInt : null; } catch (e) { }
+  function active() { return !INT && (S.launcher === 'on' || (S.launcher === 'auto' && isHome())); }
+  function hasFull() { return !!P.homeMjInt; }
 
   /* ---------- Applis ---------- */
   var apps = [], raw0 = null, icons = {};
@@ -143,19 +147,45 @@
   (function () {
     var st = $('stage'), y0 = null, x0 = 0;
     if (!st) return;
-    st.addEventListener('touchstart', function (e) { if (!active() || e.touches.length !== 1) { y0 = null; return; } y0 = e.touches[0].clientY; x0 = e.touches[0].clientX; }, { passive: true });
+    st.addEventListener('touchstart', function (e) { if (!(active() || PI) || e.touches.length !== 1) { y0 = null; return; } y0 = e.touches[0].clientY; x0 = e.touches[0].clientX; }, { passive: true });
     st.addEventListener('touchend', function (e) {
       if (y0 == null) return; var t = e.changedTouches[0], dy = y0 - t.clientY, dx = Math.abs(t.clientX - x0); y0 = null;
-      if (dy > 90 && dx < 60) openDrawer();
+      if (dy > 90 && dx < 60) { if (PI) PI.drawer(); else openDrawer(); }
     }, { passive: true });
   })();
+
+  /* ---------- Accueil complet : glisser vers la gauche pour les pages de l'accueil, marges du système ---------- */
+  if (PI) {
+    (function () {
+      var x0 = 0, y0 = 0, mode = 0;   // 0 : rien, 1 : glissé de page, 2 : défilement normal
+      function blocked(t) { return !!(t.closest && t.closest('input,textarea,select,[contenteditable],#sheet,.sheet,#drawer,#dm')) || !!(X.curSheet && X.curSheet()); }
+      document.addEventListener('touchstart', function (e) { if (e.touches.length !== 1 || blocked(e.target)) { mode = 2; return; } x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; mode = 0; }, { passive: true });
+      document.addEventListener('touchmove', function (e) {
+        if (mode === 2) return; var t = e.touches[0], dx = t.clientX - x0, dy = t.clientY - y0;
+        if (mode === 0) { if (Math.abs(dx) > 14 && Math.abs(dx) > 1.6 * Math.abs(dy) && dx < 0) { mode = 1; x0 = t.clientX; PI.drag('start', 0); } else if (Math.abs(dy) > 14) mode = 2; return; }
+        PI.drag('move', t.clientX - x0);
+      }, { passive: true });
+      function end(e) { if (mode === 1) { var t = e.changedTouches[0]; PI.drag('end', t.clientX - x0); } mode = 0; }
+      document.addEventListener('touchend', end, { passive: true });
+      document.addEventListener('touchcancel', end, { passive: true });
+    })();
+    MJ.onAssist = function () { try { PI.show(); } catch (e) { } };
+    var ins = function () {
+      try {
+        var cs = window.parent.getComputedStyle(window.parent.document.documentElement), t = parseFloat(cs.getPropertyValue('--st')) || 0, b = parseFloat(cs.getPropertyValue('--nb')) || 0;
+        document.documentElement.style.setProperty('--safe-t', Math.max(t, 6) + 'px'); document.documentElement.style.setProperty('--safe-b', (b + 16) + 'px');
+      } catch (e) { }
+    };
+    ins(); setTimeout(ins, 1500); window.addEventListener('resize', ins);
+  }
 
   /* ---------- Boutons système (MainActivity) ---------- */
   window.mjBack = function () {
     if (!$('dm').hidden) { $('dm').hidden = true; if ($('drawer').dataset.only) { delete $('drawer').dataset.only; $('drawer').hidden = true; } return; }
     if (closeDrawer()) return;
-    if (X.curSheet && X.curSheet()) { X.closeSheet(); return; }
+    if (X.curSheet && X.curSheet()) { X.closeSheet(); return true; }
     var c = document.getElementById('cards'); if (c && c.scrollTop) c.scrollTop = 0;
+    return false;
   };
   window.mjHome = function () {
     $('dm').hidden = true; closeDrawer();
@@ -167,17 +197,29 @@
   var prevExtra = MJ.settingsExtra, prevBind = MJ.settingsBind;
   MJ.settingsExtra = function () {
     var home = isHome();
+    if (INT) return (prevExtra ? prevExtra() : '') +
+      '<div class="sect" id="f-lanceur">Accueil complet</div>' +
+      '<div class="set"><div class="t">Pages, tuiles et panneaux<small>Glissez vers la gauche depuis cette page ; les réglages de l\'accueil sont aussi dans la barre en bas des autres pages</small></div><button class="btn sm" id="sLnSet">Réglages</button></div>' +
+      '<div class="set"><div class="t">Écran d\'accueil du téléphone<small>' + (home ? 'Actif : le bouton ⌂ ramène ici.' : 'Pas encore : choisissez « Majordome » dans la liste.') + '</small></div><button class="btn sm" id="sLnHome">' + (home ? 'Changer' : 'Choisir') + '</button></div>' +
+      '<div class="set"><div class="t">Revenir à l\'accueil simple<small>Sphère, dock et tiroir d\'applis seulement</small></div><button class="btn sm" id="sLnSimple">Accueil simple</button></div>';
     return (prevExtra ? prevExtra() : '') +
       '<div class="sect" id="f-lanceur">Lanceur : ' + esc(S.name) + ' comme écran d\'accueil</div>' +
       '<div class="set"><div class="t">Écran d\'accueil du téléphone<small>' + (home ? 'Actif : le bouton ⌂ ramène ici.' : 'Pas encore : choisissez « Majordome » dans la liste. Vous pourrez revenir à Socle de la même façon.') + '</small></div><button class="btn sm" id="sLnHome">' + (home ? 'Changer' : 'Choisir') + '</button></div>' +
       '<div class="set"><div class="t">Dock et tiroir d\'applis<small>Favoris en bas, bouton « Applis », glisser vers le haut sur la sphère</small></div><select class="in" id="sLnMode" style="width:auto">' +
       [['auto', 'Seulement en écran d\'accueil'], ['on', 'Toujours'], ['off', 'Jamais']].map(function (o) { return '<option value="' + o[0] + '"' + (S.launcher === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
-      '<p class="note">Favoris du dock (5 au plus) : appui long sur une appli dans le tiroir › « Ajouter au dock ». Bouton retour : ferme le tiroir ou le panneau, sans quitter l\'accueil.</p>';
+      '<p class="note">Favoris du dock (5 au plus) : appui long sur une appli dans le tiroir › « Ajouter au dock ». Bouton retour : ferme le tiroir ou le panneau, sans quitter l\'accueil.</p>' +
+      (hasFull() ? '<div class="set"><div class="t">Accueil complet, comme Socle<small>' + esc(S.name) + ' en page principale, et à côté les pages de tuiles, panneaux, raccourcis et widgets de Socle (disposition de Socle reprise s\'il est à jour)</small></div><button class="btn sm pri" id="sLnFull">Activer</button></div>' : '');
   };
   MJ.settingsBind = function (b) {
     if (prevBind) prevBind(b);
     var h = document.getElementById('sLnHome'); if (h) h.onclick = function () { try { P.homeOpen('home', ''); } catch (e) { } };
     var m = document.getElementById('sLnMode'); if (m) m.onchange = function () { S.launcher = this.value; save(); paintDock(); };
+    var f = document.getElementById('sLnFull'); if (f) f.onclick = function () {
+      if (!confirm('Passer à l\'accueil complet ? ' + S.name + ' reste la page principale ; glissez vers la gauche pour les pages de tuiles. L\'écran se recharge.')) return;
+      try { P.homeMjInt(true); } catch (e) { }
+    };
+    var sm = document.getElementById('sLnSimple'); if (sm) sm.onclick = function () { if (confirm('Revenir à l\'accueil simple ? L\'écran se recharge.')) try { P.homeMjInt(false); } catch (e) { } };
+    var se = document.getElementById('sLnSet'); if (se) se.onclick = function () { X.closeSheet(); try { PI.settings(); } catch (e) { } };
   };
 
   /* ---------- Mise à jour ---------- */
