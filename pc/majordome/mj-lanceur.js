@@ -26,6 +26,11 @@
   try { PI = INT ? window.parent.mjInt : null; } catch (e) { }
   function active() { return !INT && (S.launcher === 'on' || (S.launcher === 'auto' && isHome())); }
   function hasFull() { return !!P.homeMjInt; }
+  /* Plein écran : barres du haut et du bas masquées (glisser depuis le bord les montre un instant). Actif par défaut. */
+  if (S.plein == null) { S.plein = true; save(); }
+  function plein() { try { if (P.homeMjFull) P.homeMjFull(!!S.plein); } catch (e) { } }
+  plein();
+  var pleinRow = function () { return P.homeMjFull ? '<div class="set"><div class="t">Plein écran<small>Barres du haut et du bas masquées ; glissez depuis le bord pour les voir un instant</small></div><label class="sw"><input type="checkbox" id="sLnFullScr"' + (S.plein ? ' checked' : '') + '><span></span></label></div>' : ''; };
 
   /* ---------- Applis ---------- */
   var apps = [], raw0 = null, icons = {};
@@ -198,12 +203,12 @@
   MJ.settingsExtra = function () {
     var home = isHome();
     if (INT) return (prevExtra ? prevExtra() : '') +
-      '<div class="sect" id="f-lanceur">Accueil complet</div>' +
+      '<div class="sect" id="f-lanceur">Accueil complet</div>' + pleinRow() +
       '<div class="set"><div class="t">Pages, tuiles et panneaux<small>Glissez vers la gauche depuis cette page ; les réglages de l\'accueil sont aussi dans la barre en bas des autres pages</small></div><button class="btn sm" id="sLnSet">Réglages</button></div>' +
       '<div class="set"><div class="t">Écran d\'accueil du téléphone<small>' + (home ? 'Actif : le bouton ⌂ ramène ici.' : 'Pas encore : choisissez « Majordome » dans la liste.') + '</small></div><button class="btn sm" id="sLnHome">' + (home ? 'Changer' : 'Choisir') + '</button></div>' +
       '<div class="set"><div class="t">Revenir à l\'accueil simple<small>Sphère, dock et tiroir d\'applis seulement</small></div><button class="btn sm" id="sLnSimple">Accueil simple</button></div>';
     return (prevExtra ? prevExtra() : '') +
-      '<div class="sect" id="f-lanceur">Lanceur : ' + esc(S.name) + ' comme écran d\'accueil</div>' +
+      '<div class="sect" id="f-lanceur">Lanceur : ' + esc(S.name) + ' comme écran d\'accueil</div>' + pleinRow() +
       '<div class="set"><div class="t">Écran d\'accueil du téléphone<small>' + (home ? 'Actif : le bouton ⌂ ramène ici.' : 'Pas encore : choisissez « Majordome » dans la liste. Vous pourrez revenir à Socle de la même façon.') + '</small></div><button class="btn sm" id="sLnHome">' + (home ? 'Changer' : 'Choisir') + '</button></div>' +
       '<div class="set"><div class="t">Dock et tiroir d\'applis<small>Favoris en bas, bouton « Applis », glisser vers le haut sur la sphère</small></div><select class="in" id="sLnMode" style="width:auto">' +
       [['auto', 'Seulement en écran d\'accueil'], ['on', 'Toujours'], ['off', 'Jamais']].map(function (o) { return '<option value="' + o[0] + '"' + (S.launcher === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
@@ -214,6 +219,7 @@
     if (prevBind) prevBind(b);
     var h = document.getElementById('sLnHome'); if (h) h.onclick = function () { try { P.homeOpen('home', ''); } catch (e) { } };
     var m = document.getElementById('sLnMode'); if (m) m.onchange = function () { S.launcher = this.value; save(); paintDock(); };
+    var fs = document.getElementById('sLnFullScr'); if (fs) fs.onchange = function () { S.plein = this.checked; save(); plein(); };
     var f = document.getElementById('sLnFull'); if (f) f.onclick = function () {
       if (!confirm('Passer à l\'accueil complet ? ' + S.name + ' reste la page principale ; glissez vers la gauche pour les pages de tuiles. L\'écran se recharge.')) return;
       try { P.homeMjInt(true); } catch (e) { }

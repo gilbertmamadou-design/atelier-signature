@@ -332,6 +332,14 @@ public class MainActivity extends BridgeActivity {
         public String homeFavContacts(int n) { return LauncherService.favContacts(getApplicationContext(), n); }
         // Majordome : accueil complet (interface de Socle avec Majordome en page principale, socle.html) ; relance l'écran
         @JavascriptInterface
+        public boolean homeMjFullGet() { return isMj() && getSharedPreferences("socle", MODE_PRIVATE).getBoolean("mjFull", false); }
+        @JavascriptInterface
+        public void homeMjFull(final boolean on) {
+            if (!isMj()) return;
+            getSharedPreferences("socle", MODE_PRIVATE).edit().putBoolean("mjFull", on).apply();
+            runOnUiThread(new Runnable() { public void run() { mjBars(); if (!on && isSocle()) socleBars(); } });
+        }
+        @JavascriptInterface
         public boolean homeMjIntGet() { return isMj() && getSharedPreferences("socle", MODE_PRIVATE).getBoolean("mjInt", false); }
         @JavascriptInterface
         public void homeMjInt(final boolean on) {
@@ -348,7 +356,7 @@ public class MainActivity extends BridgeActivity {
             return "";
         }
         @JavascriptInterface
-        public void homeStatusBar(final boolean hide) { getSharedPreferences("socle", MODE_PRIVATE).edit().putBoolean("hideBar", hide).apply(); runOnUiThread(new Runnable() { public void run() { socleBars(); } }); }
+        public void homeStatusBar(final boolean hide) { getSharedPreferences("socle", MODE_PRIVATE).edit().putBoolean("hideBar", hide).apply(); runOnUiThread(new Runnable() { public void run() { socleBars(); mjBars(); } }); }
         @JavascriptInterface
         public String homeInsets() { return LauncherService.insets(MainActivity.this); }
         // ----- Toile : fonds d'écran automatiques recadrés -----
@@ -465,6 +473,26 @@ public class MainActivity extends BridgeActivity {
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus && isSocle()) socleBars();
+        if (hasFocus) mjBars();
+    }
+    // Majordome plein écran : barres du haut et du bas masquées (un glissé depuis le bord les montre un instant)
+    private void mjBars() {
+        if (!isMj()) return;
+        boolean full = getSharedPreferences("socle", MODE_PRIVATE).getBoolean("mjFull", false);
+        if (!full && isSocle()) return;   // accueil complet sans plein écran : réglage « barre du haut » de l'accueil
+        try {
+            if (Build.VERSION.SDK_INT >= 30) {
+                android.view.WindowInsetsController c = getWindow().getInsetsController();
+                if (c == null) return;
+                int t = android.view.WindowInsets.Type.statusBars() | android.view.WindowInsets.Type.navigationBars();
+                if (full) { c.setSystemBarsBehavior(android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE); c.hide(t); }
+                else c.show(t);
+            } else {
+                android.view.View d = getWindow().getDecorView();
+                if (full) d.setSystemUiVisibility(android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE | android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | android.view.View.SYSTEM_UI_FLAG_FULLSCREEN | android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+                else d.setSystemUiVisibility(0);
+            }
+        } catch (Exception e) { }
     }
     private void socleSetup(WebView wv) {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER);
@@ -504,6 +532,7 @@ public class MainActivity extends BridgeActivity {
         extraCall("onResume", new Class<?>[]{});
         if (pendingApk != null && (Build.VERSION.SDK_INT < 26 || getPackageManager().canRequestPackageInstalls())) { final String ap = pendingApk; getWindow().getDecorView().postDelayed(new Runnable() { public void run() { installApk(ap); } }, 400); }
         if (isSocle()) { socleBars(); socleJs("window.accueilResume&&accueilResume()"); }
+        mjBars();
     }
     @Override
     public void onBackPressed() {
