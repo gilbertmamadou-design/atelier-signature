@@ -1218,7 +1218,9 @@
     else if (S.engine === 'android') h += '<button class="chip warn" data-chip="engine"><b></b>Reconnaissance Android</button>';
     if (B && B.wake) h += '<button class="chip ' + (S.wakeOn && m.state === 'ready' ? 'on' : '') + '" data-chip="wake"><b></b>Écoute continue ' + (S.wakeOn && m.state === 'ready' ? '« ' + esc(S.name) + ' »' : 'coupée') + '</button>';
     if (!online()) h += '<span class="chip warn"><b></b>Hors ligne</span>';   // réseau présent : rien à signaler (place gagnée sur les petits écrans)
-    $('chips').innerHTML = h;
+    // indicateurs « tout va bien » (Vosk, écoute continue) masqués par défaut : seuls les problèmes s'affichent
+    if (!S.chipsAll) { var dv = document.createElement('div'); dv.innerHTML = h; dv.querySelectorAll('.chip:not(.warn):not(.bad)').forEach(function (x) { x.remove(); }); h = dv.innerHTML; }
+    $('chips').innerHTML = h; $('chips').hidden = !h;
     $('hint').textContent = !B || !B.listen ? '' : PC ? 'Ctrl+Espace : parler · Entrée : envoyer' : '';
   }
   $('chips').addEventListener('click', function (e) {
