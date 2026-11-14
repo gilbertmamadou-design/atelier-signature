@@ -310,6 +310,14 @@
   "file": "Traducteur.apk"
  },
  {
+  "app": "langues",
+  "web": "www-langues",
+  "appid": "fr.magformation13.langues",
+  "name": "Langues",
+  "icons": "android-icons-langues",
+  "file": "Langues.apk"
+ },
+ {
   "app": "reperes",
   "web": "www-reperes",
   "appid": "fr.magformation13.reperes",

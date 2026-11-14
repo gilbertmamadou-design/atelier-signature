@@ -586,6 +586,18 @@
       "data": { "ls": ["texte:", "office:"], "idb": ["office-texte"], "note": "Les documents (.magdoc, .docx, .odt…) restent dans tes dossiers : seuls les réglages, les documents récents et l'enregistrement automatique sont dans le navigateur." }
     },
     {
+      "id": "langues",
+      "android": "langues",
+      "name": "Langues",
+      "short_name": "Langues",
+      "description": "Apprendre l'espagnol (Espagne) et le portugais (Portugal) : voyage, travail et chantier, révisions espacées, écoute et prononciation",
+      "theme_color": "#14121c",
+      "background_color": "#14121c",
+      "copies": { "langues-donnees.js": "applis/www-langues/langues-donnees.js" },
+      "patches": [],
+      "data": { "ls": ["langues:"] }
+    },
+    {
       "id": "majordome",
       "android": "majordome",
       "name": "Majordome",

@@ -424,7 +424,7 @@ public class MainActivity extends BridgeActivity {
     private final java.util.List<Object> extraBridges = new java.util.ArrayList<Object>();
     private void loadExtraBridges(WebView wv) {
         String pkg = MainActivity.class.getPackage().getName();
-        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge", "ReseauBridge", "LecteurBridge", "PdfBridge", "SolaireBridge", "SocleBridge", "FichiersBridge", "ActualitesBridge", "ToileBridge", "OfficeBridge", "MajordomeBridge", "VoyageBridge", "TraducteurBridge", "SereniteBridge" }) {
+        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge", "ReseauBridge", "LecteurBridge", "PdfBridge", "SolaireBridge", "SocleBridge", "FichiersBridge", "ActualitesBridge", "ToileBridge", "OfficeBridge", "MajordomeBridge", "VoyageBridge", "TraducteurBridge", "SereniteBridge", "LanguesBridge" }) {
             try {
                 Class<?> k = Class.forName(pkg + "." + n);
                 Object o = k.getConstructor(android.app.Activity.class, WebView.class).newInstance(this, wv);
@@ -1675,7 +1675,7 @@ FSV="$(dirname "$F")/FileService.java"
 cp scripts/FileService.java "$FSV"
 sed -i "s/__PKG__/$PKG/" "$FSV"
 # Réveil, lever de soleil et endormissement (application Aube)
-for J in $(ls scripts/*Bridge.java 2>/dev/null | xargs -n1 basename 2>/dev/null | sed 's/\.java$//' | grep -vxE 'PdfBridge|MajordomeBridge|TraducteurBridge|SereniteBridge'); do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
+for J in $(ls scripts/*Bridge.java 2>/dev/null | xargs -n1 basename 2>/dev/null | sed 's/\.java$//' | grep -vxE 'PdfBridge|MajordomeBridge|TraducteurBridge|SereniteBridge|LanguesBridge'); do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
 for J in AlarmService AlarmReceiver WallpaperJob WallpaperTile LauncherService LauncherA11y LauncherMedia WidgetProvider SauvegardeJob PhotoCamera EcranPlayer DictaService MeteoPersoJob MelodieVolume; do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
 # Bibliothèque des tâches de fond
 G=android/app/build.gradle
@@ -1961,6 +1961,12 @@ fi
 # langue par ML Kit Language ID, incluse), lecture par la voix du téléphone, micro (reconnaissance vocale d'Android),
 # photo d'un menu ou d'un panneau (ML Kit Text Recognition, alphabet latin, inclus dans l'APK : hors ligne). TraducteurBridge.java copié ici seulement
 # (il dépend d'ML Kit, ajouté à cette appli seule).
+# Langues : apprendre l'espagnol et le portugais ; voix du téléphone et reconnaissance vocale d'Android (LanguesBridge.java, copié ici seulement)
+if [ "$APP" = "langues" ]; then
+  cp scripts/LanguesBridge.java "$(dirname "$F")/LanguesBridge.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/LanguesBridge.java"
+  addperm RECORD_AUDIO
+  addraw '<uses-feature android:name="android.hardware.microphone" android:required="false" /><queries><intent><action android:name="android.intent.action.TTS_SERVICE" /></intent><intent><action android:name="android.speech.RecognitionService" /></intent></queries>'
+fi
 if [ "$APP" = "traducteur" ]; then
   cp scripts/TraducteurBridge.java "$(dirname "$F")/TraducteurBridge.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/TraducteurBridge.java"
   grep -q "com.google.mlkit:translate" "$G" || sed -i '0,/^dependencies {/s//dependencies {\n    implementation "com.google.mlkit:translate:17.0.3"\n    implementation "com.google.mlkit:language-id:17.0.6"\n    implementation "com.google.mlkit:text-recognition:16.0.1"/' "$G"
