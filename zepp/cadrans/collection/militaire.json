@@ -1,0 +1,22 @@
+{
+  "id": "militaire",
+  "appId": 1093202,
+  "nom": "Militaire",
+  "fond": "camo",
+  "c1": "#1b1f14",
+  "c2": "#3a4128",
+  "accent": "#ff9f3d",
+  "texte": "#ece6cf",
+  "doux": "#a8a287",
+  "heure": "numerique",
+  "police": "militaire",
+  "taille": "grande",
+  "anneau": "chiffres",
+  "infos": [
+    "altitude",
+    "coeur",
+    "pas",
+    "batterie"
+  ],
+  "aod": "heure_date"
+}

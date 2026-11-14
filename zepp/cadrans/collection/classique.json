@@ -1,0 +1,23 @@
+{
+  "id": "classique",
+  "appId": 1093205,
+  "nom": "Classique or",
+  "fond": "radial",
+  "c1": "#05070c",
+  "c2": "#1d2533",
+  "accent": "#d4af37",
+  "texte": "#f5f1e6",
+  "doux": "#9a9384",
+  "heure": "analogique",
+  "police": "classique",
+  "anneau": "chiffres",
+  "aiguilles": "epees",
+  "secondes": false,
+  "infos": [
+    "meteo",
+    "coeur",
+    "pas",
+    "batterie"
+  ],
+  "aod": "heure_date"
+}

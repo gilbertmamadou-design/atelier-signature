@@ -1,0 +1,128 @@
+name: Fabriquer les cadrans (Atelier de cadrans, T-Rex 3)
+# Cadrans Zepp OS pour Amazfit T-Rex 3, fabriqués à partir de réglages (zepp/cadrans) :
+#  - sans réglage fourni : toute la collection (zepp/cadrans/collection/*.json) → release fixe « cadrans-collection »
+#    (adresses stables, utilisées par l'appli Atelier de cadrans) ;
+#  - avec « cadran » (réglages JSON encodés en base64, envoyés par l'appli) : un cadran perso → release « cadran-perso-N ».
+# Pour chaque cadran : <id>-apercu.zab (variante « preview » pour le scanner du mode développeur de Zepp),
+# <id>-qr.png (QR « zpkd1:// »), <id>.png et <id>-aod.png (aperçus), <id>.zab (paquet officiel).
+on:
+  workflow_dispatch:
+    inputs:
+      cadran:
+        description: "Réglages d'un cadran perso (JSON en base64). Vide : toute la collection"
+        required: false
+        default: ""
+      zeus:
+        description: "Version de @zeppos/zeus-cli (ex. 1.9.3) ou « latest »"
+        required: false
+        default: "latest"
+  push:
+    branches: [main]
+    paths: ["zepp/cadrans/**", ".github/workflows/cadrans.yml"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cadrans-${{ github.event.inputs.cadran != '' && github.run_id || 'collection' }}
+  cancel-in-progress: false
+
+jobs:
+  fabriquer:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: zepp/cadrans
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+      - name: Outils (Zeus CLI, Chromium pour dessiner, QR)
+        env:
+          ZEUS: ${{ github.event.inputs.zeus || 'latest' }}
+        run: |
+          npm install -g "@zeppos/zeus-cli@${ZEUS}" --no-audit --no-fund
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          pip install --quiet "qrcode[pil]==7.4.2"
+      - name: Réglages
+        id: reglages
+        env:
+          CADRAN: ${{ github.event.inputs.cadran }}
+        run: |
+          mkdir -p ../out-cadrans/projets
+          if [ -n "$CADRAN" ]; then
+            # réglages envoyés par l'appli : jamais interprétés par le shell, seulement décodés puis lus en JSON
+            printf '%s' "$CADRAN" | base64 -d > ../out-cadrans/perso.json
+            python3 - ../out-cadrans/perso.json <<'PY'
+          import json, sys
+          p = sys.argv[1]; o = json.load(open(p, encoding='utf-8'))
+          assert isinstance(o, dict) and len(json.dumps(o)) < 4000, 'réglages invalides'
+          o.pop('appId', None); o.pop('id', None)
+          json.dump(o, open(p, 'w', encoding='utf-8'), ensure_ascii=False)
+          print('cadran perso :', o.get('nom'))
+          PY
+            echo "mode=perso" >> "$GITHUB_OUTPUT"
+            echo "fichiers=../out-cadrans/perso.json" >> "$GITHUB_OUTPUT"
+            echo "tag=cadran-perso-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=collection" >> "$GITHUB_OUTPUT"
+            echo "fichiers=$(ls collection/*.json | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+            echo "tag=cadrans-collection" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Dessiner les images et préparer les projets
+        run: node outils/fabriquer.mjs ${{ steps.reglages.outputs.fichiers }} --sortie ../out-cadrans/projets
+      - name: Essais (Zepp OS simulé, toutes les images présentes)
+        run: |
+          for d in ../out-cadrans/projets/*/; do echo "== $d"; CADRAN_PROJET="$d" node --test test/simulation.test.mjs; done
+      - name: zeus build, variante « preview » et QR
+        env:
+          REPO: ${{ github.repository }}
+          TAG: ${{ steps.reglages.outputs.tag }}
+        run: |
+          set -o pipefail
+          OUT=$(cd ../out-cadrans && pwd); ICI=$(pwd)
+          for d in "$OUT"/projets/*/; do
+            id=$(basename "$d")
+            echo "::group::$id"
+            ln -sfn "$ICI/node_modules" "$d/node_modules"
+            ( cd "$d" && CI=1 zeus build < /dev/null 2>&1 | tail -20 )
+            ZAB=$(ls -t "$d"/dist/*.zab | head -1)
+            cp "$ZAB" "$OUT/$id.zab"
+            python3 outils/variante_apercu.py "$OUT/$id.zab" "$OUT/$id-apercu.zab" > /dev/null
+            URL="https://github.com/${REPO}/releases/download/${TAG}/${id}-apercu.zab"
+            python3 -c "import qrcode,sys; qrcode.make(sys.argv[1], box_size=10, border=3).save(sys.argv[2])" "zpkd1://${URL#https://}" "$OUT/$id-qr.png"
+            cp "$OUT/projets/$id.png" "$OUT/$id.png"; cp "$OUT/projets/$id-aod.png" "$OUT/$id-aod.png"; cp "$OUT/projets/$id.json" "$OUT/$id.json"
+            echo "::endgroup::"
+          done
+          cp "$OUT/projets/liste.json" "$OUT/cadrans.json"
+          ls -la "$OUT"
+      - name: Publier (collection)
+        if: steps.reglages.outputs.mode == 'collection'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: cadrans-collection
+          name: Cadrans T-Rex 3 – collection
+          overwrite_files: true
+          body: |
+            Collection de cadrans pour Amazfit T-Rex 3 (Zepp OS), fabriqués à partir de zepp/cadrans/collection.
+            Installation : ouvrez l'appli « Atelier de cadrans » › Collection, ou scannez <id>-qr.png avec Zepp › Profil › T-Rex 3 › Mode développeur › scan.
+          files: |
+            zepp/out-cadrans/*.zab
+            zepp/out-cadrans/*-qr.png
+            zepp/out-cadrans/*.png
+            zepp/out-cadrans/*.json
+      - name: Publier (cadran perso)
+        if: steps.reglages.outputs.mode == 'perso'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.reglages.outputs.tag }}
+          name: Cadran perso ${{ github.run_number }}
+          body: |
+            Cadran perso fabriqué avec l'appli « Atelier de cadrans » (Amazfit T-Rex 3).
+            Installation : scannez le QR avec Zepp › Profil › T-Rex 3 › Mode développeur › scan.
+          files: |
+            zepp/out-cadrans/*.zab
+            zepp/out-cadrans/*.png
+            zepp/out-cadrans/*.json

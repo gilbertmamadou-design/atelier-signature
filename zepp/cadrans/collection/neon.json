@@ -1,0 +1,22 @@
+{
+  "id": "neon",
+  "appId": 1093207,
+  "nom": "Néon",
+  "fond": "degrade",
+  "c1": "#0b0218",
+  "c2": "#3a0b4a",
+  "accent": "#ff4fd8",
+  "texte": "#f8eaff",
+  "doux": "#b48cc8",
+  "heure": "numerique",
+  "police": "moderne",
+  "taille": "grande",
+  "anneau": "batterie",
+  "infos": [
+    "meteo",
+    "coeur",
+    "pas",
+    "vent"
+  ],
+  "aod": "heure_date"
+}

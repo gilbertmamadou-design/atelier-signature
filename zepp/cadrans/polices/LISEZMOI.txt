@@ -1,0 +1,7 @@
+Polices libres utilisées par les cadrans (copiées depuis les paquets Ubuntu, réduites au latin) :
+- Inter (Thin, Light, SemiBold, Black) : SIL Open Font License 1.1, Rasmus Andersson.
+- Poppins Medium : SIL Open Font License 1.1, Indian Type Foundry.
+- Lora : SIL Open Font License 1.1, Cyreal.
+- DejaVu Sans Mono Bold : licence Bitstream Vera / DejaVu (libre).
+- TeX Gyre Heros Cn Bold : GUST Font License (libre).
+Textes de licence des paquets : LICENCES-paquets.txt.

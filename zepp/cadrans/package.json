@@ -1,0 +1,15 @@
+{
+  "name": "atelier-cadrans",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cadrans pour Amazfit T-Rex 3 (Zepp OS) fabriqués à partir de réglages : collection et cadrans perso",
+  "type": "module",
+  "scripts": {
+    "fabriquer": "node outils/fabriquer.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "devDependencies": {
+    "@zeppos/device-types": "4.0.0",
+    "playwright": "1.49.1"
+  }
+}

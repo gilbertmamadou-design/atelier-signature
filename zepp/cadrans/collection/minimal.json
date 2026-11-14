@@ -1,0 +1,22 @@
+{
+  "id": "minimal",
+  "appId": 1093203,
+  "nom": "Minimal",
+  "fond": "uni",
+  "c1": "#000000",
+  "c2": "#000000",
+  "accent": "#ffffff",
+  "texte": "#ffffff",
+  "doux": "#8c8c8c",
+  "heure": "numerique",
+  "police": "fine",
+  "taille": "moyenne",
+  "anneau": "aucun",
+  "infos": [
+    "aucun",
+    "aucun",
+    "pas",
+    "batterie"
+  ],
+  "aod": "heure"
+}
