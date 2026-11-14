@@ -594,7 +594,7 @@
       "theme_color": "#070b14",
       "background_color": "#070b14",
       "vendor": ["vosk/vosk-worker.js"],
-      "copies": { "mj-nlu.js": "applis/www-majordome/mj-nlu.js", "mj-orb.js": "applis/www-majordome/mj-orb.js", "mj-depts.js": "applis/www-majordome/mj-depts.js", "mj-app.js": "applis/www-majordome/mj-app.js", "mj-maison.js": "applis/www-majordome/mj-maison.js", "mj-montre.js": "applis/www-majordome/mj-montre.js", "mj-applis.js": "applis/www-majordome/mj-applis.js", "mj-phon.js": "applis/www-majordome/mj-phon.js", "mj-voix.js": "applis/www-majordome/mj-voix.js", "mj-voix-worker.js": "applis/www-majordome/mj-voix-worker.js" },
+      "copies": { "mj-nlu.js": "applis/www-majordome/mj-nlu.js", "mj-orb.js": "applis/www-majordome/mj-orb.js", "mj-depts.js": "applis/www-majordome/mj-depts.js", "mj-app.js": "applis/www-majordome/mj-app.js", "mj-maison.js": "applis/www-majordome/mj-maison.js", "mj-montre.js": "applis/www-majordome/mj-montre.js", "mj-applis.js": "applis/www-majordome/mj-applis.js", "mj-lanceur.js": "applis/www-majordome/mj-lanceur.js", "mj-phon.js": "applis/www-majordome/mj-phon.js", "mj-voix.js": "applis/www-majordome/mj-voix.js", "mj-voix-worker.js": "applis/www-majordome/mj-voix-worker.js" },
       "extra": ["../shared/apps/agenda.js"],
       "patches": [],
       "data": { "ls": ["majordome:"], "note": "Le modèle vocal (IndexedDB « /vosk ») et les voix Piper (IndexedDB « mj-voix ») ne sont pas exportés : ils se réinstallent depuis les réglages." }

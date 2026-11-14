@@ -1071,8 +1071,12 @@
     // --- routines ---
     var routines = ctx.routines || [];
     for (var ri = 0; ri < routines.length; ri++) {
-      var rp = prep(routines[ri].phrase || '', ctx).t;
-      if (rp && (t === rp || t === 'routine ' + rp || t === 'lance la routine ' + rp || t === 'lance ' + rp)) return R('routine', { id: routines[ri].id });
+      // plusieurs phrases possibles, séparées par des virgules : « bonsoir, je rentre, me voilà »
+      var phs = String(routines[ri].phrase || '').split(/[,;\/|]+/).concat([routines[ri].name || '']);
+      for (var pj = 0; pj < phs.length; pj++) {
+        var rp = prep(phs[pj], ctx).t;
+        if (rp && (t === rp || t === 'routine ' + rp || t === 'lance la routine ' + rp || t === 'lance ' + rp || t === 'mode ' + rp || t === 'active la routine ' + rp)) return R('routine', { id: routines[ri].id });
+      }
     }
     if ((m = /^(?:lance|demarre|execute|fais|joue) (?:la )?routine (.+)$/.exec(t)) || (m = /^routine (.+)$/.exec(t))) return R('routine', { name: orig(P, m.index + m[0].length - m[1].length) });
     if (/^(bonjour|bonjour a toi|bon matin|salut bonjour|bonjour bonjour|debut de journee|on commence|briefing|le point du matin|ma journee|resume de la journee)$/.test(t)) return R('routine', { id: 'matin' });
