@@ -310,6 +310,19 @@
   "file": "Traducteur.apk"
  },
  {
+  "app": "cadrans",
+  "web": "www-cadrans",
+  "appid": "fr.magformation13.cadrans",
+  "name": "Atelier de cadrans",
+  "icons": "android-icons-cadrans",
+  "file": "Atelier-de-cadrans.apk",
+  "with": [
+   "../zepp/cadrans/cadran.js",
+   "../zepp/cadrans/polices/",
+   "../zepp/cadrans/collection/"
+  ]
+ },
+ {
   "app": "langues",
   "web": "www-langues",
   "appid": "fr.magformation13.langues",

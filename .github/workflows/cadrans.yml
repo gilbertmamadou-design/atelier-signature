@@ -1,6 +1,6 @@
 name: Fabriquer les cadrans (Atelier de cadrans, T-Rex 3)
 # Cadrans Zepp OS pour Amazfit T-Rex 3, fabriqués à partir de réglages (zepp/cadrans) :
-#  - sans réglage fourni : toute la collection (zepp/cadrans/collection/*.json) → release fixe « cadrans-collection »
+#  - sans réglage fourni (et chaque nuit) : toute la collection (zepp/cadrans/collection/*.json) → release fixe « cadrans-collection »
 #    (adresses stables, utilisées par l'appli Atelier de cadrans) ;
 #  - avec « cadran » (réglages JSON encodés en base64, envoyés par l'appli) : un cadran perso → release « cadran-perso-N ».
 # Pour chaque cadran : <id>-apercu.zab (variante « preview » pour le scanner du mode développeur de Zepp),
@@ -19,6 +19,9 @@ on:
   push:
     branches: [main]
     paths: ["zepp/cadrans/**", ".github/workflows/cadrans.yml"]
+  # les paquets « preview » de Zepp ne se scannent que 48 h après leur fabrication : la collection est refaite chaque jour
+  schedule:
+    - cron: "37 3 * * *"
 
 permissions:
   contents: write

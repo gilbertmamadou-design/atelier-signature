@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Atelier de cadrans</title>
+<meta name="theme-color" content="#0b0d12">
+<style>
+/* Atelier de cadrans : collection, création avec aperçu en direct, mes cadrans, fabrication pour l'Amazfit T-Rex 3.
+   Le dessin vient de cadran.js (zepp/cadrans, copié à la fabrication) : l'aperçu est celui de la montre. */
+:root{
+  color-scheme:dark;
+  --bg:#0b0d12;--bg2:#12151d;--bg3:#1a1e29;--bg4:#242a38;--line:#ffffff14;--line2:#ffffff26;
+  --tx:#eef1f7;--tx2:#aab2c2;--tx3:#6f7889;--acc:#4fd1c5;--acc2:#7c9cff;--ok:#5fd39a;--ko:#ff6b6b;
+  --safeT:env(safe-area-inset-top,0px);--safeB:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button,input,select{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer;padding:0}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+[hidden]{display:none!important}
+svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+#app{display:flex;flex-direction:column;height:100%}
+header{padding:calc(12px + var(--safeT)) 16px 8px;display:flex;align-items:center;gap:10px;max-width:1100px;width:100%;margin:0 auto}
+header h1{margin:0;font-size:20px;flex:1;letter-spacing:.2px}
+header small{color:var(--tx3);font-size:12px}
+main{flex:1;overflow:auto;padding:4px 16px 24px}
+.v{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+nav{display:flex;justify-content:space-around;padding:6px 6px calc(6px + var(--safeB));background:#0e1118f2;border-top:1px solid var(--line)}
+nav button{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11.5px;font-weight:700;color:var(--tx3);padding:4px 10px;min-width:70px}
+nav button[aria-current="page"]{color:var(--acc)}
+.sect{font-size:11.5px;letter-spacing:.7px;text-transform:uppercase;color:var(--tx3);font-weight:800;margin:6px 2px -4px}
+.card{background:#ffffff07;border:1px solid var(--line);border-radius:18px;padding:14px}
+.note{color:var(--tx3);font-size:12.5px;margin:4px 2px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.face{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px;border-radius:18px;background:#ffffff06;border:1px solid var(--line);text-align:center}
+.face canvas{width:100%;max-width:200px;aspect-ratio:1;border-radius:50%;box-shadow:0 6px 24px #0008}
+.face b{font-size:14px}
+.face .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 14px;border-radius:12px;background:var(--bg3);border:1px solid var(--line2);font-weight:700;font-size:13.5px}
+.btn.pri{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#081018;border-color:transparent}
+.btn.sm{padding:7px 10px;font-size:12.5px}
+.btn.bad{color:var(--ko)}
+.btn:disabled{opacity:.45}
+.big{width:100%;padding:13px;font-size:15.5px}
+/* éditeur */
+.ed{display:grid;grid-template-columns:1fr;gap:14px}
+@media (min-width:900px){.ed{grid-template-columns:420px 1fr;align-items:start}.ed .pv{position:sticky;top:0}}
+.pv{display:flex;flex-direction:column;align-items:center;gap:8px;background:var(--bg);padding:6px 0 10px;z-index:2}
+@media (max-width:899px){.pv{position:sticky;top:-4px;border-bottom:1px solid var(--line)}}
+.pv canvas{width:min(78vw,340px,42vh);aspect-ratio:1;border-radius:50%;box-shadow:0 10px 40px #000a,0 0 0 6px #1b1f28,0 0 0 8px #2b3140}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.lbl{font-size:12.5px;color:var(--tx2);font-weight:700;margin:8px 0 6px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:7px 11px;border-radius:99px;background:var(--bg3);border:1px solid var(--line);font-weight:700;font-size:13px;color:var(--tx2)}
+.chip[aria-pressed="true"]{background:var(--acc);border-color:var(--acc);color:#081018}
+.in{width:100%;padding:10px 12px;border-radius:12px;background:var(--bg2);border:1px solid var(--line2);outline:0}
+.in:focus{border-color:var(--acc)}
+select.in{padding:9px 10px}
+.cols{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.col{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--tx3)}
+.col input{width:44px;height:44px;border:2px solid var(--line2);border-radius:12px;padding:0;background:none;cursor:pointer}
+.pal{display:flex;gap:8px;flex-wrap:wrap}
+.pal button{width:40px;height:40px;border-radius:50%;border:2px solid var(--line2);position:relative;overflow:hidden}
+.pal button i{position:absolute;inset:0}
+.slots{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sw{appearance:none;width:46px;height:28px;border-radius:99px;background:var(--bg3);border:1px solid var(--line);position:relative;flex:none;margin:0;transition:.2s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}
+.sw:checked{background:var(--acc)}.sw:checked::after{left:21px}
+.line{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.line:last-child{border-bottom:0}.line .t{flex:1;min-width:0}.line .t b{display:block}.line .t small{display:block;color:var(--tx3);font-size:12.5px}
+/* feuille */
+.sheet{position:fixed;inset:0;z-index:30;background:#000b;display:flex;align-items:flex-end;justify-content:center}
+.sheet>div{background:var(--bg2);border:1px solid var(--line2);border-radius:22px 22px 0 0;width:min(620px,100%);max-height:92vh;overflow:auto;padding:16px 16px calc(16px + var(--safeB))}
+@media (min-width:700px){.sheet{align-items:center}.sheet>div{border-radius:22px}}
+.sheet h2{margin:0 0 6px;font-size:18px}
+.qr{display:block;width:min(70vw,280px);aspect-ratio:1;margin:10px auto;background:#fff;border-radius:14px;padding:8px}
+ol.steps{margin:6px 0 0;padding-left:20px;color:var(--tx2)}ol.steps li{margin:4px 0}
+.prog{height:8px;border-radius:99px;background:var(--bg3);overflow:hidden;margin:10px 0}.prog i{display:block;height:100%;width:30%;background:linear-gradient(90deg,var(--acc),var(--acc2));animation:pr 1.6s ease-in-out infinite}
+@keyframes pr{0%{margin-left:-30%}100%{margin-left:100%}}
+.toast{position:fixed;left:50%;bottom:calc(84px + var(--safeB));transform:translateX(-50%);background:var(--bg4);padding:10px 16px;border-radius:14px;z-index:50;box-shadow:0 8px 30px #0008;max-width:90vw;font-size:14px}
+code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;word-break:break-all}
+</style>
+</head>
+<body>
+<div id="app">
+  <header><h1>Atelier de cadrans</h1><small>Amazfit T-Rex 3</small></header>
+  <main id="main"></main>
+  <nav id="nav">
+    <button data-tab="collection" aria-current="page"><svg class="i" viewBox="0 0 24 24"><circle cx="7" cy="7" r="4"/><circle cx="17" cy="7" r="4"/><circle cx="7" cy="17" r="4"/><circle cx="17" cy="17" r="4"/></svg>Collection</button>
+    <button data-tab="creer"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/><path d="M19 3l2 2-6 6"/></svg>Créer</button>
+    <button data-tab="mes"><svg class="i" viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Mes cadrans</button>
+    <button data-tab="reglages"><svg class="i" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Réglages</button>
+  </nav>
+</div>
+<div class="sheet" id="sheet" hidden><div id="sheetIn"></div></div>
+<div class="toast" id="toast" hidden></div>
+<script src="cadran.js"></script>
+<script>
+(function () {
+  'use strict';
+  var C = window.CADRAN, $ = function (id) { return document.getElementById(id); };
+  var REPO = 'gilbertmamadou-design/atelier-signature', API = 'https://api.github.com/repos/' + REPO, DL = 'https://github.com/' + REPO + '/releases/download/';
+  var KEY = 'cadrans:v1';
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function J(s, d) { try { var v = JSON.parse(s); return v == null ? d : v; } catch (e) { return d; } }
+  function toast(m) { var t = $('toast'); t.textContent = m; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(function () { t.hidden = true; }, 3000); }
+  var ST = J(localStorage.getItem(KEY), null) || {}; ST.mes = ST.mes || []; ST.token = ST.token || '';
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(ST)); } catch (e) { } }
+  var COL = [], TAB = 'collection', ED = null, EDI = -1, AOD = false;
+  var POS_NUM = ['Haut gauche', 'Haut droite', 'Bas gauche', 'Bas droite'], POS_ANA = ['Haut', 'Gauche', 'Droite', 'Bas'];
+  var PALETTES = [
+    ['Turquoise', '#000000', '#0b2a33', '#46d9c2', '#eafffb', '#7fa8a2'], ['Chantier', '#0d0d0d', '#262000', '#ffcc00', '#ffffff', '#b8ae8a'],
+    ['Kaki', '#1b1f14', '#3a4128', '#ff9f3d', '#ece6cf', '#a8a287'], ['Rouge', '#000000', '#3a0a0a', '#ff3b3b', '#ffffff', '#b39a9a'],
+    ['Or', '#05070c', '#1d2533', '#d4af37', '#f5f1e6', '#9a9384'], ['Marine', '#01060d', '#0d2a4a', '#3da9ff', '#eef6ff', '#7f9bb8'],
+    ['Néon', '#0b0218', '#3a0b4a', '#ff4fd8', '#f8eaff', '#b48cc8'], ['Forêt', '#0a0d10', '#1a2027', '#7bd88f', '#f1f6f2', '#8ea596'],
+    ['Orange', '#0e0904', '#2e1a07', '#ff7a1a', '#fff4ea', '#b59a84'], ['Blanc', '#000000', '#1a1a1a', '#ffffff', '#ffffff', '#8c8c8c']
+  ];
+  var dirty = 0;
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function draw(cv, cfg, aod) { try { C.apercu(cv, cfg, { aod: !!aod }); } catch (e) { console.warn(e); } }
+  function face(cfg, i, kind) {
+    return '<div class="face"><canvas width="240" height="240" data-pv="' + kind + ':' + i + '"></canvas><b>' + esc(cfg.nom) + '</b><div class="acts">' +
+      (kind === 'col' ? '<button class="btn sm pri" data-inst="' + i + '">Installer</button><button class="btn sm" data-copie="' + i + '">Modifier une copie</button>'
+        : '<button class="btn sm pri" data-fab="' + i + '">' + (cfg.build && cfg.build.qr ? 'QR' : 'Fabriquer') + '</button><button class="btn sm" data-edit="' + i + '">Modifier</button><button class="btn sm" data-dup="' + i + '">Copier</button><button class="btn sm bad" data-del="' + i + '" aria-label="Supprimer">✕</button>') + '</div></div>';
+  }
+  function paintPreviews() {
+    document.querySelectorAll('canvas[data-pv]').forEach(function (cv) {
+      var p = cv.dataset.pv.split(':'), cfg = p[0] === 'col' ? COL[+p[1]] : ST.mes[+p[1]];
+      if (cfg) draw(cv, cfg);
+    });
+  }
+
+  /* ---------------- vues ---------------- */
+  function render() {
+    document.querySelectorAll('nav [data-tab]').forEach(function (b) { if (b.dataset.tab === TAB) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+    var h = '';
+    if (TAB === 'collection') {
+      h = '<p class="note">Neuf cadrans prêts à installer. « Modifier une copie » les ouvre dans l\'atelier.</p><div class="grid">' + COL.map(function (c, i) { return face(c, i, 'col'); }).join('') + '</div>';
+    } else if (TAB === 'mes') {
+      h = ST.mes.length ? '<div class="grid">' + ST.mes.map(function (c, i) { return face(c, i, 'mes'); }).join('') + '</div>' :
+        '<div class="card"><b>Aucun cadran pour l\'instant.</b><p class="note">Créez-en un dans « Créer », ou partez d\'un cadran de la collection avec « Modifier une copie ».</p><button class="btn pri" data-go="creer">Créer un cadran</button></div>';
+    } else if (TAB === 'creer') {
+      if (!ED) { ED = clone(C.DEFAUT); EDI = -1; }
+      h = editor();
+    } else {
+      h = '<div class="card"><div class="sect" style="margin:0 0 6px">Fabrication automatique</div>' +
+        '<p style="margin:0 0 8px;color:var(--tx2)">Le bouton « Fabriquer » envoie votre cadran au robot de fabrication GitHub, qui renvoie un QR à scanner avec Zepp (2 à 4 minutes). Il faut pour cela une clé GitHub personnelle, à créer une fois :</p>' +
+        '<ol class="steps"><li>Sur github.com (compte du dépôt <b>atelier-signature</b>) : photo de profil › <b>Settings</b> › <b>Developer settings</b> › <b>Personal access tokens</b> › <b>Fine-grained tokens</b> › <b>Generate new token</b>.</li>' +
+        '<li>Nom : « Atelier de cadrans » ; durée : 1 an ; <b>Repository access</b> : <i>Only select repositories</i> › atelier-signature.</li>' +
+        '<li><b>Permissions</b> › Repository permissions › <b>Actions</b> : <i>Read and write</i> (rien d\'autre).</li>' +
+        '<li>Générez, copiez la clé (elle commence par <code>github_pat_</code>) et collez-la ici.</li></ol>' +
+        '<input class="in" id="tok" type="password" autocomplete="off" placeholder="github_pat_…" value="' + esc(ST.token) + '" style="margin-top:10px">' +
+        '<div class="row" style="margin-top:8px"><button class="btn pri" id="tokSave">Enregistrer et vérifier</button>' + (ST.token ? '<button class="btn bad" id="tokDel">Oublier la clé</button>' : '') + '</div>' +
+        '<p class="note">La clé reste sur cet appareil seulement. Elle ne permet que de lancer la fabrication sur ce dépôt. Ne la partagez pas.</p></div>' +
+        '<div class="card"><div class="sect" style="margin:0 0 6px">Installer sur la montre</div><ol class="steps"><li>Appli <b>Zepp</b> › Profil › <b>T-Rex 3</b> › <b>Mode développeur</b> › <b>Scanner</b>, comme pour le cadran Jarvis : visez le QR (affiché sur un autre écran, par exemple l\'Atelier sur PC), ou choisissez l\'image du QR dans la galerie si Zepp le propose.</li><li>Sur la montre : appui long sur le cadran pour choisir le nouveau.</li></ol><p class="note">Un cadran perso garde la même place sur la montre tant qu\'il garde le même nom : le refabriquer le remplace.</p></div>';
+    }
+    $('main').innerHTML = '<div class="v">' + h + '</div>';
+    if (TAB === 'creer') bindEditor();
+    if (TAB === 'reglages') bindReglages();
+    setTimeout(paintPreviews, 0);
+  }
+
+  /* ---------------- éditeur ---------------- */
+  function chips(name, map, val) { return '<div class="chips" data-set="' + name + '">' + Object.keys(map).map(function (k) { return '<button class="chip" data-v="' + k + '" aria-pressed="' + (String(val) === k) + '"' + (name === 'police' ? ' style="font-family:\'' + C.CHOIX.POLICES[k].fam + '\';font-size:15px"' : '') + '>' + esc(map[k].nom || map[k]) + '</button>'; }).join('') + '</div>'; }
+  function editor() {
+    var c = C.norm(ED), ana = c.heure !== 'numerique', pos = ana ? POS_ANA : POS_NUM;
+    var opts = Object.keys(C.INFOS).map(function (k) { return [k, C.INFOS[k].n]; });
+    return '<div class="ed"><div class="pv"><canvas id="pv" width="480" height="480"></canvas><div class="row"><button class="chip" id="aodT" aria-pressed="' + AOD + '">Écran toujours allumé</button></div></div><div>' +
+      '<div class="card"><div class="lbl" style="margin-top:0">Nom</div><input class="in" id="nom" maxlength="24" value="' + esc(c.nom) + '">' +
+      '<div class="lbl">Heure</div>' + chips('heure', C.CHOIX.HEURE, c.heure) +
+      '<div class="lbl">Police</div>' + chips('police', C.CHOIX.POLICES, c.police) +
+      (c.heure === 'numerique' ? '<div class="lbl">Taille de l\'heure</div>' + chips('taille', C.CHOIX.TAILLE, c.taille) : '') +
+      (ana ? '<div class="lbl">Aiguilles</div>' + chips('aiguilles', C.CHOIX.AIGUILLES, c.aiguilles) + '<div class="line"><div class="t"><b>Trotteuse</b><small>Aiguille des secondes (consomme un peu plus)</small></div><input type="checkbox" class="sw" id="sec"' + (c.secondes ? ' checked' : '') + '></div>' : '') +
+      '</div>' +
+      '<div class="card"><div class="lbl" style="margin-top:0">Couleurs toutes prêtes</div><div class="pal">' + PALETTES.map(function (p, i) { return '<button data-pal="' + i + '" title="' + esc(p[0]) + '" aria-label="' + esc(p[0]) + '"><i style="background:linear-gradient(135deg,' + p[2] + ' 0 50%,' + p[3] + ' 50%)"></i></button>'; }).join('') + '</div>' +
+      '<div class="lbl">Couleurs une à une</div><div class="cols">' + [['c1', 'Fond'], ['c2', 'Fond 2'], ['accent', 'Accent'], ['texte', 'Texte'], ['doux', 'Doux']].map(function (k) { return '<label class="col"><input type="color" data-col="' + k[0] + '" value="' + c[k[0]] + '">' + k[1] + '</label>'; }).join('') + '</div>' +
+      '<div class="lbl">Fond</div>' + chips('fond', C.CHOIX.FONDS, c.fond) +
+      '<div class="lbl">Anneau</div>' + chips('anneau', C.CHOIX.ANNEAUX, c.anneau) + '</div>' +
+      '<div class="card"><div class="lbl" style="margin-top:0">Cases d\'infos</div><div class="slots">' + c.infos.map(function (v, i) {
+        var off = c.heure === 'mixte' && i === 0;
+        return '<label><div class="note" style="margin:0 0 4px">' + pos[i] + (off ? ' (place de l\'heure)' : '') + '</div><select class="in" data-slot="' + i + '"' + (off ? ' disabled' : '') + '>' + opts.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === v ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select></label>';
+      }).join('') + '</div>' +
+      '<div class="line" style="margin-top:6px"><div class="t"><b>Date</b><small>Jour de la semaine, jour et mois</small></div><input type="checkbox" class="sw" id="date"' + (c.date ? ' checked' : '') + '></div>' +
+      '<div class="lbl">Écran toujours allumé</div>' + chips('aod', C.CHOIX.AOD, c.aod) + '</div>' +
+      '<div class="row" style="margin-top:4px"><button class="btn pri" id="edSave">' + (EDI >= 0 ? 'Enregistrer' : 'Enregistrer dans Mes cadrans') + '</button><button class="btn" id="edFab">Fabriquer pour la montre</button><button class="btn" id="edNew">Nouveau</button></div>' +
+      '</div></div>';
+  }
+  var RAF = 0;
+  function preview() { cancelAnimationFrame(RAF); RAF = requestAnimationFrame(function () { var cv = $('pv'); if (cv) draw(cv, ED, AOD); }); }
+  function bindEditor() {
+    preview();
+    $('nom').oninput = function () { ED.nom = this.value; dirty = 1; };
+    $('aodT').onclick = function () { AOD = !AOD; this.setAttribute('aria-pressed', AOD); preview(); };
+    document.querySelectorAll('[data-set] .chip').forEach(function (b) {
+      b.onclick = function () {
+        var k = b.parentNode.dataset.set; ED[k] = b.dataset.v; dirty = 1;
+        if (k === 'heure' || k === 'police') { var y = $('main').scrollTop; render(); $('main').scrollTop = y; }
+        else { b.parentNode.querySelectorAll('.chip').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); preview(); }
+      };
+    });
+    document.querySelectorAll('[data-col]').forEach(function (i) { i.oninput = function () { ED[i.dataset.col] = i.value; dirty = 1; preview(); }; });
+    document.querySelectorAll('[data-pal]').forEach(function (b) { b.onclick = function () { var p = PALETTES[+b.dataset.pal]; ED.c1 = p[1]; ED.c2 = p[2]; ED.accent = p[3]; ED.texte = p[4]; ED.doux = p[5]; dirty = 1; document.querySelectorAll('[data-col]').forEach(function (i) { i.value = ED[i.dataset.col]; }); preview(); }; });
+    document.querySelectorAll('[data-slot]').forEach(function (s) { s.onchange = function () { var c = C.norm(ED); c.infos[+s.dataset.slot] = s.value; ED.infos = c.infos; dirty = 1; preview(); }; });
+    var sec = $('sec'); if (sec) sec.onchange = function () { ED.secondes = sec.checked; dirty = 1; preview(); };
+    $('date').onchange = function () { ED.date = this.checked; dirty = 1; preview(); };
+    $('edSave').onclick = function () { saveEd(); toast('Cadran enregistré'); };
+    $('edFab').onclick = function () { var i = saveEd(); fabriquer(i); };
+    $('edNew').onclick = function () { if (dirty && !confirm('Abandonner les changements ?')) return; ED = clone(C.DEFAUT); EDI = -1; dirty = 0; render(); };
+  }
+  function saveEd() {
+    var c = C.norm(ED); c.nom = (c.nom || 'Mon cadran').trim() || 'Mon cadran';
+    if (EDI >= 0 && ST.mes[EDI]) { c.build = null; ST.mes[EDI] = c; }
+    else { ST.mes.unshift(c); EDI = 0; }
+    ED = clone(c); dirty = 0; save(); return EDI;
+  }
+
+  /* ---------------- installation / fabrication ---------------- */
+  function sheet(h) { $('sheetIn').innerHTML = h; $('sheet').hidden = false; }
+  function closeSheet() { $('sheet').hidden = true; clearTimeout(POLL.t); }
+  $('sheet').addEventListener('click', function (e) { if (e.target === this || e.target.closest('[data-close]')) closeSheet(); });
+  function qrSheet(nom, qr, zab, apercu) {
+    sheet('<h2>Installer « ' + esc(nom) + ' »</h2>' + (apercu ? '' : '') +
+      '<img class="qr" src="' + esc(qr) + '" alt="QR à scanner avec Zepp">' +
+      '<ol class="steps"><li>Appli <b>Zepp</b> › Profil › <b>T-Rex 3</b> › <b>Mode développeur</b> › <b>Scanner</b>.</li><li>Visez ce QR depuis un autre écran (l\'Atelier sur PC par exemple), ou ouvrez l\'image et enregistrez-la pour la choisir dans la galerie si Zepp le propose.</li><li>Sur la montre : appui long sur le cadran, puis choisissez « ' + esc(nom) + ' ».</li></ol>' +
+      '<div class="row" style="margin-top:10px"><a class="btn" href="' + esc(qr) + '" target="_blank" rel="noopener">Ouvrir l\'image du QR</a>' + (zab ? '<a class="btn" href="' + esc('zpkd1://' + zab.replace(/^https:\/\//, '')) + '">Essayer d\'ouvrir dans Zepp</a>' : '') + '<button class="btn" data-close>Fermer</button></div>' +
+      '<p class="note">Le QR vient du robot de fabrication (GitHub) ; Zepp l\'accepte pendant 48 heures (la collection est renouvelée chaque nuit). Si l\'image ne s\'affiche pas, vérifiez la connexion.</p>');
+  }
+  function b64(s) { return btoa(unescape(encodeURIComponent(s))); }
+  function gh(path, opt) {
+    opt = opt || {}; var h = { 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };
+    if (ST.token) h.Authorization = 'Bearer ' + ST.token;
+    if (opt.body) h['Content-Type'] = 'application/json';
+    return fetch(API + path, { method: opt.method || 'GET', headers: h, body: opt.body ? JSON.stringify(opt.body) : undefined }).then(function (r) {
+      if (r.status === 204) return {};
+      return r.json().then(function (j) { if (!r.ok) { var e = new Error(j && j.message || ('HTTP ' + r.status)); e.status = r.status; throw e; } return j; });
+    });
+  }
+  var POLL = { t: 0 };
+  function fabriquer(i) {
+    var c = ST.mes[i]; if (!c) return;
+    // un QR « preview » de Zepp ne se scanne que 48 h après la fabrication
+    if (c.build && c.build.qr && Date.now() - c.build.at > 46 * 3600000) { c.build.perime = 1; }
+    if (c.build && c.build.qr && c.build.perime) {
+      return sheet('<h2>« ' + esc(c.nom) + ' »</h2><p style="color:var(--tx2)">Le QR de ce cadran a expiré : Zepp n\'accepte un QR que pendant 48 heures après la fabrication. (Un cadran déjà installé sur la montre reste installé.)</p><div class="row"><button class="btn pri" id="reFab">Refabriquer</button><button class="btn" data-close>Fermer</button></div>'), $('reFab').onclick = function () { c.build = null; save(); fabriquer(i); };
+    }
+    if (c.build && c.build.qr) {
+      return sheet('<h2>« ' + esc(c.nom) + ' »</h2><p style="color:var(--tx2)">Ce cadran a déjà été fabriqué' + (c.build.at ? ' le ' + new Date(c.build.at).toLocaleString('fr-FR') : '') + '.</p><div class="row"><button class="btn pri" id="vQr">Voir le QR</button><button class="btn" id="reFab">Refabriquer</button><button class="btn" data-close>Fermer</button></div>'), $('vQr').onclick = function () { qrSheet(c.nom, c.build.qr, c.build.zab); }, $('reFab').onclick = function () { c.build = null; save(); fabriquer(i); };
+    }
+    var cfg = C.norm(c); delete cfg.build;
+    var code = b64(JSON.stringify(cfg));
+    if (!ST.token) {
+      return sheet('<h2>Fabriquer « ' + esc(c.nom) + ' »</h2><p style="color:var(--tx2)">Pour fabriquer tout seul depuis l\'appli, enregistrez d\'abord votre clé GitHub (Réglages, une seule fois).</p>' +
+        '<p style="color:var(--tx2)">Autre solution : copiez le code ci-dessous et envoyez-le à Claude, qui fabriquera le cadran pour vous.</p><textarea class="in" id="code" rows="4" readonly>' + esc(code) + '</textarea>' +
+        '<div class="row" style="margin-top:10px"><button class="btn pri" id="copy">Copier le code</button><button class="btn" id="goReg">Réglages</button><button class="btn" data-close>Fermer</button></div>'),
+        $('copy').onclick = function () { var t = $('code'); t.select(); try { navigator.clipboard.writeText(code).then(function () { toast('Code copié'); }, function () { document.execCommand('copy'); toast('Code copié'); }); } catch (e) { document.execCommand('copy'); toast('Code copié'); } },
+        $('goReg').onclick = function () { closeSheet(); TAB = 'reglages'; render(); };
+    }
+    var t0 = Date.now();
+    sheet('<h2>Fabrication de « ' + esc(c.nom) + ' »</h2><p id="fabTxt" style="color:var(--tx2)">Envoi au robot de fabrication…</p><div class="prog"><i></i></div><p class="note">Comptez 2 à 4 minutes. Vous pouvez fermer : la fabrication continue, le QR apparaîtra dans Mes cadrans.</p><div class="row"><button class="btn" data-close>Fermer</button></div>');
+    gh('/actions/workflows/cadrans.yml/dispatches', { method: 'POST', body: { ref: 'main', inputs: { cadran: code } } }).then(function () {
+      c.build = { at: t0, etat: 'en cours' }; save();
+      setTxt('Fabrication en cours sur GitHub…');
+      suivre(c, t0, 0);
+    }).catch(function (e) {
+      setTxt(e.status === 401 || e.status === 403 || e.status === 404 ? 'La clé GitHub est refusée (périmée ou sans le droit « Actions : Read and write »). Vérifiez-la dans Réglages.' : 'Envoi impossible : ' + e.message);
+    });
+  }
+  function setTxt(t) { var x = $('fabTxt'); if (x) x.textContent = t; }
+  function suivre(c, t0, n) {
+    if (n > 60) { setTxt('C\'est plus long que prévu. Réessayez plus tard depuis Mes cadrans.'); return; }
+    POLL.t = setTimeout(function () {
+      gh('/actions/workflows/cadrans.yml/runs?event=workflow_dispatch&per_page=10').then(function (r) {
+        var run = (r.workflow_runs || []).filter(function (x) { return Date.parse(x.created_at) >= t0 - 20000; }).pop();
+        if (!run) return suivre(c, t0, n + 1);
+        c.build.run = run.id; save();
+        if (run.status !== 'completed') { setTxt('Fabrication en cours sur GitHub… (' + Math.round((Date.now() - t0) / 1000) + ' s)'); return suivre(c, t0, n + 1); }
+        if (run.conclusion !== 'success') { c.build = null; save(); setTxt('La fabrication a échoué. Envoyez le code du cadran à Claude pour qu\'il regarde.'); return; }
+        return gh('/releases/tags/cadran-perso-' + run.run_number).then(function (rel) {
+          var a = rel.assets || [], f = function (re) { var x = a.filter(function (y) { return re.test(y.name); })[0]; return x && x.browser_download_url; };
+          c.build = { at: t0, qr: f(/-qr\.png$/), zab: f(/-apercu\.zab$/), tag: rel.tag_name }; save();
+          if (TAB === 'mes') render();
+          if (!$('sheet').hidden) qrSheet(c.nom, c.build.qr, c.build.zab);
+          else toast('« ' + c.nom + ' » est prêt : QR dans Mes cadrans');
+        });
+      }).catch(function () { suivre(c, t0, n + 1); });
+    }, n ? 10000 : 15000);
+  }
+  function bindReglages() {
+    $('tokSave').onclick = function () {
+      var v = $('tok').value.trim(); if (!v) return;
+      ST.token = v; save();
+      gh('/actions/workflows/cadrans.yml').then(function () { toast('Clé enregistrée et vérifiée'); render(); }).catch(function (e) { toast('Clé enregistrée, mais vérification impossible : ' + e.message); render(); });
+    };
+    var d = $('tokDel'); if (d) d.onclick = function () { if (confirm('Oublier la clé GitHub sur cet appareil ?')) { ST.token = ''; save(); render(); } };
+  }
+
+  /* ---------------- gestes ---------------- */
+  document.addEventListener('click', function (e) {
+    var b;
+    if ((b = e.target.closest('nav [data-tab]'))) { if (TAB === 'creer' && dirty && b.dataset.tab !== 'creer' && !confirm('Quitter sans enregistrer ?')) return; TAB = b.dataset.tab; render(); $('main').scrollTop = 0; return; }
+    if ((b = e.target.closest('[data-go]'))) { TAB = b.dataset.go; render(); return; }
+    if ((b = e.target.closest('[data-inst]'))) { var c0 = COL[+b.dataset.inst]; qrSheet(c0.nom, DL + 'cadrans-collection/' + c0.id + '-qr.png', DL + 'cadrans-collection/' + c0.id + '-apercu.zab'); return; }
+    if ((b = e.target.closest('[data-copie]'))) { ED = clone(COL[+b.dataset.copie]); delete ED.id; delete ED.appId; ED.nom = (ED.nom + ' perso').slice(0, 24); EDI = -1; dirty = 1; TAB = 'creer'; render(); $('main').scrollTop = 0; return; }
+    if ((b = e.target.closest('[data-edit]'))) { EDI = +b.dataset.edit; ED = clone(ST.mes[EDI]); dirty = 0; TAB = 'creer'; render(); return; }
+    if ((b = e.target.closest('[data-dup]'))) { var c1 = clone(ST.mes[+b.dataset.dup]); c1.build = null; c1.nom = (c1.nom + ' 2').slice(0, 24); ST.mes.unshift(c1); save(); render(); return; }
+    if ((b = e.target.closest('[data-del]'))) { var i = +b.dataset.del; if (confirm('Supprimer « ' + ST.mes[i].nom + ' » de vos cadrans ? (il reste sur la montre)')) { ST.mes.splice(i, 1); save(); render(); } return; }
+    if ((b = e.target.closest('[data-fab]'))) { fabriquer(+b.dataset.fab); return; }
+  });
+  // fabrications en cours au démarrage : reprendre le suivi
+  function reprendre() { ST.mes.forEach(function (c) { if (c.build && !c.build.qr && c.build.at && Date.now() - c.build.at < 20 * 60000 && ST.token) suivre(c, c.build.at, 1); }); }
+
+  C.polices('polices/').then(function () {
+    return fetch('collection/liste.json').then(function (r) { return r.json(); }).then(function (ids) {
+      return Promise.all(ids.map(function (id) { return fetch('collection/' + id + '.json').then(function (r) { return r.json(); }); }));
+    }).then(function (l) { COL = l; }).catch(function () { COL = []; });
+  }).then(function () { render(); reprendre(); });
+  setInterval(function () { if (TAB === 'creer' && !document.hidden) preview(); }, 30000);   // l'heure de l'aperçu avance
+  window.__atelier = { ST: ST, fabriquer: fabriquer, ed: function () { return ED; } };
+})();
+</script>
+</body>
+</html>

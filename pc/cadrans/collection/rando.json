@@ -1,0 +1,22 @@
+{
+  "id": "rando",
+  "appId": 1093206,
+  "nom": "Rando",
+  "fond": "carbone",
+  "c1": "#0a0d10",
+  "c2": "#1a2027",
+  "accent": "#7bd88f",
+  "texte": "#f1f6f2",
+  "doux": "#8ea596",
+  "heure": "mixte",
+  "police": "grasse",
+  "anneau": "graduations",
+  "aiguilles": "larges",
+  "infos": [
+    "meteo",
+    "lever",
+    "coucher",
+    "altitude"
+  ],
+  "aod": "heure_date"
+}

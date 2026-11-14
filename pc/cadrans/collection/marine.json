@@ -1,0 +1,23 @@
+{
+  "id": "marine",
+  "appId": 1093208,
+  "nom": "Bleu marine",
+  "fond": "radial",
+  "c1": "#01060d",
+  "c2": "#0d2a4a",
+  "accent": "#3da9ff",
+  "texte": "#eef6ff",
+  "doux": "#7f9bb8",
+  "heure": "analogique",
+  "police": "legere",
+  "anneau": "graduations",
+  "aiguilles": "fines",
+  "secondes": true,
+  "infos": [
+    "pression",
+    "altitude",
+    "pas",
+    "batterie"
+  ],
+  "aod": "heure"
+}

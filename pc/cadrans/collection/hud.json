@@ -1,0 +1,22 @@
+{
+  "id": "hud",
+  "appId": 1093201,
+  "nom": "HUD Jarvis",
+  "fond": "hud",
+  "c1": "#000000",
+  "c2": "#0b2a33",
+  "accent": "#46d9c2",
+  "texte": "#eafffb",
+  "doux": "#7fa8a2",
+  "heure": "numerique",
+  "police": "legere",
+  "taille": "grande",
+  "anneau": "graduations",
+  "infos": [
+    "meteo",
+    "coeur",
+    "pas",
+    "batterie"
+  ],
+  "aod": "heure_date"
+}

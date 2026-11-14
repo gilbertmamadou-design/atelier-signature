@@ -1,0 +1,22 @@
+{
+  "id": "sport",
+  "appId": 1093204,
+  "nom": "Sport",
+  "fond": "degrade",
+  "c1": "#000000",
+  "c2": "#3a0a0a",
+  "accent": "#ff3b3b",
+  "texte": "#ffffff",
+  "doux": "#b39a9a",
+  "heure": "numerique",
+  "police": "sport",
+  "taille": "grande",
+  "anneau": "pas",
+  "infos": [
+    "coeur",
+    "calories",
+    "distance",
+    "batterie"
+  ],
+  "aod": "heure_date"
+}

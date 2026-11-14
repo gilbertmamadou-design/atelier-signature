@@ -1,0 +1,22 @@
+{
+  "id": "chantier",
+  "appId": 1093209,
+  "nom": "Chantier",
+  "fond": "grille",
+  "c1": "#0d0d0d",
+  "c2": "#262000",
+  "accent": "#ffcc00",
+  "texte": "#ffffff",
+  "doux": "#b8ae8a",
+  "heure": "numerique",
+  "police": "sport",
+  "taille": "grande",
+  "anneau": "graduations",
+  "infos": [
+    "meteo",
+    "vent",
+    "pas",
+    "batterie"
+  ],
+  "aod": "heure_date"
+}
