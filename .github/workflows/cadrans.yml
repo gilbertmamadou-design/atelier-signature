@@ -68,7 +68,7 @@ jobs:
             echo "tag=cadran-perso-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
           else
             echo "mode=collection" >> "$GITHUB_OUTPUT"
-            echo "fichiers=$(ls collection/*.json | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+            echo "fichiers=$(ls collection/*.json | grep -v liste.json | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
             echo "tag=cadrans-collection" >> "$GITHUB_OUTPUT"
           fi
       - name: Dessiner les images et préparer les projets
@@ -110,7 +110,6 @@ jobs:
             Installation : ouvrez l'appli « Atelier de cadrans » › Collection, ou scannez <id>-qr.png avec Zepp › Profil › T-Rex 3 › Mode développeur › scan.
           files: |
             zepp/out-cadrans/*.zab
-            zepp/out-cadrans/*-qr.png
             zepp/out-cadrans/*.png
             zepp/out-cadrans/*.json
       - name: Publier (cadran perso)
