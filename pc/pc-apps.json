@@ -590,7 +590,7 @@
       "android": "langues",
       "name": "Langues",
       "short_name": "Langues",
-      "description": "Apprendre l'espagnol (Espagne) et le portugais (Portugal) : voyage, travail et chantier, révisions espacées, écoute et prononciation",
+      "description": "Apprendre l'espagnol (Espagne), le portugais (Portugal) et l'anglais : voyage, travail et chantier, révisions espacées, écoute et prononciation",
       "theme_color": "#14121c",
       "background_color": "#14121c",
       "copies": { "langues-donnees.js": "applis/www-langues/langues-donnees.js" },

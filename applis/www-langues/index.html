@@ -6,7 +6,7 @@
 <title>Langues</title>
 <meta name="theme-color" content="#14121c">
 <style>
-/* Langues : apprendre l'espagnol (Espagne) et le portugais (Portugal), pour voyager et travailler.
+/* Langues : apprendre l'espagnol (Espagne), le portugais (Portugal) et l'anglais (Royaume-Uni), pour voyager et travailler.
    Onglets Leçons / Réviser / Lexique / Réglages ; séances d'exercices en plein écran. */
 :root{
   color-scheme:dark;
@@ -24,7 +24,8 @@ button{background:none;border:0;cursor:pointer;padding:0}
 svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none;display:block}
 [hidden]{display:none!important}
 #app{display:flex;flex-direction:column;height:100%}
-header{padding:calc(12px + var(--safeT)) 16px 6px;display:flex;align-items:center;gap:10px;max-width:640px;width:100%;margin:0 auto}
+header{padding:calc(12px + var(--safeT)) 16px 6px;display:flex;align-items:center;gap:8px 10px;max-width:640px;width:100%;margin:0 auto;flex-wrap:wrap}
+@media (max-width:480px){header .seg{order:3;width:100%}header .seg button{flex:1}}
 header h1{margin:0;font:700 22px/1.1 Georgia,"Noto Serif",serif;flex:1}
 .seg{display:flex;background:var(--bg3);border:1px solid var(--line);border-radius:99px;padding:3px}
 .seg button{padding:6px 12px;border-radius:99px;font-weight:700;font-size:13px;color:var(--tx2)}
@@ -270,7 +271,7 @@ nav .badge{position:absolute;top:0;right:12px;background:var(--acc2);color:var(-
   };
 
   /* ---------- Comparaison des réponses ---------- */
-  var ART = /^(el|la|los|las|un|una|o|a|os|as|um|uma)\s+/;
+  var ART = /^(el|la|los|las|un|una|o|a|os|as|um|uma|the|an|to)\s+/;
   function bare(s) { return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[¿¡?!.,;:«»"()…]/g, ' ').replace(/[’']/g, ' ').replace(/\s+/g, ' ').trim(); }
   function soft(s) { return String(s).toLowerCase().replace(/[¿¡?!.,;:«»"()…]/g, ' ').replace(/\s+/g, ' ').trim(); }
   function lev(a, b) {
@@ -341,7 +342,7 @@ nav .badge{position:absolute;top:0;right:12px;background:var(--acc2);color:var(-
     } else {
       var vstat = VOX.ok === true ? (VOX.br ? 'Voix trouvée, mais avec l\'accent du Brésil' : 'Voix installée') : VOX.ok === false ? 'Voix absente : installez-la pour entendre les mots' : 'Vérification…';
       h += '<div class="card"><div class="sect" style="margin:0 0 4px">Voix ' + esc(l.nom.toLowerCase()) + ' (' + esc(l.pays) + ')</div>' +
-        '<div class="row"><div class="t"><b>' + vstat + '</b><small>' + (BR ? 'Voix du téléphone, hors connexion une fois installée' : 'Voix de l\'ordinateur ou du navigateur') + '</small></div><button class="say" data-say="' + esc(l.id === 'es' ? 'Hola, ¿qué tal?' : 'Olá, como está?') + '" aria-label="Essayer">' + ic('play') + '</button></div>' +
+        '<div class="row"><div class="t"><b>' + vstat + '</b><small>' + (BR ? 'Voix du téléphone, hors connexion une fois installée' : 'Voix de l\'ordinateur ou du navigateur') + '</small></div><button class="say" data-say="' + esc({ es: 'Hola, ¿qué tal?', pt: 'Olá, como está?', en: 'Hello, how are you?' }[l.id]) + '" aria-label="Essayer">' + ic('play') + '</button></div>' +
         (BR && BR.reglagesVoix ? '<button class="sec" data-go="tts">Installer ou choisir la voix</button><p class="note">Dans Android : Synthèse vocale › moteur Google › Installer les données vocales › ' + esc(l.nom) + ' (' + esc(l.pays) + ').</p>' : '<p class="note">Sur PC, Edge propose des voix naturelles en ' + esc(l.nom.toLowerCase()) + ' (' + esc(l.pays) + ').</p>') +
         '<div class="sect" style="margin:12px 0 6px">Vitesse de la voix</div><div class="chips" id="rate">' + [[0.65, 'Lente'], [0.9, 'Normale'], [1.05, 'Rapide']].map(function (r) { return '<button class="chip" data-rate="' + r[0] + '" aria-pressed="' + (Math.abs(ST.rate - r[0]) < .01) + '">' + r[1] + '</button>'; }).join('') + '</div></div>';
       h += '<div class="card">' +
@@ -350,7 +351,7 @@ nav .badge{position:absolute;top:0;right:12px;background:var(--acc2);color:var(-
         '<div class="sect" style="margin:12px 0 6px">Objectif du jour</div><div class="chips" id="goal">' + [10, 20, 30, 50].map(function (g) { return '<button class="chip" data-goal="' + g + '" aria-pressed="' + (ST.goal === g) + '">' + g + ' pts</button>'; }).join('') + '</div>' +
         '<p class="note">Environ 2 points par bonne réponse : 20 points ≈ 5 à 10 minutes.</p></div>';
       h += '<div class="card"><div class="sect" style="margin:0 0 6px">Progrès</div><button class="sec" data-go="reset">Remettre à zéro le ' + esc(l.nom.toLowerCase()) + '</button>' +
-        '<p class="note">Contenu écrit pour l\'appli : ' + esc(D.THEMES.length) + ' thèmes. Espagnol d\'Espagne, portugais du Portugal (orthographe de 1990). Les mots de chantier peuvent varier selon les entreprises et les régions.</p></div>';
+        '<p class="note">Contenu écrit pour l\'appli : ' + esc(D.THEMES.length) + ' thèmes. Espagnol d\'Espagne, portugais du Portugal (orthographe de 1990), anglais britannique. Les mots de chantier peuvent varier selon les entreprises et les régions.</p></div>';
     }
     $('main').innerHTML = '<div class="v">' + h + '</div>';
     if (TAB === 'lexique') { lexique(); var q = $('lq'); q.oninput = function () { LQ = q.value; lexique(); }; }
@@ -451,7 +452,7 @@ nav .badge{position:absolute;top:0;right:12px;background:var(--acc2);color:var(-
       if (e.t !== 'choixL') setTimeout(function () { speak(it.l); }, 250);
     } else if (e.t === 'saisie') {
       h = '<div class="k">Écrivez en ' + esc(l.nom.toLowerCase()) + '</div><div class="q">' + esc(it.fr) + '</div><input class="in" id="typed" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Votre réponse" style="font-size:18px">' +
-        '<div class="chips">' + (l.id === 'es' ? ['á', 'é', 'í', 'ó', 'ú', 'ñ', 'ü', '¿', '¡'] : ['á', 'à', 'â', 'ã', 'é', 'ê', 'í', 'ó', 'ô', 'õ', 'ú', 'ç']).map(function (c) { return '<button class="chip" data-ch="' + c + '">' + c + '</button>'; }).join('') + '</div>';
+        '<div class="chips">' + (l.id === 'es' ? ['á', 'é', 'í', 'ó', 'ú', 'ñ', 'ü', '¿', '¡'] : l.id === 'pt' ? ['á', 'à', 'â', 'ã', 'é', 'ê', 'í', 'ó', 'ô', 'õ', 'ú', 'ç'] : []).map(function (c) { return '<button class="chip" data-ch="' + c + '">' + c + '</button>'; }).join('') + '</div>';
     } else if (e.t === 'ordre') {
       var words = it.l.split(/\s+/), extra = others(it, e.pool, 1, 'l').map(function (x) { return pick(x.l.split(/\s+/)); }).filter(function (w) { return words.indexOf(w) < 0; });
       SS.words = shuffle(words.concat(extra.slice(0, words.length > 3 ? 1 : 0)));
@@ -509,7 +510,7 @@ nav .badge{position:absolute;top:0;right:12px;background:var(--acc2);color:var(-
       return;
     }
     if ((b = t.closest('.th[data-th]'))) { openTheme(b.dataset.th); return; }
-    if ((b = t.closest('[data-rate]'))) { ST.rate = +b.dataset.rate; save(); render(); speak(L().id === 'es' ? 'Buenos días' : 'Bom dia'); return; }
+    if ((b = t.closest('[data-rate]'))) { ST.rate = +b.dataset.rate; save(); render(); speak({ es: 'Buenos días', pt: 'Bom dia', en: 'Good morning' }[L().id]); return; }
     if ((b = t.closest('[data-goal]'))) { ST.goal = +b.dataset.goal; save(); render(); return; }
     if (!SS) return;
     /* séance */
