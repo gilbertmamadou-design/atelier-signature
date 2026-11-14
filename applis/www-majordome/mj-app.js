@@ -46,7 +46,14 @@
   };
   var S = Object.assign({}, DEF, lsGet(KEY.set, {}));
   if (!Array.isArray(S.routines) || !S.routines.length) S.routines = DEF.routines;
-  function saveS() { lsSet(KEY.set, S); if (typeof publish === 'function') publish(); }
+  function saveS() { lsSet(KEY.set, S); if (typeof publish === 'function') publish(); if (typeof paintRts === 'function') paintRts(); }
+  // Routine « Bonsoir » proposée une fois (modifiable ou supprimable dans Réglages › Routines)
+  if (!S.rtSoir) {
+    S.rtSoir = 1;
+    if (!S.routines.some(function (r) { return /(^|[,;\/|])\s*bonsoir\s*($|[,;\/|])/i.test(r.phrase || ''); }))
+      S.routines.push({ id: 'soir', name: 'Bonsoir', phrase: 'bonsoir', btn: true, steps: ['dit:Bonsoir', 'lum:allume le couloir'] });
+    lsSet(KEY.set, S);
+  }
   function wakeWords() {
     var w = [deacc(S.name || 'Majordome')];
     String(S.wake || '').split(/[,;]/).forEach(function (x) { x = deacc(x); if (x && w.indexOf(x) < 0) w.push(x); });
@@ -275,7 +282,7 @@
   function speaking() { return orb.get() === 'speak'; }
 
   /* ---------------- Traitement d'une commande ---------------- */
-  function ctx() { var c = { now: now(), names: wakeWords(), routines: S.routines.filter(function (r) { return r.id !== 'matin' && r.id !== 'nuit'; }).map(function (r) { return { id: r.id, name: r.name, phrase: r.phrase }; }) }; if (MJ.ctxExtra) try { Object.assign(c, MJ.ctxExtra()); } catch (e) { } return c; }
+  function ctx() { var c = { now: now(), names: wakeWords(), routines: S.routines.map(function (r) { return { id: r.id, name: r.name, phrase: r.phrase }; }) }; if (MJ.ctxExtra) try { Object.assign(c, MJ.ctxExtra()); } catch (e) { } return c; }
   function handle(text, via) {
     text = String(text || '').trim(); if (!text) return Promise.resolve();
     MJ.voiceTurn = via === 'voice';
@@ -1137,7 +1144,14 @@
 
   /* --- Routines --- */
   var STEPS = { salut: 'Salutation', heure: 'Heure', date: 'Date', meteo: 'Météo du jour', vent: 'Vent (échafaudage)', vigilance: 'Vigilance météo', agenda: 'Agenda du jour', titres: '3 titres de l\'actualité', rappels: 'Rappels', liste: 'Liste de courses', musique: 'Lancer la musique', reveil: 'Réveil de demain', bonnenuit: 'Bonne nuit', ecoute_off: 'Couper l\'écoute continue', lampe_off: 'Éteindre la lampe', silencieux: 'Mode silencieux' };
-  function stepLabel(s) { return /^lum:/.test(s) ? 'Lumières : ' + s.slice(4) : STEPS[s] || s; }
+  function stepLabel(s) {
+    if (/^lum:/.test(s)) return 'Lumières : ' + s.slice(4);
+    if (/^cmd:/.test(s)) return '« ' + s.slice(4) + ' »';
+    if (/^dit:/.test(s)) return 'Dire : ' + s.slice(4);
+    if (/^pause:/.test(s)) return 'Pause ' + (+s.slice(6) || 0) + ' s';
+    return STEPS[s] || s;
+  }
+  var RT_DEPTH = 0;
   function runStep(s) {
     var t0 = NLU.startOfDay(now());
     switch (s) {
@@ -1165,13 +1179,23 @@
       case 'silencieux': return H.silent({ mode: 'silent' });
     }
     if (/^lum:/.test(s) && MJ.lightStep) return MJ.lightStep(s.slice(4));
+    if (/^dit:/.test(s)) { var tx = s.slice(4).trim(); if (!tx) return Promise.resolve(); return answer(/[.!?…]$/.test(tx) ? tx : withSir(tx) + '.').done; }
+    if (/^pause:/.test(s)) { var sec = Math.max(0, Math.min(600, +s.slice(6) || 0)); return new Promise(function (ok) { setTimeout(ok, sec * 1000); }); }
+    if (/^cmd:/.test(s)) {
+      // n'importe quelle commande, comme on la dit : lumières, clim, applis, musique, minuteur, silencieux…
+      var r = NLU.parse(s.slice(4), ctx());
+      if (r.intent === 'routine' && RT_DEPTH > 2) return Promise.resolve();
+      if (!MJ.cur) MJ.cur = { at: now(), q: s.slice(4), a: '', intent: r.intent };
+      try { return Promise.resolve(exec(r)); } catch (e) { return Promise.resolve(); }
+    }
     return Promise.resolve();
   }
   H.routine = function (p) {
     var r = S.routines.filter(function (x) { return x.id === p.id || (p.name && deacc(x.name) === deacc(p.name)); })[0];
     if (!r) return answer('Je ne connais pas la routine « ' + (p.name || p.id) + ' ». Vous pouvez la créer dans les réglages.').done;
-    var chain = Promise.resolve();
+    var chain = Promise.resolve(); RT_DEPTH++;
     (r.steps || []).forEach(function (s) { chain = chain.then(function () { return Promise.resolve(runStep(s)).catch(function () { }); }); });
+    chain = chain.then(function () { RT_DEPTH = Math.max(0, RT_DEPTH - 1); }, function () { RT_DEPTH = Math.max(0, RT_DEPTH - 1); });
     // montre connectée : résumé du matin après « Bonjour » (mj-montre.js)
     return chain.then(function () { if (MJ.onRoutine) return Promise.resolve(MJ.onRoutine(r)).catch(function (e) { console.warn(e); }); });
   };
@@ -1336,7 +1360,7 @@
       '<div class="set"><div class="t">Utiliser ma position<small>Sinon, la ville choisie</small></div><label class="sw"><input type="checkbox" id="sGps"' + (S.gps ? ' checked' : '') + '><span></span></label></div>' +
       '<div class="set"><div class="t">Ville<small>' + esc(S.place ? S.place.name + (S.place.admin ? ', ' + S.place.admin : '') : 'Aucune') + '</small></div></div><div style="display:flex;gap:8px"><input class="in" id="sCity" placeholder="Rechercher une ville"><button class="btn sm" id="sCityGo">Choisir</button></div>' +
       '<div class="set"><div class="t">Seuil de vent (rafales) pour l\'échafaudage<small>Au-dessus : « vent fort, prudence ». À adapter aux consignes du fabricant et du chantier.</small></div><input class="in" id="sWind" type="number" min="20" max="120" step="1" style="width:90px" value="' + (+S.windLimit || 45) + '"> km/h</div>' +
-      '<div class="sect">Routines</div>' + S.routines.map(function (r, i) { return '<div class="set"><div class="t">' + esc(r.name) + '<small>« ' + esc(r.phrase) + ' » : ' + esc((r.steps || []).map(stepLabel).join(', ')) + '</small></div><button class="btn sm" data-rt="' + i + '">Modifier</button></div>'; }).join('') +
+      '<div class="sect" id="f-routines">Routines</div><p class="note">Donnez un nom, une ou plusieurs phrases, et enchaînez ce que vous voulez : lumières, clim, applis, musique, phrases… Un bouton peut aussi apparaître sous la sphère.</p>' + S.routines.map(function (r, i) { return '<div class="set"><div class="t">' + esc(r.name) + '<small>« ' + esc(r.phrase) + ' » : ' + esc((r.steps || []).map(stepLabel).join(', ')) + '</small></div><button class="btn sm" data-rt="' + i + '">Modifier</button></div>'; }).join('') +
       '<div class="row" style="display:flex;gap:8px;margin-top:8px"><button class="btn sm" id="sRtNew">Nouvelle routine</button></div>' +
       (ANDROID ? '<div class="sect">Téléphone</div><div class="set"><div class="t">Autorisations</div><button class="btn sm" id="sPerms">Voir</button></div>' + assistRow() : '') +
       (MJ.settingsExtra ? MJ.settingsExtra() : '') + homeHtml() +
@@ -1397,28 +1421,71 @@
     $('sWgAdd').onclick = function () { if (!B.widgetPin()) toast('Ajout manuel : appui long sur l\'écran d\'accueil › Widgets › Majordome › « Jarvis (Majordome) »'); };
   }
   $('bSet').onclick = function () { settingsSheet(); };
-  function lumRow(v) { return '<div style="display:flex;gap:6px;margin:6px 0"><input class="in" data-lum value="' + esc(v) + '" placeholder="ex. éteins tout"><button class="btn sm" data-lumx aria-label="Retirer">✕</button></div>'; }
+  /* Éditeur de routine : nom, phrases, bouton sur l'écran, actions dans l'ordre (déplaçables) */
+  var ADD_KINDS = [['cmd', 'Commande libre (tout ce que je sais faire)'], ['lum', 'Lumières (Philips Hue)'], ['app', 'Ouvrir une appli'], ['dit', 'Dire une phrase'], ['pause', 'Attendre quelques secondes']];
   function routineSheet(i) {
-    var r = i >= 0 ? S.routines[i] : { id: 'r' + uid(), name: '', phrase: '', steps: ['salut', 'heure'] };
-    var h = '<div class="set"><div class="t">Nom</div></div><input class="in" id="rName" value="' + esc(r.name) + '" placeholder="ex. Départ chantier">' +
-      '<div class="set"><div class="t">Phrase pour la lancer<small>ex. « départ chantier »</small></div></div><input class="in" id="rPh" value="' + esc(r.phrase) + '">' +
-      '<div class="sect">Actions, dans l\'ordre</div>' + Object.keys(STEPS).map(function (k) { return '<div class="set"><div class="t">' + esc(STEPS[k]) + '</div><label class="sw"><input type="checkbox" data-st="' + k + '"' + ((r.steps || []).indexOf(k) >= 0 ? ' checked' : '') + '><span></span></label></div>'; }).join('') +
-      '<div class="sect">Lumières (Philips Hue)</div><p class="note">Une commande par ligne, comme on la dit : « éteins tout », « allume la cuisine à 60 % », « active la scène Lecture ».' + (MJ.hueReady && MJ.hueReady() ? '' : ' Sans pont Hue jumelé, ces actions sont ignorées.') + '</p><div id="rLum">' + (r.steps || []).filter(function (s) { return /^lum:/.test(s); }).map(function (s) { return lumRow(s.slice(4)); }).join('') + '</div>' +
-      '<div class="row" style="display:flex;gap:8px;margin-top:6px"><button class="btn sm" id="rLumAdd">Ajouter une action lumière</button></div>' +
-      '<div class="row" style="display:flex;gap:8px;margin-top:12px"><button class="btn pri" id="rSave">Enregistrer</button>' + (i >= 0 && r.id !== 'matin' && r.id !== 'nuit' ? '<button class="btn bad" id="rDel">Supprimer</button>' : '') + '<button class="btn" id="rTry">Essayer</button></div>';
+    var r = i >= 0 ? S.routines[i] : { id: 'r' + uid(), name: '', phrase: '', btn: true, steps: [] };
+    var steps = (r.steps || []).slice(), apps = [];
+    try { apps = (J(B && B.appList ? B.appList() : (P && P.homeApps ? P.homeApps() : ''), []) || []).map(function (a) { return String(a.label || ''); }).filter(Boolean).sort(function (a, b) { return a.localeCompare(b, 'fr'); }); } catch (e) { }
+    var h = '<div class="set"><div class="t">Nom<small>Affiché sur le bouton</small></div></div><input class="in" id="rName" value="' + esc(r.name) + '" placeholder="ex. Bonsoir">' +
+      '<div class="set"><div class="t">Phrases pour la lancer<small>Plusieurs possibles, séparées par des virgules : « bonsoir, je rentre, me voilà »</small></div></div><input class="in" id="rPh" value="' + esc(r.phrase) + '" placeholder="ex. bonsoir, je rentre">' +
+      '<div class="set"><div class="t">Bouton sur l\'écran principal<small>Un appui lance la routine</small></div><label class="sw"><input type="checkbox" id="rBtn"' + (r.btn !== false ? ' checked' : '') + '><span></span></label></div>' +
+      '<div class="sect">Actions, dans l\'ordre</div><div id="rSteps"></div>' +
+      '<div style="display:flex;gap:8px;margin-top:8px"><select class="in" id="rKind"><option value="">Ajouter une action…</option><optgroup label="À ma façon">' +
+      ADD_KINDS.map(function (k) { return '<option value="' + k[0] + '">' + esc(k[1]) + '</option>'; }).join('') + '</optgroup><optgroup label="Prêtes à l\'emploi">' +
+      Object.keys(STEPS).map(function (k) { return '<option value="b:' + k + '">' + esc(STEPS[k]) + '</option>'; }).join('') + '</optgroup></select></div>' +
+      '<datalist id="rApps">' + apps.map(function (a) { return '<option value="ouvre ' + esc(a) + '">'; }).join('') + '</datalist>' +
+      '<p class="note">Commande libre : tapez-la comme vous me la diriez. Exemples : « allume le couloir », « éteins tout », « allume le salon à 30 % », « active la scène Lecture », « mets la clim à 21 », « ouvre Spotify », « lance la musique », « minuteur 10 minutes », « mode silencieux », « quel temps fait-il ».' + (MJ.hueReady && MJ.hueReady() ? '' : ' Sans pont Hue jumelé, les actions de lumière sont ignorées.') + '</p>' +
+      '<div class="row" style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn pri" id="rSave">Enregistrer</button>' + (i >= 0 && r.id !== 'matin' && r.id !== 'nuit' ? '<button class="btn bad" id="rDel">Supprimer</button>' : '') + '<button class="btn" id="rTry">Essayer</button></div>';
     openSheet('Routine', h, 'routine');
-    var collect = function () {
-      var st = []; document.querySelectorAll('[data-st]').forEach(function (c) { if (c.checked) st.push(c.dataset.st); });
-      var lum = []; document.querySelectorAll('[data-lum]').forEach(function (c) { var v = c.value.trim(); if (!v) return; if (MJ.lightCheck && !MJ.lightCheck(v)) { toast('« ' + v + ' » n\'est pas une commande de lumière : ignorée'); return; } lum.push('lum:' + v); });
-      r.steps = (r.steps || []).filter(function (s) { return st.indexOf(s) >= 0; }).concat(st.filter(function (s) { return (r.steps || []).indexOf(s) < 0; })).concat(lum);
-      r.name = $('rName').value.trim() || 'Routine'; r.phrase = $('rPh').value.trim() || r.name;
+    function edit(s) { return /^(lum|cmd|dit|pause):/.test(s); }
+    function paint() {
+      $('rSteps').innerHTML = steps.length ? steps.map(function (s, k) {
+        var kind = (/^(lum|cmd|dit|pause):/.exec(s) || [])[1], v = kind ? s.slice(kind.length + 1) : '';
+        var lab = kind === 'lum' ? 'Lumières' : kind === 'cmd' ? 'Commande' : kind === 'dit' ? 'Dire' : kind === 'pause' ? 'Pause (secondes)' : STEPS[s] || s;
+        var inp = !kind ? '' : '<input class="in" data-v="' + k + '"' + (kind === 'pause' ? ' type="number" min="1" max="600" style="width:90px"' : '') + (kind === 'cmd' ? ' list="rApps"' : '') + ' value="' + esc(v) + '" placeholder="' + (kind === 'lum' ? 'ex. allume le couloir' : kind === 'dit' ? 'ex. Bonsoir, bonne soirée' : kind === 'pause' ? '5' : 'ex. mets la clim à 21') + '">';
+        return '<div class="set" style="gap:6px;align-items:center"><div class="t" style="flex:1;min-width:0"><b style="font-size:12px;color:var(--tx2)">' + (k + 1) + '. ' + esc(lab) + '</b>' + inp + '</div>' +
+          '<button class="ib" data-up="' + k + '" aria-label="Monter"' + (k ? '' : ' disabled') + '>↑</button><button class="ib" data-dn="' + k + '" aria-label="Descendre"' + (k < steps.length - 1 ? '' : ' disabled') + '>↓</button><button class="ib" data-rm="' + k + '" aria-label="Retirer">✕</button></div>';
+      }).join('') : '<p class="note">Aucune action pour l\'instant : choisissez-en une ci-dessous.</p>';
+    }
+    paint();
+    $('rSteps').oninput = function (e) { var x = e.target.closest('[data-v]'); if (!x) return; var k = +x.dataset.v, kind = steps[k].split(':')[0]; steps[k] = kind + ':' + x.value; };
+    $('rSteps').onclick = function (e) {
+      var b = e.target.closest('button'); if (!b) return; var k;
+      if (b.dataset.up != null) { k = +b.dataset.up; steps.splice(k - 1, 0, steps.splice(k, 1)[0]); }
+      else if (b.dataset.dn != null) { k = +b.dataset.dn; steps.splice(k + 1, 0, steps.splice(k, 1)[0]); }
+      else if (b.dataset.rm != null) steps.splice(+b.dataset.rm, 1);
+      paint();
     };
-    $('rLumAdd').onclick = function () { $('rLum').insertAdjacentHTML('beforeend', lumRow('')); var l = $('rLum').querySelectorAll('[data-lum]'); l[l.length - 1].focus(); };
-    $('rLum').onclick = function (e) { var x = e.target.closest('[data-lumx]'); if (x) x.parentNode.remove(); };
-    $('rSave').onclick = function () { collect(); if (i < 0) S.routines.push(r); saveS(); settingsSheet(); };
-    if ($('rDel')) $('rDel').onclick = function () { if (confirm('Supprimer la routine « ' + r.name + ' » ?')) { S.routines.splice(i, 1); saveS(); settingsSheet(); } };
-    $('rTry').onclick = function () { collect(); closeSheet(); var tmp = S.routines.concat(i < 0 ? [r] : []); var save = S.routines; S.routines = tmp; H.routine({ id: r.id }); S.routines = save; };
+    $('rKind').onchange = function () {
+      var v = this.value; this.value = ''; if (!v) return;
+      if (/^b:/.test(v)) { if (steps.indexOf(v.slice(2)) < 0) steps.push(v.slice(2)); paint(); return; }
+      steps.push(v === 'app' ? 'cmd:ouvre ' : v === 'pause' ? 'pause:5' : v + ':'); paint();
+      var l = $('rSteps').querySelectorAll('[data-v]'); if (l.length) { var f = l[l.length - 1]; f.focus(); try { f.setSelectionRange(f.value.length, f.value.length); } catch (e) { } }
+    };
+    var collect = function () {
+      var bad = [];
+      r.steps = steps.map(function (s) { return s.replace(/^(lum|cmd|dit|pause):\s+/, '$1:').trim(); }).filter(function (s) {
+        if (/^(lum|cmd|dit):$/.test(s) || s === 'cmd:ouvre') return false;
+        if (/^lum:/.test(s) && MJ.lightCheck && !MJ.lightCheck(s.slice(4))) { bad.push(s.slice(4)); return false; }
+        return true;
+      });
+      if (bad.length) toast('Pas une commande de lumière, ignorée : « ' + bad.join(' », « ') + ' » (essayez en commande libre)');
+      r.name = $('rName').value.trim() || 'Routine'; r.phrase = $('rPh').value.trim() || r.name; r.btn = $('rBtn').checked;
+    };
+    $('rSave').onclick = function () { collect(); if (i < 0) S.routines.push(r); saveS(); settingsSheet('routines'); };
+    if ($('rDel')) $('rDel').onclick = function () { if (confirm('Supprimer la routine « ' + r.name + ' » ?')) { S.routines.splice(i, 1); saveS(); settingsSheet('routines'); } };
+    $('rTry').onclick = function () { collect(); closeSheet(); var save = S.routines; S.routines = S.routines.concat(i < 0 ? [r] : []); var pr = H.routine({ id: r.id }); S.routines = save; return pr; };
   }
+  /* Boutons des routines sur l'écran principal */
+  function paintRts() {
+    var box = $('rts'); if (!box) return;
+    var l = S.routines.filter(function (r) { return r.btn === true || (r.btn !== false && r.id !== 'matin' && r.id !== 'nuit'); });
+    box.innerHTML = l.map(function (r) { return '<button class="rt" data-rid="' + esc(r.id) + '">' + esc(r.name) + '</button>'; }).join('');
+    box.hidden = !l.length;
+  }
+  $('rts').addEventListener('click', function (e) { var b = e.target.closest('[data-rid]'); if (!b) return; audio(); MJ.voiceTurn = false; H.routine({ id: b.dataset.rid }); });
+  paintRts();
 
   /* ---------------- Saisie ---------------- */
   $('ask').addEventListener('submit', function (e) { e.preventDefault(); var v = $('q').value.trim(); if (!v) return; $('q').value = ''; handle(v, 'keyboard'); });

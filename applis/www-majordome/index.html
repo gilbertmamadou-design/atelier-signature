@@ -188,6 +188,28 @@ input[type=range]{width:160px;accent-color:var(--acc)}
   #title{font-size:18px}#greet{display:none}
 }
 @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
+
+/* Routines : boutons sous la sphère */
+#rts{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:8px auto 0;max-width:560px;position:relative;z-index:1}
+#rts[hidden]{display:none}
+.rt{border:1px solid var(--line2);background:#0f1828cc;color:var(--tx);border-radius:18px;padding:7px 14px;font-weight:600;font-size:13px;cursor:pointer}
+.rt:active{background:var(--bg4);border-color:var(--acc)}
+/* Lanceur : dock des favoris et tiroir des applis */
+#dock{display:flex;justify-content:center;gap:10px;padding:6px 12px 2px;flex-wrap:nowrap;overflow-x:auto}
+#dock[hidden]{display:none}
+#dock button,.ap{background:none;border:0;color:var(--tx);display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;min-width:0;cursor:pointer;padding:2px}
+#dock img,#dock .all,.ap img,.ap i{width:46px;height:46px;border-radius:14px;display:block}
+#dock .all{display:grid;place-items:center;border:1px solid var(--line2);background:var(--bg3)}
+#dock span,.ap span{max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#drawer{position:fixed;inset:0;z-index:60;background:#070b14f5;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top) + 10px) 10px calc(env(safe-area-inset-bottom) + 6px);animation:pop .18s ease-out}
+#drawer[hidden]{display:none}
+#drawer .dh{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+#dg{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:12px 4px;align-content:start;padding-bottom:12px}
+.ap i{background:var(--bg3)}
+.ap.fav span{color:var(--acc)}
+#dm{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 14px);background:var(--bg2);border:1px solid var(--line2);border-radius:16px;padding:10px;display:flex;flex-direction:column;gap:6px;z-index:61}
+#dm[hidden]{display:none}
+#dm b{text-align:center;padding:4px 0 6px}
 </style>
 </head>
 <body>
@@ -213,6 +235,7 @@ input[type=range]{width:160px;accent-color:var(--acc)}
       <div id="who"><h1 id="title">Majordome</h1><span id="greet"></span></div>
       <div id="status" aria-live="polite">Prêt</div>
       <div id="heard" aria-live="polite"></div>
+      <div id="rts" hidden aria-label="Mes routines"></div>
       </div>
       <div id="moment" aria-label="En ce moment"></div>
     </section>
@@ -223,6 +246,7 @@ input[type=range]{width:160px;accent-color:var(--acc)}
   </main>
   <div>
     <div id="timers"></div>
+    <div id="dock" hidden aria-label="Applis favorites"></div>
     <footer>
       <form id="ask" autocomplete="off">
         <input id="q" placeholder="Tape une commande…" enterkeyhint="send" aria-label="Commande au clavier">
@@ -235,6 +259,7 @@ input[type=range]{width:160px;accent-color:var(--acc)}
 </div>
 <div id="veil"></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true"><header><h2 id="shT"></h2><button class="ib" id="shX" aria-label="Fermer"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></header><div class="sbody" id="shB"></div></div>
+<div id="drawer" hidden role="dialog" aria-modal="true" aria-label="Toutes les applis"><div class="dh"><input id="dq" class="in" type="search" placeholder="Rechercher une appli" aria-label="Rechercher une appli"><button class="ib" id="dX" aria-label="Fermer"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div id="dg"></div><div id="dm" hidden></div></div>
 <div id="toast" role="status"></div>
 <script src="mj-nlu.js"></script>
 <script src="mj-orb.js"></script>
@@ -245,5 +270,6 @@ input[type=range]{width:160px;accent-color:var(--acc)}
 <script src="mj-maison.js"></script>
 <script src="mj-montre.js"></script>
 <script src="mj-applis.js"></script>
+<script src="mj-lanceur.js"></script>
 </body>
 </html>

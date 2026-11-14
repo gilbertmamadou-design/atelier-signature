@@ -393,6 +393,7 @@ public class MainActivity extends BridgeActivity {
         extraCall("onIntent", new Class<?>[]{ Intent.class }, intent);
         socleIntent(intent, 50);
         if (isSocle() && intent != null && intent.hasCategory(Intent.CATEGORY_HOME)) socleJs("window.accueilHome&&accueilHome()");
+        if (isMj() && intent != null && intent.hasCategory(Intent.CATEGORY_HOME)) socleJs("window.mjHome&&mjHome()");
     }
     // ----- Ponts supplémentaires (Galerie, Agenda, Contacts) : une classe par appli, chargée si elle existe -----
     private final java.util.List<Object> extraBridges = new java.util.ArrayList<Object>();
@@ -421,6 +422,7 @@ public class MainActivity extends BridgeActivity {
     }
     // ----- Socle : l'application sert d'écran d'accueil -----
     private boolean isSocle() { return getPackageName().endsWith(".socle"); }
+    private boolean isMj() { return getPackageName().endsWith(".majordome"); }
     private void socleJs(final String js) {
         runOnUiThread(new Runnable() { public void run() { try { getBridge().getWebView().evaluateJavascript(js, null); } catch (Exception e) { } } });
     }
@@ -488,6 +490,8 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onBackPressed() {
         if (isSocle()) { socleJs("window.accueilBack&&accueilBack()"); return; }
+        // Majordome choisi comme écran d'accueil : le retour ferme panneaux et tiroir, sans jamais quitter l'accueil
+        if (isMj() && LauncherService.isDefaultHome(this)) { socleJs("window.mjBack&&mjBack()"); return; }
         super.onBackPressed();
     }
     private void aubeIntent(Intent i) {
@@ -1983,6 +1987,9 @@ GRADLE
   # Appui long sur le bouton d'accueil / geste d'assistant → MainActivity avec ACTION_ASSIST → MajordomeBridge.takeIntent → écoute.
   # Pas de VoiceInteractionService (mot-clé système, écran verrouillé, contexte de l'écran) : trop lourd pour ce qu'il apporte.
   addfilters '<intent-filter><action android:name="android.intent.action.ASSIST" /><category android:name="android.intent.category.DEFAULT" /></intent-filter>'
+  # Lanceur : Majordome peut être choisi comme écran d'accueil (Paramètres › Applis par défaut › Écran d'accueil) ; mj-lanceur.js
+  grep -q "category.HOME" "$MAN" || sed -i -E '0,/<category android:name="android.intent.category.LAUNCHER" ?\/>/s##<category android:name="android.intent.category.LAUNCHER" />\n                <category android:name="android.intent.category.HOME" />\n                <category android:name="android.intent.category.DEFAULT" />#' "$MAN"
+  grep -c "category.HOME" "$MAN"
   addactivity '<receiver android:name=".MajordomeBridge$Rappel" android:exported="true"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED" /><action android:name="android.intent.action.MY_PACKAGE_REPLACED" /></intent-filter></receiver>'
   # Widget Android « Jarvis » (MajordomeWidget) et fond d'écran animé (MajordomeWallpaper) : pour n'importe quel lanceur.
   # Widget : 4 mises en page (petite, moyenne, grande, plein écran), redimensionnable dans les deux sens sans taille maximale,
