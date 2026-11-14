@@ -1,0 +1,84 @@
+{
+ "id": "multi",
+ "appId": 1093213,
+ "nom": "Multi-cadrans",
+ "fond": "radial",
+ "c1": "#03040a",
+ "c2": "#1d2340",
+ "accent": "#d4af37",
+ "texte": "#f5f1e6",
+ "doux": "#9a9384",
+ "anneau": "graduations",
+ "aod": "heure_date",
+ "blocs": [
+  {
+   "t": "info",
+   "x": 240,
+   "y": 112,
+   "couleur": "#ff3b3b",
+   "police": "nette",
+   "d": "coeur",
+   "style": "jauge",
+   "taille": "s",
+   "barre": false,
+   "valeur": "texte"
+  },
+  {
+   "t": "info",
+   "x": 122,
+   "y": 240,
+   "couleur": "#5fd35f",
+   "police": "nette",
+   "d": "pas",
+   "style": "jauge",
+   "taille": "s",
+   "barre": true,
+   "valeur": "texte"
+  },
+  {
+   "t": "info",
+   "x": 358,
+   "y": 240,
+   "couleur": "#46d9c2",
+   "police": "nette",
+   "d": "batterie",
+   "style": "jauge",
+   "taille": "s",
+   "barre": true,
+   "valeur": "texte"
+  },
+  {
+   "t": "info",
+   "x": 240,
+   "y": 362,
+   "couleur": "#ffcc00",
+   "police": "nette",
+   "d": "meteo",
+   "style": "cercle",
+   "taille": "s",
+   "barre": false,
+   "valeur": "texte"
+  },
+  {
+   "t": "date",
+   "x": 240,
+   "y": 290,
+   "couleur": "texte",
+   "police": "nette",
+   "format": "court",
+   "taille": 15,
+   "jour": "accent"
+  },
+  {
+   "t": "aiguilles",
+   "x": 240,
+   "y": 240,
+   "couleur": "texte",
+   "police": "nette",
+   "style": "epees",
+   "secondes": true,
+   "echelle": 1,
+   "trot": "accent"
+  }
+ ]
+}

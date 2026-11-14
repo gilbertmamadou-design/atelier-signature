@@ -4,7 +4,7 @@ const natif = (paires) => { const o = {}; for (const [k, v] of Object.entries(pa
 const enumere = (noms) => natif(Object.fromEntries(noms.map((n) => [n, 'w:' + n])))
 const widget = enumere(['IMG', 'IMG_TIME', 'IMG_WEEK', 'IMG_DATE', 'IMG_LEVEL', 'TEXT_IMG', 'IMG_CLICK', 'FILL_RECT', 'TIME_POINTER'])
 const show_level = natif({ ONLY_NORMAL: 1, ONAL_AOD: 2 })
-const data_type = natif(Object.fromEntries(['BATTERY', 'STEP', 'HEART', 'WEATHER', 'WEATHER_CURRENT', 'WIND', 'CAL', 'DISTANCE', 'SUN_RISE', 'SUN_SET', 'ALTITUDE', 'ALTIMETER'].map((n, i) => [n, 100 + i])))
+const data_type = natif(Object.fromEntries(['BATTERY', 'STEP', 'HEART', 'WEATHER', 'WEATHER_CURRENT', 'WIND', 'CAL', 'DISTANCE', 'SUN_RISE', 'SUN_SET', 'ALTITUDE', 'ALTIMETER', 'WEATHER_LOW', 'WEATHER_HIGH', 'SPO2', 'STRESS', 'PAI_WEEKLY', 'UVI', 'HUMIDITY', 'STAND'].map((n, i) => [n, 100 + i])))
 const align = natif({ LEFT: 'L', RIGHT: 'R', CENTER_H: 'C' })
 function createWidget(type, o) { const w = { type, o: Object.assign({}, o) }; J.widgets.push(w); return w }
 const ui = natif({ widget, show_level, data_type, align, createWidget })

@@ -61,7 +61,12 @@ jobs:
             python3 - ../out-cadrans/perso.json <<'PY'
           import json, sys
           p = sys.argv[1]; o = json.load(open(p, encoding='utf-8'))
-          assert isinstance(o, dict) and len(json.dumps(o)) < 4000, 'réglages invalides'
+          import re
+          assert isinstance(o, dict), 'réglages invalides'
+          photo = o.get('photo') or ''
+          assert not photo or (len(photo) < 60000 and re.fullmatch(r'data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+', photo)), 'photo invalide'
+          assert len(json.dumps(o)) - len(photo) < 16000, 'réglages trop longs'
+          assert len(o.get('blocs') or []) <= 40, 'trop d\'éléments'
           o.pop('appId', None); o.pop('id', None)
           json.dump(o, open(p, 'w', encoding='utf-8'), ensure_ascii=False)
           print('cadran perso :', o.get('nom'))

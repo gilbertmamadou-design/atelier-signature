@@ -1,0 +1,117 @@
+{
+ "id": "horizon",
+ "appId": 1093211,
+ "nom": "Horizon",
+ "fond": "degrade",
+ "c1": "#06121f",
+ "c2": "#1d4466",
+ "accent": "#ffcc00",
+ "texte": "#f5f8ff",
+ "doux": "#9fb3c8",
+ "anneau": "graduations",
+ "aod": "heure_date",
+ "blocs": [
+  {
+   "t": "info",
+   "x": 240,
+   "y": 40,
+   "couleur": "texte",
+   "police": "nette",
+   "d": "batterie",
+   "style": "ligne",
+   "taille": "s",
+   "barre": false,
+   "valeur": "texte"
+  },
+  {
+   "t": "meteo",
+   "x": 240,
+   "y": 102,
+   "couleur": "accent",
+   "police": "nette",
+   "taille": "s",
+   "minmax": true,
+   "valeur": "texte"
+  },
+  {
+   "t": "heure",
+   "x": 240,
+   "y": 210,
+   "couleur": "texte",
+   "police": "grasse",
+   "taille": 104,
+   "secondes": true,
+   "dp": "accent"
+  },
+  {
+   "t": "date",
+   "x": 240,
+   "y": 160,
+   "couleur": "texte",
+   "police": "nette",
+   "format": "court",
+   "taille": 18,
+   "jour": "accent"
+  },
+  {
+   "t": "info",
+   "x": 130,
+   "y": 300,
+   "couleur": "#5fd35f",
+   "police": "nette",
+   "d": "pas",
+   "style": "case",
+   "taille": "s",
+   "barre": true,
+   "valeur": "texte"
+  },
+  {
+   "t": "info",
+   "x": 240,
+   "y": 300,
+   "couleur": "#ff7a1a",
+   "police": "nette",
+   "d": "calories",
+   "style": "case",
+   "taille": "s",
+   "barre": true,
+   "valeur": "texte"
+  },
+  {
+   "t": "info",
+   "x": 350,
+   "y": 300,
+   "couleur": "#ff3b3b",
+   "police": "nette",
+   "d": "coeur",
+   "style": "case",
+   "taille": "s",
+   "barre": false,
+   "valeur": "texte"
+  },
+  {
+   "t": "info",
+   "x": 170,
+   "y": 384,
+   "couleur": "#ffcc00",
+   "police": "nette",
+   "d": "lever",
+   "style": "ligne",
+   "taille": "s",
+   "barre": false,
+   "valeur": "texte"
+  },
+  {
+   "t": "info",
+   "x": 310,
+   "y": 384,
+   "couleur": "#ff7a1a",
+   "police": "nette",
+   "d": "coucher",
+   "style": "ligne",
+   "taille": "s",
+   "barre": false,
+   "valeur": "texte"
+  }
+ ]
+}

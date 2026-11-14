@@ -20,7 +20,8 @@ const pris = (groupe, cle) => {
 const table = (groupe, cles) => { const o = {}; cles.forEach((k) => { const v = pris(groupe, k); if (v !== undefined) o[k] = v }); return o }
 const widget = table('widget', ['IMG', 'FILL_RECT', 'IMG_TIME', 'IMG_WEEK', 'IMG_DATE', 'IMG_LEVEL', 'TEXT_IMG', 'IMG_CLICK', 'TIME_POINTER'])
 const niveau = table('show_level', ['ONLY_NORMAL', 'ONAL_AOD'])
-const donnee = table('data_type', ['WEATHER', 'WEATHER_CURRENT', 'WIND', 'HEART', 'STEP', 'BATTERY', 'CAL', 'DISTANCE', 'SUN_RISE', 'SUN_SET', 'ALTITUDE', 'ALTIMETER'])
+const donnee = table('data_type', ['WEATHER', 'WEATHER_CURRENT', 'WEATHER_LOW', 'WEATHER_HIGH', 'WIND', 'HEART', 'STEP', 'BATTERY', 'CAL', 'DISTANCE',
+  'SUN_RISE', 'SUN_SET', 'ALTITUDE', 'ALTIMETER', 'SPO2', 'STRESS', 'PAI_WEEKLY', 'UVI', 'HUMIDITY', 'STAND'])
 const align = table('align', ['LEFT', 'RIGHT', 'CENTER_H'])
 const UI = ui && typeof ui.createWidget === 'function' ? ui : H
 
@@ -47,11 +48,11 @@ const FAIRE = {
   },
   num(w, show) {
     const t = donnee[w.type]; if (t === undefined) return null
-    const u = w.unite ? 'images/infos/' + w.unite + '.png' : null
+    const d = w.dossier || 'infos', u = w.unite ? 'images/' + d + '/' + w.unite + '.png' : null
     return creer(widget.TEXT_IMG, Object.assign({
-      x: w.x, y: w.y, w: w.w, h: w.h, type: t, font_array: serie('infos', 10), h_space: 0,
+      x: w.x, y: w.y, w: w.w, h: w.h, type: t, font_array: serie(d, 10), h_space: 0,
       align_h: w.align === 'gauche' ? align.LEFT : w.align === 'droite' ? align.RIGHT : align.CENTER_H,
-      negative_image: 'images/infos/moins.png', invalid_image: 'images/infos/invalide.png', dot_image: 'images/infos/' + (w.point || 'point') + '.png',
+      negative_image: 'images/' + d + '/moins.png', invalid_image: 'images/' + d + '/invalide.png', dot_image: 'images/' + d + '/' + (w.point || 'point') + '.png',
       show_level: show, aod: w.aod,
     }, u ? { unit_sc: u, unit_tc: u, unit_en: u } : {}))
   },
@@ -61,31 +62,41 @@ const FAIRE = {
   },
   time(w, show) {
     const ch = serie(w.dossier, 10), dp = 'images/' + w.dossier + '/dp.png'
-    return creer(widget.IMG_TIME, {
+    const o = {
       hour_zero: 1, hour_startX: w.x, hour_startY: w.y, hour_array: ch, hour_space: 0, hour_align: align.LEFT,
       hour_unit_sc: dp, hour_unit_tc: dp, hour_unit_en: dp,
       minute_zero: 1, minute_follow: 1, minute_array: ch, minute_space: 0,
       show_level: show, aod: w.aod,
-    })
+    }
+    if (w.sec) Object.assign(o, { second_zero: 1, second_follow: 0, second_startX: w.sec.x, second_startY: w.sec.y, second_array: serie(w.sec.dossier, 10), second_space: 0, second_align: align.LEFT })
+    return creer(widget.IMG_TIME, o)
   },
   date(w, show) {
-    const sem = serie('semaine' + w.suf, 7), jours = serie('jour' + w.suf, 31), mois = serie('mois' + w.suf, 12)
-    creer(widget.IMG_WEEK, { x: w.sem.x, y: w.sem.y, week_en: sem, week_tc: sem, week_sc: sem, show_level: show, aod: w.aod })
-    return creer(widget.IMG_DATE, {
-      month_startX: w.mois.x, month_startY: w.mois.y, month_is_character: true, month_follow: 0, month_align: align.LEFT, month_space: 0,
-      month_en_array: mois, month_sc_array: mois, month_tc_array: mois,
-      day_startX: w.jour.x, day_startY: w.jour.y, day_is_character: true, day_follow: 0, day_align: align.LEFT, day_space: 0,
-      day_en_array: jours, day_sc_array: jours, day_tc_array: jours,
-      show_level: show, aod: w.aod,
-    })
+    // anciens paquets : dossiers « semaine<suf> », « jour<suf> »… ; nouveaux : « <dossier>/semaine »…
+    const dos = (n) => (w.dossier ? w.dossier + '/' + n : n + (w.suf || ''))
+    if (w.sem) { const sem = serie(dos('semaine'), 7); bloc(() => creer(widget.IMG_WEEK, { x: w.sem.x, y: w.sem.y, week_en: sem, week_tc: sem, week_sc: sem, show_level: show, aod: w.aod })) }
+    if (!w.jour && !w.mois) return null
+    const o = { show_level: show, aod: w.aod }
+    if (w.mois) {
+      const mois = serie(dos('mois'), 12)
+      Object.assign(o, { month_startX: w.mois.x, month_startY: w.mois.y, month_is_character: true, month_follow: 0, month_align: align.LEFT, month_space: 0,
+        month_en_array: mois, month_sc_array: mois, month_tc_array: mois })
+    }
+    if (w.jour) {
+      const jours = serie(dos('jour'), 31)
+      Object.assign(o, { day_startX: w.jour.x, day_startY: w.jour.y, day_is_character: true, day_follow: 0, day_align: align.LEFT, day_space: 0,
+        day_en_array: jours, day_sc_array: jours, day_tc_array: jours })
+    }
+    return creer(widget.IMG_DATE, o)
   },
   pointer(w, show) {
+    const cx = w.cx == null ? 240 : w.cx, cy = w.cy == null ? 240 : w.cy
     const o = {
-      hour_centerX: 240, hour_centerY: 240, hour_posX: w.h.px, hour_posY: w.h.py, hour_path: w.h.src,
-      minute_centerX: 240, minute_centerY: 240, minute_posX: w.m.px, minute_posY: w.m.py, minute_path: w.m.src,
+      hour_centerX: cx, hour_centerY: cy, hour_posX: w.h.px, hour_posY: w.h.py, hour_path: w.h.src,
+      minute_centerX: cx, minute_centerY: cy, minute_posX: w.m.px, minute_posY: w.m.py, minute_path: w.m.src,
       show_level: show, aod: w.aod,
     }
-    if (w.s) Object.assign(o, { second_centerX: 240, second_centerY: 240, second_posX: w.s.px, second_posY: w.s.py, second_path: w.s.src })
+    if (w.s) Object.assign(o, { second_centerX: cx, second_centerY: cy, second_posX: w.s.px, second_posY: w.s.py, second_path: w.s.src })
     return creer(widget.TIME_POINTER, o)
   },
 }

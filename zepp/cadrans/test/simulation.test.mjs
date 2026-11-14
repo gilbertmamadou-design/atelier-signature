@@ -34,11 +34,15 @@ test('fond, heure et AOD présents', () => {
 })
 test('aiguilles : centre et pivots dans l\'image', () => {
   for (const w of de('TIME_POINTER')) {
-    assert.equal(w.o.hour_centerX, 240); assert.equal(w.o.minute_centerY, 240)
-    assert.ok(w.o.hour_posY > 50 && w.o.minute_posY > w.o.hour_posY)
+    assert.ok(w.o.hour_centerX >= 0 && w.o.hour_centerX <= 480 && w.o.minute_centerY >= 0 && w.o.minute_centerY <= 480)
+    assert.equal(w.o.hour_centerX, w.o.minute_centerX)
+    assert.ok(w.o.hour_posY > 20 && w.o.minute_posY > w.o.hour_posY)
   }
 })
 test('données : chaque nombre a sa police complète', () => {
   for (const w of de('TEXT_IMG')) { assert.equal(w.o.font_array.length, 10); assert.ok(w.o.type >= 100) }
   for (const w of de('IMG_LEVEL')) assert.equal(w.o.image_array.length, w.o.image_length)
+})
+test('secondes : 10 chiffres si présentes', () => {
+  for (const w of de('IMG_TIME')) if (w.o.second_array) { assert.equal(w.o.second_array.length, 10); assert.ok(w.o.second_startX > w.o.hour_startX) }
 })

@@ -58,7 +58,7 @@ nav button[aria-current="page"]{color:var(--acc)}
 @media (min-width:900px){.ed{grid-template-columns:420px 1fr;align-items:start}.ed .pv{position:sticky;top:0}}
 .pv{display:flex;flex-direction:column;align-items:center;gap:8px;background:var(--bg);padding:6px 0 10px;z-index:2}
 @media (max-width:899px){.pv{position:sticky;top:-4px;border-bottom:1px solid var(--line)}}
-.pv canvas{width:min(78vw,340px,42vh);aspect-ratio:1;border-radius:50%;box-shadow:0 10px 40px #000a,0 0 0 6px #1b1f28,0 0 0 8px #2b3140}
+.pv canvas{touch-action:none;cursor:grab;width:min(78vw,340px,42vh);aspect-ratio:1;border-radius:50%;box-shadow:0 10px 40px #000a,0 0 0 6px #1b1f28,0 0 0 8px #2b3140}
 .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .lbl{font-size:12.5px;color:var(--tx2);font-weight:700;margin:8px 0 6px}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
@@ -79,6 +79,17 @@ select.in{padding:9px 10px}
 .sw:checked{background:var(--acc)}.sw:checked::after{left:21px}
 .line{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
 .line:last-child{border-bottom:0}.line .t{flex:1;min-width:0}.line .t b{display:block}.line .t small{display:block;color:var(--tx3);font-size:12.5px}
+/* éléments */
+.els{display:flex;flex-direction:column;gap:5px}
+.el{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;background:var(--bg3);border:1px solid var(--line);text-align:left;width:100%}
+.el[aria-pressed="true"]{border-color:var(--acc);background:#4fd1c51c}
+.el .ic{width:26px;text-align:center;font-size:16px}.el b{font-size:14px}.el small{flex:1;color:var(--tx3);font-size:12.5px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sws{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.sws button,.swc{width:32px;height:32px;border-radius:50%;border:2px solid var(--line2);font-size:11px;font-weight:800;color:#0009;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.sws [aria-pressed="true"]{outline:2px solid #fff;outline-offset:2px}
+.swc{background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red);color:#fff;cursor:pointer}.swc input{position:absolute;inset:0;opacity:0;cursor:pointer}
+input[type=range]{width:100%;accent-color:var(--acc)}
+.pad{display:grid;grid-template-columns:repeat(3,40px);gap:4px}.pad .btn{padding:7px 0}
 /* feuille */
 .sheet{position:fixed;inset:0;z-index:30;background:#000b;display:flex;align-items:flex-end;justify-content:center}
 .sheet>div{background:var(--bg2);border:1px solid var(--line2);border-radius:22px 22px 0 0;width:min(620px,100%);max-height:92vh;overflow:auto;padding:16px 16px calc(16px + var(--safeB))}
@@ -118,7 +129,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
   var ST = J(localStorage.getItem(KEY), null) || {}; ST.mes = ST.mes || []; ST.token = ST.token || '';
   function save() { try { localStorage.setItem(KEY, JSON.stringify(ST)); } catch (e) { } }
   var COL = [], TAB = 'collection', ED = null, EDI = -1, AOD = false;
-  var POS_NUM = ['Haut gauche', 'Haut droite', 'Bas gauche', 'Bas droite'], POS_ANA = ['Haut', 'Gauche', 'Droite', 'Bas'];
+
   var PALETTES = [
     ['Turquoise', '#000000', '#0b2a33', '#46d9c2', '#eafffb', '#7fa8a2'], ['Chantier', '#0d0d0d', '#262000', '#ffcc00', '#ffffff', '#b8ae8a'],
     ['Kaki', '#1b1f14', '#3a4128', '#ff9f3d', '#ece6cf', '#a8a287'], ['Rouge', '#000000', '#3a0a0a', '#ff3b3b', '#ffffff', '#b39a9a'],
@@ -146,12 +157,12 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     document.querySelectorAll('nav [data-tab]').forEach(function (b) { if (b.dataset.tab === TAB) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
     var h = '';
     if (TAB === 'collection') {
-      h = '<p class="note">Neuf cadrans prêts à installer. « Modifier une copie » les ouvre dans l\'atelier.</p><div class="grid">' + COL.map(function (c, i) { return face(c, i, 'col'); }).join('') + '</div>';
+      h = '<p class="note">' + COL.length + ' cadrans prêts à installer. « Modifier une copie » les ouvre dans l\'atelier.</p><div class="grid">' + COL.map(function (c, i) { return face(c, i, 'col'); }).join('') + '</div>';
     } else if (TAB === 'mes') {
       h = ST.mes.length ? '<div class="grid">' + ST.mes.map(function (c, i) { return face(c, i, 'mes'); }).join('') + '</div>' :
         '<div class="card"><b>Aucun cadran pour l\'instant.</b><p class="note">Créez-en un dans « Créer », ou partez d\'un cadran de la collection avec « Modifier une copie ».</p><button class="btn pri" data-go="creer">Créer un cadran</button></div>';
     } else if (TAB === 'creer') {
-      if (!ED) { ED = clone(C.DEFAUT); EDI = -1; }
+      if (!ED) { ED = C.norm(C.DEFAUT); EDI = -1; SEL = -1; }
       h = editor();
     } else {
       h = '<div class="card"><div class="sect" style="margin:0 0 6px">Fabrication automatique</div>' +
@@ -171,52 +182,210 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     setTimeout(paintPreviews, 0);
   }
 
-  /* ---------------- éditeur ---------------- */
-  function chips(name, map, val) { return '<div class="chips" data-set="' + name + '">' + Object.keys(map).map(function (k) { return '<button class="chip" data-v="' + k + '" aria-pressed="' + (String(val) === k) + '"' + (name === 'police' ? ' style="font-family:\'' + C.CHOIX.POLICES[k].fam + '\';font-size:15px"' : '') + '>' + esc(map[k].nom || map[k]) + '</button>'; }).join('') + '</div>'; }
+  /* ---------------- éditeur : assemblage libre ---------------- */
+  var SEL = -1, DRAG = null;
+  var ICO = { heure: '🕘', aiguilles: '🕑', date: '📅', info: '▦', meteo: '⛅', texte: 'T', trait: '—' };
+  function chips(name, map, val, attr) { return '<div class="chips" ' + (attr || 'data-set') + '="' + name + '">' + Object.keys(map).map(function (k) { return '<button class="chip" data-v="' + k + '" aria-pressed="' + (String(val) === k) + '"' + (name === 'police' ? ' style="font-family:\'' + C.CHOIX.POLICES[k].fam + '\';font-size:15px"' : '') + '>' + esc(map[k].nom || map[k].n || map[k]) + '</button>'; }).join('') + '</div>'; }
   function editor() {
-    var c = C.norm(ED), ana = c.heure !== 'numerique', pos = ana ? POS_ANA : POS_NUM;
-    var opts = Object.keys(C.INFOS).map(function (k) { return [k, C.INFOS[k].n]; });
-    return '<div class="ed"><div class="pv"><canvas id="pv" width="480" height="480"></canvas><div class="row"><button class="chip" id="aodT" aria-pressed="' + AOD + '">Écran toujours allumé</button></div></div><div>' +
-      '<div class="card"><div class="lbl" style="margin-top:0">Nom</div><input class="in" id="nom" maxlength="24" value="' + esc(c.nom) + '">' +
-      '<div class="lbl">Heure</div>' + chips('heure', C.CHOIX.HEURE, c.heure) +
-      '<div class="lbl">Police</div>' + chips('police', C.CHOIX.POLICES, c.police) +
-      (c.heure === 'numerique' ? '<div class="lbl">Taille de l\'heure</div>' + chips('taille', C.CHOIX.TAILLE, c.taille) : '') +
-      (ana ? '<div class="lbl">Aiguilles</div>' + chips('aiguilles', C.CHOIX.AIGUILLES, c.aiguilles) + '<div class="line"><div class="t"><b>Trotteuse</b><small>Aiguille des secondes (consomme un peu plus)</small></div><input type="checkbox" class="sw" id="sec"' + (c.secondes ? ' checked' : '') + '></div>' : '') +
-      '</div>' +
+    var c = C.norm(ED); ED.blocs = c.blocs;
+    var M = C.MODELES;
+    return '<div class="ed"><div class="pv"><canvas id="pv" width="480" height="480"></canvas><div class="row"><button class="chip" id="aodT" aria-pressed="' + AOD + '">Écran toujours allumé</button><span class="note" style="margin:0">Glissez un élément pour le placer</span></div></div><div class="v" style="gap:14px">' +
+      '<div class="card"><div class="lbl" style="margin-top:0">Partir d\'un modèle</div><div class="chips">' + Object.keys(M).map(function (k) { return '<button class="chip" data-mod="' + k + '">' + esc(M[k].n) + '</button>'; }).join('') + '</div><p class="note">Un modèle remplace les éléments (le fond et les couleurs restent).</p></div>' +
+      '<div class="card"><div class="lbl" style="margin-top:0">Éléments du cadran</div><div id="edList" class="els"></div>' +
+      '<div class="lbl">Ajouter</div><div class="chips">' + Object.keys(C.CHOIX.TYPES).map(function (k) { return '<button class="chip" data-add="' + k + '">+ ' + esc(C.CHOIX.TYPES[k]) + '</button>'; }).join('') + '</div></div>' +
+      '<div class="card" id="edProps"></div>' +
       '<div class="card"><div class="lbl" style="margin-top:0">Couleurs toutes prêtes</div><div class="pal">' + PALETTES.map(function (p, i) { return '<button data-pal="' + i + '" title="' + esc(p[0]) + '" aria-label="' + esc(p[0]) + '"><i style="background:linear-gradient(135deg,' + p[2] + ' 0 50%,' + p[3] + ' 50%)"></i></button>'; }).join('') + '</div>' +
       '<div class="lbl">Couleurs une à une</div><div class="cols">' + [['c1', 'Fond'], ['c2', 'Fond 2'], ['accent', 'Accent'], ['texte', 'Texte'], ['doux', 'Doux']].map(function (k) { return '<label class="col"><input type="color" data-col="' + k[0] + '" value="' + c[k[0]] + '">' + k[1] + '</label>'; }).join('') + '</div>' +
       '<div class="lbl">Fond</div>' + chips('fond', C.CHOIX.FONDS, c.fond) +
+      '<div id="photoZone"></div><input type="file" id="photoIn" accept="image/*" hidden>' +
       '<div class="lbl">Anneau</div>' + chips('anneau', C.CHOIX.ANNEAUX, c.anneau) + '</div>' +
-      '<div class="card"><div class="lbl" style="margin-top:0">Cases d\'infos</div><div class="slots">' + c.infos.map(function (v, i) {
-        var off = c.heure === 'mixte' && i === 0;
-        return '<label><div class="note" style="margin:0 0 4px">' + pos[i] + (off ? ' (place de l\'heure)' : '') + '</div><select class="in" data-slot="' + i + '"' + (off ? ' disabled' : '') + '>' + opts.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === v ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select></label>';
-      }).join('') + '</div>' +
-      '<div class="line" style="margin-top:6px"><div class="t"><b>Date</b><small>Jour de la semaine, jour et mois</small></div><input type="checkbox" class="sw" id="date"' + (c.date ? ' checked' : '') + '></div>' +
-      '<div class="lbl">Écran toujours allumé</div>' + chips('aod', C.CHOIX.AOD, c.aod) + '</div>' +
-      '<div class="row" style="margin-top:4px"><button class="btn pri" id="edSave">' + (EDI >= 0 ? 'Enregistrer' : 'Enregistrer dans Mes cadrans') + '</button><button class="btn" id="edFab">Fabriquer pour la montre</button><button class="btn" id="edNew">Nouveau</button></div>' +
+      '<div class="card"><div class="lbl" style="margin-top:0">Nom</div><input class="in" id="nom" maxlength="24" value="' + esc(c.nom) + '">' +
+      '<div class="lbl">Écran toujours allumé</div>' + chips('aod', C.CHOIX.AOD, c.aod) + '<p class="note">Heure (et date) atténuées sur fond noir ; les infos sont masquées pour économiser la batterie.</p></div>' +
+      '<div class="row"><button class="btn pri" id="edSave">' + (EDI >= 0 ? 'Enregistrer' : 'Enregistrer dans Mes cadrans') + '</button><button class="btn" id="edFab">Fabriquer pour la montre</button><button class="btn" id="edNew">Nouveau</button></div>' +
       '</div></div>';
   }
+  function detail(b) {
+    var C2 = C.CHOIX;
+    if (b.t === 'info') return C.INFOS[b.d].n + ' · ' + C2.STYLES[b.style];
+    if (b.t === 'date') return C2.DATES[b.format];
+    if (b.t === 'texte') return '« ' + b.txt + ' »';
+    if (b.t === 'heure') return C2.POLICES[b.police].nom + (b.secondes ? ' · secondes' : '');
+    if (b.t === 'aiguilles') return C2.AIGUILLES[b.style] + (b.secondes ? ' · trotteuse' : '');
+    if (b.t === 'meteo') return 'Icône + température' + (b.minmax ? ' · mini/maxi' : '');
+    return '';
+  }
+  function paintList() {
+    var l = $('edList'); if (!l) return;
+    l.innerHTML = ED.blocs.length ? ED.blocs.map(function (b, i) {
+      return '<button class="el" data-sel="' + i + '" aria-pressed="' + (i === SEL) + '"><span class="ic">' + ICO[b.t] + '</span><b>' + esc(C.CHOIX.TYPES[b.t]) + '</b><small>' + esc(detail(b)) + '</small></button>';
+    }).join('') : '<p class="note">Aucun élément : ajoutez-en ci-dessous, ou partez d\'un modèle.</p>';
+  }
+  function swatches(key, val) {
+    var c = C.norm(ED), l = [['accent', c.accent, 'Accent'], ['texte', c.texte, 'Texte'], ['doux', c.doux, 'Doux']].concat(C.CHOIX.VIFS.map(function (v) { return [v, v, v]; }));
+    var autre = /^#/.test(val) && C.CHOIX.VIFS.indexOf(val) < 0;
+    return '<div class="sws" data-pc="' + key + '">' + l.map(function (x) { return '<button data-v="' + x[0] + '" title="' + x[2] + '" aria-pressed="' + (val === x[0]) + '" style="background:' + x[1] + '">' + (x[0] === 'accent' ? 'A' : x[0] === 'texte' ? 'T' : x[0] === 'doux' ? 'D' : '') + '</button>'; }).join('') +
+      '<label class="swc" aria-pressed="' + autre + '" title="Autre couleur"><input type="color" data-pci="' + key + '" value="' + (/^#/.test(val) ? val : c.accent) + '">+</label></div>';
+  }
+  function pRange(key, lab, min, max, step, v) { return '<div class="lbl">' + lab + ' <span class="note" id="rv-' + key + '">' + v + '</span></div><input type="range" data-pr="' + key + '" min="' + min + '" max="' + max + '" step="' + step + '" value="' + v + '">'; }
+  function pSw(key, lab, v, sous) { return '<div class="line"><div class="t"><b>' + lab + '</b>' + (sous ? '<small>' + sous + '</small>' : '') + '</div><input type="checkbox" class="sw" data-ps="' + key + '"' + (v ? ' checked' : '') + '></div>'; }
+  function paintProps() {
+    var P = $('edProps'); if (!P) return;
+    var b = ED.blocs[SEL], K = C.CHOIX;
+    if (!b) { P.innerHTML = '<div class="lbl" style="margin-top:0">Réglages de l\'élément</div><p class="note">Touchez un élément sur l\'aperçu ou dans la liste pour le régler, le déplacer ou le supprimer.</p>'; return; }
+    var h = '<div class="row" style="justify-content:space-between"><div class="lbl" style="margin:0">' + ICO[b.t] + ' ' + esc(K.TYPES[b.t]) + '</div><div class="row" style="gap:6px"><button class="btn sm" data-act="haut" title="Passer devant">↑</button><button class="btn sm" data-act="bas" title="Passer derrière">↓</button><button class="btn sm" data-act="dup">Dupliquer</button><button class="btn sm bad" data-act="del">Supprimer</button></div></div>';
+    if (b.t === 'info') {
+      h += '<div class="lbl">Donnée</div><select class="in" data-psel="d">' + Object.keys(C.INFOS).filter(function (k) { return C.INFOS[k].type; }).map(function (k) { return '<option value="' + k + '"' + (k === b.d ? ' selected' : '') + '>' + esc(C.INFOS[k].n) + '</option>'; }).join('') + '</select>' +
+        '<div class="lbl">Style</div>' + chips('style', K.STYLES, b.style, 'data-p') + '<div class="lbl">Taille</div>' + chips('taille', K.TAILLES, b.taille, 'data-p');
+      if (C.INFOS[b.d].prog && (b.style === 'case' || b.style === 'jauge')) h += pSw('barre', 'Barre de progression', b.barre, b.d === 'batterie' ? 'Niveau de la batterie' : 'Avancée vers l\'objectif du jour');
+      h += '<div class="lbl">Couleur (icône, case, barre)</div>' + swatches('couleur', b.couleur) + '<div class="lbl">Couleur du chiffre</div>' + swatches('valeur', b.valeur) + '<div class="lbl">Police</div>' + chips('police', K.POLICES, b.police, 'data-p');
+    } else if (b.t === 'heure') {
+      h += '<div class="lbl">Police</div>' + chips('police', K.POLICES, b.police, 'data-p') + pRange('taille', 'Taille', 30, 150, 2, b.taille) + pSw('secondes', 'Secondes', b.secondes, 'Petits chiffres à droite (écran allumé)') +
+        '<div class="lbl">Couleur des chiffres</div>' + swatches('couleur', b.couleur) + '<div class="lbl">Couleur des « : » et des secondes</div>' + swatches('dp', b.dp);
+    } else if (b.t === 'aiguilles') {
+      h += '<div class="lbl">Forme</div>' + chips('style', K.AIGUILLES, b.style, 'data-p') + pRange('echelle', 'Taille', .2, 1, .05, b.echelle) + pSw('secondes', 'Trotteuse', b.secondes, 'Aiguille des secondes (consomme un peu plus)') +
+        '<div class="lbl">Couleur</div>' + swatches('couleur', b.couleur) + '<div class="lbl">Couleur de la trotteuse</div>' + swatches('trot', b.trot) + '<p class="note">Petites aiguilles : réduisez la taille et placez-les où vous voulez (petit cadran secondaire).</p>';
+    } else if (b.t === 'date') {
+      h += '<div class="lbl">Format</div>' + chips('format', K.DATES, b.format, 'data-p') + pRange('taille', 'Taille', 12, 40, 1, b.taille) + '<div class="lbl">Couleur du texte</div>' + swatches('couleur', b.couleur) + '<div class="lbl">Couleur du jour</div>' + swatches('jour', b.jour);
+    } else if (b.t === 'meteo') {
+      h += '<div class="lbl">Taille</div>' + chips('taille', K.TAILLES, b.taille, 'data-p') + pSw('minmax', 'Mini et maxi du jour', b.minmax) + '<div class="lbl">Couleur de l\'icône</div>' + swatches('couleur', b.couleur) + '<div class="lbl">Couleur de la température</div>' + swatches('valeur', b.valeur) + '<div class="lbl">Police</div>' + chips('police', K.POLICES, b.police, 'data-p');
+    } else if (b.t === 'texte') {
+      h += '<div class="lbl">Texte</div><input class="in" data-pt="txt" maxlength="24" value="' + esc(b.txt) + '">' + pRange('taille', 'Taille', 10, 80, 1, b.taille) + pRange('esp', 'Espacement', 0, 10, .5, b.esp) + '<div class="lbl">Couleur</div>' + swatches('couleur', b.couleur) + '<div class="lbl">Police</div>' + chips('police', K.POLICES, b.police, 'data-p');
+    } else if (b.t === 'trait') {
+      h += pRange('l', 'Longueur', 10, 440, 2, b.l) + pRange('ep', 'Épaisseur', 1, 12, .5, b.ep) + pSw('vertical', 'Vertical', b.vertical) + '<div class="lbl">Couleur</div>' + swatches('couleur', b.couleur);
+    }
+    h += '<div class="lbl">Position <span class="note" id="pos">x ' + b.x + ' · y ' + b.y + '</span></div><div class="row"><div class="pad"><i></i><button class="btn sm" data-nudge="0,-2">↑</button><i></i><button class="btn sm" data-nudge="-2,0">←</button><button class="btn sm" data-nudge="0,0" title="Centrer">◎</button><button class="btn sm" data-nudge="2,0">→</button><i></i><button class="btn sm" data-nudge="0,2">↓</button><i></i></div>' +
+      '<div class="v" style="gap:6px;margin:0"><button class="btn sm" data-ctr="x">Centrer à l\'horizontale</button><button class="btn sm" data-ctr="y">Centrer à la verticale</button></div></div>';
+    P.innerHTML = h;
+  }
+  function paintPhoto() {
+    var z = $('photoZone'); if (!z) return;
+    z.innerHTML = '<div class="row" style="margin-top:8px"><button class="btn sm" id="photoBtn">' + (ED.photo ? 'Changer la photo' : 'Choisir ma photo') + '</button>' + (ED.photo ? '<button class="btn sm bad" id="photoDel">Retirer</button>' : '') + '</div>' +
+      (ED.fond === 'photo' ? pRange('voile', 'Assombrir la photo (lisibilité)', 0, .9, .05, ED.voile == null ? .35 : ED.voile).replace('data-pr=', 'data-voile=') : '');
+  }
   var RAF = 0;
-  function preview() { cancelAnimationFrame(RAF); RAF = requestAnimationFrame(function () { var cv = $('pv'); if (cv) draw(cv, ED, AOD); }); }
+  function preview() { cancelAnimationFrame(RAF); RAF = requestAnimationFrame(function () { var cv = $('pv'); if (cv && !DRAG) { try { C.apercu(cv, ED, { aod: AOD, sel: AOD ? null : SEL }); } catch (e) { console.warn(e); } } }); }
+  function changed(full) { dirty = 1; ED.blocs[SEL] = C.normBloc(ED.blocs[SEL]); preview(); paintList(); if (full) paintProps(); }
+  function selectionne(i) { SEL = i; paintList(); paintProps(); preview(); }
+  function ajouter(t) {
+    var d = { heure: { t: 'heure', x: 240, y: 240, taille: 90 }, aiguilles: { t: 'aiguilles', x: 240, y: 240, echelle: 1 }, date: { t: 'date', x: 240, y: 330, format: 'court', taille: 18 },
+      info: { t: 'info', d: 'pas', x: 240, y: 360, style: 'simple', taille: 's' }, meteo: { t: 'meteo', x: 240, y: 110, taille: 's' }, texte: { t: 'texte', x: 240, y: 400, txt: 'MAG', taille: 18 },
+      trait: { t: 'trait', x: 240, y: 300, l: 200, ep: 2, couleur: 'doux' } }[t];
+    ED.blocs.push(C.normBloc(d)); dirty = 1; selectionne(ED.blocs.length - 1);
+  }
+  function chargerPhoto(f) {
+    if (!f) return;
+    var u = URL.createObjectURL(f), im = new Image();
+    im.onload = function () {
+      var taille = 480, q = .82, d = '';
+      for (var essai = 0; essai < 12; essai++) {
+        var c = document.createElement('canvas'); c.width = c.height = taille; var g = c.getContext('2d'), s = Math.max(taille / im.width, taille / im.height);
+        g.drawImage(im, (taille - im.width * s) / 2, (taille - im.height * s) / 2, im.width * s, im.height * s);
+        d = c.toDataURL('image/jpeg', q);
+        if (d.length < 38000) break;
+        if (q > .45) q -= .1; else taille = Math.round(taille * .85);
+      }
+      URL.revokeObjectURL(u);
+      if (d.length >= 38000) return toast('Photo trop lourde, essayez-en une autre');
+      ED.photo = d; ED.fond = 'photo'; dirty = 1;
+      document.querySelectorAll('[data-set="fond"] .chip').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.v === 'photo'); });
+      paintPhoto(); preview(); toast('Photo ajoutée');
+    };
+    im.onerror = function () { toast('Image illisible'); };
+    im.src = u;
+  }
+  /* glisser sur l'aperçu : fond fixe + calque de l'élément, redessin complet au lâcher */
+  function pt(cv, e) { var r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * 480, y: (e.clientY - r.top) / r.height * 480 }; }
+  function touche(p) {
+    var best = -1, aire = 1e9;
+    ED.blocs.forEach(function (b, i) { var x = C.boite(b, ED); if (p.x >= x.x - 8 && p.x <= x.x + x.w + 8 && p.y >= x.y - 8 && p.y <= x.y + x.h + 8 && x.w * x.h < aire) { aire = x.w * x.h; best = i; } });
+    return best;
+  }
+  function bindCanvas(cv) {
+    cv.onpointerdown = function (e) {
+      if (AOD) return;
+      var p = pt(cv, e), i = touche(p);
+      if (i < 0) { selectionne(-1); return; }
+      SEL = i; paintList(); paintProps();
+      var b = ED.blocs[i], sans = C.norm(ED); sans.blocs = ED.blocs.filter(function (x, k) { return k !== i; });
+      var base = document.createElement('canvas'), cal = document.createElement('canvas'); base.width = base.height = cal.width = cal.height = 480;
+      C.apercu(base, sans, {});
+      var seul = C.norm(ED); seul.fond = 'transparent'; seul.anneau = 'aucun'; seul.blocs = [b]; C.apercu(cal, seul, {});
+      DRAG = { i: i, p0: p, x0: b.x, y0: b.y, base: base, cal: cal, bx: C.boite(b, ED) };
+      try { cv.setPointerCapture(e.pointerId); } catch (er) { }
+      dessineDrag(cv); e.preventDefault();
+    };
+    cv.onpointermove = function (e) {
+      if (!DRAG) return;
+      var p = pt(cv, e), b = ED.blocs[DRAG.i], nx = Math.round(DRAG.x0 + p.x - DRAG.p0.x), ny = Math.round(DRAG.y0 + p.y - DRAG.p0.y);
+      if (Math.abs(nx - 240) < 7) nx = 240; if (Math.abs(ny - 240) < 7) ny = 240;
+      b.x = Math.max(0, Math.min(480, nx)); b.y = Math.max(0, Math.min(480, ny)); dirty = 1;
+      dessineDrag(cv); var ps = $('pos'); if (ps) ps.textContent = 'x ' + b.x + ' · y ' + b.y;
+    };
+    cv.onpointerup = cv.onpointercancel = function () { if (!DRAG) return; DRAG = null; preview(); };
+  }
+  function dessineDrag(cv) {
+    var g = cv.getContext('2d'), b = ED.blocs[DRAG.i], dx = b.x - DRAG.x0, dy = b.y - DRAG.y0, s = cv.width / 480;
+    g.clearRect(0, 0, cv.width, cv.height); g.drawImage(DRAG.base, 0, 0, cv.width, cv.height);
+    g.save(); g.beginPath(); g.arc(cv.width / 2, cv.height / 2, cv.width / 2, 0, 7); g.clip(); g.drawImage(DRAG.cal, dx * s, dy * s, cv.width, cv.height); g.restore();
+    g.strokeStyle = '#fff'; g.setLineDash([6, 4]); g.lineWidth = 2; var x = DRAG.bx; g.strokeRect((x.x + dx - 3) * s, (x.y + dy - 3) * s, (x.w + 6) * s, (x.h + 6) * s); g.setLineDash([]);
+    g.strokeStyle = '#4fd1c599'; g.lineWidth = 1;
+    if (b.x === 240) { g.beginPath(); g.moveTo(240 * s, 0); g.lineTo(240 * s, cv.height); g.stroke(); }
+    if (b.y === 240) { g.beginPath(); g.moveTo(0, 240 * s); g.lineTo(cv.width, 240 * s); g.stroke(); }
+  }
   function bindEditor() {
-    preview();
+    if (SEL >= ED.blocs.length) SEL = -1;
+    paintList(); paintProps(); paintPhoto(); preview(); bindCanvas($('pv'));
     $('nom').oninput = function () { ED.nom = this.value; dirty = 1; };
     $('aodT').onclick = function () { AOD = !AOD; this.setAttribute('aria-pressed', AOD); preview(); };
     document.querySelectorAll('[data-set] .chip').forEach(function (b) {
       b.onclick = function () {
-        var k = b.parentNode.dataset.set; ED[k] = b.dataset.v; dirty = 1;
-        if (k === 'heure' || k === 'police') { var y = $('main').scrollTop; render(); $('main').scrollTop = y; }
-        else { b.parentNode.querySelectorAll('.chip').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); preview(); }
+        var k = b.parentNode.dataset.set; if (k === 'fond' && b.dataset.v === 'photo' && !ED.photo) { $('photoIn').click(); return; }
+        ED[k] = b.dataset.v; dirty = 1;
+        b.parentNode.querySelectorAll('.chip').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); if (k === 'fond') paintPhoto(); preview();
       };
     });
-    document.querySelectorAll('[data-col]').forEach(function (i) { i.oninput = function () { ED[i.dataset.col] = i.value; dirty = 1; preview(); }; });
-    document.querySelectorAll('[data-pal]').forEach(function (b) { b.onclick = function () { var p = PALETTES[+b.dataset.pal]; ED.c1 = p[1]; ED.c2 = p[2]; ED.accent = p[3]; ED.texte = p[4]; ED.doux = p[5]; dirty = 1; document.querySelectorAll('[data-col]').forEach(function (i) { i.value = ED[i.dataset.col]; }); preview(); }; });
-    document.querySelectorAll('[data-slot]').forEach(function (s) { s.onchange = function () { var c = C.norm(ED); c.infos[+s.dataset.slot] = s.value; ED.infos = c.infos; dirty = 1; preview(); }; });
-    var sec = $('sec'); if (sec) sec.onchange = function () { ED.secondes = sec.checked; dirty = 1; preview(); };
-    $('date').onchange = function () { ED.date = this.checked; dirty = 1; preview(); };
+    document.querySelectorAll('[data-col]').forEach(function (i) { i.oninput = function () { ED[i.dataset.col] = i.value; dirty = 1; preview(); if (SEL >= 0) paintProps(); }; });
+    document.querySelectorAll('[data-pal]').forEach(function (b) { b.onclick = function () { var p = PALETTES[+b.dataset.pal]; ED.c1 = p[1]; ED.c2 = p[2]; ED.accent = p[3]; ED.texte = p[4]; ED.doux = p[5]; dirty = 1; document.querySelectorAll('[data-col]').forEach(function (i) { i.value = ED[i.dataset.col]; }); preview(); if (SEL >= 0) paintProps(); }; });
+    document.querySelectorAll('[data-mod]').forEach(function (b) { b.onclick = function () { if (ED.blocs.length && dirty && !confirm('Remplacer les éléments actuels par le modèle « ' + C.MODELES[b.dataset.mod].n + ' » ?')) return; ED.blocs = C.modele(b.dataset.mod, ED); dirty = 1; selectionne(-1); }; });
+    document.querySelectorAll('[data-add]').forEach(function (b) { b.onclick = function () { ajouter(b.dataset.add); }; });
+    $('edList').onclick = function (e) { var b = e.target.closest('[data-sel]'); if (b) selectionne(+b.dataset.sel); };
+    var P = $('edProps');
+    P.onclick = function (e) {
+      var b = ED.blocs[SEL], x; if (!b) return;
+      if ((x = e.target.closest('[data-p] .chip'))) { var k = x.parentNode.dataset.p; b[k] = x.dataset.v; return changed(true); }
+      if ((x = e.target.closest('[data-pc] button'))) { b[x.parentNode.dataset.pc] = x.dataset.v; return changed(true); }
+      if ((x = e.target.closest('[data-nudge]'))) { var d = x.dataset.nudge.split(','); if (d[0] === '0' && d[1] === '0') { b.x = 240; b.y = 240; } else { b.x += +d[0]; b.y += +d[1]; } return changed(true); }
+      if ((x = e.target.closest('[data-ctr]'))) { b[x.dataset.ctr] = 240; return changed(true); }
+      if ((x = e.target.closest('[data-act]'))) {
+        var a = x.dataset.act, L = ED.blocs; dirty = 1;
+        if (a === 'del') { L.splice(SEL, 1); SEL = -1; }
+        else if (a === 'dup') { var c = clone(b); c.x = Math.min(470, c.x + 16); c.y = Math.min(470, c.y + 16); L.splice(SEL + 1, 0, c); SEL++; }
+        else if (a === 'haut' && SEL < L.length - 1) { L.splice(SEL, 1); L.splice(SEL + 1, 0, b); SEL++; }
+        else if (a === 'bas' && SEL > 0) { L.splice(SEL, 1); L.splice(SEL - 1, 0, b); SEL--; }
+        paintList(); paintProps(); preview();
+      }
+    };
+    P.oninput = function (e) {
+      var b = ED.blocs[SEL], t = e.target; if (!b) return;
+      if (t.dataset.pr) { b[t.dataset.pr] = +t.value; var v = $('rv-' + t.dataset.pr); if (v) v.textContent = t.value; changed(false); }
+      else if (t.dataset.pt) { b[t.dataset.pt] = t.value; changed(false); }
+      else if (t.dataset.pci) { b[t.dataset.pci] = t.value; changed(false); }
+    };
+    P.onchange = function (e) {
+      var b = ED.blocs[SEL], t = e.target; if (!b) return;
+      if (t.dataset.ps) { b[t.dataset.ps] = t.checked; changed(true); }
+      else if (t.dataset.psel) { b[t.dataset.psel] = t.value; changed(true); }
+      else if (t.dataset.pci) changed(true);
+    };
+    $('photoZone').onclick = function (e) {
+      if (e.target.id === 'photoBtn') $('photoIn').click();
+      if (e.target.id === 'photoDel') { ED.photo = ''; if (ED.fond === 'photo') ED.fond = 'radial'; dirty = 1; document.querySelectorAll('[data-set="fond"] .chip').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.v === ED.fond); }); paintPhoto(); preview(); }
+    };
+    $('photoZone').oninput = function (e) { if (e.target.dataset.voile != null) { ED.voile = +e.target.value; var v = $('rv-voile'); if (v) v.textContent = e.target.value; dirty = 1; preview(); } };
+    $('photoIn').onchange = function () { chargerPhoto(this.files && this.files[0]); this.value = ''; };
     $('edSave').onclick = function () { saveEd(); toast('Cadran enregistré'); };
     $('edFab').onclick = function () { var i = saveEd(); fabriquer(i); };
-    $('edNew').onclick = function () { if (dirty && !confirm('Abandonner les changements ?')) return; ED = clone(C.DEFAUT); EDI = -1; dirty = 0; render(); };
+    $('edNew').onclick = function () { if (dirty && !confirm('Abandonner les changements ?')) return; ED = C.norm(C.DEFAUT); EDI = -1; SEL = -1; dirty = 0; render(); };
   }
   function saveEd() {
     var c = C.norm(ED); c.nom = (c.nom || 'Mon cadran').trim() || 'Mon cadran';
@@ -259,6 +428,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     }
     var cfg = C.norm(c); delete cfg.build;
     var code = b64(JSON.stringify(cfg));
+    if (code.length > 64000) return sheet('<h2>Cadran trop lourd</h2><p style="color:var(--tx2)">Retirez quelques éléments ou choisissez une photo plus légère.</p><div class="row"><button class="btn" data-close>Fermer</button></div>');
     if (!ST.token) {
       return sheet('<h2>Fabriquer « ' + esc(c.nom) + ' »</h2><p style="color:var(--tx2)">Pour fabriquer tout seul depuis l\'appli, enregistrez d\'abord votre clé GitHub (Réglages, une seule fois).</p>' +
         '<p style="color:var(--tx2)">Autre solution : copiez le code ci-dessous et envoyez-le à Claude, qui fabriquera le cadran pour vous.</p><textarea class="in" id="code" rows="4" readonly>' + esc(code) + '</textarea>' +
@@ -311,8 +481,8 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     if ((b = e.target.closest('nav [data-tab]'))) { if (TAB === 'creer' && dirty && b.dataset.tab !== 'creer' && !confirm('Quitter sans enregistrer ?')) return; TAB = b.dataset.tab; render(); $('main').scrollTop = 0; return; }
     if ((b = e.target.closest('[data-go]'))) { TAB = b.dataset.go; render(); return; }
     if ((b = e.target.closest('[data-inst]'))) { var c0 = COL[+b.dataset.inst]; qrSheet(c0.nom, DL + 'cadrans-collection/' + c0.id + '-qr.png', DL + 'cadrans-collection/' + c0.id + '-apercu.zab'); return; }
-    if ((b = e.target.closest('[data-copie]'))) { ED = clone(COL[+b.dataset.copie]); delete ED.id; delete ED.appId; ED.nom = (ED.nom + ' perso').slice(0, 24); EDI = -1; dirty = 1; TAB = 'creer'; render(); $('main').scrollTop = 0; return; }
-    if ((b = e.target.closest('[data-edit]'))) { EDI = +b.dataset.edit; ED = clone(ST.mes[EDI]); dirty = 0; TAB = 'creer'; render(); return; }
+    if ((b = e.target.closest('[data-copie]'))) { ED = C.norm(COL[+b.dataset.copie]); SEL = -1; ED.nom = (ED.nom + ' perso').slice(0, 24); EDI = -1; dirty = 1; TAB = 'creer'; render(); $('main').scrollTop = 0; return; }
+    if ((b = e.target.closest('[data-edit]'))) { EDI = +b.dataset.edit; ED = C.norm(ST.mes[EDI]); SEL = -1; dirty = 0; TAB = 'creer'; render(); return; }
     if ((b = e.target.closest('[data-dup]'))) { var c1 = clone(ST.mes[+b.dataset.dup]); c1.build = null; c1.nom = (c1.nom + ' 2').slice(0, 24); ST.mes.unshift(c1); save(); render(); return; }
     if ((b = e.target.closest('[data-del]'))) { var i = +b.dataset.del; if (confirm('Supprimer « ' + ST.mes[i].nom + ' » de vos cadrans ? (il reste sur la montre)')) { ST.mes.splice(i, 1); save(); render(); } return; }
     if ((b = e.target.closest('[data-fab]'))) { fabriquer(+b.dataset.fab); return; }
@@ -326,6 +496,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     }).then(function (l) { COL = l; }).catch(function () { COL = []; });
   }).then(function () { render(); reprendre(); });
   setInterval(function () { if (TAB === 'creer' && !document.hidden) preview(); }, 30000);   // l'heure de l'aperçu avance
+  C.onphoto = function () { paintPreviews(); preview(); };
   window.__atelier = { ST: ST, fabriquer: fabriquer, ed: function () { return ED; } };
 })();
 </script>

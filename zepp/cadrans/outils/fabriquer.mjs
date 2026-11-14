@@ -42,7 +42,8 @@ const liste = []
 for (const f of fichiers) {
   const cfg = JSON.parse(readFileSync(f, 'utf8'))
   const id = idDe(cfg, f), appId = appIdDe(cfg), dos = join(SORTIE, id)
-  const r = await page.evaluate((cfg) => {
+  const r = await page.evaluate(async (cfg) => {
+    await CADRAN.chargerPhoto(cfg.photo)
     const p = CADRAN.paquet(cfg), images = {}
     for (const k of Object.keys(p.images)) images[k] = p.images[k].toDataURL('image/png')
     const shot = (aod, taille) => { const c = document.createElement('canvas'); c.width = c.height = taille; CADRAN.apercu(c, cfg, { aod, date: new Date(2026, 9, 30, 10, 9, 30) }); return c.toDataURL('image/png') }

@@ -1,0 +1,103 @@
+{
+ "id": "chrono",
+ "appId": 1093212,
+ "nom": "Chrono sport",
+ "fond": "carbone",
+ "c1": "#050505",
+ "c2": "#222222",
+ "accent": "#ff7a1a",
+ "texte": "#ffffff",
+ "doux": "#a49a90",
+ "anneau": "graduations",
+ "aod": "heure_date",
+ "blocs": [
+  {
+   "t": "meteo",
+   "x": 240,
+   "y": 92,
+   "couleur": "accent",
+   "police": "nette",
+   "taille": "s",
+   "minmax": true,
+   "valeur": "texte"
+  },
+  {
+   "t": "date",
+   "x": 240,
+   "y": 156,
+   "couleur": "texte",
+   "police": "nette",
+   "format": "long",
+   "taille": 18,
+   "jour": "accent"
+  },
+  {
+   "t": "heure",
+   "x": 240,
+   "y": 232,
+   "couleur": "texte",
+   "police": "sport",
+   "taille": 120,
+   "secondes": true,
+   "dp": "accent"
+  },
+  {
+   "t": "trait",
+   "x": 240,
+   "y": 296,
+   "couleur": "doux",
+   "police": "nette",
+   "l": 260,
+   "ep": 1,
+   "vertical": false
+  },
+  {
+   "t": "info",
+   "x": 150,
+   "y": 330,
+   "couleur": "#ff7a1a",
+   "police": "nette",
+   "d": "calories",
+   "style": "simple",
+   "taille": "s",
+   "barre": false,
+   "valeur": "texte"
+  },
+  {
+   "t": "info",
+   "x": 240,
+   "y": 330,
+   "couleur": "#5fd35f",
+   "police": "nette",
+   "d": "pas",
+   "style": "simple",
+   "taille": "s",
+   "barre": false,
+   "valeur": "texte"
+  },
+  {
+   "t": "info",
+   "x": 330,
+   "y": 330,
+   "couleur": "#ff3b3b",
+   "police": "nette",
+   "d": "coeur",
+   "style": "simple",
+   "taille": "s",
+   "barre": false,
+   "valeur": "texte"
+  },
+  {
+   "t": "info",
+   "x": 240,
+   "y": 408,
+   "couleur": "#ffcc00",
+   "police": "nette",
+   "d": "batterie",
+   "style": "ligne",
+   "taille": "s",
+   "barre": false,
+   "valeur": "texte"
+  }
+ ]
+}

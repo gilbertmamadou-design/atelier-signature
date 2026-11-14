@@ -1,0 +1,131 @@
+{
+ "id": "tableau",
+ "appId": 1093210,
+ "nom": "Tableau de bord",
+ "fond": "uni",
+ "c1": "#07080b",
+ "c2": "#16181f",
+ "accent": "#46d9c2",
+ "texte": "#f4f7fb",
+ "doux": "#8a93a3",
+ "anneau": "graduations",
+ "aod": "heure_date",
+ "blocs": [
+  {
+   "t": "info",
+   "x": 168,
+   "y": 66,
+   "couleur": "#ffcc00",
+   "police": "nette",
+   "d": "meteo",
+   "style": "ligne",
+   "taille": "s",
+   "barre": false,
+   "valeur": "texte"
+  },
+  {
+   "t": "info",
+   "x": 300,
+   "y": 66,
+   "couleur": "#2ec4ff",
+   "police": "nette",
+   "d": "spo2",
+   "style": "ligne",
+   "taille": "s",
+   "barre": false,
+   "valeur": "texte"
+  },
+  {
+   "t": "heure",
+   "x": 240,
+   "y": 182,
+   "couleur": "texte",
+   "police": "sport",
+   "taille": 120,
+   "secondes": false,
+   "dp": "accent"
+  },
+  {
+   "t": "date",
+   "x": 240,
+   "y": 108,
+   "couleur": "texte",
+   "police": "nette",
+   "format": "court",
+   "taille": 16,
+   "jour": "accent"
+  },
+  {
+   "t": "info",
+   "x": 112,
+   "y": 282,
+   "couleur": "#ff7a1a",
+   "police": "nette",
+   "d": "calories",
+   "style": "case",
+   "taille": "s",
+   "barre": true,
+   "valeur": "texte"
+  },
+  {
+   "t": "info",
+   "x": 240,
+   "y": 282,
+   "couleur": "#ff3b3b",
+   "police": "nette",
+   "d": "coeur",
+   "style": "case",
+   "taille": "s",
+   "barre": false,
+   "valeur": "texte"
+  },
+  {
+   "t": "info",
+   "x": 368,
+   "y": 282,
+   "couleur": "#3d7bff",
+   "police": "nette",
+   "d": "pas",
+   "style": "case",
+   "taille": "s",
+   "barre": true,
+   "valeur": "texte"
+  },
+  {
+   "t": "info",
+   "x": 166,
+   "y": 368,
+   "couleur": "#5fd35f",
+   "police": "nette",
+   "d": "distance",
+   "style": "case",
+   "taille": "s",
+   "barre": false,
+   "valeur": "texte"
+  },
+  {
+   "t": "info",
+   "x": 314,
+   "y": 368,
+   "couleur": "#46d9c2",
+   "police": "nette",
+   "d": "batterie",
+   "style": "case",
+   "taille": "s",
+   "barre": true,
+   "valeur": "texte"
+  },
+  {
+   "t": "info",
+   "x": 240,
+   "y": 432,
+   "couleur": "#b45cff",
+   "police": "nette",
+   "d": "pai",
+   "style": "ligne",
+   "taille": "s",
+   "barre": false,
+   "valeur": "texte"
+  }
+ ]
+}
