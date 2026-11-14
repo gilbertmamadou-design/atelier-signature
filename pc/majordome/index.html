@@ -219,12 +219,19 @@ input[type=range]{width:160px;accent-color:var(--acc)}
 .rt{border:1px solid var(--line2);background:#0f1828cc;color:var(--tx);border-radius:18px;padding:7px 14px;font-weight:600;font-size:13px;cursor:pointer}
 .rt:active{background:var(--bg4);border-color:var(--acc)}
 /* Lanceur : dock des favoris et tiroir des applis */
-#dock{display:flex;justify-content:center;gap:10px;padding:6px 12px 2px;flex-wrap:nowrap;overflow-x:auto}
+/* barre basse et fine, sous la saisie : favoris en petites icônes, bouton « Applis » en long */
+#dock{display:flex;align-items:center;gap:8px;padding:0 12px calc(6px + var(--safe-b));max-width:600px;width:100%;margin:0 auto;box-sizing:border-box}
 #dock[hidden]{display:none}
-#dock button,.ap{background:none;border:0;color:var(--tx);display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;min-width:0;cursor:pointer;padding:2px}
-#dock img,#dock .all,.ap img,.ap i{width:46px;height:46px;border-radius:14px;display:block}
-#dock .all{display:grid;place-items:center;border:1px solid var(--line2);background:var(--bg3)}
-#dock span,.ap span{max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#dock:not([hidden])~#hint{display:none}
+footer:has(+#dock:not([hidden])){padding-bottom:6px}
+#dock button{background:none;border:0;padding:0;cursor:pointer;flex:0 0 auto;display:block}
+#dock img,#dock button>i{width:34px;height:34px;border-radius:10px;display:block}
+#dock button>i{background:var(--bg3)}
+#dock #dockAll{flex:1 1 auto;display:flex;align-items:center;justify-content:center;gap:8px;height:34px;border-radius:17px;border:1px solid var(--line2);background:var(--bg3);color:var(--tx);font-size:13px;font-weight:600}
+#dock #dockAll .ic{width:16px;height:16px}
+.ap{background:none;border:0;color:var(--tx);display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;min-width:0;cursor:pointer;padding:2px}
+.ap img,.ap i{width:46px;height:46px;border-radius:14px;display:block}
+.ap span{max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #drawer{position:fixed;inset:0;z-index:60;background:#070b14f5;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top) + 10px) 10px calc(env(safe-area-inset-bottom) + 6px);animation:pop .18s ease-out}
 #drawer[hidden]{display:none}
 #drawer .dh{display:flex;gap:8px;align-items:center;margin-bottom:8px}
@@ -270,7 +277,6 @@ input[type=range]{width:160px;accent-color:var(--acc)}
   </main>
   <div>
     <div id="timers"></div>
-    <div id="dock" hidden aria-label="Applis favorites"></div>
     <footer>
       <form id="ask" autocomplete="off">
         <input id="q" placeholder="Tape une commande…" enterkeyhint="send" aria-label="Commande au clavier">
@@ -278,6 +284,7 @@ input[type=range]{width:160px;accent-color:var(--acc)}
       </form>
       <button id="mic" aria-label="Parler (Ctrl+Espace)" title="Parler (Ctrl+Espace)"><svg class="ic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
     </footer>
+    <div id="dock" hidden aria-label="Applis favorites"></div>
     <div id="hint"></div>
   </div>
 </div>

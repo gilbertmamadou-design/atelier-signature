@@ -54,8 +54,8 @@
     var box = $('dock'); if (!box) return;
     if (!active()) { box.hidden = true; return; }
     load();
-    var h = S.dock.map(function (d) { var a = find(d); if (!a) return ''; var ic = icon(a); return '<button data-k="' + esc(key(a)) + '" aria-label="' + esc(a.label) + '">' + (ic ? '<img alt="" src="' + ic + '">' : '<i class="all"></i>') + '<span>' + esc(a.label) + '</span></button>'; }).join('');
-    h += '<button id="dockAll" aria-label="Toutes les applis"><span class="all"><svg class="ic" viewBox="0 0 24 24"><path d="M5 5h3v3H5zM10.5 5h3v3h-3zM16 5h3v3h-3zM5 10.5h3v3H5zM10.5 10.5h3v3h-3zM16 10.5h3v3h-3zM5 16h3v3H5zM10.5 16h3v3h-3zM16 16h3v3h-3z"/></svg></span><span>Applis</span></button>';
+    var h = S.dock.map(function (d) { var a = find(d); if (!a) return ''; var ic = icon(a); return '<button data-k="' + esc(key(a)) + '" aria-label="' + esc(a.label) + '">' + (ic ? '<img alt="" src="' + ic + '">' : '<i></i>') + '</button>'; }).join('');
+    h += '<button id="dockAll" aria-label="Toutes les applis"><svg class="ic" viewBox="0 0 24 24"><path d="M5 5h3v3H5zM10.5 5h3v3h-3zM16 5h3v3h-3zM5 10.5h3v3H5zM10.5 10.5h3v3h-3zM16 10.5h3v3h-3zM5 16h3v3H5zM10.5 16h3v3h-3zM16 16h3v3h-3z"/></svg>Applis</button>';
     box.innerHTML = h; box.hidden = false;
   }
   $('dock').addEventListener('click', function (e) {
