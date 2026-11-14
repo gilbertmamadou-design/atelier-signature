@@ -300,11 +300,12 @@ var DEFS = {
     render: function(X, out, st){
       // grondements de tonnerre : surtout lointains, parfois plus proches (sans claquement brutal)
       var d = null;
-      events(X, st, function(){ return rnd(2, 8); }, function(){ return rnd(14, 38); }, function(rt){
-        var near = Math.random() < .3, len = near ? rnd(9, 13) : rnd(6, 12), amp = near ? rnd(1, 1.25) : rnd(.45, .85);
+      events(X, st, function(){ return rnd(2, 8); }, function(){ return rnd(12, 30); }, function(rt){
+        var near = Math.random() < .45, close = near && Math.random() < .35, len = near ? rnd(9, 13) : rnd(6, 12), amp = near ? rnd(.85, 1.1) : rnd(.45, .85);
         len = Math.min(len, CH + TAIL - rt - .5);
         // enveloppe roulante : plusieurs coups qui s'enchaînent et s'éloignent
         var STEP = .03, N = Math.ceil(len / STEP) + 1, env = new Float32Array(N), nb = Math.floor(rnd(3, 8)), tb = near ? 0 : rnd(.1, .6), bumps = [];
+        if(near) tb = close ? .05 : .25;
         for(var k = 0; k < nb; k++){ bumps.push([tb, (k ? rnd(.35, .95) : 1) * Math.pow(.82, k), rnd(.08, near && !k ? .12 : .6), rnd(.7, 2.4)]); tb += rnd(.35, 1.8); if(tb > len * .7) break; }
         var mx = 0;
         for(var j = 0; j < N; j++){
@@ -322,10 +323,23 @@ var DEFS = {
         var mi = X.c.createBufferSource(); mi.buffer = BUF.pink; mi.loop = true;
         var mf = F(X, 'lowpass', near ? 1400 : 600), mg = G(X, 0); chain(mi, mf, mg, out);
         var env2 = env.map(function(x){ return x * (near ? .3 : .16); }); autom(mg.gain, env2, rt, len); mi.start(rt, rnd(0, 11)); mi.stop(rt + len + .05);
-        if(near){   // le craquement de la foudre, adouci, juste avant le grondement
-          if(!d) d = layer(X, out, .3);
-          var c = rt, n = Math.floor(rnd(5, 11));
-          for(var q = 0; q < n; q++){ imp(d, c, rnd(.08, .22) * amp, rnd(.008, .04), rnd(.2, .6)); c += rnd(.015, .07); }
+        if(near){   // l'éclair : claquement sec, déchirement qui crépite, puis le grondement
+          if(!d) d = layer(X, out, .35);
+          var ca = amp * (close ? 1 : .7), t0 = rt - (close ? .02 : .12);
+          if(t0 < 0) t0 = 0;
+          imp(d, t0, .6 * ca, rnd(.003, .006), .95);                       // le claquement
+          var c = t0 + .004, n = Math.floor(rnd(18, 40)), span = rnd(.18, .5);
+          for(var q = 0; q < n; q++){                                       // le déchirement : crépitements serrés qui faiblissent
+            var u = (c - t0) / span;
+            imp(d, c, rnd(.15, .5) * ca * Math.max(.15, 1 - u), rnd(.002, .012), rnd(.5, 1));
+            c += rnd(.004, .03);
+          }
+          // le souffle de l'arc : bruit clair qui descend vers le grave
+          var w = X.c.createBufferSource(); w.buffer = BUF.white; w.loop = true;
+          var bp = F(X, 'bandpass', 5000, .6), wg = G(X, 0); chain(w, bp, wg, out); var ws = G(X, .4); wg.connect(ws); ws.connect(X.rv);
+          bp.frequency.setValueAtTime(rnd(4000, 6500), t0); bp.frequency.exponentialRampToValueAtTime(rnd(350, 600), t0 + span + .4);
+          wg.gain.setValueAtTime(0, t0); wg.gain.linearRampToValueAtTime(.45 * ca, t0 + .006); wg.gain.exponentialRampToValueAtTime(.12 * ca, t0 + span); wg.gain.exponentialRampToValueAtTime(.001, t0 + span + .9);
+          w.start(t0, rnd(0, 11)); w.stop(t0 + span + 1);
         }
       });
     } },
@@ -404,18 +418,61 @@ var DEFS = {
         for(var i = 0; i < k; i++) burst(X, out, rt + i * rnd(.01, .04), rnd(1500, 6000), 1.5, rnd(.25, .8), rnd(.01, .04));
       });
     } },
-  oiseaux: { name:'Oiseaux', grp:'nat', ic:'<path d="M16 7h.01M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.3-2.3L2 20M20 7l2 .5-2 .5M10 18v3M14 17.7V21"/>',
+  oiseaux: { name:'Oiseaux', grp:'nat', lv:2.1, ic:'<path d="M16 7h.01M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.3-2.3L2 20M20 7l2 .5-2 .5M10 18v3M14 17.7V21"/>',
     render: function(X, out, st){
-      function chirp(t, f0, f1, d, v){ var o = X.c.createOscillator(), g = G(X, 0); o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + d);
-        chain(o, g, out); g.connect(X.rv); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + d * .2); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.start(t); o.stop(t + d + .02); }
-      events(X, st, function(){ return rnd(.5, 3); }, function(){ return rnd(1.8, 6.5); }, function(rt){
-        var t = rt, f = rnd(2600, 4200), n = Math.floor(rnd(2, 7)), kind = Math.random(), v = rnd(.14, .24);
-        for(var i = 0; i < n; i++){
-          if(kind < .4) chirp(t, f * rnd(1, 1.15), f * rnd(.7, .85), rnd(.06, .12), v);
-          else if(kind < .75) chirp(t, f * .8, f * 1.25, rnd(.08, .14), v * .85);
-          else chirp(t, f, f * 1.02, .05, v * .8);
-          t += rnd(.09, .2);
+      // un sous-bois au matin : plusieurs oiseaux à la fois, proches ou lointains, d'espèces différentes
+      function voice(far){   // chaque oiseau a sa place : plus il est loin, plus il est doux et feutré
+        var lp = F(X, 'lowpass', far ? rnd(2500, 4500) : rnd(8000, 12000)), g = G(X, far ? rnd(.25, .45) : rnd(.7, 1));
+        lp.connect(g); g.connect(out); var sd = G(X, far ? .7 : .35); g.connect(sd); sd.connect(X.rv); return lp;
+      }
+      function tone(dst, t, f0, f1, d, v, vib){
+        var o = X.c.createOscillator(), g = G(X, 0); o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(60, f1), t + d);
+        if(vib){ var l = X.c.createOscillator(), lg = G(X, f0 * vib); l.frequency.value = rnd(25, 45); l.connect(lg); lg.connect(o.frequency); l.start(t); l.stop(t + d + .02); }
+        o.connect(g); g.connect(dst);
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + Math.min(.015, d * .2)); g.gain.setValueAtTime(v, t + d * .55); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+        o.start(t); o.stop(t + d + .02);
+      }
+      var SONGS = [
+        function(dst, t){ // moineau : petits cris pépiés
+          var f = rnd(2800, 4200), n = Math.floor(rnd(2, 7)), v = rnd(.12, .2);
+          for(var i = 0; i < n; i++){ tone(dst, t, f * rnd(1, 1.15), f * rnd(.7, .85), rnd(.06, .11), v); t += rnd(.09, .2); } return t;
+        },
+        function(dst, t){ // mésange : « ti-tu, ti-tu »
+          var a = rnd(4200, 5200), b = a * rnd(.68, .78), n = Math.floor(rnd(3, 6)), v = rnd(.1, .16);
+          for(var i = 0; i < n; i++){ tone(dst, t, a, a * .97, .07, v); tone(dst, t + .1, b, b * .95, .11, v * .9); t += rnd(.27, .33); } return t;
+        },
+        function(dst, t){ // troglodyte : trille rapide et sonore
+          var f = rnd(4500, 6500), n = Math.floor(rnd(12, 26)), r = rnd(.045, .07), v = rnd(.08, .13), dir = rnd(-.25, .2);
+          for(var i = 0; i < n; i++){ var ff = f * (1 + dir * i / n); tone(dst, t, ff * 1.08, ff * .9, r * .8, v); t += r; } return t;
+        },
+        function(dst, t){ // merle : phrase flûtée et grave, avec vibrato
+          var base = rnd(1500, 2300), n = Math.floor(rnd(4, 8)), v = rnd(.1, .16);
+          for(var i = 0; i < n; i++){ var f0 = base * rnd(.8, 1.5), f1 = f0 * rnd(.85, 1.2), d = rnd(.1, .32); tone(dst, t, f0, f1, d, v * rnd(.7, 1), Math.random() < .5 ? .015 : 0); t += d + rnd(.02, .09); } return t;
+        },
+        function(dst, t){ // pinson : série qui descend et finit en fioriture
+          var f = rnd(4500, 5500), n = Math.floor(rnd(6, 10)), v = rnd(.1, .15);
+          for(var i = 0; i < n; i++){ tone(dst, t, f, f * .9, .06, v); f *= .96; t += .085; }
+          tone(dst, t + .02, f * 1.4, f * .7, .2, v * 1.1, .02); return t + .25;
+        },
+        function(dst, t){ // rouge-gorge : notes cristallines qui sautent
+          var n = Math.floor(rnd(5, 10)), v = rnd(.07, .12);
+          for(var i = 0; i < n; i++){ var f0 = rnd(3000, 7500), d = rnd(.05, .16); tone(dst, t, f0, f0 * rnd(.8, 1.25), d, v); t += d + rnd(.01, .06); } return t;
         }
+      ];
+      // trois ou quatre oiseaux qui chantent chacun à leur rythme
+      if(!st.b) st.b = [{ s: 0 }, { s: 3 }, { s: 1 }, { s: 4 }].map(function(o){ o.sp = Math.floor(Math.random() * SONGS.length); return o; });
+      st.b.forEach(function(b, k){
+        events(X, b, function(){ return rnd(.2, 3); }, function(){ return rnd(2.5, k < 2 ? 6 : 10); }, function(rt){
+          if(Math.random() < .15) b.sp = Math.floor(Math.random() * SONGS.length);   // un autre oiseau prend la place
+          SONGS[b.sp](voice(k >= 2 || Math.random() < .3), rt);
+        });
+      });
+      // de temps en temps, un coucou ou une tourterelle au loin
+      if(!st.c) st.c = {};
+      events(X, st.c, function(){ return rnd(15, 40); }, function(){ return rnd(35, 80); }, function(rt){
+        var dst = voice(true), t = rt;
+        if(Math.random() < .5){ for(var i = 0; i < Math.floor(rnd(2, 5)); i++){ tone(dst, t, 720, 700, .22, .2); tone(dst, t + .3, 590, 575, .32, .17); t += rnd(.9, 1.2); } }
+        else { for(var j = 0; j < 3; j++){ tone(dst, t, 520, 600, .3, .14, .01); tone(dst, t + .35, 600, 470, .5, .16, .01); t += rnd(1.3, 1.7); } }
       });
     } },
   nappes: { name:'Nappes douces', grp:'mus', ic:'<path d="M3 12c3-6 6-6 9 0s6 6 9 0"/>',
