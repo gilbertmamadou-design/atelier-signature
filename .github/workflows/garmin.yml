@@ -63,7 +63,15 @@ jobs:
             monkeyc -f "$P/monkey.jungle" -d "$d" -y "$RUNNER_TEMP/cle.der" -o "sortie-garmin/$(basename "$P")-$d.prg" -w
           done
           ls -la sortie-garmin
-      - uses: actions/upload-artifact@v4
+      - name: Nom de la publication
+        id: pub
+        run: echo "tag=garmin-$(basename "${{ github.event.inputs.projet }}")" >> "$GITHUB_OUTPUT"
+      - uses: softprops/action-gh-release@v2
         with:
-          name: cadrans-garmin
-          path: sortie-garmin/*.prg
+          tag_name: ${{ steps.pub.outputs.tag }}
+          name: Cadran Garmin ${{ steps.pub.outputs.tag }}
+          overwrite_files: true
+          body: |
+            Cadran Garmin Connect IQ (Fenix 6X Pro, Fenix 6S). Installation : brancher la montre en USB et copier le fichier .prg
+            de sa montre dans le dossier GARMIN/APPS, puis débrancher.
+          files: sortie-garmin/*.prg
