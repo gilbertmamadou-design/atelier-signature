@@ -1,0 +1,160 @@
+/* =====================================================================
+   Majordome › effets (comme le Fond Jarvis du PC) et bulles éphémères.
+   - Effets autour de la sphère : spectre de la voix, atome (électrons), planètes en orbite, ondes de choc,
+     éclats, éclairs quand il parle, saut en hyperespace quand il écoute, comètes, constellations.
+     Toile fixe derrière l'interface, 30 images/s au plus, arrêtée quand l'appli est cachée.
+   - Bulles éphémères : la réponse s'affiche pendant qu'elle est annoncée puis disparaît
+     (une question en attente reste affichée jusqu'à la réponse).
+   Réglages : Réglages › Effets (S.fxInt : intensité, S.fxG : gadgets, S.bulles : 'ephemeres' | 'garder').
+   ===================================================================== */
+(function () {
+  'use strict';
+  var MJ = window.Majordome; if (!MJ || !MJ._) return;
+  var X = MJ._, S = X.S, save = X.saveS, esc = X.esc, TAU = Math.PI * 2;
+  var $ = function (id) { return document.getElementById(id); };
+  if (S.fxInt == null) S.fxInt = 70;
+  if (!S.fxG) S.fxG = {};
+  if (!S.bulles) S.bulles = 'ephemeres';
+  var GAD = { spectre: 'Spectre de la voix', atome: 'Atome (électrons)', planetes: 'Planètes en orbite', ondes: 'Ondes de choc et éclats', eclairs: 'Éclairs quand il parle', hyper: 'Hyperespace quand il écoute', cometes: 'Comètes', etoiles: 'Constellations' };
+  function gad(k) { return S.fxG[k] !== false; }
+  function on() { return (+S.fxInt || 0) > 0 && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches && S.fxG.force !== true); }
+  function K() { return Math.max(0, Math.min(1, (+S.fxInt || 0) / 100)); }
+  var ACC = '70,217,194';
+  function lireAcc() { var v = getComputedStyle(document.documentElement).getPropertyValue('--acc').trim(); var m = /^#([0-9a-f]{6})$/i.exec(v); if (m) { var n = parseInt(m[1], 16); ACC = (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255); } }
+  lireAcc();
+  function col(a) { return 'rgba(' + ACC + ',' + Math.max(0, Math.min(1, a)).toFixed(3) + ')'; }
+
+  /* ---------------- toile ---------------- */
+  var cv = document.createElement('canvas'); cv.id = 'mjfx'; cv.setAttribute('aria-hidden', 'true');
+  cv.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none';
+  var bg = $('bgfx'); if (bg && bg.parentNode) bg.parentNode.insertBefore(cv, bg.nextSibling); else document.body.insertBefore(cv, document.body.firstChild);
+  var g = cv.getContext('2d'), W = 0, H = 0, DPR = 1;
+  function size() { DPR = Math.min(2, window.devicePixelRatio || 1); var w = Math.round(innerWidth * DPR), h = Math.round(innerHeight * DPR); if (w !== W || h !== H) { W = cv.width = w; H = cv.height = h; etW = 0; } }
+  function centre() { var b = $('orbBox'); if (!b) return null; var r = b.getBoundingClientRect(); if (!r.width) return null; return { x: (r.left + r.width / 2) * DPR, y: (r.top + r.height / 2) * DPR, r: Math.max(16, r.width * .37 * DPR) }; }
+
+  /* ---------------- sphère : niveau et états ---------------- */
+  var lvl = 0, cible = 0, wrapped = null;
+  function wrap() {
+    var o = MJ.orb; if (!o || wrapped === o) return; wrapped = o;
+    ['level', 'voice'].forEach(function (m) { var f = o[m]; if (typeof f === 'function') o[m] = function (v) { cible = Math.max(0, Math.min(1, +v || 0)); return f.apply(o, arguments); }; });
+    var st = o.state;
+    if (typeof st === 'function') o.state = function (s) {
+      var prev = o.get ? o.get() : null, r = st.apply(o, arguments);
+      if (s && s !== prev) {
+        if (s === 'listen') { pulse(1, 1.2); if (gad('hyper')) hyper(); }
+        else if (s === 'think') pulse(.6, .8);
+        else if (s === 'speak') { pulse(.9, 1); burst(36); }
+        else if (s === 'error') pulse(1, 1, '255,92,115');
+        if (s === 'idle') cible = 0;
+        kick();
+      }
+      return r;
+    };
+  }
+
+  var waves = [], parts = [], eclairs = [], streaks = [], comete = null, nextC = performance.now() + 9000, etoiles = [], liens = [], etW = 0;
+  function pulse(f, v, rgb) { if (!on() || !gad('ondes')) return; waves.push({ t0: performance.now(), f: f, v: v, rgb: rgb }); if (waves.length > 6) waves.shift(); }
+  function burst(n) { if (!on() || !gad('ondes')) return; var c = centre(); if (!c) return; for (var i = 0; i < Math.round(n * K()); i++) { var a = Math.random() * TAU, s = (1 + Math.random() * 2.6) * DPR; parts.push({ x: c.x + Math.cos(a) * c.r, y: c.y + Math.sin(a) * c.r, vx: Math.cos(a) * s, vy: Math.sin(a) * s, l: 1, d: .015 + Math.random() * .02 }); } if (parts.length > 200) parts.splice(0, parts.length - 200); }
+  function hyper() { if (!on()) return; var t = performance.now(); for (var i = 0; i < 90; i++) streaks.push({ a: Math.random() * TAU, d: Math.random() * .3, v: .6 + Math.random() * 1.4, t0: t }); }
+  function constellations() { etoiles = []; liens = []; var s = 777, rnd = function () { s = (s * 16807) % 2147483647; return s / 2147483647; }; for (var i = 0; i < 55; i++) etoiles.push({ x: rnd() * W, y: rnd() * H, r: (rnd() < .15 ? 1.5 : .8) * DPR, p: rnd() * TAU }); for (var a = 0; a < etoiles.length; a++) for (var b = a + 1; b < etoiles.length; b++) { var dx = etoiles[a].x - etoiles[b].x, dy = etoiles[a].y - etoiles[b].y; if (dx * dx + dy * dy < Math.pow(80 * DPR, 2) && rnd() < .5) liens.push([a, b]); } etW = W; }
+  var PL = [{ o: 1.9, t: .3, v: .00022, p: 0, s: 4, c: ['#ffd9a0', '#c8782e'] }, { o: 2.25, t: .28, v: -.00015, p: 2.1, s: 6, c: ['#bfe6ff', '#2b6fd6'], lune: 1 }, { o: 2.65, t: .26, v: .00011, p: 4, s: 7.5, c: ['#fff0c8', '#c9a15a'], anneau: 1 }];
+
+  function draw(now) {
+    wrap(); size(); g.clearRect(0, 0, W, H);
+    if (!on()) return;
+    var c = centre(); if (!c) return;
+    var k = K(); lvl += (cible - lvl) * .25;
+    if (gad('etoiles')) {
+      if (etW !== W) constellations();
+      g.strokeStyle = col(.07 * k); g.lineWidth = DPR * .7; g.beginPath(); liens.forEach(function (l) { g.moveTo(etoiles[l[0]].x, etoiles[l[0]].y); g.lineTo(etoiles[l[1]].x, etoiles[l[1]].y); }); g.stroke();
+      etoiles.forEach(function (e) { g.fillStyle = 'rgba(220,240,255,' + ((.35 + .65 * Math.abs(Math.sin(now / 900 + e.p))) * .5 * k).toFixed(3) + ')'; g.beginPath(); g.arc(e.x, e.y, e.r, 0, TAU); g.fill(); });
+    }
+    if (gad('cometes')) {
+      if (!comete && now > nextC) { var gch = Math.random() < .5; comete = { t0: now, x0: gch ? -40 * DPR : W + 40 * DPR, y0: Math.random() * H * .45, vx: (gch ? 1 : -1) * (.35 + Math.random() * .3) * DPR, vy: (.1 + Math.random() * .15) * DPR }; nextC = now + 18000 + Math.random() * 22000; }
+      if (comete) { var dt0 = now - comete.t0, cx = comete.x0 + comete.vx * dt0, cy = comete.y0 + comete.vy * dt0; if (cx < -150 * DPR || cx > W + 150 * DPR || cy > H) comete = null; else { var tx = cx - comete.vx * 200, ty = cy - comete.vy * 200, gq = g.createLinearGradient(cx, cy, tx, ty); gq.addColorStop(0, 'rgba(255,255,255,' + (.9 * k).toFixed(3) + ')'); gq.addColorStop(.2, col(.45 * k)); gq.addColorStop(1, col(0)); g.strokeStyle = gq; g.lineWidth = 2.4 * DPR; g.lineCap = 'round'; g.beginPath(); g.moveTo(cx, cy); g.lineTo(tx, ty); g.stroke(); g.fillStyle = '#fff'; g.beginPath(); g.arc(cx, cy, 2 * DPR, 0, TAU); g.fill(); } }
+    }
+    if (streaks.length) for (var i = streaks.length - 1; i >= 0; i--) { var q = streaks[i], dt = (now - q.t0) / 1000; if (dt > 1.2) { streaks.splice(i, 1); continue; } var d0 = c.r * (1.1 + (q.d + dt * dt * 3.2 * q.v) * 5), d1 = d0 + c.r * (.2 + dt * 2.2 * q.v); g.strokeStyle = 'rgba(230,250,255,' + ((1 - dt / 1.2) * .8).toFixed(3) + ')'; g.lineWidth = (1 + dt * 1.6) * DPR; g.beginPath(); g.moveTo(c.x + Math.cos(q.a) * d0, c.y + Math.sin(q.a) * d0); g.lineTo(c.x + Math.cos(q.a) * d1, c.y + Math.sin(q.a) * d1); g.stroke(); }
+    if (gad('planetes')) {
+      g.setLineDash([2 * DPR, 8 * DPR]); g.lineWidth = DPR; PL.forEach(function (p) { g.strokeStyle = col(.12 * k); g.beginPath(); g.ellipse(c.x, c.y, c.r * p.o, c.r * p.o * p.t, 0, 0, TAU); g.stroke(); }); g.setLineDash([]);
+      PL.map(function (p) { var a = p.p + now * p.v; return { p: p, x: c.x + Math.cos(a) * c.r * p.o, y: c.y + Math.sin(a) * c.r * p.o * p.t, dv: Math.sin(a) > 0 }; }).sort(function (a, b) { return a.y - b.y; }).forEach(function (o) {
+        var s = o.p.s * DPR * (o.dv ? 1.1 : .8), gr = g.createRadialGradient(o.x - s * .35, o.y - s * .35, s * .1, o.x, o.y, s); gr.addColorStop(0, o.p.c[0]); gr.addColorStop(1, o.p.c[1]); g.globalAlpha = o.dv ? 1 : .55;
+        if (o.p.anneau) { g.strokeStyle = 'rgba(240,220,170,.75)'; g.lineWidth = 1.3 * DPR; g.beginPath(); g.ellipse(o.x, o.y, s * 2.1, s * .55, -.35, Math.PI, TAU); g.stroke(); }
+        g.fillStyle = gr; g.beginPath(); g.arc(o.x, o.y, s, 0, TAU); g.fill();
+        if (o.p.anneau) { g.beginPath(); g.ellipse(o.x, o.y, s * 2.1, s * .55, -.35, 0, Math.PI); g.stroke(); }
+        if (o.p.lune) { var al = now * .0013; g.fillStyle = '#e8eef5'; g.beginPath(); g.arc(o.x + Math.cos(al) * s * 2.3, o.y + Math.sin(al) * s, 1.6 * DPR, 0, TAU); g.fill(); }
+        g.globalAlpha = 1;
+      });
+    }
+    if (gad('spectre')) {
+      var N = 64, R0 = c.r * 1.3, act = lvl > .02; g.lineCap = 'round'; g.lineWidth = Math.max(1, 1.6 * DPR * c.r / (110 * DPR));
+      for (var j = 0; j < N; j++) { var a = j / N * TAU + (act ? 0 : now / 9000), b = act ? lvl * (.35 + .65 * Math.abs(Math.sin(j * 1.7 + now / 90) * Math.cos(j * .37 - now / 170))) : .04 + .03 * Math.sin(j * .5 + now / 600), L = (3 + b * c.r * .4) * k + 1.5 * DPR; g.strokeStyle = col((act ? .35 + .6 * b : .22) * k); g.beginPath(); g.moveTo(c.x + Math.cos(a) * R0, c.y + Math.sin(a) * R0); g.lineTo(c.x + Math.cos(a) * (R0 + L), c.y + Math.sin(a) * (R0 + L)); g.stroke(); }
+    }
+    if (gad('atome')) [0, Math.PI / 3, -Math.PI / 3].forEach(function (tilt, n) {
+      var R1 = c.r * 1.38, R2 = R1 * .32; g.strokeStyle = col(.2 * k); g.lineWidth = DPR; g.beginPath(); g.ellipse(c.x, c.y, R1, R2, tilt, 0, TAU); g.stroke();
+      for (var e = 0; e < 12; e++) { var an = now * .0032 * (n % 2 ? -1 : 1) + n * 2.1 - e * .08, ex = Math.cos(an) * R1, ey = Math.sin(an) * R2, x = c.x + ex * Math.cos(tilt) - ey * Math.sin(tilt), y = c.y + ex * Math.sin(tilt) + ey * Math.cos(tilt);
+        if (!e) { var gl = g.createRadialGradient(x, y, 0, x, y, 7 * DPR); gl.addColorStop(0, 'rgba(255,255,255,' + (.95 * k).toFixed(3) + ')'); gl.addColorStop(.35, col(.8 * k)); gl.addColorStop(1, col(0)); g.fillStyle = gl; g.beginPath(); g.arc(x, y, 7 * DPR, 0, TAU); g.fill(); }
+        else { g.fillStyle = col(.5 * (1 - e / 12) * k); g.beginPath(); g.arc(x, y, 1.6 * DPR * (1 - e / 14), 0, TAU); g.fill(); } }
+    });
+    if (gad('eclairs')) {
+      if (lvl > .35 && Math.random() < lvl * .3 && eclairs.length < 3) { var a0 = Math.random() * TAU, pts = [], r0 = c.r * 1.02, r1 = c.r * (1.4 + Math.random() * .4); for (var z = 0; z <= 6; z++) { var rr = r0 + (r1 - r0) * z / 6, aa = a0 + (z && z < 6 ? (Math.random() - .5) * .22 : 0); pts.push(c.x + Math.cos(aa) * rr, c.y + Math.sin(aa) * rr); } eclairs.push({ p: pts, t0: now }); }
+      for (var y2 = eclairs.length - 1; y2 >= 0; y2--) { var E = eclairs[y2], de = (now - E.t0) / 160; if (de > 1) { eclairs.splice(y2, 1); continue; } g.strokeStyle = 'rgba(235,252,255,' + ((1 - de) * .95).toFixed(3) + ')'; g.lineWidth = 1.4 * DPR; g.shadowColor = col(1); g.shadowBlur = 10 * DPR; g.beginPath(); for (var u = 0; u < E.p.length; u += 2) g[u ? 'lineTo' : 'moveTo'](E.p[u], E.p[u + 1]); g.stroke(); g.shadowBlur = 0; }
+    }
+    for (var w = waves.length - 1; w >= 0; w--) { var q2 = waves[w], dt2 = (now - q2.t0) / 1000, r2 = c.r * (1.05 + dt2 * 1.7 * q2.v), al2 = (1 - dt2 / 1.3) * .7 * q2.f * k; if (al2 <= 0) { waves.splice(w, 1); continue; } g.strokeStyle = q2.rgb ? 'rgba(' + q2.rgb + ',' + al2.toFixed(3) + ')' : col(al2); g.lineWidth = (2.6 - dt2 * 1.5) * DPR + .5; g.beginPath(); g.arc(c.x, c.y, r2, 0, TAU); g.stroke(); }
+    for (var p = parts.length - 1; p >= 0; p--) { var o2 = parts[p]; o2.x += o2.vx; o2.y += o2.vy; o2.vx *= .985; o2.vy *= .985; o2.l -= o2.d; if (o2.l <= 0) { parts.splice(p, 1); continue; } g.fillStyle = col(o2.l * .9 * k); g.fillRect(o2.x - DPR, o2.y - DPR, 2 * DPR, 2 * DPR); }
+  }
+  /* boucle à 30 images/s au plus, arrêtée quand l'appli est cachée */
+  var raf = 0, last = 0;
+  function loop(t) { raf = 0; if (document.hidden) return; if (t - last >= 32) { last = t; try { draw(t); } catch (e) { } } if (on()) raf = requestAnimationFrame(loop); else g.clearRect(0, 0, W, H); }
+  function kick() { if (!raf && !document.hidden) raf = requestAnimationFrame(loop); }
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) { lireAcc(); kick(); } });
+  window.addEventListener('resize', function () { size(); });
+  kick();
+
+  /* ---------------- bulles éphémères ---------------- */
+  var cards = $('cards'), suivi = null;
+  function interactive(c) { return !!c.querySelector('button,input,select,textarea,a[href]'); }
+  function fondre(c) { if (!c || !c.parentNode || c.classList.contains('fx-out')) return; c.classList.add('fx-out'); setTimeout(function () { if (c.parentNode) c.parentNode.removeChild(c); }, 450); }
+  function suivre(groupe) {
+    var c = groupe[groupe.length - 1];
+    clearInterval(suivi); var t0 = Date.now(), parle = false, fin = 0;
+    suivi = setInterval(function () {
+      if (!c.parentNode) return clearInterval(suivi);
+      var sp = false; try { sp = X.speaking(); } catch (e) { }
+      if (sp) { parle = true; fin = 0; return; }
+      if (!fin) fin = Date.now();
+      var d = Date.now() - t0, lu = Math.min(20000, 6000 + groupe.reduce(function (n, x) { return n + (x.textContent || '').length; }, 0) * 60);
+      // annoncée : 4 s après la fin de la voix (au moins 6 s) ; sans voix : le temps de lire
+      if (d > (parle ? 6000 : lu) && (!parle || Date.now() - fin > 4000)) { clearInterval(suivi); groupe.forEach(fondre); }
+    }, 400);
+  }
+  if (cards) new MutationObserver(function (ml) {
+    if (S.bulles !== 'ephemeres') return;
+    var neuves = [];
+    ml.forEach(function (m) { Array.prototype.forEach.call(m.addedNodes, function (n) { if (n.nodeType === 1 && n.classList.contains('card')) neuves.push(n); }); });
+    if (!neuves.length) return;
+    Array.prototype.forEach.call(cards.children, function (x) { if (neuves.indexOf(x) < 0) fondre(x); });
+    if (!neuves.some(interactive)) suivre(neuves); else clearInterval(suivi);
+  }).observe(cards, { childList: true });
+  var st = document.createElement('style');
+  st.textContent = '#cards .card.fx-out{opacity:0;transform:translateY(-8px) scale(.97);transition:opacity .4s,transform .4s}' +
+    'html.mj-ephem #last{display:none!important}';
+  document.head.appendChild(st);
+  function applyBulles() { document.documentElement.classList.toggle('mj-ephem', S.bulles === 'ephemeres'); }
+  applyBulles();
+
+  /* ---------------- réglages ---------------- */
+  var prevExtra = MJ.settingsExtra, prevBind = MJ.settingsBind;
+  MJ.settingsExtra = function () {
+    return (prevExtra ? prevExtra() : '') + '<div class="sect" id="f-effets">Effets et bulles</div>' +
+      '<div class="set"><div class="t">Bulles de réponse<small>Éphémères : la réponse s\'affiche pendant qu\'elle est annoncée, puis disparaît</small></div><select class="in" id="sFxB" style="width:auto"><option value="ephemeres"' + (S.bulles === 'ephemeres' ? ' selected' : '') + '>Éphémères</option><option value="garder"' + (S.bulles !== 'ephemeres' ? ' selected' : '') + '>Gardées</option></select></div>' +
+      '<div class="set"><div class="t">Intensité des effets<small>0 : aucun effet (économise la batterie)</small></div><input type="range" id="sFxI" min="0" max="100" step="5" value="' + (+S.fxInt || 0) + '"></div>' +
+      Object.keys(GAD).map(function (k) { return '<div class="set"><div class="t">' + esc(GAD[k]) + '</div><label class="sw"><input type="checkbox" data-fxg="' + k + '"' + (gad(k) ? ' checked' : '') + '><span></span></label></div>'; }).join('');
+  };
+  MJ.settingsBind = function (b) {
+    if (prevBind) prevBind(b);
+    var bb = $('sFxB'); if (bb) bb.onchange = function () { S.bulles = this.value; save(); applyBulles(); };
+    var fi = $('sFxI'); if (fi) fi.oninput = function () { S.fxInt = +this.value; save(); kick(); };
+    document.querySelectorAll('[data-fxg]').forEach(function (i) { i.onchange = function () { S.fxG[i.dataset.fxg] = i.checked; save(); if (i.dataset.fxg === 'hyper' && i.checked) hyper(); kick(); }; });
+  };
+  MJ.fx = { pulse: pulse, burst: burst, hyper: hyper };
+})();
