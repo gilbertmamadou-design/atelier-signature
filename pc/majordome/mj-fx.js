@@ -16,7 +16,8 @@
   if (S.fxInt == null) S.fxInt = 70;
   if (!S.fxG) S.fxG = {};
   if (!S.bulles) S.bulles = 'ephemeres';
-  if (!S.cases) S.cases = 'annonce';      // cases Heure / Météo / Rendez-vous / Minuteur : 'annonce' (visibles pendant une réponse) | 'toujours'
+  if (!S.cases) S.cases = 'annonce';
+  if (S.zen == null) S.zen = false;       // « Sphère seule » : la sphère en grand au milieu, rien d'écrit      // cases Heure / Météo / Rendez-vous / Minuteur : 'annonce' (visibles pendant une réponse) | 'toujours'
   var GAD = { spectre: 'Spectre de la voix', atome: 'Atome (électrons)', planetes: 'Planètes en orbite', ondes: 'Ondes de choc et éclats', eclairs: 'Éclairs quand il parle', hyper: 'Hyperespace quand il écoute', cometes: 'Comètes', etoiles: 'Constellations' };
   function gad(k) { return S.fxG[k] !== false; }
   function on() { return (+S.fxInt || 0) > 0 && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches && S.fxG.force !== true); }
@@ -142,12 +143,33 @@
   st.textContent = '#cards .card.fx-out{opacity:0;transform:translateY(-8px) scale(.97);transition:opacity .4s,transform .4s}' +
     'html.mj-ephem #last{display:none!important}' +
     'html.mj-cases #moment{max-height:0;opacity:0;margin-top:0!important;margin-bottom:0!important;overflow:hidden;pointer-events:none;transition:max-height .45s ease,opacity .35s ease,margin .45s}' +
-    'html.mj-cases.mj-parle #moment{max-height:320px;opacity:1;pointer-events:auto}';
+    'html.mj-cases.mj-parle #moment{max-height:320px;opacity:1;pointer-events:auto}' +
+    /* sphère seule */
+    'html.mj-zen #topbar,html.mj-zen #who,html.mj-zen #status,html.mj-zen #heard,html.mj-zen #rts,html.mj-zen #moment,html.mj-zen footer,html.mj-zen #dock,html.mj-zen #hint,html.mj-zen #last{display:none!important}' +
+    'html.mj-zen #orbBox{position:fixed!important;left:50%;top:50%;transform:translate(-50%,-50%);width:min(94vw,82vh,720px)!important;margin:0!important;z-index:1}' +
+    'html.mj-zen #side{position:fixed;left:12px;right:12px;bottom:calc(14px + var(--safe-b,0px));z-index:3;max-height:38vh;overflow:auto;pointer-events:auto}' +
+    'html.mj-zen #side .card{backdrop-filter:blur(8px);background:rgb(8 16 24 / .78)}' +
+    'html.mj-zen #side .card.q{display:none}' +
+    'html.mj-zen #timers{position:fixed;top:calc(10px + var(--safe-t,0px));left:0;right:0;z-index:3}' +
+    '#zenUi{position:fixed;top:calc(12px + var(--safe-t,0px));right:12px;z-index:5;display:flex;gap:8px;opacity:0;pointer-events:none;transition:opacity .3s}' +
+    '#zenUi.on{opacity:1;pointer-events:auto}#zenUi button{border:1px solid rgb(255 255 255 / .2);background:rgb(8 16 24 / .8);color:#e8f6ff;border-radius:999px;padding:9px 14px;font:600 14px system-ui}' +
+    'html:not(.mj-zen) #zenUi{display:none}';
+  /* sphère seule : un toucher hors de la sphère montre 5 s les boutons Réglages et Quitter */
+  var zui = document.createElement('div'); zui.id = 'zenUi';
+  zui.innerHTML = '<button type="button" data-z="set">Réglages</button><button type="button" data-z="out">Quitter « sphère seule »</button>';
+  document.body.appendChild(zui);
+  var zT = 0;
+  zui.onclick = function (e) { var b = e.target.closest('[data-z]'); if (!b) return; zui.classList.remove('on'); if (b.dataset.z === 'set') { var bs = $('bSet'); if (bs) bs.click(); } else { S.zen = false; save(); applyBulles(); } };
+  document.addEventListener('pointerdown', function (e) {
+    if (!S.zen || e.target.closest('#orbBox,#zenUi,#side,.sheet,#drawer,#veil')) return;
+    zui.classList.add('on'); clearTimeout(zT); zT = setTimeout(function () { zui.classList.remove('on'); }, 5000);
+    if (!document.fullscreenElement && document.documentElement.requestFullscreen && !window.MAGPrint) document.documentElement.requestFullscreen().catch(function () { });
+  }, true);
   var parleT = 0;
   function parleOn() { clearTimeout(parleT); document.documentElement.classList.add('mj-parle'); }
   function parleOff() { clearTimeout(parleT); parleT = setTimeout(function () { if (!cards.querySelector('.card:not(.fx-out)')) document.documentElement.classList.remove('mj-parle'); }, 300); }
   document.head.appendChild(st);
-  function applyBulles() { var r = document.documentElement; r.classList.toggle('mj-ephem', S.bulles === 'ephemeres'); r.classList.toggle('mj-cases', S.cases === 'annonce'); }
+  function applyBulles() { var r = document.documentElement; r.classList.toggle('mj-ephem', S.bulles === 'ephemeres'); r.classList.toggle('mj-cases', S.cases === 'annonce'); r.classList.toggle('mj-zen', !!S.zen); setTimeout(function () { window.dispatchEvent(new Event('resize')); }, 60); }
   applyBulles();
 
   /* ---------------- réglages ---------------- */
@@ -155,6 +177,7 @@
   MJ.settingsExtra = function () {
     return (prevExtra ? prevExtra() : '') + '<div class="sect" id="f-effets">Effets et bulles</div>' +
       '<div class="set"><div class="t">Bulles de réponse<small>Éphémères : la réponse s\'affiche pendant qu\'elle est annoncée, puis disparaît</small></div><select class="in" id="sFxB" style="width:auto"><option value="ephemeres"' + (S.bulles === 'ephemeres' ? ' selected' : '') + '>Éphémères</option><option value="garder"' + (S.bulles !== 'ephemeres' ? ' selected' : '') + '>Gardées</option></select></div>' +
+      '<div class="set"><div class="t">Sphère seule<small>La sphère en grand au milieu de l\'écran, rien d\'écrit. Touchez la sphère pour parler ; touchez à côté pour Réglages ou Quitter</small></div><label class="sw"><input type="checkbox" id="sFxZ"' + (S.zen ? ' checked' : '') + '><span></span></label></div>' +
       '<div class="set"><div class="t">Cases Heure, Météo, Rendez-vous, Minuteur<small>« Pendant une réponse » : cachées, elles apparaissent quand il vous répond</small></div><select class="in" id="sFxC" style="width:auto"><option value="annonce"' + (S.cases === 'annonce' ? ' selected' : '') + '>Pendant une réponse</option><option value="toujours"' + (S.cases !== 'annonce' ? ' selected' : '') + '>Toujours</option></select></div>' +
       '<div class="set"><div class="t">Intensité des effets<small>0 : aucun effet (économise la batterie)</small></div><input type="range" id="sFxI" min="0" max="100" step="5" value="' + (+S.fxInt || 0) + '"></div>' +
       Object.keys(GAD).map(function (k) { return '<div class="set"><div class="t">' + esc(GAD[k]) + '</div><label class="sw"><input type="checkbox" data-fxg="' + k + '"' + (gad(k) ? ' checked' : '') + '><span></span></label></div>'; }).join('');
@@ -162,6 +185,7 @@
   MJ.settingsBind = function (b) {
     if (prevBind) prevBind(b);
     var bb = $('sFxB'); if (bb) bb.onchange = function () { S.bulles = this.value; save(); applyBulles(); };
+    var bz = $('sFxZ'); if (bz) bz.onchange = function () { S.zen = this.checked; save(); applyBulles(); if (S.zen) { var x = $('shX'); if (x) x.click(); } };
     var bc = $('sFxC'); if (bc) bc.onchange = function () { S.cases = this.value; save(); applyBulles(); };
     var fi = $('sFxI'); if (fi) fi.oninput = function () { S.fxInt = +this.value; save(); kick(); };
     document.querySelectorAll('[data-fxg]').forEach(function (i) { i.onchange = function () { S.fxG[i.dataset.fxg] = i.checked; save(); if (i.dataset.fxg === 'hyper' && i.checked) hyper(); kick(); }; });
