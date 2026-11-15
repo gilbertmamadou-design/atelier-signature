@@ -24,20 +24,27 @@ jobs:
           java-version: 17
       - name: Gestionnaire du SDK Connect IQ
         run: |
-          curl -fsSL https://raw.githubusercontent.com/lindell/connect-iq-sdk-manager-cli/master/install.sh | sh -s -- -b "$HOME/bin"
-          echo "$HOME/bin" >> "$GITHUB_PATH"
-      - name: Accord de licence, connexion, SDK et fiches des montres
+          curl -fsSL https://raw.githubusercontent.com/lindell/connect-iq-sdk-manager-cli/master/install.sh -o "$RUNNER_TEMP/inst.sh"
+          (cd "$RUNNER_TEMP" && sh inst.sh) || true
+          B=$(command -v connect-iq-sdk-manager || find / -type f -name 'connect-iq-sdk-manager*' -perm -u+x 2>/dev/null | grep -v '\.sh$' | head -1)
+          echo "outil : $B"; test -n "$B"
+          mkdir -p "$HOME/bin"; ln -sf "$B" "$HOME/bin/connect-iq-sdk-manager"; echo "$HOME/bin" >> "$GITHUB_PATH"
+      - name: Accord de licence
+        run: |
+          connect-iq-sdk-manager agreement view > "$RUNNER_TEMP/accord.txt" 2>&1 || true
+          head -c 600 "$RUNNER_TEMP/accord.txt"; echo; echo ...; tail -c 800 "$RUNNER_TEMP/accord.txt"
+          H=$(grep -oiE '[0-9a-f]{32,}' "$RUNNER_TEMP/accord.txt" | tail -1)
+          echo "hash : $H"; test -n "$H"
+          connect-iq-sdk-manager agreement accept --acceptance-hash="$H" || connect-iq-sdk-manager agreement accept --agreement-hash="$H"
+      - name: Connexion, SDK et fiches des montres
         env:
           GARMIN_USERNAME: ${{ secrets.GARMIN_USERNAME }}
           GARMIN_PASSWORD: ${{ secrets.GARMIN_PASSWORD }}
         run: |
-          test -n "$GARMIN_USERNAME" || { echo "::error::secret GARMIN_USERNAME absent"; exit 1; }
-          H=$(connect-iq-sdk-manager agreement view 2>&1 | grep -oiE 'hash[^0-9a-f]*[0-9a-f]{20,}' | grep -oE '[0-9a-f]{20,}' | head -1)
-          echo "accord : $H"
-          connect-iq-sdk-manager agreement accept --acceptance-hash="$H"
-          connect-iq-sdk-manager login
-          connect-iq-sdk-manager sdk set "^7.0.0" || connect-iq-sdk-manager sdk set "^6.4.0"
+          connect-iq-sdk-manager sdk set "^8.0.0" || connect-iq-sdk-manager sdk set "^7.0.0" || connect-iq-sdk-manager sdk set "^6.4.0"
           echo "$(connect-iq-sdk-manager sdk current-path --bin)" >> "$GITHUB_PATH"
+          test -n "$GARMIN_USERNAME" || { echo "::error::secrets GARMIN_USERNAME / GARMIN_PASSWORD absents"; exit 1; }
+          connect-iq-sdk-manager login
           connect-iq-sdk-manager device download --manifest="${{ github.event.inputs.projet }}/manifest.xml"
       - name: Clé du développeur
         env:
