@@ -1,0 +1,4 @@
+<resources>
+    <strings><string id="AppName">Essai Atelier</string></strings>
+    <drawables><bitmap id="LauncherIcon" filename="icone.png"/></drawables>
+</resources>

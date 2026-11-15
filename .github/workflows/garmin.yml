@@ -1,0 +1,62 @@
+name: Cadrans Garmin (Fenix 6X Pro, 6S)
+# Fabrique les cadrans Garmin Connect IQ. Il faut deux secrets du dépôt : GARMIN_USERNAME et GARMIN_PASSWORD
+# (compte Garmin, pour télécharger le SDK et les fiches des montres). La clé de signature du développeur est
+# GARMIN_CLE (base64 d'une clé RSA 4096 au format DER) ; sans elle, une clé jetable est créée pour l'essai.
+on:
+  workflow_dispatch:
+    inputs:
+      projet:
+        description: "Dossier du projet (garmin/…)"
+        required: false
+        default: "garmin/essai"
+
+permissions:
+  contents: write
+
+jobs:
+  fabriquer:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Gestionnaire du SDK Connect IQ
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/lindell/connect-iq-sdk-manager-cli/master/install.sh | sh -s -- -b "$HOME/bin"
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+      - name: Accord de licence, connexion, SDK et fiches des montres
+        env:
+          GARMIN_USERNAME: ${{ secrets.GARMIN_USERNAME }}
+          GARMIN_PASSWORD: ${{ secrets.GARMIN_PASSWORD }}
+        run: |
+          test -n "$GARMIN_USERNAME" || { echo "::error::secret GARMIN_USERNAME absent"; exit 1; }
+          H=$(connect-iq-sdk-manager agreement view 2>&1 | grep -oiE 'hash[^0-9a-f]*[0-9a-f]{20,}' | grep -oE '[0-9a-f]{20,}' | head -1)
+          echo "accord : $H"
+          connect-iq-sdk-manager agreement accept --acceptance-hash="$H"
+          connect-iq-sdk-manager login
+          connect-iq-sdk-manager sdk set "^7.0.0" || connect-iq-sdk-manager sdk set "^6.4.0"
+          echo "$(connect-iq-sdk-manager sdk current-path --bin)" >> "$GITHUB_PATH"
+          connect-iq-sdk-manager device download --manifest="${{ github.event.inputs.projet }}/manifest.xml"
+      - name: Clé du développeur
+        env:
+          CLE: ${{ secrets.GARMIN_CLE }}
+        run: |
+          if [ -n "$CLE" ]; then printf '%s' "$CLE" | base64 -d > "$RUNNER_TEMP/cle.der"
+          else
+            echo "::warning::GARMIN_CLE absent : clé jetable (essai seulement)"
+            openssl genrsa -out "$RUNNER_TEMP/cle.pem" 4096
+            openssl pkcs8 -topk8 -inform PEM -outform DER -in "$RUNNER_TEMP/cle.pem" -out "$RUNNER_TEMP/cle.der" -nocrypt
+          fi
+      - name: Compiler
+        run: |
+          P="${{ github.event.inputs.projet }}"; mkdir -p sortie-garmin
+          for d in fenix6xpro fenix6s; do
+            monkeyc -f "$P/monkey.jungle" -d "$d" -y "$RUNNER_TEMP/cle.der" -o "sortie-garmin/$(basename "$P")-$d.prg" -w
+          done
+          ls -la sortie-garmin
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cadrans-garmin
+          path: sortie-garmin/*.prg
