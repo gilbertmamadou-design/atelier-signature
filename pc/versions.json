@@ -1,7 +1,7 @@
 {
  "_lanceur": {
   "date": "2026-11-15",
-  "v": "738e9a459230"
+  "v": "32dfd3b910f9"
  },
  "actualites": {
   "date": "2026-11-14",
@@ -17,7 +17,7 @@
  },
  "cadrans": {
   "date": "2026-11-15",
-  "v": "dc31616bfbed"
+  "v": "9066eb4585db"
  },
  "calcul": {
   "date": "2026-11-14",
@@ -53,11 +53,11 @@
  },
  "fond-jarvis": {
   "date": "2026-11-15",
-  "v": "c47ca990c04e"
+  "v": "ac55245dc2fd"
  },
  "fond-jarvis:lively": {
   "date": "2026-11-15",
-  "v": "49b7f2e83008"
+  "v": "3a76e41fdd5e"
  },
  "galerie": {
   "date": "2026-11-14",

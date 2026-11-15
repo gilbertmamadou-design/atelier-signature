@@ -1,0 +1,60 @@
+{
+ "id": "espace",
+ "appId": 1093219,
+ "nom": "Espace",
+ "fond": "espace",
+ "c1": "#000000",
+ "c2": "#111111",
+ "accent": "#2ec4ff",
+ "texte": "#ffffff",
+ "doux": "#cfd8e3",
+ "anneau": "aucun",
+ "aod": "heure_date",
+ "blocs": [
+  {
+   "t": "heure",
+   "x": 240,
+   "y": 205,
+   "taille": 104,
+   "police": "sport",
+   "effet": "relief",
+   "dp": "accent"
+  },
+  {
+   "t": "date",
+   "format": "long",
+   "x": 240,
+   "y": 272,
+   "taille": 18,
+   "effet": "ombre"
+  },
+  {
+   "t": "info",
+   "d": "pas",
+   "x": 240,
+   "y": 146,
+   "style": "ligne",
+   "taille": "s",
+   "couleur": "accent",
+   "effet": "ombre"
+  },
+  {
+   "t": "image",
+   "motif": "fusee",
+   "x": 240,
+   "y": 332,
+   "taille": 44,
+   "rot": 35
+  },
+  {
+   "t": "info",
+   "d": "batterie",
+   "x": 240,
+   "y": 420,
+   "style": "ligne",
+   "taille": "s",
+   "couleur": "texte",
+   "effet": "ombre"
+  }
+ ]
+}

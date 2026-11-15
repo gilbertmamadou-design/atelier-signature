@@ -831,6 +831,7 @@
       h += chk('sSaver', 'Économie sur batterie (portable)', S.saver, 'Moins d\'images par seconde et de particules quand le portable n\'est pas branché.');
       h += chk('sFx2', 'Effets avancés', S.fx2 !== false, 'Spectre de la voix autour de la sphère, satellites, ondes de choc, éclats, flux de données, balayage des panneaux, petits « glitchs ».');
       h += chk('sBoot', 'Animation de démarrage', S.boot !== false, 'Séquence d\'initialisation à l\'ouverture.');
+      h += '<h3>Gadgets</h3>' + Object.keys(FJ.GADGETS || {}).map(function (k) { return chk('sG_' + k, FJ.GADGETS[k], (S.gadgets || {})[k] !== false, ''); }).join('');
       if (FJ.mode !== 'lively') h += chk('sBureau', 'Mode Bureau : plein écran automatique', !!S.bureau, 'Passe en plein écran au premier clic ou à la première touche (Échap pour en sortir, bouton ⛶ dans la barre). Pour qu\'il s\'ouvre avec Windows : Edge › edge://apps › Fond Jarvis › « Démarrer automatiquement à l\'ouverture de session » (Chrome : chrome://apps, clic droit › « Lancer l\'appli à la connexion »).');
       B.innerHTML = h;
       rngBind('sFree', ' px', function (v) { setS('free', v); });
@@ -841,6 +842,7 @@
       bind('sSaver', function (v) { setS('saver', v); });
       bind('sFx2', function (v) { setS('fx2', v); });
       bind('sBoot', function (v) { setS('boot', v); });
+      Object.keys(FJ.GADGETS || {}).forEach(function (k) { bind('sG_' + k, function (v) { S.gadgets = Object.assign({}, S.gadgets || {}); S.gadgets[k] = v; FJ.save(); if (k === 'hyper' && v && FJ.hyper) FJ.hyper(); }); });
       if ($('sBureau')) bind('sBureau', function (v) { setS('bureau', v); if (v && FJ.pleinEcran && !document.fullscreenElement) FJ.pleinEcran(); });
     } else if (tab === 'meteo') {
       h += fld('Ville', '<div style="display:flex;gap:.5em"><input type="text" id="sCity" value="' + esc(S.city || '') + '" placeholder="ex. Marseille"><button type="button" class="btn" id="sCityGo">Valider</button></div>', 'Vide : ' + (FJ.mode === 'suite' && MJS.place ? 'ville de Majordome, sinon ' : '') + 'position détectée une fois.');

@@ -13,6 +13,8 @@
   if (!FJ || !FJ.loop) return;
   var S = FJ.S;
   function on() { return S.fx2 !== false && !S.reduce && S.fx > 0; }
+  var GAD = FJ.GADGETS = { planetes: 'Planètes en orbite', atome: 'Atome (électrons autour de la sphère)', eclairs: 'Éclairs quand il parle', hyper: 'Saut en hyperespace au réveil', cometes: 'Comètes', constellations: 'Constellations', globe: 'Globe holographique' };
+  function gad(k) { var o = S.gadgets || {}; return o[k] !== false; }
   function K() { return Math.max(0, Math.min(1, (S.fx || 0) / 100)); }
   function col(a) { var c = getComputedStyle(doc.documentElement).getPropertyValue('--c').trim().split(/\s+/).map(Number); if (c.length < 3 || isNaN(c[0])) c = [63, 224, 255]; return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a.toFixed(3) + ')'; }
   var C1 = col(1), cT = 0;
@@ -39,7 +41,7 @@
     if (typeof st === 'function') o.state = function (s) {
       var prev = o.get ? o.get() : null, r = st.apply(o, arguments);
       if (s && s !== prev) {
-        if (s === 'listen') pulse(1, 1.2);
+        if (s === 'listen') { pulse(1, 1.2); if (gad('hyper')) hyper(); }
         else if (s === 'think') pulse(.6, .8);
         else if (s === 'speak') { pulse(.9, 1); burst(46); }
         else if (s === 'error') pulse(1, 1, 'rgba(255,77,94,');
@@ -95,8 +97,9 @@
       g.strokeStyle = colA((act ? .35 + .6 * b : .25) * k); g.lineWidth = Math.max(1, 1.7 * DPR * (c.r / (120 * DPR)));
       g.beginPath(); g.moveTo(c.x + Math.cos(a) * R0, c.y + Math.sin(a) * R0); g.lineTo(c.x + Math.cos(a) * (R0 + L), c.y + Math.sin(a) * (R0 + L)); g.stroke();
     }
-    // satellites avec traînée
-    SAT.forEach(function (s) {
+    gadgets(now, c, k);
+    // satellites avec traînée (remplacés par l'atome)
+    if (!gad('atome')) SAT.forEach(function (s) {
       for (var j = 0; j < 14; j++) {
         var an = s.p + (now - j * 28) * s.v, ex = Math.cos(an) * c.r * s.r, ey = Math.sin(an) * c.r * s.r * s.e;
         var x = c.x + ex * Math.cos(s.t) - ey * Math.sin(s.t), y = c.y + ex * Math.sin(s.t) + ey * Math.cos(s.t);
@@ -123,6 +126,111 @@
   }
   FJ.loop.add(draw, function () { return on() || waves.length || parts.length; });
 
+  /* ---------------- gadgets ---------------- */
+  var etoiles = null, liens = null, etW = 0, eclairs = [], streaks = [], comete = null, prochaineComete = performance.now() + 8000;
+  function hyper() { if (!on()) return; var t = performance.now(); for (var i = 0; i < 140; i++) streaks.push({ a: Math.random() * TAU, d: Math.random() * .3, v: .6 + Math.random() * 1.4, t0: t }); FJ.loop.kick(); }
+  FJ.hyper = hyper;
+  function constellations() {
+    etoiles = []; liens = [];
+    var rnd = (function (s) { return function () { s = (s * 16807) % 2147483647; return s / 2147483647; }; })(4242);
+    for (var i = 0; i < 90; i++) etoiles.push({ x: rnd() * W, y: rnd() * H, r: (rnd() < .15 ? 1.6 : .9) * DPR, p: rnd() * TAU });
+    for (var a = 0; a < etoiles.length; a++) for (var b = a + 1; b < etoiles.length; b++) { var dx = etoiles[a].x - etoiles[b].x, dy = etoiles[a].y - etoiles[b].y; if (dx * dx + dy * dy < Math.pow(95 * DPR, 2) && rnd() < .55) liens.push([a, b]); }
+  }
+  var PLANETES = [
+    { o: 3.0, t: .32, v: .00016, p: 0, s: 6, c: ['#ffd9a0', '#c8782e'] },
+    { o: 3.6, t: .3, v: -.00011, p: 2.1, s: 9, c: ['#bfe6ff', '#2b6fd6'], lune: 1 },
+    { o: 4.3, t: .28, v: .00008, p: 4, s: 12, c: ['#fff0c8', '#c9a15a'], anneau: 1 },
+    { o: 5.1, t: .26, v: -.00006, p: 1, s: 8, c: ['#c9fff0', '#1f9e8a'] }];
+  function planete(q, x, y, s, devant) {
+    var gr = g.createRadialGradient(x - s * .35, y - s * .35, s * .1, x, y, s); gr.addColorStop(0, q.c[0]); gr.addColorStop(1, q.c[1]);
+    g.globalAlpha = devant ? 1 : .55;
+    if (q.anneau) { g.strokeStyle = 'rgba(240,220,170,.75)'; g.lineWidth = 1.6 * DPR; g.beginPath(); g.ellipse(x, y, s * 2.1, s * .55, -.35, Math.PI, TAU); g.stroke(); }
+    g.fillStyle = gr; g.beginPath(); g.arc(x, y, s, 0, TAU); g.fill();
+    if (q.anneau) { g.beginPath(); g.ellipse(x, y, s * 2.1, s * .55, -.35, 0, Math.PI); g.stroke(); }
+    g.globalAlpha = 1;
+  }
+  function gadgets(now, c, k) {
+    // constellations (fond)
+    if (gad('constellations')) {
+      if (etW !== W) { constellations(); etW = W; }
+      g.strokeStyle = colA(.08 * k); g.lineWidth = DPR * .8; g.beginPath();
+      liens.forEach(function (l) { g.moveTo(etoiles[l[0]].x, etoiles[l[0]].y); g.lineTo(etoiles[l[1]].x, etoiles[l[1]].y); }); g.stroke();
+      etoiles.forEach(function (e) { var tw = .35 + .65 * Math.abs(Math.sin(now / 900 + e.p)); g.fillStyle = 'rgba(220,240,255,' + (tw * .55 * k).toFixed(3) + ')'; g.beginPath(); g.arc(e.x, e.y, e.r, 0, TAU); g.fill(); });
+    }
+    // hyperespace
+    if (streaks.length) {
+      g.lineCap = 'round';
+      for (var i = streaks.length - 1; i >= 0; i--) {
+        var q = streaks[i], dt = (now - q.t0) / 1000; if (dt > 1.3) { streaks.splice(i, 1); continue; }
+        var d0 = c.r * (1.1 + (q.d + dt * dt * 3.2 * q.v) * 6), d1 = d0 + c.r * (.2 + dt * 2.5 * q.v);
+        g.strokeStyle = 'rgba(230,250,255,' + ((1 - dt / 1.3) * .8).toFixed(3) + ')'; g.lineWidth = (1 + dt * 2) * DPR;
+        g.beginPath(); g.moveTo(c.x + Math.cos(q.a) * d0, c.y + Math.sin(q.a) * d0); g.lineTo(c.x + Math.cos(q.a) * d1, c.y + Math.sin(q.a) * d1); g.stroke();
+      }
+    }
+    // comète
+    if (gad('cometes')) {
+      if (!comete && now > prochaineComete) { var gch = Math.random() < .5; comete = { t0: now, x0: gch ? -60 * DPR : W + 60 * DPR, y0: Math.random() * H * .5, vx: (gch ? 1 : -1) * (.5 + Math.random() * .4) * DPR, vy: (.12 + Math.random() * .2) * DPR }; prochaineComete = now + 20000 + Math.random() * 25000; }
+      if (comete) {
+        var dtc = now - comete.t0, cx = comete.x0 + comete.vx * dtc, cy = comete.y0 + comete.vy * dtc;
+        if (cx < -200 * DPR || cx > W + 200 * DPR || cy > H + 100) comete = null;
+        else {
+          var tx = cx - comete.vx * 220, ty = cy - comete.vy * 220, gq = g.createLinearGradient(cx, cy, tx, ty);
+          gq.addColorStop(0, 'rgba(255,255,255,' + (.9 * k).toFixed(3) + ')'); gq.addColorStop(.15, colA(.5 * k)); gq.addColorStop(1, colA(0));
+          g.strokeStyle = gq; g.lineWidth = 3 * DPR; g.lineCap = 'round'; g.beginPath(); g.moveTo(cx, cy); g.lineTo(tx, ty); g.stroke();
+          g.fillStyle = '#ffffff'; g.beginPath(); g.arc(cx, cy, 2.6 * DPR, 0, TAU); g.fill();
+        }
+      }
+    }
+    // planètes (derrière d'abord, devant ensuite)
+    if (gad('planetes')) {
+      var pos = PLANETES.map(function (q) { var a = q.p + now * q.v; return { q: q, x: c.x + Math.cos(a) * c.r * q.o, y: c.y + Math.sin(a) * c.r * q.o * q.t, devant: Math.sin(a) > 0 }; });
+      g.setLineDash([2 * DPR, 9 * DPR]); g.lineWidth = DPR;
+      PLANETES.forEach(function (q) { g.strokeStyle = colA(.12 * k); g.beginPath(); g.ellipse(c.x, c.y, c.r * q.o, c.r * q.o * q.t, 0, 0, TAU); g.stroke(); });
+      g.setLineDash([]);
+      pos.sort(function (a, b) { return a.y - b.y; }).forEach(function (o) { planete(o.q, o.x, o.y, o.q.s * DPR * (o.devant ? 1.1 : .8) * Math.max(.7, c.r / (120 * DPR)), o.devant);
+        if (o.q.lune) { var al = now * .0012; disque2(o.x + Math.cos(al) * o.q.s * 2.4 * DPR, o.y + Math.sin(al) * o.q.s * DPR, 2.2 * DPR, '#e8eef5'); } });
+    }
+    // atome : électrons sur trois orbites inclinées
+    if (gad('atome')) {
+      [0, Math.PI / 3, -Math.PI / 3].forEach(function (tilt, n) {
+        var R1 = c.r * 1.42, R2 = R1 * .32;
+        g.strokeStyle = colA(.22 * k); g.lineWidth = 1.1 * DPR; g.beginPath(); g.ellipse(c.x, c.y, R1, R2, tilt, 0, TAU); g.stroke();
+        for (var j = 0; j < 16; j++) {
+          var an = now * .0034 * (n % 2 ? -1 : 1) + n * 2.1 - j * .07, ex = Math.cos(an) * R1, ey = Math.sin(an) * R2;
+          var x = c.x + ex * Math.cos(tilt) - ey * Math.sin(tilt), y = c.y + ex * Math.sin(tilt) + ey * Math.cos(tilt);
+          if (!j) { var gl = g.createRadialGradient(x, y, 0, x, y, 9 * DPR); gl.addColorStop(0, 'rgba(255,255,255,' + (.95 * k).toFixed(3) + ')'); gl.addColorStop(.35, colA(.8 * k)); gl.addColorStop(1, colA(0)); g.fillStyle = gl; g.beginPath(); g.arc(x, y, 9 * DPR, 0, TAU); g.fill(); }
+          else { g.fillStyle = colA(.55 * (1 - j / 16) * k); g.beginPath(); g.arc(x, y, 2 * DPR * (1 - j / 18), 0, TAU); g.fill(); }
+        }
+      });
+    }
+    // éclairs quand il parle ou écoute fort
+    if (gad('eclairs')) {
+      if (lvl > .35 && Math.random() < lvl * .35 && eclairs.length < 4) {
+        var a0 = Math.random() * TAU, pts = [], seg = 7, r0 = c.r * 1.02, r1 = c.r * (1.45 + Math.random() * .5);
+        for (var e = 0; e <= seg; e++) { var rr = r0 + (r1 - r0) * e / seg, aa = a0 + (e && e < seg ? (Math.random() - .5) * .22 : 0); pts.push(c.x + Math.cos(aa) * rr, c.y + Math.sin(aa) * rr); }
+        eclairs.push({ p: pts, t0: now });
+      }
+      for (var z = eclairs.length - 1; z >= 0; z--) {
+        var E = eclairs[z], de = (now - E.t0) / 160; if (de > 1) { eclairs.splice(z, 1); continue; }
+        g.strokeStyle = 'rgba(235,252,255,' + ((1 - de) * .95).toFixed(3) + ')'; g.lineWidth = 1.6 * DPR; g.shadowColor = C1; g.shadowBlur = 12 * DPR;
+        g.beginPath(); for (var u = 0; u < E.p.length; u += 2) g[u ? 'lineTo' : 'moveTo'](E.p[u], E.p[u + 1]); g.stroke(); g.shadowBlur = 0;
+      }
+    }
+    // globe holographique
+    if (gad('globe')) {
+      var gx = c.x + c.r * 2.9, gy = c.y + c.r * 1.25, gr2 = c.r * .42, rot = now / 4000;
+      if (gx + gr2 < W && gy + gr2 + 20 * DPR < H) {
+        g.strokeStyle = colA(.55 * k); g.lineWidth = DPR;
+        g.beginPath(); g.arc(gx, gy, gr2, 0, TAU); g.stroke();
+        for (var m = 0; m < 8; m++) { var lo = rot + m * Math.PI / 8, rx = Math.abs(Math.cos(lo)) * gr2; g.strokeStyle = colA((Math.sin(lo) > 0 ? .5 : .18) * k); g.beginPath(); g.ellipse(gx, gy, Math.max(.5, rx), gr2, 0, 0, TAU); g.stroke(); }
+        for (var la = -2; la <= 2; la++) { var yy = gy + gr2 * la / 3, rl = Math.sqrt(Math.max(0, gr2 * gr2 - Math.pow(gr2 * la / 3, 2))); g.strokeStyle = colA(.35 * k); g.beginPath(); g.ellipse(gx, yy, rl, rl * .18, 0, 0, TAU); g.stroke(); }
+        var bl = (now / 1800) % 1; g.fillStyle = colA((1 - bl) * k); g.beginPath(); g.arc(gx + Math.cos(rot * 3) * gr2 * .5, gy - gr2 * .2, 2.5 * DPR + bl * 6 * DPR, 0, TAU); g.fill();
+        g.font = (10 * DPR) + 'px ui-monospace, Consolas, monospace'; g.fillStyle = colA(.6 * k); g.textAlign = 'center'; g.fillText('GÉO · ' + (FJ.S.city || 'LOCAL').toUpperCase().slice(0, 14), gx, gy + gr2 + 14 * DPR);
+      }
+    }
+  }
+  function disque2(x, y, r, c) { g.fillStyle = c; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill(); }
+
   /* ---------------- glitch occasionnel ---------------- */
   function glitch() {
     setTimeout(function () {
@@ -148,7 +256,7 @@
       var p = doc.createElement('p'), s = L[li++], i = 0; bt.appendChild(p);
       (function car() { p.textContent = s.slice(0, ++i); if (i < s.length) setTimeout(car, 12); else setTimeout(ligne, 120); })();
     })();
-    setTimeout(function () { if (hud) { hud.classList.remove('booting'); hud.classList.add('boot-in'); } ov.classList.add('fin'); }, 2400);
+    setTimeout(function () { if (hud) { hud.classList.remove('booting'); hud.classList.add('boot-in'); } ov.classList.add('fin'); if (gad('hyper')) hyper(); }, 2400);
     setTimeout(function () { ov.remove(); if (hud) hud.classList.remove('boot-in'); boot = false; }, 3600);
   }
 

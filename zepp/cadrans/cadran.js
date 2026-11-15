@@ -54,9 +54,10 @@
     pression: { n: 'Pression', type: 'ALTIMETER', lab: 'HPA', ic: 'jauge', ex: 1013 },
     vent: { n: 'Vent', type: 'WIND', lab: 'VENT', ic: 'vent', ex: 3 }
   };
-  var FONDS = { uni: 'Uni', degrade: 'Dégradé', radial: 'Halo', carbone: 'Carbone', grille: 'Grille', hud: 'HUD', camo: 'Camouflage', fleurs: 'Fleurs', printemps: 'Printemps', ete: 'Été', automne: 'Automne', hiver: 'Hiver', noel: 'Noël', photo: 'Ma photo' };
+  var FONDS = { uni: 'Uni', degrade: 'Dégradé', radial: 'Halo', carbone: 'Carbone', grille: 'Grille', hud: 'HUD', camo: 'Camouflage', fleurs: 'Fleurs', printemps: 'Printemps', ete: 'Été', automne: 'Automne', hiver: 'Hiver', noel: 'Noël', espace: 'Espace', photo: 'Ma photo' };
   var MOTIFS = { fleur: 'Fleur', marguerite: 'Marguerite', tulipe: 'Tulipe', feuille: 'Feuille', erable: 'Feuille d\'érable', flocon: 'Flocon', soleil: 'Soleil', lune: 'Lune', sapin: 'Sapin',
-    etoile: 'Étoile', coeur: 'Cœur', papillon: 'Papillon', champignon: 'Champignon', citrouille: 'Citrouille', cadeau: 'Cadeau', montagne: 'Montagne' };
+    etoile: 'Étoile', coeur: 'Cœur', papillon: 'Papillon', champignon: 'Champignon', citrouille: 'Citrouille', cadeau: 'Cadeau', montagne: 'Montagne',
+    planete: 'Planète', saturne: 'Planète à anneau', terre: 'Terre', fusee: 'Fusée', atome: 'Atome', comete: 'Comète', ovni: 'Soucoupe' };
   var ANNEAUX = { graduations: 'Graduations', chiffres: 'Chiffres', batterie: 'Batterie', pas: 'Pas (objectif)', aucun: 'Aucun' };
   var AIGUILLES = { fines: 'Fines', epees: 'Épées', larges: 'Larges', baton: 'Bâtons', dauphine: 'Dauphine', squelette: 'Squelette', fleche: 'Flèches' };
   var TROTS = { fine: 'Fine', contrepoids: 'Contrepoids', fleche: 'Flèche', sucette: 'Sucette', sport: 'Sport', epaisse: 'Épaisse' };
@@ -764,6 +765,28 @@
       case 'cadeau':
         g.fillStyle = k('#ff3b3b'); g.fillRect(x - r * .75, y - r * .3, r * 1.5, r * 1.1); g.fillStyle = mix(c || '#ff3b3b', '#000000', .2); g.fillRect(x - r * .85, y - r * .5, r * 1.7, r * .3);
         g.fillStyle = '#ffd23f'; g.fillRect(x - r * .1, y - r * .5, r * .2, r * 1.3); ell(g, x - r * .25, y - r * .65, r * .25, r * .15, .5, '#ffd23f'); ell(g, x + r * .25, y - r * .65, r * .25, r * .15, -.5, '#ffd23f'); break;
+      case 'planete': { var gp = g.createRadialGradient(x - r * .3, y - r * .3, r * .1, x, y, r * .8); gp.addColorStop(0, '#ffd9a0'); gp.addColorStop(1, k('#c8562e')); g.fillStyle = gp; g.beginPath(); g.arc(x, y, r * .8, 0, 7); g.fill();
+        g.save(); g.beginPath(); g.arc(x, y, r * .8, 0, 7); g.clip(); g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(x - r, y - r * .25, 2 * r, r * .14); g.fillRect(x - r, y + r * .15, 2 * r, r * .1); g.restore(); break; }
+      case 'saturne': { g.strokeStyle = '#f0dca8'; g.lineWidth = Math.max(1.5, s * .05); g.beginPath(); g.ellipse(x, y, r * .95, r * .28, -.35, Math.PI, 7); g.stroke();
+        var gs = g.createRadialGradient(x - r * .2, y - r * .2, r * .05, x, y, r * .5); gs.addColorStop(0, '#fff0c8'); gs.addColorStop(1, k('#c9a15a')); g.fillStyle = gs; g.beginPath(); g.arc(x, y, r * .5, 0, 7); g.fill();
+        g.beginPath(); g.ellipse(x, y, r * .95, r * .28, -.35, 0, Math.PI); g.stroke(); break; }
+      case 'terre': disque(g, x, y, r * .8, k('#2b6fd6'));
+        [[-.3, -.25, .28, .22], [.25, .1, .3, .2], [-.1, .4, .2, .12], [.35, -.4, .14, .1]].forEach(function (q) { ell(g, x + q[0] * r, y + q[1] * r, q[2] * r, q[3] * r, .4, '#3fae4a'); });
+        g.strokeStyle = 'rgba(255,255,255,.5)'; g.lineWidth = Math.max(1, s * .02); g.beginPath(); g.arc(x, y, r * .8, 0, 7); g.stroke(); break;
+      case 'fusee':
+        poly(g, [x, y - r, x + r * .3, y - r * .45, x + r * .3, y + r * .45, x - r * .3, y + r * .45, x - r * .3, y - r * .45], k('#e8eef5'));
+        poly(g, [x, y - r, x + r * .3, y - r * .45, x - r * .3, y - r * .45], '#ff3b3b'); disque(g, x, y - r * .12, r * .13, '#2ec4ff');
+        poly(g, [x - r * .3, y + r * .1, x - r * .55, y + r * .6, x - r * .3, y + r * .45], '#ff3b3b'); poly(g, [x + r * .3, y + r * .1, x + r * .55, y + r * .6, x + r * .3, y + r * .45], '#ff3b3b');
+        poly(g, [x - r * .18, y + r * .45, x, y + r, x + r * .18, y + r * .45], '#ffb000'); poly(g, [x - r * .09, y + r * .45, x, y + r * .78, x + r * .09, y + r * .45], '#fff3a0'); break;
+      case 'atome':
+        g.strokeStyle = k('#2ec4ff'); g.lineWidth = Math.max(1.5, s * .045);
+        [0, Math.PI / 3, -Math.PI / 3].forEach(function (t) { g.beginPath(); g.ellipse(x, y, r * .92, r * .32, t, 0, 7); g.stroke(); });
+        disque(g, x, y, r * .16, '#ff5fa2'); [[.92, 0, 0], [.92, Math.PI / 3, 2.2], [.92, -Math.PI / 3, 4.1]].forEach(function (q) { var ex = Math.cos(q[2]) * r * q[0], ey = Math.sin(q[2]) * r * .32; disque(g, x + ex * Math.cos(q[1]) - ey * Math.sin(q[1]), y + ex * Math.sin(q[1]) + ey * Math.cos(q[1]), r * .08, '#ffd23f'); }); break;
+      case 'comete': { var gc = g.createLinearGradient(x + r * .6, y - r * .6, x - r, y + r); gc.addColorStop(0, k('#bfefff')); gc.addColorStop(1, 'rgba(46,196,255,0)');
+        g.fillStyle = gc; g.beginPath(); g.moveTo(x + r * .45, y - r * .75); g.lineTo(x - r, y + r); g.lineTo(x + r * .75, y - r * .45); g.closePath(); g.fill(); disque(g, x + r * .6, y - r * .6, r * .2, '#ffffff'); break; }
+      case 'ovni': ell(g, x, y - r * .15, r * .35, r * .3, 0, 'rgba(160,230,255,.85)'); ell(g, x, y + r * .05, r * .9, r * .25, 0, k('#9aa7b8'));
+        [-.55, -.2, .2, .55].forEach(function (q, i) { disque(g, x + q * r, y + r * .08, r * .06, ['#ffd23f', '#5fd35f', '#ff3b3b', '#2ec4ff'][i]); });
+        g.fillStyle = 'rgba(255,240,150,.25)'; g.beginPath(); g.moveTo(x - r * .3, y + r * .25); g.lineTo(x + r * .3, y + r * .25); g.lineTo(x + r * .6, y + r); g.lineTo(x - r * .6, y + r); g.closePath(); g.fill(); break;
       case 'montagne':
         poly(g, [x - r, y + r * .8, x - r * .2, y - r * .7, x + r * .25, y + r * .1, x + r * .5, y - r * .25, x + r, y + r * .8], k('#4a6fa5'));
         poly(g, [x - r * .2, y - r * .7, x - r * .45, y - r * .25, x - r * .3, y - r * .2, x - r * .15, y - r * .35, x, y - r * .3], '#ffffff'); break;
@@ -775,6 +798,13 @@
   function degradeV(g, cols, plat) { if (PLAT && plat) { plat.forEach(function (c, i) { g.fillStyle = c; g.fillRect(0, i * W / plat.length, W, W / plat.length + 1); }); return; } var gr = g.createLinearGradient(0, 0, 0, W); cols.forEach(function (c, i) { gr.addColorStop(i / (cols.length - 1), c); }); g.fillStyle = gr; g.fillRect(0, 0, W, W); }
   function halo(g, c0, c1, plat) { if (PLAT && plat) { g.fillStyle = plat; g.fillRect(0, 0, W, W); return; } var gr = g.createRadialGradient(CX, CY * .85, 20, CX, CY, CX); gr.addColorStop(0, c0); gr.addColorStop(1, c1); g.fillStyle = gr; g.fillRect(0, 0, W, W); }
   var SCENES = {
+    espace: function (g) {
+      halo(g, '#141a3a', '#02030a', '#000000'); var rnd = hasard(9);
+      if (!PLAT) { var nb = g.createRadialGradient(150, 340, 10, 150, 340, 170); nb.addColorStop(0, 'rgba(180,80,255,.35)'); nb.addColorStop(1, 'rgba(180,80,255,0)'); g.fillStyle = nb; g.fillRect(0, 0, W, W);
+        var nb2 = g.createRadialGradient(360, 140, 10, 360, 140, 150); nb2.addColorStop(0, 'rgba(46,196,255,.28)'); nb2.addColorStop(1, 'rgba(46,196,255,0)'); g.fillStyle = nb2; g.fillRect(0, 0, W, W); }
+      for (var i = 0; i < 110; i++) disque(g, rnd() * W, rnd() * W, rnd() < .1 ? 1.8 : .9, rnd() < .2 ? '#bfe6ff' : '#ffffff');
+      motif(g, 'saturne', 372, 372, 92); motif(g, 'planete', 92, 150, 50); motif(g, 'terre', 118, 386, 54); motif(g, 'comete', 300, 74, 60); disque(g, 405, 300, 6, '#e8eef5');
+    },
     fleurs: function (g) {
       halo(g, '#123526', '#06120c', '#005500'); var rnd = hasard(11), cols = ['#ff5fa2', '#ffd23f', '#ffffff', '#ff8c42', '#b47cff', '#ff3b5c'];
       for (var i = 0; i < 26; i++) { var a = i / 26 * Math.PI * 2, rr = 214 + (i % 2) * 6; ell(g, CX + Math.cos(a + .12) * (rr - 6), CY + Math.sin(a + .12) * (rr - 6), 14, 6, a + 1.2, i % 2 ? '#3f9a3a' : '#2e7d32'); }
