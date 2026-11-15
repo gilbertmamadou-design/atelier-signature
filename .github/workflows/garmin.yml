@@ -35,7 +35,7 @@ jobs:
           head -c 600 "$RUNNER_TEMP/accord.txt"; echo; echo ...; tail -c 800 "$RUNNER_TEMP/accord.txt"
           H=$(grep -oiE '[0-9a-f]{32,}' "$RUNNER_TEMP/accord.txt" | tail -1)
           echo "hash : $H"; test -n "$H"
-          connect-iq-sdk-manager agreement accept --acceptance-hash="$H" || connect-iq-sdk-manager agreement accept --agreement-hash="$H"
+          connect-iq-sdk-manager agreement accept --agreement-hash="$H"
       - name: Connexion, SDK et fiches des montres
         env:
           GARMIN_USERNAME: ${{ secrets.GARMIN_USERNAME }}
