@@ -38,6 +38,20 @@ jobs:
         working-directory: zepp/cadrans
     steps:
       - uses: actions/checkout@v5
+      - name: Ménage (cadrans perso de plus de 3 jours)
+        # les cadrans perso peuvent contenir une photo : on ne les garde que le temps de les installer (le QR expire au bout de 48 h)
+        if: github.event.inputs.cadran == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          limite=$(date -u -d '3 days ago' +%s)
+          gh api "repos/$REPO/releases?per_page=100" --paginate --jq '.[] | select(.tag_name | startswith("cadran-perso-")) | "\(.id) \(.tag_name) \(.created_at)"' |
+          while read -r id tag cree; do
+            if [ "$(date -u -d "$cree" +%s)" -lt "$limite" ]; then
+              gh api -X DELETE "repos/$REPO/releases/$id" && gh api -X DELETE "repos/$REPO/git/refs/tags/$tag" && echo "supprimé : $tag ($cree)"
+            fi
+          done
       - uses: actions/setup-node@v5
         with:
           node-version: 20
@@ -51,12 +65,12 @@ jobs:
           pip install --quiet "qrcode[pil]==7.4.2"
       - name: Réglages
         id: reglages
-        env:
-          CADRAN: ${{ github.event.inputs.cadran }}
         run: |
           mkdir -p ../out-cadrans/projets
+          # réglages envoyés par l'appli : lus dans l'événement (ils n'apparaissent pas dans le journal, la photo non plus),
+          # jamais interprétés par le shell, seulement décodés puis lus en JSON
+          CADRAN=$(jq -r '.inputs.cadran // ""' "$GITHUB_EVENT_PATH")
           if [ -n "$CADRAN" ]; then
-            # réglages envoyés par l'appli : jamais interprétés par le shell, seulement décodés puis lus en JSON
             printf '%s' "$CADRAN" | base64 -d > ../out-cadrans/perso.json
             python3 - ../out-cadrans/perso.json <<'PY'
           import json, sys
