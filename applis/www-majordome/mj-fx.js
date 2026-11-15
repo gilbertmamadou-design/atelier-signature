@@ -15,6 +15,7 @@
   if (S.fxInt == null) S.fxInt = 70;
   if (!S.fxG) S.fxG = {};
   if (!S.bulles) S.bulles = 'ephemeres';
+  if (!S.cases) S.cases = 'annonce';      // cases Heure / Météo / Rendez-vous / Minuteur : 'annonce' (visibles pendant une réponse) | 'toujours'
   var GAD = { spectre: 'Spectre de la voix', atome: 'Atome (électrons)', planetes: 'Planètes en orbite', ondes: 'Ondes de choc et éclats', eclairs: 'Éclairs quand il parle', hyper: 'Hyperespace quand il écoute', cometes: 'Comètes', etoiles: 'Constellations' };
   function gad(k) { return S.fxG[k] !== false; }
   function on() { return (+S.fxInt || 0) > 0 && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches && S.fxG.force !== true); }
@@ -120,26 +121,32 @@
     suivi = setInterval(function () {
       if (!c.parentNode) return clearInterval(suivi);
       var sp = false; try { sp = X.speaking(); } catch (e) { }
-      if (sp) { parle = true; fin = 0; return; }
+      if (sp && Date.now() - t0 < 45000) { parle = true; fin = 0; return; }   // au-delà de 45 s : on efface quand même
       if (!fin) fin = Date.now();
       var d = Date.now() - t0, lu = Math.min(20000, 6000 + groupe.reduce(function (n, x) { return n + (x.textContent || '').length; }, 0) * 60);
       // annoncée : 4 s après la fin de la voix (au moins 6 s) ; sans voix : le temps de lire
-      if (d > (parle ? 6000 : lu) && (!parle || Date.now() - fin > 4000)) { clearInterval(suivi); groupe.forEach(fondre); }
+      if (d > (parle ? 6000 : lu) && (!parle || Date.now() - fin > 4000)) { clearInterval(suivi); groupe.forEach(fondre); parleOff(); }
     }, 400);
   }
   if (cards) new MutationObserver(function (ml) {
-    if (S.bulles !== 'ephemeres') return;
     var neuves = [];
     ml.forEach(function (m) { Array.prototype.forEach.call(m.addedNodes, function (n) { if (n.nodeType === 1 && n.classList.contains('card')) neuves.push(n); }); });
     if (!neuves.length) return;
+    if (S.bulles !== 'ephemeres') { parleOn(); clearTimeout(parleT); parleT = setTimeout(function () { document.documentElement.classList.remove('mj-parle'); }, 15000); return; }
     Array.prototype.forEach.call(cards.children, function (x) { if (neuves.indexOf(x) < 0) fondre(x); });
+    parleOn();
     if (!neuves.some(interactive)) suivre(neuves); else clearInterval(suivi);
   }).observe(cards, { childList: true });
   var st = document.createElement('style');
   st.textContent = '#cards .card.fx-out{opacity:0;transform:translateY(-8px) scale(.97);transition:opacity .4s,transform .4s}' +
-    'html.mj-ephem #last{display:none!important}';
+    'html.mj-ephem #last{display:none!important}' +
+    'html.mj-cases #moment{max-height:0;opacity:0;margin-top:0!important;margin-bottom:0!important;overflow:hidden;pointer-events:none;transition:max-height .45s ease,opacity .35s ease,margin .45s}' +
+    'html.mj-cases.mj-parle #moment{max-height:320px;opacity:1;pointer-events:auto}';
+  var parleT = 0;
+  function parleOn() { clearTimeout(parleT); document.documentElement.classList.add('mj-parle'); }
+  function parleOff() { clearTimeout(parleT); parleT = setTimeout(function () { if (!cards.querySelector('.card:not(.fx-out)')) document.documentElement.classList.remove('mj-parle'); }, 300); }
   document.head.appendChild(st);
-  function applyBulles() { document.documentElement.classList.toggle('mj-ephem', S.bulles === 'ephemeres'); }
+  function applyBulles() { var r = document.documentElement; r.classList.toggle('mj-ephem', S.bulles === 'ephemeres'); r.classList.toggle('mj-cases', S.cases === 'annonce'); }
   applyBulles();
 
   /* ---------------- réglages ---------------- */
@@ -147,12 +154,14 @@
   MJ.settingsExtra = function () {
     return (prevExtra ? prevExtra() : '') + '<div class="sect" id="f-effets">Effets et bulles</div>' +
       '<div class="set"><div class="t">Bulles de réponse<small>Éphémères : la réponse s\'affiche pendant qu\'elle est annoncée, puis disparaît</small></div><select class="in" id="sFxB" style="width:auto"><option value="ephemeres"' + (S.bulles === 'ephemeres' ? ' selected' : '') + '>Éphémères</option><option value="garder"' + (S.bulles !== 'ephemeres' ? ' selected' : '') + '>Gardées</option></select></div>' +
+      '<div class="set"><div class="t">Cases Heure, Météo, Rendez-vous, Minuteur<small>« Pendant une réponse » : cachées, elles apparaissent quand il vous répond</small></div><select class="in" id="sFxC" style="width:auto"><option value="annonce"' + (S.cases === 'annonce' ? ' selected' : '') + '>Pendant une réponse</option><option value="toujours"' + (S.cases !== 'annonce' ? ' selected' : '') + '>Toujours</option></select></div>' +
       '<div class="set"><div class="t">Intensité des effets<small>0 : aucun effet (économise la batterie)</small></div><input type="range" id="sFxI" min="0" max="100" step="5" value="' + (+S.fxInt || 0) + '"></div>' +
       Object.keys(GAD).map(function (k) { return '<div class="set"><div class="t">' + esc(GAD[k]) + '</div><label class="sw"><input type="checkbox" data-fxg="' + k + '"' + (gad(k) ? ' checked' : '') + '><span></span></label></div>'; }).join('');
   };
   MJ.settingsBind = function (b) {
     if (prevBind) prevBind(b);
     var bb = $('sFxB'); if (bb) bb.onchange = function () { S.bulles = this.value; save(); applyBulles(); };
+    var bc = $('sFxC'); if (bc) bc.onchange = function () { S.cases = this.value; save(); applyBulles(); };
     var fi = $('sFxI'); if (fi) fi.oninput = function () { S.fxInt = +this.value; save(); kick(); };
     document.querySelectorAll('[data-fxg]').forEach(function (i) { i.onchange = function () { S.fxG[i.dataset.fxg] = i.checked; save(); if (i.dataset.fxg === 'hyper' && i.checked) hyper(); kick(); }; });
   };
