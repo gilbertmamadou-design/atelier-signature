@@ -402,6 +402,23 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
       '<div class="row" style="margin-top:10px"><a class="btn" href="' + esc(qr) + '" target="_blank" rel="noopener">Ouvrir l\'image du QR</a>' + (zab ? '<a class="btn" href="' + esc('zpkd1://' + zab.replace(/^https:\/\//, '')) + '">Essayer d\'ouvrir dans Zepp</a>' : '') + '<button class="btn" data-close>Fermer</button></div>' +
       '<p class="note">Le QR vient du robot de fabrication (GitHub) ; Zepp l\'accepte pendant 48 heures (la collection est renouvelée chaque nuit). Si l\'image ne s\'affiche pas, vérifiez la connexion.</p>');
   }
+  var MAXCODE = 19000;
+  /* photo ré-encodée (plus petite, moins de qualité) jusqu'à tenir dans « max » caractères */
+  function reduirePhoto(src, max, cb) {
+    var im = new Image();
+    im.onload = function () {
+      var tailles = [480, 420, 360, 320, 280, 240], qs = [.72, .6, .5, .42, .34];
+      for (var i = 0; i < tailles.length; i++) for (var j = 0; j < qs.length; j++) {
+        var t = tailles[i], c = document.createElement('canvas'); c.width = c.height = t;
+        var g = c.getContext('2d'), s = Math.max(t / im.width, t / im.height);
+        g.drawImage(im, (t - im.width * s) / 2, (t - im.height * s) / 2, im.width * s, im.height * s);
+        var d = c.toDataURL('image/jpeg', qs[j]); if (d.length <= max) return cb(d);
+      }
+      cb(null);
+    };
+    im.onerror = function () { cb(null); };
+    im.src = src;
+  }
   function b64(s) { return btoa(unescape(encodeURIComponent(s))); }
   function gh(path, opt) {
     opt = opt || {}; var h = { 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };
@@ -427,11 +444,24 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     var code = b64(JSON.stringify(cfg));
     if (code.length > 64000) return sheet('<h2>Cadran trop lourd</h2><p style="color:var(--tx2)">Retirez quelques éléments ou choisissez une photo plus légère.</p><div class="row"><button class="btn" data-close>Fermer</button></div>');
     if (!ST.token) {
-      return sheet('<h2>Fabriquer « ' + esc(c.nom) + ' »</h2><p style="color:var(--tx2)">Pour fabriquer tout seul depuis l\'appli, enregistrez d\'abord votre clé GitHub (Réglages, une seule fois).</p>' +
-        '<p style="color:var(--tx2)">Autre solution : copiez le code ci-dessous et envoyez-le à Claude, qui fabriquera le cadran pour vous.</p><textarea class="in" id="code" rows="4" readonly>' + esc(code) + '</textarea>' +
-        '<div class="row" style="margin-top:10px"><button class="btn pri" id="copy">Copier le code</button><button class="btn" id="goReg">Réglages</button><button class="btn" data-close>Fermer</button></div>'),
-        $('copy').onclick = function () { var t = $('code'); t.select(); try { navigator.clipboard.writeText(code).then(function () { toast('Code copié'); }, function () { document.execCommand('copy'); toast('Code copié'); }); } catch (e) { document.execCommand('copy'); toast('Code copié'); } },
+      var montre = function (code) {
+        sheet('<h2>Fabriquer « ' + esc(c.nom) + ' »</h2><p style="color:var(--tx2)">Pour fabriquer tout seul depuis l\'appli, enregistrez d\'abord votre clé GitHub (Réglages, une seule fois).</p>' +
+          '<p style="color:var(--tx2)">Autre solution : copiez le code ci-dessous et envoyez-le à Claude, qui fabriquera le cadran pour vous.</p><textarea class="in" id="code" rows="4" readonly>' + esc(code) + '</textarea>' +
+          '<p class="note">' + code.length + ' caractères' + (cfg.photo ? ' (photo allégée pour tenir dans un message)' : '') + '</p>' +
+          '<div class="row" style="margin-top:10px"><button class="btn pri" id="copy">Copier le code</button><button class="btn" id="goReg">Réglages</button><button class="btn" data-close>Fermer</button></div>');
+        $('copy').onclick = function () { var t = $('code'); t.select(); try { navigator.clipboard.writeText(code).then(function () { toast('Code copié'); }, function () { document.execCommand('copy'); toast('Code copié'); }); } catch (e) { document.execCommand('copy'); toast('Code copié'); } };
         $('goReg').onclick = function () { closeSheet(); TAB = 'reglages'; render(); };
+      };
+      // un message ne passe pas au-delà de 20 000 caractères : on allège la photo pour que le code tienne
+      if (code.length > MAXCODE && cfg.photo) {
+        sheet('<h2>Préparation du code…</h2><p class="note">Allègement de la photo</p>');
+        var budget = cfg.photo.length - Math.ceil((code.length - MAXCODE) * 3 / 4) - 300;
+        return reduirePhoto(cfg.photo, budget, function (ph) {
+          if (!ph) return sheet('<h2>Code trop long</h2><p style="color:var(--tx2)">Même allégée, la photo ne tient pas dans un message. Enregistrez la clé GitHub (Réglages) : l\'appli fabriquera alors le cadran toute seule, avec la photo en pleine qualité.</p><div class="row"><button class="btn" data-close>Fermer</button></div>');
+          cfg.photo = ph; montre(b64(JSON.stringify(cfg)));
+        });
+      }
+      return montre(code);
     }
     var t0 = Date.now();
     sheet('<h2>Fabrication de « ' + esc(c.nom) + ' »</h2><p id="fabTxt" style="color:var(--tx2)">Envoi au robot de fabrication…</p><div class="prog"><i></i></div><p class="note">Comptez 2 à 4 minutes. Vous pouvez fermer : la fabrication continue, le QR apparaîtra dans Mes cadrans.</p><div class="row"><button class="btn" data-close>Fermer</button></div>');
