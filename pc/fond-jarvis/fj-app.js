@@ -43,7 +43,7 @@
   var DEF = {
     theme: 'cyan', layout: 'complet', name: '', city: '', place: null, windLimit: +MJS.windLimit || 45,
     voiceOn: true, voice: MJS.voice || '', rate: +MJS.rate || 1, tts: MJS.tts || 'system', piperVoice: MJS.piperVoice || 'pierre', vfx: 'ia', vfxo: null, free: 140, scale: 100, fx: 70, reduce: false, fpsMax: 30, saver: true,
-    newsN: 7, panels: { clock: true, wx: true, agenda: true, sys: true, news: true, music: true }, wake: false, wakeOk: false, updates: true
+    newsN: 7, panels: { clock: true, wx: true, agenda: true, sys: true, news: true, music: true }, wake: false, wakeOk: false, updates: true, fx2: true, boot: true, bureau: false
   };
   var S = FJ.S = Object.assign({}, DEF, lsGet(KEY.set, {}));
   S.panels = Object.assign({}, DEF.panels, S.panels || {});
@@ -830,6 +830,9 @@
       h += fld('Images par seconde (maximum)', rng('sFps', 10, 30, 5, S.fpsMax, ''), 'Plafonné à 15 sur batterie si l\'économie est cochée.');
       h += chk('sReduce', 'Réduire les animations', S.reduce, 'Anneaux fixes, pas d\'impulsions ni de poussières ; la sphère réagit encore quand l\'assistant parle.');
       h += chk('sSaver', 'Économie sur batterie (portable)', S.saver, 'Moins d\'images par seconde et de particules quand le portable n\'est pas branché.');
+      h += chk('sFx2', 'Effets avancés', S.fx2 !== false, 'Spectre de la voix autour de la sphère, satellites, ondes de choc, éclats, flux de données, balayage des panneaux, petits « glitchs ».');
+      h += chk('sBoot', 'Animation de démarrage', S.boot !== false, 'Séquence d\'initialisation à l\'ouverture.');
+      if (FJ.mode !== 'lively') h += chk('sBureau', 'Mode Bureau : plein écran automatique', !!S.bureau, 'Passe en plein écran au premier clic ou à la première touche (Échap pour en sortir, bouton ⛶ dans la barre). Pour qu\'il s\'ouvre avec Windows : Edge › edge://apps › Fond Jarvis › « Démarrer automatiquement à l\'ouverture de session » (Chrome : chrome://apps, clic droit › « Lancer l\'appli à la connexion »).');
       B.innerHTML = h;
       rngBind('sFree', ' px', function (v) { setS('free', v); });
       rngBind('sScale', ' %', function (v) { setS('scale', v); });
@@ -837,6 +840,9 @@
       rngBind('sFps', '', function (v) { setS('fpsMax', v); });
       bind('sReduce', function (v) { setS('reduce', v); });
       bind('sSaver', function (v) { setS('saver', v); });
+      bind('sFx2', function (v) { setS('fx2', v); });
+      bind('sBoot', function (v) { setS('boot', v); });
+      if ($('sBureau')) bind('sBureau', function (v) { setS('bureau', v); if (v && FJ.pleinEcran && !document.fullscreenElement) FJ.pleinEcran(); });
     } else if (tab === 'meteo') {
       h += fld('Ville', '<div style="display:flex;gap:.5em"><input type="text" id="sCity" value="' + esc(S.city || '') + '" placeholder="ex. Marseille"><button type="button" class="btn" id="sCityGo">Valider</button></div>', 'Vide : ' + (FJ.mode === 'suite' && MJS.place ? 'ville de Majordome, sinon ' : '') + 'position détectée une fois.');
       h += '<p class="hint" id="sCityMsg">' + esc(S.place ? 'Lieu actuel : ' + (S.place.name || 'position détectée') + (S.place.admin ? ' (' + S.place.admin + ')' : '') : '') + '</p>';

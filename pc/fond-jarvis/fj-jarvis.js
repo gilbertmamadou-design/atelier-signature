@@ -163,7 +163,8 @@
 
   /* ---------------- Contexte de l'analyseur ---------------- */
   function names() { var n = deacc(FJ.aiName()), l = [n]; ['majordome', 'jarvis'].forEach(function (x) { if (l.indexOf(x) < 0) l.push(x); }); return l; }
-  function ctx() { var c = { now: now(), names: names(), routines: [] }; if (wait) c.expect = { slot: wait.slot }; return c; }
+  function routinesMj() { var m = FJ.lsGet('majordome:reglages', {}) || {}; return Array.isArray(m.routines) ? m.routines : []; }
+  function ctx() { var c = { now: now(), names: names(), routines: routinesMj().map(function (r) { return { id: r.id, name: r.name, phrase: r.phrase }; }) }; if (wait) c.expect = { slot: wait.slot }; return c; }
 
   /* ---------------- Commandes propres au fond (avant l'analyseur) ---------------- */
   var THEME_W = { cyan: 'cyan', bleu: 'bleu', vert: 'vert', ambre: 'ambre', orange: 'ambre', rouge: 'rouge' };
@@ -593,7 +594,33 @@
       return answer('Liseuse n\'est pas ouverte dans ce navigateur.').done;
     });
   };
+  /* routines de Majordome (même stockage dans la Suite) : étapes faisables sur PC, les autres sont passées */
+  var RT_DEPTH = 0;
+  function etape(s) {
+    var t0 = NLU.startOfDay(now()), h0 = new Date().getHours(), f = function (n, a) { return typeof H[n] === 'function' ? H[n](a || {}) : Promise.resolve(); };
+    switch (s) {
+      case 'salut': return answer(withSir(h0 < 18 ? 'Bonjour' : 'Bonsoir') + '.').done;
+      case 'bonnenuit': return answer(withSir('Bonne nuit') + '.').done;
+      case 'heure': return f('time');
+      case 'date': return f('date', { offset: 0 });
+      case 'meteo': return f('weather', { when: 'today' });
+      case 'vent': return f('wind', { when: 'today', scaffold: true });
+      case 'agenda': return f('agenda', { from: t0, to: t0 + DAY });
+      case 'titres': return f('news', { rub: 'titres', n: 3 });
+      case 'liste': return f('list_read', { list: 'courses' });
+      case 'musique': return f('music', { cmd: 'start' });
+    }
+    if (/^dit:/.test(s)) { var tx = s.slice(4).trim(); return tx ? answer(/[.!?…]$/.test(tx) ? tx : withSir(tx) + '.').done : Promise.resolve(); }
+    if (/^pause:/.test(s)) { var sec = Math.max(0, Math.min(600, +s.slice(6) || 0)); return new Promise(function (ok) { setTimeout(ok, sec * 1000); }); }
+    if (/^cmd:/.test(s)) { var r = NLU.parse(s.slice(4), ctx()); if (r.intent === 'routine' && RT_DEPTH > 2) return Promise.resolve(); return handle(s.slice(4), 'routine'); }
+    return Promise.resolve();   // lumières, clim, lampe… : propres au téléphone
+  }
   H.routine = function (p) {
+    var rt = routinesMj().filter(function (x) { return x.id === p.id || (p.name && deacc(x.name || '') === deacc(p.name)); })[0];
+    if (rt && Array.isArray(rt.steps) && rt.steps.length) {
+      RT_DEPTH++;
+      return rt.steps.reduce(function (pr, s) { return pr.then(function () { return etape(s); }).catch(function () { }); }, Promise.resolve()).then(function () { RT_DEPTH--; }, function () { RT_DEPTH--; });
+    }
     if (p.id === 'matin') {
       var h = new Date().getHours();
       return answer(withSir(h < 18 ? 'Bonjour' : 'Bonsoir') + '.').done.then(function () { return H.time(); }).then(function () { return H.weather({ when: 'today' }); }).then(function () { return H.news({ n: 3 }); });
