@@ -978,8 +978,9 @@
       }
     });
     var ana = cfg.blocs.some(function (b) { return b.t === 'aiguilles' && Math.abs(b.x - CX) < 30 && Math.abs(b.y - CY) < 30; });
-    var fc = fond(cfg, false, ana, k);
-    if (cfg.calques.indexOf('verre') >= 0 || cfg.calques.indexOf('lunette') >= 0) fc.getContext('2d').drawImage(dessus(cfg, k), 0, 0);
+    var fc = toile(S, S), gf = fc.getContext('2d');   // fond opaque (noir autour du cercle)
+    gf.fillStyle = '#000'; gf.fillRect(0, 0, S, S); gf.drawImage(fond(cfg, false, ana, k), 0, 0);
+    if (cfg.calques.indexOf('verre') >= 0 || cfg.calques.indexOf('lunette') >= 0) gf.drawImage(dessus(cfg, k), 0, 0);
     return { S: S, fond: fc, ops: ops, polices: F, icones: I, meteo: GARMIN_METEO };
   }
   /* police Garmin (format BMFont) : planche PNG blanche + description texte ; chiffres à chasse fixe si mono */
