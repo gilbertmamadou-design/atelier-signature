@@ -1007,8 +1007,8 @@
     var d = g.getImageData(0, 0, S, S), a = d.data;
     var B = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];   // tramage ordonné (comme l'écran, qui tramera le fond)
     for (var i = 0, px = 0; i < a.length; i += 4, px++) {
-      var t = (B[(px % S) % 4 + ((Math.floor(px / S)) % 4) * 4] / 16 - .47) * 85;
-      for (var j = 0; j < 3; j++) a[i + j] = Math.max(0, Math.min(255, Math.round((a[i + j] + t) / 85) * 85));
+      var tr = (B[(px % S) % 4 + ((Math.floor(px / S)) % 4) * 4] / 16 - .47) * 85;
+      for (var j = 0; j < 3; j++) a[i + j] = Math.max(0, Math.min(255, Math.round((a[i + j] + tr) / 85) * 85));
     }
     g.putImageData(d, 0, 0);
     var o = cv.getContext('2d'); o.save(); o.clearRect(0, 0, cv.width, cv.height); o.imageSmoothingEnabled = false;
