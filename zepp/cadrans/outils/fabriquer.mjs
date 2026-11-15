@@ -47,7 +47,7 @@ for (const f of fichiers) {
     const p = CADRAN.paquet(cfg), images = {}
     for (const k of Object.keys(p.images)) images[k] = p.images[k].toDataURL('image/png')
     const shot = (aod, taille) => { const c = document.createElement('canvas'); c.width = c.height = taille; CADRAN.apercu(c, cfg, { aod, date: new Date(2026, 9, 30, 10, 9, 30) }); return c.toDataURL('image/png') }
-    const spec = JSON.parse(JSON.stringify(p.spec)); delete spec.cfg; spec.w.forEach((w) => { delete w.ex })
+    const spec = JSON.parse(JSON.stringify(p.spec)); delete spec.cfg; spec.w.forEach((w) => { delete w.ex; delete w.g; if (w.sec) delete w.sec.g })
     return { spec, cfg: p.spec.cfg, images, apercu: shot(false, 480), aod: shot(true, 480), icone: shot(false, 324) }
   }, cfg)
   mkdirSync(dos, { recursive: true })

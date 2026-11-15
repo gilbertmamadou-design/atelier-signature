@@ -1,77 +1,122 @@
 name: Cadrans Garmin (Fenix 6X Pro, 6S)
-# Fabrique les cadrans Garmin Connect IQ. Il faut deux secrets du dépôt : GARMIN_USERNAME et GARMIN_PASSWORD
-# (compte Garmin, pour télécharger le SDK et les fiches des montres). La clé de signature du développeur est
-# GARMIN_CLE (base64 d'une clé RSA 4096 au format DER) ; sans elle, une clé jetable est créée pour l'essai.
+# Cadrans Garmin Connect IQ fabriqués avec l'« Atelier de cadrans » (mêmes réglages que la T-Rex 3, zepp/cadrans) :
+#  - avec « cadran » (réglages JSON en base64, envoyés par l'appli) : un cadran perso → release « garmin-perso-N » ;
+#  - sans réglage : toute la collection (zepp/cadrans/collection) → release fixe « garmin-collection ».
+# Pour chaque cadran et chaque montre : <id>-<montre>.prg (à copier dans GARMIN/APPS) et <id>-<montre>.png (aperçu).
+# Secrets : GARMIN_USERNAME et GARMIN_PASSWORD (compte Garmin : SDK et fiches des montres). Clé du développeur :
+# GARMIN_CLE (base64 d'une clé RSA 4096 DER) si présente, sinon une clé jetable (suffit pour installer à la main).
 on:
   workflow_dispatch:
     inputs:
-      projet:
-        description: "Dossier du projet (garmin/…)"
+      cadran:
+        description: "Réglages d'un cadran perso (JSON en base64). Vide : toute la collection"
         required: false
-        default: "garmin/essai"
+        default: ""
 
 permissions:
   contents: write
 
+concurrency:
+  group: garmin-${{ github.event.inputs.cadran != '' && github.run_id || 'collection' }}
+  cancel-in-progress: false
+
 jobs:
   fabriquer:
     runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: zepp/cadrans
     steps:
       - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
-      - name: Gestionnaire du SDK Connect IQ
+      - name: Outils (Chromium pour dessiner, gestionnaire du SDK Garmin)
         run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
           curl -fsSL https://raw.githubusercontent.com/lindell/connect-iq-sdk-manager-cli/master/install.sh -o "$RUNNER_TEMP/inst.sh"
           (cd "$RUNNER_TEMP" && sh inst.sh) || true
           B=$(command -v connect-iq-sdk-manager || find / -type f -name 'connect-iq-sdk-manager*' -perm -u+x 2>/dev/null | grep -v '\.sh$' | head -1)
-          echo "outil : $B"; test -n "$B"
-          mkdir -p "$HOME/bin"; ln -sf "$B" "$HOME/bin/connect-iq-sdk-manager"; echo "$HOME/bin" >> "$GITHUB_PATH"
-      - name: Accord de licence
+          test -n "$B"; mkdir -p "$HOME/bin"; ln -sf "$B" "$HOME/bin/connect-iq-sdk-manager"; echo "$HOME/bin" >> "$GITHUB_PATH"
+      - name: Réglages
+        id: reglages
         run: |
-          connect-iq-sdk-manager agreement view > "$RUNNER_TEMP/accord.txt" 2>&1 || true
-          head -c 600 "$RUNNER_TEMP/accord.txt"; echo; echo ...; tail -c 800 "$RUNNER_TEMP/accord.txt"
-          H=$(grep -oiE '[0-9a-f]{32,}' "$RUNNER_TEMP/accord.txt" | tail -1)
-          echo "hash : $H"; test -n "$H"
-          connect-iq-sdk-manager agreement accept --agreement-hash="$H"
-      - name: Connexion, SDK et fiches des montres
+          mkdir -p ../out-garmin/projets
+          # lus dans l'événement : ils n'apparaissent pas dans le journal (photo comprise)
+          CADRAN=$(jq -r '.inputs.cadran // ""' "$GITHUB_EVENT_PATH")
+          if [ -n "$CADRAN" ]; then
+            printf '%s' "$CADRAN" | base64 -d > ../out-garmin/perso.json
+            python3 - ../out-garmin/perso.json <<'PY'
+          import json, sys, re
+          p = sys.argv[1]; o = json.load(open(p, encoding='utf-8'))
+          assert isinstance(o, dict), 'réglages invalides'
+          photo = o.get('photo') or ''
+          assert not photo or (len(photo) < 60000 and re.fullmatch(r'data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+', photo)), 'photo invalide'
+          assert len(json.dumps(o)) - len(photo) < 16000, 'réglages trop longs'
+          assert len(o.get('blocs') or []) <= 40, "trop d'éléments"
+          o.pop('appId', None); o.pop('id', None)
+          json.dump(o, open(p, 'w', encoding='utf-8'), ensure_ascii=False)
+          print('cadran perso :', o.get('nom'))
+          PY
+            echo "fichiers=../out-garmin/perso.json" >> "$GITHUB_OUTPUT"
+            echo "tag=garmin-perso-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "fichiers=$(ls collection/*.json | grep -v liste.json | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+            echo "tag=garmin-collection" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Dessiner et préparer les projets Connect IQ
+        run: node outils/fabriquer-garmin.mjs ${{ steps.reglages.outputs.fichiers }} --sortie ../out-garmin/projets
+      - name: Licence, connexion, SDK et fiches des montres
         env:
           GARMIN_USERNAME: ${{ secrets.GARMIN_USERNAME }}
           GARMIN_PASSWORD: ${{ secrets.GARMIN_PASSWORD }}
         run: |
-          connect-iq-sdk-manager sdk set "^8.0.0" || connect-iq-sdk-manager sdk set "^7.0.0" || connect-iq-sdk-manager sdk set "^6.4.0"
+          H=$(connect-iq-sdk-manager agreement view 2>&1 | grep -oiE '[0-9a-f]{32,}' | tail -1)
+          connect-iq-sdk-manager agreement accept --agreement-hash="$H"
+          connect-iq-sdk-manager sdk set "^8.0.0"
           echo "$(connect-iq-sdk-manager sdk current-path --bin)" >> "$GITHUB_PATH"
           test -n "$GARMIN_USERNAME" || { echo "::error::secrets GARMIN_USERNAME / GARMIN_PASSWORD absents"; exit 1; }
           connect-iq-sdk-manager login
-          connect-iq-sdk-manager device download --manifest="${{ github.event.inputs.projet }}/manifest.xml"
+          connect-iq-sdk-manager device download --device=fenix6xpro --device=fenix6s
       - name: Clé du développeur
         env:
           CLE: ${{ secrets.GARMIN_CLE }}
         run: |
           if [ -n "$CLE" ]; then printf '%s' "$CLE" | base64 -d > "$RUNNER_TEMP/cle.der"
           else
-            echo "::warning::GARMIN_CLE absent : clé jetable (essai seulement)"
-            openssl genrsa -out "$RUNNER_TEMP/cle.pem" 4096
+            openssl genrsa -out "$RUNNER_TEMP/cle.pem" 4096 2>/dev/null
             openssl pkcs8 -topk8 -inform PEM -outform DER -in "$RUNNER_TEMP/cle.pem" -out "$RUNNER_TEMP/cle.der" -nocrypt
           fi
       - name: Compiler
         run: |
-          P="${{ github.event.inputs.projet }}"; mkdir -p sortie-garmin
-          for d in fenix6xpro fenix6s; do
-            monkeyc -f "$P/monkey.jungle" -d "$d" -y "$RUNNER_TEMP/cle.der" -o "sortie-garmin/$(basename "$P")-$d.prg" -w
+          set -o pipefail
+          OUT=$(cd ../out-garmin && pwd)
+          for d in "$OUT"/projets/*/; do
+            id=$(basename "$d")
+            for m in fenix6xpro fenix6s; do
+              echo "::group::$id $m"
+              monkeyc -f "$d/monkey.jungle" -d "$m" -y "$RUNNER_TEMP/cle.der" -o "$OUT/$id-$m.prg" -w -l 0 2>&1 | tail -30
+              cp "$OUT/projets/$id-$m.png" "$OUT/$id-$m.png"
+              echo "::endgroup::"
+            done
           done
-          ls -la sortie-garmin
-      - name: Nom de la publication
-        id: pub
-        run: echo "tag=garmin-$(basename "${{ github.event.inputs.projet }}")" >> "$GITHUB_OUTPUT"
+          cp "$OUT/projets/liste.json" "$OUT/garmin.json"
+          ls -la "$OUT"
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.pub.outputs.tag }}
-          name: Cadran Garmin ${{ steps.pub.outputs.tag }}
+          tag_name: ${{ steps.reglages.outputs.tag }}
+          name: Cadrans Garmin ${{ steps.reglages.outputs.tag }}
           overwrite_files: true
           body: |
-            Cadran Garmin Connect IQ (Fenix 6X Pro, Fenix 6S). Installation : brancher la montre en USB et copier le fichier .prg
-            de sa montre dans le dossier GARMIN/APPS, puis débrancher.
-          files: sortie-garmin/*.prg
+            Cadrans Garmin Connect IQ (Fenix 6X Pro, Fenix 6S) fabriqués avec l'« Atelier de cadrans ».
+            Installation : brancher la montre en USB, copier le fichier .prg de sa montre dans GARMIN/APPS, débrancher,
+            puis choisir le cadran sur la montre.
+          files: |
+            zepp/out-garmin/*.prg
+            zepp/out-garmin/*.png
+            zepp/out-garmin/garmin.json

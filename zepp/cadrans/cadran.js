@@ -443,7 +443,7 @@
     add({ k: 'img', x: 0, y: 0, w: W, h: W, src: 'images/fond_aod.png', aod: 1 });
     if (cfg.anneau === 'batterie' || cfg.anneau === 'pas') {
       for (var a = 0; a <= 10; a++) put('anneau/' + a + '.png', anneau(cfg, a / 10));
-      add({ k: 'level', type: cfg.anneau === 'batterie' ? 'BATTERY' : 'STEP', x: 0, y: 0, w: W, h: W, dossier: 'anneau', n: 11 });
+      add({ k: 'level', type: cfg.anneau === 'batterie' ? 'BATTERY' : 'STEP', x: 0, y: 0, w: W, h: W, dossier: 'anneau', n: 11, g: { kind: 'anneau', c: cfg.accent, r: 228, pw: 9 } });
     }
     /* jeu de chiffres (police, taille, couleur) partagé entre éléments identiques */
     var FX = 'aucun', ICN = 'trait';   // effet et icônes de l'élément en cours
@@ -459,22 +459,22 @@
         put(dos + '/pct.png', boiteTxt(Math.round(fv * .9), h, '%', P.fam, Math.round(fv * .7), cfg.doux, 'left', 0, fx));
         put(dos + '/deg.png', boiteTxt(Math.round(fv * .55), h, '°', P.fam, fv, cc, 'left', 0, fx));
       }
-      return { dos: dos, cw: cw, h: h };
+      return { dos: dos, cw: cw, h: h, g: { fam: P.fam, px: fv, cw: cw, h: h, c: cc, fx: fx, cu: cfg.doux } };
     };
     var nombre = function (d, x, y, w, h, align, police, val, couleur) {
       var inf = INFOS[d], ch = chiffres(police, val, couleur);
-      add({ k: 'num', type: inf.type, x: Math.round(x), y: Math.round(y), w: Math.round(w), h: ch.h, align: align, unite: inf.unite || null, point: inf.point || null, dossier: ch.dos, ex: inf.ex });
+      add({ k: 'num', type: inf.type, x: Math.round(x), y: Math.round(y), w: Math.round(w), h: ch.h, align: align, unite: inf.unite || null, point: inf.point || null, dossier: ch.dos, ex: inf.ex, g: ch.g });
       return ch;
     };
     var meteoNiveau = function (x, y, s, couleur) {
       var cc = coul(cfg, couleur), mode = ICN, dos = 'meteo' + s + hash(cc + mode);
       if (!IM[dos + '/0.png']) for (var m = 0; m < 29; m++) put(dos + '/' + m + '.png', meteoIcone(METEO[m], s, cc, mix(cfg.c1, cc, .12), mode));
-      add({ k: 'level', type: 'WEATHER', x: Math.round(x), y: Math.round(y), w: s, h: s, dossier: dos, n: 29 });
+      add({ k: 'level', type: 'WEATHER', x: Math.round(x), y: Math.round(y), w: s, h: s, dossier: dos, n: 29, g: { kind: 'meteo', c: cc, mode: mode, c2: mix(cfg.c1, cc, .12) } });
     };
     var barreNiveau = function (d, x, y, w, h, couleur, rayon) {
       var cc = coul(cfg, couleur), dos = 'barre' + hash(d + w + h + cc + (rayon || 0));
       for (var a = 0; a <= 10; a++) put(dos + '/' + a + '.png', rayon ? arc(rayon, w, cc, a / 10) : barre(w, h, cc, a / 10));
-      add({ k: 'level', type: INFOS[d].type, x: Math.round(x), y: Math.round(y), w: w, h: h, dossier: dos, n: 11 });
+      add({ k: 'level', type: INFOS[d].type, x: Math.round(x), y: Math.round(y), w: w, h: h, dossier: dos, n: 11, g: { kind: rayon ? 'arc' : 'barre', c: cc, r: rayon || 0, pw: Math.max(5, w * .07) } });
     };
 
     var pointeurs = [];
@@ -485,11 +485,11 @@
           var dos = 'heure' + bi + suf, col = k ? aodDim : coul(cfg, b.couleur), cdp = k ? aodDim : coul(cfg, b.dp);
           for (var d = 0; d <= 9; d++) put(dos + '/' + d + '.png', boiteTxt(G.cw, G.h, String(d), P.fam, G.ft, col, 'center', 0, k ? null : FX));
           put(dos + '/dp.png', boiteTxt(G.dpw, G.h, ':', P.fam, G.ft, cdp, 'center', 0, k ? null : FX));
-          var w = { k: 'time', x: G.x, y: G.y, dossier: dos, cw: G.cw, dpw: G.dpw, h: G.h, aod: k ? 1 : 0 };
+          var w = { k: 'time', x: G.x, y: G.y, dossier: dos, cw: G.cw, dpw: G.dpw, h: G.h, aod: k ? 1 : 0, g: { fam: P.fam, px: G.ft, c: col, cdp: cdp, fx: k ? 'aucun' : FX } };
           if (G.s && !k) {
             var sd = 'sec' + bi;
             for (var e = 0; e <= 9; e++) put(sd + '/' + e + '.png', boiteTxt(G.scw, G.sh, String(e), P.fam, Math.round(G.s * P.echelle), coul(cfg, b.dp), 'center', 0, FX));
-            w.sec = { x: G.x + 4 * G.cw + G.dpw + 6, y: G.y + G.h - G.sh - Math.round(G.h * .04), dossier: sd, cw: G.scw };
+            w.sec = { x: G.x + 4 * G.cw + G.dpw + 6, y: G.y + G.h - G.sh - Math.round(G.h * .04), dossier: sd, cw: G.scw, h: G.sh, g: { px: Math.round(G.s * P.echelle), c: coul(cfg, b.dp) } };
           }
           add(w);
         });
@@ -499,16 +499,19 @@
         ['', '_aod'].forEach(function (suf, k) {
           if (k && cfg.aod !== 'heure_date') return;
           var dd = 'date' + bi + suf, col = k ? aodDim : coul(cfg, b.couleur === 'texte' ? 'doux' : b.couleur), colJ = k ? aodDim : coul(cfg, b.jour), fx = k ? null : FX;
-          var w = { k: 'date', aod: k ? 1 : 0, dossier: dd, h: G.h }, seul = G.parts.length === 1;
+          var w = { k: 'date', aod: k ? 1 : 0, dossier: dd, h: G.h, g: { fx: fx || 'aucun', fs: G.fs, esp: G.esp, parts: [] } }, seul = G.parts.length === 1;
           G.parts.forEach(function (q, qi) {
-            if (q.k === 'sem') { q.l.forEach(function (j, i) { put(dd + '/semaine/' + i + '.png', boiteTxt(q.w, G.h, j, PETITE.fam, G.fs, col, seul ? 'center' : 'right', G.esp, fx)); }); w.sem = { x: q.x, y: G.y }; }
-            if (q.k === 'jour') { for (var n = 1; n <= 31; n++) put(dd + '/jour/' + (n - 1) + '.png', boiteTxt(q.w, G.h, n === 1 && f === 'long' ? '1ER' : String(n), PETITE.fam, G.fs + 1, colJ, 'center', 0, fx)); w.jour = { x: q.x, y: G.y }; }
-            if (q.k === 'mois') { q.l.forEach(function (j, i) { put(dd + '/mois/' + i + '.png', boiteTxt(q.w, G.h, j, PETITE.fam, G.fs, col, 'left', G.esp, fx)); }); w.mois = { x: q.x, y: G.y }; }
+            var nums = []; for (var n0 = 1; n0 <= 31; n0++) nums.push(n0 === 1 && f === 'long' ? '1ER' : String(n0));
+            if (q.k === 'sem') { q.l.forEach(function (j, i) { put(dd + '/semaine/' + i + '.png', boiteTxt(q.w, G.h, j, PETITE.fam, G.fs, col, seul ? 'center' : 'right', G.esp, fx)); }); w.sem = { x: q.x, y: G.y }; w.g.parts.push({ t: 's', x: q.x, w: q.w, al: seul ? 'center' : 'right', px: G.fs, esp: G.esp, c: col, l: q.l }); }
+            if (q.k === 'jour') { nums.forEach(function (t, i) { put(dd + '/jour/' + i + '.png', boiteTxt(q.w, G.h, t, PETITE.fam, G.fs + 1, colJ, 'center', 0, fx)); }); w.jour = { x: q.x, y: G.y }; w.g.parts.push({ t: 'j', x: q.x, w: q.w, al: 'center', px: G.fs + 1, esp: 0, c: colJ, l: nums }); }
+            if (q.k === 'mois') { q.l.forEach(function (j, i) { put(dd + '/mois/' + i + '.png', boiteTxt(q.w, G.h, j, PETITE.fam, G.fs, col, 'left', G.esp, fx)); }); w.mois = { x: q.x, y: G.y }; w.g.parts.push({ t: 'm', x: q.x, w: q.w, al: 'left', px: G.fs, esp: G.esp, c: col, l: q.l }); }
           });
           if (f === 'chiffres') {
             for (var n2 = 1; n2 <= 31; n2++) put(dd + '/jour/' + (n2 - 1) + '.png', boiteTxt(G.wD, G.h, ('0' + n2).slice(-2), PETITE.fam, G.fs + 2, colJ, 'right', 0, fx));
             for (var m2 = 1; m2 <= 12; m2++) put(dd + '/mois/' + (m2 - 1) + '.png', boiteTxt(G.wD, G.h, ('0' + m2).slice(-2), PETITE.fam, G.fs + 2, col, 'left', 0, fx));
             w.jour = { x: G.x, y: G.y }; w.mois = { x: G.x + G.wD + 2 * G.gap + 8, y: G.y };
+            var d2 = function (n) { var l = []; for (var i = 1; i <= n; i++) l.push(('0' + i).slice(-2)); return l; };
+            w.g.parts.push({ t: 'j', x: G.x, w: G.wD, al: 'right', px: G.fs + 2, esp: 0, c: colJ, l: d2(31) }, { t: 'm', x: G.x + G.wD + 2 * G.gap + 8, w: G.wD, al: 'left', px: G.fs + 2, esp: 0, c: col, l: d2(12) });
           }
           add(w);
         });
@@ -554,7 +557,7 @@
       put(d + '/h.png', H.c); put(d + '/m.png', M.c); if (S) put(d + '/s.png', S.c); put(d + '/h_aod.png', Ha.c); put(d + '/m_aod.png', Ma.c);
       var cs = Math.round(24 * Math.max(.6, b.echelle));
       put(d + '/centre.png', centre(cfg, false, cs)); put(d + '/centre_aod.png', centre(cfg, true, cs));
-      add({ k: 'pointer', cx: b.x, cy: b.y, h: { src: 'images/' + d + '/h.png', px: H.px, py: H.py }, m: { src: 'images/' + d + '/m.png', px: M.px, py: M.py }, s: S ? { src: 'images/' + d + '/s.png', px: S.px, py: S.py } : null });
+      add({ k: 'pointer', g: { b: b, cs: cs }, cx: b.x, cy: b.y, h: { src: 'images/' + d + '/h.png', px: H.px, py: H.py }, m: { src: 'images/' + d + '/m.png', px: M.px, py: M.py }, s: S ? { src: 'images/' + d + '/s.png', px: S.px, py: S.py } : null });
       add({ k: 'img', x: b.x - cs / 2, y: b.y - cs / 2, w: cs, h: cs, src: 'images/' + d + '/centre.png' });
       add({ k: 'pointer', aod: 1, cx: b.x, cy: b.y, h: { src: 'images/' + d + '/h_aod.png', px: Ha.px, py: Ha.py }, m: { src: 'images/' + d + '/m_aod.png', px: Ma.px, py: Ma.py }, s: null });
       add({ k: 'img', x: b.x - cs / 2, y: b.y - cs / 2, w: cs, h: cs, src: 'images/' + d + '/centre_aod.png', aod: 1 });
@@ -582,8 +585,9 @@
     if (!src) return Promise.resolve();
     return new Promise(function (ok) { var i = 0, t = setInterval(function () { if (photoImg(src) || ++i > 100) { clearInterval(t); ok(); } }, 30); photoImg(src); });
   }
-  function fond(cfg, aod, ana) {
-    var c = toile(W, W), g = c.getContext('2d');
+  function fond(cfg, aod, ana, kk) {
+    kk = kk || 1;
+    var c = toile(W * kk, W * kk), g = c.getContext('2d'); g.scale(kk, kk);
     g.save(); g.beginPath(); g.arc(CX, CY, CX, 0, 7); g.clip();
     if (aod) { g.fillStyle = '#000'; g.fillRect(0, 0, W, W); }
     else if (cfg.fond !== 'transparent') {
@@ -711,8 +715,9 @@
     if (a('vignette')) { gr = g.createRadialGradient(CX, CY, CX * .45, CX, CY, CX); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,.7)'); g.fillStyle = gr; g.fillRect(0, 0, W, W); }
   }
   /* calque transparent posé sur tout le cadran (écran allumé) : reflet de verre, lunette en relief */
-  function dessus(cfg) {
-    var c = toile(W, W), g = c.getContext('2d'), L = cfg.calques;
+  function dessus(cfg, kk) {
+    kk = kk || 1;
+    var c = toile(W * kk, W * kk), g = c.getContext('2d'), L = cfg.calques; g.scale(kk, kk);
     g.save(); g.beginPath(); g.arc(CX, CY, CX, 0, 7); g.clip();
     if (L.indexOf('verre') >= 0) {
       g.save(); g.beginPath(); g.ellipse(CX - 60, CY - 120, 260, 170, -.45, 0, 7); g.clip();
@@ -868,6 +873,150 @@
     }));
   }
 
-  var CADRAN = root.CADRAN = { W: W, DEFAUT: DEFAUT, CHOIX: CHOIX, INFOS: INFOS, METEO: METEO, MODELES: MODELES, norm: norm, normBloc: normBloc, paquet: paquet, apercu: apercu, polices: polices,
+  /* ---------------- Garmin (Connect IQ, écran MIP 64 couleurs) ----------------
+     garmin(cfg, S) → { S, fond (canvas S×S : partie fixe), ops (à dessiner par la montre), polices, icones }
+     Mêmes positions que la T-Rex 3, mises à l'échelle S/480 ; les nombres sont écrits avec des polices
+     fabriquées à partir des mêmes fichiers, les aiguilles sont des polygones tournés par la montre. */
+  var GENRES = ['soleil', 'nuit', 'nuages', 'nuages_nuit', 'couvert', 'pluie', 'averses', 'neige', 'orage', 'brouillard', 'sable', 'inconnu'];
+  // conditions météo Garmin (Weather.CONDITION_*, 0 à 53) → genre
+  var GARMIN_METEO = [0, 2, 4, 5, 7, 2, 8, 7, 9, 9, 7, 6, 8, 5, 5, 5, 7, 7, 7, 7, 4, 7, 2, 0, 6, 6, 6, 6, 8, 9, 10, 5, 8, 9, 7, 10, 8, 10, 9, 9, 0, 8, 8, 7, 7, 5, 7, 7, 7, 5, 7, 7, 2, 11];
+  function mip(hex) {
+    if (!HEX.test(hex || '')) return 0xffffff;
+    var n = parseInt(hex.slice(1), 16), q = function (v) { return Math.round(v / 85) * 85; };
+    return (q(n >> 16 & 255) << 16) | (q(n >> 8 & 255) << 8) | q(n & 255);
+  }
+  function fxGarmin(fx, c, px, fondc) {
+    var o = { fx: 0, c: mip(c), c2: 0, c3: 0, n: 1 }, fonce = mix(c, '#000000', .62);
+    if (fx === 'relief') { o.fx = 1; o.c2 = mip(fonce); o.n = Math.max(1, Math.round(px * .07)); }
+    else if (fx === 'ombre') { o.fx = 2; o.c2 = 0; o.n = Math.max(1, Math.round(px * .05)); }
+    else if (fx === 'biseau' || fx === 'metal') { o.fx = 3; o.c2 = mip(fonce); o.c3 = mip(mix(c, '#ffffff', .6)); }
+    else if (fx === 'contour') { o.fx = 4; o.c2 = mip(mix(c, '#000000', .8)); o.n = px > 30 ? 2 : 1; }
+    else if (fx === 'creux') { o.fx = 5; o.c2 = mip(fondc); o.n = px > 30 ? 2 : 1; }
+    else if (fx === 'lueur') { o.fx = 4; o.c2 = mip(mix(c, '#000000', .45)); o.n = px > 30 ? 3 : 2; }
+    return o;
+  }
+  function mainsGarmin(cfg, b, cs) {
+    var e = b.echelle, ts = b.trotStyle || 'fine', acc = mip(cfg.accent), out = {};
+    var rect = function (x0, x1, y0, y1) { return [x0, y0, x1, y0, x1, y1, x0, y1]; };
+    ['h', 'm'].forEach(function (q) {
+      var L = Math.round((q === 'h' ? 112 : 178) * e), T = Math.round(20 * e), st = b.style, c = mip(coul(cfg, b.couleur));
+      var base = ({ larges: [16, 12], epees: [14, 11], dauphine: [16, 13], squelette: [14, 11], fleche: [8, 6], baton: [10, 8] }[st] || [8, 6])[q === 'h' ? 0 : 1];
+      var lw = Math.max(2, Math.round(base * Math.max(.5, e))), l = [];
+      if (st === 'epees' || st === 'squelette') {
+        var pe = [0, -L + 2, lw / 2, -L * .8, lw * .3, T - 4, -lw * .3, T - 4, -lw / 2, -L * .8];
+        if (st === 'epees') { l.push({ p: pe, c: c }); l.push({ p: [0, -L + 8, lw * .22, -L * .78, -lw * .22, -L * .78], c: acc }); }
+        else { l.push({ p: pe, c: c, l: 1, w: Math.max(2, 2.2 * e) }); l.push({ p: [0, -L + 6, lw * .3, -L * .8, -lw * .3, -L * .8], c: acc }); }
+      } else if (st === 'dauphine') {
+        l.push({ p: [0, -L + 2, -lw / 2, -L * .22, 0, T - 2], c: c }); l.push({ p: [0, -L + 2, lw / 2, -L * .22, 0, T - 2], c: mip(mix(coul(cfg, b.couleur), '#000000', .3)) });
+      } else if (st === 'fleche') {
+        var aw = lw * 1.3, ah = lw * 2.2;
+        l.push({ p: rect(-lw * .35, lw * .35, T - 2, -L + ah), c: c }); l.push({ p: [0, -L + 2, aw, -L + ah + 2, -aw, -L + ah + 2], c: c });
+        l.push({ p: [0, -L + 6, lw * .7, -L + lw * 1.8, -lw * .7, -L + lw * 1.8], c: acc });
+      } else if (st === 'larges') {
+        l.push({ p: rect(-lw / 2, lw / 2, T - 2, -L + 4), c: c }); l.push({ p: rect(-lw / 2 + 3, lw / 2 - 3, -L + 12, -L + 12 + L * .45), c: acc });
+      } else l.push({ p: rect(-lw / 2, lw / 2, T - 2, -L + 4), c: c });
+      out[q] = l;
+    });
+    if (b.secondes) {
+      var L = Math.round(196 * e), T = Math.round(42 * e), c = mip(coul(cfg, b.trot)), lws = Math.max(1.5, (ts === 'epaisse' ? 4.5 : ts === 'sport' ? 3.2 : 2.2) * e), l = [];
+      l.push({ p: rect(-lws / 2, lws / 2, T - 4, ts === 'fleche' ? -L + 16 * e + 4 : -L + 4), c: c });
+      if (ts === 'contrepoids') l.push({ r: [0, T - Math.max(6, 8 * e), Math.max(4, 7 * e)], c: c });
+      if (ts === 'fleche') l.push({ p: [0, -L + 2, 7 * e + 2, -L + 20 * e + 4, -7 * e - 2, -L + 20 * e + 4], c: c });
+      if (ts === 'sucette') { l.push({ r: [0, -L + L * .16, Math.max(4, 7.5 * e)], c: c }); l.push({ r: [0, -L + L * .16, Math.max(1.5, 3 * e)], c: mip(cfg.c1) }); }
+      if (ts === 'sport') l.push({ p: rect(-(lws + 1.5) / 2, (lws + 1.5) / 2, T - 4, 10 * e), c: mip(cfg.texte) });
+      l.push({ r: [0, 0, Math.max(3, 5 * e)], c: c });
+      out.s = l;
+    } else out.s = null;
+    out.cap = [{ r: [0, 0, cs * .375], c: acc }, { r: [0, 0, cs * .15], c: mip(cfg.c1) }];
+    return out;
+  }
+  function garmin(c, S) {
+    var cfg = norm(c), k = S / 480, pk = paquet(cfg), F = [], Fk = {}, I = [], Ik = {}, ops = [];
+    var R = function (v) { return Math.round(v * k); };
+    var police = function (fam, px, h, chars, mono, esp) {
+      px = Math.max(6, Math.round(px * k)); h = Math.max(px + 2, Math.round(h * k)); mono = mono ? Math.round(mono * k) : 0; esp = Math.round((esp || 0) * k);
+      var cle = [fam, px, h, chars, mono, esp].join('|');
+      if (Fk[cle] == null) { Fk[cle] = F.length; F.push({ fam: fam, px: px, h: h, chars: chars, mono: mono, esp: esp }); }
+      return Fk[cle];
+    };
+    var lettres = function (l) { var v = {}; l.join('').split('').forEach(function (ch) { v[ch] = 1; }); return Object.keys(v).sort().join(''); };
+    var sc = function (l, f) { return l.map(function (p, i) { return Math.round(p * k * 10) / 10; }); };
+    var scEl = function (l) { return l.map(function (o) { var r = { c: o.c }; if (o.r) r.r = sc(o.r); else { r.p = sc(o.p); r.l = o.l || 0; r.w = Math.max(1, Math.round((o.w || 1) * k)); } return r; }); };
+    pk.spec.w.forEach(function (w) {
+      if (w.aod || !w.g) return;
+      var g = w.g;
+      if (w.k === 'time') {
+        var f = police(g.fam, g.px, w.h, '0123456789:', 0, 0), fx = fxGarmin(g.fx, g.c, g.px * k, cfg.c1);
+        var xs = [w.x + w.cw / 2, w.x + w.cw * 1.5, w.x + 2 * w.cw + w.dpw / 2, w.x + 2 * w.cw + w.dpw + w.cw / 2, w.x + 3 * w.cw + w.dpw + w.cw / 2].map(R);
+        var o = { k: 'h', xs: xs, y: R(w.y), f: f, c: fx.c, cdp: mip(g.cdp), fx: fx.fx, c2: fx.c2, c3: fx.c3, n: fx.n };
+        if (w.sec) { o.sxs = [R(w.sec.x + w.sec.cw / 2), R(w.sec.x + w.sec.cw * 1.5)]; o.sy = R(w.sec.y); o.sf = police(g.fam, w.sec.g.px, w.sec.h, '0123456789', 0, 0); o.sc = mip(w.sec.g.c); }
+        ops.push(o);
+      } else if (w.k === 'num') {
+        var fx2 = fxGarmin(g.fx, g.c, g.px * k, cfg.c1);
+        var o2 = { k: 'n', t: w.type, x: R(w.x), y: R(w.y), w: R(w.w), al: w.align === 'gauche' ? 0 : w.align === 'droite' ? 2 : 1, f: police(g.fam, g.px, g.h, '0123456789-.:°', g.cw, 0),
+          c: fx2.c, fx: fx2.fx, c2: fx2.c2, c3: fx2.c3, n: fx2.n, u: w.unite === 'pct' ? '%' : w.unite === 'deg' ? '°' : '', fu: -1, cu: mip(g.cu) };
+        if (w.unite === 'pct') o2.fu = police(g.fam, Math.round(g.px * .7), g.h, '%', 0, 0);
+        ops.push(o2);
+      } else if (w.k === 'level') {
+        if (g.kind === 'meteo') {
+          var cle = w.w + g.c + g.mode;
+          if (Ik[cle] == null) { Ik[cle] = GENRES.map(function (ge) { I.push(meteoIcone(ge, R(w.w), g.c, g.c2, g.mode)); return I.length - 1; }); }
+          ops.push({ k: 'm', x: R(w.x), y: R(w.y), ic: Ik[cle] });
+        } else if (g.kind === 'barre') ops.push({ k: 'b', t: w.type, x: R(w.x), y: R(w.y), w: R(w.w), h: Math.max(2, R(w.h)), c: mip(g.c) });
+        else if (g.kind === 'arc') ops.push({ k: 'a', t: w.type, cx: R(w.x + w.w / 2), cy: R(w.y + w.h / 2), r: R(g.r), pw: Math.max(2, R(g.pw)), c: mip(g.c), s: 225, span: 270 });
+        else if (g.kind === 'anneau') ops.push({ k: 'a', t: w.type, cx: S / 2, cy: S / 2, r: R(g.r), pw: Math.max(3, R(g.pw)), c: mip(g.c), cb: mip(mix(g.c, cfg.c1, .8)), s: 90, span: 360 });
+      } else if (w.k === 'date') {
+        var parts = g.parts.map(function (q) {
+          var fx3 = fxGarmin(g.fx, q.c, q.px * k, cfg.c1);
+          return { x: R(q.x), w: R(q.w), al: q.al === 'left' ? 0 : q.al === 'right' ? 2 : 1, t: q.t, f: police(PETITE.fam, q.px, w.h, lettres(q.l), 0, q.esp), c: fx3.c, fx: fx3.fx, c2: fx3.c2, c3: fx3.c3, n: fx3.n, l: q.l };
+        });
+        var yy = w.jour ? w.jour.y : w.sem ? w.sem.y : w.mois.y;
+        ops.push({ k: 'd', y: R(yy), parts: parts });
+      } else if (w.k === 'pointer') {
+        var m = mainsGarmin(cfg, g.b, g.cs);
+        ops.push({ k: 'p', cx: R(w.cx), cy: R(w.cy), h: scEl(m.h), m: scEl(m.m), s: m.s ? scEl(m.s) : null, cap: scEl(m.cap) });
+      }
+    });
+    var ana = cfg.blocs.some(function (b) { return b.t === 'aiguilles' && Math.abs(b.x - CX) < 30 && Math.abs(b.y - CY) < 30; });
+    var fc = fond(cfg, false, ana, k);
+    if (cfg.calques.indexOf('verre') >= 0 || cfg.calques.indexOf('lunette') >= 0) fc.getContext('2d').drawImage(dessus(cfg, k), 0, 0);
+    return { S: S, fond: fc, ops: ops, polices: F, icones: I, meteo: GARMIN_METEO };
+  }
+  /* police Garmin (format BMFont) : planche PNG blanche + description texte ; chiffres à chasse fixe si mono */
+  function policeGarmin(p) {
+    var fam = p.fam, ch = p.chars.split(''), base = Math.round(p.h / 2 + p.px * .36);
+    var larg = ch.map(function (c) { return Math.max(1, Math.ceil(mesure(fam, p.px, c))); });
+    var maxW = 1024, x = 0, y = 0, pos = [];
+    ch.forEach(function (c, i) { var cw = Math.max(larg[i], p.mono || 0) + 2; if (x + cw > maxW) { x = 0; y += p.h + 1; } pos.push([x, y, cw]); x += cw; });
+    var Wt = 1; while (Wt < Math.min(maxW, Math.max.apply(null, pos.map(function (q) { return q[0] + q[2]; })))) Wt *= 2;
+    var Ht = 1; while (Ht < y + p.h) Ht *= 2;
+    var cv = toile(Wt, Ht), g = cv.getContext('2d'); g.font = p.px + 'px "' + fam + '"'; g.fillStyle = '#ffffff'; g.textBaseline = 'alphabetic'; g.textAlign = 'center';
+    var l = ['info face="' + fam + '" size=' + p.px + ' bold=0 italic=0 charset="" unicode=1 stretchH=100 smooth=1 aa=1 padding=0,0,0,0 spacing=0,0',
+      'common lineHeight=' + p.h + ' base=' + base + ' scaleW=' + Wt + ' scaleH=' + Ht + ' pages=1 packed=0', 'page id=0 file="FICHIER"', 'chars count=' + ch.length];
+    ch.forEach(function (c, i) {
+      var q = pos[i]; g.fillText(c, q[0] + q[2] / 2, q[1] + base);
+      var adv = (p.mono && /[0-9]/.test(c) ? p.mono : larg[i] + 1) + (p.esp || 0);
+      l.push('char id=' + c.charCodeAt(0) + ' x=' + q[0] + ' y=' + q[1] + ' width=' + q[2] + ' height=' + p.h + ' xoffset=' + Math.round((adv - (p.esp || 0) - q[2]) / 2) + ' yoffset=0 xadvance=' + adv + ' page=0 chnl=15');
+    });
+    return { png: cv, fnt: l.join('\n') + '\n' };
+  }
+  /* aperçu Garmin : rendu à la taille de l'écran puis ramené aux 64 couleurs de l'écran MIP */
+  function apercuGarmin(cv, c, S, opt) {
+    var big = toile(W, W); apercu(big, c, opt ? { aod: opt.aod, date: opt.date, valeurs: opt.valeurs } : {});
+    var t = toile(S, S), g = t.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(big, 0, 0, S, S);
+    var d = g.getImageData(0, 0, S, S), a = d.data;
+    var B = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];   // tramage ordonné (comme l'écran, qui tramera le fond)
+    for (var i = 0, px = 0; i < a.length; i += 4, px++) {
+      var t = (B[(px % S) % 4 + ((Math.floor(px / S)) % 4) * 4] / 16 - .47) * 85;
+      for (var j = 0; j < 3; j++) a[i + j] = Math.max(0, Math.min(255, Math.round((a[i + j] + t) / 85) * 85));
+    }
+    g.putImageData(d, 0, 0);
+    var o = cv.getContext('2d'); o.save(); o.clearRect(0, 0, cv.width, cv.height); o.imageSmoothingEnabled = false;
+    o.beginPath(); o.arc(cv.width / 2, cv.height / 2, cv.width / 2, 0, 7); o.clip(); o.drawImage(t, 0, 0, cv.width, cv.height); o.restore();
+    if (opt && opt.sel != null) { var cfg = norm(c), b0 = cfg.blocs[opt.sel]; if (b0) { var bx = boite(b0, cfg), s = cv.width / W; o.strokeStyle = '#fff'; o.setLineDash([6, 4]); o.lineWidth = 2; o.strokeRect((bx.x - 3) * s, (bx.y - 3) * s, (bx.w + 6) * s, (bx.h + 6) * s); o.setLineDash([]); } }
+  }
+  var MONTRES = { trex3: { n: 'Amazfit T-Rex 3', S: 480 }, fenix6xpro: { n: 'Garmin Fenix 6X Pro', S: 280 }, fenix6s: { n: 'Garmin Fenix 6S', S: 240 } };
+
+  var CADRAN = root.CADRAN = { MONTRES: MONTRES, garmin: garmin, policeGarmin: policeGarmin, apercuGarmin: apercuGarmin, mip: mip, W: W, DEFAUT: DEFAUT, CHOIX: CHOIX, INFOS: INFOS, METEO: METEO, MODELES: MODELES, norm: norm, normBloc: normBloc, paquet: paquet, apercu: apercu, polices: polices,
     boite: boite, modele: modele, chargerPhoto: chargerPhoto, meteoIcone: meteoIcone, geo: function (b, c) { return geo(normBloc(b), norm(c)); }, blocsDe: blocsDe, JOURS: JOURS, MOIS: MOIS, onphoto: null };
 })(typeof window !== 'undefined' ? window : globalThis);
