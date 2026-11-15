@@ -199,6 +199,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
       '<div class="lbl">Fond</div>' + chips('fond', C.CHOIX.FONDS, c.fond) +
       '<div id="photoZone"></div><input type="file" id="photoIn" accept="image/*" hidden>' +
       '<div class="lbl">Anneau</div>' + chips('anneau', C.CHOIX.ANNEAUX, c.anneau) +
+      '<div class="lbl">Superpositions (plusieurs possibles)</div><div class="chips" id="calques">' + Object.keys(C.CHOIX.CALQUES).map(function (k) { return '<button class="chip" data-calque="' + k + '" aria-pressed="' + (c.calques.indexOf(k) >= 0) + '">' + esc(C.CHOIX.CALQUES[k]) + '</button>'; }).join('') + '</div>' +
       '<div class="lbl">Effet sur tous les éléments</div><div class="chips">' + Object.keys(C.CHOIX.EFFETS).map(function (k) { return '<button class="chip" data-fxall="' + k + '">' + esc(C.CHOIX.EFFETS[k]) + '</button>'; }).join('') + '</div>' +
       '<div class="line"><div class="t"><b>Météo en couleur</b><small>Soleil, nuages, pluie, orage… en couleurs avec ombre</small></div><input type="checkbox" class="sw" id="meteoCoul"' + (c.blocs.some(function (b) { return b.icone === 'couleur'; }) ? ' checked' : '') + '></div></div>' +
       '<div class="card"><div class="lbl" style="margin-top:0">Nom</div><input class="in" id="nom" maxlength="24" value="' + esc(c.nom) + '">' +
@@ -245,9 +246,10 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
         '<div class="lbl">Couleur des chiffres</div>' + swatches('couleur', b.couleur) + '<div class="lbl">Couleur des « : » et des secondes</div>' + swatches('dp', b.dp);
     } else if (b.t === 'aiguilles') {
       h += '<div class="lbl">Forme</div>' + chips('style', K.AIGUILLES, b.style, 'data-p') + pRange('echelle', 'Taille', .2, 1, .05, b.echelle) + pSw('secondes', 'Trotteuse', b.secondes, 'Aiguille des secondes (consomme un peu plus)') +
+        (b.secondes ? '<div class="lbl">Forme de la trotteuse</div>' + chips('trotStyle', K.TROTS, b.trotStyle, 'data-p') : '') + pSw('ombre', 'Ombre sous les aiguilles', b.ombre, 'Les aiguilles semblent flotter au-dessus du cadran') +
         '<div class="lbl">Couleur</div>' + swatches('couleur', b.couleur) + '<div class="lbl">Couleur de la trotteuse</div>' + swatches('trot', b.trot) + '<p class="note">Petites aiguilles : réduisez la taille et placez-les où vous voulez (petit cadran secondaire).</p>';
     } else if (b.t === 'date') {
-      h += '<div class="lbl">Format</div>' + chips('format', K.DATES, b.format, 'data-p') + pRange('taille', 'Taille', 12, 40, 1, b.taille) + '<div class="lbl">Couleur du texte</div>' + swatches('couleur', b.couleur) + '<div class="lbl">Couleur du jour</div>' + swatches('jour', b.jour);
+      h += '<div class="lbl">Format</div>' + chips('format', K.DATES, b.format, 'data-p') + pSw('cadre', 'Guichet', b.cadre, 'Cadre autour de la date, comme une fenêtre de montre') + pRange('taille', 'Taille', 12, 40, 1, b.taille) + '<div class="lbl">Couleur du texte</div>' + swatches('couleur', b.couleur) + '<div class="lbl">Couleur du jour</div>' + swatches('jour', b.jour);
     } else if (b.t === 'meteo') {
       h += '<div class="lbl">Taille</div>' + chips('taille', K.TAILLES, b.taille, 'data-p') + pSw('minmax', 'Mini et maxi du jour', b.minmax) + '<div class="lbl">Couleur de l\'icône</div>' + swatches('couleur', b.couleur) + '<div class="lbl">Couleur de la température</div>' + swatches('valeur', b.valeur) + '<div class="lbl">Police</div>' + chips('police', K.POLICES, b.police, 'data-p');
     } else if (b.t === 'texte') {
@@ -430,6 +432,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     document.querySelectorAll('[data-col]').forEach(function (i) { i.oninput = function () { ED[i.dataset.col] = i.value; dirty = 1; preview(); if (SEL >= 0) paintProps(); }; });
     document.querySelectorAll('[data-pal]').forEach(function (b) { b.onclick = function () { var p = PALETTES[+b.dataset.pal]; ED.c1 = p[1]; ED.c2 = p[2]; ED.accent = p[3]; ED.texte = p[4]; ED.doux = p[5]; dirty = 1; document.querySelectorAll('[data-col]').forEach(function (i) { i.value = ED[i.dataset.col]; }); preview(); if (SEL >= 0) paintProps(); }; });
     document.querySelectorAll('[data-mod]').forEach(function (b) { b.onclick = function () { if (ED.blocs.length && dirty && !confirm('Remplacer les éléments actuels par le modèle « ' + C.MODELES[b.dataset.mod].n + ' » ?')) return; ED.blocs = C.modele(b.dataset.mod, ED); dirty = 1; selectionne(-1); }; });
+    document.querySelectorAll('[data-calque]').forEach(function (b) { b.onclick = function () { var k = b.dataset.calque, l = (ED.calques || []).slice(), i = l.indexOf(k); if (i >= 0) l.splice(i, 1); else l.push(k); ED.calques = l; dirty = 1; b.setAttribute('aria-pressed', i < 0); preview(); }; });
     document.querySelectorAll('[data-fxall]').forEach(function (b) { b.onclick = function () { ED.blocs.forEach(function (x) { if (x.effet != null) x.effet = b.dataset.fxall; }); dirty = 1; paintProps(); preview(); toast('Effet « ' + C.CHOIX.EFFETS[b.dataset.fxall] + ' » appliqué'); }; });
     $('meteoCoul').onchange = function () { var v = this.checked ? 'couleur' : 'trait'; ED.blocs.forEach(function (x) { if (x.icone != null) x.icone = v; }); dirty = 1; paintProps(); preview(); };
     document.querySelectorAll('[data-add]').forEach(function (b) { b.onclick = function () { ajouter(b.dataset.add); }; });

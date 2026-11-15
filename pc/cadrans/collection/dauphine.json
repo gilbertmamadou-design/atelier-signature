@@ -1,0 +1,70 @@
+{
+ "id": "dauphine",
+ "appId": 1093215,
+ "nom": "Dauphine",
+ "fond": "radial",
+ "c1": "#05070c",
+ "c2": "#1d2533",
+ "accent": "#d4af37",
+ "texte": "#f5f1e6",
+ "doux": "#9a9384",
+ "anneau": "chiffres",
+ "police": "classique",
+ "aod": "heure_date",
+ "calques": [
+  "vignette",
+  "verre",
+  "lunette"
+ ],
+ "blocs": [
+  {
+   "t": "info",
+   "d": "pas",
+   "x": 240,
+   "y": 132,
+   "style": "cercle",
+   "taille": "s",
+   "couleur": "accent"
+  },
+  {
+   "t": "info",
+   "d": "batterie",
+   "x": 240,
+   "y": 356,
+   "style": "jauge",
+   "taille": "s",
+   "couleur": "accent",
+   "barre": true
+  },
+  {
+   "t": "date",
+   "format": "numero",
+   "x": 352,
+   "y": 240,
+   "taille": 20,
+   "cadre": true,
+   "couleur": "texte",
+   "jour": "accent"
+  },
+  {
+   "t": "date",
+   "format": "jour3",
+   "x": 128,
+   "y": 240,
+   "taille": 16,
+   "cadre": true
+  },
+  {
+   "t": "aiguilles",
+   "x": 240,
+   "y": 240,
+   "style": "dauphine",
+   "secondes": true,
+   "trotStyle": "sucette",
+   "ombre": true,
+   "couleur": "texte",
+   "trot": "#ff3b3b",
+   "echelle": 1
+  }
+ ]
+}
