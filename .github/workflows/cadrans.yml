@@ -46,7 +46,7 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           limite=$(date -u -d '3 days ago' +%s)
-          gh api "repos/$REPO/releases?per_page=100" --paginate --jq '.[] | select(.tag_name | startswith("cadran-perso-")) | "\(.id) \(.tag_name) \(.created_at)"' |
+          gh api "repos/$REPO/releases?per_page=100" --paginate --jq '.[] | select(.tag_name | startswith("cadran-perso-")) | "\(.id) \(.tag_name) \(.published_at // .created_at)"' |
           while read -r id tag cree; do
             if [ "$(date -u -d "$cree" +%s)" -lt "$limite" ]; then
               gh api -X DELETE "repos/$REPO/releases/$id" && gh api -X DELETE "repos/$REPO/git/refs/tags/$tag" && echo "supprimé : $tag ($cree)"
