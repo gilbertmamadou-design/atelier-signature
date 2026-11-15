@@ -105,7 +105,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
 </head>
 <body>
 <div id="app">
-  <header><h1>Atelier de cadrans</h1><small>Amazfit T-Rex 3</small></header>
+  <header><h1>Atelier de cadrans</h1><small>T-Rex 3 · Fenix 6</small></header>
   <main id="main"></main>
   <nav id="nav">
     <button data-tab="collection" aria-current="page"><svg class="i" viewBox="0 0 24 24"><circle cx="7" cy="7" r="4"/><circle cx="17" cy="7" r="4"/><circle cx="7" cy="17" r="4"/><circle cx="17" cy="17" r="4"/></svg>Collection</button>
@@ -139,11 +139,13 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
   ];
   var dirty = 0;
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
-  function draw(cv, cfg, aod) { try { C.apercu(cv, cfg, { aod: !!aod }); } catch (e) { console.warn(e); } }
+  function garminDe(c) { var m = C.norm(c).montre; return m !== 'trex3' ? m : null; }
+  function dessiner(cv, cfg, opt) { var m = garminDe(cfg); if (m) C.apercuGarmin(cv, cfg, C.MONTRES[m].S, opt); else C.apercu(cv, cfg, opt); }
+  function draw(cv, cfg, aod) { try { dessiner(cv, cfg, { aod: !!aod }); } catch (e) { console.warn(e); } }
   function face(cfg, i, kind) {
     return '<div class="face"><canvas width="240" height="240" data-pv="' + kind + ':' + i + '"></canvas><b>' + esc(cfg.nom) + '</b><div class="acts">' +
-      (kind === 'col' ? '<button class="btn sm pri" data-inst="' + i + '">Installer</button><button class="btn sm" data-copie="' + i + '">Modifier une copie</button>'
-        : '<button class="btn sm pri" data-fab="' + i + '">' + (cfg.build && cfg.build.qr ? 'QR' : 'Fabriquer') + '</button><button class="btn sm" data-edit="' + i + '">Modifier</button><button class="btn sm" data-dup="' + i + '">Copier</button><button class="btn sm bad" data-del="' + i + '" aria-label="Supprimer">✕</button>') + '</div></div>';
+      (kind === 'col' ? '<button class="btn sm pri" data-inst="' + i + '">T-Rex 3</button><button class="btn sm pri" data-gar="' + i + '">Garmin</button><button class="btn sm" data-copie="' + i + '">Modifier une copie</button>'
+        : '<button class="btn sm pri" data-fab="' + i + '">' + (cfg.build && cfg.build.qr ? 'QR' : cfg.build && cfg.build.garmin ? 'Télécharger' : 'Fabriquer') + '</button><button class="btn sm" data-edit="' + i + '">Modifier</button><button class="btn sm" data-dup="' + i + '">Copier</button><button class="btn sm bad" data-del="' + i + '" aria-label="Supprimer">✕</button>') + '</div></div>';
   }
   function paintPreviews() {
     document.querySelectorAll('canvas[data-pv]').forEach(function (cv) {
@@ -190,6 +192,8 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     var c = C.norm(ED); ED.blocs = c.blocs;
     var M = C.MODELES;
     return '<div class="ed"><div class="pv"><canvas id="pv" width="480" height="480"></canvas><div class="row"><button class="chip" id="aodT" aria-pressed="' + AOD + '">Écran toujours allumé</button><span class="note" style="margin:0">Glissez un élément pour le placer</span></div></div><div class="v" style="gap:14px">' +
+      '<div class="card"><div class="lbl" style="margin-top:0">Montre</div><div class="chips">' + Object.keys(C.MONTRES).map(function (k) { return '<button class="chip" data-montre="' + k + '" aria-pressed="' + (c.montre === k) + '">' + esc(C.MONTRES[k].n) + '</button>'; }).join('') + '</div>' +
+      (c.montre !== 'trex3' ? '<p class="note">Écran Garmin : 64 couleurs, toujours allumé. L\'aperçu montre le rendu réel (dégradés et photos tramés). Trotteuse et secondes visibles quelques secondes après un geste du poignet.</p>' : '') + '</div>' +
       '<div class="card"><div class="lbl" style="margin-top:0">Partir d\'un modèle</div><div class="chips">' + Object.keys(M).map(function (k) { return '<button class="chip" data-mod="' + k + '">' + esc(M[k].n) + '</button>'; }).join('') + '</div><p class="note">Un modèle remplace les éléments (le fond et les couleurs restent).</p></div>' +
       '<div class="card"><div class="lbl" style="margin-top:0">Éléments du cadran</div><div id="edList" class="els"></div>' +
       '<div class="lbl">Ajouter</div><div class="chips">' + Object.keys(C.CHOIX.TYPES).map(function (k) { return '<button class="chip" data-add="' + k + '">+ ' + esc(C.CHOIX.TYPES[k]) + '</button>'; }).join('') + '</div></div>' +
@@ -275,7 +279,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
       (ED.fond === 'photo' ? pRange('voile', 'Assombrir la photo (lisibilité)', 0, .9, .05, ED.voile == null ? .35 : ED.voile).replace('data-pr=', 'data-voile=') : '');
   }
   var RAF = 0;
-  function preview() { cancelAnimationFrame(RAF); RAF = requestAnimationFrame(function () { var cv = $('pv'); if (cv && !DRAG && !CROP) { try { C.apercu(cv, ED, { aod: AOD, sel: AOD ? null : SEL }); } catch (e) { console.warn(e); } } }); }
+  function preview() { cancelAnimationFrame(RAF); RAF = requestAnimationFrame(function () { var cv = $('pv'); if (cv && !DRAG && !CROP) { try { dessiner(cv, ED, { aod: AOD, sel: AOD ? null : SEL }); } catch (e) { console.warn(e); } } }); }
   function changed(full) { dirty = 1; ED.blocs[SEL] = C.normBloc(ED.blocs[SEL]); preview(); paintList(); if (full) paintProps(); }
   function selectionne(i) { SEL = i; paintList(); paintProps(); preview(); }
   function ajouter(t) {
@@ -435,6 +439,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     document.querySelectorAll('[data-calque]').forEach(function (b) { b.onclick = function () { var k = b.dataset.calque, l = (ED.calques || []).slice(), i = l.indexOf(k); if (i >= 0) l.splice(i, 1); else l.push(k); ED.calques = l; dirty = 1; b.setAttribute('aria-pressed', i < 0); preview(); }; });
     document.querySelectorAll('[data-fxall]').forEach(function (b) { b.onclick = function () { ED.blocs.forEach(function (x) { if (x.effet != null) x.effet = b.dataset.fxall; }); dirty = 1; paintProps(); preview(); toast('Effet « ' + C.CHOIX.EFFETS[b.dataset.fxall] + ' » appliqué'); }; });
     $('meteoCoul').onchange = function () { var v = this.checked ? 'couleur' : 'trait'; ED.blocs.forEach(function (x) { if (x.icone != null) x.icone = v; }); dirty = 1; paintProps(); preview(); };
+    document.querySelectorAll('[data-montre]').forEach(function (b) { b.onclick = function () { ED.montre = b.dataset.montre; dirty = 1; var y = $('main').scrollTop; render(); $('main').scrollTop = y; }; });
     document.querySelectorAll('[data-add]').forEach(function (b) { b.onclick = function () { ajouter(b.dataset.add); }; });
     $('edList').onclick = function (e) { var b = e.target.closest('[data-sel]'); if (b) selectionne(+b.dataset.sel); };
     var P = $('edProps');
@@ -515,6 +520,11 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     im.onerror = function () { cb(null); };
     im.src = src;
   }
+  function garminSheet(nom, urls) {
+    sheet('<h2>« ' + esc(nom) + ' » sur Garmin</h2>' + Object.keys(urls).map(function (m) { return '<a class="btn pri big" style="margin:6px 0" href="' + esc(urls[m]) + '" target="_blank" rel="noopener">Télécharger pour ' + esc(C.MONTRES[m].n) + '</a>'; }).join('') +
+      '<ol class="steps"><li>Téléchargez le fichier <b>.prg</b> de votre montre (sur le PC, ou sur le téléphone).</li><li>Branchez la montre en USB (au PC, ou au téléphone avec un adaptateur OTG) : elle apparaît comme une clé « GARMIN ».</li><li>Copiez le fichier dans le dossier <b>GARMIN › Apps</b>, éjectez puis débranchez.</li><li>Sur la montre : appui long sur le bouton en haut à gauche › Cadran de montre › « ' + esc(nom) + ' ».</li></ol>' +
+      '<p class="note">Un cadran perso reste téléchargeable 3 jours (puis il est effacé du dépôt ; celui installé sur la montre reste). Même nom = même cadran : le nouveau remplace l\'ancien.</p><div class="row"><button class="btn" data-close>Fermer</button></div>');
+  }
   function b64(s) { return btoa(unescape(encodeURIComponent(s))); }
   function gh(path, opt) {
     opt = opt || {}; var h = { 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };
@@ -528,6 +538,12 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
   var POLL = { t: 0 };
   function fabriquer(i) {
     var c = ST.mes[i]; if (!c) return;
+    var gar = garminDe(c);
+    if (c.build && c.build.garmin && (!gar || Date.now() - c.build.at > 70 * 3600000)) c.build = null;
+    if (c.build && c.build.qr && gar) c.build = null;
+    if (c.build && c.build.garmin) {
+      return sheet('<h2>« ' + esc(c.nom) + ' »</h2><p style="color:var(--tx2)">Ce cadran Garmin a été fabriqué le ' + new Date(c.build.at).toLocaleString('fr-FR') + '.</p><div class="row"><button class="btn pri" id="vGar">Télécharger</button><button class="btn" id="reFab">Refabriquer</button><button class="btn" data-close>Fermer</button></div>'), $('vGar').onclick = function () { garminSheet(c.nom, c.build.garmin); }, $('reFab').onclick = function () { c.build = null; save(); fabriquer(i); };
+    }
     // un QR « preview » de Zepp ne se scanne que 48 h après la fabrication
     if (c.build && c.build.qr && Date.now() - c.build.at > 46 * 3600000) { c.build.perime = 1; }
     if (c.build && c.build.qr && c.build.perime) {
@@ -543,7 +559,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
       var montre = function (code) {
         sheet('<h2>Fabriquer « ' + esc(c.nom) + ' »</h2><p style="color:var(--tx2)">Pour fabriquer tout seul depuis l\'appli, enregistrez d\'abord votre clé GitHub (Réglages, une seule fois).</p>' +
           '<p style="color:var(--tx2)">Autre solution : copiez le code ci-dessous et envoyez-le à Claude, qui fabriquera le cadran pour vous.</p><textarea class="in" id="code" rows="4" readonly>' + esc(code) + '</textarea>' +
-          '<p class="note">' + code.length + ' caractères' + (cfg.photo ? ' (photo allégée pour tenir dans un message)' : '') + '</p>' +
+          '<p class="note">Pour ' + esc(C.MONTRES[C.norm(c).montre].n) + ' · ' + code.length + ' caractères' + (cfg.photo ? ' (photo allégée pour tenir dans un message)' : '') + '</p>' +
           '<div class="row" style="margin-top:10px"><button class="btn pri" id="copy">Copier le code</button><button class="btn" id="goReg">Réglages</button><button class="btn" data-close>Fermer</button></div>');
         $('copy').onclick = function () { var t = $('code'); t.select(); try { navigator.clipboard.writeText(code).then(function () { toast('Code copié'); }, function () { document.execCommand('copy'); toast('Code copié'); }); } catch (e) { document.execCommand('copy'); toast('Code copié'); } };
         $('goReg').onclick = function () { closeSheet(); TAB = 'reglages'; render(); };
@@ -561,8 +577,8 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     }
     var t0 = Date.now();
     sheet('<h2>Fabrication de « ' + esc(c.nom) + ' »</h2><p id="fabTxt" style="color:var(--tx2)">Envoi au robot de fabrication…</p><div class="prog"><i></i></div><p class="note">Comptez 2 à 4 minutes. Vous pouvez fermer : la fabrication continue, le QR apparaîtra dans Mes cadrans.</p><div class="row"><button class="btn" data-close>Fermer</button></div>');
-    gh('/actions/workflows/cadrans.yml/dispatches', { method: 'POST', body: { ref: 'main', inputs: { cadran: code } } }).then(function () {
-      c.build = { at: t0, etat: 'en cours' }; save();
+    gh('/actions/workflows/' + (gar ? 'garmin.yml' : 'cadrans.yml') + '/dispatches', { method: 'POST', body: { ref: 'main', inputs: { cadran: code } } }).then(function () {
+      c.build = { at: t0, etat: 'en cours', gar: gar ? 1 : 0 }; save();
       setTxt('Fabrication en cours sur GitHub…');
       suivre(c, t0, 0);
     }).catch(function (e) {
@@ -573,14 +589,22 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
   function suivre(c, t0, n) {
     if (n > 60) { setTxt('C\'est plus long que prévu. Réessayez plus tard depuis Mes cadrans.'); return; }
     POLL.t = setTimeout(function () {
-      gh('/actions/workflows/cadrans.yml/runs?event=workflow_dispatch&per_page=10').then(function (r) {
+      var gar = c.build && c.build.gar;
+      gh('/actions/workflows/' + (gar ? 'garmin.yml' : 'cadrans.yml') + '/runs?event=workflow_dispatch&per_page=10').then(function (r) {
         var run = (r.workflow_runs || []).filter(function (x) { return Date.parse(x.created_at) >= t0 - 20000; }).pop();
         if (!run) return suivre(c, t0, n + 1);
         c.build.run = run.id; save();
         if (run.status !== 'completed') { setTxt('Fabrication en cours sur GitHub… (' + Math.round((Date.now() - t0) / 1000) + ' s)'); return suivre(c, t0, n + 1); }
         if (run.conclusion !== 'success') { c.build = null; save(); setTxt('La fabrication a échoué. Envoyez le code du cadran à Claude pour qu\'il regarde.'); return; }
-        return gh('/releases/tags/cadran-perso-' + run.run_number).then(function (rel) {
+        return gh('/releases/tags/' + (gar ? 'garmin-perso-' : 'cadran-perso-') + run.run_number).then(function (rel) {
           var a = rel.assets || [], f = function (re) { var x = a.filter(function (y) { return re.test(y.name); })[0]; return x && x.browser_download_url; };
+          if (gar) {
+            var ug = {}; Object.keys(C.MONTRES).forEach(function (m) { var u = m !== 'trex3' && f(new RegExp('-' + m + '\\.prg$')); if (u) ug[m] = u; });
+            c.build = { at: t0, garmin: ug, tag: rel.tag_name }; save();
+            if (TAB === 'mes') render();
+            if (!$('sheet').hidden) garminSheet(c.nom, ug); else toast('« ' + c.nom + ' » est prêt : à télécharger dans Mes cadrans');
+            return;
+          }
           c.build = { at: t0, qr: f(/-qr\.png$/), zab: f(/-apercu\.zab$/), tag: rel.tag_name }; save();
           if (TAB === 'mes') render();
           if (!$('sheet').hidden) qrSheet(c.nom, c.build.qr, c.build.zab);
@@ -603,6 +627,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     var b;
     if ((b = e.target.closest('nav [data-tab]'))) { if (TAB === 'creer' && dirty && b.dataset.tab !== 'creer' && !confirm('Quitter sans enregistrer ?')) return; TAB = b.dataset.tab; render(); $('main').scrollTop = 0; return; }
     if ((b = e.target.closest('[data-go]'))) { TAB = b.dataset.go; render(); return; }
+    if ((b = e.target.closest('[data-gar]'))) { var cg = COL[+b.dataset.gar], ug = {}; Object.keys(C.MONTRES).forEach(function (m) { if (m !== 'trex3') ug[m] = DL + 'garmin-collection/' + cg.id + '-' + m + '.prg'; }); garminSheet(cg.nom, ug); return; }
     if ((b = e.target.closest('[data-inst]'))) { var c0 = COL[+b.dataset.inst]; qrSheet(c0.nom, DL + 'cadrans-collection/' + c0.id + '-qr.png', DL + 'cadrans-collection/' + c0.id + '-apercu.zab'); return; }
     if ((b = e.target.closest('[data-copie]'))) { ED = C.norm(COL[+b.dataset.copie]); SEL = -1; SRC = null; ED.nom = (ED.nom + ' perso').slice(0, 24); EDI = -1; dirty = 1; TAB = 'creer'; render(); $('main').scrollTop = 0; return; }
     if ((b = e.target.closest('[data-edit]'))) { EDI = +b.dataset.edit; ED = C.norm(ST.mes[EDI]); SEL = -1; SRC = null; dirty = 0; TAB = 'creer'; render(); return; }
@@ -611,7 +636,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     if ((b = e.target.closest('[data-fab]'))) { fabriquer(+b.dataset.fab); return; }
   });
   // fabrications en cours au démarrage : reprendre le suivi
-  function reprendre() { ST.mes.forEach(function (c) { if (c.build && !c.build.qr && c.build.at && Date.now() - c.build.at < 20 * 60000 && ST.token) suivre(c, c.build.at, 1); }); }
+  function reprendre() { ST.mes.forEach(function (c) { if (c.build && !c.build.qr && !c.build.garmin && c.build.at && Date.now() - c.build.at < 20 * 60000 && ST.token) suivre(c, c.build.at, 1); }); }
 
   C.polices('polices/').then(function () {
     return fetch('collection/liste.json').then(function (r) { return r.json(); }).then(function (ids) {
