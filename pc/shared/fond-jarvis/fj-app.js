@@ -42,7 +42,7 @@
   var DEF = {
     theme: 'cyan', layout: 'complet', name: '', city: '', place: null, windLimit: +MJS.windLimit || 45,
     voiceOn: true, voice: MJS.voice || '', rate: +MJS.rate || 1, tts: MJS.tts || 'system', piperVoice: MJS.piperVoice || 'pierre', vfx: 'ia', vfxo: null, free: 140, scale: 100, fx: 70, reduce: false, fpsMax: 30, saver: true,
-    newsN: 7, panels: { clock: true, wx: true, agenda: true, sys: true, news: true, music: true }, wake: false, wakeOk: false, updates: true, fx2: true, boot: true, bureau: false
+    newsN: 7, panels: { clock: true, wx: true, agenda: true, sys: true, news: true, music: true }, wake: false, wakeOk: false, updates: true, fx2: true, boot: true, bureau: false, say: 'droite'
   };
   var S = FJ.S = Object.assign({}, DEF, lsGet(KEY.set, {}));
   S.panels = Object.assign({}, DEF.panels, S.panels || {});
@@ -178,7 +178,7 @@
     R.style.setProperty('--free', clamp(+S.free || 0, 0, 900) + 'px');
     R.style.setProperty('--fx', clamp(+S.fx, 0, 100) / 100);
     R.classList.toggle('fj-reduce', !!S.reduce);
-    $('hud').dataset.layout = S.layout;
+    $('hud').dataset.layout = S.layout; $('hud').dataset.say = S.say || 'droite';
     $('orb').style.filter = orbHue[S.theme] || '';
     FJ.freeX = clamp(+S.free || 0, 0, 900);
     FJ.hud.intensity = clamp(+S.fx, 0, 100) / 100;
@@ -814,12 +814,14 @@
     if (tab === 'general') {
       h += fld('Nom de l\'assistant', '<input type="text" id="sName" maxlength="30" value="' + esc(S.name) + '" placeholder="' + esc(MJS.name || 'Majordome') + '">', 'Vide : celui de Majordome' + (MJS.name ? ' (« ' + esc(MJS.name) + ' »)' : ' (« Majordome »)') + '.');
       h += fld('Disposition', sel('sLayout', [['complet', 'Complet'], ['epure', 'Épuré (horloge, sphère, raccourcis)'], ['sphere', 'Sphère seule']], S.layout));
+      h += fld('Réponses de l\'assistant', sel('sSay', [['droite', 'À droite (sphère en grand)'], ['gauche', 'À gauche (sphère en grand)'], ['dessous', 'Sous la sphère']], S.say || 'droite'), 'À gauche ou à droite, la réponse s\'affiche par-dessus les panneaux du côté choisi : la sphère garde toute sa taille.');
       h += fld('Thème', sel('sTheme', [['cyan', 'Cyan'], ['bleu', 'Bleu'], ['vert', 'Vert'], ['ambre', 'Ambre'], ['rouge', 'Rouge']], S.theme));
       h += '<h3>Panneaux affichés (disposition Complet)</h3>';
       [['clock', 'Horloge'], ['wx', 'Météo'], ['agenda', 'Agenda (s\'il y a des rendez-vous)'], ['sys', 'Système et batterie (si disponibles)'], ['news', 'Actualités'], ['music', 'Musique en cours (Lively)']].forEach(function (p) { h += chk('sP_' + p[0], p[1], S.panels[p[0]]); });
       B.innerHTML = h;
       bind('sName', function (v) { clearTimeout(nameT); setS('name', v.trim().slice(0, 30), 'quiet'); });
       bind('sLayout', function (v) { setS('layout', v); });
+      bind('sSay', function (v) { setS('say', v); FJ.relayout(); });
       bind('sTheme', function (v) { setS('theme', v); FJ.hud.redrawStatic(); });
       ['clock', 'wx', 'agenda', 'sys', 'news', 'music'].forEach(function (k) { bind('sP_' + k, function (v) { S.panels[k] = v; FJ.save(); FJ.apply(); if (k === 'news') newsRender(); }); });
     } else if (tab === 'affichage') {
