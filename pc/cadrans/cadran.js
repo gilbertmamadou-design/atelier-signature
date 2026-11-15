@@ -61,6 +61,7 @@
   var STYLES = { simple: 'Simple', ligne: 'En ligne', case: 'Case colorée', jauge: 'Jauge', cercle: 'Petit cadran' };
   var TAILLES = { s: 'Petite', m: 'Moyenne', l: 'Grande' };
   var DATES = { long: 'MERCREDI 30 OCTOBRE', court: 'MER 30 OCT', jour: 'MERCREDI', chiffres: '30/10' };
+  var EFFETS = { aucun: 'Aucun', ombre: 'Ombre', relief: 'Relief 3D', biseau: 'Biseau', contour: 'Contour', creux: 'Creux', lueur: 'Néon', degrade: 'Dégradé', metal: 'Métal' };
   var TYPES = { heure: 'Heure', aiguilles: 'Aiguilles', date: 'Date', info: 'Info', meteo: 'Météo', texte: 'Texte', trait: 'Trait' };
   var JOURS = ['LUNDI', 'MARDI', 'MERCREDI', 'JEUDI', 'VENDREDI', 'SAMEDI', 'DIMANCHE'];
   var JOURS3 = ['LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM', 'DIM'];
@@ -75,7 +76,7 @@
     date: true, anneau: 'graduations', infos: ['meteo', 'coeur', 'pas', 'batterie'], aod: 'heure_date',
     photo: '', voile: .35, blocs: null
   };
-  var CHOIX = { POLICES: POLICES, INFOS: INFOS, FONDS: FONDS, ANNEAUX: ANNEAUX, AIGUILLES: AIGUILLES, STYLES: STYLES, TAILLES: TAILLES, DATES: DATES, TYPES: TYPES, VIFS: VIFS,
+  var CHOIX = { EFFETS: EFFETS, ICONES: { trait: 'Dessin', couleur: 'En couleur' }, POLICES: POLICES, INFOS: INFOS, FONDS: FONDS, ANNEAUX: ANNEAUX, AIGUILLES: AIGUILLES, STYLES: STYLES, TAILLES: TAILLES, DATES: DATES, TYPES: TYPES, VIFS: VIFS,
     HEURE: { numerique: 'Numérique', analogique: 'À aiguilles', mixte: 'Aiguilles + heure' }, TAILLE: { grande: 'Grande', moyenne: 'Moyenne' },
     AOD: { heure_date: 'Heure et date', heure: 'Heure seule' } };
 
@@ -87,6 +88,8 @@
     var col = function (c, d) { return c === 'accent' || c === 'texte' || c === 'doux' || HEX.test(c || '') ? c : d; };
     o.couleur = col(b.couleur, b.t === 'info' || b.t === 'meteo' ? 'accent' : 'texte');
     o.police = POLICES[b.police] ? b.police : (b.t === 'heure' ? 'legere' : 'nette');
+    if (b.t !== 'aiguilles' && b.t !== 'trait') o.effet = EFFETS[b.effet] ? b.effet : 'aucun';
+    if (b.t === 'info' || b.t === 'meteo') o.icone = b.icone === 'couleur' ? 'couleur' : 'trait';
     if (b.t === 'heure') { o.taille = Math.round(num(b.taille, 30, 150, 110)); o.secondes = !!b.secondes; o.dp = col(b.dp, 'accent'); }
     if (b.t === 'aiguilles') { o.style = AIGUILLES[b.style] ? b.style : 'epees'; o.secondes = !!b.secondes; o.echelle = num(b.echelle, .2, 1, 1); o.trot = col(b.trot, 'accent'); }
     if (b.t === 'date') { o.format = DATES[b.format] ? b.format : 'long'; o.taille = Math.round(num(b.taille, 12, 40, 21)); o.jour = col(b.jour, 'accent'); }
@@ -135,18 +138,58 @@
     var x = parseInt(a.slice(1), 16), y = parseInt(b.slice(1), 16), r = function (s) { return Math.round(((x >> s & 255) * (1 - t)) + ((y >> s & 255) * t)); };
     return '#' + [16, 8, 0].map(function (s) { return ('0' + r(s).toString(16)).slice(-2); }).join('');
   }
-  function texte(g, t, x, y, fam, taille, coul, align, esp) {
-    g.font = taille + 'px "' + fam + '"'; g.fillStyle = coul; g.textBaseline = 'alphabetic';
-    esp = esp || 0;
-    if (!esp) { g.textAlign = align || 'left'; g.fillText(t, x, y); return; }
-    var w = mesure(fam, taille, t, esp), x0 = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
-    g.textAlign = 'left';
-    for (var i = 0; i < t.length; i++) { g.fillText(t[i], x0, y); x0 += mesure(fam, taille, t[i]) + esp; }
+  /* marge à prévoir autour du texte pour un effet (relief, ombre, lueur…) */
+  function padFx(fx, taille) {
+    var k = { relief: .08, ombre: .12, lueur: .16, contour: .09, biseau: .03, metal: .03, creux: .04 }[fx] || 0;
+    return k ? Math.ceil(taille * k) + 2 : 0;
   }
-  function boiteTxt(w, h, t, fam, taille, coul, align, esp) {
-    var c = toile(w, h), g = c.getContext('2d');
+  function texte(g, t, x, y, fam, taille, coul, align, esp, fx) {
+    g.font = taille + 'px "' + fam + '"'; g.textBaseline = 'alphabetic'; g.textAlign = 'left';
+    esp = esp || 0; if (!HEX.test(coul || '')) fx = null;
+    var w = mesure(fam, taille, t, esp), x0 = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+    var trace = function (dx, dy, creux) {
+      var f = creux ? 'strokeText' : 'fillText';
+      if (!esp) { g[f](t, x0 + dx, y + dy); return; }
+      var xx = x0 + dx; for (var i = 0; i < t.length; i++) { g[f](t[i], xx, y + dy); xx += mesure(fam, taille, t[i]) + esp; }
+    };
+    g.save(); g.fillStyle = coul;
+    if (fx && fx !== 'aucun') {
+      var fonce = mix(coul, '#000000', .62), clair = mix(coul, '#ffffff', .6), k = Math.max(1, Math.round(taille / 45));
+      if (fx === 'relief') {
+        var n = Math.max(2, Math.round(taille * .07)); x0 -= n / 2; y -= n / 2;
+        g.shadowColor = 'rgba(0,0,0,.55)'; g.shadowBlur = n; g.shadowOffsetX = g.shadowOffsetY = 1;
+        g.fillStyle = mix(fonce, '#000000', .35); trace(n, n);
+        g.shadowColor = 'transparent';
+        for (var i = n - 1; i >= 1; i--) { g.fillStyle = mix(fonce, coul, .35 * (1 - i / n)); trace(i, i); }
+        var gr = g.createLinearGradient(0, y - taille * .75, 0, y); gr.addColorStop(0, mix(coul, '#ffffff', .25)); gr.addColorStop(1, coul);
+        g.fillStyle = gr; trace(0, 0);
+      } else if (fx === 'ombre') {
+        g.shadowColor = 'rgba(0,0,0,.85)'; g.shadowBlur = Math.max(2, taille * .07); g.shadowOffsetX = g.shadowOffsetY = Math.max(1, Math.round(taille * .045));
+        x0 -= g.shadowOffsetX / 2; y -= g.shadowOffsetY / 2; trace(0, 0);
+      } else if (fx === 'biseau') {
+        g.fillStyle = clair; trace(-k, -k); g.fillStyle = fonce; trace(k, k); g.fillStyle = coul; trace(0, 0);
+      } else if (fx === 'contour') {
+        g.lineJoin = 'round'; g.lineWidth = Math.max(2, taille * .1); g.strokeStyle = mix(coul, '#000000', .8); trace(0, 0, 1); trace(0, 0);
+      } else if (fx === 'creux') {
+        g.lineJoin = 'round'; g.lineWidth = Math.max(1.4, taille * .035); g.strokeStyle = coul; trace(0, 0, 1);
+      } else if (fx === 'lueur') {
+        g.shadowColor = coul; g.shadowBlur = Math.max(3, taille * .14); trace(0, 0); trace(0, 0);
+        g.shadowColor = 'transparent'; g.fillStyle = mix(coul, '#ffffff', .45); trace(0, 0);
+      } else if (fx === 'degrade') {
+        var gd = g.createLinearGradient(0, y - taille * .75, 0, y); gd.addColorStop(0, clair); gd.addColorStop(.5, coul); gd.addColorStop(1, mix(coul, '#000000', .4));
+        g.fillStyle = gd; trace(0, 0);
+      } else if (fx === 'metal') {
+        var gm = g.createLinearGradient(0, y - taille * .75, 0, y);
+        gm.addColorStop(0, mix(coul, '#ffffff', .8)); gm.addColorStop(.42, coul); gm.addColorStop(.5, mix(coul, '#000000', .5)); gm.addColorStop(.75, coul); gm.addColorStop(1, mix(coul, '#ffffff', .45));
+        g.fillStyle = gm; trace(0, 0); g.lineWidth = Math.max(1, taille * .02); g.strokeStyle = mix(coul, '#000000', .65); trace(0, 0, 1);
+      } else trace(0, 0);
+    } else trace(0, 0);
+    g.restore();
+  }
+  function boiteTxt(w, h, t, fam, taille, coul, align, esp, fx) {
+    var c = toile(w, h), g = c.getContext('2d'), p = padFx(fx, taille);
     var base = Math.round(h / 2 + taille * .36);
-    texte(g, t, align === 'center' ? w / 2 : align === 'right' ? w - 1 : 1, base, fam, taille, coul, align, esp);
+    texte(g, t, align === 'center' ? w / 2 : align === 'right' ? w - 1 - p / 2 : 1 + p / 2, base, fam, taille, coul, align, esp, fx);
     return c;
   }
   function hash(s) { var h = 0; for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h.toString(36); }
@@ -181,7 +224,51 @@
     }
     g.restore();
   }
-  function meteoIcone(genre, s, coul, coul2) {
+  function meteoCouleur(genre, s) {
+    var c = toile(s, s), g = c.getContext('2d');
+    g.scale(s / 48, s / 48); g.lineCap = 'round'; g.lineJoin = 'round';
+    var ombre = function (on) { g.shadowColor = on ? 'rgba(0,0,0,.5)' : 'transparent'; g.shadowBlur = on ? 3 : 0; g.shadowOffsetY = on ? 1.5 : 0; };
+    function soleil(x, y, r, rayons) {
+      if (rayons) { g.strokeStyle = '#ffae00'; g.lineWidth = 2.6; for (var i = 0; i < 8; i++) { var a = i * Math.PI / 4; g.beginPath(); g.moveTo(x + Math.cos(a) * (r + 3.5), y + Math.sin(a) * (r + 3.5)); g.lineTo(x + Math.cos(a) * (r + 7.5), y + Math.sin(a) * (r + 7.5)); g.stroke(); } }
+      var gr = g.createRadialGradient(x - r * .35, y - r * .35, r * .1, x, y, r); gr.addColorStop(0, '#fff7b8'); gr.addColorStop(.5, '#ffd43b'); gr.addColorStop(1, '#ff8f00');
+      ombre(1); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); ombre(0);
+    }
+    function lune(x, y, r) {
+      var t = toile(s, s), h = t.getContext('2d'); h.scale(s / 48, s / 48);
+      var gr = h.createLinearGradient(x - r, y - r, x + r, y + r); gr.addColorStop(0, '#fffbe0'); gr.addColorStop(1, '#e2bf4f');
+      h.fillStyle = gr; h.beginPath(); h.arc(x, y, r, 0, 7); h.fill();
+      h.globalCompositeOperation = 'destination-out'; h.beginPath(); h.arc(x + r * .6, y - r * .4, r * .82, 0, 7); h.fill();
+      ombre(1); g.drawImage(t, 0, 0, 48, 48); ombre(0);
+    }
+    function nuage(dy, sombre) {
+      var p = new Path2D('M13 ' + (34 + dy) + 'h22a7 7 0 0 0 .8-13.9A10 10 0 0 0 16.6 ' + (22 + dy) + 'a6.2 6.2 0 0 0-3.6 12z');
+      var gr = g.createLinearGradient(0, 12 + dy, 0, 34 + dy);
+      if (sombre) { gr.addColorStop(0, '#b4bfcf'); gr.addColorStop(1, '#5c687a'); } else { gr.addColorStop(0, '#ffffff'); gr.addColorStop(1, '#bcc7d8'); }
+      ombre(1); g.fillStyle = gr; g.fill(p); ombre(0);
+      g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 1; g.stroke(p);
+    }
+    function gouttes(n, y0) { g.strokeStyle = '#3aa8ff'; g.lineWidth = 2.8; for (var i = 0; i < n; i++) { var x = 16 + i * 8; g.beginPath(); g.moveTo(x, y0); g.lineTo(x - 3, y0 + 7); g.stroke(); } }
+    function flocons(n, y0) { for (var i = 0; i < n; i++) { var x = 16 + i * 8, y = y0 + (i % 2) * 4; g.fillStyle = '#ffffff'; g.strokeStyle = '#7cc4ff'; g.lineWidth = 1; g.beginPath(); g.arc(x, y, 2.4, 0, 7); g.fill(); g.stroke(); } }
+    switch (genre) {
+      case 'soleil': soleil(24, 24, 9, true); break;
+      case 'nuit': lune(24, 24, 12); break;
+      case 'nuages': soleil(17, 17, 6.5, true); nuage(4); break;
+      case 'nuages_nuit': lune(17, 16, 8); nuage(4); break;
+      case 'couvert': nuage(-6, true); g.save(); g.translate(5, 10); g.scale(.85, .85); nuage(0); g.restore(); break;
+      case 'pluie': nuage(-6, true); gouttes(4, 33); break;
+      case 'averses': soleil(15, 13, 5.5, false); nuage(-6); gouttes(3, 33); break;
+      case 'neige': nuage(-6); flocons(4, 35); break;
+      case 'orage':
+        nuage(-6, true); ombre(1); g.beginPath(); g.moveTo(27, 27); g.lineTo(19, 39); g.lineTo(24.5, 39); g.lineTo(21, 47); g.lineTo(31, 34); g.lineTo(25.5, 34); g.lineTo(29, 27); g.closePath();
+        g.fillStyle = '#ffd21f'; g.fill(); ombre(0); g.strokeStyle = '#ff8f00'; g.lineWidth = 1; g.stroke(); break;
+      case 'brouillard': nuage(-8); g.strokeStyle = '#c3cad6'; g.lineWidth = 2.6; [32, 38, 44].forEach(function (y, i) { g.beginPath(); g.moveTo(9 + (i % 2) * 5, y); g.lineTo(39 - (i % 2) * 5, y); g.stroke(); }); break;
+      case 'sable': g.strokeStyle = '#e3b462'; g.lineWidth = 2.8; [18, 26, 34].forEach(function (y, i) { g.beginPath(); g.moveTo(8, y); g.bezierCurveTo(18, y - 6, 26, y + 6, 40 - i * 4, y); g.stroke(); }); break;
+      default: g.fillStyle = '#c3cad6'; g.font = '700 26px "' + PETITE.fam + '"'; g.textAlign = 'center'; g.fillText('?', 24, 33);
+    }
+    return c;
+  }
+  function meteoIcone(genre, s, coul, coul2, mode) {
+    if (mode === 'couleur') return meteoCouleur(genre, s);
     var c = toile(s, s), g = c.getContext('2d');
     g.save(); g.scale(s / 48, s / 48); g.lineCap = 'round'; g.lineJoin = 'round'; g.lineWidth = 2.6; g.strokeStyle = coul; g.fillStyle = coul;
     function soleil(x, y, r, rayons) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); if (rayons) for (var i = 0; i < 8; i++) { var a = i * Math.PI / 4; g.beginPath(); g.moveTo(x + Math.cos(a) * (r + 4), y + Math.sin(a) * (r + 4)); g.lineTo(x + Math.cos(a) * (r + 8), y + Math.sin(a) * (r + 8)); g.stroke(); } }
@@ -252,8 +339,8 @@
     paysage: { n: 'Paysage', f: function () {
       return [
         { t: 'info', d: 'batterie', x: CX, y: 40, style: 'ligne', taille: 's', couleur: 'texte' },
-        { t: 'meteo', x: CX, y: 102, taille: 's' },
-        { t: 'heure', x: CX, y: 210, taille: 104, police: 'grasse', secondes: true },
+        { t: 'meteo', x: CX, y: 102, taille: 's', icone: 'couleur', effet: 'ombre' },
+        { t: 'heure', x: 228, y: 210, taille: 92, police: 'grasse', secondes: true, effet: 'relief' },
         { t: 'date', format: 'court', x: CX, y: 160, taille: 18 },
         { t: 'info', d: 'pas', x: 130, y: 300, style: 'case', taille: 's', couleur: '#5fd35f', barre: true },
         { t: 'info', d: 'calories', x: 240, y: 300, style: 'case', taille: 's', couleur: '#ff7a1a', barre: true },
@@ -284,6 +371,17 @@
         { t: 'aiguilles', x: CX, y: CY, style: 'epees', secondes: true, echelle: 1 }
       ];
     } },
+    grandemeteo: { n: 'Grande météo', f: function () {
+      return [
+        { t: 'meteo', x: CX, y: 104, taille: 'l', icone: 'couleur', effet: 'ombre', minmax: true },
+        { t: 'heure', x: CX, y: 222, taille: 112, police: 'moderne', effet: 'relief' },
+        { t: 'date', format: 'long', x: CX, y: 290, taille: 18, effet: 'ombre' },
+        { t: 'info', d: 'humidite', x: 128, y: 352, style: 'case', taille: 's', couleur: '#2ec4ff', effet: 'relief' },
+        { t: 'info', d: 'uv', x: CX, y: 352, style: 'case', taille: 's', couleur: '#ffcc00', effet: 'relief' },
+        { t: 'info', d: 'vent', x: 352, y: 352, style: 'case', taille: 's', couleur: '#46d9c2', effet: 'relief' },
+        { t: 'info', d: 'batterie', x: CX, y: 432, style: 'ligne', taille: 's', couleur: 'doux', effet: 'ombre' }
+      ];
+    } },
     vide: { n: 'Vide', f: function () { return [{ t: 'heure', x: CX, y: CY, taille: 110, police: 'legere' }]; } }
   };
   function modele(id, cfg) { var m = MODELES[id] || MODELES.numerique; return m.f(norm(cfg)).map(normBloc).filter(Boolean); }
@@ -295,30 +393,31 @@
     if (b.t === 'heure') {
       var gr = b.taille, ft = Math.round(gr * P.echelle), k = 'h' + b.police + gr;
       var cw = CACHE_G[k] || (CACHE_G[k] = Math.ceil(Math.max.apply(null, '0123456789'.split('').map(function (d) { return mesure(P.fam, ft, d); }))) + 2);
-      var hT = Math.round(gr * .82), dpw = Math.max(10, Math.round(gr * .3)), s = b.secondes ? Math.round(gr * .4) : 0;
-      var scw = s ? Math.ceil(mesure(P.fam, Math.round(s * P.echelle), '0') + 2) : 0;
+      var pf = padFx(b.effet, ft), hT = Math.round(gr * .82) + pf, dpw = Math.max(10, Math.round(gr * .3)) + pf, s = b.secondes ? Math.round(gr * .4) : 0;
+      var ps = s ? padFx(b.effet, Math.round(s * P.echelle)) : 0, scw = s ? Math.ceil(mesure(P.fam, Math.round(s * P.echelle), '0') + 2) + ps : 0;
+      cw += pf;
       var w = 4 * cw + dpw + (s ? 2 * scw + 6 : 0);
-      return { x: Math.round(b.x - w / 2), y: Math.round(b.y - hT / 2), w: w, h: hT, cw: cw, dpw: dpw, ft: ft, s: s, scw: scw, sh: Math.round(s * .82) };
+      return { x: Math.round(b.x - w / 2), y: Math.round(b.y - hT / 2), w: w, h: hT, cw: cw, dpw: dpw, ft: ft, s: s, scw: scw, sh: Math.round(s * .82) + ps };
     }
     if (b.t === 'aiguilles') { var r = Math.round(200 * b.echelle); return { x: b.x - r, y: b.y - r, w: 2 * r, h: 2 * r }; }
     if (b.t === 'date') {
-      var fs = b.taille, hD = Math.round(fs * 1.4), esp = fs > 18 ? 2 : 1, wD = Math.round(fs * 2.4);
-      var larg = function (l) { return Math.ceil(Math.max.apply(null, l.map(function (t) { return mesure(PETITE.fam, fs, t, esp); }))) + 4; };
+      var fs = b.taille, pd = padFx(b.effet, fs + 2), hD = Math.round(fs * 1.4) + pd, esp = fs > 18 ? 2 : 1, wD = Math.round(fs * 2.4) + pd;
+      var larg = function (l) { return Math.ceil(Math.max.apply(null, l.map(function (t) { return mesure(PETITE.fam, fs, t, esp); }))) + 4 + pd; };
       var f = b.format, wW = f === 'chiffres' ? 0 : larg(f === 'court' ? JOURS3 : JOURS), wM = f === 'long' ? larg(MOIS) : f === 'court' ? larg(MOIS4) : f === 'chiffres' ? wD : 0, gap = Math.round(fs * .3);
       var wtot = f === 'jour' ? wW : f === 'chiffres' ? wD * 2 + gap * 2 + 8 : wW + wD + wM + 2 * gap;
       var x0 = f === 'jour' ? b.x - wW / 2 : f === 'chiffres' ? b.x - wtot / 2 : b.x - wD / 2 - gap - wW;
       return { x: Math.round(x0), y: Math.round(b.y - hD / 2), w: Math.round(wtot), h: hD, wW: wW, wD: wD, wM: wM, gap: gap, fs: fs, esp: esp };
     }
     if (b.t === 'info') {
-      var T = TI[b.taille], hv = Math.round(T.val * 1.08);
+      var T = TI[b.taille], hv = Math.round(T.val * 1.08) + padFx(b.effet, Math.round(T.val * P.echelle));
       if (b.style === 'ligne') { var wl = Math.round(T.w * 1.15); return { x: b.x - wl / 2, y: b.y - hv / 2, w: wl, h: hv, T: T, hv: hv }; }
       if (b.style === 'case') { var wc = Math.round(T.w * 1.05), hc = T.ic + hv + T.lab + 18 + (b.barre ? 8 : 0); return { x: Math.round(b.x - wc / 2), y: Math.round(b.y - hc / 2), w: wc, h: hc, T: T, hv: hv }; }
       if (b.style === 'jauge') { var dj = Math.round(T.w * 1.05); return { x: Math.round(b.x - dj / 2), y: Math.round(b.y - dj / 2), w: dj, h: dj, T: T, hv: hv }; }
       var hs = T.ic + 4 + hv + T.lab + 6;
       return { x: Math.round(b.x - T.w / 2), y: Math.round(b.y - hs / 2), w: T.w, h: hs, T: T, hv: hv };
     }
-    if (b.t === 'meteo') { var T2 = TI[b.taille], ic = T2.ic * 2.2, hv2 = Math.round(T2.val * 1.08), wm = Math.round(ic + 12 + T2.w * .9), hm = Math.round(Math.max(ic, hv2 + (b.minmax ? T2.lab * 1.6 + 4 : 0))); return { x: Math.round(b.x - wm / 2), y: Math.round(b.y - hm / 2), w: wm, h: hm, T: T2, ic: Math.round(ic), hv: hv2 }; }
-    if (b.t === 'texte') { var wt = Math.ceil(mesure(P.fam, Math.round(b.taille * P.echelle), b.txt, b.esp)) + 4, ht = Math.round(b.taille * 1.3); return { x: Math.round(b.x - wt / 2), y: Math.round(b.y - ht / 2), w: wt, h: ht }; }
+    if (b.t === 'meteo') { var T2 = TI[b.taille], ic = T2.ic * 2.2, hv2 = Math.round(T2.val * 1.08) + padFx(b.effet, Math.round(T2.val * P.echelle)), wm = Math.round(ic + 12 + T2.w * .9), hm = Math.round(Math.max(ic, hv2 + (b.minmax ? T2.lab * 1.6 + 4 : 0))); return { x: Math.round(b.x - wm / 2), y: Math.round(b.y - hm / 2), w: wm, h: hm, T: T2, ic: Math.round(ic), hv: hv2 }; }
+    if (b.t === 'texte') { var pt = padFx(b.effet, b.taille), wt = Math.ceil(mesure(P.fam, Math.round(b.taille * P.echelle), b.txt, b.esp)) + 4 + pt, ht = Math.round(b.taille * 1.3) + pt; return { x: Math.round(b.x - wt / 2), y: Math.round(b.y - ht / 2), w: wt, h: ht }; }
     if (b.t === 'trait') { return b.vertical ? { x: b.x - 4, y: b.y - b.l / 2, w: 8, h: b.l } : { x: b.x - b.l / 2, y: b.y - 4, w: b.l, h: 8 }; }
     return { x: b.x - 20, y: b.y - 20, w: 40, h: 40 };
   }
@@ -340,17 +439,18 @@
       add({ k: 'level', type: cfg.anneau === 'batterie' ? 'BATTERY' : 'STEP', x: 0, y: 0, w: W, h: W, dossier: 'anneau', n: 11 });
     }
     /* jeu de chiffres (police, taille, couleur) partagé entre éléments identiques */
+    var FX = 'aucun', ICN = 'trait';   // effet et icônes de l'élément en cours
     var chiffres = function (police, val, couleur) {
-      var P = POLICES[police] || PETITE, fv = Math.round(val * (P.echelle || 1)), cc = coul(cfg, couleur), dos = 'n' + hash(police + fv + cc);
-      var cw = Math.ceil(Math.max.apply(null, '0123456789'.split('').map(function (d) { return mesure(P.fam, fv, d); }))) + 1, h = Math.round(val * 1.08);
+      var P = POLICES[police] || PETITE, fv = Math.round(val * (P.echelle || 1)), cc = coul(cfg, couleur), fx = FX, dos = 'n' + hash(police + fv + cc + fx), pf = padFx(fx, fv);
+      var cw = Math.ceil(Math.max.apply(null, '0123456789'.split('').map(function (d) { return mesure(P.fam, fv, d); }))) + 1 + pf, h = Math.round(val * 1.08) + pf;
       if (!IM[dos + '/0.png']) {
-        for (var d = 0; d <= 9; d++) put(dos + '/' + d + '.png', boiteTxt(cw, h, String(d), P.fam, fv, cc, 'center'));
-        put(dos + '/moins.png', boiteTxt(Math.round(cw * .7), h, '-', P.fam, fv, cc, 'center'));
+        for (var d = 0; d <= 9; d++) put(dos + '/' + d + '.png', boiteTxt(cw, h, String(d), P.fam, fv, cc, 'center', 0, fx));
+        put(dos + '/moins.png', boiteTxt(Math.round(cw * .7), h, '-', P.fam, fv, cc, 'center', 0, fx));
         put(dos + '/invalide.png', boiteTxt(cw * 2, h, '--', P.fam, fv, cfg.doux, 'center'));
-        put(dos + '/point.png', boiteTxt(Math.round(cw * .45), h, '.', P.fam, fv, cc, 'center'));
-        put(dos + '/dp.png', boiteTxt(Math.round(cw * .5), h, ':', P.fam, fv, cc, 'center'));
-        put(dos + '/pct.png', boiteTxt(Math.round(fv * .9), h, '%', P.fam, Math.round(fv * .7), cfg.doux, 'left'));
-        put(dos + '/deg.png', boiteTxt(Math.round(fv * .55), h, '°', P.fam, fv, cc, 'left'));
+        put(dos + '/point.png', boiteTxt(Math.round(cw * .45), h, '.', P.fam, fv, cc, 'center', 0, fx));
+        put(dos + '/dp.png', boiteTxt(Math.round(cw * .5), h, ':', P.fam, fv, cc, 'center', 0, fx));
+        put(dos + '/pct.png', boiteTxt(Math.round(fv * .9), h, '%', P.fam, Math.round(fv * .7), cfg.doux, 'left', 0, fx));
+        put(dos + '/deg.png', boiteTxt(Math.round(fv * .55), h, '°', P.fam, fv, cc, 'left', 0, fx));
       }
       return { dos: dos, cw: cw, h: h };
     };
@@ -360,8 +460,8 @@
       return ch;
     };
     var meteoNiveau = function (x, y, s, couleur) {
-      var cc = coul(cfg, couleur), dos = 'meteo' + s + hash(cc);
-      if (!IM[dos + '/0.png']) for (var m = 0; m < 29; m++) put(dos + '/' + m + '.png', meteoIcone(METEO[m], s, cc, mix(cfg.c1, cc, .12)));
+      var cc = coul(cfg, couleur), mode = ICN, dos = 'meteo' + s + hash(cc + mode);
+      if (!IM[dos + '/0.png']) for (var m = 0; m < 29; m++) put(dos + '/' + m + '.png', meteoIcone(METEO[m], s, cc, mix(cfg.c1, cc, .12), mode));
       add({ k: 'level', type: 'WEATHER', x: Math.round(x), y: Math.round(y), w: s, h: s, dossier: dos, n: 29 });
     };
     var barreNiveau = function (d, x, y, w, h, couleur, rayon) {
@@ -372,16 +472,16 @@
 
     var pointeurs = [];
     cfg.blocs.forEach(function (b, bi) {
-      var G = geo(b, cfg), P = POLICES[b.police] || PETITE;
+      var G = geo(b, cfg), P = POLICES[b.police] || PETITE; FX = b.effet || 'aucun'; ICN = b.icone || 'trait';
       if (b.t === 'heure') {
         ['', '_aod'].forEach(function (suf, k) {
           var dos = 'heure' + bi + suf, col = k ? aodDim : coul(cfg, b.couleur), cdp = k ? aodDim : coul(cfg, b.dp);
-          for (var d = 0; d <= 9; d++) put(dos + '/' + d + '.png', boiteTxt(G.cw, G.h, String(d), P.fam, G.ft, col, 'center'));
-          put(dos + '/dp.png', boiteTxt(G.dpw, G.h, ':', P.fam, G.ft, cdp, 'center'));
+          for (var d = 0; d <= 9; d++) put(dos + '/' + d + '.png', boiteTxt(G.cw, G.h, String(d), P.fam, G.ft, col, 'center', 0, k ? null : FX));
+          put(dos + '/dp.png', boiteTxt(G.dpw, G.h, ':', P.fam, G.ft, cdp, 'center', 0, k ? null : FX));
           var w = { k: 'time', x: G.x, y: G.y, dossier: dos, cw: G.cw, dpw: G.dpw, h: G.h, aod: k ? 1 : 0 };
           if (G.s && !k) {
             var sd = 'sec' + bi;
-            for (var e = 0; e <= 9; e++) put(sd + '/' + e + '.png', boiteTxt(G.scw, G.sh, String(e), P.fam, Math.round(G.s * P.echelle), coul(cfg, b.dp), 'center'));
+            for (var e = 0; e <= 9; e++) put(sd + '/' + e + '.png', boiteTxt(G.scw, G.sh, String(e), P.fam, Math.round(G.s * P.echelle), coul(cfg, b.dp), 'center', 0, FX));
             w.sec = { x: G.x + 4 * G.cw + G.dpw + 6, y: G.y + G.h - G.sh - Math.round(G.h * .04), dossier: sd, cw: G.scw };
           }
           add(w);
@@ -394,17 +494,17 @@
           var dd = 'date' + bi + suf, col = k ? aodDim : coul(cfg, b.couleur === 'texte' ? 'doux' : b.couleur), colJ = k ? aodDim : coul(cfg, b.jour);
           var w = { k: 'date', aod: k ? 1 : 0, dossier: dd, h: G.h };
           if (f !== 'chiffres') {
-            (dA ? JOURS3 : JOURS).forEach(function (j, i) { put(dd + '/semaine/' + i + '.png', boiteTxt(G.wW, G.h, j, PETITE.fam, G.fs, col, f === 'jour' ? 'center' : 'right', G.esp)); });
+            (dA ? JOURS3 : JOURS).forEach(function (j, i) { put(dd + '/semaine/' + i + '.png', boiteTxt(G.wW, G.h, j, PETITE.fam, G.fs, col, f === 'jour' ? 'center' : 'right', G.esp, k ? null : FX)); });
             w.sem = { x: G.x, y: G.y };
           }
           if (f === 'long' || f === 'court') {
-            for (var n = 1; n <= 31; n++) put(dd + '/jour/' + (n - 1) + '.png', boiteTxt(G.wD, G.h, n === 1 && f === 'long' ? '1ER' : String(n), PETITE.fam, G.fs + 1, colJ, 'center'));
-            (f === 'long' ? MOIS : MOIS4).forEach(function (j, i) { put(dd + '/mois/' + i + '.png', boiteTxt(G.wM, G.h, j, PETITE.fam, G.fs, col, 'left', G.esp)); });
+            for (var n = 1; n <= 31; n++) put(dd + '/jour/' + (n - 1) + '.png', boiteTxt(G.wD, G.h, n === 1 && f === 'long' ? '1ER' : String(n), PETITE.fam, G.fs + 1, colJ, 'center', 0, k ? null : FX));
+            (f === 'long' ? MOIS : MOIS4).forEach(function (j, i) { put(dd + '/mois/' + i + '.png', boiteTxt(G.wM, G.h, j, PETITE.fam, G.fs, col, 'left', G.esp, k ? null : FX)); });
             w.jour = { x: G.x + G.wW + G.gap, y: G.y }; w.mois = { x: G.x + G.wW + G.gap + G.wD + G.gap, y: G.y };
           }
           if (f === 'chiffres') {
-            for (var n2 = 1; n2 <= 31; n2++) put(dd + '/jour/' + (n2 - 1) + '.png', boiteTxt(G.wD, G.h, ('0' + n2).slice(-2), PETITE.fam, G.fs + 2, colJ, 'right'));
-            for (var m2 = 1; m2 <= 12; m2++) put(dd + '/mois/' + (m2 - 1) + '.png', boiteTxt(G.wD, G.h, ('0' + m2).slice(-2), PETITE.fam, G.fs + 2, col, 'left'));
+            for (var n2 = 1; n2 <= 31; n2++) put(dd + '/jour/' + (n2 - 1) + '.png', boiteTxt(G.wD, G.h, ('0' + n2).slice(-2), PETITE.fam, G.fs + 2, colJ, 'right', 0, k ? null : FX));
+            for (var m2 = 1; m2 <= 12; m2++) put(dd + '/mois/' + (m2 - 1) + '.png', boiteTxt(G.wD, G.h, ('0' + m2).slice(-2), PETITE.fam, G.fs + 2, col, 'left', 0, k ? null : FX));
             w.jour = { x: G.x, y: G.y }; w.mois = { x: G.x + G.wD + 2 * G.gap + 8, y: G.y };
           }
           add(w);
@@ -543,7 +643,7 @@
     // parties fixes des éléments (écran allumé seulement ; textes et traits aussi en AOD, atténués)
     cfg.blocs.forEach(function (b) {
       var G = geo(b, cfg), cc = coul(cfg, b.couleur);
-      if (b.t === 'texte') { var P = POLICES[b.police] || PETITE; texte(g, b.txt, b.x, Math.round(b.y + b.taille * .36), P.fam, Math.round(b.taille * P.echelle), aod ? aodDimDe(cfg) : cc, 'center', b.esp); return; }
+      if (b.t === 'texte') { var P = POLICES[b.police] || PETITE; texte(g, b.txt, b.x, Math.round(b.y + b.taille * .36), P.fam, Math.round(b.taille * P.echelle), aod ? aodDimDe(cfg) : cc, 'center', b.esp, aod ? null : b.effet); return; }
       if (b.t === 'trait') { g.strokeStyle = aod ? mix(cfg.doux, '#000', .6) : cc; g.lineWidth = b.ep; g.lineCap = 'round'; g.beginPath(); if (b.vertical) { g.moveTo(b.x, G.y); g.lineTo(b.x, G.y + G.h); } else { g.moveTo(G.x, b.y); g.lineTo(G.x + G.w, b.y); } g.stroke(); return; }
       if (aod) return;
       if (b.t === 'date' && b.format === 'chiffres') { texte(g, '/', b.x, Math.round(b.y + b.taille * .4), PETITE.fam, b.taille + 2, cfg.doux, 'center'); return; }
@@ -553,10 +653,15 @@
       }
       if (b.t !== 'info') return;
       var inf = INFOS[b.d], T = G.T;
-      if (b.style === 'ligne') { if (b.d !== 'meteo') icone(g, inf.ic, G.x + T.ic / 2, b.y, T.ic, cc); return; }
+      if (b.style === 'ligne') { if (b.d !== 'meteo') iconeFx(g, b, inf.ic, G.x + T.ic / 2, b.y, T.ic, cc); return; }
       if (b.style === 'case') {
-        rond(g, G.x, G.y, G.w, G.h, 12); g.fillStyle = rgba(cc, .16); g.fill(); g.strokeStyle = rgba(cc, .55); g.lineWidth = 1.5; g.stroke();
-        if (b.d !== 'meteo') icone(g, inf.ic, G.x + 8 + T.ic / 2, G.y + 6 + T.ic / 2, T.ic, cc);
+        if (b.effet && b.effet !== 'aucun' && HEX.test(cc)) {
+          g.save(); rond(g, G.x, G.y, G.w, G.h, 12); g.shadowColor = 'rgba(0,0,0,.6)'; g.shadowBlur = 8; g.shadowOffsetY = 3;
+          var gc = g.createLinearGradient(0, G.y, 0, G.y + G.h); gc.addColorStop(0, mix(cc, cfg.c1, .55)); gc.addColorStop(1, mix(cc, '#000000', .82)); g.fillStyle = gc; g.fill(); g.restore();
+          g.save(); rond(g, G.x + 1, G.y + 1, G.w - 2, G.h - 2, 11); g.clip(); g.fillStyle = 'rgba(255,255,255,.07)'; g.fillRect(G.x, G.y, G.w, G.h * .42); g.restore();
+          rond(g, G.x, G.y, G.w, G.h, 12); g.strokeStyle = rgba(cc, .7); g.lineWidth = 1.5; g.stroke();
+        } else { rond(g, G.x, G.y, G.w, G.h, 12); g.fillStyle = rgba(cc, .16); g.fill(); g.strokeStyle = rgba(cc, .55); g.lineWidth = 1.5; g.stroke(); }
+        if (b.d !== 'meteo') iconeFx(g, b, inf.ic, G.x + 8 + T.ic / 2, G.y + 6 + T.ic / 2, T.ic, cc);
         var dispo = G.w - 22 - T.ic, tl = T.lab; while (tl > 7 && mesure(PETITE.fam, tl, inf.lab, 1) > dispo) tl--;
         texte(g, inf.lab, G.x + G.w - 8, G.y + 6 + T.ic / 2 + tl * .36, PETITE.fam, tl, cc, 'right', 1);
         if (b.barre) { rond(g, G.x + 10, G.y + G.h - 12, G.w - 20, 6, 3); g.fillStyle = rgba(cc, .22); g.fill(); }
@@ -567,17 +672,22 @@
         g.lineCap = 'round'; g.lineWidth = Math.max(5, G.w * .07); g.strokeStyle = rgba(cc, .2);
         g.beginPath(); g.arc(b.x, b.y, R, Math.PI * .75, Math.PI * 2.25); g.stroke();
         if (!b.barre) { g.strokeStyle = cc; g.beginPath(); g.arc(b.x, b.y, R, Math.PI * .75, Math.PI * .75 + .12); g.stroke(); }
-        if (b.d !== 'meteo') icone(g, inf.ic, b.x, G.y + G.h * .3, T.ic, cc);
+        if (b.d !== 'meteo') iconeFx(g, b, inf.ic, b.x, G.y + G.h * .3, T.ic, cc);
         texte(g, inf.lab, b.x, Math.round(b.y + G.hv / 2 + T.ic * .35 + T.lab + 4), PETITE.fam, T.lab, cfg.doux, 'center', 1);
         return;
       }
       // simple et cercle
-      if (b.d !== 'meteo') icone(g, inf.ic, b.x, G.y + T.ic / 2 - 2, T.ic, cc);
+      if (b.d !== 'meteo') iconeFx(g, b, inf.ic, b.x, G.y + T.ic / 2 - 2, T.ic, cc);
       texte(g, inf.lab, b.x, G.y + T.ic + 4 + G.hv + T.lab + 1, PETITE.fam, T.lab, cfg.doux, 'center', 1.5);
       if (b.style === 'cercle') { g.strokeStyle = rgba(cc, .3); g.lineWidth = 1; g.beginPath(); g.arc(b.x, G.y + G.h / 2 - 4, Math.round(44 * T.w / 92), 0, 7); g.stroke(); }
     });
     g.restore();
     return c;
+  }
+  function iconeFx(g, b, nom, x, y, t, cc) {
+    var fx = b.effet && b.effet !== 'aucun';
+    if (fx) { g.save(); g.shadowColor = b.effet === 'lueur' ? cc : 'rgba(0,0,0,.7)'; g.shadowBlur = b.effet === 'lueur' ? t * .4 : 3; g.shadowOffsetY = b.effet === 'lueur' ? 0 : 1.5; }
+    icone(g, nom, x, y, t, cc); if (fx) g.restore();
   }
   function aodDimDe(cfg) { return mix(cfg.doux, '#000000', .25); }
   function anneau(cfg, f) {
@@ -699,5 +809,5 @@
   }
 
   var CADRAN = root.CADRAN = { W: W, DEFAUT: DEFAUT, CHOIX: CHOIX, INFOS: INFOS, METEO: METEO, MODELES: MODELES, norm: norm, normBloc: normBloc, paquet: paquet, apercu: apercu, polices: polices,
-    boite: boite, modele: modele, chargerPhoto: chargerPhoto, geo: function (b, c) { return geo(normBloc(b), norm(c)); }, blocsDe: blocsDe, JOURS: JOURS, MOIS: MOIS, onphoto: null };
+    boite: boite, modele: modele, chargerPhoto: chargerPhoto, meteoIcone: meteoIcone, geo: function (b, c) { return geo(normBloc(b), norm(c)); }, blocsDe: blocsDe, JOURS: JOURS, MOIS: MOIS, onphoto: null };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -189,7 +189,9 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
       '<div class="lbl">Couleurs une à une</div><div class="cols">' + [['c1', 'Fond'], ['c2', 'Fond 2'], ['accent', 'Accent'], ['texte', 'Texte'], ['doux', 'Doux']].map(function (k) { return '<label class="col"><input type="color" data-col="' + k[0] + '" value="' + c[k[0]] + '">' + k[1] + '</label>'; }).join('') + '</div>' +
       '<div class="lbl">Fond</div>' + chips('fond', C.CHOIX.FONDS, c.fond) +
       '<div id="photoZone"></div><input type="file" id="photoIn" accept="image/*" hidden>' +
-      '<div class="lbl">Anneau</div>' + chips('anneau', C.CHOIX.ANNEAUX, c.anneau) + '</div>' +
+      '<div class="lbl">Anneau</div>' + chips('anneau', C.CHOIX.ANNEAUX, c.anneau) +
+      '<div class="lbl">Effet sur tous les éléments</div><div class="chips">' + Object.keys(C.CHOIX.EFFETS).map(function (k) { return '<button class="chip" data-fxall="' + k + '">' + esc(C.CHOIX.EFFETS[k]) + '</button>'; }).join('') + '</div>' +
+      '<div class="line"><div class="t"><b>Météo en couleur</b><small>Soleil, nuages, pluie, orage… en couleurs avec ombre</small></div><input type="checkbox" class="sw" id="meteoCoul"' + (c.blocs.some(function (b) { return b.icone === 'couleur'; }) ? ' checked' : '') + '></div></div>' +
       '<div class="card"><div class="lbl" style="margin-top:0">Nom</div><input class="in" id="nom" maxlength="24" value="' + esc(c.nom) + '">' +
       '<div class="lbl">Écran toujours allumé</div>' + chips('aod', C.CHOIX.AOD, c.aod) + '<p class="note">Heure (et date) atténuées sur fond noir ; les infos sont masquées pour économiser la batterie.</p></div>' +
       '<div class="row"><button class="btn pri" id="edSave">' + (EDI >= 0 ? 'Enregistrer' : 'Enregistrer dans Mes cadrans') + '</button><button class="btn" id="edFab">Fabriquer pour la montre</button><button class="btn" id="edNew">Nouveau</button></div>' +
@@ -244,6 +246,8 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     } else if (b.t === 'trait') {
       h += pRange('l', 'Longueur', 10, 440, 2, b.l) + pRange('ep', 'Épaisseur', 1, 12, .5, b.ep) + pSw('vertical', 'Vertical', b.vertical) + '<div class="lbl">Couleur</div>' + swatches('couleur', b.couleur);
     }
+    if (b.effet != null) h += '<div class="lbl">Effet (relief, ombre, néon…)</div>' + chips('effet', K.EFFETS, b.effet, 'data-p');
+    if (b.t === 'meteo' || (b.t === 'info' && b.d === 'meteo')) h += '<div class="lbl">Icônes météo</div>' + chips('icone', K.ICONES, b.icone, 'data-p');
     h += '<div class="lbl">Position <span class="note" id="pos">x ' + b.x + ' · y ' + b.y + '</span></div><div class="row"><div class="pad"><i></i><button class="btn sm" data-nudge="0,-2">↑</button><i></i><button class="btn sm" data-nudge="-2,0">←</button><button class="btn sm" data-nudge="0,0" title="Centrer">◎</button><button class="btn sm" data-nudge="2,0">→</button><i></i><button class="btn sm" data-nudge="0,2">↓</button><i></i></div>' +
       '<div class="v" style="gap:6px;margin:0"><button class="btn sm" data-ctr="x">Centrer à l\'horizontale</button><button class="btn sm" data-ctr="y">Centrer à la verticale</button></div></div>';
     P.innerHTML = h;
@@ -338,6 +342,8 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     document.querySelectorAll('[data-col]').forEach(function (i) { i.oninput = function () { ED[i.dataset.col] = i.value; dirty = 1; preview(); if (SEL >= 0) paintProps(); }; });
     document.querySelectorAll('[data-pal]').forEach(function (b) { b.onclick = function () { var p = PALETTES[+b.dataset.pal]; ED.c1 = p[1]; ED.c2 = p[2]; ED.accent = p[3]; ED.texte = p[4]; ED.doux = p[5]; dirty = 1; document.querySelectorAll('[data-col]').forEach(function (i) { i.value = ED[i.dataset.col]; }); preview(); if (SEL >= 0) paintProps(); }; });
     document.querySelectorAll('[data-mod]').forEach(function (b) { b.onclick = function () { if (ED.blocs.length && dirty && !confirm('Remplacer les éléments actuels par le modèle « ' + C.MODELES[b.dataset.mod].n + ' » ?')) return; ED.blocs = C.modele(b.dataset.mod, ED); dirty = 1; selectionne(-1); }; });
+    document.querySelectorAll('[data-fxall]').forEach(function (b) { b.onclick = function () { ED.blocs.forEach(function (x) { if (x.effet != null) x.effet = b.dataset.fxall; }); dirty = 1; paintProps(); preview(); toast('Effet « ' + C.CHOIX.EFFETS[b.dataset.fxall] + ' » appliqué'); }; });
+    $('meteoCoul').onchange = function () { var v = this.checked ? 'couleur' : 'trait'; ED.blocs.forEach(function (x) { if (x.icone != null) x.icone = v; }); dirty = 1; paintProps(); preview(); };
     document.querySelectorAll('[data-add]').forEach(function (b) { b.onclick = function () { ajouter(b.dataset.add); }; });
     $('edList').onclick = function (e) { var b = e.target.closest('[data-sel]'); if (b) selectionne(+b.dataset.sel); };
     var P = $('edProps');
