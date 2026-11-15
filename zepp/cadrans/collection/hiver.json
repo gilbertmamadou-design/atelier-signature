@@ -1,0 +1,62 @@
+{
+ "id": "hiver",
+ "appId": 1093217,
+ "nom": "Hiver",
+ "fond": "hiver",
+ "c1": "#000000",
+ "c2": "#111111",
+ "accent": "#2ec4ff",
+ "texte": "#ffffff",
+ "doux": "#d8d8d8",
+ "anneau": "aucun",
+ "police": "grasse",
+ "aod": "heure_date",
+ "blocs": [
+  {
+   "t": "heure",
+   "x": 240,
+   "y": 200,
+   "taille": 100,
+   "police": "grasse",
+   "effet": "ombre",
+   "dp": "accent"
+  },
+  {
+   "t": "date",
+   "format": "court",
+   "x": 240,
+   "y": 268,
+   "taille": 20,
+   "effet": "ombre"
+  },
+  {
+   "t": "info",
+   "d": "pas",
+   "x": 158,
+   "y": 316,
+   "style": "ligne",
+   "taille": "s",
+   "couleur": "texte",
+   "effet": "ombre"
+  },
+  {
+   "t": "info",
+   "d": "batterie",
+   "x": 322,
+   "y": 316,
+   "style": "ligne",
+   "taille": "s",
+   "couleur": "texte",
+   "effet": "ombre"
+  },
+  {
+   "t": "meteo",
+   "x": 240,
+   "y": 112,
+   "taille": "s",
+   "icone": "couleur",
+   "effet": "ombre",
+   "minmax": false
+  }
+ ]
+}

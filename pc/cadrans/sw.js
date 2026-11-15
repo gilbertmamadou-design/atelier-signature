@@ -6,7 +6,7 @@
    - message VERSION : répond {app, version, date} (« Version du JJ/MM » de l'appli et du lanceur) ;
    - réponses : cache d'abord pour les fichiers précachés, réseau puis cache pour le reste (polices…). */
 'use strict';
-var VERSION = 'b6bd810556fe';
+var VERSION = 'dc31616bfbed';
 var DATE = '2026-11-15';          // jour de publication de cette version (« Version du JJ/MM » dans l'appli et le lanceur)
 var APP = 'cadrans';
 var CACHE = 'mag-pc-' + APP + '-' + VERSION, RUNTIME = 'mag-pc-' + APP + '-rt';
@@ -36,6 +36,9 @@ var PRECACHE = [
   "collection/multi.json",
   "collection/meteo.json",
   "collection/dauphine.json",
+  "collection/fleurs.json",
+  "collection/hiver.json",
+  "collection/noel.json",
   "polices/DejaVuSansMono-Bold.ttf",
   "polices/Inter-Black.otf",
   "polices/Inter-Light.otf",

@@ -52,7 +52,8 @@ for (const f of fichiers) {
   let nom = ''
   const jungle = ['project.manifest = manifest.xml']
   for (const [dev, S] of Object.entries(MONTRES)) {
-    const r = await page.evaluate(async ([cfg, S]) => {
+    const r = await page.evaluate(async ([cfg0, S, dev]) => {
+      const cfg = Object.assign({}, cfg0, { montre: dev })   // aplats adaptés à l'écran 64 couleurs
       await CADRAN.chargerPhoto(cfg.photo)
       const G = CADRAN.garmin(cfg, S)
       // palette du fond : les 16 couleurs (de l'écran 64 couleurs) les plus présentes
@@ -65,7 +66,7 @@ for (const f of fichiers) {
       const ap = document.createElement('canvas'); ap.width = ap.height = S
       CADRAN.apercuGarmin(ap, cfg, S, { date: new Date(2026, 9, 30, 10, 9, 30) })
       return { fond: fc.toDataURL('image/png'), pal, ops: G.ops, polices, icones, meteo: G.meteo, nom: CADRAN.norm(cfg).nom, apercu: ap.toDataURL('image/png') }
-    }, [cfg0, S])
+    }, [cfg0, S, dev])
     nom = r.nom
     const rd = join(dos, 'resources-' + dev), sd = join(dos, 'source-' + dev)
     ecrire(join(rd, 'fond.png'), r.fond)

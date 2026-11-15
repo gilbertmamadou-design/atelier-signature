@@ -55,7 +55,9 @@
     pression: { n: 'Pression', type: 'ALTIMETER', lab: 'HPA', ic: 'jauge', ex: 1013 },
     vent: { n: 'Vent', type: 'WIND', lab: 'VENT', ic: 'vent', ex: 3 }
   };
-  var FONDS = { uni: 'Uni', degrade: 'Dégradé', radial: 'Halo', carbone: 'Carbone', grille: 'Grille', hud: 'HUD', camo: 'Camouflage', photo: 'Ma photo' };
+  var FONDS = { uni: 'Uni', degrade: 'Dégradé', radial: 'Halo', carbone: 'Carbone', grille: 'Grille', hud: 'HUD', camo: 'Camouflage', fleurs: 'Fleurs', printemps: 'Printemps', ete: 'Été', automne: 'Automne', hiver: 'Hiver', noel: 'Noël', photo: 'Ma photo' };
+  var MOTIFS = { fleur: 'Fleur', marguerite: 'Marguerite', tulipe: 'Tulipe', feuille: 'Feuille', erable: 'Feuille d\'érable', flocon: 'Flocon', soleil: 'Soleil', lune: 'Lune', sapin: 'Sapin',
+    etoile: 'Étoile', coeur: 'Cœur', papillon: 'Papillon', champignon: 'Champignon', citrouille: 'Citrouille', cadeau: 'Cadeau', montagne: 'Montagne' };
   var ANNEAUX = { graduations: 'Graduations', chiffres: 'Chiffres', batterie: 'Batterie', pas: 'Pas (objectif)', aucun: 'Aucun' };
   var AIGUILLES = { fines: 'Fines', epees: 'Épées', larges: 'Larges', baton: 'Bâtons', dauphine: 'Dauphine', squelette: 'Squelette', fleche: 'Flèches' };
   var TROTS = { fine: 'Fine', contrepoids: 'Contrepoids', fleche: 'Flèche', sucette: 'Sucette', sport: 'Sport', epaisse: 'Épaisse' };
@@ -64,7 +66,7 @@
   var TAILLES = { s: 'Petite', m: 'Moyenne', l: 'Grande' };
   var DATES = { long: 'MERCREDI 30 OCTOBRE', court: 'MER 30 OCT', jourNum: 'MER 30', numMois: '30 OCT', jour: 'MERCREDI', jour3: 'MER', numero: '30', chiffres: '30/10' };
   var EFFETS = { aucun: 'Aucun', ombre: 'Ombre', relief: 'Relief 3D', biseau: 'Biseau', contour: 'Contour', creux: 'Creux', lueur: 'Néon', degrade: 'Dégradé', metal: 'Métal' };
-  var TYPES = { heure: 'Heure', aiguilles: 'Aiguilles', date: 'Date', info: 'Info', meteo: 'Météo', texte: 'Texte', trait: 'Trait' };
+  var TYPES = { heure: 'Heure', aiguilles: 'Aiguilles', date: 'Date', info: 'Info', meteo: 'Météo', texte: 'Texte', trait: 'Trait', image: 'Image' };
   var JOURS = ['LUNDI', 'MARDI', 'MERCREDI', 'JEUDI', 'VENDREDI', 'SAMEDI', 'DIMANCHE'];
   var JOURS3 = ['LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM', 'DIM'];
   var MOIS = ['JANVIER', 'FÉVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN', 'JUILLET', 'AOÛT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DÉCEMBRE'];
@@ -78,7 +80,7 @@
     date: true, anneau: 'graduations', infos: ['meteo', 'coeur', 'pas', 'batterie'], aod: 'heure_date',
     photo: '', voile: .35, calques: [], montre: 'trex3', blocs: null
   };
-  var CHOIX = { TROTS: TROTS, CALQUES: CALQUES, EFFETS: EFFETS, ICONES: { trait: 'Dessin', couleur: 'En couleur' }, POLICES: POLICES, INFOS: INFOS, FONDS: FONDS, ANNEAUX: ANNEAUX, AIGUILLES: AIGUILLES, STYLES: STYLES, TAILLES: TAILLES, DATES: DATES, TYPES: TYPES, VIFS: VIFS,
+  var CHOIX = { MOTIFS: MOTIFS, TROTS: TROTS, CALQUES: CALQUES, EFFETS: EFFETS, ICONES: { trait: 'Dessin', couleur: 'En couleur' }, POLICES: POLICES, INFOS: INFOS, FONDS: FONDS, ANNEAUX: ANNEAUX, AIGUILLES: AIGUILLES, STYLES: STYLES, TAILLES: TAILLES, DATES: DATES, TYPES: TYPES, VIFS: VIFS,
     HEURE: { numerique: 'Numérique', analogique: 'À aiguilles', mixte: 'Aiguilles + heure' }, TAILLE: { grande: 'Grande', moyenne: 'Moyenne' },
     AOD: { heure_date: 'Heure et date', heure: 'Heure seule' } };
 
@@ -98,6 +100,7 @@
     if (b.t === 'info') { o.d = INFOS[b.d] && INFOS[b.d].type ? b.d : 'pas'; o.style = STYLES[b.style] ? b.style : 'simple'; o.taille = TAILLES[b.taille] ? b.taille : 'm'; o.barre = !!b.barre && !!INFOS[o.d].prog; o.valeur = col(b.valeur, 'texte'); }
     if (b.t === 'meteo') { o.taille = TAILLES[b.taille] ? b.taille : 'm'; o.minmax = b.minmax !== false; o.valeur = col(b.valeur, 'texte'); }
     if (b.t === 'texte') { o.txt = String(b.txt == null ? 'TEXTE' : b.txt).replace(/[\u0000-\u001f]/g, '').slice(0, 24); o.taille = Math.round(num(b.taille, 10, 80, 18)); o.esp = num(b.esp, 0, 10, 2); }
+    if (b.t === 'image') { o.motif = MOTIFS[b.motif] ? b.motif : 'fleur'; o.taille = Math.round(num(b.taille, 16, 240, 60)); o.rot = Math.round(num(b.rot, -180, 180, 0)); o.couleur = b.couleur === 'auto' ? 'auto' : col(b.couleur, 'auto'); }
     if (b.t === 'trait') { o.l = Math.round(num(b.l, 10, 440, 200)); o.ep = num(b.ep, 1, 12, 2); o.vertical = !!b.vertical; }
     return o;
   }
@@ -427,6 +430,7 @@
     }
     if (b.t === 'meteo') { var T2 = TI[b.taille], ic = T2.ic * 2.2, hv2 = Math.round(T2.val * 1.08) + padFx(b.effet, Math.round(T2.val * P.echelle)), wm = Math.round(ic + 12 + T2.w * .9), hm = Math.round(Math.max(ic, hv2 + (b.minmax ? T2.lab * 1.6 + 4 : 0))); return { x: Math.round(b.x - wm / 2), y: Math.round(b.y - hm / 2), w: wm, h: hm, T: T2, ic: Math.round(ic), hv: hv2 }; }
     if (b.t === 'texte') { var pt = padFx(b.effet, b.taille), wt = Math.ceil(mesure(P.fam, Math.round(b.taille * P.echelle), b.txt, b.esp)) + 4 + pt, ht = Math.round(b.taille * 1.3) + pt; return { x: Math.round(b.x - wt / 2), y: Math.round(b.y - ht / 2), w: wt, h: ht }; }
+    if (b.t === 'image') { var ti = b.taille; return { x: Math.round(b.x - ti / 2), y: Math.round(b.y - ti / 2), w: ti, h: ti }; }
     if (b.t === 'trait') { return b.vertical ? { x: b.x - 4, y: b.y - b.l / 2, w: 8, h: b.l } : { x: b.x - b.l / 2, y: b.y - 4, w: b.l, h: 8 }; }
     return { x: b.x - 20, y: b.y - 20, w: 40, h: 40 };
   }
@@ -620,6 +624,7 @@
         g.setLineDash([]);
         for (var q = 0; q < 4; q++) { g.beginPath(); g.arc(CX, CY, 212, q * Math.PI / 2 + .25, q * Math.PI / 2 + 1.3); g.strokeStyle = rgba(cfg.accent, .4); g.lineWidth = 2; g.stroke(); }
       }
+      if (SCENES[cfg.fond]) { PLAT = cfg.montre !== 'trex3'; SCENES[cfg.fond](g); PLAT = false; }
       if (cfg.fond === 'camo') {
         var seed = 7; var rnd = function () { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
         var cols = [B, mix(A, B, .5), mix(B, '#000000', .35)];
@@ -658,6 +663,7 @@
     cfg.blocs.forEach(function (b) {
       var G = geo(b, cfg), cc = coul(cfg, b.couleur);
       if (b.t === 'texte') { var P = POLICES[b.police] || PETITE; texte(g, b.txt, b.x, Math.round(b.y + b.taille * .36), P.fam, Math.round(b.taille * P.echelle), aod ? aodDimDe(cfg) : cc, 'center', b.esp, aod ? null : b.effet); return; }
+      if (b.t === 'image') { if (!aod) { g.save(); g.translate(b.x, b.y); g.rotate(b.rot * Math.PI / 180); motif(g, b.motif, 0, 0, b.taille, b.couleur === 'auto' ? null : coul(cfg, b.couleur)); g.restore(); } return; }
       if (b.t === 'trait') { g.strokeStyle = aod ? mix(cfg.doux, '#000', .6) : cc; g.lineWidth = b.ep; g.lineCap = 'round'; g.beginPath(); if (b.vertical) { g.moveTo(b.x, G.y); g.lineTo(b.x, G.y + G.h); } else { g.moveTo(G.x, b.y); g.lineTo(G.x + G.w, b.y); } g.stroke(); return; }
       if (aod) return;
       if (b.t === 'date' && b.cadre) {
@@ -707,6 +713,119 @@
     if (fx) { g.save(); g.shadowColor = b.effet === 'lueur' ? cc : 'rgba(0,0,0,.7)'; g.shadowBlur = b.effet === 'lueur' ? t * .4 : 3; g.shadowOffsetY = b.effet === 'lueur' ? 0 : 1.5; }
     icone(g, nom, x, y, t, cc); if (fx) g.restore();
   }
+  /* ---------------- images simples (motifs) et fonds illustrés : aplats de couleurs franches (lisibles aussi sur l'écran 64 couleurs des Garmin) ---------------- */
+  function ell(g, x, y, rx, ry, a, c) { g.beginPath(); g.ellipse(x, y, Math.max(.1, rx), Math.max(.1, ry), a || 0, 0, 7); g.fillStyle = c; g.fill(); }
+  function disque(g, x, y, r, c) { g.beginPath(); g.arc(x, y, Math.max(.1, r), 0, 7); g.fillStyle = c; g.fill(); }
+  function poly(g, pts, c) { g.beginPath(); for (var i = 0; i < pts.length; i += 2) g[i ? 'lineTo' : 'moveTo'](pts[i], pts[i + 1]); g.closePath(); g.fillStyle = c; g.fill(); }
+  function etoileP(g, x, y, r, ri, n, c, a0) { var p = []; for (var i = 0; i < n * 2; i++) { var a = (a0 || -Math.PI / 2) + i * Math.PI / n, rr = i % 2 ? ri : r; p.push(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } poly(g, p, c); }
+  /* motif centré en (x, y), dans un carré de côté s ; c : couleur imposée (sinon celles du motif) */
+  function motif(g, nom, x, y, s, c) {
+    var r = s / 2, k = function (d) { return c || d; };
+    g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
+    switch (nom) {
+      case 'fleur': for (var i = 0; i < 6; i++) { var a = i * Math.PI / 3; ell(g, x + Math.cos(a) * r * .48, y + Math.sin(a) * r * .48, r * .42, r * .26, a, k('#ff5fa2')); } disque(g, x, y, r * .3, '#ffd23f'); disque(g, x - r * .08, y - r * .08, r * .1, '#fff3a0'); break;
+      case 'marguerite': for (var j = 0; j < 12; j++) { var b = j * Math.PI / 6; ell(g, x + Math.cos(b) * r * .55, y + Math.sin(b) * r * .55, r * .4, r * .13, b, k('#ffffff')); } disque(g, x, y, r * .27, '#ffbf00'); break;
+      case 'tulipe':
+        g.strokeStyle = '#3f9a3a'; g.lineWidth = Math.max(2, s * .06); g.beginPath(); g.moveTo(x, y + r); g.lineTo(x, y - r * .1); g.stroke();
+        ell(g, x - r * .28, y + r * .45, r * .32, r * .1, -.7, '#4caf50'); ell(g, x + r * .28, y + r * .55, r * .32, r * .1, .7, '#4caf50');
+        g.beginPath(); g.moveTo(x - r * .45, y - r * .75); g.lineTo(x - r * .15, y - r * .45); g.lineTo(x, y - r * .85); g.lineTo(x + r * .15, y - r * .45); g.lineTo(x + r * .45, y - r * .75);
+        g.quadraticCurveTo(x + r * .5, y - r * .05, x, y - r * .05); g.quadraticCurveTo(x - r * .5, y - r * .05, x - r * .45, y - r * .75); g.fillStyle = k('#ff3b3b'); g.fill(); break;
+      case 'feuille':
+        g.beginPath(); g.moveTo(x, y - r); g.quadraticCurveTo(x + r * .8, y - r * .1, x, y + r * .75); g.quadraticCurveTo(x - r * .8, y - r * .1, x, y - r); g.fillStyle = k('#5fbf3a'); g.fill();
+        g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = Math.max(1, s * .03); g.beginPath(); g.moveTo(x, y - r * .8); g.lineTo(x, y + r); g.stroke(); break;
+      case 'erable':
+        etoileP(g, x, y - r * .1, r * .85, r * .42, 5, k('#ff6a1a')); etoileP(g, x, y - r * .1, r * .55, r * .3, 5, k('#ff6a1a'), -Math.PI / 2 + Math.PI / 5);
+        g.strokeStyle = mix(c || '#ff6a1a', '#000000', .45); g.lineWidth = Math.max(1.5, s * .04); g.beginPath(); g.moveTo(x, y - r * .3); g.lineTo(x, y + r); g.stroke(); break;
+      case 'flocon':
+        g.strokeStyle = k('#e8f6ff'); g.lineWidth = Math.max(1.5, s * .07);
+        for (var f = 0; f < 6; f++) { g.save(); g.translate(x, y); g.rotate(f * Math.PI / 3); g.beginPath(); g.moveTo(0, 0); g.lineTo(0, -r); g.moveTo(0, -r * .55); g.lineTo(-r * .25, -r * .8); g.moveTo(0, -r * .55); g.lineTo(r * .25, -r * .8); g.stroke(); g.restore(); } break;
+      case 'soleil':
+        g.strokeStyle = k('#ffb000'); g.lineWidth = Math.max(2, s * .07);
+        for (var q = 0; q < 12; q++) { var t = q * Math.PI / 6; g.beginPath(); g.moveTo(x + Math.cos(t) * r * .62, y + Math.sin(t) * r * .62); g.lineTo(x + Math.cos(t) * r * .95, y + Math.sin(t) * r * .95); g.stroke(); }
+        disque(g, x, y, r * .48, k('#ffd23f')); break;
+      case 'lune': var tl = toile(Math.ceil(s) + 2, Math.ceil(s) + 2), hl = tl.getContext('2d'); disque(hl, r + 1, r + 1, r * .8, k('#f4ecc0')); hl.globalCompositeOperation = 'destination-out'; disque(hl, r + 1 + r * .45, r + 1 - r * .3, r * .68, '#000'); g.drawImage(tl, x - r - 1, y - r - 1); break;
+      case 'sapin':
+        g.fillStyle = '#6b3d1e'; g.fillRect(x - r * .1, y + r * .6, r * .2, r * .4);
+        poly(g, [x, y - r, x + r * .45, y - r * .3, x - r * .45, y - r * .3], k('#2e8b3a')); poly(g, [x, y - r * .6, x + r * .62, y + .15 * r, x - r * .62, y + .15 * r], k('#2e8b3a')); poly(g, [x, y - r * .2, x + r * .8, y + r * .65, x - r * .8, y + r * .65], k('#2e8b3a'));
+        disque(g, x - r * .3, y + r * .45, r * .07, '#ff3b3b'); disque(g, x + r * .25, y + r * .05, r * .07, '#ffd23f'); disque(g, x + r * .05, y - r * .45, r * .06, '#2ec4ff'); etoileP(g, x, y - r, r * .16, r * .07, 5, '#ffd23f'); break;
+      case 'etoile': etoileP(g, x, y + r * .06, r * .95, r * .42, 5, k('#ffd23f')); break;
+      case 'coeur':
+        g.beginPath(); g.moveTo(x, y + r * .85); g.bezierCurveTo(x - r * 1.2, y + r * .05, x - r * .6, y - r * .95, x, y - r * .4); g.bezierCurveTo(x + r * .6, y - r * .95, x + r * 1.2, y + r * .05, x, y + r * .85); g.fillStyle = k('#ff3b5c'); g.fill(); break;
+      case 'papillon':
+        ell(g, x - r * .45, y - r * .3, r * .45, r * .38, -.4, k('#2ec4ff')); ell(g, x + r * .45, y - r * .3, r * .45, r * .38, .4, k('#2ec4ff'));
+        ell(g, x - r * .35, y + r * .35, r * .3, r * .25, .4, k('#b45cff')); ell(g, x + r * .35, y + r * .35, r * .3, r * .25, -.4, k('#b45cff'));
+        ell(g, x, y, r * .08, r * .55, 0, '#1a1a1a'); g.strokeStyle = '#1a1a1a'; g.lineWidth = Math.max(1, s * .025); g.beginPath(); g.moveTo(x, y - r * .5); g.lineTo(x - r * .2, y - r * .85); g.moveTo(x, y - r * .5); g.lineTo(x + r * .2, y - r * .85); g.stroke(); break;
+      case 'champignon':
+        g.fillStyle = '#f2e6cf'; g.beginPath(); g.moveTo(x - r * .22, y + r * .9); g.lineTo(x - r * .16, y); g.lineTo(x + r * .16, y); g.lineTo(x + r * .22, y + r * .9); g.closePath(); g.fill();
+        g.beginPath(); g.moveTo(x - r * .9, y + r * .05); g.quadraticCurveTo(x - r * .85, y - r * .85, x, y - r * .85); g.quadraticCurveTo(x + r * .85, y - r * .85, x + r * .9, y + r * .05); g.closePath(); g.fillStyle = k('#e8322a'); g.fill();
+        disque(g, x - r * .4, y - r * .3, r * .12, '#ffffff'); disque(g, x + r * .15, y - r * .55, r * .1, '#ffffff'); disque(g, x + r * .5, y - r * .2, r * .09, '#ffffff'); break;
+      case 'citrouille':
+        g.fillStyle = '#4a7a2a'; g.fillRect(x - r * .07, y - r * .85, r * .14, r * .3);
+        ell(g, x - r * .45, y + r * .1, r * .45, r * .65, 0, mix(c || '#ff7a1a', '#000000', .2)); ell(g, x + r * .45, y + r * .1, r * .45, r * .65, 0, mix(c || '#ff7a1a', '#000000', .2)); ell(g, x, y + r * .1, r * .5, r * .7, 0, k('#ff7a1a')); break;
+      case 'cadeau':
+        g.fillStyle = k('#ff3b3b'); g.fillRect(x - r * .75, y - r * .3, r * 1.5, r * 1.1); g.fillStyle = mix(c || '#ff3b3b', '#000000', .2); g.fillRect(x - r * .85, y - r * .5, r * 1.7, r * .3);
+        g.fillStyle = '#ffd23f'; g.fillRect(x - r * .1, y - r * .5, r * .2, r * 1.3); ell(g, x - r * .25, y - r * .65, r * .25, r * .15, .5, '#ffd23f'); ell(g, x + r * .25, y - r * .65, r * .25, r * .15, -.5, '#ffd23f'); break;
+      case 'montagne':
+        poly(g, [x - r, y + r * .8, x - r * .2, y - r * .7, x + r * .25, y + r * .1, x + r * .5, y - r * .25, x + r, y + r * .8], k('#4a6fa5'));
+        poly(g, [x - r * .2, y - r * .7, x - r * .45, y - r * .25, x - r * .3, y - r * .2, x - r * .15, y - r * .35, x, y - r * .3], '#ffffff'); break;
+    }
+    g.restore();
+  }
+  function hasard(seed) { return function () { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }; }
+  var PLAT = false;   // Garmin (64 couleurs) : aplats et bandes au lieu des dégradés, qui seraient tramés
+  function degradeV(g, cols, plat) { if (PLAT && plat) { plat.forEach(function (c, i) { g.fillStyle = c; g.fillRect(0, i * W / plat.length, W, W / plat.length + 1); }); return; } var gr = g.createLinearGradient(0, 0, 0, W); cols.forEach(function (c, i) { gr.addColorStop(i / (cols.length - 1), c); }); g.fillStyle = gr; g.fillRect(0, 0, W, W); }
+  function halo(g, c0, c1, plat) { if (PLAT && plat) { g.fillStyle = plat; g.fillRect(0, 0, W, W); return; } var gr = g.createRadialGradient(CX, CY * .85, 20, CX, CY, CX); gr.addColorStop(0, c0); gr.addColorStop(1, c1); g.fillStyle = gr; g.fillRect(0, 0, W, W); }
+  var SCENES = {
+    fleurs: function (g) {
+      halo(g, '#123526', '#06120c', '#005500'); var rnd = hasard(11), cols = ['#ff5fa2', '#ffd23f', '#ffffff', '#ff8c42', '#b47cff', '#ff3b5c'];
+      for (var i = 0; i < 26; i++) { var a = i / 26 * Math.PI * 2, rr = 214 + (i % 2) * 6; ell(g, CX + Math.cos(a + .12) * (rr - 6), CY + Math.sin(a + .12) * (rr - 6), 14, 6, a + 1.2, i % 2 ? '#3f9a3a' : '#2e7d32'); }
+      for (var j = 0; j < 22; j++) { var b = j / 22 * Math.PI * 2 + .07, r0 = 205 + (j % 3) * 7; motif(g, j % 4 === 3 ? 'marguerite' : 'fleur', CX + Math.cos(b) * r0, CY + Math.sin(b) * r0, 30 + rnd() * 16, cols[j % cols.length]); }
+    },
+    printemps: function (g) {
+      degradeV(g, ['#16455a', '#0f2f40', '#0a1f2a'], ['#005555']); var rnd = hasard(5);
+      g.strokeStyle = '#5a3a24'; g.lineCap = 'round';
+      [[0, 60, 120, 110, 230, 70, 12], [120, 110, 150, 160, 200, 175, 7], [60, 95, 70, 140, 40, 170, 6]].forEach(function (q) { g.lineWidth = q[6]; g.beginPath(); g.moveTo(q[0], q[1]); g.quadraticCurveTo(q[2], q[3], q[4], q[5]); g.stroke(); });
+      for (var i = 0; i < 26; i++) { var t = rnd(), x = 10 + t * 220, y = 60 + Math.sin(t * 3) * 30 + (rnd() - .5) * 60; if (Math.hypot(x - CX, y - CY) < 150) continue; motif(g, 'fleur', x, y, 16 + rnd() * 14, rnd() < .5 ? '#ffb7d5' : '#ff85b8'); }
+      for (var j = 0; j < 18; j++) { var px = 260 + rnd() * 200, py = 60 + rnd() * 380; if (Math.hypot(px - CX, py - CY) < 160) continue; ell(g, px, py, 5, 3, rnd() * 3, '#ffb7d5'); }
+      g.fillStyle = '#2e7d32'; g.beginPath(); g.moveTo(0, W); g.lineTo(0, 430); for (var k2 = 0; k2 <= 24; k2++) g.lineTo(k2 * 20, 420 + (k2 % 2) * 14); g.lineTo(W, W); g.fill();
+      for (var m = 0; m < 9; m++) motif(g, m % 3 ? 'marguerite' : 'tulipe', 110 + m * 32, 432 + (m % 2) * 8, 22, m % 3 ? null : '#ff3b3b');
+    },
+    ete: function (g) {
+      degradeV(g, ['#2b1055', '#5a1a6e', '#d53369', '#ff8a3d'], ['#000055', '#550055', '#aa0055', '#aa0055', '#ff0055', '#ff5555']); var hz = 330;
+      g.save(); g.beginPath(); g.rect(0, 0, W, hz); g.clip(); disque(g, CX + 40, hz, 78, '#ffd23f'); disque(g, CX + 40, hz, 62, '#ffe680'); g.restore();
+      g.fillStyle = '#0b3d66'; g.fillRect(0, hz, W, W - hz); g.fillStyle = '#145a8a'; for (var i = 0; i < 7; i++) g.fillRect(0, hz + 12 + i * 20, W, 4);
+      g.fillStyle = '#ffd23f'; for (var j = 0; j < 6; j++) g.fillRect(CX + 40 - 50 + j * 7, hz + 8 + j * 18, 100 - j * 14, 4);
+      g.fillStyle = '#e8c27a'; g.beginPath(); g.moveTo(0, W); g.lineTo(0, 420); g.quadraticCurveTo(160, 395, 260, W); g.fill();
+      g.strokeStyle = '#170a22'; g.lineWidth = 10; g.lineCap = 'round'; g.beginPath(); g.moveTo(70, 440); g.quadraticCurveTo(80, 330, 115, 250); g.stroke();
+      [[-2.6, 70], [-2.0, 80], [-1.2, 78], [-.5, 70], [-3.0, 60]].forEach(function (f) { g.save(); g.translate(115, 250); g.rotate(f[0]); ell(g, f[1] / 2, 0, f[1] / 2, 9, 0, '#170a22'); g.restore(); });
+    },
+    automne: function (g) {
+      halo(g, '#33170a', '#120603', '#550000'); var rnd = hasard(23), cols = ['#ff7a1a', '#d93a1a', '#ffcc00', '#b5541e', '#e8a33a'];
+      for (var i = 0; i < 34; i++) { var a = rnd() * Math.PI * 2, r0 = 160 + rnd() * 70, x = CX + Math.cos(a) * r0, y = CY + Math.sin(a) * r0;
+        g.save(); g.translate(x, y); g.rotate(rnd() * 6.3); motif(g, i % 3 ? 'erable' : 'feuille', 0, 0, 22 + rnd() * 20, cols[i % cols.length]); g.restore(); }
+      motif(g, 'champignon', 150, 420, 34); motif(g, 'champignon', 180, 432, 22); motif(g, 'citrouille', 320, 420, 40);
+    },
+    hiver: function (g) {
+      degradeV(g, ['#071530', '#0e2650', '#1a3d72'], ['#000055']); var rnd = hasard(7);
+      for (var i = 0; i < 40; i++) { var x = rnd() * W, y = rnd() * 360; disque(g, x, y, rnd() < .2 ? 2.2 : 1.2, '#cfe6ff'); }
+      motif(g, 'lune', 360, 95, 60);
+      poly(g, [0, W, 0, 360, 90, 290, 170, 360, 260, 270, 360, 350, 430, 300, W, 340, W, W], '#2b4f7e');
+      poly(g, [90, 290, 70, 307, 92, 312, 110, 305], '#ffffff'); poly(g, [260, 270, 236, 290, 258, 296, 285, 290], '#ffffff');
+      poly(g, [0, W, 0, 410, 120, 370, 240, 420, 360, 380, W, 410, W, W], '#e8f2ff');
+      [[70, 160, 26], [400, 210, 22], [130, 70, 18], [300, 40, 16], [430, 140, 14]].forEach(function (f) { motif(g, 'flocon', f[0], f[1], f[2]); });
+      motif(g, 'sapin', 110, 400, 46, '#1e5a34'); motif(g, 'sapin', 380, 395, 56, '#1e5a34');
+    },
+    noel: function (g) {
+      halo(g, '#0f3322', '#05140c', '#000000'); var rnd = hasard(3);
+      for (var i = 0; i < 30; i++) disque(g, rnd() * W, rnd() * W, 1.6, '#ffffff');
+      g.strokeStyle = '#2e5a2e'; g.lineWidth = 3; g.beginPath(); g.moveTo(40, 120); g.quadraticCurveTo(CX, 230, 440, 120); g.stroke();
+      var bul = ['#ff3b3b', '#ffd23f', '#2ec4ff', '#5fd35f', '#ff5fa2'];
+      for (var j = 1; j < 12; j++) { var t = j / 12, x = (1 - t) * (1 - t) * 40 + 2 * (1 - t) * t * CX + t * t * 440, y = (1 - t) * (1 - t) * 120 + 2 * (1 - t) * t * 230 + t * t * 120; disque(g, x, y + 8, 7, bul[j % bul.length]); disque(g, x - 2, y + 6, 2, '#ffffff'); }
+      poly(g, [0, W, 0, 420, 120, 400, 240, 425, 360, 400, W, 420, W, W], '#e8f2ff');
+      motif(g, 'sapin', 95, 380, 90); motif(g, 'sapin', 385, 385, 80); motif(g, 'cadeau', 170, 425, 34); motif(g, 'cadeau', 310, 428, 30, '#2ec4ff');
+      etoileP(g, CX, 40, 16, 7, 5, '#ffd23f');
+    }
+  };
   function calquesFond(g, cfg) {
     var L = cfg.calques, a = function (k) { return L.indexOf(k) >= 0; }, gr;
     if (a('teinte')) { g.save(); g.globalCompositeOperation = 'overlay'; g.fillStyle = rgba(cfg.accent, .45); g.fillRect(0, 0, W, W); g.restore(); }
