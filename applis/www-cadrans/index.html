@@ -254,11 +254,17 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
   }
   function paintPhoto() {
     var z = $('photoZone'); if (!z) return;
-    z.innerHTML = '<div class="row" style="margin-top:8px"><button class="btn sm" id="photoBtn">' + (ED.photo ? 'Changer la photo' : 'Choisir ma photo') + '</button>' + (ED.photo ? '<button class="btn sm bad" id="photoDel">Retirer</button>' : '') + '</div>' +
+    if (CROP) {
+      z.innerHTML = '<div class="card" style="margin-top:8px;border-color:var(--acc)"><b>Recadrer la photo</b><p class="note" style="margin:4px 0">Glissez la photo sur l\'aperçu avec le doigt ; écartez deux doigts ou utilisez le curseur pour zoomer.</p>' +
+        '<div class="lbl">Zoom <span class="note" id="rv-zoom">' + CROP.z.toFixed(1) + '×</span></div><input type="range" id="zoomR" min="1" max="4" step="0.05" value="' + CROP.z + '">' +
+        '<div class="row" style="margin-top:8px"><button class="btn sm" id="cropCtr">Centrer</button><button class="btn sm" id="cropRaz">Photo entière</button><button class="btn sm pri" id="cropOk">Terminé</button><button class="btn sm" id="cropNo">Annuler</button></div></div>';
+      return;
+    }
+    z.innerHTML = '<div class="row" style="margin-top:8px"><button class="btn sm" id="photoBtn">' + (ED.photo ? 'Changer la photo' : 'Choisir ma photo') + '</button>' + (ED.photo ? '<button class="btn sm" id="photoCrop">Recadrer / centrer</button><button class="btn sm bad" id="photoDel">Retirer</button>' : '') + '</div>' +
       (ED.fond === 'photo' ? pRange('voile', 'Assombrir la photo (lisibilité)', 0, .9, .05, ED.voile == null ? .35 : ED.voile).replace('data-pr=', 'data-voile=') : '');
   }
   var RAF = 0;
-  function preview() { cancelAnimationFrame(RAF); RAF = requestAnimationFrame(function () { var cv = $('pv'); if (cv && !DRAG) { try { C.apercu(cv, ED, { aod: AOD, sel: AOD ? null : SEL }); } catch (e) { console.warn(e); } } }); }
+  function preview() { cancelAnimationFrame(RAF); RAF = requestAnimationFrame(function () { var cv = $('pv'); if (cv && !DRAG && !CROP) { try { C.apercu(cv, ED, { aod: AOD, sel: AOD ? null : SEL }); } catch (e) { console.warn(e); } } }); }
   function changed(full) { dirty = 1; ED.blocs[SEL] = C.normBloc(ED.blocs[SEL]); preview(); paintList(); if (full) paintProps(); }
   function selectionne(i) { SEL = i; paintList(); paintProps(); preview(); }
   function ajouter(t) {
@@ -267,26 +273,79 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
       trait: { t: 'trait', x: 240, y: 300, l: 200, ep: 2, couleur: 'doux' } }[t];
     ED.blocs.push(C.normBloc(d)); dirty = 1; selectionne(ED.blocs.length - 1);
   }
+  /* photo : l'image d'origine est gardée (en mémoire) pour pouvoir recadrer ; ED.photo = rendu 480 × 480 recadré */
+  var SRC = null, CROP = null;
+  function source(im) {
+    var m = 1400, k = Math.min(1, m / Math.max(im.width, im.height)), c = document.createElement('canvas');
+    c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+    return { im: c, w: c.width, h: c.height, z: 1, cx: c.width / 2, cy: c.height / 2 };
+  }
+  function couvre(S) { return Math.max(480 / S.w, 480 / S.h) * S.z; }
+  function borner(S) {
+    var k = couvre(S), dx = 240 / k, dy = 240 / k;
+    S.cx = Math.max(Math.min(dx, S.w / 2), Math.min(S.w - Math.min(dx, S.w / 2), S.cx));
+    S.cy = Math.max(Math.min(dy, S.h / 2), Math.min(S.h - Math.min(dy, S.h / 2), S.cy));
+  }
+  function dessinePhoto(g, S, t) {
+    var k = couvre(S) * t / 480;
+    g.drawImage(S.im, t / 2 - S.cx * k, t / 2 - S.cy * k, S.w * k, S.h * k);
+  }
+  function encoder(S) {
+    var taille = 480, q = .82, d = '';
+    for (var essai = 0; essai < 12; essai++) {
+      var c = document.createElement('canvas'); c.width = c.height = taille; dessinePhoto(c.getContext('2d'), S, taille);
+      d = c.toDataURL('image/jpeg', q);
+      if (d.length < 38000) return d;
+      if (q > .45) q -= .1; else taille = Math.round(taille * .85);
+    }
+    return null;
+  }
   function chargerPhoto(f) {
     if (!f) return;
     var u = URL.createObjectURL(f), im = new Image();
     im.onload = function () {
-      var taille = 480, q = .82, d = '';
-      for (var essai = 0; essai < 12; essai++) {
-        var c = document.createElement('canvas'); c.width = c.height = taille; var g = c.getContext('2d'), s = Math.max(taille / im.width, taille / im.height);
-        g.drawImage(im, (taille - im.width * s) / 2, (taille - im.height * s) / 2, im.width * s, im.height * s);
-        d = c.toDataURL('image/jpeg', q);
-        if (d.length < 38000) break;
-        if (q > .45) q -= .1; else taille = Math.round(taille * .85);
-      }
       URL.revokeObjectURL(u);
-      if (d.length >= 38000) return toast('Photo trop lourde, essayez-en une autre');
-      ED.photo = d; ED.fond = 'photo'; dirty = 1;
+      var S = source(im), d = encoder(S);
+      if (!d) return toast('Photo trop lourde, essayez-en une autre');
+      SRC = S; ED.photo = d; ED.fond = 'photo'; dirty = 1;
       document.querySelectorAll('[data-set="fond"] .chip').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.v === 'photo'); });
-      paintPhoto(); preview(); toast('Photo ajoutée');
+      toast('Photo ajoutée : vous pouvez la recadrer');
+      recadrer();
     };
     im.onerror = function () { toast('Image illisible'); };
     im.src = u;
+  }
+  function recadrer() {
+    var go = function () {
+      CROP = { im: SRC.im, w: SRC.w, h: SRC.h, z: SRC.z, cx: SRC.cx, cy: SRC.cy };
+      ED.fond = 'photo';
+      var cal = document.createElement('canvas'); cal.width = cal.height = 480;
+      var seul = C.norm(ED); seul.fond = 'transparent'; C.apercu(cal, seul, {}); CROP.cal = cal;
+      SEL = -1; paintList(); paintProps(); paintPhoto(); dessineCrop();
+      var pv = $('pv'); if (pv) pv.scrollIntoView({ block: 'nearest' });
+    };
+    if (SRC) return go();
+    // photo d'une séance précédente : on repart de l'image enregistrée
+    var im = new Image(); im.onload = function () { SRC = source(im); go(); }; im.src = ED.photo;
+  }
+  function dessineCrop() {
+    var cv = $('pv'); if (!cv || !CROP) return;
+    var g = cv.getContext('2d'), t = cv.width;
+    g.clearRect(0, 0, t, t); g.save(); g.beginPath(); g.arc(t / 2, t / 2, t / 2, 0, 7); g.clip();
+    g.fillStyle = '#000'; g.fillRect(0, 0, t, t);
+    dessinePhoto(g, CROP, t);
+    g.fillStyle = 'rgba(0,0,0,' + (ED.voile == null ? .35 : ED.voile) + ')'; g.fillRect(0, 0, t, t);
+    g.globalAlpha = .55; g.drawImage(CROP.cal, 0, 0, t, t); g.globalAlpha = 1;
+    g.strokeStyle = '#ffffff66'; g.lineWidth = 1; g.setLineDash([4, 6]);
+    g.beginPath(); g.moveTo(t / 2, 0); g.lineTo(t / 2, t); g.moveTo(0, t / 2); g.lineTo(t, t / 2); g.stroke(); g.setLineDash([]);
+    g.restore();
+  }
+  function finRecadrage(ok) {
+    if (ok && CROP) {
+      SRC.z = CROP.z; SRC.cx = CROP.cx; SRC.cy = CROP.cy;
+      var d = encoder(SRC); if (d) { ED.photo = d; dirty = 1; }
+    }
+    CROP = null; paintPhoto(); preview();
   }
   /* glisser sur l'aperçu : fond fixe + calque de l'élément, redessin complet au lâcher */
   function pt(cv, e) { var r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * 480, y: (e.clientY - r.top) / r.height * 480 }; }
@@ -296,8 +355,27 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     return best;
   }
   function bindCanvas(cv) {
+    var doigts = {}, pince = null;
+    cv.addEventListener('pointerdown', function (e) { if (!CROP) return; doigts[e.pointerId] = pt(cv, e); try { cv.setPointerCapture(e.pointerId); } catch (er) { } e.preventDefault(); e.stopImmediatePropagation(); pince = null; }, true);
+    cv.addEventListener('pointermove', function (e) {
+      if (!CROP || !doigts[e.pointerId]) return;
+      e.stopImmediatePropagation();
+      var p = pt(cv, e), ids = Object.keys(doigts);
+      if (ids.length >= 2) {
+        var a = ids[0] == e.pointerId ? p : doigts[ids[0]], b = ids[1] == e.pointerId ? p : doigts[ids[1]], d = Math.hypot(a.x - b.x, a.y - b.y);
+        if (pince) { CROP.z = Math.max(1, Math.min(4, pince.z * d / pince.d)); var zr = $('zoomR'); if (zr) zr.value = CROP.z; var v = $('rv-zoom'); if (v) v.textContent = CROP.z.toFixed(1) + '×'; }
+        else pince = { d: d || 1, z: CROP.z };
+      } else {
+        var o = doigts[e.pointerId], k = couvre(CROP);
+        CROP.cx -= (p.x - o.x) / k; CROP.cy -= (p.y - o.y) / k;
+      }
+      doigts[e.pointerId] = p; borner(CROP); dessineCrop();
+    }, true);
+    var fin = function (e) { if (!CROP) return; delete doigts[e.pointerId]; pince = null; e.stopImmediatePropagation(); };
+    cv.addEventListener('pointerup', fin, true); cv.addEventListener('pointercancel', fin, true);
+    cv.addEventListener('wheel', function (e) { if (!CROP) return; e.preventDefault(); CROP.z = Math.max(1, Math.min(4, CROP.z * (e.deltaY < 0 ? 1.08 : 1 / 1.08))); borner(CROP); var zr = $('zoomR'); if (zr) zr.value = CROP.z; dessineCrop(); }, { passive: false });
     cv.onpointerdown = function (e) {
-      if (AOD) return;
+      if (AOD || CROP) return;
       var p = pt(cv, e), i = touche(p);
       if (i < 0) { selectionne(-1); return; }
       SEL = i; paintList(); paintProps();
@@ -329,6 +407,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
   }
   function bindEditor() {
     if (SEL >= ED.blocs.length) SEL = -1;
+    CROP = null;
     paintList(); paintProps(); paintPhoto(); preview(); bindCanvas($('pv'));
     $('nom').oninput = function () { ED.nom = this.value; dirty = 1; };
     $('aodT').onclick = function () { AOD = !AOD; this.setAttribute('aria-pressed', AOD); preview(); };
@@ -375,14 +454,19 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
       else if (t.dataset.pci) changed(true);
     };
     $('photoZone').onclick = function (e) {
-      if (e.target.id === 'photoBtn') $('photoIn').click();
+      if (e.target.id === 'photoBtn') { if (CROP) finRecadrage(false); $('photoIn').click(); }
+      if (e.target.id === 'photoCrop') recadrer();
+      if (e.target.id === 'cropOk') finRecadrage(true);
+      if (e.target.id === 'cropNo') finRecadrage(false);
+      if (e.target.id === 'cropCtr' && CROP) { CROP.cx = CROP.w / 2; CROP.cy = CROP.h / 2; borner(CROP); dessineCrop(); }
+      if (e.target.id === 'cropRaz' && CROP) { CROP.z = 1; CROP.cx = CROP.w / 2; CROP.cy = CROP.h / 2; $('zoomR').value = 1; $('rv-zoom').textContent = '1.0×'; dessineCrop(); }
       if (e.target.id === 'photoDel') { ED.photo = ''; if (ED.fond === 'photo') ED.fond = 'radial'; dirty = 1; document.querySelectorAll('[data-set="fond"] .chip').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.v === ED.fond); }); paintPhoto(); preview(); }
     };
-    $('photoZone').oninput = function (e) { if (e.target.dataset.voile != null) { ED.voile = +e.target.value; var v = $('rv-voile'); if (v) v.textContent = e.target.value; dirty = 1; preview(); } };
+    $('photoZone').oninput = function (e) { if (e.target.id === 'zoomR' && CROP) { CROP.z = +e.target.value; $('rv-zoom').textContent = CROP.z.toFixed(1) + '×'; borner(CROP); dessineCrop(); return; } if (e.target.dataset.voile != null) { ED.voile = +e.target.value; var v = $('rv-voile'); if (v) v.textContent = e.target.value; dirty = 1; preview(); } };
     $('photoIn').onchange = function () { chargerPhoto(this.files && this.files[0]); this.value = ''; };
     $('edSave').onclick = function () { saveEd(); toast('Cadran enregistré'); };
     $('edFab').onclick = function () { var i = saveEd(); fabriquer(i); };
-    $('edNew').onclick = function () { if (dirty && !confirm('Abandonner les changements ?')) return; ED = C.norm(C.DEFAUT); EDI = -1; SEL = -1; dirty = 0; render(); };
+    $('edNew').onclick = function () { if (dirty && !confirm('Abandonner les changements ?')) return; ED = C.norm(C.DEFAUT); EDI = -1; SEL = -1; SRC = null; dirty = 0; render(); };
   }
   function saveEd() {
     var c = C.norm(ED); c.nom = (c.nom || 'Mon cadran').trim() || 'Mon cadran';
@@ -508,8 +592,8 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     if ((b = e.target.closest('nav [data-tab]'))) { if (TAB === 'creer' && dirty && b.dataset.tab !== 'creer' && !confirm('Quitter sans enregistrer ?')) return; TAB = b.dataset.tab; render(); $('main').scrollTop = 0; return; }
     if ((b = e.target.closest('[data-go]'))) { TAB = b.dataset.go; render(); return; }
     if ((b = e.target.closest('[data-inst]'))) { var c0 = COL[+b.dataset.inst]; qrSheet(c0.nom, DL + 'cadrans-collection/' + c0.id + '-qr.png', DL + 'cadrans-collection/' + c0.id + '-apercu.zab'); return; }
-    if ((b = e.target.closest('[data-copie]'))) { ED = C.norm(COL[+b.dataset.copie]); SEL = -1; ED.nom = (ED.nom + ' perso').slice(0, 24); EDI = -1; dirty = 1; TAB = 'creer'; render(); $('main').scrollTop = 0; return; }
-    if ((b = e.target.closest('[data-edit]'))) { EDI = +b.dataset.edit; ED = C.norm(ST.mes[EDI]); SEL = -1; dirty = 0; TAB = 'creer'; render(); return; }
+    if ((b = e.target.closest('[data-copie]'))) { ED = C.norm(COL[+b.dataset.copie]); SEL = -1; SRC = null; ED.nom = (ED.nom + ' perso').slice(0, 24); EDI = -1; dirty = 1; TAB = 'creer'; render(); $('main').scrollTop = 0; return; }
+    if ((b = e.target.closest('[data-edit]'))) { EDI = +b.dataset.edit; ED = C.norm(ST.mes[EDI]); SEL = -1; SRC = null; dirty = 0; TAB = 'creer'; render(); return; }
     if ((b = e.target.closest('[data-dup]'))) { var c1 = clone(ST.mes[+b.dataset.dup]); c1.build = null; c1.nom = (c1.nom + ' 2').slice(0, 24); ST.mes.unshift(c1); save(); render(); return; }
     if ((b = e.target.closest('[data-del]'))) { var i = +b.dataset.del; if (confirm('Supprimer « ' + ST.mes[i].nom + ' » de vos cadrans ? (il reste sur la montre)')) { ST.mes.splice(i, 1); save(); render(); } return; }
     if ((b = e.target.closest('[data-fab]'))) { fabriquer(+b.dataset.fab); return; }
