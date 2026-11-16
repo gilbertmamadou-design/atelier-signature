@@ -1979,6 +1979,7 @@ fi
 # Réunion : retranscription en direct (reconnaissance vocale d'Android, par DictaBridge commun : speechStart / speechStop)
 # et compte rendu préparé sur le téléphone ; correcteur commun (office-deps.txt). Micro seulement, aucune connexion de l'appli.
 if [ "$APP" = "reunion" ]; then
+  bash scripts/office-deps.sh www-reunion
   addperm RECORD_AUDIO
   addraw '<uses-feature android:name="android.hardware.microphone" android:required="true" /><queries><intent><action android:name="android.speech.RecognitionService" /></intent><intent><action android:name="android.intent.action.SEND" /><data android:mimeType="text/plain" /></intent></queries>'
 fi
