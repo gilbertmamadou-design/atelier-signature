@@ -193,7 +193,8 @@
       const inner = el.querySelector('.tx-img-in'); x.beginPath(); x.rect(0, 0, inner.offsetWidth, inner.offsetHeight); x.clip();
       try { x.drawImage(img, img.offsetLeft, img.offsetTop, img.offsetWidth, img.offsetHeight); } catch (e) { console.warn('image', e); return null; }
       const ol = parseFloat(getComputedStyle(el).outlineWidth) || 0; if (ol && getComputedStyle(el).outlineStyle !== 'none') { x.strokeStyle = getComputedStyle(el).outlineColor; x.lineWidth = ol; x.strokeRect(ol / 2, ol / 2, cw - ol, ch - ol); }
-      const alpha = /png|gif|svg|webp/.test((TX.media.blobs[(img.closest('[data-m]') || {}).dataset && 0] || {}).type || img.src.slice(0, 30)) || /^data:image\/(png|gif|svg)|blob:/.test(img.src) && /png|svg|gif/.test(img.getAttribute('src'));
+      // transparence : on regarde les pixels (une image « blob: » ne dit pas son format) ; en JPEG le transparent deviendrait noir
+      let alpha = false; try { const d = x.getImageData(0, 0, c.width, c.height).data, step = Math.max(4, Math.floor(d.length / 4 / 40000) * 4); for (let i = 3; i < d.length; i += step) if (d[i] < 250) { alpha = true; break; } } catch (e) { alpha = true; }
       return { url: c.toDataURL(alpha ? 'image/png' : 'image/jpeg', 0.9), w: b.w, h: b.h, x: b.x, y: b.y, fmt: alpha ? 'PNG' : 'JPEG' };
     }
     if (it.kind === 'svg') {
@@ -282,8 +283,12 @@
         for (const o of list) {
           if (o.k === 'rect') { doc.setFillColor(o.fill); if (o.op < 0.99 && doc.GState) { doc.saveGraphicsState(); doc.setGState(new doc.GState({ opacity: o.op })); doc.rect(o.x, o.y, o.w, o.h, 'F'); doc.restoreGraphicsState(); } else doc.rect(o.x, o.y, o.w, o.h, 'F'); }
         }
-        for (const o of list) if (o.k === 'img') { const r = await rasterize(o, opt.thumb ? 0.5 : 1, A); if (r) { const pos = { x: (r.x - p.left) / PX, y: (r.y - p.top) / PX }; try { doc.addImage(r.url, r.fmt, pos.x, pos.y, r.w / PX, r.h / PX, undefined, 'FAST'); } catch (e) { console.warn('image', e); } } }
+        // bordures et traits sous les objets (un objet placé devant le texte les recouvre, comme dans Word)
         for (const o of list) if (o.k === 'line') drawLine(doc, o);
+        // objets dans l'ordre d'empilement (z-index des objets placés), sinon l'ordre du document
+        const zOf = (o) => { const h = o.el.closest && o.el.closest('.tx-img,.tx-drw'); return h ? parseInt(getComputedStyle(h).zIndex, 10) || 0 : 0; };
+        const imgs = list.filter((o) => o.k === 'img').map((o, i) => [o, i, zOf(o)]).sort((a, b) => a[2] - b[2] || a[1] - b[1]).map((x) => x[0]);
+        for (const o of imgs) { const r = await rasterize(o, opt.thumb ? 0.5 : 1, A); if (r) { const pos = { x: (r.x - p.left) / PX, y: (r.y - p.top) / PX }; try { doc.addImage(r.url, r.fmt, pos.x, pos.y, r.w / PX, r.h / PX, undefined, 'FAST'); } catch (e) { console.warn('image', e); } } }
         for (const o of list) {
           if (o.k !== 'text') continue;
           const cmap = sel(o); doc.setFontSize(o.size); doc.setTextColor(o.c);

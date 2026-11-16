@@ -38,6 +38,8 @@
 .tx-web .tx-sect+.tx-sect{border-top:1px dashed #9aa3}
 .tx-pgw{display:inline-block;width:100%;vertical-align:top;line-height:0;font-size:0;pointer-events:none;user-select:none}
 .tx-pgw::selection{background:none}
+.tx-excl{display:block;pointer-events:none;user-select:none;margin:0;padding:0;line-height:0;font-size:0}
+.tx-push{display:block;pointer-events:none;user-select:none;line-height:0;font-size:0}
 .tx-pgrow>td,.tx-pgrow>th{padding-top:calc(var(--cpt,0pt) + var(--pg,0px))!important}
 .tx-doc sub,.tx-doc sup{line-height:0}
 .tx-doc a.tx-link{color:var(--t-hlink,#0563C1);text-decoration:underline}
@@ -119,7 +121,7 @@ sup.tx-fn{font-size:.65em;vertical-align:super;line-height:0;cursor:pointer;padd
 @media (pointer:coarse){.tx-hdl i{width:18px;height:18px;margin:-9px 0 0 -9px}.tx-hdl i[data-h=rot]{top:-30px}}
 .tx-drw-g{position:absolute;inset:0;display:block;line-height:normal}
 .tx-drw-g svg{display:block;overflow:visible}
-.tx-drw-t{position:absolute;inset:0;display:flex;flex-direction:column;line-height:1.2;white-space:pre-wrap;overflow:hidden;font-size:11pt}
+.tx-drw-t{position:absolute;inset:0;display:flex;flex-direction:column;line-height:1.2;white-space:pre-wrap;overflow:visible;font-size:11pt;color:#000;font-weight:normal;font-style:normal;letter-spacing:normal;text-transform:none;text-decoration:none;text-indent:0;text-align:left;text-shadow:none}
 .tx-drw-ti{outline:none;min-height:1em}
 .tx-drw.editing{outline:1px dashed #2563EB}
 .tx-math{display:inline-block;line-height:normal;text-indent:0}

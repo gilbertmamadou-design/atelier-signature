@@ -30,11 +30,14 @@
     s += 'width:' + w + 'pt;height:' + h + 'pt;';
     const tf = []; if (a.rot) tf.push('rotate(' + a.rot + 'deg)'); if (a.fh) tf.push('scaleX(-1)'); if (a.fv) tf.push('scaleY(-1)');
     if (tf.length) s += 'transform:' + tf.join(' ') + ';';
-    if (a.wrap === 'front' || a.wrap === 'behind') s += 'left:' + r2(a.x || 0) + 'pt;top:' + r2(a.y || 0) + 'pt;';
+    if (a.pos && a.wrap && a.wrap !== 'inline') s += 'left:' + r2(a.al === 'left' ? a.x || 0 : 0) + 'pt;top:' + r2(a.vrel === 'p' ? a.y || 0 : Math.max(0, Math.min(a.y || 0, 40))) + 'pt;' + (a.zr && a.wrap !== 'behind' ? 'z-index:' + Math.max(6, Math.min(300, 6 + Math.round((a.zr - 251658240) / 1024))) + ';' : '');
+    else if (a.wrap === 'front' || a.wrap === 'behind') s += 'left:' + r2(a.x || 0) + 'pt;top:' + r2(a.y || 0) + 'pt;';
     else if (a.wrap !== 'inline' && a.y) s += 'margin-top:' + r2(a.y) + 'pt;';
     return s;
   }
-  TX.wrapClass = (a) => 'tx-w-' + (a.wrap || 'inline') + (a.wrap === 'square' || a.wrap === 'tight' || a.wrap === 'through' || a.wrap === 'topBottom' ? ' tx-al-' + (a.al || 'left') : '');
+  TX.wrapClass = (a) => a.pos && a.wrap && a.wrap !== 'inline' ? 'tx-w-' + (a.wrap === 'behind' ? 'behind' : 'front') + ' tx-pos' : 'tx-w-' + (a.wrap || 'inline') + (a.wrap === 'square' || a.wrap === 'tight' || a.wrap === 'through' || a.wrap === 'topBottom' ? ' tx-al-' + (a.al || 'left') : '');
+  /** Objets placés sur la page (position Word : marge, page ou paragraphe) : données pour la mise en page */
+  TX.posData = function (el, a) { if (a.pos && a.wrap && a.wrap !== 'inline') el.setAttribute('data-pos', JSON.stringify({ x: a.x || 0, y: a.y || 0, al: a.al || 'left', vrel: a.vrel || 'p', w: a.w, h: a.h, ex: /^(square|tight|through)$/.test(a.wrap) ? (a.kind === 'textbox' ? 'txt' : 1) : a.wrap === 'topBottom' ? 'tb' : 0 })); else el.removeAttribute('data-pos'); };
   /** Poignées de redimensionnement / rotation d'un objet sélectionné */
   function handles(view, getPos, el, opt) {
     const box = O.h('span', { cls: 'tx-hdl', contenteditable: 'false' });
@@ -71,8 +74,11 @@
   /** Déplacement à la souris d'un objet « devant / derrière le texte » (décalage par rapport au paragraphe) */
   function freeMove(view, getPos, el, e) {
     const pos = getPos(), node = view.state.doc.nodeAt(pos); if (!node) return;
-    const scale = TX.scaleOf(el) || 1, x0 = node.attrs.x || 0, y0 = node.attrs.y || 0;
-    O.drag(e, { threshold: 3, move: (dx, dy) => { el.style.left = r2(x0 + dx / scale / PX) + 'pt'; el.style.top = r2(y0 + dy / scale / PX) + 'pt'; el._xy = [r2(x0 + dx / scale / PX), r2(y0 + dy / scale / PX)]; }, end: (dx, dy, ev, moved) => { if (moved && el._xy) setAttrs(view, getPos(), { x: el._xy[0], y: el._xy[1] }); else view.dispatch(view.state.tr.setSelection(PMs.NodeSelection.create(view.state.doc, getPos()))); el._xy = null; } });
+    const scale = TX.scaleOf(el) || 1, isPos = !!node.attrs.pos;
+    // objet placé sur la page : on déplace l'affichage depuis sa place actuelle, on enregistre le décalage dans son repère
+    const x0 = isPos && el._mx != null ? el._mx : node.attrs.x || 0, y0 = node.attrs.y || 0;
+    const vx = isPos ? parseFloat(el.style.left) || 0 : x0, vy = isPos ? parseFloat(el.style.top) || 0 : y0;
+    O.drag(e, { threshold: 3, move: (dx, dy) => { el.style.left = r2(vx + dx / scale / PX) + 'pt'; el.style.top = r2(vy + dy / scale / PX) + 'pt'; el._xy = [r2(x0 + dx / scale / PX), r2(y0 + dy / scale / PX)]; }, end: (dx, dy, ev, moved) => { if (moved && el._xy) setAttrs(view, getPos(), isPos ? { x: el._xy[0], y: el._xy[1], al: 'left' } : { x: el._xy[0], y: el._xy[1] }); else view.dispatch(view.state.tr.setSelection(PMs.NodeSelection.create(view.state.doc, getPos()))); el._xy = null; } });
   }
   TX.scaleOf = function (el) { const p = el.closest && el.closest('.tx-paper'); return p ? (p._scale || 1) : 1; };
 
@@ -81,7 +87,7 @@
     constructor(node, view, getPos) { this.view = view; this.getPos = getPos; this.dom = O.h('span', { contenteditable: 'false' }); this.render(node); }
     render(node) {
       this.node = node; const a = node.attrs;
-      this.dom.className = 'tx-img ' + TX.wrapClass(a) + (a.dec ? ' tx-dec' : '');
+      this.dom.className = 'tx-img ' + TX.wrapClass(a) + (a.dec ? ' tx-dec' : ''); TX.posData(this.dom, a);
       this.dom.setAttribute('style', imgCss(a) + (a.bd && a.bd.w ? 'outline:' + r2(a.bd.w) + 'pt ' + (a.bd.s === 'dashed' ? 'dashed' : 'solid') + ' ' + TX.color(a.bd.c || '#000') + ';outline-offset:-' + r2(a.bd.w / 2) + 'pt;' : '') + (a.sha ? 'filter:drop-shadow(3pt 3pt 4pt rgba(0,0,0,.35));' : ''));
       const src = a.m ? TX.media.url(a.m) : a.src || '';
       const c = a.crop || { l: 0, t: 0, r: 0, b: 0 };
@@ -90,7 +96,7 @@
       this.dom.innerHTML = '<span class="tx-img-in"><img draggable="false" alt="' + O.esc(a.alt || '') + '" src="' + O.esc(src) + '" style="' + (cropped ? 'position:absolute;width:' + r2(kw * 100) + '%;height:' + r2(kh * 100) + '%;left:' + r2(-(c.l || 0) * kw * 100) + '%;top:' + r2(-(c.t || 0) * kh * 100) + '%' : 'width:100%;height:100%') + '"></span>';
       this.dom.setAttribute('role', 'img'); this.dom.setAttribute('aria-label', a.alt || 'Image');
       if (this.sel) this.dom.appendChild(handles(this.view, this.getPos, this.dom, { rotate: true }));
-      this.dom.onpointerdown = (e) => { if (e.button !== 0 || e.target.closest('.tx-hdl')) return; if (/front|behind/.test(this.node.attrs.wrap) && this.view.editable) { e.preventDefault(); freeMove(this.view, this.getPos, this.dom, e); } };
+      this.dom.onpointerdown = (e) => { if (e.button !== 0 || e.target.closest('.tx-hdl')) return; if ((/front|behind/.test(this.node.attrs.wrap) || this.node.attrs.pos) && this.view.editable) { e.preventDefault(); freeMove(this.view, this.getPos, this.dom, e); } };
     }
     update(node) { if (node.type !== this.node.type) return false; this.render(node); return true; }
     selectNode() { this.sel = true; this.dom.classList.add('sel'); this.render(this.node); }
@@ -122,14 +128,14 @@
     render(node) {
       this.node = node; const a = node.attrs;
       this.dom.className = 'tx-drw ' + TX.wrapClass(a);
-      this.dom.setAttribute('style', imgCss(a));
+      this.dom.setAttribute('style', imgCss(a)); TX.posData(this.dom, a);
       this.dom.setAttribute('role', 'img'); this.dom.setAttribute('aria-label', a.alt || ({ shape: 'Forme', textbox: 'Zone de texte', icon: 'Icône', chart: 'Graphique', smart: 'SmartArt' }[a.kind] || 'Objet'));
       const ctx = this.view._tx && this.view._tx.ctx;
       let h = '<span class="tx-drw-g">' + TX.drawingSvg(a, ctx ? ctx.chartDoc() : null) + '</span>';
       if (a.kind === 'shape' || a.kind === 'textbox') h += '<span class="tx-drw-t" style="padding:' + r2(a.pad == null ? 7.2 : a.pad) + 'pt;justify-content:' + ({ top: 'flex-start', middle: 'center', bottom: 'flex-end' }[a.va] || 'center') + ';' + (a.kind === 'shape' ? 'text-align:center;' : '') + '"><span class="tx-drw-ti">' + (a.html || '') + '</span></span>';
       this.dom.innerHTML = h;
       if (this.sel) this.dom.appendChild(handles(this.view, this.getPos, this.dom, { keepRatio: a.kind === 'icon', rotate: true }));
-      this.dom.onpointerdown = (e) => { if (e.button !== 0 || e.target.closest('.tx-hdl') || e.target.closest('[contenteditable=true]')) return; if (/front|behind/.test(this.node.attrs.wrap) && this.view.editable) { e.preventDefault(); freeMove(this.view, this.getPos, this.dom, e); } };
+      this.dom.onpointerdown = (e) => { if (e.button !== 0 || e.target.closest('.tx-hdl') || e.target.closest('[contenteditable=true]')) return; if ((/front|behind/.test(this.node.attrs.wrap) || this.node.attrs.pos) && this.view.editable) { e.preventDefault(); freeMove(this.view, this.getPos, this.dom, e); } };
       this.dom.ondblclick = (e) => { if ((this.node.attrs.kind === 'shape' || this.node.attrs.kind === 'textbox') && this.view.editable) { e.preventDefault(); this.editText(); } else if (this.view._tx && this.view._tx.onObjectDblClick) this.view._tx.onObjectDblClick(this.node, this.getPos()); };
     }
     editText() {
@@ -319,7 +325,7 @@
       iv.dom.onpointerdown = null; im.replaceWith(iv.dom);
     });
     root.querySelectorAll('.tx-math').forEach((el) => { el.innerHTML = TX.renderTex(el.getAttribute('data-tex'), el.getAttribute('data-display') === '1'); });
-    root.querySelectorAll('.tx-draw').forEach((el) => { let a = {}; try { a = JSON.parse(el.getAttribute('data-d') || '{}'); } catch (e) { } const d = O.h('span', { cls: 'tx-drw ' + TX.wrapClass(a), style: imgCss(a) }); d.innerHTML = '<span class="tx-drw-g">' + TX.drawingSvg(a, ctx ? ctx.chartDoc() : null) + '</span>' + (a.html ? '<span class="tx-drw-t" style="padding:' + r2(a.pad == null ? 7.2 : a.pad) + 'pt"><span class="tx-drw-ti">' + a.html + '</span></span>' : ''); el.replaceWith(d); });
+    root.querySelectorAll('.tx-draw').forEach((el) => { let a = {}; try { a = JSON.parse(el.getAttribute('data-d') || '{}'); } catch (e) { } const d = O.h('span', { cls: 'tx-drw ' + TX.wrapClass(a), style: imgCss(a) }); TX.posData(d, a); d.innerHTML = '<span class="tx-drw-g">' + TX.drawingSvg(a, ctx ? ctx.chartDoc() : null) + '</span>' + (a.html ? '<span class="tx-drw-t" style="padding:' + r2(a.pad == null ? 7.2 : a.pad) + 'pt"><span class="tx-drw-ti">' + a.html + '</span></span>' : ''); el.replaceWith(d); });
     root.querySelectorAll('sup.tx-fn').forEach((el) => { el.textContent = ctx && ctx.noteLabel ? ctx.noteLabel(el.getAttribute('data-id'), el.getAttribute('data-end') === '1') : '*'; });
     return root;
   };

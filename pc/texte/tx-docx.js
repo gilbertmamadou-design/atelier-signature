@@ -177,16 +177,23 @@
       if (tag === 'u' || /underline/.test(st.textDecoration || '')) rr.u = 'single';
       if (st.color) { const c = O.cssToHex(st.color); if (c) rr.c = c; }
       if (st.fontSize) { const m = /([\d.]+)(px|pt)/.exec(st.fontSize); if (m) rr.sz = m[2] === 'px' ? +m[1] * 0.75 : +m[1]; }
+      if (st.fontFamily) { const f = st.fontFamily.split(',')[0].replace(/['"]/g, '').trim(); if (f) rr.f = f; }
+      if (n.classList && n.classList.contains('tx-bul')) { if (!cur) cur = { runs: [] }; cur.runs.push({ t: n.textContent || '•', r: rr }, { tab: 1 }); return; }
       if (tag === 'br') { if (!cur) cur = { runs: [] }; cur.runs.push({ br: 1 }); return; }
       const block = /^(p|div|li|h[1-6])$/.test(tag);
-      if (block) { flush(); cur = { al: st.textAlign || null, runs: [] }; if (tag === 'li') cur.runs.push({ t: '• ', r: rr }); }
+      if (block) {
+        flush(); const pt = (v) => { const m = /(-?[\d.]+)(px|pt|em)/.exec(v || ''); return m ? (m[2] === 'px' ? +m[1] * 0.75 : m[2] === 'em' ? +m[1] * 11 : +m[1]) : null; };
+        cur = { al: st.textAlign || null, runs: [], s: n.getAttribute('data-s'), sb: pt(st.marginTop), sa: pt(st.marginBottom), il: pt(st.paddingLeft), ti: pt(st.textIndent) };
+        if (tag === 'li') cur.runs.push({ t: '• ', r: rr });
+      }
       n.childNodes.forEach((c) => walk(c, rr));
       if (block) flush();
     };
     box.childNodes.forEach((c) => walk(c, {}));
     flush();
     if (!paras.length) paras.push({ runs: [] });
-    return paras.map((p) => '<w:p>' + (p.al ? '<w:pPr><w:jc w:val="' + (JC[p.al] || (p.al === 'start' ? 'left' : 'center')) + '"/></w:pPr>' : '') + p.runs.map((x) => x.br ? '<w:r><w:br/></w:r>' : '<w:r>' + rPr(x.r, theme) + '<w:t xml:space="preserve">' + esc(x.t) + '</w:t></w:r>').join('') + '</w:p>').join('');
+    return paras.map((p) => { const pp = (p.s ? '<w:pStyle w:val="' + esc(wid(p.s)) + '"/>' : '') + (p.sb != null || p.sa != null ? '<w:spacing' + (p.sb != null ? ' w:before="' + Math.round(p.sb * 20) + '"' : '') + (p.sa != null ? ' w:after="' + Math.round(p.sa * 20) + '"' : '') + '/>' : '') + (p.il ? '<w:ind w:left="' + Math.round(p.il * 20) + '"' + (p.ti < 0 ? ' w:hanging="' + Math.round(-p.ti * 20) + '"' : '') + '/>' : '') + (p.al ? '<w:jc w:val="' + (JC[p.al] || (p.al === 'start' ? 'left' : 'center')) + '"/>' : '');
+      return '<w:p>' + (pp ? '<w:pPr>' + pp + '</w:pPr>' : '') + p.runs.map((x) => x.br ? '<w:r><w:br/></w:r>' : x.tab ? '<w:r><w:tab/></w:r>' : '<w:r>' + rPr(x.r, theme) + '<w:t xml:space="preserve">' + esc(x.t) + '</w:t></w:r>').join('') + '</w:p>'; }).join('');
   }
 
   /* ---------------- écriture ---------------- */
@@ -372,6 +379,12 @@
     /* images */
     function anchorPos(a) {
       const behind = a.wrap === 'behind', front = a.wrap === 'front';
+      if (a.pos) {
+        const h2 = a.al === 'center' || a.al === 'right' ? '<wp:positionH relativeFrom="margin"><wp:align>' + a.al + '</wp:align></wp:positionH>' : '<wp:positionH relativeFrom="margin"><wp:posOffset>' + emu(a.x || 0) + '</wp:posOffset></wp:positionH>';
+        const v2 = '<wp:positionV relativeFrom="' + (a.vrel === 'page' ? 'page' : a.vrel === 'margin' ? 'margin' : 'paragraph') + '"><wp:posOffset>' + emu(a.y || 0) + '</wp:posOffset></wp:positionV>';
+        const wrap2 = a.wrap === 'square' ? '<wp:wrapSquare wrapText="bothSides"/>' : a.wrap === 'tight' ? '<wp:wrapTight wrapText="bothSides"><wp:wrapPolygon edited="0"><wp:start x="0" y="0"/><wp:lineTo x="0" y="21600"/><wp:lineTo x="21600" y="21600"/><wp:lineTo x="21600" y="0"/><wp:lineTo x="0" y="0"/></wp:wrapPolygon></wp:wrapTight>' : a.wrap === 'topBottom' ? '<wp:wrapTopAndBottom/>' : '<wp:wrapNone/>';
+        return { open: '<wp:anchor distT="0" distB="0" distL="114300" distR="114300" simplePos="0" relativeHeight="' + (a.zr ? Math.round(a.zr) : behind ? 251658240 : 251659264 + (++drawN)) + '" behindDoc="' + (behind ? 1 : 0) + '" locked="0" layoutInCell="1" allowOverlap="1"><wp:simplePos x="0" y="0"/>' + h2 + v2, wrap: wrap2, front };
+      }
       let h = '';
       if (a.al === 'center' || a.al === 'right' || (a.al === 'left' && !a.x)) h = '<wp:positionH relativeFrom="column"><wp:align>' + a.al + '</wp:align></wp:positionH>';
       else h = '<wp:positionH relativeFrom="column"><wp:posOffset>' + emu(a.x || 0) + '</wp:posOffset></wp:positionH>';
@@ -767,7 +780,7 @@
       return /^[0-9A-Fa-f]{6}$/.test(v) ? '#' + v.toUpperCase() : null;
     };
     const shdOf = (n) => { if (!n) return null; const f = att(n, 'fill'); if (f && f !== 'auto' && /^[0-9A-Fa-f]{6}$/.test(f)) { const tf = att(n, 'themeFill'); if (tf && W_ROLE[tf]) { let k = 0; const ti = att(n, 'themeFillTint'), sh = att(n, 'themeFillShade'); if (ti) k = Math.round((1 - parseInt(ti, 16) / 255) * 100); else if (sh) k = -Math.round((1 - parseInt(sh, 16) / 255) * 100); return 't:' + W_ROLE[tf] + (k ? '/' + (k > 0 ? '+' : '') + k : ''); } return '#' + f.toUpperCase(); } const v = att(n, 'val'); if (v === 'solid') { const c = att(n, 'color'); if (c && /^[0-9A-Fa-f]{6}$/.test(c)) return '#' + c.toUpperCase(); } if (/^pct(\d+)$/.test(v || '')) { const p = +/^pct(\d+)$/.exec(v)[1]; const g = Math.round(255 * (1 - p / 100)); return '#' + hex2(g) + hex2(g) + hex2(g); } return null; };
-    const bdOf = (n) => { if (!n) return null; const v = att(n, 'val'); if (!v || v === 'nil' || v === 'none') return { s: 'none' }; const R = { single: 'single', thick: 'thick', double: 'double', dotted: 'dotted', dashed: 'dashed', dashSmallGap: 'dashed', dotDash: 'dashed', dotDotDash: 'dotted', triple: 'double', thinThickSmallGap: 'double', thickThinSmallGap: 'double', thinThickMediumGap: 'double', wave: 'single', inset: 'inset', outset: 'outset', threeDEmboss: 'threeDEmboss', threeDEngrave: 'threeDEngrave' }; return { s: R[v] || 'single', w: r2((+att(n, 'sz') || 4) / 8), c: colorOf(n) || '#000000', sp: +att(n, 'space') || 0 }; };
+    const bdOf = (n) => { if (!n) return null; const v = att(n, 'val'); if (!v || v === 'nil' || v === 'none') return { s: 'none' }; const R = { single: 'single', thick: 'thick', double: 'double', dotted: 'dotted', dashed: 'dashed', dashSmallGap: 'dashed', dotDash: 'dashed', dotDotDash: 'dotted', triple: 'double', thinThickSmallGap: 'double', thickThinSmallGap: 'double', thinThickMediumGap: 'double', wave: 'single', inset: 'inset', outset: 'outset', threeDEmboss: 'threeDEmboss', threeDEngrave: 'threeDEngrave' }; return { s: R[v] || 'single', w: r2((+att(n, 'sz') || 4) / 8), c: colorOf(n) || (/^[0-9A-Fa-f]{6}$/.test(att(n, 'color') || '') ? '#' + att(n, 'color').toUpperCase() : '#000000'), sp: +att(n, 'space') || 0 }; };
     /* propriétés de caractère */
     const rprOf = (rp) => {
       const r = {}; if (!rp) return r;
@@ -1157,6 +1170,8 @@
       // fusion des textes de même marque
       const merged = [];
       inl.forEach((x) => { const last = merged[merged.length - 1]; if (last && x.type === 'text' && last.type === 'text' && JSON.stringify(last.marks || []) === JSON.stringify(x.marks || [])) last.text += x.text; else merged.push(x); });
+      // espaces en fin de paragraphe : Word ne les affiche pas et n'en tient pas compte pour centrer ; ici ils feraient passer le texte à la ligne
+      while (merged.length && merged[merged.length - 1].type === 'text' && / +$/.test(merged[merged.length - 1].text)) { const t = merged[merged.length - 1]; t.text = t.text.replace(/ +$/, ''); if (t.text) break; merged.pop(); }
       if (pp.rpr && Object.keys(pp.rpr).length && !merged.length) attrs.rpr = pp.rpr;
       blocks.push({ type: 'paragraph', attrs, content: merged.length ? merged : undefined });
       // un paragraphe vide qui ne portait que le saut de page : on le retire
@@ -1195,8 +1210,11 @@
       if (anchor) {
         a.wrap = kid(anchor, 'wrapSquare') ? 'square' : kid(anchor, 'wrapTight') || kid(anchor, 'wrapThrough') ? 'tight' : kid(anchor, 'wrapTopAndBottom') ? 'topBottom' : anchor.getAttribute('behindDoc') === '1' ? 'behind' : 'front';
         const ph = kid(anchor, 'positionH'), pv = kid(anchor, 'positionV');
-        if (ph) { const al = kid(ph, 'align'), off = kid(ph, 'posOffset'); if (al) a.al = { left: 'left', center: 'center', right: 'right', inside: 'left', outside: 'right' }[al.textContent] || 'left'; else if (off) { a.x = r2(+off.textContent / 12700); a.al = 'left'; if (ph.getAttribute('relativeFrom') === 'page') a.x = r2(a.x - (rc.pgMl || 70.9)); } }
-        if (pv) { const off = kid(pv, 'posOffset'); if (off) a.y = r2(+off.textContent / 12700); if (pv.getAttribute('relativeFrom') !== 'paragraph' && pv.getAttribute('relativeFrom') !== 'line') a.y = Math.max(0, Math.min(a.y, 40)); }
+        // position réelle : x depuis la marge gauche, y depuis le paragraphe, la marge haute ou le haut de la page (placé à la mise en page)
+        if (ph) { const al = kid(ph, 'align'), off = kid(ph, 'posOffset'); if (al) a.al = { left: 'left', center: 'center', right: 'right', inside: 'left', outside: 'right' }[al.textContent] || 'left'; else if (off) { a.x = r2(+off.textContent / 12700); a.al = 'left'; a.pos = true; if (ph.getAttribute('relativeFrom') === 'page') a.x = r2(a.x - (rc.pgMl || 70.9)); } }
+        if (pv) { const off = kid(pv, 'posOffset'), rf = pv.getAttribute('relativeFrom'); if (off) { a.y = r2(+off.textContent / 12700); if (rf === 'paragraph' || rf === 'line') a.vrel = 'p'; else { a.vrel = rf === 'page' || rf === 'topMargin' ? 'page' : 'margin'; a.pos = true; } } }
+        if (a.pos && !a.vrel) a.vrel = 'p';
+        const rh = +anchor.getAttribute('relativeHeight'); if (rh > 0) a.zr = rh;   // ordre d'empilement des objets
       }
       const pic = /\/picture$/.test(uri) || !uri ? desc(box, 'pic')[0] : null;
       if (pic) {
@@ -1205,7 +1223,8 @@
         const m = await mediaOf(rc.rels, rid2 || rid, rc.base); if (!m) return null;
         const src = desc(pic, 'srcRect')[0]; if (src) { const g = (k) => (+src.getAttribute(k) || 0) / 100000; const c = { l: g('l'), t: g('t'), r: g('r'), b: g('b') }; if (c.l || c.t || c.r || c.b) a.crop = c; }
         const xf = desc(pic, 'xfrm')[0]; if (xf) { if (xf.getAttribute('rot')) a.rot = Math.round(+xf.getAttribute('rot') / 60000); if (xf.getAttribute('flipH') === '1') a.fh = true; if (xf.getAttribute('flipV') === '1') a.fv = true; }
-        const ln = desc(pic, 'ln')[0]; if (ln && !kid(ln, 'noFill')) { const c = desc(ln, 'srgbClr')[0]; a.bd = { s: 'single', w: r2((+ln.getAttribute('w') || 9525) / 12700), c: c ? '#' + c.getAttribute('val') : '#000000' }; }
+        const ln = desc(pic, 'ln')[0]; if (ln && !kid(ln, 'noFill')) { const c = desc(ln, 'srgbClr')[0], sc = desc(ln, 'schemeClr')[0]; const v = sc && sc.getAttribute('val'); a.bd = { s: 'single', w: r2((+ln.getAttribute('w') || 9525) / 12700), c: c ? '#' + c.getAttribute('val') : v ? 't:' + ({ tx1: 'tx1', bg1: 'bg1', tx2: 'tx2', bg2: 'bg2', dk1: 'tx1', lt1: 'bg1', dk2: 'tx2', lt2: 'bg2' }[v] || v) : '#000000' }; }
+        if (desc(pic, 'outerShdw')[0]) a.sha = true;
         const hl = dp && kid(dp, 'hlinkClick'); if (hl) { const r = rc.rels[hl.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id')]; if (r) a.link = r.t; }
         return { type: 'image', attrs: Object.assign({ m }, a) };
       }
@@ -1215,13 +1234,20 @@
         const fillN = sp && kid(sp, 'solidFill'), lnN = sp && kid(sp, 'ln');
         const clr = (n) => { if (!n) return null; const s = desc(n, 'srgbClr')[0]; if (s) return '#' + s.getAttribute('val').toUpperCase(); const sc = desc(n, 'schemeClr')[0]; if (sc) { const v = sc.getAttribute('val'); const role = { tx1: 'tx1', bg1: 'bg1', tx2: 'tx2', bg2: 'bg2', dk1: 'tx1', lt1: 'bg1', dk2: 'tx2', lt2: 'bg2' }[v] || v; return 't:' + role; } return null; };
         const txbx = desc(wsp, 'txbxContent')[0];
-        const html = txbx ? parasOf(txbx).map((p) => { const jc = desc(p, 'jc')[0]; const al = jc ? { center: 'center', right: 'right', both: 'justify' }[att(jc, 'val')] : null; return '<p' + (al ? ' style="text-align:' + al + '"' : '') + '>' + kids(p).filter((r) => r.localName === 'r').map((r) => { const rp = rprOf(kid(r, 'rPr')); const t = O.esc(desc(r, 't').map((x) => x.textContent).join('')); if (!t) return ''; let s = ''; if (rp.c && /^#/.test(rp.c)) s += 'color:' + rp.c + ';'; if (rp.sz) s += 'font-size:' + rp.sz + 'pt;'; let h = s ? '<span style="' + s + '">' + t + '</span>' : t; if (rp.b) h = '<b>' + h + '</b>'; if (rp.i) h = '<i>' + h + '</i>'; if (rp.u) h = '<u>' + h + '</u>'; return h; }).join('') + '</p>'; }).join('') : '';
+        const html = txbx ? parasOf(txbx).map((p) => { const jc = desc(p, 'jc')[0]; const al = jc ? { center: 'center', right: 'right', both: 'justify' }[att(jc, 'val')] : null;
+          // style du paragraphe, espacements et puces (la zone de texte garde la mise en forme principale)
+          const ppN = kid(p, 'pPr'), psN = ppN && kid(ppN, 'pStyle'), spN = ppN && kid(ppN, 'spacing'), num = ppN && kid(ppN, 'numPr');
+          let pst = al ? 'text-align:' + al + ';' : ''; if (spN) { const sa = att(spN, 'after'), sb = att(spN, 'before'); if (sa != null) pst += 'margin-bottom:' + r2(+sa / 20) + 'pt;'; if (sb != null) pst += 'margin-top:' + r2(+sb / 20) + 'pt;'; }
+          const indN = ppN && kid(ppN, 'ind'); const il = indN ? +(att(indN, 'left') || att(indN, 'start') || 0) / 20 : 0, hg = indN ? +(att(indN, 'hanging') || 0) / 20 : 0, fl = indN ? +(att(indN, 'firstLine') || 0) / 20 : 0;
+          if (num && !il) pst += 'padding-left:1.3em;text-indent:-1.3em;'; else { if (il) pst += 'padding-left:' + r2(il) + 'pt;'; if (hg || fl) pst += 'text-indent:' + r2(hg ? -hg : fl) + 'pt;'; }
+          const bullet = num ? '<span class="tx-bul" style="display:inline-block;width:1.3em;text-indent:0">•</span>' : '';
+          const runs = (n) => kids(n).reduce((o, r) => { if (r.localName === 'r') o.push(r); else if (/^(hyperlink|ins|smartTag|customXml|fldSimple|sdt|sdtContent)$/.test(r.localName)) o.push(...runs(r)); return o; }, []); return '<p' + (psN ? ' data-s="' + O.esc(att(psN, 'val') || '') + '"' : '') + (pst ? ' style="' + pst + '"' : '') + '>' + bullet + runs(p).map((r) => { const rp = rprOf(kid(r, 'rPr')); const t = O.esc(desc(r, 't').map((x) => x.textContent).join('')); if (!t) return ''; let s = ''; if (rp.c && /^#/.test(rp.c)) s += 'color:' + rp.c + ';'; if (rp.sz) s += 'font-size:' + rp.sz + 'pt;'; if (rp.f && !/^\+/.test(rp.f)) s += 'font-family:\'' + String(rp.f).replace(/['"<>]/g, '') + '\';'; let h = s ? '<span style="' + s + '">' + t + '</span>' : t; if (rp.b) h = '<b>' + h + '</b>'; if (rp.i) h = '<i>' + h + '</i>'; if (rp.u) h = '<u>' + h + '</u>'; return h; }).join('') + '</p>'; }).join('') : '';
         const isTb = kid(wsp, 'cNvSpPr') && kid(wsp, 'cNvSpPr').getAttribute('txBox') === '1';
         const xf = sp && desc(sp, 'xfrm')[0];
         // zone de texte qui contient plus que du texte (graphique, image, tableau) : affichée simplifiée, gardée telle quelle
         const rich = txbx && (desc(txbx, 'drawing').length || desc(txbx, 'tbl').length || desc(txbx, 'pict').length || desc(txbx, 'object').length);
         let keepTb = null; if (rich) { keepTb = await keepOf(dr, rc, a.w, a.h); keepTb.sig = html; warnings.add('Zones de texte avec images, graphiques ou tableaux : montrées simplifiées, gardées telles quelles dans le .docx.'); }
-        return { type: 'drawing', attrs: Object.assign({}, a, keepTb ? { keep: keepTb } : {}, { kind: isTb || (txbx && (!prst || prst.getAttribute('prst') === 'rect') && !fillN) ? 'textbox' : 'shape', shape: prst ? prst.getAttribute('prst') : 'rect', fill: sp && kid(sp, 'noFill') ? null : (clr(fillN) || (isTb ? null : 't:accent1')), line: lnN && !kid(lnN, 'noFill') ? { w: r2((+lnN.getAttribute('w') || 12700) / 12700), c: clr(kid(lnN, 'solidFill')) || '#000000' } : null, html, rot: xf && xf.getAttribute('rot') ? Math.round(+xf.getAttribute('rot') / 60000) : 0, va: (() => { const bp = kid(wsp, 'bodyPr'); const an = bp && bp.getAttribute('anchor'); return an === 't' ? 'top' : an === 'b' ? 'bottom' : 'middle'; })() }) };
+        return { type: 'drawing', attrs: Object.assign({}, a, keepTb ? { keep: keepTb } : {}, { kind: isTb || (txbx && (!prst || prst.getAttribute('prst') === 'rect') && !fillN) ? 'textbox' : 'shape', shape: prst ? prst.getAttribute('prst') : 'rect', fill: sp && kid(sp, 'noFill') ? null : (clr(fillN) || (isTb ? null : 't:accent1')), line: lnN && !kid(lnN, 'noFill') ? { w: r2((+lnN.getAttribute('w') || 12700) / 12700), c: clr(kid(lnN, 'solidFill')) || '#000000' } : null, html, rot: xf && xf.getAttribute('rot') ? Math.round(+xf.getAttribute('rot') / 60000) : 0, va: (() => { const bp = kid(wsp, 'bodyPr'); const an = bp && bp.getAttribute('anchor'); return an === 'ctr' ? 'middle' : an === 'b' ? 'bottom' : 'top'; })(), pad: (() => { const bp = kid(wsp, 'bodyPr'); const t = bp && bp.getAttribute('tIns'); return r2((t != null ? +t : 45720) / 12700); })() }) };
       }
       // graphique, SmartArt, groupe, zone de dessin… : affiché au mieux, gardé tel quel pour l'enregistrement .docx
       const keep = await keepOf(dr, rc, a.w, a.h);
@@ -1349,7 +1375,7 @@
       pg.titlePg = !!(kid(sp, 'titlePg') && onoff(kid(sp, 'titlePg')));
       const pn = kid(sp, 'pgNumType'); if (pn) { if (att(pn, 'fmt')) pg.numFmt = { decimal: 'decimal', lowerRoman: 'lowerRoman', upperRoman: 'upperRoman', lowerLetter: 'lowerLetter', upperLetter: 'upperLetter' }[att(pn, 'fmt')] || 'decimal'; if (att(pn, 'start') != null) pg.numStart = +att(pn, 'start'); }
       const va = kid(sp, 'vAlign'); if (va) pg.va = att(va, 'val');
-      const pb = kid(sp, 'pgBorders'); if (pb) { const t = bdOf(kid(pb, 'top')); if (t && t.s !== 'none') pg.bd = { s: t.s, w: t.w, c: /^#/.test(t.c) ? t.c : '#000000', from: att(pb, 'offsetFrom') === 'text' ? 'text' : 'page', sp: t.sp, first: att(pb, 'display') === 'firstPage' }; }
+      const pb = kid(sp, 'pgBorders'); if (pb) { const t = bdOf(kid(pb, 'top')); if (t && t.s !== 'none') pg.bd = { s: t.s, w: t.w, c: /^(#|t:)/.test(t.c || '') ? t.c : '#000000', from: att(pb, 'offsetFrom') === 'text' ? 'text' : 'page', sp: t.sp, first: att(pb, 'display') === 'firstPage' }; }
       const ln = kid(sp, 'lnNumType'); if (ln) pg.lnum = { by: +(att(ln, 'countBy') || 1), dist: twp(att(ln, 'distance')) || 18, restart: { newPage: 'page', newSection: 'section', continuous: 'cont' }[att(ln, 'restart')] || 'page' };
       for (const ref of kids(sp)) {
         if (ref.localName !== 'headerReference' && ref.localName !== 'footerReference') continue;

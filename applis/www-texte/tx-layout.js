@@ -218,6 +218,7 @@
       const v = view(), attrs = hooks.attrs(), doc = v.state.doc;
       els.paper.classList.toggle('tx-pagemode', L.mode === 'page');
       L.clearPushes();
+      if (L.mode === 'page' && L.excl && L.excl.length) v.dispatch(v.state.tr.setMeta(TX.layoutKey, DecorationSet.create(v.state.doc, exclDecos(v.state.doc, L.excl))).setMeta('addToHistory', false).setMeta('tx-layout', 1));
       // largeur du papier : la plus grande page
       let maxW = 0; doc.forEach((sec) => { maxW = Math.max(maxW, TX.pg(sec).w * PX); });
       if (L.mode !== 'page') {
@@ -234,13 +235,14 @@
       // en-tête de la 1re page : marge haute du corps
       const pg0 = TX.pg(doc.firstChild), cw0 = (pg0.w - pg0.ml - pg0.mr - (pg0.gut || 0)) * PX;
       const firstH = partHeight(partFor(doc, 0, 'hdr', pg0.titlePg ? 'first' : 'def'), cw0);
-      const top0 = Math.max(pg0.mt * PX, (pg0.mh * PX) + firstH + 4);
+      // sans en-tête, le texte commence à la marge haute (comme Word) ; la distance d'en-tête ne compte que s'il y en a un
+      const top0 = firstH ? Math.max(pg0.mt * PX, (pg0.mh * PX) + firstH + 4) : pg0.mt * PX;
       els.body.style.paddingTop = top0 + 'px';
       TX.layoutTabs(v.dom, attrs, L.scale);
       PR = els.paper.getBoundingClientRect();
       const res = paginate(v, doc, attrs);
       // poussées
-      applied = DecorationSet.create(v.state.doc, res.decos);
+      applied = DecorationSet.create(v.state.doc, res.decos.concat(exclDecos(v.state.doc, L.excl || [])));
       v.dispatch(v.state.tr.setMeta(TX.layoutKey, applied).setMeta('addToHistory', false).setMeta('tx-layout', 1));
       res.toc.forEach((x) => { x.el.style.marginTop = x.mt + 'px'; tocTouched.push(x.el); });
       res.pages.forEach((p) => p.contTables.forEach((el) => el.classList.add('tx-cont')));
@@ -250,8 +252,112 @@
       // correction : les tabulations à droite d'une ligne poussée ont pu changer de place
       TX.layoutTabs(v.dom, attrs, L.scale);
       drawPages(res.pages, attrs);
+      const ex = placeAnchors(v, res.pages), exs = JSON.stringify(ex), olds = JSON.stringify(L.excl || []);
+      if (exs !== olds) {
+        // l'habillage a changé le texte : une passe de plus (au plus 3 de suite)
+        L.excl = ex; L.exclTries = (L.exclTries || 0) + 1;
+        if (L.exclTries <= 3) setTimeout(() => L.run(), 0);
+      } else L.exclTries = 0;
       applyScale();
       hooks.onPages && hooks.onPages(L.pages);
+    }
+    /** Objets ancrés à la manière de Word (marge, page, paragraphe) : placés à leur vraie position sur la page */
+    /** Habillage « carré » des objets placés : une zone flottante invisible (shape-outside) par groupe d'objets, en tête d'un paragraphe */
+    function exclDecos(doc, list) {
+      const out = [];
+      list.forEach((x) => {
+        if (x.at != null) { const n = x.at < doc.content.size ? doc.nodeAt(x.at) : null; if (n && n.isTextblock) out.push(Decoration.widget(x.at + 1, () => { const s = document.createElement('span'); s.className = 'tx-push'; s.setAttribute('contenteditable', 'false'); s.style.height = x.push + 'px'; return s; }, { side: -1, key: 'pu' + x.at + ':' + x.push, marks: [], ignoreSelection: true })); return; }
+        if (x.pos < 1 || x.pos > doc.content.size) return;
+        const $p = doc.resolve(x.pos); if (!$p.parent.isTextblock) return;
+        out.push(Decoration.widget(x.pos, () => { const s = document.createElement('span'); s.className = 'tx-excl'; s.setAttribute('contenteditable', 'false'); s.setAttribute('aria-hidden', 'true'); s.style.cssText = 'float:' + (x.side === 'R' ? 'right' : 'left') + ';width:' + x.w + 'px;height:' + x.h + 'px;shape-outside:polygon(' + x.poly + ');'; return s; }, { side: -1, key: 'ex' + x.pos + x.side + x.w + 'x' + x.h + x.poly, marks: [], ignoreSelection: true }));
+      });
+      return out;
+    }
+    function exclusions(v, pages, rects) {
+      if (!rects.length) return [];
+      // paragraphes de premier niveau (hôtes possibles)
+      const paras = [];
+      v.state.doc.forEach((sec, off) => { sec.forEach((n, o) => { if (!n.isTextblock) return; const pos = off + 1 + o, dom = v.nodeDOM(pos); if (!dom || !dom.getBoundingClientRect) return; paras.push({ pos, dom, top: Y(dom.getBoundingClientRect()) }); }); });
+      const out = [];
+      pages.forEach((pg) => {
+        // une ligne courte (titre…) qui tiendrait en entier n'est pas coupée à côté d'un objet : comme Word, elle descend sous l'objet
+        const band = rects.filter((r) => r.pi === pg.i); if (band.length) {
+          const t0 = Math.min(...band.map((r) => r.t)), b0 = Math.max(...band.map((r) => r.b));
+          paras.forEach((p) => {
+            if (p.top < pg.top - 1 || p.top >= pg.top + pg.H) return;
+            const prev = ((L.excl || []).find((x) => x.at === p.pos) || {}).push || 0;
+            const rr = p.dom.getBoundingClientRect(), cs = getComputedStyle(p.dom);
+            const ct = Y(rr) + (parseFloat(cs.borderTopWidth) || 0) + (parseFloat(cs.paddingTop) || 0), bot = YB(rr) - prev; if (bot < t0 || ct > b0) return;
+            const n = v.state.doc.nodeAt(p.pos); if (!n || !n.textContent.trim() || n.textContent.length > 120) return;
+            const c = p.dom.cloneNode(true); c.querySelectorAll('.tx-excl,.tx-pos,.tx-drw,.tx-img,.tx-push').forEach((e) => e.remove());
+            c.style.cssText += ';white-space:pre;display:inline-block;width:auto;margin:0;padding:0;border:0;text-indent:0';
+            measureBox.appendChild(c); const wN = c.getBoundingClientRect().width / L.scale, lh = c.getBoundingClientRect().height / L.scale; c.remove();
+            const cl = X(rr) + (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.paddingLeft) || 0), cr = X(rr) + rr.width / L.scale - (parseFloat(cs.borderRightWidth) || 0) - (parseFloat(cs.paddingRight) || 0);
+            if (!(wN > 0) || wN > cr - cl - 2 || lh > 3 * (parseFloat(cs.fontSize) || 16) * 1.6) return;
+            let y = ct; for (let k = 0; k < 20; k++) {
+              const ov = band.filter((r) => r.t < y + lh - 0.5 && r.b > y + 0.5); if (!ov.length) break;
+              const lo = Math.max(cl, ...ov.filter((r) => r.side === 'L').map((r) => r.r)), hi = Math.min(cr, ...ov.filter((r) => r.side === 'R').map((r) => r.l));
+              if (hi - lo >= wN + 1) break;
+              y = Math.min(...ov.map((r) => r.b)) + 0.5;
+            }
+            const push = Math.round(y - ct); if (push > 1 && push < pg.H / 2) out.push({ at: p.pos, push });
+          });
+        }
+        ['L', 'R'].forEach((side) => {
+          const rs = rects.filter((r) => r.pi === pg.i && r.side === side).sort((a, b) => a.t - b.t);
+          // groupes : objets proches verticalement
+          const groups = []; rs.forEach((r) => { const g = groups[groups.length - 1]; if (g && r.t <= g.b + 60) { g.list.push(r); g.b = Math.max(g.b, r.b); } else groups.push({ t: r.t, b: r.b, list: [r] }); });
+          groups.forEach((g) => {
+            const onPage = paras.filter((p) => p.top >= pg.top - 1 && p.top < pg.top + pg.H);
+            let host = null; onPage.forEach((p) => { if (p.top <= g.t + 1) host = p; });
+            if (!host) host = onPage.find((p) => p.top < g.b); if (!host) return;
+            const r = host.dom.getBoundingClientRect(), cs = getComputedStyle(host.dom);
+            const cl = X(r) + (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.paddingLeft) || 0), ct = Y(r) + (parseFloat(cs.borderTopWidth) || 0) + (parseFloat(cs.paddingTop) || 0);
+            const cr = X(r) + r.width / L.scale - (parseFloat(cs.borderRightWidth) || 0) - (parseFloat(cs.paddingRight) || 0);
+            const ys = Array.from(new Set(g.list.reduce((a, q) => a.concat([Math.max(ct, q.t), Math.max(ct, q.b)]), []))).sort((a, b) => a - b);
+            const H = Math.round(ys[ys.length - 1] - ct); if (H < 2) return;
+            const R1 = (n) => Math.round(n * 10) / 10;
+            let W, pts = [];
+            if (side === 'L') {
+              const maxR = Math.min(cr, Math.max(...g.list.map((q) => q.r))); W = Math.round(maxR - cl); if (W < 2) return;
+              pts.push('0px 0px', '0px ' + R1(ys[0] - ct) + 'px');
+              for (let i = 0; i < ys.length - 1; i++) { const a = ys[i], b = ys[i + 1], cov = g.list.filter((q) => q.t < b - 0.1 && q.b > a + 0.1); const e = cov.length ? Math.min(W, Math.max(...cov.map((q) => q.r)) - cl) : 0; pts.push(R1(e) + 'px ' + R1(a - ct) + 'px', R1(e) + 'px ' + R1(b - ct) + 'px'); }
+              pts.push('0px ' + H + 'px');
+            } else {
+              const minL = Math.max(cl, Math.min(...g.list.map((q) => q.l))); W = Math.round(cr - minL); if (W < 2) return;
+              pts.push(W + 'px 0px', W + 'px ' + R1(ys[0] - ct) + 'px');
+              for (let i = 0; i < ys.length - 1; i++) { const a = ys[i], b = ys[i + 1], cov = g.list.filter((q) => q.t < b - 0.1 && q.b > a + 0.1); const e = cov.length ? Math.max(0, Math.min(...cov.map((q) => q.l)) - minL) : W; pts.push(R1(e) + 'px ' + R1(a - ct) + 'px', R1(e) + 'px ' + R1(b - ct) + 'px'); }
+              pts.push(W + 'px ' + H + 'px');
+            }
+            out.push({ pos: host.pos + 1, side, w: W, h: H, poly: pts.join(',') });
+          });
+        });
+      });
+      return out;
+    }
+    function placeAnchors(v, pages) {
+      const list = v.dom.querySelectorAll('[data-pos]'); if (!list.length || !pages.length) return [];
+      PR = els.paper.getBoundingClientRect();
+      const rects = [];
+      list.forEach((el) => {
+        let d; try { d = JSON.parse(el.getAttribute('data-pos')); } catch (e) { return; }
+        const blk = (el.parentElement && el.parentElement.closest('p,li,h1,h2,h3,h4,h5,h6,td,th')) || el.parentElement; if (!blk) return;
+        const pt = Y(blk.getBoundingClientRect());
+        const pg = pages.find((p) => pt >= p.top - 1 && pt < p.top + p.H + GAP) || pages[pages.length - 1];
+        const g = pg.pg, cl = pg.left + g.ml * PX, w = d.w * PX;
+        const X0 = d.al === 'center' ? cl + (pg.cw - w) / 2 : d.al === 'right' ? cl + pg.cw - w : cl + d.x * PX;
+        const Y0 = d.vrel === 'margin' ? pg.top + g.mt * PX + d.y * PX : d.vrel === 'page' ? pg.top + d.y * PX : pt + d.y * PX;
+        const cb = el.offsetParent; if (!cb) return;
+        const cr = cb.getBoundingClientRect();
+        el.style.left = Math.round((X0 - X(cr) - cb.clientLeft) / PX * 100) / 100 + 'pt';
+        el.style.top = Math.round((Y0 - Y(cr) - cb.clientTop) / PX * 100) / 100 + 'pt';
+        el._mx = (X0 - cl) / PX;
+        if (d.ex) {
+          const dist = 9 * PX, w2 = d.w * PX;
+          // zone de texte : on n'écarte le texte que de ce qu'elle affiche vraiment (ses lignes), pas de son cadre vide
+          let h2 = d.h * PX; if (d.ex === 'txt') { const ti = el.querySelector('.tx-drw-ti'), tt = el.querySelector('.tx-drw-t'); if (ti && tt) { const pt2 = parseFloat(getComputedStyle(tt).paddingTop) || 0; h2 = Math.min(h2, pt2 + ti.getBoundingClientRect().height / L.scale); } } rects.push({ pi: pg.i, side: d.ex === 'tb' ? 'L' : (X0 + w2 / 2 - cl < pg.cw / 2 ? 'L' : 'R'), l: d.ex === 'tb' ? cl : X0 - dist, r: d.ex === 'tb' ? cl + pg.cw : X0 + w2 + dist, t: Y0, b: Y0 + h2 }); }
+      });
+      return exclusions(v, pages, rects);
     }
     /** Estimation des pages hors mode Page (statistiques) */
     function estimatePages(v, attrs) {
@@ -275,7 +381,7 @@
         const hdrH = partHeight(hdr, cw), ftrH = partHeight(ftr, cw);
         const p = {
           i: pages.length, si, pg, W, H, cw, top, left: (L.paperW - W) / 2, first, num, label: TX.fmtNum(num, pg.numFmt || 'decimal'),
-          hdr, ftr, hdrH, ftrH, contentTop: top + Math.max(pg.mt * PX, pg.mh * PX + hdrH + 4), contentBottom: top + H - Math.max(pg.mb * PX, pg.mf * PX + ftrH + 4),
+          hdr, ftr, hdrH, ftrH, contentTop: top + (hdrH ? Math.max(pg.mt * PX, pg.mh * PX + hdrH + 4) : pg.mt * PX), contentBottom: top + H - (ftrH ? Math.max(pg.mb * PX, pg.mf * PX + ftrH + 4) : pg.mb * PX),
           notes: [], notesH: 0, used: null, startPos: null, contTables: [], rowHeads: []
         };
         p.used = p.contentTop;
