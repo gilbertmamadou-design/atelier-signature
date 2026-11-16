@@ -1981,7 +1981,7 @@ fi
 if [ "$APP" = "reunion" ]; then
   bash scripts/office-deps.sh www-reunion
   addperm RECORD_AUDIO
-  addraw '<uses-feature android:name="android.hardware.microphone" android:required="true" /><queries><intent><action android:name="android.speech.RecognitionService" /></intent><intent><action android:name="android.intent.action.SEND" /><data android:mimeType="text/plain" /></intent></queries>'
+  addraw '<uses-feature android:name="android.hardware.microphone" android:required="true" /><queries><package android:name="com.anthropic.claude" /><intent><action android:name="android.speech.RecognitionService" /></intent><intent><action android:name="android.intent.action.SEND" /><data android:mimeType="text/plain" /></intent></queries>'
 fi
 # Langues : apprendre l'espagnol et le portugais ; voix du téléphone et reconnaissance vocale d'Android (LanguesBridge.java, copié ici seulement)
 if [ "$APP" = "langues" ]; then

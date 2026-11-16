@@ -116,10 +116,11 @@ main{padding:4px 16px calc(110px + var(--safe-b))}
     <div class="tabs"><button data-tab="cr" class="on">Compte rendu</button><button data-tab="tr">Transcription</button></div>
     <textarea id="cr" spellcheck="true"></textarea>
     <div class="row" style="margin-top:10px">
-      <button class="btn sm" id="cCopy">Copier</button><button class="btn sm" id="cShare">Partager</button><button class="btn sm pri" id="cFix">Corriger les fautes</button>
+      <button class="btn sm" id="cCopy">Copier</button><button class="btn sm" id="cShare">Partager</button><button class="btn sm pri" id="cFix">Corriger les fautes</button><button class="btn sm" id="cClaude" hidden>Rédiger avec Claude</button>
     </div>
     <div class="row" style="margin-top:8px"><button class="btn sm" id="cRegen">Refaire le compte rendu</button><button class="btn sm" id="cResume">Reprendre l'enregistrement</button><button class="btn sm bad" id="cDel">Supprimer</button></div>
     <p class="note" id="cNote">Tout est fait sur le téléphone, rien n'est envoyé sur Internet. Le compte rendu est modifiable : tes changements sont gardés.</p>
+    <p class="note" id="cNoteC" hidden>« Rédiger avec Claude » (facultatif) : la transcription et tes marquages partent dans ton appli Claude, sur ton compte, pour un compte rendu entièrement rédigé. Le texte passe alors par Internet : à éviter pour une réunion confidentielle.</p>
   </section>
 </main>
 <div class="fab" id="fab"><button class="btn pri" id="fabB">Nouvelle réunion</button></div>
@@ -319,6 +320,22 @@ main{padding:4px 16px calc(110px + var(--safe-b))}
   $('cFix').onclick = function () {
     if (tab !== 'cr') { tab = 'cr'; setTab(); }
     if (window.MagCorrecteur) MagCorrecteur.open($('cr')); else toast('Correcteur indisponible');
+  };
+  /* Facultatif : « Rédiger avec Claude », visible seulement si l'appli Claude est installée (compte de la personne, même gratuit) */
+  var CLAUDE = 'com.anthropic.claude', hasClaude = false;
+  try { hasClaude = !!(D && D.installed && D.installed(CLAUDE)); } catch (e) { }
+  $('cClaude').hidden = !hasClaude; $('cNoteC').hidden = !hasClaude;
+  $('cClaude').onclick = function () {
+    var r = CUR; if (!r) return;
+    if (!confirm('Envoyer la transcription de « ' + (r.title || 'la réunion') + ' » à ton appli Claude ? Le texte passera par Internet, sur ton compte Claude.')) return;
+    var marks = Object.keys(MK).map(function (k) { var l = lines(r.segs, k); return l.length ? MK[k] + ' (marqué pendant la réunion) :\n' + l.join('\n') : ''; }).filter(Boolean).join('\n\n');
+    var prompt = 'Rédige le compte rendu professionnel de cette réunion, en français, à partir de la transcription automatique ci-dessous. Elle peut contenir des erreurs de reconnaissance vocale : rétablis le sens sans rien inventer, et signale ce qui reste incertain.\n' +
+      'Structure : objet, date, lieu, participants ; résumé en quelques phrases ; points abordés ; décisions prises ; actions à mener (qui, quoi, pour quand) ; questions en suspens ; prochaine étape.\n\n' +
+      'Objet : ' + (r.title || '') + '\nDate : ' + dateLong(r.start) + ', ' + hm(r.start) + ' (' + durTxt(r.dur || 0) + ')' + (r.where ? '\nLieu : ' + r.where : '') + (r.who ? '\nParticipants : ' + r.who : '') +
+      (marks ? '\n\n' + marks : '') + '\n\nTranscription :\n' + transcript(r);
+    var res = D.sendTo(CLAUDE, prompt, 'Compte rendu : ' + (r.title || 'réunion'));
+    if (res === 'ok') { toast('Envoyé à Claude : il rédige le compte rendu'); return; }
+    (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(prompt) : Promise.reject()).then(function () { toast('Appli Claude introuvable : texte copié, colle-le dans Claude'); }, function () { toast('Envoi impossible'); });
   };
   $('cRegen').onclick = function () {
     if (CUR.crEdit && !confirm('Refaire le compte rendu à partir de la transcription ? Tes modifications seront perdues.')) return;

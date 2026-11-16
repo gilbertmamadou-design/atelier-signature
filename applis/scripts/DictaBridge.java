@@ -343,6 +343,21 @@ public class DictaBridge {
         try { a.startActivity(Intent.createChooser(i, "Envoyer le texte")); return "share"; } catch (Throwable e) { return "err"; }
     }
 
+    /** Texte partagé vers une appli précise de la liste (Réunion : « Rédiger avec Claude », appli Claude de la personne) */
+    static final String[] SEND_OK = { "com.anthropic.claude" };
+    static boolean sendOk(String pkg) { for (String x : SEND_OK) if (x.equals(pkg)) return true; return false; }
+    @JavascriptInterface public boolean installed(String pkg) {
+        if (!sendOk(pkg)) return false;
+        try { a.getPackageManager().getPackageInfo(pkg, 0); return true; } catch (Throwable e) { return false; }
+    }
+    @JavascriptInterface public String sendTo(final String pkg, final String text, final String title) {
+        if (!sendOk(pkg)) return "refus";
+        final Intent i = new Intent(Intent.ACTION_SEND).setType("text/plain").setPackage(pkg);
+        i.putExtra(Intent.EXTRA_TEXT, text == null ? "" : text);
+        if (title != null && !title.isEmpty()) { i.putExtra(Intent.EXTRA_SUBJECT, title); i.putExtra(Intent.EXTRA_TITLE, title); }
+        try { a.startActivity(i); return "ok"; } catch (ActivityNotFoundException e) { return "absent"; } catch (Throwable e) { return "err"; }
+    }
+
     // ================= Lecture (dans le service : continue en arrière-plan) =================
     @JavascriptInterface public String play(String id, String name, int posMs, float speed) {
         try {
