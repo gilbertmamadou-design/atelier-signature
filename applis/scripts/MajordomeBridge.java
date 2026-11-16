@@ -932,7 +932,7 @@ public class MajordomeBridge {
                 if ("mj.RING".equals(act) && id != null) {
                     JSONObject all = alarms(c), o = all.optJSONObject(id);
                     if (o == null) return;
-                    if ("hue".equals(o.optString("kind"))) { all.remove(id); saveAlarms(c, all); hueLater(c, id, o, goAsync()); return; }
+                    if ("hue".equals(o.optString("kind"))) { if (!o.has("prog")) { all.remove(id); saveAlarms(c, all); } hueLater(c, id, o, goAsync()); return; }
                     if ("somfy".equals(o.optString("kind"))) { somfyLater(c, id, o, goAsync()); return; }
                     // page ouverte : elle sonne et parle elle-même ; montre connectée : copie silencieuse pour que Zepp la recopie
                     if (live != null && resumed) { send("alarm", obj("id", id)); if (watchOn(c)) watchAlarmCopy(c, id, o); return; }
@@ -965,7 +965,7 @@ public class MajordomeBridge {
                     while (k.hasNext()) {
                         String x = k.next(); JSONObject o = all.optJSONObject(x);
                         // programme de volets répété : prochaine occurrence
-                        if (o != null && o.optLong("at") < now - 60000 && "somfy".equals(o.optString("kind")) && o.has("prog")) { long nx = somfyNext(o.optJSONObject("prog"), now); if (nx > 0) { try { o.put("at", nx); } catch (Exception e) { } } }
+                        if (o != null && o.optLong("at") < now - 60000 && o.has("prog")) { long nx = somfyNext(o.optJSONObject("prog"), now); if (nx > 0) { try { o.put("at", nx); } catch (Exception e) { } } }
                         if (o == null || o.optLong("at") < now - 60000) old.add(x); else schedule(c, o);
                     }
                     for (String x : old) all.remove(x);
@@ -2049,7 +2049,11 @@ public class MajordomeBridge {
                 }
             } catch (Hue.HueErr e) { ok = false; err = e.code; }
             catch (Throwable t) { ok = false; err = "unreachable"; }
-            if (live != null) send("hue", hueEv("later", "id", id, "ok", ok, "err", err, "label", o.optString("text")));
+            long next = -1;
+            if (o.has("prog")) {   // programme répété (Maison › Programmes) : prochaine occurrence
+                try { JSONObject all = alarms(c); next = somfyNext(o.optJSONObject("prog"), System.currentTimeMillis()); if (next > 0) { o.put("at", next); all.put(id, o); schedule(c, o); } else all.remove(id); saveAlarms(c, all); } catch (Throwable t) { }
+            }
+            if (live != null) send("hue", hueEv("later", "id", id, "ok", ok, "err", err, "label", o.optString("text"), "next", next));
             if (!ok && (live == null || !resumed)) {
                 try {
                     channels(c);

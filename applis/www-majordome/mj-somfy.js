@@ -330,7 +330,7 @@
     var at = nextAt(pg), acts = actionsOf(pg);
     if (!at || !acts.length) return null;
     var o = { id: pg.id, kind: 'somfy', at: at, title: 'Volets', text: progLabel(pg), actions: acts };
-    if (pg.days.length) o.prog = { days: pg.days, h: +String(pg.time || '7:0').split(':')[0], m: +String(pg.time || '7:0').split(':')[1], sun: pg.mode === 'rise' || pg.mode === 'set' ? pg.mode : '', off: +pg.off || 0, lat: pg.lat, lon: pg.lon };
+    if (pg.days.length) o.prog = alarmProg(pg);
     try { B.alarmSet(JSON.stringify(o)); } catch (e) { return null; }
     return at;
   }
@@ -346,20 +346,39 @@
     return h + '<div class="row" style="display:flex;gap:8px;margin-top:6px"><button class="btn sm pri" data-pgnew>+ Nouveau programme</button></div>' +
       '<p class="note">Les programmes partent du téléphone : il doit être sur le Wi-Fi de la maison à l\'heure prévue. Pour des volets qui bougent même quand vous êtes absent, programmez aussi dans l\'appli TaHoma.</p>';
   }
-  function progSheet(i) {
-    var pg = i >= 0 ? JSON.parse(JSON.stringify(progs()[i])) : { id: 'sfp' + X.uid(), name: '', act: 'close', pos: 50, urls: model.devs.filter(function (d) { return kindOf(d) === 'volet'; }).map(function (d) { return d.url; }), days: [1, 2, 3, 4, 5], once: '', mode: 'time', time: '21:00', off: 0, on: true };
-    if (!pg.urls.length && i < 0) pg.urls = model.devs.map(function (d) { return d.url; });
+  /* Partie « Quand / Heure » de l'éditeur, commune aux programmes des volets et des lumières (MJ.sched) */
+  function whenHtml(pg) {
     var tomorrow = new Date(Date.now() + 864e5), iso = function (d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
     var pl = place();
-    var h = '<div class="set"><div class="t">Action</div></div><div style="display:flex;gap:8px"><select class="in" id="pgAct" style="flex:1">' + Object.keys(ACTS).map(function (k) { return '<option value="' + k + '"' + (pg.act === k ? ' selected' : '') + '>' + ACTS[k] + (k === 'pos' ? '… %' : '') + '</option>'; }).join('') + '</select><input class="in" id="pgPos" type="number" min="0" max="100" step="5" value="' + (+pg.pos || 50) + '" style="width:80px"' + (pg.act === 'pos' ? '' : ' hidden') + '></div>' +
-      '<div class="set"><div class="t">Volets et stores</div></div><div class="row" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px"><button class="btn sm" data-pgk="volet">Tous les volets</button><button class="btn sm" data-pgk="store">Tous les stores</button><button class="btn sm" data-pgk="all">Tout</button><button class="btn sm" data-pgk="none">Aucun</button></div>' +
-      model.devs.map(function (d) { return '<label class="set" style="gap:10px;cursor:pointer"><div class="t">' + esc(d.name) + '</div><input type="checkbox" data-pgd="' + esc(d.url) + '"' + (pg.urls.indexOf(d.url) >= 0 ? ' checked' : '') + ' style="width:20px;height:20px"></label>'; }).join('') +
-      '<div class="set"><div class="t">Quand</div></div><select class="in" id="pgRep"><option value="rep"' + (pg.days.length ? ' selected' : '') + '>Certains jours, chaque semaine</option><option value="once"' + (pg.days.length ? '' : ' selected') + '>Une seule fois, à une date</option></select>' +
+    return '<div class="set"><div class="t">Quand</div></div><select class="in" id="pgRep"><option value="rep"' + (pg.days.length ? ' selected' : '') + '>Certains jours, chaque semaine</option><option value="once"' + (pg.days.length ? '' : ' selected') + '>Une seule fois, à une date</option></select>' +
       '<div id="pgDaysBox" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"' + (pg.days.length ? '' : ' hidden') + '>' + ORDRE.map(function (j) { return '<button class="btn sm' + (pg.days.indexOf(j) >= 0 ? ' pri' : '') + '" data-pgday="' + j + '" style="min-width:52px">' + JOURS[j] + '</button>'; }).join('') + '</div>' +
       '<input class="in" id="pgDate" type="date" value="' + esc(pg.once || iso(tomorrow)) + '" style="margin-top:8px"' + (pg.days.length ? ' hidden' : '') + '>' +
       '<div class="set"><div class="t">Heure</div></div><select class="in" id="pgMode"><option value="time"' + (pg.mode === 'time' ? ' selected' : '') + '>À une heure précise</option><option value="rise"' + (pg.mode === 'rise' ? ' selected' : '') + '>Au lever du soleil</option><option value="set"' + (pg.mode === 'set' ? ' selected' : '') + '>Au coucher du soleil</option></select>' +
       '<input class="in" id="pgTime" type="time" value="' + esc(pg.time || '21:00') + '" style="margin-top:8px"' + (pg.mode === 'time' ? '' : ' hidden') + '>' +
-      '<div id="pgOffBox" style="margin-top:8px"' + (pg.mode === 'time' ? ' hidden' : '') + '><div style="display:flex;gap:8px;align-items:center"><span class="note" style="margin:0">Décalage</span><input class="in" id="pgOff" type="number" min="-180" max="180" step="5" value="' + (+pg.off || 0) + '" style="width:90px"><span class="note" style="margin:0">minutes (− avant, + après)</span></div><p class="note">Calculé pour ' + esc(pl.name || 'votre ville') + ' (ville des réglages météo).</p></div>' +
+      '<div id="pgOffBox" style="margin-top:8px"' + (pg.mode === 'time' ? ' hidden' : '') + '><div style="display:flex;gap:8px;align-items:center"><span class="note" style="margin:0">Décalage</span><input class="in" id="pgOff" type="number" min="-180" max="180" step="5" value="' + (+pg.off || 0) + '" style="width:90px"><span class="note" style="margin:0">minutes (− avant, + après)</span></div><p class="note">Calculé pour ' + esc(pl.name || 'votre ville') + ' (ville des réglages météo).</p></div>';
+  }
+  function whenCollect(b, pg) {
+    var $ = function (id) { return b.querySelector('#' + id); };
+    pg.days = $('pgRep').value === 'once' ? [] : [].slice.call(b.querySelectorAll('[data-pgday].pri')).map(function (x) { return +x.dataset.pgday; });
+    pg.once = $('pgRep').value === 'once' ? $('pgDate').value : '';
+    pg.mode = $('pgMode').value; pg.time = $('pgTime').value || '21:00'; pg.off = +$('pgOff').value || 0;
+    var pp = place(); pg.lat = pp.lat; pg.lon = pp.lon;
+  }
+  function whenChange(b, e) {
+    var $ = function (id) { return b.querySelector('#' + id); };
+    if (e.target.id === 'pgRep') { var once = e.target.value === 'once'; $('pgDaysBox').hidden = once; $('pgDate').hidden = !once; }
+    if (e.target.id === 'pgMode') { var tm = e.target.value === 'time'; $('pgTime').hidden = !tm; $('pgOffBox').hidden = tm; }
+  }
+  function whenPreview(b, pg) { var el = b.querySelector('#pgNext'), nx = nextAt(pg); el.textContent = nx ? 'Prochain : ' + whenTxt(nx) + '.' : b.querySelector('#pgRep').value === 'rep' && !pg.days.length ? 'Choisissez au moins un jour.' : 'Cette date est passée.'; }
+  function alarmProg(pg) { return { days: pg.days, h: +String(pg.time || '7:0').split(':')[0], m: +String(pg.time || '7:0').split(':')[1], sun: pg.mode === 'rise' || pg.mode === 'set' ? pg.mode : '', off: +pg.off || 0, lat: pg.lat, lon: pg.lon }; }
+  MJ.sched = { nextAt: nextAt, whenTxt: whenTxt, daysTxt: daysTxt, heureTxt: heureTxt, place: place, whenHtml: whenHtml, whenCollect: whenCollect, whenChange: whenChange, whenPreview: whenPreview, alarmProg: alarmProg };
+  function progSheet(i) {
+    var pg = i >= 0 ? JSON.parse(JSON.stringify(progs()[i])) : { id: 'sfp' + X.uid(), name: '', act: 'close', pos: 50, urls: model.devs.filter(function (d) { return kindOf(d) === 'volet'; }).map(function (d) { return d.url; }), days: [1, 2, 3, 4, 5], once: '', mode: 'time', time: '21:00', off: 0, on: true };
+    if (!pg.urls.length && i < 0) pg.urls = model.devs.map(function (d) { return d.url; });
+    var h = '<div class="set"><div class="t">Action</div></div><div style="display:flex;gap:8px"><select class="in" id="pgAct" style="flex:1">' + Object.keys(ACTS).map(function (k) { return '<option value="' + k + '"' + (pg.act === k ? ' selected' : '') + '>' + ACTS[k] + (k === 'pos' ? '… %' : '') + '</option>'; }).join('') + '</select><input class="in" id="pgPos" type="number" min="0" max="100" step="5" value="' + (+pg.pos || 50) + '" style="width:80px"' + (pg.act === 'pos' ? '' : ' hidden') + '></div>' +
+      '<div class="set"><div class="t">Volets et stores</div></div><div class="row" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px"><button class="btn sm" data-pgk="volet">Tous les volets</button><button class="btn sm" data-pgk="store">Tous les stores</button><button class="btn sm" data-pgk="all">Tout</button><button class="btn sm" data-pgk="none">Aucun</button></div>' +
+      model.devs.map(function (d) { return '<label class="set" style="gap:10px;cursor:pointer"><div class="t">' + esc(d.name) + '</div><input type="checkbox" data-pgd="' + esc(d.url) + '"' + (pg.urls.indexOf(d.url) >= 0 ? ' checked' : '') + ' style="width:20px;height:20px"></label>'; }).join('') +
+      whenHtml(pg) +
       '<div class="set"><div class="t">Nom<small>Facultatif, sinon l\'action et les volets</small></div></div><input class="in" id="pgName" value="' + esc(pg.name) + '" placeholder="ex. Fermeture du soir">' +
       '<p class="note" id="pgNext"></p>' +
       '<div class="row" style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn pri" id="pgSave">Enregistrer</button>' + (i >= 0 ? '<button class="btn bad" id="pgDel">Supprimer</button>' : '') + '<button class="btn" id="pgBack">Retour</button></div>';
@@ -368,13 +387,10 @@
     function collect() {
       pg.act = $('pgAct').value; pg.pos = Math.max(0, Math.min(100, +$('pgPos').value || 0));
       pg.urls = [].slice.call(b.querySelectorAll('[data-pgd]')).filter(function (x) { return x.checked; }).map(function (x) { return x.dataset.pgd; });
-      pg.days = $('pgRep').value === 'once' ? [] : [].slice.call(b.querySelectorAll('[data-pgday].pri')).map(function (x) { return +x.dataset.pgday; });
-      pg.once = $('pgRep').value === 'once' ? $('pgDate').value : '';
-      pg.mode = $('pgMode').value; pg.time = $('pgTime').value || '21:00'; pg.off = +$('pgOff').value || 0;
-      var pp = place(); pg.lat = pp.lat; pg.lon = pp.lon;
+      whenCollect(b, pg);
       pg.name = $('pgName').value.trim();
     }
-    function preview() { collect(); var nx = nextAt(pg); $('pgNext').textContent = nx ? 'Prochain : ' + whenTxt(nx) + '.' : $('pgRep').value === 'rep' && !pg.days.length ? 'Choisissez au moins un jour.' : 'Cette date est passée.'; }
+    function preview() { collect(); whenPreview(b, pg); }
     b.onclick = function (e) {
       var c = e.target.closest('button'); if (!c) return;
       if (c.dataset.pgday != null) { c.classList.toggle('pri'); preview(); return; }
@@ -382,8 +398,7 @@
     };
     b.onchange = function (e) {
       if (e.target.id === 'pgAct') $('pgPos').hidden = e.target.value !== 'pos';
-      if (e.target.id === 'pgRep') { var once = e.target.value === 'once'; $('pgDaysBox').hidden = once; $('pgDate').hidden = !once; }
-      if (e.target.id === 'pgMode') { var tm = e.target.value === 'time'; $('pgTime').hidden = !tm; $('pgOffBox').hidden = tm; }
+      whenChange(b, e);
       preview();
     };
     b.oninput = function (e) { if (/^(pgTime|pgOff|pgDate|pgPos)$/.test(e.target.id)) preview(); };

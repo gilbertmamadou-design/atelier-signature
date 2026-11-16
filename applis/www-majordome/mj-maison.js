@@ -250,6 +250,12 @@
       w.ok(body);
     } else if (d.op === 'pair') onPair(d);
     else if (d.op === 'discover') onDiscover(d);
+    else if (d.op === 'later' && /^lp/.test(d.id || '')) {   // programme des lumières
+      var lp = lprogs().filter(function (x) { return x.id === d.id; })[0];
+      if (lp && !lp.days.length) { S.lpProgs = lprogs().filter(function (x) { return x.id !== d.id; }); X.saveS(); }
+      if (d.ok) X.toast('Lumières : ' + (d.label || 'programme') + ', c\'est fait'); else X.card('<div class="k">Lumières</div><p>Programme « ' + esc(d.label || '') + ' » : ' + esc(errText(d.err)) + '</p>', 'err');
+      renderHome();
+    }
     else if (d.op === 'later') {
       X.setAL(MJ.AL().filter(function (o) { return o.id !== d.id; }));
       if (d.ok) X.card('<div class="k">Lumières</div><p>' + esc(d.label || 'Minuterie exécutée') + ' : c\'est fait.</p>');
@@ -481,6 +487,7 @@
       (rooms.length ? rooms.map(roomCard).join('') : '<p class="note">Aucune pièce sur le pont.</p>') +
       (zones.length ? '<div class="sect">Zones</div>' + zones.map(roomCard).join('') : '') +
       (loose.length ? '<div class="sect">Autres ampoules</div><div class="bulbs">' + loose.map(function (l) { return '<button data-bulb="' + esc(l.id) + '" class="' + (l.on ? 'on' : '') + '">' + esc(l.name) + '</button>'; }).join('') + '</div>' : '') +
+      lprogsHtml() +
       '<p class="note" style="margin-top:12px">Pont « ' + esc(info.name || 'Hue') + ' » · ' + esc(info.ip || '') + ' · ' + (info.api === 'v2' ? 'API CLIP v2' : 'API v1') + '. Appui sur une scène : elle s\'active.</p>';
   }
   function renderHome() { if (MJ.moment) MJ.moment(); if (X.curSheet() === 'maison') { var b = document.getElementById('shB'); if (b) b.innerHTML = homeHtml(); } }
@@ -497,12 +504,15 @@
       if (t.closest('[data-hset]')) { X.settingsSheet('maison'); return; }
       if (t.closest('[data-hrf]')) { X.toast('Actualisation…'); fetchModel(true).then(function () { X.toast('Actualisé'); }, function (er) { X.toast(errText(er.code)); }); return; }
       if (t.closest('[data-alloff]')) { homeAct({ type: 'all' }, { act: 'off' }); return; }
+      if (t.closest('[data-lpnew]')) { lprogSheet(-1); return; }
+      if ((c = t.closest('[data-lpedit]'))) { lprogSheet(+c.dataset.lpedit); return; }
       var room = t.closest('[data-g]'), g = room && groupById(room.dataset.g);
       if ((c = t.closest('[data-dot]')) && g) { var k = c.dataset.dot; homeAct({ type: 'group', obj: g }, MIREK[k] ? { act: 'ct', ct: k } : { act: 'color', color: k }); return; }
       if ((c = t.closest('[data-scene]'))) { var s = model.scenes.filter(function (x) { return x.id === c.dataset.scene; })[0]; if (s) homeAct(g ? { type: 'group', obj: g } : { type: 'all' }, { act: 'scene', scene: s }); return; }
       if ((c = t.closest('[data-bulb]'))) { var l = model.lights.filter(function (x) { return x.id === c.dataset.bulb; })[0]; if (l) homeAct({ type: 'light', obj: l }, { act: l.on ? 'off' : 'on' }); }
     };
     b.onchange = function (e) {
+      if (e.target.matches('[data-lpon]')) { var lp = lprogs()[+e.target.dataset.lpon]; if (lp) { lp.on = e.target.checked; X.saveS(); var at = larm(lp); X.toast(lp.on ? (at ? 'Prochain : ' + MJ.sched.whenTxt(at) : 'Rien de prévu') : 'Programme en pause'); renderHome(); } return; }
       var room = e.target.closest('[data-g]'), g = room && groupById(room.dataset.g); if (!g) return;
       if (e.target.matches('[data-sw]')) homeAct({ type: 'group', obj: g }, { act: e.target.checked ? 'on' : 'off' });
       else if (e.target.matches('[data-bri]')) homeAct({ type: 'group', obj: g }, { act: 'bri', bri: +e.target.value });
@@ -510,6 +520,98 @@
     if (HUE && !S.hueNone && refreshInfo().paired) fetchModel(false).catch(function (er) { if (X.curSheet() === 'maison') { var bb = document.getElementById('shB'); if (bb) bb.insertAdjacentHTML('afterbegin', '<p class="note warn">' + esc(errText(er.code)) + '</p>'); } });
   }
   MJ.homeSheet = homeSheet;
+
+  /* ---------------- Programmes des lumières : allumer, éteindre, régler ou lancer une scène tout seul ----------------
+     Mêmes réglages que les volets (jours, une fois, heure, lever / coucher du soleil : MJ.sched dans mj-somfy.js).
+     Chaque programme devient une alarme Android (MajordomeBridge.hueLater, reprogrammée s'il se répète) : il s'exécute
+     même Majordome fermé, si le téléphone est sur le Wi-Fi de la maison. */
+  var LACTS = { on: 'Allumer', off: 'Éteindre', bri: 'Allumer à', scene: 'Scène' };
+  function lprogs() { if (!Array.isArray(S.lpProgs)) S.lpProgs = []; return S.lpProgs; }
+  function lgroups(pg) { return pg.groups.map(function (id) { return id === '*' ? { name: 'toute la maison', all: true } : groupById(id); }).filter(Boolean); }
+  function lsceneOf(pg) { return model && model.scenes.filter(function (x) { return x.id === pg.scene; })[0]; }
+  function lactTxt(pg) { var sc = lsceneOf(pg); return pg.act === 'bri' ? 'Allumer à ' + pg.bri + ' %' : pg.act === 'scene' ? 'Scène « ' + (sc ? sc.name : '?') + ' »' + (sc && roomName(sc.group) ? ' (' + roomName(sc.group) + ')' : '') : LACTS[pg.act]; }
+  function lplaces(pg) { if (pg.act === 'scene') return ''; var n = lgroups(pg).map(function (g) { return g.all ? 'toute la maison' : g.name; }); return n.length > 3 ? n.slice(0, 3).join(', ') + ' et ' + (n.length - 3) + ' autres' : n.join(', '); }
+  function llabel(pg) { return pg.name || (lactTxt(pg) + (lplaces(pg) ? ' · ' + lplaces(pg) : '')); }
+  function lreqs(pg) {
+    if (!model) return [];
+    if (pg.act === 'scene') { var sc = lsceneOf(pg); return sc ? plan(model, { type: 'all' }, { act: 'scene', scene: sc }) : []; }
+    var cmd = pg.act === 'bri' ? { act: 'bri', bri: Math.max(1, Math.min(100, +pg.bri || 50)) } : { act: pg.act }, out = [];
+    lgroups(pg).forEach(function (g) { out = out.concat(plan(model, g.all ? { type: 'all' } : { type: 'group', obj: g }, cmd)); });
+    return out;
+  }
+  function larm(pg) {
+    try { B.alarmCancel(pg.id); } catch (e) { }
+    if (!pg.on || !MJ.sched) return null;
+    var at = MJ.sched.nextAt(pg), reqs = lreqs(pg);
+    if (!at || !reqs.length) return null;
+    var o = { id: pg.id, kind: 'hue', at: at, title: 'Lumières', text: llabel(pg), reqs: reqs };
+    if (pg.days.length) o.prog = MJ.sched.alarmProg(pg);
+    try { B.alarmSet(JSON.stringify(o)); } catch (e) { return null; }
+    return at;
+  }
+  function lprogsHtml() {
+    if (!MJ.sched) return '';
+    var l = lprogs(), h = '<div class="sect">Programmes</div>';
+    if (!l.length) h += '<p class="note">Aucun programme. Exemples : allumer le salon au coucher du soleil, éteindre toute la maison à 23 h, lancer une scène le matin en semaine.</p>';
+    h += l.map(function (pg, i) {
+      var nx = pg.on ? MJ.sched.nextAt(pg) : null;
+      return '<div class="room' + (pg.on ? '' : '" style="opacity:.6') + '"><div class="rt"><h3>' + esc(llabel(pg)) + '</h3><label class="sw"><input type="checkbox" data-lpon="' + i + '"' + (pg.on ? ' checked' : '') + ' aria-label="Activer"><span></span></label></div>' +
+        '<p class="note" style="margin:4px 0 0">' + esc(lactTxt(pg)) + ' · ' + esc(pg.days.length ? MJ.sched.daysTxt(pg.days) : 'une fois') + ' ' + esc(MJ.sched.heureTxt(pg)) + (pg.name && lplaces(pg) ? ' · ' + esc(lplaces(pg)) : '') + '<br>' + (nx ? 'Prochain : ' + esc(MJ.sched.whenTxt(nx)) : pg.on ? 'Rien de prévu (date passée)' : 'En pause') + '</p>' +
+        '<div class="scn"><button data-lpedit="' + i + '">Modifier</button></div></div>';
+    }).join('');
+    return h + '<div class="row" style="display:flex;gap:8px;margin-top:6px"><button class="btn sm pri" data-lpnew>+ Nouveau programme</button></div>' +
+      '<p class="note">Les programmes partent du téléphone : il doit être sur le Wi-Fi de la maison à l\'heure prévue. Pour qu\'ils marchent même en votre absence, programmez aussi dans l\'appli Hue (Automatisations).</p>';
+  }
+  function lprogSheet(i) {
+    if (!model || !MJ.sched) return;
+    var rooms = model.groups.filter(function (g) { return g.kind === 'room'; }), zones = model.groups.filter(function (g) { return g.kind === 'zone'; });
+    var pg = i >= 0 ? JSON.parse(JSON.stringify(lprogs()[i])) : { id: 'lp' + X.uid(), name: '', act: 'on', bri: 60, groups: rooms.length ? [rooms[0].id] : ['*'], scene: '', days: [0, 1, 2, 3, 4, 5, 6], once: '', mode: 'set', time: '19:00', off: 0, on: true };
+    var h = '<div class="set"><div class="t">Action</div></div><div style="display:flex;gap:8px"><select class="in" id="lpAct" style="flex:1">' + Object.keys(LACTS).map(function (k) { return '<option value="' + k + '"' + (pg.act === k ? ' selected' : '') + '>' + LACTS[k] + (k === 'bri' ? '… %' : k === 'scene' ? '…' : '') + '</option>'; }).join('') + '</select>' +
+      '<input class="in" id="lpBri" type="number" min="1" max="100" step="5" value="' + (+pg.bri || 60) + '" style="width:80px"' + (pg.act === 'bri' ? '' : ' hidden') + '></div>' +
+      '<select class="in" id="lpScene" style="margin-top:8px"' + (pg.act === 'scene' ? '' : ' hidden') + '>' + model.scenes.slice().sort(function (a, b) { return (roomName(a.group) + a.name).localeCompare(roomName(b.group) + b.name, 'fr'); }).map(function (sc) { return '<option value="' + esc(sc.id) + '"' + (pg.scene === sc.id ? ' selected' : '') + '>' + esc(sc.name) + (roomName(sc.group) ? ' · ' + esc(roomName(sc.group)) : '') + '</option>'; }).join('') + '</select>' +
+      '<div id="lpWhere"' + (pg.act === 'scene' ? ' hidden' : '') + '><div class="set"><div class="t">Pièces</div></div>' +
+      [{ id: '*', name: 'Toute la maison' }].concat(rooms, zones).map(function (g) { return '<label class="set" style="gap:10px;cursor:pointer"><div class="t">' + esc(g.name) + (g.kind === 'zone' ? '<small>zone</small>' : '') + '</div><input type="checkbox" data-lpg="' + esc(g.id) + '"' + (pg.groups.indexOf(g.id) >= 0 ? ' checked' : '') + ' style="width:20px;height:20px"></label>'; }).join('') + '</div>' +
+      MJ.sched.whenHtml(pg) +
+      '<div class="set"><div class="t">Nom<small>Facultatif, sinon l\'action et les pièces</small></div></div><input class="in" id="lpName" value="' + esc(pg.name) + '" placeholder="ex. Lumière du soir">' +
+      '<p class="note" id="pgNext"></p>' +
+      '<div class="row" style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn pri" id="lpSave">Enregistrer</button>' + (i >= 0 ? '<button class="btn bad" id="lpDel">Supprimer</button>' : '') + '<button class="btn" id="lpBack">Retour</button></div>';
+    var b = X.openSheet(i >= 0 ? 'Modifier le programme' : 'Nouveau programme', h, 'lpprog');
+    var $ = function (id) { return b.querySelector('#' + id); };
+    function collect() {
+      pg.act = $('lpAct').value; pg.bri = Math.max(1, Math.min(100, +$('lpBri').value || 60)); pg.scene = $('lpScene').value || '';
+      pg.groups = [].slice.call(b.querySelectorAll('[data-lpg]')).filter(function (x) { return x.checked; }).map(function (x) { return x.dataset.lpg; });
+      if (pg.groups.indexOf('*') >= 0) pg.groups = ['*'];
+      MJ.sched.whenCollect(b, pg); pg.name = $('lpName').value.trim();
+    }
+    function preview() { collect(); MJ.sched.whenPreview(b, pg); }
+    b.onclick = function (e) { var c = e.target.closest('button'); if (c && c.dataset.pgday != null) { c.classList.toggle('pri'); preview(); } };
+    b.onchange = function (e) {
+      if (e.target.id === 'lpAct') { $('lpBri').hidden = e.target.value !== 'bri'; $('lpScene').hidden = e.target.value !== 'scene'; $('lpWhere').hidden = e.target.value === 'scene'; }
+      MJ.sched.whenChange(b, e); preview();
+    };
+    b.oninput = function (e) { if (/^(pgTime|pgOff|pgDate)$/.test(e.target.id)) preview(); };
+    preview();
+    $('lpSave').onclick = function () {
+      collect();
+      if (pg.act === 'scene' ? !pg.scene : !pg.groups.length) { X.toast(pg.act === 'scene' ? 'Choisissez une scène' : 'Choisissez au moins une pièce'); return; }
+      if (!pg.days.length && !pg.once) { X.toast('Choisissez les jours ou une date'); return; }
+      if (!lreqs(pg).length) { X.toast('Ces lumières ne savent pas faire cette action'); return; }
+      var l = lprogs(); if (i >= 0) l[i] = pg; else l.push(pg);
+      S.lpProgs = l; X.saveS();
+      var at = larm(pg);
+      X.toast(at ? 'Programme enregistré : ' + MJ.sched.whenTxt(at) : 'Programme enregistré, rien de prévu');
+      homeSheet();
+    };
+    if ($('lpDel')) $('lpDel').onclick = function () { try { B.alarmCancel(pg.id); } catch (e) { } S.lpProgs = lprogs().filter(function (x) { return x.id !== pg.id; }); X.saveS(); X.toast('Programme supprimé'); homeSheet(); };
+    $('lpBack').onclick = function () { homeSheet(); };
+  }
+  // au démarrage : programmes passés retirés, alarmes remises en place (mise à jour, changement de ville…)
+  if (HUE) setTimeout(function () {
+    if (!MJ.sched || !refreshInfo().paired) return;
+    var l = lprogs(), keep = l.filter(function (pg) { return pg.days.length || MJ.sched.nextAt(pg); });
+    if (keep.length !== l.length) { S.lpProgs = keep; X.saveS(); }
+    if (model) keep.forEach(larm);
+  }, 1800);
   var hb = document.getElementById('bHome'); if (hb) hb.onclick = homeSheet;
 
   /* ---------------- Réglages › Maison › Philips Hue ---------------- */
