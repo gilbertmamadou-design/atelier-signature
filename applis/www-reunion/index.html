@@ -328,16 +328,18 @@ main{padding:4px 16px calc(110px + var(--safe-b))}
   $('cClaude').hidden = false; $('cNoteC').hidden = false;
   $('cClaude').onclick = function () {
     var r = CUR; if (!r) return;
-    try { hasClaude = !!(D && D.installed && D.installed(CLAUDE)); } catch (e) { }
-    if (!confirm(hasClaude ? 'Envoyer la transcription de « ' + (r.title || 'la réunion') + ' » à ton appli Claude ? Le texte passera par Internet, sur ton compte Claude.'
-      : 'L\'appli Claude n\'est pas installée sur ce téléphone. Je copie le texte prêt à l\'emploi : colle-le ensuite dans Claude (appli ou site claude.ai). Continuer ?')) return;
+    if (!confirm('Envoyer la transcription de « ' + (r.title || 'la réunion') + ' » à Claude pour rédiger le compte rendu ? Le texte passera par Internet, sur ton compte Claude.')) return;
     var marks = Object.keys(MK).map(function (k) { var l = lines(r.segs, k); return l.length ? MK[k] + ' (marqué pendant la réunion) :\n' + l.join('\n') : ''; }).filter(Boolean).join('\n\n');
     var prompt = 'Rédige le compte rendu professionnel de cette réunion, en français, à partir de la transcription automatique ci-dessous. Elle peut contenir des erreurs de reconnaissance vocale : rétablis le sens sans rien inventer, et signale ce qui reste incertain.\n' +
       'Structure : objet, date, lieu, participants ; résumé en quelques phrases ; points abordés ; décisions prises ; actions à mener (qui, quoi, pour quand) ; questions en suspens ; prochaine étape.\n\n' +
       'Objet : ' + (r.title || '') + '\nDate : ' + dateLong(r.start) + ', ' + hm(r.start) + ' (' + durTxt(r.dur || 0) + ')' + (r.where ? '\nLieu : ' + r.where : '') + (r.who ? '\nParticipants : ' + r.who : '') +
       (marks ? '\n\n' + marks : '') + '\n\nTranscription :\n' + transcript(r);
-    var res = hasClaude && D && D.sendTo ? D.sendTo(CLAUDE, prompt, 'Compte rendu : ' + (r.title || 'réunion')) : 'absent';
+    var titre = 'Compte rendu : ' + (r.title || 'réunion'), res = 'absent';
+    // 1. directement dans l'appli Claude ; 2. sinon le menu « Partager » d'Android (choisir Claude) ; le texte est aussi copié
+    try { if (D && D.sendTo) res = D.sendTo(CLAUDE, prompt, titre); } catch (e) { }
     if (res === 'ok') { toast('Envoyé à Claude : il rédige le compte rendu'); return; }
+    try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(prompt); } catch (e) { }
+    if (D && D.sendText) { D.sendText(prompt, titre, false); toast('Choisis Claude dans la liste (texte aussi copié)'); return; }
     (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(prompt) : Promise.reject()).then(function () { toast('Texte copié : colle-le dans Claude'); }, function () { toast('Envoi impossible'); });
   };
   $('cRegen').onclick = function () {
