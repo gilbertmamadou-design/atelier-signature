@@ -14,13 +14,13 @@
 
   /* ---------------- Rendu d'une page en image (photos pleine définition, polices intégrées) ---------------- */
   X.pageCanvas = async function (c, pi, wpx) {
-    const p = pi === -1 ? { id: 'cover', items: c.coverItems || [] } : c.pages[pi];
+    const p = pi === -1 ? { id: 'cover', items: c.coverItems || [] } : pi === -2 ? { id: 'back', items: [] } : c.pages[pi];
     const ids = new Set((p.items || []).filter((x) => x.media).map((x) => x.media));
     if (pi === -1 && c.cover && c.cover.photo) ids.add(c.cover.photo);
     if ((p.items || []).some((x) => x.type === 'map') && !window.CV_CARTE) { try { await O.loadScript('cv-carte-data.js'); } catch (e) { } }
     const map = {};
     for (const id of ids) map[id] = await M.dataUrl(id, wpx <= 1000 ? 'mid' : 'full');
-    const o = { pfx: 'x' + pi + '-', href: (id) => map[id] || '', media: M.info, cover: pi === -1 };
+    const o = { pfx: 'x' + pi + '-', href: (id) => map[id] || '', media: M.info, cover: pi === -1, back: pi === -2 };
     let svg = R.pageSvg(c, p, o);
     o.fonts = await R.fontsCss(svg);
     svg = R.pageSvg(c, p, o);
@@ -30,7 +30,8 @@
     const c = E.c;
     if (what === 'page') return [E.pi];
     if (what === 'spread') return E.visible();
-    return [-1].concat(c.pages.map((p, i) => i));
+    // carnet entier : couverture, pages, puis quatrième de couverture (page finale, comme un livre)
+    return [-1].concat(c.pages.map((p, i) => i), (c.cover || {}).back === false ? [] : [-2]);
   };
   const SIZES = { a4: [210, 297], a5: [148, 210] };
   /** PDF : une page du carnet par feuille (A4 ou A5), ou deux par feuille A4 paysage (« planches ») */
@@ -78,9 +79,9 @@
         x.fillStyle = 'rgba(0,0,0,.18)'; x.fillRect(a.width - 2, 0, 4, a.height);
         return { blob: await R.toBlob(cv, type, 0.92), name: O.safeName(c.title + ' - pages ' + (list[0] + 1) + '-' + (list[1] + 1), ext) };
       }
-      if (list.length === 1) { pr(0); const cv = await X.pageCanvas(c, list[0], wpx); return { blob: await R.toBlob(cv, type, 0.92), name: O.safeName(c.title + ' - ' + (list[0] === -1 ? 'couverture' : 'page ' + (list[0] + 1)), ext) }; }
+      if (list.length === 1) { pr(0); const cv = await X.pageCanvas(c, list[0], wpx); return { blob: await R.toBlob(cv, type, 0.92), name: O.safeName(c.title + ' - ' + (list[0] === -1 ? 'couverture' : list[0] === -2 ? 'quatrième de couverture' : 'page ' + (list[0] + 1)), ext) }; }
       const z = new window.JSZip();
-      for (let i = 0; i < list.length; i++) { pr(i); const cv = await X.pageCanvas(c, list[i], wpx); z.file(String(i).padStart(2, '0') + '-' + (list[i] === -1 ? 'couverture' : 'page-' + (list[i] + 1)) + ext, await R.toBlob(cv, type, 0.92)); }
+      for (let i = 0; i < list.length; i++) { pr(i); const cv = await X.pageCanvas(c, list[i], wpx); z.file(String(i).padStart(2, '0') + '-' + (list[i] === -1 ? 'couverture' : list[i] === -2 ? 'quatrieme-de-couverture' : 'page-' + (list[i] + 1)) + ext, await R.toBlob(cv, type, 0.92)); }
       return { blob: await z.generateAsync({ type: 'blob', mimeType: 'application/zip' }), name: O.safeName(c.title + ' - images', '.zip') };
     } finally { pr(-1); M.forgetData(); }
   };
@@ -145,20 +146,20 @@
     if (!E.c) return;
     const c = E.c, sh = $('#show');
     const wide = () => innerWidth > innerHeight * 1.15;
-    const slides = () => { const l = [[-1]]; if (wide()) { for (let i = 0; i < c.pages.length; i += 2) l.push(c.pages[i + 1] ? [i, i + 1] : [i]); } else c.pages.forEach((p, i) => l.push([i])); return l; };
+    const slides = () => { const l = [[-1]]; if (wide()) { for (let i = 0; i < c.pages.length; i += 2) l.push(c.pages[i + 1] ? [i, i + 1] : [i]); } else c.pages.forEach((p, i) => l.push([i])); if ((c.cover || {}).back !== false) l.push([-2]); return l; };
     let L = slides(), k = Math.max(0, L.findIndex((s) => s.includes(from == null ? -1 : from))), timer = null, playing = false;
     sh.hidden = false; document.body.classList.add('showing');
     sh.innerHTML = '<div class="shStage"></div><div class="shBar"><button class="ibtn" data-s="prev" aria-label="Précédente">' + ic('chevron-left') + '</button><button class="ibtn" data-s="play" aria-label="Lecture automatique">' + ic('play') + '</button><span class="shNo"></span><button class="ibtn" data-s="next" aria-label="Suivante">' + ic('chevron-right') + '</button><button class="ibtn" data-s="close" aria-label="Fermer">' + ic('x') + '</button></div>';
     const stage = $('.shStage', sh);
     const render = (dir) => {
       const s = L[k];
-      const html = '<div class="shSpread n' + s.length + '">' + s.map((pi) => '<div class="shPage">' + R.pageSvg(c, E.page(pi), { pfx: 's' + pi + '-', href: M.url, media: M.info, cover: pi === -1 }) + '</div>').join('') + '</div>';
+      const html = '<div class="shSpread n' + s.length + '">' + s.map((pi) => '<div class="shPage">' + R.pageSvg(c, pi === -2 ? { id: 'back', items: [] } : E.page(pi), { pfx: 's' + pi + '-', href: M.url, media: M.info, cover: pi === -1, back: pi === -2 }) + '</div>').join('') + '</div>';
       const old = stage.firstChild;
       stage.insertAdjacentHTML('beforeend', html);
       const nu = stage.lastChild;
       if (old && dir && CV.motionOk()) { old.classList.add('out', dir > 0 ? 'fwd' : 'back'); nu.classList.add('in', dir > 0 ? 'fwd' : 'back'); setTimeout(() => old.remove(), 700); }
       else if (old) old.remove();
-      $('.shNo', sh).textContent = (s[0] === -1 ? 'Couverture' : 'Page ' + s.map((x) => x + 1).join('-')) + ' · ' + (k + 1) + '/' + L.length;
+      $('.shNo', sh).textContent = (s[0] === -1 ? 'Couverture' : s[0] === -2 ? 'Quatrième de couverture' : 'Page ' + s.map((x) => x + 1).join('-')) + ' · ' + (k + 1) + '/' + L.length;
     };
     const go = (d) => { const n = k + d; if (n < 0 || n >= L.length) { if (playing && n >= L.length) { k = -1; go(1); } return; } k = n; render(d); };
     const play = (on) => { playing = on; clearInterval(timer); if (on) timer = setInterval(() => go(1), 5000); $('[data-s="play"]', sh).innerHTML = ic(on ? 'pause' : 'play'); };

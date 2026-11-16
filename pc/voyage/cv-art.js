@@ -141,7 +141,9 @@
   function lum(hex) { const n = parseInt(String(hex).replace('#', ''), 16); return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255; }
   A.lum = lum;
   /** Fond de couverture (cuir, kraft, lin) */
-  A.coverBg = function (style, color, pfx) {
+  A.coverBg = function (style, color, pfx, back) {
+    // dos du carnet (quatrième de couverture) : reliure et élastique de l'autre côté ; matière éclairée pareil (pas de miroir)
+    const X = (x, w) => back ? W - x - (w || 0) : x;
     const id = (x) => pfx + 'cv' + x;
     color = color || (A.COVER_COLORS[style] || A.COVER_COLORS.cuir)[0];
     let defs = '', s = '<rect width="' + W + '" height="' + H + '" fill="' + color + '"/>';
@@ -149,8 +151,8 @@
       defs += mottle(id('m'), { color: [0.25, 0.15, 0.05], a: 0.7, b: -0.2 }) + grain(id('g'), { color: [0.2, 0.12, 0.04], alpha: 1.1, bias: -0.38, freq: 0.7 });
       s += '<rect width="' + W + '" height="' + H + '" filter="url(#' + id('m') + ')"/><rect width="' + W + '" height="' + H + '" filter="url(#' + id('g') + ')"/>' + fibers(A.rng(pfx + 'k'), 260, '#5d3b1c', 0.35, 0, 0, W, H) + fibers(A.rng(pfx + 'k2'), 140, '#f3dcb0', 0.3, 0, 0, W, H);
       // dos relié (bande et coutures)
-      s += '<rect width="92" height="' + H + '" fill="' + shade(color, -0.35) + '"/><path d="M92 0V' + H + '" stroke="#00000033" stroke-width="3"/>';
-      let st = ''; for (let y = 60; y < H - 40; y += 110) st += 'M46 ' + y + 'v46';
+      s += '<rect x="' + X(0, 92) + '" width="92" height="' + H + '" fill="' + shade(color, -0.35) + '"/><path d="M' + X(92) + ' 0V' + H + '" stroke="#00000033" stroke-width="3"/>';
+      let st = ''; for (let y = 60; y < H - 40; y += 110) st += 'M' + X(46) + ' ' + y + 'v46';
       s += '<path d="' + st + '" stroke="#efe2c4" stroke-width="5" stroke-linecap="round" opacity=".85"/>';
     } else if (style === 'lin') {
       defs += '<filter id="' + id('h') + '" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.012 0.9" numOctaves="2" seed="4"/><feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0.9 0 0 0 -0.32"/></filter>';
@@ -158,7 +160,7 @@
       defs += mottle(id('m'), { color: [0.2, 0.18, 0.15], a: 0.4, b: -0.15 });
       defs += '<pattern id="' + id('p') + '" width="5" height="5" patternUnits="userSpaceOnUse"><path d="M0 1.2H5M1.2 0V5" stroke="#000" stroke-width=".8" opacity=".12"/></pattern>';
       s += '<rect width="' + W + '" height="' + H + '" fill="url(#' + id('p') + ')"/><rect width="' + W + '" height="' + H + '" filter="url(#' + id('h') + ')"/><rect width="' + W + '" height="' + H + '" filter="url(#' + id('v') + ')"/><rect width="' + W + '" height="' + H + '" filter="url(#' + id('m') + ')"/>';
-      s += '<rect width="70" height="' + H + '" fill="#000" opacity=".12"/><path d="M70 0V' + H + '" stroke="#ffffff40" stroke-width="2"/>';
+      s += '<rect x="' + X(0, 70) + '" width="70" height="' + H + '" fill="#000" opacity=".12"/><path d="M' + X(70) + ' 0V' + H + '" stroke="#ffffff40" stroke-width="2"/>';
     } else {
       // cuir : grain en relief (éclairage), marbrures, coutures
       defs += '<filter id="' + id('l') + '" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="3" seed="11" result="n"/>' +
@@ -171,7 +173,7 @@
       s += '<rect x="44" y="40" width="' + (W - 84) + '" height="' + (H - 80) + '" rx="26" fill="none" stroke="#000" stroke-opacity=".35" stroke-width="3" transform="translate(1.5 2)"/>';
       s += '<rect x="44" y="40" width="' + (W - 84) + '" height="' + (H - 80) + '" rx="26" fill="none" stroke="' + shade(color, 0.45) + '" stroke-width="3.2" stroke-dasharray="15 10" stroke-linecap="round" opacity=".85"/>';
       // élastique
-      s += '<rect x="868" y="0" width="38" height="' + H + '" fill="#1b1714"/><rect x="868" y="0" width="38" height="' + H + '" fill="url(#' + id('s') + ')" opacity=".6"/><path d="M872 0V' + H + 'M902 0V' + H + '" stroke="#ffffff22" stroke-width="2"/>';
+      s += '<rect x="' + X(868, 38) + '" y="0" width="38" height="' + H + '" fill="#1b1714"/><rect x="' + X(868, 38) + '" y="0" width="38" height="' + H + '" fill="url(#' + id('s') + ')" opacity=".6"/><path d="M' + X(872) + ' 0V' + H + 'M' + X(902) + ' 0V' + H + '" stroke="#ffffff22" stroke-width="2"/>';
     }
     return '<defs>' + defs + '</defs>' + s;
   };
@@ -213,6 +215,37 @@
       const it = { id: 'cover', w: pw, h: ph, frame: cv.photoFrame || 'polaroid', o: { cap: cv.caption || '' }, crop: cv.crop || {}, shadow: true };
       s += '<g transform="translate(' + CX + ' ' + (ty + 160 + 400) + ') rotate(' + (cv.photoRot == null ? -3 : cv.photoRot) + ')">' + A.photo(it, photoHref, media || { w: 4, h: 3 }, pfx + 'c') + '</g>';
     }
+    return s;
+  };
+  /** Quatrième de couverture (dos du carnet, page finale à l'impression) : même matière, dos relié à droite,
+      texte libre (c.cover.backText), rose des vents, titre, dates et contenu du carnet */
+  A.backCover = function (c, pfx, stats) {
+    const cv = c.cover || {}, style = cv.style || 'cuir', color = cv.color || A.COVER_COLORS[style][0];
+    const dark = lum(color) < 0.5;
+    // la couverture vue de dos : le dos relié passe à droite
+    let s = A.coverBg(style, color, pfx + 'b', true);
+    const CX = W - (style === 'cuir' ? 456 : style === 'kraft' ? 546 : 535);
+    const F = A.font(cv.font || (style === 'cuir' ? 'serif' : 'manuscrit'));
+    const gold = style === 'cuir' && (cv.titleStyle || 'dorure') === 'dorure';
+    const ink = gold ? 'url(#' + pfx + 'bgold)' : (dark ? '#F4EBDD' : '#2E241B');
+    s += '<defs><linearGradient id="' + pfx + 'bgold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F7E3A1"/><stop offset=".5" stop-color="#C9A04A"/><stop offset=".52" stop-color="#B08530"/><stop offset="1" stop-color="#E9CB7A"/></linearGradient></defs>';
+    // texte libre : sur une étiquette de papier (kraft, lin) ou directement sur le cuir
+    const txt = String(cv.backText || '').trim();
+    if (txt) {
+      const lines = []; txt.split(/\n/).forEach((par) => { let cur = ''; par.split(/\s+/).forEach((w) => { if ((cur + ' ' + w).trim().length > 30 && cur) { lines.push(cur); cur = w; } else cur = (cur + ' ' + w).trim(); }); lines.push(cur); });
+      const L = lines.slice(0, 9), lh = 50, bh = 80 + L.length * lh, bw = 700, x = CX - bw / 2, y = 330 - bh / 2;
+      const onPaper = style !== 'cuir';
+      if (onPaper) s += '<rect x="' + (x + 6) + '" y="' + (y + 10) + '" width="' + bw + '" height="' + bh + '" rx="10" fill="#000" opacity=".25"/><rect x="' + x + '" y="' + y + '" width="' + bw + '" height="' + bh + '" rx="10" fill="#FBF5E6"/><rect x="' + (x + 16) + '" y="' + (y + 16) + '" width="' + (bw - 32) + '" height="' + (bh - 32) + '" rx="6" fill="none" stroke="' + color + '" stroke-width="2"/>';
+      L.forEach((l, i) => { s += '<text x="' + CX + '" y="' + f(y + 58 + lh * (i + 0.6)) + '" text-anchor="middle" font-family="' + esc(F[2]) + '" font-style="italic" font-size="38" fill="' + (onPaper ? '#3A2B20' : ink) + '">' + esc(l) + '</text>'; });
+    }
+    // rose des vents, titre, dates
+    const ry = txt ? 790 : 640, rc = gold ? '#C9A04A' : (dark ? '#F4EBDD' : '#4A3828');
+    s += '<g transform="translate(' + CX + ' ' + ry + ')" opacity=".9">' + A.rose(70, rc) + '</g>';
+    s += '<text x="' + CX + '" y="' + (ry + 170) + '" text-anchor="middle" font-family="' + esc(F[2]) + '" font-weight="700" font-size="52" fill="' + ink + '">' + esc(c.title || 'Mon carnet') + '</text>';
+    if (c.dates) s += '<text x="' + CX + '" y="' + (ry + 228) + '" text-anchor="middle" font-family="Special Elite" font-size="32" letter-spacing="3" fill="' + ink + '">' + esc(c.dates) + '</text>';
+    // bas de page : contenu du carnet et « fin », comme un livre
+    s += '<path d="M' + (CX - 120) + ' 1218H' + (CX + 120) + '" stroke="' + rc + '" stroke-width="2" opacity=".6"/>';
+    if (stats) s += '<text x="' + CX + '" y="' + 1262 + '" text-anchor="middle" font-family="Special Elite" font-size="26" letter-spacing="2" fill="' + ink + '" opacity=".85">' + esc(stats) + '</text>';
     return s;
   };
   A.wrapSimple = function (t, n) {

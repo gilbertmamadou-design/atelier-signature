@@ -202,6 +202,7 @@
   };
   R.itemsSvg = function (page, o) { return (page.items || []).map((it) => R.itemSvg(it, o)).join(''); };
   R.bgSvg = function (carnet, page, o) {
+    if (o.back) return A.backCover(carnet, o.pfx, CV.M && CV.M.stats ? CV.M.stats(carnet) : '');
     if (o.cover) return A.cover(carnet, o.pfx, carnet.cover && carnet.cover.photo ? o.href(carnet.cover.photo) : '', carnet.cover && carnet.cover.photo ? o.media(carnet.cover.photo) : null);
     return A.bg(page.bg || 'creme', o.pfx, page.id);
   };

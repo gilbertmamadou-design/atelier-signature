@@ -987,10 +987,12 @@
         '<div class="o-field"><span>Titre</span><div class="chips">' + [['etiquette', 'Étiquette'], ['dorure', 'Dorure'], ['simple', 'Simple']].map((s) => '<button class="chip' + ((cv.titleStyle || (cv.style === 'cuir' ? 'dorure' : 'etiquette')) === s[0] ? ' on' : '') + '" data-ts="' + s[0] + '">' + s[1] + '</button>').join('') + '</div></div>' +
         '<label class="o-field"><span>Police du titre</span><select class="o-in" id="cvF">' + A.FONTS.map((x) => '<option value="' + x[0] + '"' + ((cv.font || (cv.style === 'cuir' ? 'serif' : 'manuscrit')) === x[0] ? ' selected' : '') + '>' + x[1] + '</option>').join('') + '</select></label>' +
         '<div class="o-field"><span>Photo de couverture</span><div class="row"><button class="btn" data-cp="pick">' + ic('image') + (cv.photo ? 'Changer' : 'Choisir') + '</button>' + (cv.photo ? '<select class="o-in" id="cvPF">' + [['polaroid', 'Polaroid'], ['bord', 'Bord blanc'], ['coins', 'Coins photo'], ['timbre', 'Timbre'], ['washi', 'Washi']].map((x) => '<option value="' + x[0] + '"' + ((cv.photoFrame || 'polaroid') === x[0] ? ' selected' : '') + '>' + x[1] + '</option>').join('') + '</select><button class="btn" data-cp="rm">' + ic('x') + 'Retirer</button>' : '') + '</div>' + (cv.photo && (cv.photoFrame || 'polaroid') === 'polaroid' ? '<input class="o-in" id="cvCap" value="' + esc(cv.caption || '') + '" placeholder="Légende du Polaroid" style="margin-top:6px">' : '') + '</div>' +
+        '<div class="o-field"><span>Quatrième de couverture (page finale)</span><label class="o-check"><input type="checkbox" id="cvB"' + (cv.back !== false ? ' checked' : '') + '><span>L\'ajouter à la fin du carnet (PDF, impression, diaporama)</span></label>' +
+        (cv.back !== false ? '<textarea class="o-in" id="cvBT" rows="3" maxlength="400" placeholder="Un mot pour finir (facultatif) : souvenir, dédicace, citation…" style="margin-top:6px">' + esc(cv.backText || '') + '</textarea><div class="covPv covBack" style="max-width:180px;margin-top:8px">' + R.pageSvg(c, { id: 'back', items: [] }, { pfx: 'cb-', href: M.url, media: M.info, back: true }) + '</div>' : '') + '</div>' +
         '</div></div>';
     };
     draw();
-    const upd = (label) => { const k = body.querySelector('.covPv'); if (k) k.innerHTML = R.pageSvg(c, { id: 'cover', items: c.coverItems || [] }, { pfx: 'cd-', href: M.url, media: M.info, cover: true }); if (E.pi === -1) E.render(); $('#edTitle').textContent = c.title; clearTimeout(U._cv); U._cv = setTimeout(() => E.commit(label || 'Couverture'), 400); };
+    const upd = (label) => { const k = body.querySelector('.covPv'); if (k) k.innerHTML = R.pageSvg(c, { id: 'cover', items: c.coverItems || [] }, { pfx: 'cd-', href: M.url, media: M.info, cover: true }); const kb = body.querySelector('.covBack'); if (kb) kb.innerHTML = R.pageSvg(c, { id: 'back', items: [] }, { pfx: 'cb-', href: M.url, media: M.info, back: true }); if (E.pi === -1) E.render(); $('#edTitle').textContent = c.title; clearTimeout(U._cv); U._cv = setTimeout(() => E.commit(label || 'Couverture'), 400); };
     await O.dialog({
       title: 'Couverture', body, wide: true, cls: 'cv-dlg',
       onOpen: () => {
@@ -1000,10 +1002,11 @@
           else if (t.id === 'cvD') c.dates = t.value;
           else if (t.id === 'cvC') cv.color = t.value;
           else if (t.id === 'cvCap') cv.caption = t.value;
+          else if (t.id === 'cvBT') { cv.backText = t.value; const k = body.querySelector('.covBack'); if (k) k.innerHTML = R.pageSvg(c, { id: 'back', items: [] }, { pfx: 'cb-', href: M.url, media: M.info, back: true }); return; }
           else return;
           upd();
         });
-        body.addEventListener('change', (e) => { if (e.target.id === 'cvF') { cv.font = e.target.value; upd(); } if (e.target.id === 'cvPF') { cv.photoFrame = e.target.value; draw(); upd(); } });
+        body.addEventListener('change', (e) => { if (e.target.id === 'cvB') { cv.back = e.target.checked; draw(); return; } if (e.target.id === 'cvF') { cv.font = e.target.value; upd(); } if (e.target.id === 'cvPF') { cv.photoFrame = e.target.value; draw(); upd(); } });
         body.addEventListener('click', async (e) => {
           const s = e.target.closest('[data-cs]'); if (s) { cv.style = s.dataset.cs; cv.color = A.COVER_COLORS[cv.style][0]; cv.titleStyle = ''; cv.font = ''; draw(); upd(); return; }
           const cc = e.target.closest('[data-cc]'); if (cc) { cv.color = cc.dataset.cc; draw(); upd(); return; }
