@@ -1,59 +1,63 @@
 {
  "_lanceur": {
-  "date": "2026-11-15",
-  "v": "98cb948e6e2d"
+  "date": "2026-11-16",
+  "v": "d320fc45a4e0"
  },
  "actualites": {
   "date": "2026-11-16",
-  "v": "91acfac4a28b"
+  "v": "81dc0d06f266"
  },
  "agenda": {
   "date": "2026-11-16",
-  "v": "1a7b7217da73"
+  "v": "561528e0f80f"
  },
  "budget": {
   "date": "2026-11-16",
-  "v": "5e30f979abb1"
+  "v": "300c8088c6c9"
  },
  "cadrans": {
   "date": "2026-11-16",
-  "v": "3d3e1c1cdee2"
+  "v": "e4869f1e5c76"
  },
  "calcul": {
   "date": "2026-11-16",
-  "v": "5f764831f3b3"
+  "v": "cd422ba5f0d2"
  },
  "chasse": {
   "date": "2026-11-16",
-  "v": "ad631bdf9c96"
+  "v": "0e6c18d8059d"
  },
  "ciel": {
   "date": "2026-11-16",
-  "v": "b212504b6bb6"
+  "v": "0b0570b81cf9"
  },
  "coffre": {
   "date": "2026-11-16",
-  "v": "888264b07dc4"
+  "v": "afc8557ba8ab"
  },
  "contacts": {
   "date": "2026-11-16",
-  "v": "9dde3ab727df"
+  "v": "de2780abe791"
+ },
+ "correcteur": {
+  "date": "2026-11-16",
+  "v": "363f99b15579"
  },
  "dicta": {
   "date": "2026-11-16",
-  "v": "0e00468d2400"
+  "v": "603f09525334"
  },
  "ecran": {
   "date": "2026-11-16",
-  "v": "d125ed425d6f"
+  "v": "cbe56d481aab"
  },
  "fichiers": {
   "date": "2026-11-16",
-  "v": "a86ba4bbc6ab"
+  "v": "0d8cb3ac5a73"
  },
  "fond-jarvis": {
   "date": "2026-11-16",
-  "v": "a35e8b61afe8"
+  "v": "4f372b2b3ce5"
  },
  "fond-jarvis:lively": {
   "date": "2026-11-16",
@@ -61,82 +65,82 @@
  },
  "galerie": {
   "date": "2026-11-16",
-  "v": "194f2a2cccaa"
+  "v": "12b5aa362d5c"
  },
  "langues": {
   "date": "2026-11-16",
-  "v": "15ec4abf5c4b"
+  "v": "d8f1c9402293"
  },
  "lecteur": {
   "date": "2026-11-16",
-  "v": "4d167628e484"
+  "v": "4a9394be35e0"
  },
  "liseuse": {
   "date": "2026-11-16",
-  "v": "451e6c8d4415"
+  "v": "2d1e4b628410"
  },
  "majordome": {
   "date": "2026-11-16",
-  "v": "ee8e9750a1b1"
+  "v": "09bfa22e3df4"
  },
  "meteo": {
   "date": "2026-11-16",
-  "v": "d545cd065a96"
+  "v": "5798f0c43cc2"
  },
  "musique": {
   "date": "2026-11-16",
-  "v": "8e99d527d5c4"
+  "v": "62dc4a541bf9"
  },
  "notes": {
   "date": "2026-11-16",
-  "v": "4bc07ff908ac"
+  "v": "2d29d57ef65e"
  },
  "ondes": {
   "date": "2026-11-16",
-  "v": "583f1b302f71"
+  "v": "83f26576bf5e"
  },
  "pdf": {
   "date": "2026-11-16",
-  "v": "b8d088e6480e"
+  "v": "0292078e6485"
  },
  "petitspas": {
   "date": "2026-11-16",
-  "v": "8de659696a61"
+  "v": "a4b58bbd6015"
  },
  "presentation": {
   "date": "2026-11-16",
-  "v": "137b17cb147b"
+  "v": "e3dc88348e4a"
  },
  "qr": {
   "date": "2026-11-16",
-  "v": "51fa0f1ecd27"
+  "v": "2622e6f9c70d"
  },
  "scan": {
   "date": "2026-11-16",
-  "v": "d1158d30caaf"
+  "v": "0b8bbc879e06"
  },
  "sentiers": {
   "date": "2026-11-16",
-  "v": "1b3cd15d7e9a"
+  "v": "558445c85971"
  },
  "solaire": {
   "date": "2026-11-16",
-  "v": "5344157ab3ed"
+  "v": "5e79f3e6231d"
  },
  "tableur": {
   "date": "2026-11-16",
-  "v": "9283cd2a4408"
+  "v": "08c530a070a0"
  },
  "texte": {
   "date": "2026-11-16",
-  "v": "99028a50ae39"
+  "v": "3b67ee74a094"
  },
  "toile": {
   "date": "2026-11-16",
-  "v": "0b6a13d3414f"
+  "v": "d0fb79502473"
  },
  "voyage": {
   "date": "2026-11-16",
-  "v": "c097722c7410"
+  "v": "abaab7b01acd"
  }
 }

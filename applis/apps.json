@@ -345,5 +345,13 @@
   "name": "Sérénité",
   "icons": "android-icons-serenite",
   "file": "Serenite.apk"
+ },
+ {
+  "app": "correcteur",
+  "web": "www-correcteur",
+  "appid": "fr.magformation13.correcteur",
+  "name": "Correcteur",
+  "icons": "android-icons-correcteur",
+  "file": "Correcteur.apk"
  }
 ]

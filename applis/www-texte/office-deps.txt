@@ -10,3 +10,6 @@
 www-presentation/pres-shapes.js pres-shapes.js
 www-presentation/pres-charts.js pres-charts.js
 # jszip.min.js et jspdf.umd.min.js : copiés par le workflow depuis node_modules (mêmes versions que pc/shared/vendor/)
+# Correcteur de français (Grammalecte, hors ligne) : module commun
+../pc/shared/correcteur/ correcteur/
+../pc/shared/vendor/grammalecte/ correcteur/grammalecte/

@@ -1,0 +1,5 @@
+Grammalecte 2.3.0 — correcteur grammatical et orthographique français libre (Olivier R., https://grammalecte.net/)
+Code : GNU GPL v3 (LICENSE-GPL-3.0.txt). Dictionnaire orthographique : MPL 2.0. Thésaurus (myThes, Frédéric Labbé) : LGPL 2.1+.
+Construit depuis les sources officielles (miroir https://github.com/Pofilo/grammalecte, commit 08511c22, déc. 2025)
+avec « python3 make.py fr -js -b -d » ; fichiers repris de grammalecte-js/ sans modification.
+Utilisé hors ligne par la Suite MAG (pc/shared/correcteur/) : rien n'est envoyé sur Internet.

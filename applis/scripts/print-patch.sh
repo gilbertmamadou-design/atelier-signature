@@ -424,7 +424,7 @@ public class MainActivity extends BridgeActivity {
     private final java.util.List<Object> extraBridges = new java.util.ArrayList<Object>();
     private void loadExtraBridges(WebView wv) {
         String pkg = MainActivity.class.getPackage().getName();
-        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge", "ReseauBridge", "LecteurBridge", "PdfBridge", "SolaireBridge", "SocleBridge", "FichiersBridge", "ActualitesBridge", "ToileBridge", "OfficeBridge", "MajordomeBridge", "VoyageBridge", "TraducteurBridge", "SereniteBridge", "LanguesBridge" }) {
+        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge", "ReseauBridge", "LecteurBridge", "PdfBridge", "SolaireBridge", "SocleBridge", "FichiersBridge", "ActualitesBridge", "ToileBridge", "OfficeBridge", "MajordomeBridge", "VoyageBridge", "TraducteurBridge", "SereniteBridge", "LanguesBridge", "CorrecteurBridge" }) {
             try {
                 Class<?> k = Class.forName(pkg + "." + n);
                 Object o = k.getConstructor(android.app.Activity.class, WebView.class).newInstance(this, wv);
@@ -1963,6 +1963,16 @@ fi
 # langue par ML Kit Language ID, incluse), lecture par la voix du téléphone, micro (reconnaissance vocale d'Android),
 # photo d'un menu ou d'un panneau (ML Kit Text Recognition, alphabet latin, inclus dans l'APK : hors ligne). TraducteurBridge.java copié ici seulement
 # (il dépend d'ML Kit, ajouté à cette appli seule).
+# Correcteur : orthographe, grammaire, conjugaison et synonymes hors ligne (Grammalecte, module commun pc/shared/correcteur,
+# office-deps.txt). « Corriger » dans le menu de sélection de texte de toutes les applis (ACTION_PROCESS_TEXT : le texte
+# corrigé est renvoyé à l'appli d'origine) et « Partager » vers Correcteur (CorrecteurBridge.java, copié ici seulement).
+# Lancement en mode standard : une sélection corrigée doit pouvoir rendre son résultat (setResult) à l'appli qui l'a demandée.
+if [ "$APP" = "correcteur" ]; then
+  bash scripts/office-deps.sh www-correcteur
+  cp scripts/CorrecteurBridge.java "$(dirname "$F")/CorrecteurBridge.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/CorrecteurBridge.java"
+  sed -i 's/android:launchMode="singleTask"/android:launchMode="standard"/' "$MAN"
+  addfilters '<intent-filter android:label="Corriger"><action android:name="android.intent.action.PROCESS_TEXT" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="text/plain" /></intent-filter><intent-filter android:label="Correcteur"><action android:name="android.intent.action.SEND" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="text/plain" /></intent-filter>'
+fi
 # Langues : apprendre l'espagnol et le portugais ; voix du téléphone et reconnaissance vocale d'Android (LanguesBridge.java, copié ici seulement)
 if [ "$APP" = "langues" ]; then
   cp scripts/LanguesBridge.java "$(dirname "$F")/LanguesBridge.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/LanguesBridge.java"

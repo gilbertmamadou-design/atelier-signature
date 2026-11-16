@@ -6,7 +6,7 @@
    - message VERSION : répond {app, version, date} (« Version du JJ/MM » de l'appli et du lanceur) ;
    - réponses : cache d'abord pour les fichiers précachés, réseau puis cache pour le reste (polices…). */
 'use strict';
-var VERSION = '583f1b302f71';
+var VERSION = '83f26576bf5e';
 var DATE = '2026-11-16';          // jour de publication de cette version (« Version du JJ/MM » dans l'appli et le lanceur)
 var APP = 'ondes';
 var CACHE = 'mag-pc-' + APP + '-' + VERSION, RUNTIME = 'mag-pc-' + APP + '-rt';
@@ -22,10 +22,15 @@ var PRECACHE = [
   "../shared/apps/ondes.js",
   "../shared/apps/ondes.css"
 ];
+// gros fichiers communs à plusieurs applis (moteur du correcteur, 16 Mo) : un seul cache partagé, pas une copie par appli
+var COMMUN = 'mag-pc-commun-31f1edb1c086';
+function commun(u) { return u.indexOf('/shared/vendor/grammalecte/') >= 0; }
 
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) {
     return Promise.all(PRECACHE.map(function (u) {
+      var au = new URL(u, self.location.href).href;
+      if (commun(au)) return caches.open(COMMUN).then(function (cc) { return cc.match(au).then(function (hit) { return hit || fetch(new Request(au, { cache: 'reload' })).then(function (r) { if (!r.ok) throw new Error(u + ' : ' + r.status); return cc.put(au, r); }); }); });
       return fetch(new Request(u, { cache: 'reload' })).then(function (r) {
         if (!r.ok) throw new Error(u + ' : ' + r.status);
         return c.put(u, r);
@@ -39,7 +44,7 @@ self.addEventListener('install', function (e) {
 
 self.addEventListener('activate', function (e) {
   e.waitUntil(caches.keys().then(function (keys) {
-    return Promise.all(keys.filter(function (k) { return k.indexOf('mag-pc-' + APP + '-') === 0 && k !== CACHE && k !== RUNTIME; }).map(function (k) { return caches.delete(k); }));
+    return Promise.all(keys.filter(function (k) { return (k.indexOf('mag-pc-' + APP + '-') === 0 && k !== CACHE && k !== RUNTIME) || (k.indexOf('mag-pc-commun-') === 0 && k !== COMMUN && PRECACHE.some(function (u) { return commun(new URL(u, self.location.href).href); })); }).map(function (k) { return caches.delete(k); }));
   }).then(function () { return self.clients.claim(); }));
 });
 
@@ -66,7 +71,7 @@ self.addEventListener('fetch', function (e) {
   var key = url.origin === self.location.origin ? precached(req.url) : null;
   if (key || req.mode === 'navigate') {
     var k = key || SCOPE + 'index.html';
-    e.respondWith(caches.open(CACHE).then(function (c) {
+    e.respondWith(caches.open(key && commun(key) ? COMMUN : CACHE).then(function (c) {
       return c.match(k).then(function (hit) { return hit || fetch(req); });
     }).catch(function () { return fetch(req); }));
     return;

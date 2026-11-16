@@ -20,6 +20,9 @@
   'use strict';
   if (window.MAGPC) return;
   var CONF = window.MAGPC_CONF || {};
+  // Correcteur de français (applis qui l'embarquent) : moteur commun à toute la Suite, tâche de fond dans le dossier de l'appli,
+  // F7 et petit bouton « Corriger » sous les zones de texte
+  window.MagCorrecteurConfig = window.MagCorrecteurConfig || { worker: 'correcteur/correcteur-worker.js', engine: '../shared/vendor/grammalecte/', auto: true };
   var M = { version: '1', app: CONF.app || 'app', conf: CONF, native: false };
   window.MAGPC = M;
   var root = document.documentElement;

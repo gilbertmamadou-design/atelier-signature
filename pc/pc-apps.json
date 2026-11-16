@@ -163,6 +163,7 @@
     {
       "id": "notes",
       "android": "notes",
+      "correcteur": true,
       "name": "Carnet",
       "short_name": "Carnet",
       "description": "Notes, listes, dessins et photos, rappels",
@@ -180,6 +181,7 @@
     {
       "id": "agenda",
       "android": "agenda",
+      "correcteur": true,
       "name": "Agenda",
       "short_name": "Agenda",
       "description": "Rendez-vous, rappels, import et export .ics",
@@ -201,6 +203,7 @@
     {
       "id": "contacts",
       "android": "contacts",
+      "correcteur": true,
       "name": "Contacts",
       "short_name": "Contacts",
       "description": "Carnet d'adresses, doublons, import et export vCard (.vcf)",
@@ -448,6 +451,7 @@
     {
       "id": "dicta",
       "android": "dicta",
+      "correcteur": true,
       "name": "Dictaphone",
       "short_name": "Dictaphone",
       "description": "Enregistrer avec le micro du PC, marqueurs, extraits, dictée",
@@ -512,6 +516,7 @@
     {
       "id": "chasse",
       "android": "chasse",
+      "correcteur": true,
       "name": "Carnet de chasse",
       "short_name": "Carnet de chasse",
       "description": "Carnet de prélèvements, statistiques, exports PDF et Excel (consultation sur PC)",
@@ -532,6 +537,7 @@
     {
       "id": "presentation",
       "android": "presentation",
+      "correcteur": true,
       "office": true,
       "name": "Présentation",
       "short_name": "Présentation",
@@ -549,6 +555,7 @@
     {
       "id": "voyage",
       "android": "voyage",
+      "correcteur": true,
       "office": true,
       "name": "Carnet de voyage",
       "short_name": "Carnet de voyage",
@@ -567,6 +574,7 @@
     {
       "id": "texte",
       "android": "texte",
+      "correcteur": "copie",
       "office": true,
       "name": "Texte",
       "short_name": "Texte",
@@ -574,7 +582,7 @@
       "theme_color": "#f6f7f9",
       "background_color": "#f6f7f9",
       "vendor": ["jszip.min.js", "jspdf.umd.min.js", "prosemirror.min.js", "prosemirror.css", "lucide-icons.js", "katex/katex.min.js", "katex/katex.min.css", "katex/fonts/", "fonts/"],
-      "copies": { "texte.css": "applis/www-texte/texte.css", "texte-doc.css": "applis/www-texte/texte-doc.css", "pres-shapes.js": "applis/www-presentation/pres-shapes.js", "pres-charts.js": "applis/www-presentation/pres-charts.js", "tx-schema.js": "applis/www-texte/tx-schema.js", "tx-model.js": "applis/www-texte/tx-model.js", "tx-views.js": "applis/www-texte/tx-views.js", "tx-editor.js": "applis/www-texte/tx-editor.js", "tx-layout.js": "applis/www-texte/tx-layout.js", "tx-commands.js": "applis/www-texte/tx-commands.js", "tx-io.js": "applis/www-texte/tx-io.js", "tx-docx.js": "applis/www-texte/tx-docx.js", "tx-odt.js": "applis/www-texte/tx-odt.js", "tx-pdf.js": "applis/www-texte/tx-pdf.js", "tx-merge.js": "applis/www-texte/tx-merge.js", "tx-templates.js": "applis/www-texte/tx-templates.js", "tx-dialogs.js": "applis/www-texte/tx-dialogs.js", "tx-panes.js": "applis/www-texte/tx-panes.js", "tx-ui.js": "applis/www-texte/tx-ui.js", "tx-app.js": "applis/www-texte/tx-app.js" },
+      "copies": { "texte.css": "applis/www-texte/texte.css", "texte-doc.css": "applis/www-texte/texte-doc.css", "pres-shapes.js": "applis/www-presentation/pres-shapes.js", "pres-charts.js": "applis/www-presentation/pres-charts.js", "tx-schema.js": "applis/www-texte/tx-schema.js", "tx-model.js": "applis/www-texte/tx-model.js", "tx-views.js": "applis/www-texte/tx-views.js", "tx-editor.js": "applis/www-texte/tx-editor.js", "tx-layout.js": "applis/www-texte/tx-layout.js", "tx-commands.js": "applis/www-texte/tx-commands.js", "tx-io.js": "applis/www-texte/tx-io.js", "tx-docx.js": "applis/www-texte/tx-docx.js", "tx-odt.js": "applis/www-texte/tx-odt.js", "tx-pdf.js": "applis/www-texte/tx-pdf.js", "tx-merge.js": "applis/www-texte/tx-merge.js", "tx-correcteur.js": "applis/www-texte/tx-correcteur.js", "tx-templates.js": "applis/www-texte/tx-templates.js", "tx-dialogs.js": "applis/www-texte/tx-dialogs.js", "tx-panes.js": "applis/www-texte/tx-panes.js", "tx-ui.js": "applis/www-texte/tx-ui.js", "tx-app.js": "applis/www-texte/tx-app.js" },
       "file_handlers": [
         { "accept": { "application/x-magdoc": [".magdoc"] } },
         { "accept": { "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"] } },
@@ -645,8 +653,21 @@
       "data": { "ls": ["fond-jarvis:"], "note": "Réglages, raccourcis, agenda importé et minuteurs du fond. Le fond installé dans Lively a son propre stockage : il se sauvegarde lui-même (⚙ › À propos › « Enregistrer mes réglages dans un fichier »). Les voix Piper (IndexedDB « mj-voix ») se réinstallent depuis ⚙ › Voix." }
     },
     {
+      "id": "correcteur",
+      "android": "correcteur",
+      "correcteur": "copie",
+      "name": "Correcteur",
+      "short_name": "Correcteur",
+      "description": "Orthographe, grammaire, conjugaison et synonymes en français, hors ligne (Grammalecte)",
+      "theme_color": "#f4f6fb",
+      "background_color": "#f4f6fb",
+      "patches": [],
+      "data": { "ls": ["correcteur:", "mag-correcteur"] }
+    },
+    {
       "id": "tableur",
       "android": "tableur",
+      "correcteur": true,
       "office": true,
       "name": "Tableur",
       "short_name": "Tableur",

@@ -412,11 +412,22 @@ def service_worker(app, conf, out_dir, files):
             WARN.append('%s : fichier à précacher absent : %s' % (app['id'], rel))
     v = h.hexdigest()[:12]
     date = version_date(app['id'], v)
-    return (tpl.replace('__VERSION__', v).replace('__DATE__', date).replace('__APP__', app['id']).replace('__NAME__', app['name'])
+    return (tpl.replace('__VERSION__', v).replace('__DATE__', date).replace('__APP__', app['id']).replace('__NAME__', app['name']).replace('__COMMUN__', commun_version())
             .replace('__PRECACHE__', json.dumps(files, indent=2))), v
 
 
 GENERATED = {}
+_COMMUN = []
+
+
+def commun_version():
+    """Empreinte des gros fichiers partagés par plusieurs applis (moteur du correcteur) : un seul cache pour toutes."""
+    if not _COMMUN:
+        h = hashlib.sha256()
+        for f in vendor_dir('grammalecte/'):
+            h.update(f.encode()); h.update(read(os.path.join(VENDOR, f), 'rb'))
+        _COMMUN.append(h.hexdigest()[:12])
+    return _COMMUN[0]
 
 
 def fr_date(iso):
@@ -467,6 +478,15 @@ def main():
     vendor(conf)
     versions = {}
     for app in conf['apps']:
+        # correcteur de français : moteur commun (vendor/grammalecte/, un seul cache pour toutes les applis), tâche de fond
+        # dans le dossier de l'appli ; module injecté (true) ou fichier correcteur/correcteur.js appelé par la page (« copie »)
+        if app.get('correcteur'):
+            app['vendor'] = app.get('vendor', []) + (['grammalecte/'] if 'grammalecte/' not in app.get('vendor', []) else [])
+            app['workers'] = app.get('workers', []) + ['correcteur/correcteur-worker.js']
+            if app['correcteur'] == 'copie':
+                app['copies'] = dict(app.get('copies', {}), **{'correcteur/correcteur.js': 'pc/shared/correcteur/correcteur.js'})
+            else:
+                app['modules'] = app.get('modules', []) + ['correcteur/correcteur']
         if app['android'] not in apps_android:
             sys.exit('%s : absent de applis/apps.json' % app['android'])
         out_dir = os.path.join(PC, app['id'])

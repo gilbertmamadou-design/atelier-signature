@@ -1,0 +1,49 @@
+{
+  "id": "/atelier-signature/pc/correcteur/",
+  "name": "Correcteur",
+  "short_name": "Correcteur",
+  "description": "Orthographe, grammaire, conjugaison et synonymes en français, hors ligne (Grammalecte)",
+  "lang": "fr",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f6fb",
+  "theme_color": "#f4f6fb",
+  "categories": [
+    "productivity",
+    "utilities"
+  ],
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "launch_handler": {
+    "client_mode": [
+      "focus-existing",
+      "auto"
+    ]
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "web+magcorrecteur",
+      "url": "./?lien=%s"
+    }
+  ]
+}
