@@ -206,12 +206,21 @@
     return '';
   }
   function zh(k, lab, big, sub) { return '<i>' + esc(lab) + '</i>' + (big ? '<b>' + esc(big) + '</b>' : '') + (sub ? '<span>' + esc(sub) + '</span>' : ''); }
+  /* météo de la sphère seule : relue toutes les 30 min (Open-Meteo, comme « quel temps fait-il »), sans attendre qu'on la demande */
+  var wxTry = 0;
+  function meteoFraiche() {
+    var c = X.lsGet(X.KEY.wx, null), age = c && c.at ? Date.now() - c.at : Infinity;
+    if (age < 30 * 60000 || Date.now() - wxTry < 10 * 60000 || !X.weatherData) return;
+    wxTry = Date.now();
+    X.weatherData().then(function () { if (MJ.moment) MJ.moment(); hudPaint(); }, function () { });
+  }
   function hudPaint() {
     if (!S.zen) return;
     var I = S.zenInfo || {}, cells = MJ.momentCells ? MJ.momentCells() : [], cell = function (k) { return cells.filter(function (x) { return x.k === k; })[0]; };
     var d = new Date(), box = function (k) { return hud.querySelector('[data-zh="' + k + '"]'); };
     box('heure').innerHTML = I.heure ? zh('heure', d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }), String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'), '') : '';
     var real = function (x) { return x && !/^Touchez/.test(x.s || ''); };
+    if (I.meteo) meteoFraiche();
     var wx = cell('wx'); box('meteo').innerHTML = I.meteo && real(wx) ? zh('meteo', wx.l, wx.b, wx.s) : '';
     var ev = cell('ev'); box('rdv').innerHTML = I.rdv && real(ev) ? zh('rdv', ev.l, ev.b, ev.s) : '';
     var lines = [];
