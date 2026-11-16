@@ -2171,9 +2171,9 @@ async function wikt(word, lang){
     var el=els[i], tag=el.tagName;
     if(tag==='H2'){ var id=(el.id||'')+' '+((el.querySelector('[id]')||{}).id||''); inFr=re.test(id)||re.test(el.textContent.slice(0,40)); if(!inFr && out.length) break; continue; }
     if(!inFr) continue;
-    if(tag==='H3'||tag==='H4'){ var tt=el.textContent.replace(/\[.*?\]/g,'').replace(/\d+$/,'').trim(); if(/Étymologie|Prononciation|Voir aussi|Références|Traductions|Anagrammes|Synonymes|Dérivés|Apparentés|Vocabulaire|Hyperonymes|Hyponymes|Variantes|Paronymes|Homophones|Taux|Quasi|Holonymes|Méronymes|Antonymes|Expressions|Proverbes|Note|Composés|Gentilés|Abréviations|Augmentatifs|Diminutifs|Faux|Phrases|Dérivés autres|Forme/i.test(tt)) cur=null; else { cur={pos:tt, defs:[]}; out.push(cur); } continue; }
+    if(tag==='H3'||tag==='H4'){ var tt=el.textContent.replace(/\[.*?\]/g,'').replace(/\d+$/,'').trim(); if(/^Forme/i.test(tt)){ cur={pos:tt, defs:[], forme:true}; out.push(cur); } else if(/Étymologie|Prononciation|Voir aussi|Références|Traductions|Anagrammes|Synonymes|Dérivés|Apparentés|Vocabulaire|Hyperonymes|Hyponymes|Variantes|Paronymes|Homophones|Taux|Quasi|Holonymes|Méronymes|Antonymes|Expressions|Proverbes|Note|Composés|Gentilés|Abréviations|Augmentatifs|Diminutifs|Faux|Phrases|Dérivés autres|Forme/i.test(tt)) cur=null; else { cur={pos:tt, defs:[]}; out.push(cur); } continue; }
     if(tag==='OL' && cur && !cur.defs.length){
-      Array.prototype.forEach.call(el.children,function(li){ if(cur.defs.length>=4) return; var c=li.cloneNode(true); Array.prototype.forEach.call(c.querySelectorAll('ul,ol,dl,.reference,sup,style'),function(x){ x.remove(); }); var s=c.textContent.replace(/\s+/g,' ').trim(); if(s) cur.defs.push(s); });
+      Array.prototype.forEach.call(el.children,function(li){ if(cur.defs.length>=4) return; var c=li.cloneNode(true); Array.prototype.forEach.call(c.querySelectorAll('ul,ol,dl,.reference,sup,style'),function(x){ x.remove(); }); var s=c.textContent.replace(/\s+/g,' ').trim(); if(s) cur.defs.push(s); if(cur.forme && !cur.lemme){ var ls=Array.prototype.filter.call(c.querySelectorAll('a[href^="/wiki/"]'),function(x){ return !/:/.test(x.getAttribute('href').slice(6)); }); if(ls.length) cur.lemme=ls[ls.length-1].textContent.trim(); } });
     }
   }
   return out.filter(function(x){ return x.defs.length; }).slice(0,4);
@@ -2207,8 +2207,9 @@ function langueDe(t){
   var w=(' '+String(t).toLowerCase().replace(/[^\p{L}' ]+/gu,' ').replace(/\s+/g,' ')+' '), best='', bn=0;
   Object.keys(MOTS_L).forEach(function(l){ var n=0; MOTS_L[l].trim().split(' ').forEach(function(m){ if(w.indexOf(' '+m+' ')>=0) n++; }); if(n>bn){ bn=n; best=l; } });
   if(/ñ|¿|¡/.test(t)) return 'es'; if(/[ãõ]/.test(t)) return 'pt'; if(/ß/.test(t)) return 'de';
-  var bl=langCode(R.b&&R.b.lang)||'fr';
-  return bn>=1 ? best : (TRL[bl]?bl:'fr');
+  var bl=langCode(R.b&&R.b.lang)||'fr'; bl=TRL[bl]?bl:'fr';
+  if(w.trim().split(' ').length<=3) return bl;   // un mot isolé : on se fie à la langue du livre
+  return bn>=2 ? best : bl;
 }
 function couper(t,max){ var e=new TextEncoder(), s=String(t); if(e.encode(s).length<=max) return s; while(e.encode(s).length>max-1) s=s.slice(0,-1); return s.replace(/\s+\S*$/,'')+'…'; }
 async function traduire(t, de, vers){
@@ -2222,14 +2223,15 @@ async function wikipedia(t){
   if(!o || !o.extract || o.type==='disambiguation' || /^https?:/.test(o.title||'')) return null;
   return {titre:o.title, texte:o.extract, url:o.content_urls&&o.content_urls.mobile&&o.content_urls.mobile.page};
 }
+function ouvrirLien(u){ if(A&&A.openUrl) A.openUrl(u); else window.open(u,'_blank','noopener'); }
 function carnet(){ return Array.isArray(S.carnet)?S.carnet:(S.carnet=[]); }
 async function comprendre(raw){
   var t=String(raw).replace(/\s+/g,' ').trim(), src=langueDe(t), mots=t.split(' ').length, mot=cleanWord(t);
-  var vers=src==='fr' ? (S.trVers&&S.trVers!=='fr'?S.trVers:'') : 'fr';
+  var vers=src==='fr' ? '' : 'fr';   // un passage en français : on l'explique, on ne le traduit que si on touche une langue
   var sh=openSheet('Comprendre','<div class="def"><div class="w" style="font-size:'+(t.length>60?17:22)+'px;font-weight:'+(t.length>60?400:700)+';font-style:'+(t.length>60?'italic':'normal')+'">'+esc(t.length>400?t.slice(0,400)+'…':t)+'</div>'+
     '<div class="note" style="margin:4px 0 10px">Langue détectée : <b>'+esc(TRL[src]||src)+'</b></div>'+
-    '<h4>Traduction</h4><div class="chips" id="trTo">'+Object.keys(TRL).filter(function(l){ return l!==src; }).map(function(l){ return '<button class="chip'+(l===vers?' on':'')+'" data-to="'+l+'">'+esc(TRL[l])+'</button>'; }).join('')+'</div><div id="trB" style="margin-top:8px;font-size:16px;line-height:1.5"></div>'+
-    (mots<=5?'<div id="dfS"><h4>Définition</h4><div id="dfB"><div class="spin"></div></div></div>':'')+
+    (mots<=5?'<div id="dfS"><h4>Explication en français</h4><div id="dfB"><div class="spin"></div></div></div>':'')+
+    '<h4 style="margin-top:14px">Traduction</h4><div class="chips" id="trTo">'+Object.keys(TRL).filter(function(l){ return l!==src; }).map(function(l){ return '<button class="chip'+(l===vers?' on':'')+'" data-to="'+l+'">'+esc(TRL[l])+'</button>'; }).join('')+'</div><div id="trB" style="margin-top:8px;font-size:16px;line-height:1.5"></div>'+
     (mots<=6?'<div id="wpS" hidden><h4>En savoir plus</h4><div id="wpB"></div></div>':'')+
     '<div class="row" style="margin-top:14px;gap:8px;flex-wrap:wrap"><button class="btn sm" id="crAdd">Ajouter au carnet</button><button class="btn sm" id="crCopy">Copier</button><button class="btn sm" id="crVoir">Mon carnet ('+carnet().length+')</button></div>'+
     '<p class="note" style="margin-top:12px">Traduction : MyMemory · Définitions : Wiktionnaire · Encyclopédie : Wikipédia. Il faut Internet ; seul le passage choisi est envoyé.</p></div>', {tall:true});
@@ -2237,7 +2239,6 @@ async function comprendre(raw){
   async function tr(l){
     vers=l; sh.querySelectorAll('#trTo .chip').forEach(function(c){ c.classList.toggle('on', c.dataset.to===l); });
     if(!l){ trB.innerHTML='<span class="note">Touchez une langue pour traduire ce passage.</span>'; return; }
-    if(src==='fr'){ S.trVers=l; saveS(); }
     trB.innerHTML='<div class="spin"></div>';
     try{ derniere=await traduire(t, src, l); trB.innerHTML='<div style="font-family:Georgia,\'Noto Serif\',serif">'+esc(derniere)+'</div>'; }
     catch(e){ trB.innerHTML='<div class="empty" style="color:var(--bad)">'+esc(e.message||'Pas de connexion')+'</div>'; }
@@ -2248,19 +2249,28 @@ async function comprendre(raw){
     var dfB=sh.querySelector('#dfB'), cle=mots===1?mot:t.replace(/[.,;:!?…»«"]+/g,'').trim();
     (async function(){
       try{
-        var r=await wikt(cle.toLowerCase(), src); if((!r||!r.length) && cle!==cle.toLowerCase()) r=await wikt(cle, src);
-        if((!r||!r.length) && src!=='fr'){ r=await wikt(cle.toLowerCase(), 'fr'); }
-        if(!r||!r.length){ sh.querySelector('#dfS').hidden=true; return; }
-        dfB.innerHTML=r.map(function(p){ return '<h4 style="color:var(--tx2);font-size:12px">'+esc(p.pos)+'</h4><ol>'+p.defs.map(function(d){ return '<li>'+esc(d)+'</li>'; }).join('')+'</ol>'; }).join('')+'<button class="btn sm" id="wkOpen2" style="margin-top:4px">Ouvrir le Wiktionnaire</button>';
-        var bo=dfB.querySelector('#wkOpen2'); if(bo) bo.onclick=function(){ A.openUrl('https://fr.wiktionary.org/wiki/'+encodeURIComponent(cle.toLowerCase())); };
-      }catch(e){ sh.querySelector('#dfS').hidden=true; }
+        async function cherche(m, l){ var r=await wikt(m.toLowerCase(), l); if((!r||!r.length) && m!==m.toLowerCase()) r=await wikt(m, l); return r||[]; }
+        var r=await cherche(cle, src), langD=src;
+        if(!r.length && src!=='fr'){ r=await cherche(cle, 'fr'); langD='fr'; }
+        // forme conjuguée ou pluriel (« mangeaient », « maisons ») : on suit vers le mot de base
+        var formes=r.filter(function(p){ return p.forme; }), vrais=r.filter(function(p){ return !p.forme; }), base='';
+        if(!vrais.length && formes.length){ var lm=formes.map(function(p){ return p.lemme; }).filter(Boolean)[0];
+          if(lm && lm.toLowerCase()!==cle.toLowerCase()){ base=lm; vrais=(await cherche(lm, langD)).filter(function(p){ return !p.forme; }); } }
+        if(!vrais.length && !formes.length){ dfB.innerHTML='<div class="note">Pas d’explication trouvée pour « '+esc(cle)+' » dans le Wiktionnaire.'+(mots>1?' Essayez de sélectionner un seul mot.':'')+'</div>'; return; }
+        var html=formes.length?'<p class="note" style="margin:0 0 6px">'+formes.map(function(p){ return esc(p.defs[0]||p.pos); }).slice(0,2).join('<br>')+'</p>':'';
+        if(base) html+='<p style="margin:0 0 4px"><b>'+esc(base)+'</b></p>';
+        html+=vrais.map(function(p){ return '<h4 style="color:var(--tx2);font-size:12px">'+esc(p.pos)+'</h4><ol>'+p.defs.map(function(d){ return '<li>'+esc(d)+'</li>'; }).join('')+'</ol>'; }).join('');
+        var pg=(base||cle).toLowerCase();
+        dfB.innerHTML=html+'<button class="btn sm" id="wkOpen2" style="margin-top:4px">Ouvrir le Wiktionnaire</button>';
+        var bo=dfB.querySelector('#wkOpen2'); if(bo) bo.onclick=function(){ ouvrirLien('https://fr.wiktionary.org/wiki/'+encodeURIComponent(pg)); };
+      }catch(e){ dfB.innerHTML='<div class="note" style="color:var(--bad)">'+esc(e.message||'Pas de connexion')+' — l’explication a besoin d’Internet.</div>'; }
     })();
   }
   if(mots<=6){
     (async function(){
       try{ var w=await wikipedia(mots===1?mot:t.replace(/[.,;:!?…»«"]+/g,'').trim()); if(!w) return;
         var sec=sh.querySelector('#wpS'); sec.hidden=false; sh.querySelector('#wpB').innerHTML='<p style="margin:0;line-height:1.5"><b>'+esc(w.titre)+'</b> — '+esc(w.texte)+'</p>'+(w.url?'<button class="btn sm" id="wpOpen" style="margin-top:6px">Ouvrir Wikipédia</button>':'');
-        var b=sh.querySelector('#wpOpen'); if(b) b.onclick=function(){ A.openUrl(w.url); };
+        var b=sh.querySelector('#wpOpen'); if(b) b.onclick=function(){ ouvrirLien(w.url); };
       }catch(e){}
     })();
   }
