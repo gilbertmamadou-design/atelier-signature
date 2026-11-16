@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Réunion</title>
+<meta name="theme-color" content="#0f1218">
+<!-- Réunion : retranscription en direct d'une réunion (reconnaissance vocale d'Android, sur le téléphone si le français
+     hors ligne est installé) et compte rendu préparé sur le téléphone : en-tête, décisions, actions, questions, points
+     importants (marqués d'un toucher pendant la réunion), résumé et sujets calculés sur le téléphone (phrases les plus
+     représentatives), transcription horodatée. Aucun compte ni service extérieur : l'appli peut être donnée telle quelle.
+     Pont : MAGDicta (DictaBridge.java) : speechStart / speechStop / keepScreen / sendText ; événements dictaEvent. -->
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#0f1218;--bg2:#171b24;--bg3:#202634;--bg4:#2a3142;--line:#ffffff14;--line2:#ffffff24;
+  --tx:#f1f3f8;--tx2:#b3b9c9;--tx3:#7c8396;
+  --acc:#7fb2ff;--acc2:#a891ff;--ok:#67d49c;--bad:#ff7a7a;--warn:#ffb85c;--rec:#ff5a5f;
+  --dec:#67d49c;--act:#ffb85c;--que:#a891ff;--imp:#7fb2ff;
+  --r:16px;--safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:15.5px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+input,textarea{font:inherit;color:inherit}
+[hidden]{display:none!important}
+.num{font-variant-numeric:tabular-nums}
+header{padding:calc(14px + var(--safe-t)) 16px 8px;display:flex;align-items:center;gap:10px;position:sticky;top:0;background:var(--bg);z-index:5}
+header h1{margin:0;font-size:21px;font-weight:800;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ib{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--bg2);border:1px solid var(--line);flex:none}
+.ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+main{padding:4px 16px calc(110px + var(--safe-b))}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;margin-bottom:12px}
+.card h3{margin:0 0 10px;font-size:12px;letter-spacing:.7px;text-transform:uppercase;color:var(--tx3);font-weight:700}
+.lbl{display:block;font-size:13px;color:var(--tx2);margin:10px 0 5px}
+.in{width:100%;background:var(--bg3);border:1px solid var(--line2);border-radius:12px;padding:11px 12px;outline:none}
+.in:focus{border-color:var(--acc)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 18px;border-radius:14px;background:var(--bg3);border:1px solid var(--line2);font-weight:650}
+.btn.pri{background:var(--acc);color:#071226;border-color:transparent}
+.btn.rec{background:var(--rec);color:#fff;border-color:transparent}
+.btn.bad{color:var(--bad)}
+.btn.sm{min-height:38px;padding:0 13px;font-size:14px;border-radius:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.note{color:var(--tx3);font-size:13.5px;margin:8px 0 0}
+.empty{text-align:center;color:var(--tx3);padding:40px 10px}
+.item{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.item:first-child{border-top:0}
+.item .t{flex:1;min-width:0}.item b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.item small{color:var(--tx3)}
+.fab{position:fixed;left:16px;right:16px;bottom:calc(16px + var(--safe-b));z-index:6}
+.fab .btn{width:100%;min-height:54px;font-size:16.5px;box-shadow:0 8px 24px #0008}
+/* en direct */
+.live-top{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--rec);box-shadow:0 0 0 0 #ff5a5f88;animation:pulse 1.6s infinite}
+.paused .dot{animation:none;background:var(--tx3)}
+@keyframes pulse{70%{box-shadow:0 0 0 10px #ff5a5f00}100%{box-shadow:0 0 0 0 #ff5a5f00}}
+.timer{font-size:30px;font-weight:800;letter-spacing:.5px}
+.lev{flex:1;height:6px;border-radius:4px;background:var(--bg3);overflow:hidden}.lev i{display:block;height:100%;width:0;background:var(--acc);transition:width .12s}
+#trans{max-height:calc(100vh - 360px);min-height:180px;overflow:auto;scroll-behavior:smooth}
+.seg{padding:6px 0 6px 10px;border-left:3px solid transparent;margin:2px 0}
+.seg .h{font-size:11.5px;color:var(--tx3);margin-right:6px}
+.seg.m-dec{border-color:var(--dec)}.seg.m-act{border-color:var(--act)}.seg.m-que{border-color:var(--que)}.seg.m-imp{border-color:var(--imp)}
+.seg .tag{font-size:11px;font-weight:700;padding:1px 7px;border-radius:9px;margin-left:6px;color:#0b0f16}
+.tag.dec{background:var(--dec)}.tag.act{background:var(--act)}.tag.que{background:var(--que)}.tag.imp{background:var(--imp)}
+#part{color:var(--tx3);font-style:italic;padding:6px 0 6px 13px;min-height:1.4em}
+.marks{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.marks button{min-height:52px;border-radius:14px;border:1px solid var(--line2);background:var(--bg2);font-size:13px;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.marks button i{width:10px;height:10px;border-radius:50%;display:block}
+.marks button:active{transform:scale(.95)}
+.ctl{display:flex;gap:8px}.ctl .btn{flex:1}
+/* compte rendu */
+#cr{width:100%;min-height:55vh;background:var(--bg2);border:1px solid var(--line2);border-radius:var(--r);padding:14px;outline:none;resize:vertical;line-height:1.5;font-size:15px;white-space:pre-wrap}
+.tabs{display:flex;gap:6px;margin-bottom:10px}.tabs button{flex:1;min-height:40px;border-radius:12px;background:var(--bg2);border:1px solid var(--line);font-weight:650;font-size:14px}.tabs button.on{background:var(--bg4);border-color:var(--acc)}
+#toast{position:fixed;left:50%;bottom:calc(90px + var(--safe-b));transform:translateX(-50%);background:#0b0e14;border:1px solid var(--line2);padding:10px 16px;border-radius:12px;font-size:14px;z-index:20;max-width:90vw;opacity:0;transition:opacity .25s;pointer-events:none}
+#toast.on{opacity:1}
+.warnbox{background:#ffb85c14;border:1px solid #ffb85c40;color:#ffd9a8;border-radius:12px;padding:10px 12px;font-size:14px;margin-bottom:12px}
+</style>
+</head>
+<body>
+<header>
+  <button class="ib" id="bBack" hidden aria-label="Retour"><svg class="ic" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+  <h1 id="hT">Réunions</h1>
+  <button class="ib" id="bHelp" aria-label="Aide"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/></svg></button>
+</header>
+<main>
+  <!-- liste -->
+  <section id="vList">
+    <div id="noSpeech" class="warnbox" hidden></div>
+    <div class="card" id="listCard"><div id="list"></div></div>
+    <p class="note">Pose le téléphone au milieu de la table, écran allumé. Le texte s'écrit pendant que les gens parlent ; touche « Décision », « Action »… au bon moment pour les retrouver dans le compte rendu.</p>
+  </section>
+  <!-- nouvelle réunion -->
+  <section id="vNew" hidden>
+    <div class="card">
+      <label class="lbl" for="nTitle">Objet de la réunion</label><input class="in" id="nTitle" placeholder="ex. Point formation SST">
+      <label class="lbl" for="nWho">Participants</label><input class="in" id="nWho" placeholder="ex. Gilbert, Sophie, Karim">
+      <label class="lbl" for="nWhere">Lieu</label><input class="in" id="nWhere" placeholder="ex. Salle 2, visio…">
+    </div>
+    <p class="note">La reconnaissance se fait sur le téléphone quand le français hors ligne est installé (Paramètres › Système › Langues › Reconnaissance vocale hors connexion). Sinon, Android passe par le service de Google.</p>
+  </section>
+  <!-- en direct -->
+  <section id="vLive" hidden>
+    <div class="card" id="liveCard">
+      <div class="live-top"><span class="dot"></span><span class="timer num" id="tm">00:00</span><div class="lev"><i id="lev"></i></div></div>
+      <div id="trans"></div><div id="part"></div>
+    </div>
+    <div class="marks">
+      <button data-mk="dec"><i style="background:var(--dec)"></i>Décision</button>
+      <button data-mk="act"><i style="background:var(--act)"></i>Action</button>
+      <button data-mk="que"><i style="background:var(--que)"></i>Question</button>
+      <button data-mk="imp"><i style="background:var(--imp)"></i>Important</button>
+    </div>
+    <p class="note" style="margin-top:0">Un toucher marque la dernière phrase entendue (et la suivante si quelqu'un parle encore). Touche une phrase pour changer son marquage.</p>
+  </section>
+  <!-- compte rendu -->
+  <section id="vCr" hidden>
+    <div class="tabs"><button data-tab="cr" class="on">Compte rendu</button><button data-tab="tr">Transcription</button></div>
+    <textarea id="cr" spellcheck="true"></textarea>
+    <div class="row" style="margin-top:10px">
+      <button class="btn sm" id="cCopy">Copier</button><button class="btn sm" id="cShare">Partager</button><button class="btn sm pri" id="cFix">Corriger les fautes</button>
+    </div>
+    <div class="row" style="margin-top:8px"><button class="btn sm" id="cRegen">Refaire le compte rendu</button><button class="btn sm" id="cResume">Reprendre l'enregistrement</button><button class="btn sm bad" id="cDel">Supprimer</button></div>
+    <p class="note" id="cNote">Tout est fait sur le téléphone, rien n'est envoyé sur Internet. Le compte rendu est modifiable : tes changements sont gardés.</p>
+  </section>
+</main>
+<div class="fab" id="fab"><button class="btn pri" id="fabB">Nouvelle réunion</button></div>
+<div class="fab" id="fabLive" hidden><div class="ctl"><button class="btn" id="lPause">Pause</button><button class="btn rec" id="lStop">Terminer</button></div></div>
+<div id="toast"></div>
+<script src="correcteur/correcteur.js"></script>
+<script>
+(function () {
+  'use strict';
+  var D = window.MAGDicta || null, $ = function (id) { return document.getElementById(id); };
+  var KEY = 'reunion:v1', L = [];
+  try { L = JSON.parse(localStorage.getItem(KEY) || '[]') || []; } catch (e) { L = []; }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(L)); } catch (e) { toast('Stockage plein : supprime d\'anciennes réunions'); } }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  var tT = 0; function toast(t) { var e = $('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(tT); tT = setTimeout(function () { e.classList.remove('on'); }, 2600); }
+  var MK = { dec: 'Décision', act: 'Action', que: 'Question', imp: 'Important' };
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function clock(ms) { var s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); return (h ? h + ':' + pad(m) : pad(m)) + ':' + pad(s % 60); }
+  function hm(t) { var d = new Date(t); return pad(d.getHours()) + 'h' + pad(d.getMinutes()); }
+  function dateLong(t) { return new Date(t).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); }
+  function durTxt(ms) { var m = Math.round(ms / 60000); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + pad(m % 60); }
+  /** Phrase lisible : majuscule, point final ; la reconnaissance d'Android ne ponctue pas toujours */
+  function phrase(t) {
+    t = String(t || '').replace(/\s+/g, ' ').trim(); if (!t) return '';
+    t = t.charAt(0).toUpperCase() + t.slice(1);
+    if (!/[.!?…:]$/.test(t)) t += /^(est-ce|est ce|qui|que|quoi|quand|comment|pourquoi|combien|où|ou est|on fait quoi)\b/i.test(t) ? ' ?' : '.';
+    return t;
+  }
+
+  /* ---------------- écrans ---------------- */
+  var view = 'list', CUR = null;
+  function show(v) {
+    view = v;
+    ['vList', 'vNew', 'vLive', 'vCr'].forEach(function (id) { $(id).hidden = id !== 'v' + v.charAt(0).toUpperCase() + v.slice(1); });
+    $('bBack').hidden = v === 'list' || v === 'live';
+    $('fab').hidden = !(v === 'list' || v === 'new'); $('fabLive').hidden = v !== 'live';
+    $('fabB').textContent = v === 'new' ? 'Démarrer l\'enregistrement' : 'Nouvelle réunion';
+    $('hT').textContent = v === 'list' ? 'Réunions' : v === 'new' ? 'Nouvelle réunion' : CUR ? (CUR.title || 'Réunion') : 'Réunion';
+    window.scrollTo(0, 0);
+  }
+  function renderList() {
+    $('list').innerHTML = L.length ? L.slice().sort(function (a, b) { return b.start - a.start; }).map(function (r) {
+      var nm = r.segs.filter(function (s) { return s.mk; }).length;
+      return '<div class="item" data-id="' + esc(r.id) + '"><div class="t"><b>' + esc(r.title || 'Réunion') + '</b><small>' + esc(new Date(r.start).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' · ' + hm(r.start) + ' · ' + durTxt(r.dur || 0) + ' · ' + r.segs.length + ' phrase' + (r.segs.length > 1 ? 's' : '') + (nm ? ' · ' + nm + ' marquée' + (nm > 1 ? 's' : '') : '')) + '</small></div><svg class="ic" viewBox="0 0 24 24" style="color:var(--tx3)"><path d="M9 6l6 6-6 6"/></svg></div>';
+    }).join('') : '<div class="empty">Aucune réunion pour l\'instant.</div>';
+  }
+  $('list').onclick = function (e) { var it = e.target.closest('[data-id]'); if (!it) return; CUR = L.filter(function (r) { return r.id === it.dataset.id; })[0]; if (CUR) openCr(); };
+  $('bBack').onclick = function () { if (view === 'cr' || view === 'new') { CUR = null; renderList(); show('list'); } };
+  $('fabB').onclick = function () {
+    if (view === 'list') { $('nTitle').value = ''; $('nWho').value = ''; $('nWhere').value = ''; show('new'); setTimeout(function () { $('nTitle').focus(); }, 200); return; }
+    CUR = { id: 'r' + Date.now().toString(36), title: $('nTitle').value.trim() || 'Réunion du ' + new Date().toLocaleDateString('fr-FR'), who: $('nWho').value.trim(), where: $('nWhere').value.trim(), start: Date.now(), dur: 0, segs: [], cr: '' };
+    L.push(CUR); save(); startLive();
+  };
+  $('bHelp').onclick = function () {
+    alertBox('Comment ça marche', '1. « Nouvelle réunion », indique l\'objet et les participants, puis « Démarrer ».\n2. Pose le téléphone au milieu de la table, écran allumé (il ne se met pas en veille).\n3. Pendant la réunion, touche « Décision », « Action », « Question » ou « Important » juste après qu\'on l\'a dit.\n4. « Terminer » : le téléphone prépare le compte rendu (en-tête, résumé, sujets, décisions, actions, questions, points importants, transcription). Il se modifie, se corrige et se partage.\n\nTout se fait sur le téléphone, sans compte ni Internet (sauf si le français hors ligne n\'est pas installé).\n\nLa reconnaissance vocale ne distingue pas qui parle, et entend mieux les voix proches du téléphone.');
+  };
+  function alertBox(t, m) { try { window.alert(t + '\n\n' + m); } catch (e) { } }
+
+  /* ---------------- en direct ---------------- */
+  var on = false, paused = false, t0 = 0, acc = 0, tick = 0, lastFinal = null, pendingMark = null;
+  function elapsed() { return acc + (on && !paused ? Date.now() - t0 : 0); }
+  function startLive() {
+    show('live'); renderTrans(); $('liveCard').classList.remove('paused'); $('lPause').textContent = 'Pause';
+    acc = CUR.dur || 0; t0 = Date.now(); on = true; paused = false;
+    clearInterval(tick); tick = setInterval(function () { $('tm').textContent = clock(elapsed()); }, 500);
+    listen(true);
+  }
+  function listen(go) {
+    if (!D) { if (go) toast('Reconnaissance vocale disponible dans l\'appli Android'); return; }
+    if (go) {
+      var r = D.speechStart(true);
+      if (r === 'perm') { toast('Autorise le micro, puis touche « Reprendre »'); paused = true; $('liveCard').classList.add('paused'); $('lPause').textContent = 'Reprendre'; return; }
+      if (r === 'none') { toast('Aucun service de reconnaissance vocale sur ce téléphone'); return; }
+      if (r === 'busy') { toast('Le micro est occupé (Dictaphone ?)'); return; }
+      try { D.keepScreen(true); } catch (e) { }
+    } else { try { D.speechStop(); D.keepScreen(false); } catch (e) { } }
+  }
+  function addSeg(txt) {
+    txt = String(txt || '').trim(); if (!txt || !CUR) return;
+    var s = { t: Math.max(0, elapsed() - 2000), at: Date.now(), x: txt };
+    if (pendingMark) { s.mk = pendingMark; pendingMark = null; }
+    CUR.segs.push(s); lastFinal = s; CUR.dur = elapsed(); save(); renderTrans(true);
+  }
+  function segHtml(s, i) {
+    return '<div class="seg' + (s.mk ? ' m-' + s.mk : '') + '" data-i="' + i + '"><span class="h num">' + clock(s.t) + '</span>' + esc(phrase(s.x)) + (s.mk ? '<span class="tag ' + s.mk + '">' + MK[s.mk] + '</span>' : '') + '</div>';
+  }
+  function renderTrans(scroll) {
+    var el = $('trans');
+    el.innerHTML = CUR && CUR.segs.length ? CUR.segs.map(segHtml).join('') : '<p class="note" style="margin:0">J\'écoute… le texte s\'écrit ici.</p>';
+    if (scroll) el.scrollTop = el.scrollHeight;
+  }
+  $('trans').onclick = function (e) {
+    var sg = e.target.closest('[data-i]'); if (!sg || !CUR) return;
+    var s = CUR.segs[+sg.dataset.i], order = ['', 'dec', 'act', 'que', 'imp'];
+    s.mk = order[(order.indexOf(s.mk || '') + 1) % order.length] || undefined; if (!s.mk) delete s.mk;
+    save(); renderTrans();
+  };
+  document.querySelector('.marks').onclick = function (e) {
+    var b = e.target.closest('[data-mk]'); if (!b || !CUR) return;
+    var k = b.dataset.mk, partiel = $('part').textContent.trim();
+    if (lastFinal && Date.now() - lastFinal.at < 20000 && !lastFinal.mk) { lastFinal.mk = k; save(); renderTrans(true); }
+    else if (!partiel) { CUR.segs.push({ t: elapsed(), at: Date.now(), x: '', mk: k, vide: 1 }); save(); renderTrans(true); }
+    if (partiel) pendingMark = k;   // la phrase en cours sera marquée aussi
+    try { navigator.vibrate && navigator.vibrate(25); } catch (x) { }
+    toast('Marqué : ' + MK[k]);
+  };
+  $('lPause').onclick = function () {
+    if (!on) return;
+    if (!paused) { paused = true; acc = elapsed(); listen(false); $('liveCard').classList.add('paused'); this.textContent = 'Reprendre'; $('part').textContent = ''; }
+    else { paused = false; t0 = Date.now(); listen(true); $('liveCard').classList.remove('paused'); this.textContent = 'Pause'; }
+  };
+  $('lStop').onclick = function () {
+    if (!on) return;
+    var p = $('part').textContent.trim(); if (p) addSeg(p);
+    CUR.dur = elapsed(); on = false; paused = false; clearInterval(tick); listen(false); $('part').textContent = '';
+    CUR.segs = CUR.segs.filter(function (s) { return s.x || s.mk; });
+    CUR.cr = buildCr(CUR); CUR.crEdit = false; save(); openCr();
+  };
+  window.dictaEvent = function (type, o) {
+    o = o || {};
+    if (type === 'speech') {
+      if (o.partial != null) $('part').textContent = o.partial;
+      if (o['final'] != null) { $('part').textContent = ''; addSeg(o['final']); }
+      if (o.state === 'error') { toast(o.msg || 'Reconnaissance interrompue'); if (on && !paused) { paused = true; acc = elapsed(); $('liveCard').classList.add('paused'); $('lPause').textContent = 'Reprendre'; } }
+    } else if (type === 'slevel') $('lev').style.width = Math.round((o.l || 0) * 100) + '%';
+    else if (type === 'perm' && o.mic && on && paused) $('lPause').click();
+  };
+
+  /* ---------------- compte rendu (préparé sur le téléphone) ---------------- */
+  // phrases qui ressemblent à une tâche, une décision ou une question (propositions, à vérifier)
+  var RX = {
+    act: /\b(il faut|il faudra|il faudrait|faut que|on doit|on devra|tu dois|vous devez|je dois|je vais m'occuper|je m'occupe|je m occupe|tu t'occupes|tu t occupes|qui s'occupe|qui s occupe|à faire|a faire|envoyer|appeler|relancer|préparer|preparer|prévoir|prevoir|organiser|réserver|reserver|commander|vérifier|verifier)\b.*\b(avant|pour|d'ici|d ici|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|demain|semaine|mois|le \d+)\b|\b(je m'en charge|je m en charge|je m'occupe|je m occupe|tu t'en charges|tu t en charges)\b/i,
+    dec: /\b(on décide|on decide|c'est décidé|c est decide|décidé|decide que|on valide|c'est validé|c est valide|validé|on part sur|on garde|on retient|on arrête|on arrete|d'accord pour|d accord pour|on est d'accord|on est d accord)\b/i,
+    que: /^(est-ce|est ce|pourquoi|comment|combien|quand|qui|où|qu'est-ce|qu est ce)\b|\?$/i
+  };
+  /* Résumé extractif : les phrases qui contiennent le plus de mots fréquents de la réunion (hors mots outils), dans l'ordre */
+  var STOP = ('a à au aux avec ce ces cet cette c ça ca d de des du dans donc elle elles en encore est et été être eu faut fait faire il ils je j l la le les leur lui ma mais me même mes moi mon ne ni nos notre nous on ou où par pas peu plus pour qu que quel quelle qui sa sans se ses si son sont sur ta te tes toi ton tous tout toute toutes très tu un une vos votre vous y oui non alors bon ben voilà voila euh hein bah quoi comme aussi après apres avant bien déjà deja ici là la-bas parce puis quand là peut pourrait vais va vont avons avez ont ai as était etait sera seront serait avoir dire dit fais font chose choses truc trucs genre enfin juste vraiment quand même d accord okay ok ouais un deux trois quatre cinq six sept huit neuf dix onze douze treize quatorze quinze seize vingt trente quarante cinquante soixante cent cents mille premier deuxieme fois jour jours semaine mois heure heures minutes demain aujourd hui').split(' ');
+  var STOPS = {}; STOP.forEach(function (w) { STOPS[w] = 1; });
+  function deac(w) { return w.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+  /** mots porteurs de sens, en minuscules avec leurs accents */
+  function words(t) { return String(t).toLowerCase().replace(/[^a-zà-ÿœæç0-9 ]+/g, ' ').split(/\s+/).filter(function (w) { var d = deac(w); return w.length > 2 && !STOPS[d] && !/^\d+$/.test(w); }); }
+  function stem(w) { w = deac(w); return w.replace(/(ations?|ements?|ment|euses?|eurs?|ives?|ifs?|ees?|es|s|x)$/, '') || w; }
+  function analyse(segs) {
+    var f = {}, forme = {};
+    segs.forEach(function (s) { words(s.x).forEach(function (w) { var k = stem(w); f[k] = (f[k] || 0) + 1; if (!forme[k] || w.length < forme[k].length) forme[k] = w; }); });
+    var topics = Object.keys(f).filter(function (k) { return f[k] >= (segs.length < 40 ? 2 : 3); }).sort(function (a, b) { return f[b] - f[a]; }).slice(0, 8).map(function (k) { return forme[k]; });
+    var sc = segs.map(function (s, i) { var ws = words(s.x); if (ws.length < 4) return { i: i, v: 0 }; var v = 0; ws.forEach(function (w) { v += f[stem(w)] || 0; }); return { i: i, v: v / Math.sqrt(ws.length) + (s.mk ? 3 : 0) }; });
+    var n = Math.max(3, Math.min(8, Math.round(segs.length / 12)));
+    var best = sc.filter(function (x) { return x.v > 0; }).sort(function (a, b) { return b.v - a.v; }).slice(0, n).sort(function (a, b) { return a.i - b.i; }).map(function (x) { return segs[x.i]; });
+    return { topics: topics, resume: best };
+  }
+  function lines(segs, k) { return segs.filter(function (s) { return s.mk === k && s.x; }).map(function (s) { return '- ' + phrase(s.x) + '  (' + clock(s.t) + ')'; }); }
+  function guess(segs, k) { return segs.filter(function (s) { return !s.mk && s.x && RX[k].test(s.x); }).map(function (s) { return '- ' + phrase(s.x) + '  (' + clock(s.t) + ', à vérifier)'; }); }
+  function buildCr(r) {
+    var out = [], segs = r.segs, sec = function (title, l, vide) { out.push('', title.toUpperCase()); out.push.apply(out, l.length ? l : ['- ' + vide]); };
+    out.push('COMPTE RENDU DE RÉUNION', '', 'Objet : ' + (r.title || ''), 'Date : ' + dateLong(r.start) + ', de ' + hm(r.start) + ' à ' + hm(r.start + (r.dur || 0)) + ' (' + durTxt(r.dur || 0) + ')');
+    if (r.where) out.push('Lieu : ' + r.where);
+    if (r.who) out.push('Participants : ' + r.who.split(/\s*[,;]\s*/).filter(Boolean).join(', '));
+    var an = analyse(segs.filter(function (s) { return s.x; }));
+    if (an.topics.length) { out.push('', 'SUJETS ABORDÉS', an.topics.map(function (w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join(', ')); }
+    if (an.resume.length) sec('Résumé (phrases clés)', an.resume.map(function (s) { return '- ' + phrase(s.x); }), '');
+    sec('Décisions', lines(segs, 'dec').concat(guess(segs, 'dec').slice(0, 8)), 'aucune décision relevée');
+    sec('Actions à mener', lines(segs, 'act').concat(guess(segs, 'act').slice(0, 10)), 'aucune action relevée');
+    sec('Questions en suspens', lines(segs, 'que').concat(guess(segs, 'que').slice(0, 6)), 'aucune question relevée');
+    var imp = lines(segs, 'imp'); if (imp.length) sec('Points importants', imp, '');
+    out.push('', 'TRANSCRIPTION');
+    // paragraphes : une coupure quand le silence dépasse 20 s ou toutes les 6 phrases
+    var para = [], cur = [], prev = null;
+    segs.forEach(function (s) { if (!s.x) return; if (cur.length && (cur.length >= 6 || (prev && s.t - prev.t > 20000))) { para.push(cur); cur = []; } cur.push(s); prev = s; });
+    if (cur.length) para.push(cur);
+    para.forEach(function (p) { out.push('[' + clock(p[0].t) + '] ' + p.map(function (s) { return phrase(s.x); }).join(' ')); });
+    out.push('', '(Compte rendu préparé automatiquement à partir de la transcription : à relire. Les lignes « à vérifier » sont des propositions.)');
+    return out.join('\n');
+  }
+  function transcript(r) { return r.segs.filter(function (s) { return s.x; }).map(function (s) { return '[' + clock(s.t) + ']' + (s.mk ? ' [' + MK[s.mk].toUpperCase() + ']' : '') + ' ' + phrase(s.x); }).join('\n'); }
+  var tab = 'cr';
+  function openCr() {
+    show('cr'); tab = 'cr'; setTab();
+  }
+  function setTab() {
+    document.querySelectorAll('[data-tab]').forEach(function (b) { b.classList.toggle('on', b.dataset.tab === tab); });
+    $('cr').value = tab === 'cr' ? (CUR.cr || buildCr(CUR)) : transcript(CUR);
+    $('cr').readOnly = tab !== 'cr';
+  }
+  document.querySelector('.tabs').onclick = function (e) { var b = e.target.closest('[data-tab]'); if (!b) return; tab = b.dataset.tab; setTab(); };
+  $('cr').oninput = function () { if (tab !== 'cr' || !CUR) return; CUR.cr = this.value; CUR.crEdit = true; clearTimeout(this._t); this._t = setTimeout(save, 600); };
+  function textNow() { return $('cr').value; }
+  $('cCopy').onclick = function () {
+    var t = textNow();
+    (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { toast('Copié'); }, function () { $('cr').select(); try { document.execCommand('copy'); toast('Copié'); } catch (e) { toast('Copie impossible'); } });
+  };
+  $('cShare').onclick = function () {
+    var t = textNow(), title = 'Compte rendu : ' + (CUR.title || 'réunion');
+    if (D && D.sendText) { D.sendText(t, title, false); return; }
+    if (navigator.share) navigator.share({ title: title, text: t }).catch(function () { }); else $('cCopy').click();
+  };
+  $('cFix').onclick = function () {
+    if (tab !== 'cr') { tab = 'cr'; setTab(); }
+    if (window.MagCorrecteur) MagCorrecteur.open($('cr')); else toast('Correcteur indisponible');
+  };
+  $('cRegen').onclick = function () {
+    if (CUR.crEdit && !confirm('Refaire le compte rendu à partir de la transcription ? Tes modifications seront perdues.')) return;
+    CUR.cr = buildCr(CUR); CUR.crEdit = false; save(); tab = 'cr'; setTab(); toast('Compte rendu refait');
+  };
+  $('cResume').onclick = function () { if (!CUR) return; startLive(); };
+  $('cDel').onclick = function () {
+    if (!confirm('Supprimer « ' + (CUR.title || 'réunion') + ' » ?')) return;
+    L = L.filter(function (r) { return r !== CUR; }); save(); CUR = null; renderList(); show('list'); toast('Réunion supprimée');
+  };
+  // retour arrière d'Android
+  document.addEventListener('backbutton', function () { if (view !== 'list' && view !== 'live') $('bBack').click(); });
+
+  /* ---------------- démarrage ---------------- */
+  try {
+    if (D && D.info) { var I = JSON.parse(D.info()); if (!I.speech) { $('noSpeech').hidden = false; $('noSpeech').textContent = 'Aucun service de reconnaissance vocale sur ce téléphone : installe « Speech Recognition & Synthesis » de Google, puis le français hors ligne.'; } }
+    else if (!D) { $('noSpeech').hidden = false; $('noSpeech').textContent = 'Ici, la retranscription en direct n\'est pas disponible : elle fonctionne dans l\'appli Android « Réunion ». Les réunions déjà faites restent consultables.'; }
+  } catch (e) { }
+  renderList(); show('list');
+  // réunion interrompue (appli fermée pendant l'enregistrement) : on la retrouve dans la liste, compte rendu à faire
+  L.forEach(function (r) { if (!r.cr && r.segs.length) r.cr = buildCr(r); }); save();
+  // essais
+  window.Reunion = { buildCr: buildCr, phrase: phrase, list: function () { return L; } };
+})();
+</script>
+</body>
+</html>

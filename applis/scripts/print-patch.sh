@@ -1976,6 +1976,12 @@ if [ "$APP" = "correcteur" ]; then
   sed -i 's/android:launchMode="singleTask"/android:launchMode="standard"/' "$MAN"
   addfilters '<intent-filter android:label="Corriger"><action android:name="android.intent.action.PROCESS_TEXT" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="text/plain" /></intent-filter><intent-filter android:label="Correcteur"><action android:name="android.intent.action.SEND" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="text/plain" /></intent-filter>'
 fi
+# Réunion : retranscription en direct (reconnaissance vocale d'Android, par DictaBridge commun : speechStart / speechStop)
+# et compte rendu préparé sur le téléphone ; correcteur commun (office-deps.txt). Micro seulement, aucune connexion de l'appli.
+if [ "$APP" = "reunion" ]; then
+  addperm RECORD_AUDIO
+  addraw '<uses-feature android:name="android.hardware.microphone" android:required="true" /><queries><intent><action android:name="android.speech.RecognitionService" /></intent><intent><action android:name="android.intent.action.SEND" /><data android:mimeType="text/plain" /></intent></queries>'
+fi
 # Langues : apprendre l'espagnol et le portugais ; voix du téléphone et reconnaissance vocale d'Android (LanguesBridge.java, copié ici seulement)
 if [ "$APP" = "langues" ]; then
   cp scripts/LanguesBridge.java "$(dirname "$F")/LanguesBridge.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/LanguesBridge.java"

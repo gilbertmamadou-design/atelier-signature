@@ -353,5 +353,13 @@
   "name": "Correcteur",
   "icons": "android-icons-correcteur",
   "file": "Correcteur.apk"
+ },
+ {
+  "app": "reunion",
+  "web": "www-reunion",
+  "appid": "fr.magformation13.reunion",
+  "name": "Réunion",
+  "icons": "android-icons-reunion",
+  "file": "Reunion.apk"
  }
 ]

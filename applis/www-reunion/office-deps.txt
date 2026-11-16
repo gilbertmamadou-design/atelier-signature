@@ -1,0 +1,3 @@
+# Correcteur (Grammalecte, hors ligne) : module commun de la Suite, copié dans l'APK par scripts/office-deps.sh
+../pc/shared/correcteur/ correcteur/
+../pc/shared/vendor/grammalecte/ correcteur/grammalecte/
