@@ -54,6 +54,21 @@
       S.routines.push({ id: 'soir', name: 'Bonsoir', phrase: 'bonsoir', btn: true, steps: ['dit:Bonsoir', 'lum:allume le couloir'] });
     lsSet(KEY.set, S);
   }
+  // Scénarios de la maison proposés une fois : « Je pars », « Je rentre », et « Bonne nuit » complétée (lumières, stores via Alexa,
+  // ne pas déranger) si elle n'a pas été modifiée ; « Bonjour » rétablit alors la sonnerie. Tout reste modifiable dans Réglages › Routines.
+  if (!S.rtMaison) {
+    S.rtMaison = 1;
+    var same = function (r, l) { return r && JSON.stringify(r.steps || []) === JSON.stringify(l); };
+    var nuit = S.routines.filter(function (r) { return r.id === 'nuit'; })[0], matin = S.routines.filter(function (r) { return r.id === 'matin'; })[0];
+    if (same(nuit, ['bonnenuit', 'reveil', 'ecoute_off'])) {
+      nuit.steps = ['lum:éteins tout', 'alexa:ferme les stores', 'reveil', 'dnd', 'bonnenuit', 'ecoute_off'];
+      if (same(matin, ['salut', 'heure', 'meteo', 'agenda', 'vent', 'titres'])) matin.steps = ['sonnerie', 'salut', 'heure', 'meteo', 'agenda', 'vent', 'titres'];
+    }
+    var has = function (ph) { return S.routines.some(function (r) { return String(r.phrase || '').split(/[,;\/|]+/).some(function (x) { return deacc(x) === ph; }); }); };
+    if (!has('je pars')) S.routines.push({ id: 'pars', name: 'Je pars', phrase: 'je pars, je m\'en vais, à plus tard, je sors', btn: true, steps: ['lum:éteins tout', 'alexa:ferme les stores', 'dit:Tout est éteint et les stores se ferment. À plus tard'] });
+    if (!has('je rentre')) S.routines.push({ id: 'rentre', name: 'Je rentre', phrase: 'je rentre, me voilà, je suis rentré, je suis là', btn: true, steps: ['dit:Bon retour', 'nuit>lum:allume le couloir', 'jour>alexa:ouvre les stores'] });
+    lsSet(KEY.set, S);
+  }
   function wakeWords() {
     var w = [deacc(S.name || 'Majordome')];
     String(S.wake || '').split(/[,;]/).forEach(function (x) { x = deacc(x); if (x && w.indexOf(x) < 0) w.push(x); });
@@ -1143,8 +1158,33 @@
   };
 
   /* --- Routines --- */
-  var STEPS = { salut: 'Salutation', heure: 'Heure', date: 'Date', meteo: 'Météo du jour', vent: 'Vent (échafaudage)', vigilance: 'Vigilance météo', agenda: 'Agenda du jour', titres: '3 titres de l\'actualité', rappels: 'Rappels', liste: 'Liste de courses', musique: 'Lancer la musique', reveil: 'Réveil de demain', bonnenuit: 'Bonne nuit', ecoute_off: 'Couper l\'écoute continue', lampe_off: 'Éteindre la lampe', silencieux: 'Mode silencieux' };
+  var STEPS = { salut: 'Salutation', heure: 'Heure', date: 'Date', meteo: 'Météo du jour', vent: 'Vent (échafaudage)', vigilance: 'Vigilance météo', agenda: 'Agenda du jour', titres: '3 titres de l\'actualité', rappels: 'Rappels', liste: 'Liste de courses', musique: 'Lancer la musique', reveil: 'Réveil de demain', bonnenuit: 'Bonne nuit', ecoute_off: 'Couper l\'écoute continue', lampe_off: 'Éteindre la lampe', silencieux: 'Mode silencieux', dnd: 'Ne pas déranger', sonnerie: 'Rétablir la sonnerie' };
+  var COND = { jour: 'le jour', nuit: 'la nuit' };
+  function condOf(s) { var m = /^(jour|nuit)>/.exec(s); return m ? [m[1], s.slice(m[0].length)] : ['', s]; }
+  /* Jour ou nuit : lever et coucher du soleil calculés sur l'appareil (ville choisie, dernière position, sinon Marseille) */
+  function isDay(t) {
+    var pl = S.place || (gpsCache && gpsCache.p) || { lat: 43.3, lon: 5.37 }, d = new Date(t || now()), rad = Math.PI / 180;
+    var n = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 864e5), g = 2 * Math.PI / 365 * (n - 1);
+    var decl = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g) - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
+    var eq = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
+    var c = (Math.cos(90.833 * rad) - Math.sin(pl.lat * rad) * Math.sin(decl)) / (Math.cos(pl.lat * rad) * Math.cos(decl));
+    if (c > 1) return false; if (c < -1) return true;
+    var ha = Math.acos(c) / rad, noon = 720 - 4 * pl.lon - eq;   // minutes UTC
+    var m = d.getUTCHours() * 60 + d.getUTCMinutes();
+    return m >= noon - 4 * ha && m <= noon + 4 * ha;
+  }
+  /* Alexa : Majordome prononce la demande à voix haute (« Alexa, ferme les stores »), l'Echo l'entend et l'exécute */
+  var ALEXA_WORDS = /^(alexa|echo|amazon|ordinateur|ziggy)\b/i;
+  function alexaSay(cmd) {
+    cmd = String(cmd || '').trim(); if (!cmd) return Promise.resolve();
+    var t = ALEXA_WORDS.test(cmd) ? cmd : 'Alexa, ' + cmd;
+    lastSaid = t;
+    speakChain = speakChain.then(function () { return speakNow(speechText(t)); }).then(function () { return new Promise(function (ok) { setTimeout(ok, 3500); }); });   // le temps que l'Echo réponde
+    return speakChain;
+  }
   function stepLabel(s) {
+    var c = condOf(s); if (c[0]) return stepLabel(c[1]) + ' (' + COND[c[0]] + ')';
+    if (/^alexa:/.test(s)) return 'Alexa : ' + s.slice(6);
     if (/^lum:/.test(s)) return 'Lumières : ' + s.slice(4);
     if (/^cmd:/.test(s)) return '« ' + s.slice(4) + ' »';
     if (/^dit:/.test(s)) return 'Dire : ' + s.slice(4);
@@ -1153,6 +1193,7 @@
   }
   var RT_DEPTH = 0;
   function runStep(s) {
+    var cd = condOf(s); if (cd[0]) { if (isDay() !== (cd[0] === 'jour')) return Promise.resolve(); s = cd[1]; }
     var t0 = NLU.startOfDay(now());
     switch (s) {
       case 'salut': var h = new Date(now()).getHours(); return answer(withSir(h < 18 ? 'Bonjour' : 'Bonsoir') + '.').done;
@@ -1177,7 +1218,10 @@
       case 'ecoute_off': if (S.wakeOn) { S.wakeOn = false; saveS(); applyWake(); return answer('J\'arrête d\'écouter. Touchez le micro pour me réveiller.').done; } return Promise.resolve();
       case 'lampe_off': return P && P.homeTorch && ANDROID ? (P.homeTorch(false), Promise.resolve()) : Promise.resolve();
       case 'silencieux': return H.silent({ mode: 'silent' });
+      case 'dnd': return B && B.ringer && !PC ? H.silent({ mode: 'dnd' }) : Promise.resolve();
+      case 'sonnerie': if (B && B.ringer && !PC) { var rg = J(B.ringer('normal'), {}); void rg; } return Promise.resolve();
     }
+    if (/^alexa:/.test(s)) return alexaSay(s.slice(6));
     if (/^lum:/.test(s) && MJ.lightStep) return MJ.lightStep(s.slice(4));
     if (/^dit:/.test(s)) { var tx = s.slice(4).trim(); if (!tx) return Promise.resolve(); return answer(/[.!?…]$/.test(tx) ? tx : withSir(tx) + '.').done; }
     if (/^pause:/.test(s)) { var sec = Math.max(0, Math.min(600, +s.slice(6) || 0)); return new Promise(function (ok) { setTimeout(ok, sec * 1000); }); }
@@ -1424,7 +1468,7 @@
   }
   $('bSet').onclick = function () { settingsSheet(); };
   /* Éditeur de routine : nom, phrases, bouton sur l'écran, actions dans l'ordre (déplaçables) */
-  var ADD_KINDS = [['cmd', 'Commande libre (tout ce que je sais faire)'], ['lum', 'Lumières (Philips Hue)'], ['app', 'Ouvrir une appli'], ['dit', 'Dire une phrase'], ['pause', 'Attendre quelques secondes']];
+  var ADD_KINDS = [['cmd', 'Commande libre (tout ce que je sais faire)'], ['lum', 'Lumières (Philips Hue)'], ['alexa', 'Demander à Alexa (stores, clim…)'], ['app', 'Ouvrir une appli'], ['dit', 'Dire une phrase'], ['pause', 'Attendre quelques secondes']];
   function routineSheet(i) {
     var r = i >= 0 ? S.routines[i] : { id: 'r' + uid(), name: '', phrase: '', btn: true, steps: [] };
     var steps = (r.steps || []).slice(), apps = [];
@@ -1437,21 +1481,23 @@
       ADD_KINDS.map(function (k) { return '<option value="' + k[0] + '">' + esc(k[1]) + '</option>'; }).join('') + '</optgroup><optgroup label="Prêtes à l\'emploi">' +
       Object.keys(STEPS).map(function (k) { return '<option value="b:' + k + '">' + esc(STEPS[k]) + '</option>'; }).join('') + '</optgroup></select></div>' +
       '<datalist id="rApps">' + apps.map(function (a) { return '<option value="ouvre ' + esc(a) + '">'; }).join('') + '</datalist>' +
-      '<p class="note">Commande libre : tapez-la comme vous me la diriez. Exemples : « allume le couloir », « éteins tout », « allume le salon à 30 % », « active la scène Lecture », « mets la clim à 21 », « ouvre Spotify », « lance la musique », « minuteur 10 minutes », « mode silencieux », « quel temps fait-il ».' + (MJ.hueReady && MJ.hueReady() ? '' : ' Sans pont Hue jumelé, les actions de lumière sont ignorées.') + '</p>' +
+      '<p class="note">Commande libre : tapez-la comme vous me la diriez. Exemples : « allume le couloir », « éteins tout », « allume le salon à 30 % », « active la scène Lecture », « mets la clim à 21 », « ouvre Spotify », « lance la musique », « minuteur 10 minutes », « mode silencieux », « quel temps fait-il ». Demander à Alexa : je prononce la demande à voix haute (« Alexa, ferme les stores »), votre Echo doit être assez près pour m\'entendre ; écrivez-la comme vous la diriez à Alexa. « Seulement le jour / la nuit » se règle sur le lever et le coucher du soleil.' + (MJ.hueReady && MJ.hueReady() ? '' : ' Sans pont Hue jumelé, les actions de lumière sont ignorées.') + '</p>' +
       '<div class="row" style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn pri" id="rSave">Enregistrer</button>' + (i >= 0 && r.id !== 'matin' && r.id !== 'nuit' ? '<button class="btn bad" id="rDel">Supprimer</button>' : '') + '<button class="btn" id="rTry">Essayer</button></div>';
     openSheet('Routine', h, 'routine');
-    function edit(s) { return /^(lum|cmd|dit|pause):/.test(s); }
     function paint() {
-      $('rSteps').innerHTML = steps.length ? steps.map(function (s, k) {
-        var kind = (/^(lum|cmd|dit|pause):/.exec(s) || [])[1], v = kind ? s.slice(kind.length + 1) : '';
-        var lab = kind === 'lum' ? 'Lumières' : kind === 'cmd' ? 'Commande' : kind === 'dit' ? 'Dire' : kind === 'pause' ? 'Pause (secondes)' : STEPS[s] || s;
-        var inp = !kind ? '' : '<input class="in" data-v="' + k + '"' + (kind === 'pause' ? ' type="number" min="1" max="600" style="width:90px"' : '') + (kind === 'cmd' ? ' list="rApps"' : '') + ' value="' + esc(v) + '" placeholder="' + (kind === 'lum' ? 'ex. allume le couloir' : kind === 'dit' ? 'ex. Bonsoir, bonne soirée' : kind === 'pause' ? '5' : 'ex. mets la clim à 21') + '">';
-        return '<div class="set" style="gap:6px;align-items:center"><div class="t" style="flex:1;min-width:0"><b style="font-size:12px;color:var(--tx2)">' + (k + 1) + '. ' + esc(lab) + '</b>' + inp + '</div>' +
+      $('rSteps').innerHTML = steps.length ? steps.map(function (s0, k) {
+        var cd = condOf(s0), s = cd[1];
+        var kind = (/^(lum|cmd|dit|pause|alexa):/.exec(s) || [])[1], v = kind ? s.slice(kind.length + 1) : '';
+        var lab = kind === 'lum' ? 'Lumières' : kind === 'alexa' ? 'Demander à Alexa' : kind === 'cmd' ? 'Commande' : kind === 'dit' ? 'Dire' : kind === 'pause' ? 'Pause (secondes)' : STEPS[s] || s;
+        var inp = !kind ? '' : '<input class="in" data-v="' + k + '"' + (kind === 'pause' ? ' type="number" min="1" max="600" style="width:90px"' : '') + (kind === 'cmd' ? ' list="rApps"' : '') + ' value="' + esc(v) + '" placeholder="' + (kind === 'lum' ? 'ex. allume le couloir' : kind === 'alexa' ? 'ex. ferme les stores' : kind === 'dit' ? 'ex. Bonsoir, bonne soirée' : kind === 'pause' ? '5' : 'ex. mets la clim à 21') + '">';
+        var sel = '<select class="in" data-c="' + k + '" style="width:auto;margin-top:4px;padding:4px 8px;font-size:13px">' + [['', 'Toujours'], ['jour', 'Seulement le jour'], ['nuit', 'Seulement la nuit']].map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === cd[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>';
+        return '<div class="set" style="gap:6px;align-items:center"><div class="t" style="flex:1;min-width:0"><b style="font-size:12px;color:var(--tx2)">' + (k + 1) + '. ' + esc(lab) + '</b>' + inp + sel + '</div>' +
           '<button class="ib" data-up="' + k + '" aria-label="Monter"' + (k ? '' : ' disabled') + '>↑</button><button class="ib" data-dn="' + k + '" aria-label="Descendre"' + (k < steps.length - 1 ? '' : ' disabled') + '>↓</button><button class="ib" data-rm="' + k + '" aria-label="Retirer">✕</button></div>';
       }).join('') : '<p class="note">Aucune action pour l\'instant : choisissez-en une ci-dessous.</p>';
     }
     paint();
-    $('rSteps').oninput = function (e) { var x = e.target.closest('[data-v]'); if (!x) return; var k = +x.dataset.v, kind = steps[k].split(':')[0]; steps[k] = kind + ':' + x.value; };
+    $('rSteps').oninput = function (e) { var x = e.target.closest('[data-v]'); if (!x) return; var k = +x.dataset.v, cd = condOf(steps[k]), kind = cd[1].split(':')[0]; steps[k] = (cd[0] ? cd[0] + '>' : '') + kind + ':' + x.value; };
+    $('rSteps').onchange = function (e) { var x = e.target.closest('[data-c]'); if (!x) return; var k = +x.dataset.c; steps[k] = (x.value ? x.value + '>' : '') + condOf(steps[k])[1]; };
     $('rSteps').onclick = function (e) {
       var b = e.target.closest('button'); if (!b) return; var k;
       if (b.dataset.up != null) { k = +b.dataset.up; steps.splice(k - 1, 0, steps.splice(k, 1)[0]); }
@@ -1461,14 +1507,15 @@
     };
     $('rKind').onchange = function () {
       var v = this.value; this.value = ''; if (!v) return;
-      if (/^b:/.test(v)) { if (steps.indexOf(v.slice(2)) < 0) steps.push(v.slice(2)); paint(); return; }
+      if (/^b:/.test(v)) { if (!steps.some(function (x) { return condOf(x)[1] === v.slice(2); })) steps.push(v.slice(2)); paint(); return; }
       steps.push(v === 'app' ? 'cmd:ouvre ' : v === 'pause' ? 'pause:5' : v + ':'); paint();
       var l = $('rSteps').querySelectorAll('[data-v]'); if (l.length) { var f = l[l.length - 1]; f.focus(); try { f.setSelectionRange(f.value.length, f.value.length); } catch (e) { } }
     };
     var collect = function () {
       var bad = [];
-      r.steps = steps.map(function (s) { return s.replace(/^(lum|cmd|dit|pause):\s+/, '$1:').trim(); }).filter(function (s) {
-        if (/^(lum|cmd|dit):$/.test(s) || s === 'cmd:ouvre') return false;
+      r.steps = steps.map(function (s) { return s.replace(/^((?:jour>|nuit>)?)(lum|cmd|dit|pause|alexa):\s+/, '$1$2:').trim(); }).filter(function (s0) {
+        var s = condOf(s0)[1];
+        if (/^(lum|cmd|dit|alexa):$/.test(s) || s === 'cmd:ouvre') return false;
         if (/^lum:/.test(s) && MJ.lightCheck && !MJ.lightCheck(s.slice(4))) { bad.push(s.slice(4)); return false; }
         return true;
       });
