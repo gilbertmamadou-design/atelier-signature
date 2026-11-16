@@ -247,7 +247,7 @@
     c.querySelector('[data-mj]').onclick = function () { FJ.open(FJ.suiteUrl('majordome')); };
     return c.done;
   };
-  ['call', 'sms', 'torch', 'silent', 'address', 'domo', 'light', 'clim', 'alarm_list', 'alarm_cancel', 'routine_edit', 'budget_add'].forEach(function (k) { H[k] = H.notHere; });
+  ['call', 'sms', 'torch', 'silent', 'address', 'domo', 'shutter', 'light', 'clim', 'alarm_list', 'alarm_cancel', 'routine_edit', 'budget_add'].forEach(function (k) { H[k] = H.notHere; });
   H.call = H.sms = H.torch = function () { return answer('C\'est une commande du téléphone : je ne peux pas la faire depuis l\'ordinateur.').done; };
   H.budget_balance = function () { return answer('Par discrétion, je ne lis jamais de solde ni de total de comptes. Ouvrez Budget pour les consulter.').done; };
   H.history_clear = function () { say.innerHTML = ''; return answer(ack('Conversation effacée.')).done; };

@@ -56,13 +56,14 @@
   }
   // Scénarios de la maison proposés une fois : « Je pars », « Je rentre », et « Bonne nuit » complétée (lumières, stores via Alexa,
   // ne pas déranger) si elle n'a pas été modifiée ; « Bonjour » rétablit alors la sonnerie. Tout reste modifiable dans Réglages › Routines.
-  if (!S.rtMaison) {
-    S.rtMaison = 1;
+  if (!S.rtMaison || S.rtMaison < 2) {
+    S.rtMaison = 2;
     var same = function (r, l) { return r && JSON.stringify(r.steps || []) === JSON.stringify(l); };
     var nuit = S.routines.filter(function (r) { return r.id === 'nuit'; })[0], matin = S.routines.filter(function (r) { return r.id === 'matin'; })[0];
-    if (same(nuit, ['bonnenuit', 'reveil', 'ecoute_off'])) {
+    // « Bonne nuit » d'origine, éventuellement complétée par « éteins tout » au jumelage du pont Hue (mj-maison.js)
+    if (same(nuit, ['bonnenuit', 'reveil', 'ecoute_off']) || same(nuit, ['bonnenuit', 'reveil', 'ecoute_off', 'lum:éteins tout'])) {
       nuit.steps = ['lum:éteins tout', 'alexa:ferme les stores', 'reveil', 'dnd', 'bonnenuit', 'ecoute_off'];
-      if (same(matin, ['salut', 'heure', 'meteo', 'agenda', 'vent', 'titres'])) matin.steps = ['sonnerie', 'salut', 'heure', 'meteo', 'agenda', 'vent', 'titres'];
+      if (matin && (matin.steps || []).indexOf('sonnerie') < 0) matin.steps = ['sonnerie'].concat(matin.steps || []);
     }
     var has = function (ph) { return S.routines.some(function (r) { return String(r.phrase || '').split(/[,;\/|]+/).some(function (x) { return deacc(x) === ph; }); }); };
     if (!has('je pars')) S.routines.push({ id: 'pars', name: 'Je pars', phrase: 'je pars, je m\'en vais, à plus tard, je sors', btn: true, steps: ['lum:éteins tout', 'alexa:ferme les stores', 'dit:Tout est éteint et les stores se ferment. À plus tard'] });
@@ -1177,6 +1178,12 @@
   var ALEXA_WORDS = /^(alexa|echo|amazon|ordinateur|ziggy)\b/i;
   function alexaSay(cmd) {
     cmd = String(cmd || '').trim(); if (!cmd) return Promise.resolve();
+    // volets et stores : directement par le boîtier Somfy TaHoma s'il est réglé (mj-somfy.js), sinon à voix haute pour l'Echo
+    var direct = MJ.alexaDirect && MJ.alexaDirect(cmd);
+    if (direct) return direct.then(function (ok) { if (!ok) return alexaVoice(cmd); });
+    return alexaVoice(cmd);
+  }
+  function alexaVoice(cmd) {
     var t = ALEXA_WORDS.test(cmd) ? cmd : 'Alexa, ' + cmd;
     lastSaid = t;
     speakChain = speakChain.then(function () { return speakNow(speechText(t)); }).then(function () { return new Promise(function (ok) { setTimeout(ok, 3500); }); });   // le temps que l'Echo réponde

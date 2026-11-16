@@ -1646,6 +1646,208 @@ public class MajordomeBridge {
         return false;
     }
 
+    // =====================================================================
+    // Somfy TaHoma : volets et stores par l'API locale du « mode développeur » (mj-somfy.js)
+    //  - Le boîtier est trouvé sur le réseau local (mDNS « _kizboxdev._tcp », enregistrement TXT gateway_pin) ou par son adresse.
+    //  - Jeton créé par l'utilisateur dans l'appli TaHoma by Somfy (mode développeur) : fichier privé no_backup/somfy.json,
+    //    hors sauvegardes Android, jamais renvoyé à la page. Aucun mot de passe Somfy, rien sur internet.
+    //  - TLS : le certificat du boîtier doit être signé par l'autorité Overkiz (Overkiz Root CA, embarquée ci-dessous,
+    //    empreinte SHA-256 BBFA9611…44DB) et porter le code PIN du boîtier ; valable pour cette connexion seulement.
+    //  - Seules requêtes permises : GET /apiVersion, GET /setup/devices, POST /exec/apply (commandes des volets).
+    // =====================================================================
+    static final java.util.concurrent.ExecutorService SX = java.util.concurrent.Executors.newSingleThreadExecutor();
+    static final Object SLOCK = new Object();
+    static final class Somfy {
+        static final String CA =
+            "-----BEGIN CERTIFICATE-----\n" +
+            "MIIDPDCCAiSgAwIBAgIJAOvswclbF4QnMA0GCSqGSIb3DQEBCwUAMEsxEDAOBgNV\n" +
+            "BAoTB092ZXJraXoxEDAOBgNVBAsTB1Jvb3QgQ0ExGDAWBgNVBAMTD092ZXJraXog\n" +
+            "Um9vdCBDQTELMAkGA1UEBhMCRlIwHhcNMTYwNDI3MTI1ODE1WhcNMzYwNDI3MTI1\n" +
+            "ODE1WjBLMRAwDgYDVQQKEwdPdmVya2l6MRAwDgYDVQQLEwdSb290IENBMRgwFgYD\n" +
+            "VQQDEw9PdmVya2l6IFJvb3QgQ0ExCzAJBgNVBAYTAkZSMIIBIjANBgkqhkiG9w0B\n" +
+            "AQEFAAOCAQ8AMIIBCgKCAQEAsszRfbcNCEoD9ZfzTbXfuMK8CrXGqBR/ZOCk4guN\n" +
+            "aRKqZ/rLQm3V6Q+dlJ/8qle5J3KN5bZmqT4qXKHwJsaOiLfPyAptSM6vuIlls2N+\n" +
+            "UsKkv3m5+gTyLaSGMS4wh2GoOCa21V9t5wYUQnoFaQByVNyl+kkrWLpKw5gQasU0\n" +
+            "xkVsjAVKgkkb3puBl7sZgiSoz97I9U9JUkg3spH0I84CZRI+JejioDHvkZEyf83j\n" +
+            "+QFxSTV/hZkUwUY/X0zt2dTZuliCTePeCdANryo6+9TbBp98j/SB1s59FcO8NSSK\n" +
+            "sV07rTFlM9/soko2/J0aTtXHE86wFq7vfFVZzZxsQpIBbwIDAQABoyMwITAPBgNV\n" +
+            "HRMBAf8EBTADAQH/MA4GA1UdDwEB/wQEAwIBBjANBgkqhkiG9w0BAQsFAAOCAQEA\n" +
+            "GU7xUWlZZEVnEK0k3Z1FoRl9xA7cLOiDVCQ5qQDFfQgGpMtXv1PKsQNZ6T6tZN3d\n" +
+            "bdzsqcQXtLhXknz6aGBZNR4g6liQhVuCaiyURaI+LM2KuSZnbixs3+1SPBvxHrJh\n" +
+            "/gOsxctxq+0DALnOK9qbGl6N5DtjM/EC5Qve71c+UVTEcJjJ3L2S1Ne+PxDOJuUC\n" +
+            "JsOLUk96G+uLn6CQB5Wu8fYrkWAjF3yrxkCoZCqOvVrnbL77vXmz2mlqNHSJt3Ur\n" +
+            "ndWJLVvrRFKdSG6WiNCh/Q+ARQAorN60JD9x8+IyXRGvlZl7KVeRduE2rjZuom7h\n" +
+            "QLMnmaF+oFW5mnhh9gu6Gg==\n" +
+            "-----END CERTIFICATE-----\n";
+        static final String BASE = "/enduser-mobile-web/1/enduserAPI";
+        static boolean okPin(String p) { return p != null && p.matches("\\d{4}-\\d{4}-\\d{4}"); }
+        static boolean okToken(String t) { return t != null && t.matches("[A-Za-z0-9._~+/=\\-]{8,512}"); }
+        static boolean okPort(int p) { return p >= 1 && p <= 65535; }
+        static boolean okReq(String method, String path) {
+            return ("GET".equals(method) && ("/apiVersion".equals(path) || "/setup/devices".equals(path))) || ("POST".equals(method) && "/exec/apply".equals(path));
+        }
+        /** Autorité Overkiz seulement, et le certificat du boîtier doit nommer son code PIN */
+        static javax.net.ssl.X509TrustManager trust(final String pin) throws Exception {
+            java.security.cert.CertificateFactory cf = java.security.cert.CertificateFactory.getInstance("X.509");
+            java.security.cert.Certificate ca = cf.generateCertificate(new java.io.ByteArrayInputStream(CA.getBytes("US-ASCII")));
+            java.security.KeyStore ks = java.security.KeyStore.getInstance(java.security.KeyStore.getDefaultType());
+            ks.load(null, null); ks.setCertificateEntry("overkiz", ca);
+            javax.net.ssl.TrustManagerFactory f = javax.net.ssl.TrustManagerFactory.getInstance(javax.net.ssl.TrustManagerFactory.getDefaultAlgorithm());
+            f.init(ks);
+            javax.net.ssl.X509TrustManager b0 = null;
+            for (javax.net.ssl.TrustManager t : f.getTrustManagers()) if (t instanceof javax.net.ssl.X509TrustManager) { b0 = (javax.net.ssl.X509TrustManager) t; break; }
+            if (b0 == null) throw new Exception("tm");
+            final javax.net.ssl.X509TrustManager base = b0;
+            return new javax.net.ssl.X509TrustManager() {
+                public void checkClientTrusted(java.security.cert.X509Certificate[] c, String t) throws java.security.cert.CertificateException { throw new java.security.cert.CertificateException("client"); }
+                public void checkServerTrusted(java.security.cert.X509Certificate[] c, String t) throws java.security.cert.CertificateException {
+                    if (c == null || c.length == 0) throw new java.security.cert.CertificateException("aucun certificat");
+                    base.checkServerTrusted(c, t);
+                    StringBuilder n = new StringBuilder(String.valueOf(c[0].getSubjectX500Principal().getName()));
+                    try { java.util.Collection<java.util.List<?>> alt = c[0].getSubjectAlternativeNames(); if (alt != null) for (java.util.List<?> x : alt) if (x.size() > 1) n.append(' ').append(x.get(1)); } catch (Exception e) { }
+                    if (!n.toString().toLowerCase(Locale.ROOT).contains(pin.toLowerCase(Locale.ROOT))) throw new java.security.cert.CertificateException("certname");
+                }
+                public java.security.cert.X509Certificate[] getAcceptedIssuers() { return base.getAcceptedIssuers(); }
+            };
+        }
+        static Hue.Resp http(String ip, int port, String pin, String token, String method, String path, String body, int timeout) throws Hue.HueErr {
+            if (!Hue.privateIp(ip)) throw new Hue.HueErr("notprivate");
+            if (!okPort(port)) throw new Hue.HueErr("port");
+            if (!okPin(pin)) throw new Hue.HueErr("pin");
+            if (!okToken(token)) throw new Hue.HueErr("token");
+            if (!okReq(method, path)) throw new Hue.HueErr("path");
+            if (body != null && (body.length() > 16384 || !body.trim().startsWith("{"))) throw new Hue.HueErr("body");
+            java.net.Socket raw = null, s = null;
+            final String host = "gateway-" + pin + ".local";
+            try {
+                raw = Hue.connect(ip, port, timeout); raw.setSoTimeout(timeout);
+                javax.net.ssl.SSLContext ctx = javax.net.ssl.SSLContext.getInstance("TLS");
+                ctx.init(null, new javax.net.ssl.TrustManager[]{ trust(pin) }, new java.security.SecureRandom());
+                javax.net.ssl.SSLSocket ss = (javax.net.ssl.SSLSocket) ctx.getSocketFactory().createSocket(raw, host, port, true);
+                try { ss.startHandshake(); }
+                catch (javax.net.ssl.SSLException e) { String m = String.valueOf(e.getMessage()) + " " + String.valueOf(e.getCause()); throw new Hue.HueErr(m.contains("certname") ? "certname" : "cert"); }
+                s = ss;
+                byte[] b = body == null ? new byte[0] : body.getBytes("UTF-8");
+                StringBuilder h = new StringBuilder();
+                h.append(method).append(' ').append(BASE).append(path).append(" HTTP/1.1\r\nHost: ").append(host).append(':').append(port)
+                    .append("\r\nConnection: close\r\nAccept: application/json\r\nUser-Agent: Majordome\r\nAuthorization: Bearer ").append(token).append("\r\n");
+                if (body != null) h.append("Content-Type: application/json\r\nContent-Length: ").append(b.length).append("\r\n");
+                h.append("\r\n");
+                java.io.OutputStream o = s.getOutputStream(); o.write(h.toString().getBytes("UTF-8")); o.write(b); o.flush();
+                return Hue.read(s.getInputStream());
+            } catch (Hue.HueErr e) { throw e; }
+            catch (java.io.IOException e) { throw new Hue.HueErr("unreachable"); }
+            catch (Exception e) { throw new Hue.HueErr("tls"); }
+            finally { try { if (s != null) s.close(); } catch (Exception e) { } try { if (raw != null) raw.close(); } catch (Exception e) { } }
+        }
+    }
+    static File somfyFile(Context c) { return new File(c.getNoBackupFilesDir(), "somfy.json"); }
+    static JSONObject somfyLoad(Context c) {
+        synchronized (SLOCK) {
+            try {
+                File f = somfyFile(c); if (!f.exists()) return null;
+                byte[] b = new byte[(int) Math.min(f.length(), 8192)];
+                try (java.io.FileInputStream in = new java.io.FileInputStream(f)) { int n = 0, k; while (n < b.length && (k = in.read(b, n, b.length - n)) > 0) n += k; }
+                JSONObject o = new JSONObject(new String(b, "UTF-8"));
+                return Hue.privateIp(o.optString("ip")) && Somfy.okPin(o.optString("pin")) && Somfy.okToken(o.optString("token")) ? o : null;
+            } catch (Throwable t) { return null; }
+        }
+    }
+    static void somfySave(Context c, JSONObject o) throws Exception {
+        synchronized (SLOCK) {
+            File f = somfyFile(c), t = new File(f.getPath() + ".tmp");
+            try (java.io.FileOutputStream out = new java.io.FileOutputStream(t)) { out.write(o.toString().getBytes("UTF-8")); }
+            if (!t.renameTo(f)) { f.delete(); if (!t.renameTo(f)) throw new Exception("save"); }
+        }
+    }
+    @JavascriptInterface public String somfyInfo() {
+        try {
+            JSONObject o = somfyLoad(a), r = new JSONObject();
+            if (o == null) return r.put("set", false).toString();
+            return r.put("set", true).put("ip", o.optString("ip")).put("port", o.optInt("port", 8443)).put("pin", o.optString("pin")).put("at", o.optLong("at")).toString();   // jamais le jeton
+        } catch (Exception e) { return "{\"set\":false}"; }
+    }
+    /** Enregistre le boîtier après un essai réussi (GET /setup/devices). Jeton vide : celui déjà enregistré (changement d'adresse). */
+    @JavascriptInterface public void somfySet(final String ip, final int port, final String pin, final String token) {
+        final Context c = a.getApplicationContext();
+        SX.execute(new Runnable() { public void run() {
+            String ev;
+            try {
+                JSONObject old = somfyLoad(c);
+                String tk = token == null ? "" : token.trim();
+                if (tk.isEmpty() && old != null && old.optString("pin").equalsIgnoreCase(pin)) tk = old.optString("token");
+                Hue.Resp r = Somfy.http(ip == null ? "" : ip.trim(), port, pin == null ? "" : pin.trim(), tk, "GET", "/setup/devices", null, 8000);
+                if (r.code == 401 || r.code == 403) ev = hueEv("set", "ok", false, "err", "unauthorized");
+                else if (r.code != 200) ev = hueEv("set", "ok", false, "err", "http", "code", r.code);
+                else {
+                    somfySave(c, new JSONObject().put("ip", ip.trim()).put("port", port).put("pin", pin.trim()).put("token", tk).put("at", System.currentTimeMillis()));
+                    ev = hueEv("set", "ok", true, "body", r.body);
+                }
+            } catch (Hue.HueErr e) { ev = hueEv("set", "ok", false, "err", e.code); }
+            catch (Throwable t) { ev = hueEv("set", "ok", false, "err", "save"); }
+            emit("somfy", ev);
+        } });
+    }
+    @JavascriptInterface public void somfyReq(final String id, final String method, final String path, final String body) {
+        final Context c = a.getApplicationContext();
+        SX.execute(new Runnable() { public void run() {
+            String ev;
+            try {
+                JSONObject o = somfyLoad(c); if (o == null) throw new Hue.HueErr("notset");
+                Hue.Resp r = Somfy.http(o.optString("ip"), o.optInt("port", 8443), o.optString("pin"), o.optString("token"), method, path, body == null || body.isEmpty() ? null : body, 8000);
+                ev = hueEv("res", "id", id, "code", r.code, "body", r.body);
+            } catch (Hue.HueErr e) { ev = hueEv("res", "id", id, "err", e.code); }
+            catch (Throwable t) { ev = hueEv("res", "id", id, "err", "unreachable"); }
+            emit("somfy", ev);
+        } });
+    }
+    @JavascriptInterface public void somfyForget() { synchronized (SLOCK) { somfyFile(a).delete(); } }
+    /** Recherche du boîtier : mDNS « _kizboxdev._tcp » (mode développeur actif), 6 s */
+    @JavascriptInterface public void somfyDiscover() {
+        final Context c = a.getApplicationContext();
+        ui.post(new Runnable() { public void run() {
+            final android.net.nsd.NsdManager nm = (android.net.nsd.NsdManager) c.getSystemService(Context.NSD_SERVICE);
+            final JSONArray list = new JSONArray();
+            final java.util.ArrayDeque<android.net.nsd.NsdServiceInfo> q = new java.util.ArrayDeque<>();
+            final boolean[] busy = { false }, over = { false };
+            if (nm == null) { emit("somfy", hueEv("discover", "list", list, "err", "mDNS indisponible")); return; }
+            final Runnable[] next = new Runnable[1];
+            next[0] = new Runnable() { public void run() {
+                if (busy[0] || over[0] || q.isEmpty()) return;
+                busy[0] = true;
+                nm.resolveService(q.poll(), new android.net.nsd.NsdManager.ResolveListener() {
+                    public void onResolveFailed(android.net.nsd.NsdServiceInfo si, int e) { ui.post(new Runnable() { public void run() { busy[0] = false; next[0].run(); } }); }
+                    public void onServiceResolved(final android.net.nsd.NsdServiceInfo si) {
+                        ui.post(new Runnable() { public void run() {
+                            try {
+                                java.net.InetAddress h = si.getHost(); String ip = h instanceof java.net.Inet4Address ? h.getHostAddress() : null, pin = "", fw = "";
+                                try { byte[] b = si.getAttributes().get("gateway_pin"); if (b != null) pin = new String(b, "UTF-8"); } catch (Throwable t) { }
+                                try { byte[] b = si.getAttributes().get("fw_version"); if (b != null) fw = new String(b, "UTF-8"); } catch (Throwable t) { }
+                                boolean dup = false; for (int i = 0; i < list.length(); i++) if (list.getJSONObject(i).optString("ip").equals(ip)) dup = true;
+                                if (ip != null && Hue.privateIp(ip) && !dup) list.put(new JSONObject().put("ip", ip).put("port", si.getPort()).put("pin", pin).put("fw", fw));
+                            } catch (Throwable t) { }
+                            busy[0] = false; next[0].run();
+                        } });
+                    }
+                });
+            } };
+            final android.net.nsd.NsdManager.DiscoveryListener dl = new android.net.nsd.NsdManager.DiscoveryListener() {
+                public void onStartDiscoveryFailed(String t, int e) { if (!over[0]) { over[0] = true; emit("somfy", hueEv("discover", "list", list, "err", "recherche impossible (" + e + ")")); } }
+                public void onStopDiscoveryFailed(String t, int e) { }
+                public void onDiscoveryStarted(String t) { }
+                public void onDiscoveryStopped(String t) { }
+                public void onServiceFound(final android.net.nsd.NsdServiceInfo si) { ui.post(new Runnable() { public void run() { q.add(si); next[0].run(); } }); }
+                public void onServiceLost(android.net.nsd.NsdServiceInfo si) { }
+            };
+            try { nm.discoverServices("_kizboxdev._tcp", android.net.nsd.NsdManager.PROTOCOL_DNS_SD, dl); }
+            catch (Throwable t) { emit("somfy", hueEv("discover", "list", list, "err", "recherche impossible")); return; }
+            ui.postDelayed(new Runnable() { public void run() {
+                try { nm.stopServiceDiscovery(dl); } catch (Throwable t) { }
+                if (!over[0]) { over[0] = true; emit("somfy", hueEv("discover", "list", list)); }
+            } }, 6000);
+        } });
+    }
+
     @JavascriptInterface public String hueInfo() {
         try {
             JSONObject o = hueLoad(a), r = new JSONObject();

@@ -744,6 +744,46 @@
     return null;
   }
 
+  /* ---------------- Volets et stores (Somfy TaHoma : mj-somfy.js) ----------------
+     → { act: open | close | stop | my | pos | query, kind: 'volet' | 'store' | 'banne' | 'all', target: pièce ou nom | null, pos: % d'ouverture, want: 'open' | 'closed' } */
+  var SHN = '(?:volets et (?:les )?stores|stores et (?:les )?volets|volets?(?: roulants?)?|stores?(?: bannes?| exterieurs?| interieurs?| de terrasse)?|brise soleil|persiennes?|toiles?(?: de terrasse)?|pergolas?|ouvrants)';
+  var SH_RE = new RegExp('\\b(?:le |la |les |l |mon |ma |mes |tous les |toutes les |tout les )?(' + SHN + ')\\b(.*)$');
+  function shKind(n) { return /volets? et|stores? et|ouvrants/.test(n) ? 'all' : /banne|terrasse|pergola|toile/.test(n) ? 'banne' : /^volet|persienne/.test(n) ? 'volet' : 'store'; }
+  function shTarget(rest) {
+    var r = String(rest || '').replace(/(?:\ba )?\d{1,3} %/g, ' ').replace(/\b(a moitie|a mi hauteur|a mi course|a \d+ %|\d+ %|en position (?:favorite|preferee|my|intermediaire)|position (?:favorite|preferee|my)|completement|entierement|a fond|tout|toutes?|en entier|s il te plait|maintenant|stp)\b/g, ' ').replace(/\s+/g, ' ').trim();
+    var m = /^(?:du |de la |de l |des |de |d |dans (?:le |la |l |les )?|au |a la |cote |sur (?:le |la |l )?)(.+)$/.exec(r);
+    return m ? m[1].trim() : null;
+  }
+  function parseShutter(t) {
+    var m = SH_RE.exec(t); if (!m) return null;
+    var before = t.slice(0, m.index).trim(), noun = m[1], rest = m[2].trim(), kind = shKind(noun), target = shTarget(rest);
+    var all = /\b(tous|toutes|tout)\b/.test(before + ' ' + rest) || /^(les|mes)\b/.test(t.slice(m.index).trim()) && !target;
+    // état : « les volets sont-ils fermés ? », « quels stores sont ouverts ? », « état des volets »
+    if (/^(est ce que|est ce qu|quels?|quelles?|combien|dis moi si|y a t il|il y a|etat|l etat|ou en sont)\b/.test(before + (before ? ' ' : '') + noun) || /\b(sont ils|sont elles|est il|est elle|ils sont|elles sont|sont|est)\b ?(ouverts?|ouvertes?|fermes?|fermees?|baisses?|baissees?|leves?|levees?|sortis?|rentres?)?\b.*$/.test(rest) && !before || /^(etat|l etat|position)\b/.test(before)) {
+      var want = /\b(fermes?|fermees?|baisses?|baissees?|rentres?)\b/.test(rest) ? 'closed' : /\b(ouverts?|ouvertes?|leves?|levees?|sortis?)\b/.test(rest) ? 'open' : null;
+      return { act: 'query', kind: kind, target: shTarget(rest.replace(/\b(sont ils|sont elles|est il|est elle|sont|est)\b.*$/, '')), all: all, want: want };
+    }
+    if (!before) return null;
+    var v = before.split(' ').filter(function (w) { return !/^(peux|tu|vous|me|nous|moi|veux|voudrais|j|aimerais|on|peut|il|faut|faudrait|faire|fais|merci|de|d)$/.test(w); })[0] || '';
+    var pos = null, pm;
+    if ((pm = /\b(\d{1,3}) %/.exec(rest)) || (pm = /\b(\d{1,3}) %/.exec(before))) pos = Math.max(0, Math.min(100, +pm[1]));
+    else if (/\b(a moitie|a mi hauteur|a mi course)\b/.test(rest + ' ' + before)) pos = 50;
+    var my = /\b(position (?:favorite|preferee|my|intermediaire)|en my|sur my)\b/.test(rest + ' ' + before);
+    var act = null;
+    if (/^(ouvre|ouvres|ouvrez|ouvrir|monte|montes|montez|monter|remonte|remontez|remonter|leve|levez|lever|releve|relevez|relever|sors|sortez|sortir|deploie|deployez|deployer|deroule|deroulez)$/.test(v)) act = 'open';
+    else if (/^(ferme|fermes|fermez|fermer|baisse|baisses|baissez|baisser|descends|descend|descendez|descendre|abaisse|abaissez|rentre|rentrez|rentrer|replie|repliez|replier|enroule|enroulez)$/.test(v)) act = 'close';
+    else if (/^(arrete|arretez|arreter|stop|stoppe|stoppez|bloque|immobilise)$/.test(v)) act = 'stop';
+    else if (/^(mets|met|mettez|mettre|place|placez|regle|reglez|positionne|positionnez|passe)$/.test(v) && (pos != null || my)) act = pos != null ? 'pos' : 'my';
+    if (!act) return null;
+    if (my && act !== 'stop') act = 'my';
+    else if (pos != null && act !== 'stop') {
+      // « ferme à moitié », « ouvre à 30 % », « baisse à 20 % » : pourcentage d'ouverture (ferme / baisse : pourcentage de fermeture sauf « à moitié »)
+      if (act === 'close' && pos !== 50) pos = 100 - pos;
+      act = 'pos';
+    }
+    return { act: act, kind: kind, target: target, all: all || !target, pos: pos };
+  }
+
   /* ---------------- Lumières (Philips Hue, pont du réseau local : mj-maison.js) ----------------
      → { intent: 'light', p: { act, target, full, all, bri, dir, ct, color, scene, sceneFull, delay, at, ask } }
        act : on | off | bri | step (dir up/down) | ct | color | scene | scenes | query | list | screen | again
@@ -1241,6 +1281,9 @@
       var whoO = orig(P, m.index + m[0].length - m[1].length);
       return R('call', { to: whoO.replace(/^(le|la|l'|au)\s+/i, ''), number: digits(whoO) });
     }
+    // --- volets et stores (Somfy TaHoma, mj-somfy.js) ---
+    var sh = parseShutter(t);
+    if (sh) return R('shutter', sh);
     // --- lumières de la maison (Philips Hue) ---
     var lg = parseLight(t, P, ctx, now);
     if (lg) return R('light', lg);
