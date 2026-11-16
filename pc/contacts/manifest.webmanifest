@@ -40,6 +40,12 @@
       "auto"
     ]
   },
+  "protocol_handlers": [
+    {
+      "protocol": "web+magcontacts",
+      "url": "./?lien=%s"
+    }
+  ],
   "file_handlers": [
     {
       "action": "./",

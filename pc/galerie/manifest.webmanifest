@@ -40,6 +40,12 @@
       "auto"
     ]
   },
+  "protocol_handlers": [
+    {
+      "protocol": "web+maggalerie",
+      "url": "./?lien=%s"
+    }
+  ],
   "file_handlers": [
     {
       "action": "./",

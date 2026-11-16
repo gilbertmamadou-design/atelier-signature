@@ -40,6 +40,12 @@
       "auto"
     ]
   },
+  "protocol_handlers": [
+    {
+      "protocol": "web+magliseuse",
+      "url": "./?lien=%s"
+    }
+  ],
   "file_handlers": [
     {
       "action": "./",

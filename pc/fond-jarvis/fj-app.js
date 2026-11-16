@@ -96,9 +96,17 @@
    * remplacerait le fond d'écran lui-même : jamais de navigation dans la page.
    * Navigateur : nouvel onglet pour le web ; protocole (ms-settings:…) par un lien, que le navigateur confirme.
    */
+  /** Appli de la Suite visée par une adresse (…/pc/texte/ → « texte »), sinon null */
+  FJ.suiteIdOf = function (url) {
+    var m = /\/pc\/([a-z0-9-]+)\/?(?:index\.html)?(?:[?#].*)?$/.exec(String(url || '')) || (/^\.\.\/([a-z0-9-]+)\/?$/.exec(String(url || '')));
+    return m && FJ.suiteName(m[1]) ? m[1] : null;
+  };
   FJ.open = function (u) {
     var url = FJ.resolve(u);
     if (!url) return false;
+    // appli de la Suite : on ouvre l'appli installée sur le PC (son lien web+mag…), pas une page du navigateur
+    var sid = S.appsInst !== false && FJ.suiteIdOf(url);
+    if (sid) url = 'web+mag' + sid.replace(/[^a-z]/g, '') + ':ouvrir';
     if (FJ.lively || !FJ.isProto(url)) {
       var w = null;
       try { w = (root.MAGPC && root.MAGPC.nativeOpen) ? root.MAGPC.nativeOpen(url, '_blank') : root.open(url, '_blank', 'noopener'); } catch (e) { }
@@ -835,6 +843,7 @@
       h += chk('sFx2', 'Effets avancés', S.fx2 !== false, 'Spectre de la voix autour de la sphère, satellites, ondes de choc, éclats, flux de données, balayage des panneaux, petits « glitchs ».');
       h += chk('sBoot', 'Animation de démarrage', S.boot !== false, 'Séquence d\'initialisation à l\'ouverture.');
       h += '<h3>Gadgets</h3>' + Object.keys(FJ.GADGETS || {}).map(function (k) { return chk('sG_' + k, FJ.GADGETS[k], (S.gadgets || {})[k] !== false, ''); }).join('');
+      h += '<h3>Applis de la Suite</h3>' + chk('sAppsInst', 'Ouvrir les applis installées (Texte, Tableur…)', S.appsInst !== false, 'Ouvre la fenêtre de l\'appli installée sur ce PC au lieu d\'un onglet du navigateur. La première fois, le navigateur demande l\'autorisation : cochez « Toujours autoriser ». Décochez si une appli n\'est pas installée sur ce PC.');
       if (FJ.mode !== 'lively') h += chk('sBureau', 'Mode Bureau : plein écran automatique', !!S.bureau, 'Passe en plein écran au premier clic ou à la première touche (Échap pour en sortir, bouton ⛶ dans la barre). Pour qu\'il s\'ouvre avec Windows : Edge › edge://apps › Fond Jarvis › « Démarrer automatiquement à l\'ouverture de session » (Chrome : chrome://apps, clic droit › « Lancer l\'appli à la connexion »).');
       B.innerHTML = h;
       rngBind('sFree', ' px', function (v) { setS('free', v); });
@@ -846,6 +855,7 @@
       bind('sFx2', function (v) { setS('fx2', v); });
       bind('sBoot', function (v) { setS('boot', v); });
       Object.keys(FJ.GADGETS || {}).forEach(function (k) { bind('sG_' + k, function (v) { S.gadgets = Object.assign({}, S.gadgets || {}); S.gadgets[k] = v; FJ.save(); if (k === 'hyper' && v && FJ.hyper) FJ.hyper(); }); });
+      bind('sAppsInst', function (v) { setS('appsInst', v); });
       if ($('sBureau')) bind('sBureau', function (v) { setS('bureau', v); if (v && FJ.pleinEcran && !document.fullscreenElement) FJ.pleinEcran(); });
     } else if (tab === 'meteo') {
       h += fld('Ville', '<div style="display:flex;gap:.5em"><input type="text" id="sCity" value="' + esc(S.city || '') + '" placeholder="ex. Marseille"><button type="button" class="btn" id="sCityGo">Valider</button></div>', 'Vide : ' + (FJ.mode === 'suite' && MJS.place ? 'ville de Majordome, sinon ' : '') + 'position détectée une fois.');

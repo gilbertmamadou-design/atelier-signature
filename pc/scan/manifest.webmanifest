@@ -39,5 +39,11 @@
       "focus-existing",
       "auto"
     ]
-  }
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "web+magscan",
+      "url": "./?lien=%s"
+    }
+  ]
 }

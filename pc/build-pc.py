@@ -347,6 +347,11 @@ def app_id(app, conf):
     return base + app['id'] + '/'
 
 
+def proto_of(app):
+    """Protocole propre à l'appli installée : web+ suivi de lettres minuscules seulement (règle des navigateurs)."""
+    return 'web+mag' + re.sub(r'[^a-z]', '', app['id'].lower())
+
+
 def manifest(app, conf):
     m = {
         'id': app_id(app, conf), 'name': app['name'], 'short_name': app.get('short_name', app['name']), 'description': app.get('description', ''),
@@ -359,6 +364,8 @@ def manifest(app, conf):
             {'src': 'icon-maskable-512.png', 'sizes': '512x512', 'type': 'image/png', 'purpose': 'maskable'},
         ],
         'launch_handler': {'client_mode': ['focus-existing', 'auto']},
+        # lien « web+mag<id>:ouvrir » : ouvre l'appli INSTALLÉE (fenêtre d'appli) depuis Fond Jarvis, un raccourci ou un autre programme
+        'protocol_handlers': [{'protocol': proto_of(app), 'url': './?lien=%s'}],
     }
     if app.get('file_handlers'):
         m['file_handlers'] = [dict({'action': './', 'launch_type': 'single-client',
