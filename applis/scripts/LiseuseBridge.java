@@ -82,7 +82,9 @@ public class LiseuseBridge {
     private static final long MAX_FILE = 400L * 1024 * 1024;
     private static final String UA = "Mozilla/5.0 (Linux; Android 15) Liseuse/1.0";
     private static final String[] HOSTS = { "gutendex.com", "gutenberg.org", "gutenberg.pglaf.org", "pglaf.org",
-        "ws-export.wmcloud.org", "fr.wikisource.org", "fr.wiktionary.org" };
+        "ws-export.wmcloud.org", "fr.wikisource.org", "fr.wiktionary.org", "fr.wikipedia.org", "api.mymemory.translated.net" };
+    // Wikimédia refuse (erreur 429) les identifiants de navigateur génériques : on se présente honnêtement, avec une adresse de contact
+    private static final String UA_WIKI = "Liseuse/1.1 (https://github.com/gilbertmamadou-design/atelier-signature; lecture personnelle) Android";
 
     private final Activity a;
     private final WebView wv;
@@ -385,7 +387,8 @@ public class LiseuseBridge {
             HttpURLConnection c = (HttpURLConnection) new URL(cur).openConnection();
             c.setInstanceFollowRedirects(false);
             c.setConnectTimeout(15000); c.setReadTimeout(readTimeout);
-            c.setRequestProperty("User-Agent", UA);
+            String h = new URL(cur).getHost();
+            c.setRequestProperty("User-Agent", (h.endsWith("wikipedia.org") || h.endsWith("wiktionary.org") || h.endsWith("wikisource.org") || h.endsWith("wmcloud.org")) ? UA_WIKI : UA);
             c.setRequestProperty("Accept", "*/*");
             int code = c.getResponseCode();
             if (code >= 300 && code < 400) {

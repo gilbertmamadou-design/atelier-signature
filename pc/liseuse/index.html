@@ -510,7 +510,11 @@ var REQ={}, rq=0;
 function get(url){
   return new Promise(function(res,rej){
     if(!A || !A.fetch){ fetch(url).then(function(r){ if(!r.ok) throw new Error('Erreur '+r.status); return r.text(); }).then(res, function(e){ rej(new Error(e&&e.message&&/Erreur/.test(e.message)?e.message:'Pas de connexion')); }); return; }
-    var id='f'+(++rq); REQ[id]={res:res,rej:rej}; A.fetch(id,url);
+    var id='f'+(++rq);
+    // si le pont est refusé (site non prévu, 429…), on retente par le navigateur (les API Wikimédia et MyMemory acceptent le CORS)
+    REQ[id]={res:res,rej:function(e){ if(!/^https:\/\/(fr\.wiktionary|fr\.wikipedia|api\.mymemory)/.test(url)) return rej(e);
+      fetch(url).then(function(r){ if(!r.ok) throw new Error('Erreur '+r.status); return r.text(); }).then(res, function(e2){ rej(e2&&/Erreur/.test(e2.message)?e2:e); }); }};
+    A.fetch(id,url);
     setTimeout(function(){ if(REQ[id]){ delete REQ[id]; rej(new Error('Le serveur ne répond pas')); } },45000);
   });
 }
