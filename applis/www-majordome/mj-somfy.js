@@ -90,7 +90,7 @@
     if (/\bvolet|persienne/.test(n) || /^(RollerShutter|Shutter|SwingingShutter)$/.test(d.ui) && !/\bstore/.test(n)) return 'volet';
     return 'store';
   }
-  function words(s) { return deacc(s).replace(/\b(le|la|les|l|du|de|des|d|volets?|stores?|roulants?|bannes?)\b/g, ' ').split(/\s+/).filter(Boolean); }
+  function words(s) { return deacc(s).replace(/\b(vr|v r|ve r|ve erre|v erre|vers|verre|vert|ver)\b/g, ' ').replace(/\b(le|la|les|l|du|de|des|d|volets?|stores?|roulants?|bannes?)\b/g, ' ').split(/\s+/).filter(Boolean); }
   /** Volets visés : par nom (« salon », « chambre d'amis »), sinon tous ceux du type demandé */
   function pick(p) {
     var l = model.devs.slice();
@@ -129,7 +129,7 @@
     if (l.length === 1) return withArt(l[0].name);
     return 'les ' + l.length + ' ' + (kind === 'all' ? 'volets et stores' : k + 's');
   }
-  function withArt(n) { if (/^(Volet|Store)\b/.test(n)) n = n.charAt(0).toLowerCase() + n.slice(1); var d = deacc(n); return /^(le|la|les|l)\b/.test(d) ? n : (/^volet|^store/.test(d) ? 'le ' : '« ') + n + (/^volet|^store/.test(d) ? '' : ' »'); }
+  function withArt(n) { if (/^VR\b/i.test(n)) n = 'volet ' + n.replace(/^VR\s*/i, '').toLowerCase(); if (/^(Volet|Store)\b/.test(n)) n = n.charAt(0).toLowerCase() + n.slice(1); var d = deacc(n); return /^(le|la|les|l)\b/.test(d) ? n : (/^volet|^store/.test(d) ? 'le ' : '« ') + n + (/^volet|^store/.test(d) ? '' : ' »'); }
   var DONE = { open: ['J\'ouvre', 'Je sors'], close: ['Je ferme', 'Je rentre'], stop: ['J\'arrête', 'J\'arrête'], my: ['Je mets en position favorite', 'Je mets en position favorite'] };
   function phrase(p, l) {
     var banne = l.every(function (d) { return /^(Awning|Pergola)$/.test(d.ui); }) ? 1 : 0, what = plural(l, p.kind);
@@ -194,6 +194,9 @@
     });
   }
   function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+  // noms des volets pour l'analyseur (« ferme VR salon ») ; jamais de requête ici
+  var prevCtx = MJ.ctxExtra;
+  MJ.ctxExtra = function () { var c = prevCtx ? prevCtx() : {}; c = c || {}; if (model && model.devs) c.shutters = model.devs.map(function (d) { return d.name; }); return c; };
   H.shutter = function (p) { return run(p, false); };
 
   /* ---------- Écran « Volets et stores » (bouton en haut, comme les lumières) ---------- */

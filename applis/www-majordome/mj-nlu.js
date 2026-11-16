@@ -746,16 +746,36 @@
 
   /* ---------------- Volets et stores (Somfy TaHoma : mj-somfy.js) ----------------
      → { act: open | close | stop | my | pos | query, kind: 'volet' | 'store' | 'banne' | 'all', target: pièce ou nom | null, pos: % d'ouverture, want: 'open' | 'closed' } */
-  var SHN = '(?:volets et (?:les )?stores|stores et (?:les )?volets|volets?(?: roulants?)?|stores?(?: bannes?| exterieurs?| interieurs?| de terrasse)?|brise soleil|persiennes?|toiles?(?: de terrasse)?|pergolas?|ouvrants)';
+  var SHN = '(?:volets et (?:les )?stores|stores et (?:les )?volets|volets?(?: roulants?)?|vr|v r|ve r|ve erre|v erre|vee erre|stores?(?: bannes?| exterieurs?| interieurs?| de terrasse)?|brise soleil|persiennes?|toiles?(?: de terrasse)?|pergolas?|ouvrants)';
   var SH_RE = new RegExp('\\b(?:le |la |les |l |mon |ma |mes |tous les |toutes les |tout les )?(' + SHN + ')\\b(.*)$');
-  function shKind(n) { return /volets? et|stores? et|ouvrants/.test(n) ? 'all' : /banne|terrasse|pergola|toile/.test(n) ? 'banne' : /^volet|persienne/.test(n) ? 'volet' : 'store'; }
+  function shKind(n) { return /volets? et|stores? et|ouvrants/.test(n) ? 'all' : /banne|terrasse|pergola|toile/.test(n) ? 'banne' : /^(volet|persienne|vr|v r|ve r|ve erre|v erre|vee erre)/.test(n) ? 'volet' : 'store'; }
   function shTarget(rest) {
     var r = String(rest || '').replace(/(?:\ba )?\d{1,3} %/g, ' ').replace(/\b(a moitie|a mi hauteur|a mi course|a \d+ %|\d+ %|en position (?:favorite|preferee|my|intermediaire)|position (?:favorite|preferee|my)|completement|entierement|a fond|tout|toutes?|en entier|s il te plait|maintenant|stp)\b/g, ' ').replace(/\s+/g, ' ').trim();
     var m = /^(?:du |de la |de l |des |de |d |dans (?:le |la |l |les )?|au |a la |cote |sur (?:le |la |l )?)(.+)$/.exec(r);
-    return m ? m[1].trim() : null;
+    if (m) return m[1].trim();
+    // « VR salon », « store terrasse » : le nom suit directement
+    r = r.replace(/^(?:et |ou )?(?:les |le |la |l )?/, '').trim();
+    return r && !/^(sont|est|ils|elles|il|elle|ouverts?|fermes?)\b/.test(r) ? r : null;
   }
-  function parseShutter(t) {
-    var m = SH_RE.exec(t); if (!m) return null;
+  /* « VR » (volet roulant) dit à voix haute : « vé erre », que la reconnaissance peut écrire « v r », « vers », « verre »… */
+  var VRW = /\b(vr|v r|ve r|ve erre|v erre|vee erre|ve air|vers|verre|vert|ver)\b/g;
+  var SH_VERB = /^(ouvre|ouvrez|ouvrir|monte|montez|remonte|remontez|leve|levez|releve|relevez|ferme|fermez|fermer|baisse|baissez|descends|descend|descendez|abaisse|abaissez|arrete|arretez|stop|stoppe)\b ?(.*)$/;
+  /** Commande qui nomme directement un volet ou un store du boîtier (« ferme VR salon », « ouvre Velux bureau ») : ctx.shutters */
+  function shutterByName(t, ctx) {
+    var names = ctx && ctx.shutters; if (!names || !names.length) return null;
+    var m = SH_VERB.exec(t); if (!m || !m[2]) return null;
+    var clean = function (x) { return deacc(x).replace(VRW, ' ').replace(/\b(le|la|les|l|du|de|des|d|mon|ma|mes|volets?|roulants?|stores?)\b/g, ' ').replace(/\s+/g, ' ').trim(); };
+    var rest = clean(m[2]), pm = /\b(\d{1,3}) %/.exec(rest), half = /\b(a moitie|a mi hauteur)\b/.test(rest);
+    rest = rest.replace(/(?:\ba )?\d{1,3} %/g, ' ').replace(/\b(a moitie|a mi hauteur|completement|a fond|s il te plait|stp)\b/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!rest) return null;
+    var hit = names.some(function (n) { var c = clean(n); return c && (c === rest || (' ' + c + ' ').indexOf(' ' + rest + ' ') >= 0 || (' ' + rest + ' ').indexOf(' ' + c + ' ') >= 0); });
+    if (!hit) return null;
+    var v = m[1], act = /^(ouvre|ouvrez|ouvrir|monte|montez|remonte|remontez|leve|levez|releve|relevez)$/.test(v) ? 'open' : /^(arrete|arretez|stop|stoppe)$/.test(v) ? 'stop' : 'close', pos = null;
+    if (act !== 'stop' && (pm || half)) { pos = half ? 50 : Math.max(0, Math.min(100, +pm[1])); if (act === 'close' && !half) pos = 100 - pos; act = 'pos'; }
+    return { act: act, kind: 'all', target: rest, all: false, pos: pos };
+  }
+  function parseShutter(t, ctx) {
+    var m = SH_RE.exec(t); if (!m) return shutterByName(t, ctx);
     var before = t.slice(0, m.index).trim(), noun = m[1], rest = m[2].trim(), kind = shKind(noun), target = shTarget(rest);
     var all = /\b(tous|toutes|tout)\b/.test(before + ' ' + rest) || /^(les|mes)\b/.test(t.slice(m.index).trim()) && !target;
     // état : « les volets sont-ils fermés ? », « quels stores sont ouverts ? », « état des volets »
@@ -1282,7 +1302,7 @@
       return R('call', { to: whoO.replace(/^(le|la|l'|au)\s+/i, ''), number: digits(whoO) });
     }
     // --- volets et stores (Somfy TaHoma, mj-somfy.js) ---
-    var sh = parseShutter(t);
+    var sh = parseShutter(t, ctx);
     if (sh) return R('shutter', sh);
     // --- lumières de la maison (Philips Hue) ---
     var lg = parseLight(t, P, ctx, now);
