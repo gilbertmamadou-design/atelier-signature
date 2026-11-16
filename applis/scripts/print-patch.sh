@@ -1678,7 +1678,7 @@ cp scripts/FileService.java "$FSV"
 sed -i "s/__PKG__/$PKG/" "$FSV"
 # Réveil, lever de soleil et endormissement (application Aube)
 for J in $(ls scripts/*Bridge.java 2>/dev/null | xargs -n1 basename 2>/dev/null | sed 's/\.java$//' | grep -vxE 'PdfBridge|MajordomeBridge|TraducteurBridge|SereniteBridge|LanguesBridge'); do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
-for J in AlarmService AlarmReceiver WallpaperJob WallpaperTile LauncherService LauncherA11y LauncherMedia WidgetProvider SauvegardeJob PhotoCamera EcranPlayer DictaService MeteoPersoJob MelodieVolume; do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
+for J in AlarmService AlarmReceiver WallpaperJob WallpaperTile LauncherService LauncherA11y LauncherMedia WidgetProvider SauvegardeJob PhotoCamera EcranPlayer EcranMedia DictaService MeteoPersoJob MelodieVolume; do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
 # Bibliothèque des tâches de fond
 G=android/app/build.gradle
 grep -q "androidx.work:work-runtime" "$G" || sed -i '0,/^dependencies {/s//dependencies {\n    implementation "androidx.work:work-runtime:2.9.1"/' "$G"
@@ -1857,6 +1857,9 @@ if [ "$APP" = "photo" ]; then
   grep -n "PhotoBridge\$Voyage\|RECOGNIZE_SPEECH" "$MAN"
 fi
 if [ "$APP" = "ecran" ]; then
+  # AVI (DivX, XviD) : ExoPlayer d'AndroidX Media3 (Apache 2.0), utilisé par EcranMedia quand MediaPlayer ne sait pas lire
+  cp scripts/EcranExo.java "$(dirname "$F")/EcranExo.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/EcranExo.java"
+  grep -q "androidx.media3:media3-exoplayer" "$G" || sed -i '0,/^dependencies {/s//dependencies {\n    implementation "androidx.media3:media3-exoplayer:1.4.1"/' "$G"
   addperm INTERNET READ_MEDIA_VIDEO
   grep -q 'READ_EXTERNAL_STORAGE' "$MAN" || addraw '<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />'
   addraw '<queries><package android:name="com.google.android.youtube" /><package android:name="fr.francetv.pluzz" /><package android:name="tv.arte.plus7" /><package android:name="fr.tf1.mytf1" /><package android:name="fr.m6.m6replay" /><package android:name="com.dotscreen.tv5mondeplus.mobile" /><package android:name="fr.artestudio.arteradio.mobile" /><package android:name="fr.anidn" /><package android:name="com.crunchyroll.crunchyroid" /><package android:name="com.netflix.mediaclient" /><package android:name="com.amazon.avod.thirdpartyclient" /><package android:name="com.disney.disneyplus" /><package android:name="tv.pluto.android" /><package android:name="fr.francetv.zouzous" /><package android:name="fr.magformation13.ondes" /><package android:name="fr.magformation13.galerie" /><intent><action android:name="android.intent.action.VIEW" /><data android:scheme="market" /></intent><intent><action android:name="android.intent.action.VIEW" /><data android:scheme="https" /></intent><intent><action android:name="android.intent.action.VIEW" /><data android:mimeType="video/*" /></intent></queries>'

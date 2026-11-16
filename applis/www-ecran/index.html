@@ -328,7 +328,7 @@ function refreshProgress(){
 function play(list, index){
   list=list.filter(function(x){ return x && x.url; });
   if(!list.length){ toast('Rien à lire', true); return; }
-  var l=list.map(function(x){ var o={url:x.url,title:x.title||'Vidéo',sub:x.sub||'',id:x.id||x.url}; if(x.thumb && /^https:/.test(x.thumb)) o.thumb=x.thumb; if(x.srt) o.srt=x.srt; return o; });
+  var l=list.map(function(x){ var o={url:x.url,title:x.title||'Vidéo',sub:x.sub||'',id:x.id||x.url}; if(x.name) o.name=x.name; if(x.thumb && /^https:/.test(x.thumb)) o.thumb=x.thumb; if(x.srt) o.srt=x.srt; return o; });
   if(!A || !A.play){ toast('La lecture se fait dans l\'application Écran', true); return; }
   A.play(JSON.stringify(l), index||0);
 }

@@ -1,6 +1,6 @@
 package __PKG__;
 
-// Écran : lecteur vidéo natif plein écran (MediaPlayer + SurfaceView), interface construite en code.
+// Écran : lecteur vidéo natif plein écran (MediaPlayer, ou ExoPlayer pour l'AVI — EcranMedia — + SurfaceView), interface construite en code.
 // Lit content://, fichiers, http(s) progressif et HLS (.m3u8). Ouvert par EcranBridge.play() ou par « Ouvrir avec Écran ».
 
 import android.app.Activity;
@@ -85,7 +85,8 @@ public class EcranPlayer extends Activity implements SurfaceHolder.Callback {
     private JSONObject item;
     private String key = "";
 
-    private MediaPlayer mp;
+    private EcranMedia.Backend mp;
+    private boolean exoTried = false;
     private boolean prepared = false, wantPlay = true, surfaceOk = false, external = false, completed = false;
     private int vw = 0, vh = 0, dur = 0, startAt = 0;
     private float speed = 1f;
@@ -565,6 +566,7 @@ public class EcranPlayer extends Activity implements SurfaceHolder.Callback {
         err.setVisibility(View.GONE);
         resumeChip.setVisibility(View.GONE);
         release();
+        exoTried = false;
         index = i;
         item = list.optJSONObject(i);
         if (item == null) { finish(); return; }
@@ -592,35 +594,49 @@ public class EcranPlayer extends Activity implements SurfaceHolder.Callback {
 
         String url = item.optString("url");
         if (EcranBridge.noStream(url)) { showError("Cette source ne peut pas être lue ici."); return; }
-        mp = new MediaPlayer();
-        try {
-            mp.setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MOVIE).build());
-            HashMap<String, String> hd = new HashMap<>();
-            hd.put("User-Agent", "Mozilla/5.0 (Linux; Android 15) Ecran/1.0");
-            mp.setDataSource(this, Uri.parse(url), hd);
-            if (surfaceOk) mp.setDisplay(sv.getHolder());
-            mp.setScreenOnWhilePlaying(true);
-            mp.setOnPreparedListener(new MediaPlayer.OnPreparedListener() { public void onPrepared(MediaPlayer m) { onReady(); } });
-            mp.setOnVideoSizeChangedListener(new MediaPlayer.OnVideoSizeChangedListener() { public void onVideoSizeChanged(MediaPlayer m, int w, int hh) {
-                if (w > 0 && hh > 0 && (w != vw || hh != vh)) { vw = w; vh = hh; layoutVideo(); applyRotation(); updatePip(); } } });
-            mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() { public void onCompletion(MediaPlayer m) { onEnd(); } });
-            mp.setOnErrorListener(new MediaPlayer.OnErrorListener() { public boolean onError(MediaPlayer m, int what, int extra) {
-                showError(isNet(url) ? "Lecture impossible : la vidéo n'est pas disponible ou la connexion est coupée." : "Ce fichier ne peut pas être lu (format non pris en charge)."); return true; } });
-            mp.setOnInfoListener(new MediaPlayer.OnInfoListener() { public boolean onInfo(MediaPlayer m, int what, int extra) {
-                if (what == MediaPlayer.MEDIA_INFO_BUFFERING_START) spin.setVisibility(View.VISIBLE);
-                else if (what == MediaPlayer.MEDIA_INFO_BUFFERING_END || what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) spin.setVisibility(View.GONE);
-                return false; } });
-            mp.setOnBufferingUpdateListener(new MediaPlayer.OnBufferingUpdateListener() { public void onBufferingUpdate(MediaPlayer m, int pct) { seek.setSecondaryProgress(pct * 10); } });
-            mp.prepareAsync();
-        } catch (Exception e) {
-            showError("Impossible d'ouvrir cette vidéo.");
-        }
+        open(url, wantsExo(url));
         String srt = item.optString("srt", "");
         if (!srt.isEmpty()) loadSrt(srt);
         showControls();
     }
 
     private static boolean isNet(String u) { return u.startsWith("http"); }
+
+    /** AVI (DivX, XviD…) : MediaPlayer d'Android ne sait pas l'ouvrir, ExoPlayer oui */
+    private boolean wantsExo(String url) {
+        if (!EcranMedia.hasExo()) return false;
+        String n = (item.optString("title", "") + " " + item.optString("name", "") + " " + url).toLowerCase(Locale.ROOT);
+        if (n.matches("(?s).*\\.(avi|divx|xvid)(\\s.*|\\?.*)?$") || n.contains(".avi ") || n.endsWith(".avi")) return true;
+        try { String t = getContentResolver().getType(Uri.parse(url)); if (t != null && (t.contains("avi") || t.contains("msvideo") || t.contains("divx"))) return true; } catch (Exception e) { }
+        return false;
+    }
+
+    private void open(final String url, final boolean exo) {
+        exoTried = exoTried || exo;
+        mp = EcranMedia.create(exo);
+        final EcranMedia.Backend me = mp;
+        try {
+            HashMap<String, String> hd = new HashMap<>();
+            hd.put("User-Agent", "Mozilla/5.0 (Linux; Android 15) Ecran/1.0");
+            mp.open(this, Uri.parse(url), hd, new EcranMedia.Events() {
+                public void onPrepared() { if (mp == me) onReady(); }
+                public void onSize(int w, int hh) { if (mp == me && w > 0 && hh > 0 && (w != vw || hh != vh)) { vw = w; vh = hh; layoutVideo(); applyRotation(); updatePip(); } }
+                public void onCompletion() { if (mp == me) onEnd(); }
+                public void onError() {
+                    if (mp != me) return;
+                    // fichier refusé par le lecteur d'Android : second essai avec ExoPlayer (AVI mal nommé, MKV particulier…)
+                    if (!prepared && !exoTried && EcranMedia.hasExo() && !isNet(url)) { h.post(new Runnable() { public void run() { if (mp != me) return; release(); prepared = false; open(url, true); } }); return; }
+                    showError(isNet(url) ? "Lecture impossible : la vidéo n'est pas disponible ou la connexion est coupée." : "Ce fichier ne peut pas être lu (format ou codec non pris en charge par ce téléphone).");
+                }
+                public void onBuffering(boolean on) { if (mp == me) spin.setVisibility(on ? View.VISIBLE : View.GONE); }
+                public void onBufferPct(int pct) { if (mp == me) seek.setSecondaryProgress(pct * 10); }
+            });
+            if (surfaceOk) mp.setDisplay(sv.getHolder());
+        } catch (Exception e) {
+            if (!exoTried && EcranMedia.hasExo() && !isNet(url)) { release(); open(url, true); return; }
+            showError("Impossible d'ouvrir cette vidéo.");
+        }
+    }
 
     private void onReady() {
         prepared = true;
@@ -630,7 +646,7 @@ public class EcranPlayer extends Activity implements SurfaceHolder.Callback {
         spin.setVisibility(View.GONE);
         if (vw == 0) { vw = mp.getVideoWidth(); vh = mp.getVideoHeight(); layoutVideo(); applyRotation(); }
         if (startAt > 0 && dur > 0 && startAt < dur - 5000) {
-            mp.seekTo(startAt);
+            mp.seekTo(startAt, false);
             resumeChip.setText("Reprise à " + fmt(startAt) + "  ·  Reprendre au début");
             resumeChip.setVisibility(View.VISIBLE);
             h.postDelayed(new Runnable() { public void run() { resumeChip.setVisibility(View.GONE); } }, 6000);
@@ -655,7 +671,7 @@ public class EcranPlayer extends Activity implements SurfaceHolder.Callback {
 
     private void play() {
         if (mp == null || !prepared) { wantPlay = true; return; }
-        if (completed) { mp.seekTo(0); completed = false; }
+        if (completed) { mp.seekTo(0, false); completed = false; }
         focus();
         try { mp.start(); } catch (Exception e) { }
         applySpeed();
@@ -680,8 +696,7 @@ public class EcranPlayer extends Activity implements SurfaceHolder.Callback {
         if (mp == null || !prepared) return;
         completed = false;
         try {
-            if (Build.VERSION.SDK_INT >= 26 && !isNet(item.optString("url"))) mp.seekTo(ms, MediaPlayer.SEEK_CLOSEST);
-            else mp.seekTo(ms);
+            mp.seekTo(ms, !isNet(item.optString("url")));
         } catch (Exception e) { }
         tCur.setText(fmt(ms));
     }
@@ -694,7 +709,7 @@ public class EcranPlayer extends Activity implements SurfaceHolder.Callback {
     }
     private void applySpeed() {
         if (mp == null || !prepared || !mp.isPlaying()) return;
-        try { mp.setPlaybackParams(mp.getPlaybackParams().setSpeed(speed)); } catch (Exception e) { }
+        try { mp.setSpeed(speed); } catch (Exception e) { }
     }
     private void markSpeed() {
         LinearLayout chips = (LinearLayout) ((HorizontalScrollView) speedPanel.getChildAt(0)).getChildAt(0);
@@ -745,7 +760,6 @@ public class EcranPlayer extends Activity implements SurfaceHolder.Callback {
 
     private void release() {
         if (mp != null) {
-            try { mp.setOnErrorListener(null); mp.stop(); } catch (Exception e) { }
             try { mp.release(); } catch (Exception e) { }
             mp = null;
         }
