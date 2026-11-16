@@ -17,7 +17,9 @@
   if (!S.bulles) S.bulles = 'ephemeres';
   if (!S.cases) S.cases = 'annonce';
   if (S.zen == null) S.zen = false;       // « Sphère seule » : la sphère en grand au milieu, rien d'écrit      // cases Heure / Météo / Rendez-vous / Minuteur : 'annonce' (visibles pendant une réponse) | 'toujours'
-  var GAD = { spectre: 'Spectre de la voix', atome: 'Atome (électrons)', planetes: 'Planètes en orbite', ondes: 'Ondes de choc et éclats', eclairs: 'Éclairs quand il parle', hyper: 'Hyperespace quand il écoute', cometes: 'Comètes', etoiles: 'Constellations' };
+  var GAD = { hud: 'Anneaux HUD (graduations tournantes)', radar: 'Radar (balayage lent)', spectre: 'Spectre de la voix', atome: 'Atome (électrons)', planetes: 'Planètes en orbite', ondes: 'Ondes de choc et éclats', eclairs: 'Éclairs quand il parle', hyper: 'Hyperespace quand il écoute', cometes: 'Comètes', etoiles: 'Constellations' };
+  if (S.fxG.radar == null) S.fxG.radar = false;   // nouveautés : le radar est à activer, les anneaux sont visibles d'emblée
+  if (!S.zenInfo) S.zenInfo = { heure: true, meteo: true, rdv: true, maison: true, batterie: false };
   function gad(k) { return S.fxG[k] !== false; }
   function on() { return (+S.fxInt || 0) > 0 && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches && S.fxG.force !== true); }
   function K() { return Math.max(0, Math.min(1, (+S.fxInt || 0) / 100)); }
@@ -74,6 +76,24 @@
     if (gad('cometes')) {
       if (!comete && now > nextC) { var gch = Math.random() < .5; comete = { t0: now, x0: gch ? -40 * DPR : W + 40 * DPR, y0: Math.random() * H * .45, vx: (gch ? 1 : -1) * (.35 + Math.random() * .3) * DPR, vy: (.1 + Math.random() * .15) * DPR }; nextC = now + 18000 + Math.random() * 22000; }
       if (comete) { var dt0 = now - comete.t0, cx = comete.x0 + comete.vx * dt0, cy = comete.y0 + comete.vy * dt0; if (cx < -150 * DPR || cx > W + 150 * DPR || cy > H) comete = null; else { var tx = cx - comete.vx * 200, ty = cy - comete.vy * 200, gq = g.createLinearGradient(cx, cy, tx, ty); gq.addColorStop(0, 'rgba(255,255,255,' + (.9 * k).toFixed(3) + ')'); gq.addColorStop(.2, col(.45 * k)); gq.addColorStop(1, col(0)); g.strokeStyle = gq; g.lineWidth = 2.4 * DPR; g.lineCap = 'round'; g.beginPath(); g.moveTo(cx, cy); g.lineTo(tx, ty); g.stroke(); g.fillStyle = '#fff'; g.beginPath(); g.arc(cx, cy, 2 * DPR, 0, TAU); g.fill(); } }
+    }
+    if (gad('hud') || gad('radar')) {
+      var RM = Math.min(W, H) / 2 - 10 * DPR, RH = Math.min(c.r * 1.6, RM), sp2 = lvl > .02 ? 1 + lvl * 3 : 1;
+      if (gad('radar')) {
+        var ang = (now / 4200) % 1 * TAU, rr = Math.min(c.r * 1.45, RM);
+        for (var sw = 0; sw < 24; sw++) { var a1 = ang - sw * .035; g.strokeStyle = col((1 - sw / 24) * .22 * k); g.lineWidth = 2 * DPR; g.beginPath(); g.moveTo(c.x + Math.cos(a1) * c.r * 1.02, c.y + Math.sin(a1) * c.r * 1.02); g.lineTo(c.x + Math.cos(a1) * rr, c.y + Math.sin(a1) * rr); g.stroke(); }
+        g.strokeStyle = col(.1 * k); g.lineWidth = DPR; [1.15, 1.3].forEach(function (f) { if (c.r * f < RM) { g.beginPath(); g.arc(c.x, c.y, c.r * f, 0, TAU); g.stroke(); } });
+      }
+      if (gad('hud')) {
+        var rot = now / 26000 * sp2;
+        g.lineWidth = DPR;
+        for (var tk = 0; tk < 120; tk++) { var at = tk / 120 * TAU + rot, lg = tk % 10 === 0 ? 9 : tk % 5 === 0 ? 6 : 3; g.strokeStyle = col((tk % 10 === 0 ? .45 : .22) * k); g.beginPath(); g.moveTo(c.x + Math.cos(at) * RH, c.y + Math.sin(at) * RH); g.lineTo(c.x + Math.cos(at) * (RH - lg * DPR), c.y + Math.sin(at) * (RH - lg * DPR)); g.stroke(); }
+        var R2 = RH * .94, rot2 = -now / 15000 * sp2; g.lineWidth = 2.4 * DPR; g.lineCap = 'butt';
+        [[0, .9], [1.15, 1.6], [2.2, 3.4], [3.7, 3.85], [4.3, 5.6]].forEach(function (s2) { g.strokeStyle = col(.3 * k); g.beginPath(); g.arc(c.x, c.y, R2, s2[0] + rot2, s2[1] + rot2); g.stroke(); });
+        var R3 = RH * 1.035; g.lineWidth = DPR; g.setLineDash([1 * DPR, 5 * DPR]); g.strokeStyle = col(.25 * k); g.beginPath(); g.arc(c.x, c.y, Math.min(R3, RM), 0, TAU); g.stroke(); g.setLineDash([]);
+        var am = now / 7000 * sp2; g.fillStyle = col(.8 * k); g.beginPath(); g.arc(c.x + Math.cos(am) * R2, c.y + Math.sin(am) * R2, 2.6 * DPR, 0, TAU); g.fill();
+        g.lineCap = 'round';
+      }
     }
     if (streaks.length) for (var i = streaks.length - 1; i >= 0; i--) { var q = streaks[i], dt = (now - q.t0) / 1000; if (dt > 1.2) { streaks.splice(i, 1); continue; } var d0 = c.r * (1.1 + (q.d + dt * dt * 3.2 * q.v) * 5), d1 = d0 + c.r * (.2 + dt * 2.2 * q.v); g.strokeStyle = 'rgba(230,250,255,' + ((1 - dt / 1.2) * .8).toFixed(3) + ')'; g.lineWidth = (1 + dt * 1.6) * DPR; g.beginPath(); g.moveTo(c.x + Math.cos(q.a) * d0, c.y + Math.sin(q.a) * d0); g.lineTo(c.x + Math.cos(q.a) * d1, c.y + Math.sin(q.a) * d1); g.stroke(); }
     if (gad('planetes')) {
@@ -152,7 +172,17 @@
     'html.mj-zen #timers{position:fixed;top:calc(10px + var(--safe-t,0px));left:0;right:0;z-index:3}' +
     '#zenUi{position:fixed;top:calc(12px + var(--safe-t,0px));right:12px;z-index:5;display:flex;gap:8px;opacity:0;pointer-events:none;transition:opacity .3s}' +
     '#zenUi.on{opacity:1;pointer-events:auto}#zenUi button{border:1px solid rgb(255 255 255 / .2);background:rgb(8 16 24 / .8);color:#e8f6ff;border-radius:999px;padding:9px 14px;font:600 14px system-ui}' +
-    'html:not(.mj-zen) #zenUi{display:none}';
+    'html:not(.mj-zen) #zenUi{display:none}' +
+    '#zenHud{display:none}html.mj-zen #zenHud{display:block;position:fixed;inset:0;z-index:2;pointer-events:none;font-family:var(--mono,monospace)}' +
+    '#zenHud .zh{position:absolute;max-width:44vw;color:var(--tx,#e9f4f6);transition:opacity .4s}#zenHud .zh:empty{display:none}' +
+    '#zenHud .zh i{display:block;font-style:normal;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--acc);opacity:.85;margin-bottom:3px}' +
+    '#zenHud .zh b{display:block;font-weight:600;font-size:17px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#zenHud .zh span{display:block;font-size:11.5px;color:var(--tx2);margin-top:2px}#zenHud .bl b,#zenHud .br b{font-size:15px;white-space:normal}' +
+    '#zenHud .zh::before{content:"";position:absolute;width:14px;height:14px;border-color:var(--acc);opacity:.55;border-style:solid;border-width:0}' +
+    '#zenHud .tl{top:calc(16px + var(--safe-t,0px));left:18px;padding:6px 0 0 10px}#zenHud .tl::before{top:0;left:0;border-top-width:1.5px;border-left-width:1.5px}#zenHud .tl b{font-size:30px;letter-spacing:.04em}' +
+    '#zenHud .tr{top:calc(16px + var(--safe-t,0px));right:18px;text-align:right;padding:6px 10px 0 0}#zenHud .tr::before{top:0;right:0;border-top-width:1.5px;border-right-width:1.5px}' +
+    '#zenHud .bl{bottom:calc(18px + var(--safe-b,0px));left:18px;padding:0 0 6px 10px}#zenHud .bl::before{bottom:0;left:0;border-bottom-width:1.5px;border-left-width:1.5px}' +
+    '#zenHud .br{bottom:calc(18px + var(--safe-b,0px));right:18px;text-align:right;padding:0 10px 6px 0}#zenHud .br::before{bottom:0;right:0;border-bottom-width:1.5px;border-right-width:1.5px}' +
+    'html.mj-zen.mj-parle #zenHud .bl,html.mj-zen.mj-parle #zenHud .br{opacity:0}html.mj-zen #zenUi.on~#zenHud .tr{opacity:0}';
   /* sphère seule : un toucher hors de la sphère montre 5 s les boutons Réglages et Quitter */
   var zui = document.createElement('div'); zui.id = 'zenUi';
   zui.innerHTML = '<button type="button" data-z="set">Réglages</button><button type="button" data-z="out">Quitter « sphère seule »</button>';
@@ -164,11 +194,43 @@
     zui.classList.add('on'); clearTimeout(zT); zT = setTimeout(function () { zui.classList.remove('on'); }, 5000);
     if (!document.fullscreenElement && document.documentElement.requestFullscreen && !window.MAGPrint) document.documentElement.requestFullscreen().catch(function () { });
   }, true);
+  /* sphère seule : infos discrètes dans les coins (heure, météo, rendez-vous, maison, batterie), Réglages › Effets */
+  var hud = document.createElement('div'); hud.id = 'zenHud'; hud.setAttribute('aria-hidden', 'true');
+  hud.innerHTML = '<div class="zh tl" data-zh="heure"></div><div class="zh tr" data-zh="meteo"></div><div class="zh bl" data-zh="rdv"></div><div class="zh br" data-zh="maison"></div>';
+  document.body.appendChild(hud);
+  var batt = null;
+  function battTxt() {
+    try { var P = X.P; if (P && P.homeBattery) { var bj = X.J(P.homeBattery(), {}); if (bj && bj.level >= 0) return bj.level + ' %' + (bj.plugged ? ' ⚡' : ''); } } catch (e) { }
+    if (batt) return Math.round(batt.level * 100) + ' %' + (batt.charging ? ' ⚡' : '');
+    if (navigator.getBattery && batt === null) { batt = false; navigator.getBattery().then(function (b) { batt = b; }).catch(function () { }); }
+    return '';
+  }
+  function zh(k, lab, big, sub) { return '<i>' + esc(lab) + '</i>' + (big ? '<b>' + esc(big) + '</b>' : '') + (sub ? '<span>' + esc(sub) + '</span>' : ''); }
+  function hudPaint() {
+    if (!S.zen) return;
+    var I = S.zenInfo || {}, cells = MJ.momentCells ? MJ.momentCells() : [], cell = function (k) { return cells.filter(function (x) { return x.k === k; })[0]; };
+    var d = new Date(), box = function (k) { return hud.querySelector('[data-zh="' + k + '"]'); };
+    box('heure').innerHTML = I.heure ? zh('heure', d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }), String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'), '') : '';
+    var real = function (x) { return x && !/^Touchez/.test(x.s || ''); };
+    var wx = cell('wx'); box('meteo').innerHTML = I.meteo && real(wx) ? zh('meteo', wx.l, wx.b, wx.s) : '';
+    var ev = cell('ev'); box('rdv').innerHTML = I.rdv && real(ev) ? zh('rdv', ev.l, ev.b, ev.s) : '';
+    var lines = [];
+    if (I.maison) {
+      var li = MJ.lightsSummary ? MJ.lightsSummary() : null;
+      if (li && li.paired && li.total != null) lines.push(li.on ? li.on + ' lumière' + (li.on > 1 ? 's' : '') + ' allumée' + (li.on > 1 ? 's' : '') : 'Lumières éteintes');
+      var sm = MJ.somfy && MJ.somfy.model && MJ.somfy.model();
+      if (sm && sm.devs && sm.devs.length) { var kn = sm.devs.filter(function (x) { return x.closure != null || x.oc; }), fe = kn.filter(function (x) { return x.closure != null ? x.closure >= 98 : x.oc === 'closed'; }).length; if (kn.length) lines.push(fe === kn.length ? 'Volets fermés' : fe ? fe + ' volet' + (fe > 1 ? 's' : '') + ' fermé' + (fe > 1 ? 's' : '') + ' sur ' + kn.length : 'Volets ouverts'); }
+    }
+    if (I.batterie) { var bt = battTxt(); if (bt) lines.push('Batterie ' + bt); }
+    box('maison').innerHTML = lines.length ? zh('maison', I.maison ? 'Maison' : 'Téléphone', lines[0], lines.slice(1).join(' · ')) : '';
+  }
+  setInterval(function () { if (S.zen && !document.hidden) hudPaint(); }, 10000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) hudPaint(); });
   var parleT = 0;
   function parleOn() { clearTimeout(parleT); document.documentElement.classList.add('mj-parle'); }
   function parleOff() { clearTimeout(parleT); parleT = setTimeout(function () { if (!cards.querySelector('.card:not(.fx-out)')) document.documentElement.classList.remove('mj-parle'); }, 300); }
   document.head.appendChild(st);
-  function applyBulles() { var r = document.documentElement; r.classList.toggle('mj-ephem', S.bulles === 'ephemeres'); r.classList.toggle('mj-cases', S.cases === 'annonce'); r.classList.toggle('mj-zen', !!S.zen); setTimeout(function () { window.dispatchEvent(new Event('resize')); }, 60); }
+  function applyBulles() { var r = document.documentElement; r.classList.toggle('mj-ephem', S.bulles === 'ephemeres'); r.classList.toggle('mj-cases', S.cases === 'annonce'); r.classList.toggle('mj-zen', !!S.zen); if (S.zen) setTimeout(hudPaint, 50); setTimeout(function () { window.dispatchEvent(new Event('resize')); }, 60); }
   applyBulles();
 
   /* ---------------- réglages ---------------- */
@@ -177,6 +239,8 @@
     return (prevExtra ? prevExtra() : '') + '<div class="sect" id="f-effets">Effets et bulles</div>' +
       '<div class="set"><div class="t">Bulles de réponse<small>Éphémères : la réponse s\'affiche pendant qu\'elle est annoncée, puis disparaît</small></div><select class="in" id="sFxB" style="width:auto"><option value="ephemeres"' + (S.bulles === 'ephemeres' ? ' selected' : '') + '>Éphémères</option><option value="garder"' + (S.bulles !== 'ephemeres' ? ' selected' : '') + '>Gardées</option></select></div>' +
       '<div class="set"><div class="t">Sphère seule<small>La sphère en grand au milieu de l\'écran, rien d\'écrit. Touchez la sphère pour parler ; touchez à côté pour Réglages ou Quitter</small></div><label class="sw"><input type="checkbox" id="sFxZ"' + (S.zen ? ' checked' : '') + '><span></span></label></div>' +
+      '<div class="set"><div class="t">Infos en « sphère seule »<small>Discrètes, dans les coins de l\'écran</small></div></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">' +
+      [['heure', 'Heure et date'], ['meteo', 'Météo'], ['rdv', 'Prochain rendez-vous'], ['maison', 'Lumières et volets'], ['batterie', 'Batterie']].map(function (z) { return '<button class="btn sm' + (S.zenInfo[z[0]] ? ' pri' : '') + '" data-zi="' + z[0] + '">' + z[1] + '</button>'; }).join('') + '</div>' +
       '<div class="set"><div class="t">Cases Heure, Météo, Rendez-vous, Minuteur<small>« Pendant une réponse » : cachées, elles apparaissent quand il vous répond</small></div><select class="in" id="sFxC" style="width:auto"><option value="annonce"' + (S.cases === 'annonce' ? ' selected' : '') + '>Pendant une réponse</option><option value="toujours"' + (S.cases !== 'annonce' ? ' selected' : '') + '>Toujours</option></select></div>' +
       '<div class="set"><div class="t">Intensité des effets<small>0 : aucun effet (économise la batterie)</small></div><input type="range" id="sFxI" min="0" max="100" step="5" value="' + (+S.fxInt || 0) + '"></div>' +
       Object.keys(GAD).map(function (k) { return '<div class="set"><div class="t">' + esc(GAD[k]) + '</div><label class="sw"><input type="checkbox" data-fxg="' + k + '"' + (gad(k) ? ' checked' : '') + '><span></span></label></div>'; }).join('');
@@ -185,6 +249,7 @@
     if (prevBind) prevBind(b);
     var bb = $('sFxB'); if (bb) bb.onchange = function () { S.bulles = this.value; save(); applyBulles(); };
     var bz = $('sFxZ'); if (bz) bz.onchange = function () { S.zen = this.checked; save(); applyBulles(); if (S.zen) { var x = $('shX'); if (x) x.click(); } };
+    document.querySelectorAll('[data-zi]').forEach(function (z) { z.onclick = function () { S.zenInfo[z.dataset.zi] = !S.zenInfo[z.dataset.zi]; z.classList.toggle('pri', !!S.zenInfo[z.dataset.zi]); save(); hudPaint(); }; });
     var bc = $('sFxC'); if (bc) bc.onchange = function () { S.cases = this.value; save(); applyBulles(); };
     var fi = $('sFxI'); if (fi) fi.oninput = function () { S.fxInt = +this.value; save(); kick(); };
     document.querySelectorAll('[data-fxg]').forEach(function (i) { i.onchange = function () { S.fxG[i.dataset.fxg] = i.checked; save(); if (i.dataset.fxg === 'hyper' && i.checked) hyper(); kick(); }; });
