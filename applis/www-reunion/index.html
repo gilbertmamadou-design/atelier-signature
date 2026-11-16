@@ -324,18 +324,21 @@ main{padding:4px 16px calc(110px + var(--safe-b))}
   /* Facultatif : « Rédiger avec Claude », visible seulement si l'appli Claude est installée (compte de la personne, même gratuit) */
   var CLAUDE = 'com.anthropic.claude', hasClaude = false;
   try { hasClaude = !!(D && D.installed && D.installed(CLAUDE)); } catch (e) { }
-  $('cClaude').hidden = !hasClaude; $('cNoteC').hidden = !hasClaude;
+  // bouton toujours visible ; sans l'appli Claude, le texte est copié pour être collé dans Claude (appli ou claude.ai)
+  $('cClaude').hidden = false; $('cNoteC').hidden = false;
   $('cClaude').onclick = function () {
     var r = CUR; if (!r) return;
-    if (!confirm('Envoyer la transcription de « ' + (r.title || 'la réunion') + ' » à ton appli Claude ? Le texte passera par Internet, sur ton compte Claude.')) return;
+    try { hasClaude = !!(D && D.installed && D.installed(CLAUDE)); } catch (e) { }
+    if (!confirm(hasClaude ? 'Envoyer la transcription de « ' + (r.title || 'la réunion') + ' » à ton appli Claude ? Le texte passera par Internet, sur ton compte Claude.'
+      : 'L\'appli Claude n\'est pas installée sur ce téléphone. Je copie le texte prêt à l\'emploi : colle-le ensuite dans Claude (appli ou site claude.ai). Continuer ?')) return;
     var marks = Object.keys(MK).map(function (k) { var l = lines(r.segs, k); return l.length ? MK[k] + ' (marqué pendant la réunion) :\n' + l.join('\n') : ''; }).filter(Boolean).join('\n\n');
     var prompt = 'Rédige le compte rendu professionnel de cette réunion, en français, à partir de la transcription automatique ci-dessous. Elle peut contenir des erreurs de reconnaissance vocale : rétablis le sens sans rien inventer, et signale ce qui reste incertain.\n' +
       'Structure : objet, date, lieu, participants ; résumé en quelques phrases ; points abordés ; décisions prises ; actions à mener (qui, quoi, pour quand) ; questions en suspens ; prochaine étape.\n\n' +
       'Objet : ' + (r.title || '') + '\nDate : ' + dateLong(r.start) + ', ' + hm(r.start) + ' (' + durTxt(r.dur || 0) + ')' + (r.where ? '\nLieu : ' + r.where : '') + (r.who ? '\nParticipants : ' + r.who : '') +
       (marks ? '\n\n' + marks : '') + '\n\nTranscription :\n' + transcript(r);
-    var res = D.sendTo(CLAUDE, prompt, 'Compte rendu : ' + (r.title || 'réunion'));
+    var res = hasClaude && D && D.sendTo ? D.sendTo(CLAUDE, prompt, 'Compte rendu : ' + (r.title || 'réunion')) : 'absent';
     if (res === 'ok') { toast('Envoyé à Claude : il rédige le compte rendu'); return; }
-    (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(prompt) : Promise.reject()).then(function () { toast('Appli Claude introuvable : texte copié, colle-le dans Claude'); }, function () { toast('Envoi impossible'); });
+    (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(prompt) : Promise.reject()).then(function () { toast('Texte copié : colle-le dans Claude'); }, function () { toast('Envoi impossible'); });
   };
   $('cRegen').onclick = function () {
     if (CUR.crEdit && !confirm('Refaire le compte rendu à partir de la transcription ? Tes modifications seront perdues.')) return;
