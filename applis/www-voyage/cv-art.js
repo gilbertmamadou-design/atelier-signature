@@ -247,6 +247,15 @@
     if (stats) s += '<text x="' + CX + '" y="' + 1262 + '" text-anchor="middle" font-family="Special Elite" font-size="26" letter-spacing="2" fill="' + ink + '" opacity=".85">' + esc(stats) + '</text>';
     return s;
   };
+  /** Page de garde de fin : le papier des pages du carnet (pas une feuille blanche), avec un petit « Fin » discret */
+  A.endPaper = function (c, pfx) {
+    const pages = c.pages || [], last = pages[pages.length - 1] || {};
+    const cv = c.cover || {}, F = A.font(cv.font || 'manuscrit');
+    let s = A.bg(last.bg || 'creme', pfx, 'garde');
+    s += '<g opacity=".8"><path d="M' + (W / 2 - 110) + ' ' + (H / 2) + 'H' + (W / 2 - 40) + 'M' + (W / 2 + 40) + ' ' + (H / 2) + 'H' + (W / 2 + 110) + '" stroke="#5a4632" stroke-width="2" stroke-linecap="round"/>' +
+      '<text x="' + (W / 2) + '" y="' + (H / 2 + 14) + '" text-anchor="middle" font-family="' + esc(F[2]) + '" font-style="italic" font-size="48" fill="#3f2f20">Fin</text></g>';
+    return s;
+  };
   A.wrapSimple = function (t, n) {
     const words = String(t).split(/\s+/); const out = []; let cur = '';
     words.forEach((w) => { if ((cur + ' ' + w).trim().length > n && cur) { out.push(cur); cur = w; } else cur = (cur + ' ' + w).trim(); });

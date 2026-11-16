@@ -13,13 +13,13 @@
 
   /* ---------------- Rendu d'une page en image (photos pleine définition, polices intégrées) ---------------- */
   X.pageCanvas = async function (c, pi, wpx) {
-    const p = pi === -1 ? { id: 'cover', items: c.coverItems || [] } : pi === -2 ? { id: 'back', items: [] } : c.pages[pi];
+    const p = pi === -1 ? { id: 'cover', items: c.coverItems || [] } : pi === -2 ? { id: 'back', items: [] } : pi === -3 ? { id: 'garde', items: [] } : c.pages[pi];
     const ids = new Set((p.items || []).filter((x) => x.media).map((x) => x.media));
     if (pi === -1 && c.cover && c.cover.photo) ids.add(c.cover.photo);
     if ((p.items || []).some((x) => x.type === 'map') && !window.CV_CARTE) { try { await O.loadScript('cv-carte-data.js'); } catch (e) { } }
     const map = {};
     for (const id of ids) map[id] = await M.dataUrl(id, wpx <= 1000 ? 'mid' : 'full');
-    const o = { pfx: 'x' + pi + '-', href: (id) => map[id] || '', media: M.info, cover: pi === -1, back: pi === -2 };
+    const o = { pfx: 'x' + pi + '-', href: (id) => map[id] || '', media: M.info, cover: pi === -1, back: pi === -2, garde: pi === -3 };
     let svg = R.pageSvg(c, p, o);
     o.fonts = await R.fontsCss(svg);
     svg = R.pageSvg(c, p, o);
@@ -30,7 +30,10 @@
     if (what === 'page') return [E.pi];
     if (what === 'spread') return E.visible();
     // carnet entier : couverture, pages, puis quatrième de couverture (page finale, comme un livre)
-    return [-1].concat(c.pages.map((p, i) => i), (c.cover || {}).back === false ? [] : [-2]);
+    // page de garde (papier du carnet) avant le dos quand il le faut : nombre de pages pair, le dos tombe au verso de la
+    // dernière feuille en recto verso, et pas de demi-feuille blanche en « deux pages par feuille »
+    if ((c.cover || {}).back === false) return [-1].concat(c.pages.map((p, i) => i));
+    return [-1].concat(c.pages.map((p, i) => i), (c.pages.length % 2 === 1) ? [-3, -2] : [-2]);
   };
   const SIZES = { a4: [210, 297], a5: [148, 210] };
   /** PDF : une page du carnet par feuille (A4 ou A5), ou deux par feuille A4 paysage (« planches ») */
@@ -78,9 +81,9 @@
         x.fillStyle = 'rgba(0,0,0,.18)'; x.fillRect(a.width - 2, 0, 4, a.height);
         return { blob: await R.toBlob(cv, type, 0.92), name: O.safeName(c.title + ' - pages ' + (list[0] + 1) + '-' + (list[1] + 1), ext) };
       }
-      if (list.length === 1) { pr(0); const cv = await X.pageCanvas(c, list[0], wpx); return { blob: await R.toBlob(cv, type, 0.92), name: O.safeName(c.title + ' - ' + (list[0] === -1 ? 'couverture' : list[0] === -2 ? 'quatrième de couverture' : 'page ' + (list[0] + 1)), ext) }; }
+      if (list.length === 1) { pr(0); const cv = await X.pageCanvas(c, list[0], wpx); return { blob: await R.toBlob(cv, type, 0.92), name: O.safeName(c.title + ' - ' + (list[0] === -1 ? 'couverture' : list[0] === -2 ? 'quatrième de couverture' : list[0] === -3 ? 'page de garde' : 'page ' + (list[0] + 1)), ext) }; }
       const z = new window.JSZip();
-      for (let i = 0; i < list.length; i++) { pr(i); const cv = await X.pageCanvas(c, list[i], wpx); z.file(String(i).padStart(2, '0') + '-' + (list[i] === -1 ? 'couverture' : list[i] === -2 ? 'quatrieme-de-couverture' : 'page-' + (list[i] + 1)) + ext, await R.toBlob(cv, type, 0.92)); }
+      for (let i = 0; i < list.length; i++) { pr(i); const cv = await X.pageCanvas(c, list[i], wpx); z.file(String(i).padStart(2, '0') + '-' + (list[i] === -1 ? 'couverture' : list[i] === -2 ? 'quatrieme-de-couverture' : list[i] === -3 ? 'page-de-garde' : 'page-' + (list[i] + 1)) + ext, await R.toBlob(cv, type, 0.92)); }
       return { blob: await z.generateAsync({ type: 'blob', mimeType: 'application/zip' }), name: O.safeName(c.title + ' - images', '.zip') };
     } finally { pr(-1); M.forgetData(); }
   };
