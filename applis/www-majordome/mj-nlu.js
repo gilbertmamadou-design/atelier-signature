@@ -1302,7 +1302,10 @@
       return R('call', { to: whoO.replace(/^(le|la|l'|au)\s+/i, ''), number: digits(whoO) });
     }
     // --- volets et stores (Somfy TaHoma, mj-somfy.js) ---
-    var sh = parseShutter(t, ctx);
+    // « ferme les volets à 21 h », « ouvre les volets demain à 7 h 30 » : commande programmée une fois (mj-somfy.js)
+    var sh = null, wsh = SH_VERB.test(t) || SH_RE.test(t) ? findWhen(t, now) : null;
+    if (wsh && wsh.hasTime && wsh.at && wsh.spans.length) { sh = parseShutter(cut(t, wsh.spans), ctx); if (sh && sh.act !== 'query') sh.at = wsh.at; else sh = null; }
+    if (!sh) sh = parseShutter(t, ctx);
     if (sh) return R('shutter', sh);
     // --- lumières de la maison (Philips Hue) ---
     var lg = parseLight(t, P, ctx, now);

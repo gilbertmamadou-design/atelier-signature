@@ -933,6 +933,7 @@ public class MajordomeBridge {
                     JSONObject all = alarms(c), o = all.optJSONObject(id);
                     if (o == null) return;
                     if ("hue".equals(o.optString("kind"))) { all.remove(id); saveAlarms(c, all); hueLater(c, id, o, goAsync()); return; }
+                    if ("somfy".equals(o.optString("kind"))) { somfyLater(c, id, o, goAsync()); return; }
                     // page ouverte : elle sonne et parle elle-même ; montre connectée : copie silencieuse pour que Zepp la recopie
                     if (live != null && resumed) { send("alarm", obj("id", id)); if (watchOn(c)) watchAlarmCopy(c, id, o); return; }
                     channels(c);
@@ -961,7 +962,12 @@ public class MajordomeBridge {
                     // démarrage du téléphone, mise à jour de l'appli : on reprogramme ce qui est à venir
                     JSONObject all = alarms(c); long now = System.currentTimeMillis();
                     Iterator<String> k = all.keys(); ArrayList<String> old = new ArrayList<>();
-                    while (k.hasNext()) { String x = k.next(); JSONObject o = all.optJSONObject(x); if (o == null || o.optLong("at") < now - 60000) old.add(x); else schedule(c, o); }
+                    while (k.hasNext()) {
+                        String x = k.next(); JSONObject o = all.optJSONObject(x);
+                        // programme de volets répété : prochaine occurrence
+                        if (o != null && o.optLong("at") < now - 60000 && "somfy".equals(o.optString("kind")) && o.has("prog")) { long nx = somfyNext(o.optJSONObject("prog"), now); if (nx > 0) { try { o.put("at", nx); } catch (Exception e) { } } }
+                        if (o == null || o.optLong("at") < now - 60000) old.add(x); else schedule(c, o);
+                    }
                     for (String x : old) all.remove(x);
                     saveAlarms(c, all);
                     // montre connectée : le serveur local repart s'il était actif (démarrage, mise à jour de l'appli)
@@ -1961,6 +1967,75 @@ public class MajordomeBridge {
         } }, 6000);
     }
     /** Minuterie des lumières (« éteins le salon dans 10 minutes ») : exécutée ici, même appli fermée */
+    /* Volets Somfy programmés (mj-somfy.js) : { kind:"somfy", at, text, actions:[{deviceURL, commands}], prog?:{days:[0-6, 0 = dimanche],
+       h, m, sun:"rise"|"set"|"", off: minutes, lat, lon} } ; exécuté ici même si la page est fermée, puis reprogrammé s'il se répète */
+    static double[] sunUtcMin(int y, int mo, int d, double lat, double lon) {
+        java.util.Calendar cal = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")); cal.clear(); cal.set(y, mo, d, 12, 0, 0);
+        int n = cal.get(java.util.Calendar.DAY_OF_YEAR); double g = 2 * Math.PI / 365 * (n - 1), rad = Math.PI / 180;
+        double decl = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g) - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
+        double eq = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
+        double c = (Math.cos(90.833 * rad) - Math.sin(lat * rad) * Math.sin(decl)) / (Math.cos(lat * rad) * Math.cos(decl));
+        if (c > 1 || c < -1) return null;
+        double ha = Math.acos(c) / rad, noon = 720 - 4 * lon - eq;
+        return new double[]{ noon - 4 * ha, noon + 4 * ha };
+    }
+    static long somfyNext(JSONObject p, long after) {
+        if (p == null) return -1;
+        JSONArray days = p.optJSONArray("days");
+        for (int k = 0; k < 9; k++) {
+            java.util.Calendar cal = java.util.Calendar.getInstance(); cal.setTimeInMillis(after); cal.add(java.util.Calendar.DAY_OF_MONTH, k);
+            int dow = cal.get(java.util.Calendar.DAY_OF_WEEK) - 1; boolean ok = days == null || days.length() == 0;
+            for (int i = 0; days != null && i < days.length(); i++) if (days.optInt(i, -1) == dow) ok = true;
+            if (!ok) continue;
+            long t;
+            String sun = p.optString("sun", "");
+            if ("rise".equals(sun) || "set".equals(sun)) {
+                double[] r = sunUtcMin(cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH), cal.get(java.util.Calendar.DAY_OF_MONTH), p.optDouble("lat", 43.3), p.optDouble("lon", 5.37));
+                if (r == null) continue;
+                java.util.Calendar u = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")); u.clear();
+                u.set(cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH), cal.get(java.util.Calendar.DAY_OF_MONTH), 0, 0, 0);
+                t = u.getTimeInMillis() + Math.round(("rise".equals(sun) ? r[0] : r[1]) * 60000) + p.optInt("off", 0) * 60000L;
+            } else {
+                cal.set(java.util.Calendar.HOUR_OF_DAY, p.optInt("h", 7)); cal.set(java.util.Calendar.MINUTE, p.optInt("m", 0)); cal.set(java.util.Calendar.SECOND, 0); cal.set(java.util.Calendar.MILLISECOND, 0);
+                t = cal.getTimeInMillis();
+            }
+            if (t > after + 30000) return t;
+        }
+        return -1;
+    }
+    static void somfyLater(final Context c, final String id, final JSONObject o, final BroadcastReceiver.PendingResult pr) {
+        new Thread(new Runnable() { public void run() {
+            boolean ok = true; String err = null; long next = -1;
+            try {
+                JSONObject cf = somfyLoad(c); if (cf == null) throw new Hue.HueErr("notset");
+                JSONArray acts = o.optJSONArray("actions"); if (acts == null || acts.length() == 0) throw new Hue.HueErr("body");
+                String body = new JSONObject().put("label", "Majordome : " + o.optString("text", "programme")).put("actions", acts).toString();
+                Hue.Resp r = null;
+                for (int i = 0; i < 3; i++) {   // le Wi-Fi peut mettre quelques secondes à revenir quand le téléphone sort de veille
+                    try { r = Somfy.http(cf.optString("ip"), cf.optInt("port", 8443), cf.optString("pin"), cf.optString("token"), "POST", "/exec/apply", body, 8000); break; }
+                    catch (Hue.HueErr e) { if (!"unreachable".equals(e.code) || i == 2) throw e; Thread.sleep(8000); }
+                }
+                if (r.code == 401 || r.code == 403) { ok = false; err = "unauthorized"; } else if (r.code >= 400) { ok = false; err = "http"; }
+            } catch (Hue.HueErr e) { ok = false; err = e.code; }
+            catch (Throwable t) { ok = false; err = "unreachable"; }
+            try {
+                JSONObject all = alarms(c);
+                if (o.has("prog")) { next = somfyNext(o.optJSONObject("prog"), System.currentTimeMillis()); if (next > 0) { o.put("at", next); all.put(id, o); schedule(c, o); } else all.remove(id); }
+                else all.remove(id);
+                saveAlarms(c, all);
+            } catch (Throwable t) { }
+            if (live != null) send("somfy", hueEv("later", "id", id, "ok", ok, "err", err, "label", o.optString("text"), "next", next));
+            if (!ok) {
+                try {
+                    channels(c);
+                    Notification n = nb(c, CH_RAPPEL).setSmallIcon(c.getApplicationInfo().icon).setContentTitle(Lien.clip("Volets : " + o.optString("text", ""), Lien.TITLE_MAX))
+                        .setContentText("unreachable".equals(err) ? "Le boîtier TaHoma ne répond pas (téléphone hors du Wi-Fi de la maison ?)." : "unauthorized".equals(err) ? "Le boîtier TaHoma refuse le jeton." : "Le boîtier TaHoma n'a pas exécuté le programme.").setAutoCancel(true).build();
+                    ((NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE)).notify(N_ALARM_BASE + (id.hashCode() & 0x3ff), n);
+                } catch (Throwable t) { }
+            }
+            if (pr != null) pr.finish();
+        } }, "majordome-somfy-later").start();
+    }
     static void hueLater(final Context c, final String id, final JSONObject o, final BroadcastReceiver.PendingResult pr) {
         new Thread(new Runnable() { public void run() {
             boolean ok = true; String err = null;
