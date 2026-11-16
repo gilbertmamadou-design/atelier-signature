@@ -195,6 +195,68 @@
   }
   function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
   H.shutter = function (p) { return run(p, false); };
+
+  /* ---------- Écran « Volets et stores » (bouton en haut, comme les lumières) ---------- */
+  var css = document.createElement('style');
+  css.textContent = '.shut .srt{display:flex;align-items:center;gap:10px}.shut .srt h3{margin:0;font-size:15.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.shut .srt small{color:var(--tx3);font-size:12px}.shut .bt{display:flex;gap:6px;margin-top:8px}.shut .bt button{flex:1;min-height:40px;border:1px solid var(--line2);border-radius:12px;background:var(--bg2);font-size:13.5px;color:var(--tx)}.shut .bt button:active{transform:scale(.96);border-color:var(--acc)}.shut .bt button.my{flex:.8;color:var(--warn)}.shut input[type=range]{width:100%;margin:10px 0 2px}.shut .pos{height:6px;border-radius:4px;background:var(--bg4);margin-top:8px;overflow:hidden}.shut .pos i{display:block;height:100%;background:var(--acc)}.shut.busy{opacity:.7}';
+  document.head.appendChild(css);
+  function posTxt(d) {
+    var c = closedOf(d);
+    if (c == null) return 'position non renvoyée (RTS)';
+    if (/^(Awning|Pergola)$/.test(d.ui) && d.deploy != null) return d.deploy ? 'sorti à ' + d.deploy + ' %' : 'rentré';
+    if (c) return 'fermé';
+    return d.closure != null && d.closure > 2 ? 'ouvert à ' + (100 - d.closure) + ' %' : 'ouvert';
+  }
+  function openPct(d) { return /^(Awning|Pergola)$/.test(d.ui) && d.deploy != null ? d.deploy : d.closure != null ? 100 - d.closure : null; }
+  function devCard(d) {
+    var banne = /^(Awning|Pergola)$/.test(d.ui), op = openPct(d), slider = banne ? has(d, 'setDeployment') : has(d, 'setClosure');
+    return '<div class="room shut" data-dev="' + esc(d.url) + '"><div class="srt"><h3>' + esc(d.name) + '</h3><small>' + esc(posTxt(d)) + '</small></div>' +
+      (slider && op != null ? '<input type="range" min="0" max="100" step="5" data-pos value="' + op + '" aria-label="Ouverture ' + esc(d.name) + '">' : op != null ? '<div class="pos"><i style="width:' + op + '%"></i></div>' : '') +
+      '<div class="bt"><button data-a="open">' + (banne ? '⇤ Sortir' : '▲ Ouvrir') + '</button>' + (has(d, 'my') ? '<button class="my" data-a="my" title="Position favorite">★ My</button>' : '') + (has(d, 'stop') ? '<button data-a="stop">■ Stop</button>' : '') + '<button data-a="close">' + (banne ? '⇥ Rentrer' : '▼ Fermer') + '</button></div></div>';
+  }
+  function storesHtml() {
+    if (X.PC || !OK) return '<p class="note">Les volets se commandent depuis le téléphone.</p>';
+    if (!refreshInfo().set) return '<p class="note">Le boîtier Somfy TaHoma n\'est pas encore relié.</p><div class="row"><button class="btn pri" data-sfset>Relier le boîtier TaHoma</button></div>';
+    if (!model) return '<p class="note">Lecture des volets…</p>';
+    var groups = [['volet', 'Volets'], ['store', 'Stores'], ['banne', 'Stores bannes']], h = '';
+    var shut = model.devs.filter(function (d) { return closedOf(d) === true; }).length, known = model.devs.filter(function (d) { return closedOf(d) != null; }).length;
+    h += '<div class="hbar"><div class="t">' + model.devs.length + ' volet' + (model.devs.length > 1 ? 's' : '') + ' et store' + (model.devs.length > 1 ? 's' : '') + (known ? ' · ' + shut + ' fermé' + (shut > 1 ? 's' : '') : '') + ' · ' + esc(new Date(modelAt || model.at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })) + '</div><button class="btn sm" data-all="open">Tout ouvrir</button><button class="btn sm" data-all="close">Tout fermer</button><button class="btn sm" data-sfrf>Actualiser</button></div>';
+    groups.forEach(function (g) { var l = model.devs.filter(function (d) { return kindOf(d) === g[0]; }); if (l.length) h += '<div class="sect">' + g[1] + '</div>' + l.map(devCard).join(''); });
+    return h + '<p class="note" style="margin-top:12px">Boîtier TaHoma ' + esc(info.pin || '') + ' · ' + esc(info.ip || '') + '. « Tout ouvrir » et « Tout fermer » laissent les stores bannes de côté.</p>';
+  }
+  function renderStores() { if (X.curSheet() === 'stores') { var b = document.getElementById('shB'); if (b) b.innerHTML = storesHtml(); } }
+  var later = 0;
+  function sendDevs(l, p, card) {
+    var acts = []; l.forEach(function (d) { var c = commandFor(d, p); if (c) acts.push({ deviceURL: d.url, commands: [{ name: c.name, parameters: c.parameters || [] }] }); });
+    if (!acts.length) { X.toast('Commande non disponible'); return; }
+    if (card) card.classList.add('busy');
+    req('POST', '/exec/apply', { label: 'Majordome', actions: acts }).then(function () {
+      if (card) card.classList.remove('busy');
+      X.toast({ open: 'Ouverture', close: 'Fermeture', stop: 'Arrêt', my: 'Position favorite', pos: 'Position ' + p.pos + ' %' }[p.act] + (l.length > 1 ? ' (' + l.length + ')' : ''));
+      clearTimeout(later);
+      var re = function () { if (X.curSheet() === 'stores') fetchModel(true).then(renderStores, function () { }); };
+      setTimeout(re, 3000); later = setTimeout(re, 25000);   // les moteurs mettent une vingtaine de secondes
+    }, function (e) { if (card) card.classList.remove('busy'); X.toast(errText(e.code)); });
+  }
+  function devBy(url) { return model && model.devs.filter(function (d) { return d.url === url; })[0]; }
+  function storesSheet() {
+    var b = X.openSheet('Volets et stores', storesHtml(), 'stores');
+    b.onclick = function (e) {
+      var t = e.target, c;
+      if (t.closest('[data-sfset]')) { X.settingsSheet('somfy'); return; }
+      if (t.closest('[data-sfrf]')) { X.toast('Actualisation…'); fetchModel(true).then(function () { renderStores(); X.toast('Actualisé'); }, function (er) { X.toast(errText(er.code)); }); return; }
+      if ((c = t.closest('[data-all]'))) { sendDevs(model.devs.filter(function (d) { return kindOf(d) !== 'banne'; }), { act: c.dataset.all }); return; }
+      if ((c = t.closest('[data-a]'))) { var card = c.closest('[data-dev]'), d = card && devBy(card.dataset.dev); if (d) sendDevs([d], { act: c.dataset.a }, card); }
+    };
+    b.onchange = function (e) {
+      if (!e.target.matches('[data-pos]')) return;
+      var card = e.target.closest('[data-dev]'), d = card && devBy(card.dataset.dev); if (d) sendDevs([d], { act: 'pos', pos: +e.target.value }, card);
+    };
+    if (MJ.somfyReady()) fetchModel(true).then(renderStores, function (er) { if (X.curSheet() === 'stores') { var bb = document.getElementById('shB'); if (bb) bb.insertAdjacentHTML('afterbegin', '<p class="note warn">' + esc(errText(er.code)) + '</p>'); } });
+  }
+  MJ.storesSheet = storesSheet;
+  var sb = document.getElementById('bStores');
+  if (sb) { sb.hidden = !OK; sb.onclick = storesSheet; }
   MJ.shutterRun = function (p, quiet) { return run(p, quiet); };
   /** Routine « Demander à Alexa » : volets et stores directement par le boîtier quand il est réglé */
   MJ.alexaDirect = function (cmd) {
