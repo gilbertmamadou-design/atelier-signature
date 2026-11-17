@@ -12,7 +12,7 @@
      opt.vx       moteur Piper (MJVoix.create, mj-voix.js) ou null
      opt.android  pont MAGLiseuse avec audioOpen… (lecture native : AudioTrack ou TextToSpeech, service au premier plan,
                   MediaSession) ; sinon lecture dans la page (Web Audio, ou speechSynthesis pour la voix du système)
-     opt.settings() → {voice: 'system' | id Piper, rate, fx, fxo}
+     opt.settings() → {voice: 'system' | id Piper, rate, fx, fxo, expr: 'neutre' | 'conteur' | 'theatre'}
      opt.meta()   → {book, title, author, cover} (notification, écran verrouillé, touches multimédia)
      opt.on       {sentence(it), state(st), finish(), fallback(msg), sleep(), error(msg)}
    Méthodes : play({s, o}), pause(), resume(), toggle(), next(), prev(), nextCh(), prevCh(), reconfigure(),
@@ -133,6 +133,24 @@
     var rest = t.slice(a).trim();
     if (rest) out.push({ t: rest, pause: 0 });
     return out.length ? out : [{ t: t, pause: 0 }];
+  }
+  /* Intonation « conteur » : chaque phrase reçoit une légère hauteur, vitesse et intensité selon ce qu'elle est
+     (réplique de dialogue, question, exclamation, suspension, longue description), plus une petite variation régulière
+     pour casser la monotonie ; deux répliques qui se suivent n'ont pas la même hauteur, comme deux personnages.
+     expr : 'neutre' (rien), 'conteur' (discret), 'theatre' (marqué). → {pitch, rate, vol} (facteurs) */
+  function tone(raw, i, expr) {
+    var k = expr === 'theatre' ? 1.8 : expr === 'neutre' ? 0 : 1, t = String(raw || '').trim();
+    if (!k || !t) return { pitch: 1, rate: 1, vol: 1 };
+    var p = 1, r = 1, v = 1, end = t.replace(/[\s»”"’)\]]+$/, '').slice(-1);
+    var dial = /^[«“"—–]/.test(t) || (/^-\s/.test(t)) || (/[»”]\s*$/.test(t) && !/[«“]/.test(t));
+    if (dial) { p += 0.04 * k + (i % 2 ? 0.03 : -0.015) * k; r += 0.03 * k; }
+    if (end === '!') { p += 0.035 * k; r += 0.03 * k; v += 0.08 * k; }
+    else if (end === '?') { p += 0.025 * k; }
+    else if (end === '…' || /\.\.\.$/.test(t)) { r -= 0.05 * k; p -= 0.01 * k; }
+    if (!dial && t.length > 140) r -= 0.02 * k;
+    var h = ((i * 2654435761) >>> 0) % 7 - 3;            // variation régulière, la même à chaque relecture
+    p += h * 0.004 * k; r += (((i * 40503) >>> 0) % 5 - 2) * 0.006 * k;
+    return { pitch: Math.max(0.88, Math.min(1.16, p)), rate: Math.max(0.85, Math.min(1.15, r)), vol: Math.max(0.9, Math.min(1.2, v)) };
   }
   /** Silence après la phrase. Sans ponctuation finale (fin de page d'un PDF, retour à la ligne au milieu d'une phrase) :
       micro-pause, la phrase continue. */
@@ -351,7 +369,8 @@
         sink.pushText(id, text, rate, meta);
         return Promise.resolve();
       }
-      var g0 = Date.now(), cfg = { voice: st.voice, rate: st.rate, fx: st.fx || 'aucun', fxo: st.fxo || null, volume: 1 }, sp = Math.max(0.75, +st.rate || 1);
+      var tn = tone(it.text, it.i, st.expr || 'conteur');
+      var g0 = Date.now(), cfg = { voice: st.voice, rate: (+st.rate || 1) * tn.rate, pitch: tn.pitch, fx: st.fx || 'aucun', fxo: st.fxo || null, volume: tn.vol }, sp = Math.max(0.75, +st.rate || 1);
       // la phrase est dite membre par membre (virgule, point-virgule, deux-points, points de suspension) avec un vrai silence
       // à chaque signe, comme un lecteur qui respire : plus de phrase « d'un bloc » ; la ponctuation reste collée au membre
       // pour que la voix garde l'intonation suspendue
@@ -467,5 +486,6 @@
     return L;
   }
 
+  root.LisAudioTone = tone;
   root.LisAudio = { split: split, speakable: speakable, create: create, roman: roman, silentWav: silentWav };
 })(typeof window !== 'undefined' ? window : this);
