@@ -77,15 +77,20 @@
     [/(\d)\s?ko\b/g, '$1 kilooctets'], [/(\d)\s?hPa\b/g, '$1 hectopascals'], [/(\d)\s?W\b/g, '$1 watts'], [/(\d)\s?kWh\b/g, '$1 kilowattheures'], [/(\d)\s?m\b(?![²³])/g, '$1 mètres'],
     [/(\d)\s?l\b/g, '$1 litres'], [/(\d)\s?s\b/g, '$1 secondes'], [/(\d)\s?h\b(?!\s?\d)/g, '$1 heures']
   ];
+  function rom(s) { var v = { I: 1, V: 5, X: 10, L: 50, C: 100, D: 500, M: 1000 }, n = 0; for (var i = 0; i < s.length; i++) { var a = v[s[i]], b = v[s[i + 1]] || 0; if (!a) return 0; n += a < b ? -a : a; } return n > 0 && n < 4000 ? n : 0; }
   function normalize(t) {
     t = String(t || '');
     t = t.replace(/[’‘`´]/g, '\'').replace(/[«»“”"]/g, ' ').replace(/…/g, '.').replace(/\s[–—]\s/g, ', ').replace(/[()[\]{}]/g, ', ').replace(/ | /g, ' ');
     t = t.replace(/\bM\.\s/g, 'monsieur ').replace(/\bMme\b/g, 'madame').replace(/\bMlle\b/g, 'mademoiselle').replace(/\bDr\b\.?/g, 'docteur').replace(/\bSt\b/g, 'saint').replace(/\bn°\s?/gi, 'numéro ')
-      .replace(/\betc\b\.?/g, 'et cetera').replace(/\s&\s/g, ' et ').replace(/\s\+\s/g, ' plus ').replace(/\s=\s/g, ' égale ').replace(/\s[x×]\s(?=\d)/g, ' fois ').replace(/\s\/\s/g, ' sur ');
+      .replace(/\betc\b\.?/g, 'etcétéra').replace(/\s&\s/g, ' et ').replace(/\s\+\s/g, ' plus ').replace(/\s=\s/g, ' égale ').replace(/\s[x×]\s(?=\d)/g, ' fois ').replace(/\s\/\s/g, ' sur ');
     // heures : 8:30, 08h30, 8 h 30
     t = t.replace(/\b(\d{1,2})\s?(?:h|:)\s?(\d{2})\b/g, function (m, h, mi) { return num(+h) + (+h > 1 ? ' heures ' : ' heure ') + (+mi ? num(+mi) : ''); });
     t = t.replace(/\b(\d{1,2})\s?h\b/g, function (m, h) { return num(+h) + (+h > 1 ? ' heures' : ' heure'); });
     UNITS.forEach(function (u) { t = t.replace(u[0], u[1]); });
+    // chiffres romains : siècles (XIXe), rois et papes (Louis XIV, François Ier, Jean-Paul II)
+    t = t.replace(/\b((?=[IVXLC]*[IVX])[IVXLC]{1,7})(e|ème|eme)\b/g, function (m, r0, e) { var n = rom(r0); return n ? ordinal(n) : m; });
+    t = t.replace(/\b([A-ZÉÈ][a-zéèêëïîôç]+(?:-[A-ZÉÈ][a-zéèêëïîôç]+)?)\s+(Ier|Ire|Iᵉʳ)\b/g, function (m, nm, r0) { return nm + (r0 === 'Ire' ? ' première' : ' premier'); });
+    t = t.replace(/\b([A-ZÉÈ][a-zéèêëïîôç]+(?:-[A-ZÉÈ][a-zéèêëïîôç]+)?)\s+([IVX]{2,6}|V|X)\b(?![.']\w)/g, function (m, nm, r0) { var n = rom(r0); return n && n > 1 ? nm + ' ' + num(n) : m; });
     // ordinaux : 1er, 1re, 2e, 3ème, XXe
     t = t.replace(/\b1(er|re|ère)\b/g, function (m, s) { return s === 'er' ? 'premier' : 'première'; });
     t = t.replace(/\b(\d+)(e|ème|eme)\b/g, function (m, n) { return ordinal(+n); });
@@ -142,6 +147,7 @@
    'panasonic=panazɔnik comfort=kɔ̃fɔʁ cloud=klawd zoom=zum meteoalarm=meteoalaʁm alpha=alfa cephei=sefei sherpa=ʃɛʁpa onnx=ɔniks ' +
    'beethoven=betɔvɛn mozart=mɔzaʁ shakespeare=ʃɛkspiʁ ' +
    'gare=ɡaʁ soixante=swasɑ̃t bruxelles=bʁysɛl auxerre=osɛʁ dix-sept=dˈisˈɛt dix-huit=dˈizyˈit dix-neuf=dˈiznˈœf ' +
+   'poêle=pwal poêles=pwal moelle=mwal moelleux=mwalø moelleuse=mwaløz aiguille=eɡyij aiguilles=eɡyij anguille=ɑ̃ɡij oeil=œj œillet=œjɛ oeillet=œjɛ sculpteur=skyltœʁ sculpteurs=skyltœʁ coefficient=koefisjɑ̃ pharaon=faʁaɔ̃ pharaons=faʁaɔ̃ football=futbɔl jean=ʒɑ̃ travers=tʁavɛʁ lys=lis cassis=kasis sinus=sinys clown=klun parking=paʁkinɡ camping=kɑ̃pinɡ cerf=sɛʁ deuxième=døzjɛm deuxièmes=døzjɛm troisième=tʁwazjɛm sixième=sizjɛm dixième=dizjɛm deuxièmement=døzjɛmmɑ̃ troisièmement=tʁwazjɛmmɑ̃ aiguë=eɡy linguistique=lɛ̃ɡyistik linguistiques=lɛ̃ɡyistik linguiste=lɛ̃ɡyist aiguiser=eɡyize aiguillon=eɡyijɔ̃ aiguës=eɡy ambiguë=ɑ̃biɡy ciguë=siɡy etcétéra=ɛtseteʁa ' +
    'plus-que-parfait=plyskəpaʁfɛ aujourd\'hui=oʒuʁdyi rendez-vous=ʁɑ̃devu').split(' ').forEach(function (e) { var i = e.indexOf('='); LEX[e.slice(0, i)] = e.slice(i + 1); });
   // h aspiré : pas de liaison ni d'élision
   var HASP = {};
@@ -190,7 +196,7 @@
   r('i', null, '(e#|es#|ent#)', 'i'); r('i', '[bcdfgkpstv][rl]', Vx, 'ij'); r('i', '[^#]', '[aeoouéèêàâôû]', 'j'); r('î', null, null, 'i'); r('ï', null, null, 'i'); r('i', null, null, 'i');
   // o
   r('oin', null, NOTNASAL, 'wɛ̃'); r('oi', null, null, 'wa'); r('oî', null, null, 'wa'); r('oy', null, Vx, 'waj'); r('oy', null, null, 'wa');
-  r('oeu', null, '[rlfn]e?s?#', 'œ'); r('œu', null, '[rlfn]e?s?#', 'œ'); r('oeu', null, null, 'ø'); r('œu', null, null, 'ø'); r('œ', null, null, 'e');
+  r('oeu', null, '[rlfn]e?s?#', 'œ'); r('œu', null, '[rlfn]e?s?#', 'œ'); r('oeu', null, null, 'ø'); r('œu', null, null, 'ø'); r('œ', null, 'il', 'œ'); r('œ', null, null, 'e');
   r('ou', null, '(e#|es#|ent#)', 'u'); r('ou', null, '[aeiéèêo]', 'w'); r('où', null, null, 'u'); r('oû', null, null, 'u'); r('ou', null, null, 'u');
   r('om', null, NOTNASAL, 'ɔ̃'); r('on', null, NOTNASAL, 'ɔ̃');
   r('o', null, 's(e|es|ent)#', 'o'); r('o', null, 'z', 'o'); r('o', null, '#', 'o'); r('o', null, '[stdpxz]s?#', 'o');
@@ -198,7 +204,7 @@
   r('o', null, '[bcdfgkpt][rl](e|es)#', 'ɔ'); r('o', null, '[bcdfgkpt][rl]', 'o'); r('o', null, Cx + Cx, 'ɔ'); r('ô', null, null, 'o'); r('ö', null, null, 'ø'); r('o', null, null, 'o');
   // u
   r('um', null, '#', 'ɔm'); r('um', null, '[pb]', 'œ̃'); r('un', null, NOTNASAL, 'œ̃');
-  r('ui', null, null, 'yi'); r('ue', '[cg]', 'il', 'œ'); r('u', 'q', null, ''); r('u', 'g', '[eiéèêy]', ''); r('u', null, '(e#|es#|ent#)', 'y'); r('u', null, Vx, 'y'); r('û', null, null, 'y'); r('ù', null, null, 'y'); r('ü', null, null, 'y'); r('u', null, null, 'y');
+  r('uill', '[^qg#]', null, 'yij'); r('uin', '[^qg#]', '([^aeiouyéèên]|#)', 'yɛ̃'); r('uill', 'g', null, 'ij'); r('ui', 'g', null, 'i'); r('ui', null, null, 'yi'); r('ue', '[cg]', 'il', 'œ'); r('u', 'q', null, ''); r('u', 'g', '[eiéèêy]', ''); r('u', null, '(e#|es#|ent#)', 'y'); r('u', null, Vx, 'y'); r('û', null, null, 'y'); r('ù', null, null, 'y'); r('ü', null, null, 'y'); r('u', null, null, 'y');
   // y
   r('ym', null, '[pb]', 'ɛ̃'); r('yn', null, NOTNASAL, 'ɛ̃'); r('y', '#', Vx, 'j'); r('y', Vx, Vx, 'j'); r('y', null, null, 'i'); r('ÿ', null, null, 'i');
   // consonnes

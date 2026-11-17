@@ -2290,7 +2290,8 @@ function voirCarnet(){
    ========================================================= */
 var RATES=[0.75,1,1.25,1.5,1.75,2];
 if(RATES.indexOf(+S.rate)<0) S.rate=RATES.reduce(function(a,x){ return Math.abs(x-S.rate)<Math.abs(a-S.rate)?x:a; },1);
-if(!S.voix) S.voix='auto'; if(!S.fx) S.fx='aucun';
+if(!S.voix) S.voix='auto'; if(!S.fx) S.fx='lecture';
+if(!S.fxLecture){ S.fxLecture=1; if(S.fx==='aucun') S.fx='lecture'; saveS(); }   // nouvel effet « Lecture » (voix plus chaude), proposé une fois par défaut
 var NATIVE=!!(A && A.audioPush);
 var T={on:false, kind:'', book:null, cur:null, state:'stop', said:0};
 var AUD=null, VX=null, MAJ='fr.magformation13.majordome';
@@ -2552,7 +2553,7 @@ function voiceSheet(fxFocus){
   } else if(E) h+='<p class="note" style="margin-top:10px">Voix partagées avec Majordome sur ce site : une voix téléchargée ici sert aussi à Majordome, et inversement.</p>';
   h+='<div class="set" style="margin-top:6px"><div class="lab">Intonation <span>Piper seulement</span></div><div class="seg" id="vExpr">'+[['neutre','Neutre'],['conteur','Conteur'],['theatre','Théâtral']].map(function(x){ return '<button data-expr="'+x[0]+'"'+((S.expr||'conteur')===x[0]?' class="on"':'')+'>'+x[1]+'</button>'; }).join('')+'</div></div>'+
     '<p class="note" style="margin:4px 0 0">Conteur : la voix monte un peu sur les dialogues, les questions et les exclamations, ralentit sur les suspensions ; deux répliques qui se suivent changent de ton. Théâtral : plus marqué.</p>';
-  h+='<div class="set" style="margin-top:6px"><div class="lab">Effet de voix <span>Piper seulement</span></div><div class="seg" id="vFx" style="flex-wrap:wrap">'+(window.MJVoix?Object.keys(MJVoix.FX).map(function(k){ return '<button data-fx="'+k+'"'+(S.fx===k?' class="on"':'')+'>'+esc(MJVoix.FX[k].name)+'</button>'; }).join(''):'')+'</div><p class="note" style="margin:8px 2px 0">« Aucun » convient à un roman ; les autres effets donnent une couleur (radio, IA de film…).</p></div>';
+  h+='<div class="set" style="margin-top:6px"><div class="lab">Effet de voix <span>Piper seulement</span></div><div class="seg" id="vFx" style="flex-wrap:wrap">'+(window.MJVoix?Object.keys(MJVoix.FX).map(function(k){ return '<button data-fx="'+k+'"'+(S.fx===k?' class="on"':'')+'>'+esc(MJVoix.FX[k].name)+'</button>'; }).join(''):'')+'</div><p class="note" style="margin:8px 2px 0">« Lecture » (par défaut) rend la voix plus chaude et plus proche ; « Aucun » la laisse brute ; les autres donnent une couleur (radio, IA de film…).</p></div>';
   var sh=openSheet('Voix de lecture', h), sb=sh.querySelector('.sb');
   if(fxFocus) setTimeout(function(){ var f=sb.querySelector('#vFx'); if(f) f.scrollIntoView({block:'center'}); },60);
   sb.onclick=function(e){

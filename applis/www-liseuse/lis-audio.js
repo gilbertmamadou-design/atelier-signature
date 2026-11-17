@@ -117,11 +117,14 @@
   /* Membres d'une phrase et silences de ponctuation (en secondes, à vitesse 1).
      Une phrase courte est dite d'une traite (intonation naturelle) ; une phrase longue est coupée à ses virgules,
      points-virgules, deux-points et points de suspension, en membres d'une demi-ligne au moins. */
-  var PAUSE = { ',': 0.16, ';': 0.3, ':': 0.26, '…': 0.4 }, LONG = 110, MINC = 28;
+  // Une phrase dite d'une traite garde la mélodie naturelle de la voix (Piper fait lui-même les petites pauses des
+  // virgules) : on ne coupe qu'une phrase longue, d'abord à ses points-virgules, deux-points et points de suspension,
+  // aux virgules seulement si elle est très longue.
+  var PAUSE = { ',': 0.16, ';': 0.3, ':': 0.26, '…': 0.4 }, LONG = 200, VLONG = 300, MINC = 40;
   function letters(x) { return x.replace(/[^\p{L}\p{N}]/gu, '').length; }
   function clauses(t) {
     if (t.length <= LONG) return [{ t: t, pause: 0 }];
-    var out = [], re = /([,;:…]+)[»”"’)\]]*\s+/g, m, a = 0;
+    var out = [], re = t.length > VLONG ? /([,;:…]+)[»”"’)\]]*\s+/g : /([;:…]+)[»”"’)\]]*\s+/g, m, a = 0;
     while ((m = re.exec(t))) {
       var e = m.index + m[0].length, piece = t.slice(a, e).trim();
       if (letters(piece) < MINC) continue;                  // trop court : reste avec la suite
@@ -142,14 +145,16 @@
     if (!k || !t) return { pitch: 1, rate: 1, vol: 1 };
     var p = 1, r = 1, v = 1, end = t.replace(/[\s»”"’)\]]+$/, '').slice(-1);
     var dial = /^[«“"—–]/.test(t) || (/^-\s/.test(t)) || (/[»”]\s*$/.test(t) && !/[«“]/.test(t));
-    if (dial) { p += 0.04 * k + (i % 2 ? 0.03 : -0.015) * k; r += 0.03 * k; }
-    if (end === '!') { p += 0.035 * k; r += 0.03 * k; v += 0.08 * k; }
-    else if (end === '?') { p += 0.025 * k; }
+    // la hauteur se règle par rééchantillonnage, qui change aussi le timbre : variations de hauteur discrètes,
+    // l'expression passe surtout par le débit et l'intensité
+    if (dial) { p += 0.02 * k + (i % 2 ? 0.015 : -0.008) * k; r += 0.03 * k; }
+    if (end === '!') { p += 0.018 * k; r += 0.03 * k; v += 0.1 * k; }
+    else if (end === '?') { p += 0.012 * k; r -= 0.01 * k; }
     else if (end === '…' || /\.\.\.$/.test(t)) { r -= 0.05 * k; p -= 0.01 * k; }
     if (!dial && t.length > 140) r -= 0.02 * k;
     var h = ((i * 2654435761) >>> 0) % 7 - 3;            // variation régulière, la même à chaque relecture
-    p += h * 0.004 * k; r += (((i * 40503) >>> 0) % 5 - 2) * 0.006 * k;
-    return { pitch: Math.max(0.88, Math.min(1.16, p)), rate: Math.max(0.85, Math.min(1.15, r)), vol: Math.max(0.9, Math.min(1.2, v)) };
+    p += h * 0.002 * k; r += (((i * 40503) >>> 0) % 5 - 2) * 0.006 * k;
+    return { pitch: Math.max(0.95, Math.min(1.07, p)), rate: Math.max(0.85, Math.min(1.15, r)), vol: Math.max(0.9, Math.min(1.2, v)) };
   }
   /** Silence après la phrase. Sans ponctuation finale (fin de page d'un PDF, retour à la ligne au milieu d'une phrase) :
       micro-pause, la phrase continue. */
