@@ -168,7 +168,7 @@
       if (B && B.hold) try { B.hold(true); } catch (e) { }
       if (piperOn()) {   // voix Piper ; en cas d'échec avant le premier son : voix du système, sans message
         speakWait[id] = fin; var heard = false;
-        VX.speak(t, { voice: S.piperVoice, rate: S.rate, pitch: S.pitch, volume: S.volume, fx: S.fx, fxo: S.fxo }, { onStart: function () { heard = true; }, onLevel: function (v) { orb.voice(v); } })
+        VX.speak(t, { voice: S.piperVoice, rate: S.rate, pitch: S.pitch, volume: S.volume, fx: S.fx, fxo: S.fxo, sil: S.vxSil }, { onStart: function () { heard = true; }, onLevel: function (v) { orb.voice(v); } })
           .then(fin, function (e) { if (heard || done) return fin(); console.warn('Piper indisponible, voix du système', e && (e.message || e.msg)); delete speakWait[id]; system(); });
         return;
       }
@@ -1461,10 +1461,16 @@
   }
   function permsSheet() { var b = openSheet('Autorisations', permsHtml(), 'perms'); b.onclick = function (e) { var f = e.target.closest('[data-fix]'); if (f) B.fix(f.dataset.fix); }; }
 
+  function fmtX(v) { return (Math.round(v * 100) / 100).toFixed(2).replace('.', ',') + ' ×'; }
+  function fmtN(v) { return (Math.round(v * 100) / 100).toFixed(2).replace('.', ','); }
+  /** expressivité et rythme de Piper (rechargement de la voix au prochain mot) */
+  function applyTune() { if (VX) VX.tune = { noise: S.vxNoise || 0, noiseW: S.vxNoiseW || 0 }; }
+  var tryT = 0;
+  function tryVoice() { clearTimeout(tryT); tryT = setTimeout(function () { shush(); speak('Voici ma voix avec ce réglage. Qu\'en pensez-vous ?'); }, 250); }
   function settingsSheet(focus) {
     refreshInfo();
     var vs = frVoices(), m = INFO.model || {};
-    var voxPanel = VX ? MJVoix.panel(VX, S, { save: saveS, android: ANDROID, refresh: function () { settingsSheet('voix'); }, preview: function (id) { shush(); VX.preview(id, { rate: S.rate, pitch: S.pitch, volume: S.volume, fx: S.fx, fxo: S.fxo }, { onLevel: function (v) { orb.voice(v); } }).then(function () { orb.speak(false); orb.state('idle'); }, function () { orb.speak(false); }); },
+    var voxPanel = VX ? MJVoix.panel(VX, S, { save: saveS, android: ANDROID, refresh: function () { settingsSheet('voix'); }, preview: function (id) { shush(); VX.preview(id, { rate: S.rate, pitch: S.pitch, volume: S.volume, fx: S.fx, fxo: S.fxo, sil: S.vxSil }, { onLevel: function (v) { orb.voice(v); } }).then(function () { orb.speak(false); orb.state('idle'); }, function () { orb.speak(false); }); },
       systemHtml: '<div class="set"><div class="t">Voix française<small>' + (vs.length ? vs.length + ' voix du système' : 'Aucune voix française trouvée : installez-en une dans les réglages du système') + '</small></div><select class="in" id="sVoice"><option value="">Par défaut</option>' + vs.map(function (v) { return '<option value="' + esc(v.id) + '"' + (v.id === S.voice ? ' selected' : '') + '>' + esc(v.name + (v.local === false ? ' (en ligne)' : '')) + '</option>'; }).join('') + '</select></div>' }) : { html: '<div class="set"><div class="t">Voix française<small>' + (vs.length ? vs.length + ' voix du système' : 'Aucune voix française trouvée : installez-en une dans les réglages du système') + '</small></div><select class="in" id="sVoice"><option value="">Par défaut</option>' + vs.map(function (v) { return '<option value="' + esc(v.id) + '"' + (v.id === S.voice ? ' selected' : '') + '>' + esc(v.name + (v.local === false ? ' (en ligne)' : '')) + '</option>'; }).join('') + '</select></div>', bind: function () { } };
     var h = '<div class="sect">Assistant</div>' +
       '<div class="set"><div class="t">Nom de l\'assistant<small>Affiché et utilisé comme mot de réveil. Ex. « Jarvis » pour votre usage personnel : gardé sur cet appareil seulement.</small></div></div><input class="in" id="sName" maxlength="24" value="' + esc(S.name) + '">' +
@@ -1474,8 +1480,13 @@
       '<div class="sect" id="f-voix">Voix</div>' +
       '<div class="set"><div class="t">Répondre à voix haute</div><label class="sw"><input type="checkbox" id="sVoiceOn"' + (S.voiceOn ? ' checked' : '') + '><span></span></label></div>' +
       voxPanel.html +
-      '<div class="set"><div class="t">Vitesse</div><input type="range" id="sRate" min="0.6" max="1.6" step="0.05" value="' + S.rate + '"></div>' +
-      '<div class="set"><div class="t">Hauteur</div><input type="range" id="sPitch" min="0.6" max="1.6" step="0.05" value="' + S.pitch + '"></div>' +
+      '<div class="set"><div class="t">Vitesse <small id="vRate">' + fmtX(S.rate) + '</small></div><input type="range" id="sRate" min="0.6" max="1.6" step="0.02" value="' + S.rate + '"></div>' +
+      '<div class="set"><div class="t">Hauteur <small id="vPitch">' + fmtX(S.pitch) + '</small></div><input type="range" id="sPitch" min="0.6" max="1.6" step="0.02" value="' + S.pitch + '"></div>' +
+      (S.tts === 'piper' ? '<details class="set" style="display:block"' + (S.vxNoise || S.vxNoiseW || S.vxSil != null ? ' open' : '') + '><summary style="cursor:pointer"><b>Affiner la voix Piper</b> <small>naturel, rythme, pauses</small></summary>' +
+        '<div class="set"><div class="t">Expressivité <small id="vNoise">' + (S.vxNoise ? fmtN(S.vxNoise) : 'd\'origine') + '</small><small>Plus haut : voix plus vivante et variée ; plus bas : plus régulière, plus posée.</small></div><input type="range" id="sNoise" min="0.3" max="1" step="0.05" value="' + (S.vxNoise || 0.667) + '"></div>' +
+        '<div class="set"><div class="t">Rythme naturel <small id="vNoiseW">' + (S.vxNoiseW ? fmtN(S.vxNoiseW) : 'd\'origine') + '</small><small>Variation de la durée des syllabes : plus haut, phrasé plus humain ; plus bas, plus mécanique.</small></div><input type="range" id="sNoiseW" min="0.3" max="1.3" step="0.05" value="' + (S.vxNoiseW || 0.8) + '"></div>' +
+        '<div class="set"><div class="t">Pauses aux virgules et entre phrases <small id="vSil">' + fmtN(S.vxSil != null ? S.vxSil : 0.2) + '</small></div><input type="range" id="sSil" min="0" max="1" step="0.05" value="' + (S.vxSil != null ? S.vxSil : 0.2) + '"></div>' +
+        '<div class="row" style="display:flex;gap:8px"><button class="btn sm" id="sTuneRaz">Réglages d\'origine</button></div><p class="note">Chaque changement se fait entendre tout de suite. L\'expressivité et le rythme rechargent la voix (une ou deux secondes).</p></details>' : '') +
       '<div class="set"><div class="t">Volume (voix et bips)</div><input type="range" id="sVol" min="0.1" max="1" step="0.05" value="' + S.volume + '"></div>' +
       '<div class="set"><div class="t">Bips d\'écoute</div><label class="sw"><input type="checkbox" id="sBeeps"' + (S.beeps ? ' checked' : '') + '><span></span></label></div>' +
       '<div class="row" style="display:flex;gap:8px"><button class="btn sm" id="sTest">Essayer la voix</button></div>' +
@@ -1511,8 +1522,17 @@
     on('sPrenom', 'onchange', function () { S.prenom = this.value.trim(); saveS(); });
     on('sVoiceOn', 'onchange', function () { S.voiceOn = this.checked; saveS(); });
     on('sVoice', 'onchange', function () { S.voice = this.value; saveS(); });
-    on('sRate', 'onchange', function () { S.rate = +this.value; saveS(); });
-    on('sPitch', 'onchange', function () { S.pitch = +this.value; saveS(); });
+    on('sRate', 'onchange', function () { S.rate = +this.value; saveS(); tryVoice(); });
+    on('sPitch', 'onchange', function () { S.pitch = +this.value; saveS(); tryVoice(); });
+    on('sRate', 'oninput', function () { var e = $('vRate'); if (e) e.textContent = fmtX(+this.value); });
+    on('sPitch', 'oninput', function () { var e = $('vPitch'); if (e) e.textContent = fmtX(+this.value); });
+    on('sNoise', 'oninput', function () { $('vNoise').textContent = fmtN(+this.value); });
+    on('sNoiseW', 'oninput', function () { $('vNoiseW').textContent = fmtN(+this.value); });
+    on('sSil', 'oninput', function () { $('vSil').textContent = fmtN(+this.value); });
+    on('sNoise', 'onchange', function () { S.vxNoise = +this.value; saveS(); applyTune(); tryVoice(); });
+    on('sNoiseW', 'onchange', function () { S.vxNoiseW = +this.value; saveS(); applyTune(); tryVoice(); });
+    on('sSil', 'onchange', function () { S.vxSil = +this.value; saveS(); tryVoice(); });
+    on('sTuneRaz', 'onclick', function () { S.vxNoise = 0; S.vxNoiseW = 0; S.vxSil = null; saveS(); applyTune(); settingsSheet('voix'); tryVoice(); });
     on('sVol', 'onchange', function () { S.volume = +this.value; saveS(); });
     on('sBeeps', 'onchange', function () { S.beeps = this.checked; saveS(); });
     on('sTest', 'onclick', function () { shush(); speak(withSir('Bonjour') + '. Je suis ' + S.name + ', à votre service.'); });
@@ -1746,6 +1766,7 @@
   tick(); lastExchange();
   document.addEventListener('DOMContentLoaded', function () { try { moment(); } catch (e) { } });   // après mj-maison (carte Lumières)
   applyWake();
+  applyTune();
   if (S.tts === 'piper' && VX && VX.hasVoice(S.piperVoice)) setTimeout(function () { VX.warm(S.piperVoice).catch(function () { }); }, 1200);
   if (window.speechSynthesis && speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = function () { if (curSheet === 'settings') settingsSheet(); };
   var first = !lsGet('majordome:vu', false);
