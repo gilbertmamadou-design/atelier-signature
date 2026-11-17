@@ -72,7 +72,7 @@
   function spell(s) { return s.toLowerCase().split('').map(function (c) { return LETTERS[c] || c; }).join('-'); }
 
   var UNITS = [
-    [/(\d)\s?km\/h\b/g, '$1 kilomètres-heure'], [/(\d)\s?°\s?C\b/g, '$1 degrés'], [/(\d)\s?°/g, '$1 degrés'], [/(\d)\s?%/g, '$1 pour cent'],
+    [/(\d)\s?km\s?\/\s?h\b/gi, '$1 kilomètre-heure'], [/(\d)\s?kmh\b/gi, '$1 kilomètre-heure'], [/\bkm\s?\/\s?h\b/gi, 'kilomètre-heure'], [/\bkmh\b/gi, 'kilomètre-heure'], [/(\d)\s?°\s?C\b/g, '$1 degrés'], [/(\d)\s?°/g, '$1 degrés'], [/(\d)\s?%/g, '$1 pour cent'],
     [/(\d)\s?€/g, '$1 euros'], [/(\d)\s?\$/g, '$1 dollars'], [/(\d)\s?km\b/g, '$1 kilomètres'], [/(\d)\s?cm\b/g, '$1 centimètres'], [/(\d)\s?mm\b/g, '$1 millimètres'],
     [/(\d)\s?kg\b/g, '$1 kilos'], [/(\d)\s?min\b/g, '$1 minutes'], [/(\d)\s?ms\b/g, '$1 millisecondes'], [/(\d)\s?Mo\b/g, '$1 mégaoctets'], [/(\d)\s?Go\b/g, '$1 gigaoctets'],
     [/(\d)\s?ko\b/g, '$1 kilooctets'], [/(\d)\s?hPa\b/g, '$1 hectopascals'], [/(\d)\s?W\b/g, '$1 watts'], [/(\d)\s?kWh\b/g, '$1 kilowattheures'], [/(\d)\s?m\b(?![²³])/g, '$1 mètres'],
@@ -88,6 +88,7 @@
     t = t.replace(/\b(\d{1,2})\s?(?:h|:)\s?(\d{2})\b/g, function (m, h, mi) { return num(+h) + (+h > 1 ? ' heures ' : ' heure ') + (+mi ? num(+mi) : ''); });
     t = t.replace(/\b(\d{1,2})\s?h\b/g, function (m, h) { return num(+h) + (+h > 1 ? ' heures' : ' heure'); });
     UNITS.forEach(function (u) { t = t.replace(u[0], u[1]); });
+    t = t.replace(/mètres?\s?\/\s?s\b/g, 'mètres par seconde');
     // chiffres romains : siècles (XIXe), rois et papes (Louis XIV, François Ier, Jean-Paul II)
     t = t.replace(/\b((?=[IVXLC]*[IVX])[IVXLC]{1,7})(e|ème|eme)\b/g, function (m, r0, e) { var n = rom(r0); return n ? ordinal(n) : m; });
     t = t.replace(/\b([A-ZÉÈ][a-zéèêëïîôç]+(?:-[A-ZÉÈ][a-zéèêëïîôç]+)?)\s+(Ier|Ire|Iᵉʳ)\b/g, function (m, nm, r0) { return nm + (r0 === 'Ire' ? ' première' : ' premier'); });
@@ -148,7 +149,7 @@
    'panasonic=panazɔnik comfort=kɔ̃fɔʁ cloud=klawd zoom=zum meteoalarm=meteoalaʁm alpha=alfa cephei=sefei sherpa=ʃɛʁpa onnx=ɔniks ' +
    'beethoven=betɔvɛn mozart=mɔzaʁ shakespeare=ʃɛkspiʁ ' +
    'gare=ɡaʁ soixante=swasɑ̃t bruxelles=bʁysɛl auxerre=osɛʁ dix-sept=dˈisˈɛt dix-huit=dˈizyˈit dix-neuf=dˈiznˈœf ' +
-   'poêle=pwal poêles=pwal moelle=mwal moelleux=mwalø moelleuse=mwaløz aiguille=eɡyij aiguilles=eɡyij anguille=ɑ̃ɡij oeil=œj œillet=œjɛ oeillet=œjɛ sculpteur=skyltœʁ sculpteurs=skyltœʁ coefficient=koefisjɑ̃ pharaon=faʁaɔ̃ pharaons=faʁaɔ̃ football=futbɔl jean=ʒɑ̃ travers=tʁavɛʁ lys=lis cassis=kasis sinus=sinys clown=klun parking=paʁkinɡ camping=kɑ̃pinɡ cerf=sɛʁ deuxième=døzjɛm deuxièmes=døzjɛm troisième=tʁwazjɛm sixième=sizjɛm dixième=dizjɛm deuxièmement=døzjɛmmɑ̃ troisièmement=tʁwazjɛmmɑ̃ aiguë=eɡy linguistique=lɛ̃ɡyistik linguistiques=lɛ̃ɡyistik linguiste=lɛ̃ɡyist aiguiser=eɡyize aiguillon=eɡyijɔ̃ aiguës=eɡy ambiguë=ɑ̃biɡy ciguë=siɡy etcétéra=ɛtseteʁa ' +
+   'millimètre=milimɛtʁ millimètres=milimɛtʁ millier=milje milliers=milje milligramme=miliɡʁam milligrammes=miliɡʁam millilitre=mililitʁ millilitres=mililitʁ millénaire=milenɛʁ millésime=milezim distiller=distile osciller=ɔsile pupille=pypil cyrillique=siʁilik poêle=pwal poêles=pwal moelle=mwal moelleux=mwalø moelleuse=mwaløz aiguille=eɡyij aiguilles=eɡyij anguille=ɑ̃ɡij oeil=œj œillet=œjɛ oeillet=œjɛ sculpteur=skyltœʁ sculpteurs=skyltœʁ coefficient=koefisjɑ̃ pharaon=faʁaɔ̃ pharaons=faʁaɔ̃ football=futbɔl jean=ʒɑ̃ travers=tʁavɛʁ lys=lis cassis=kasis sinus=sinys clown=klun parking=paʁkinɡ camping=kɑ̃pinɡ cerf=sɛʁ deuxième=døzjɛm deuxièmes=døzjɛm troisième=tʁwazjɛm sixième=sizjɛm dixième=dizjɛm deuxièmement=døzjɛmmɑ̃ troisièmement=tʁwazjɛmmɑ̃ aiguë=eɡy linguistique=lɛ̃ɡyistik linguistiques=lɛ̃ɡyistik linguiste=lɛ̃ɡyist aiguiser=eɡyize aiguillon=eɡyijɔ̃ aiguës=eɡy ambiguë=ɑ̃biɡy ciguë=siɡy etcétéra=ɛtseteʁa ' +
    'plus-que-parfait=plyskəpaʁfɛ aujourd\'hui=oʒuʁdyi rendez-vous=ʁɑ̃devu').split(' ').forEach(function (e) { var i = e.indexOf('='); LEX[e.slice(0, i)] = e.slice(i + 1); });
   // h aspiré : pas de liaison ni d'élision
   var HASP = {};
