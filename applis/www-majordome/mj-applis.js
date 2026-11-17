@@ -145,7 +145,8 @@
   /* ---------------- Caméras de la maison (appli Caméras) ---------------- */
   H.cameras = function (p) {
     if (!ANDROID || !B || !B.camerasShow) return say('Les caméras s\'affichent sur le téléphone, avec l\'appli Caméras.');
-    var r = B.camerasShow(p.name || '');
+    var r = p.move && B.camerasShow2 ? B.camerasShow2(p.name || '', p.move) : B.camerasShow(p.name || '');
+    if (r === 'ok' && p.move) return say(X.ack({ left: 'Je tourne à gauche', right: 'Je tourne à droite', up: 'Je lève la caméra', down: 'Je baisse la caméra', 'in': 'Je zoome', out: 'Je dézoome' }[p.move] || 'C\'est fait'));
     if (r === 'ok') return say(X.ack(p.name ? 'Voici la caméra ' + p.name : 'Voici les caméras'));
     if (r === 'absent') return say('Installez d\'abord l\'appli Caméras et réglez-y vos caméras.');
     return say('Je n\'arrive pas à ouvrir l\'appli Caméras : mettez-la à jour, puis réessayez.');

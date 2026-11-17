@@ -9,6 +9,7 @@ package __PKG__;
 
 import android.app.Activity;
 import android.content.Context;
+import android.app.PendingIntent;
 import android.content.Intent;
 import android.net.wifi.WifiManager;
 import android.webkit.JavascriptInterface;
@@ -215,7 +216,8 @@ public class CamerasBridge {
     }
 
     /** Adresses RTSP par ONVIF ; null si la caméra ne répond pas en ONVIF. diag : ce qui s'est passé */
-    static String[] onvif(String ip, String xaddr, String user, String pwd, StringBuilder diag) {
+    static String[] onvif(String ip, String xaddr, String user, String pwd, StringBuilder diag) { return onvif(ip, xaddr, user, pwd, diag, new JSONObject()); }
+    static String[] onvif(String ip, String xaddr, String user, String pwd, StringBuilder diag, JSONObject ex) {
         List<String> devs = new ArrayList<>();
         if (xaddr != null && xaddr.startsWith("http")) devs.add(xaddr);
         for (int p : new int[]{ 10000, 8000, 80, 8080, 2020, 6688, 8899, 5000 }) devs.add("http://" + ip + (p == 80 ? "" : ":" + p) + "/onvif/device_service");
@@ -223,7 +225,8 @@ public class CamerasBridge {
             try {
                 String host = new java.net.URI(dev).getHost(); int port = new java.net.URI(dev).getPort(); if (port <= 0) port = 80;
                 if (!ip.equals(host) || !open(ip, port)) continue;
-                Http h = call(dev, "<GetCapabilities xmlns=\"http://www.onvif.org/ver10/device/wsdl\"><Category>Media</Category></GetCapabilities>", user, pwd);
+                Http h = call(dev, "<GetCapabilities xmlns=\"http://www.onvif.org/ver10/device/wsdl\"><Category>All</Category></GetCapabilities>", user, pwd);
+                if (!h.body.contains("XAddr")) h = call(dev, "<GetCapabilities xmlns=\"http://www.onvif.org/ver10/device/wsdl\"><Category>Media</Category></GetCapabilities>", user, pwd);
                 diag.append("ONVIF ").append(port).append(" : ").append(h.code).append("; ");
                 if (h.code != 200 && refused(h)) { diag.append("refus; "); }
                 String media = dev;
@@ -237,10 +240,18 @@ public class CamerasBridge {
                     if (!refused(t2) && t2.body.contains("token=")) { pr = t2; mode = md; break; }
                 }
                 if (pr == null) { diag.append("profils refusés (3 essais); "); return new String[]{ "auth" }; }
+                // caméra motorisée (PTZ) et événements (détection de mouvement) : adresses des services, si la caméra en a
+                try {
+                    ex.put("dev", dev).put("mode", mode);
+                    Matcher pz = Pattern.compile("PTZ>\\s*<[^>]*XAddr>([^<]+)<").matcher(h.body); if (pz.find()) ex.put("ptz", local(ip, unXml(pz.group(1))));
+                    Matcher evm = Pattern.compile("Events>\\s*<[^>]*XAddr>([^<]+)<").matcher(h.body); if (evm.find()) ex.put("events", local(ip, unXml(evm.group(1))));
+                } catch (Throwable t) { }
                 diag.append("ident ").append(mode == 0 ? "condensée" : mode == 1 ? "en clair" : "aucune").append("; ");
                 Matcher tk = Pattern.compile("Profiles[^>]*token=\"([^\"]+)\"").matcher(pr.body);
                 List<String> tokens = new ArrayList<>(); while (tk.find()) if (!tokens.contains(tk.group(1))) tokens.add(tk.group(1));
                 diag.append(tokens.size()).append(" profil(s); ");
+                if (!tokens.isEmpty()) try { ex.put("token", tokens.get(0)); } catch (Throwable t) { }
+                if (ex.has("ptz")) diag.append("motorisée; "); if (ex.has("events")) diag.append("événements; ");
                 List<String> uris = new ArrayList<>();
                 for (String t : tokens) {
                     Http su = call(media, "<GetStreamUri xmlns=\"http://www.onvif.org/ver10/media/wsdl\"><StreamSetup><Stream xmlns=\"http://www.onvif.org/ver10/schema\">RTP-Unicast</Stream><Transport xmlns=\"http://www.onvif.org/ver10/schema\"><Protocol>RTSP</Protocol></Transport></StreamSetup><ProfileToken>" + xmlEsc(t) + "</ProfileToken></GetStreamUri>", user, pwd, mode, skew);
@@ -262,7 +273,8 @@ public class CamerasBridge {
                 if (!privateIp(ip)) { ev.put("ok", false).put("err", "ip"); emit(ev); return; }
                 boolean refused = false;
                 // 1. ONVIF : la caméra donne elle-même l'adresse de ses flux
-                String[] u = onvif(ip, xaddr, user, pwd, diag);
+                JSONObject ex = new JSONObject();
+                String[] u = onvif(ip, xaddr, user, pwd, diag, ex);
                 if (u != null && u.length == 1 && "auth".equals(u[0])) refused = true;
                 else if (u != null) {
                     java.net.URI m = new java.net.URI(u[0]);
@@ -272,7 +284,7 @@ public class CamerasBridge {
                     String sub = "";
                     if (u.length > 1) { java.net.URI sm = new java.net.URI(u[1]); if ((sm.getPort() > 0 ? sm.getPort() : 554) == port) sub = (sm.getRawPath() == null ? "/" : sm.getRawPath()) + (sm.getRawQuery() != null ? "?" + sm.getRawQuery() : ""); }
                     if (code == 401) refused = true;
-                    else { ev.put("ok", true).put("port", port).put("main", main).put("sub", sub).put("diag", diag.toString()); emit(ev); return; }
+                    else { ev.put("ok", true).put("port", port).put("main", main).put("sub", sub).put("diag", diag.toString()).put("onvif", ex); emit(ev); return; }
                 }
                 // 2. adresses habituelles
                 boolean any = false;
@@ -295,6 +307,152 @@ public class CamerasBridge {
             } catch (Throwable t) { try { ev.put("ok", false).put("err", "closed").put("diag", diag.append(t.getClass().getSimpleName()).toString()); } catch (Throwable e) { } }
             emit(ev);
         } }, "cameras-probe").start();
+    }
+
+    /** Adresse d'un service ONVIF ramenée sur l'adresse IP connue de la caméra (certaines annoncent une autre adresse) */
+    static String local(String ip, String url) {
+        try { java.net.URI u = new java.net.URI(url); if (ip.equals(u.getHost())) return url; return "http://" + ip + ":" + (u.getPort() > 0 ? u.getPort() : 80) + u.getRawPath(); } catch (Throwable t) { return url; }
+    }
+    /** Enveloppe SOAP avec WS-Addressing (Action, To), exigé par les abonnements aux événements */
+    static String soapWsa(String body, String user, String pwd, int mode, long skew, String action, String to) throws Exception {
+        String x = soap(body, user, pwd, mode, skew);
+        String wsa = "<wsa:Action xmlns:wsa=\"http://www.w3.org/2005/08/addressing\">" + action + "</wsa:Action><wsa:To xmlns:wsa=\"http://www.w3.org/2005/08/addressing\">" + xmlEsc(to) + "</wsa:To>";
+        return x.contains("<s:Header>") ? x.replace("<s:Header>", "<s:Header>" + wsa) : x.replace("<s:Body>", "<s:Header>" + wsa + "</s:Header><s:Body>");
+    }
+
+    // ================= Caméra motorisée (ONVIF PTZ) =================
+    /** dir : left, right, up, down, in, out ; ms > 0 : mouvement puis arrêt ; ms = 0 : mouvement continu ; "stop" : arrêt */
+    static boolean ptz(JSONObject c, String dir, int ms) {
+        try {
+            String url = c.optString("ptz"), tok = c.optString("token"), user = c.optString("user"), pwd = c.optString("pwd");
+            if (url.isEmpty() || tok.isEmpty()) return false;
+            int mode = c.optInt("mode", 0); long skew = mode == 0 ? skewOf(c.optString("dev", url)) : 0;
+            String ns = "http://www.onvif.org/ver20/ptz/wsdl", sc = "http://www.onvif.org/ver10/schema";
+            if (!"stop".equals(dir)) {
+                float x = "left".equals(dir) ? -0.5f : "right".equals(dir) ? 0.5f : 0f, y = "up".equals(dir) ? 0.5f : "down".equals(dir) ? -0.5f : 0f, z = "in".equals(dir) ? 0.5f : "out".equals(dir) ? -0.5f : 0f;
+                String vel = (z != 0 ? "<Zoom x=\"" + z + "\" xmlns=\"" + sc + "\"/>" : "<PanTilt x=\"" + x + "\" y=\"" + y + "\" xmlns=\"" + sc + "\"/>");
+                Http h = call(url, "<ContinuousMove xmlns=\"" + ns + "\"><ProfileToken>" + xmlEsc(tok) + "</ProfileToken><Velocity>" + vel + "</Velocity></ContinuousMove>", user, pwd, mode, skew);
+                if (h.code >= 400 || refused(h)) return false;
+                if (ms <= 0) return true;
+                Thread.sleep(ms);
+            }
+            call(url, "<Stop xmlns=\"" + ns + "\"><ProfileToken>" + xmlEsc(tok) + "</ProfileToken><PanTilt>true</PanTilt><Zoom>true</Zoom></Stop>", user, pwd, mode, skew);
+            return true;
+        } catch (Throwable t) { return false; }
+    }
+
+    // ================= Détection de mouvement (événements ONVIF, abonnement « PullPoint ») =================
+    static final String CH_MOVE = "cam_mouvement";
+    static final Map<String, String> guardState = java.util.Collections.synchronizedMap(new LinkedHashMap<String, String>());
+    static boolean guardOn(Context c) { return c.getSharedPreferences("cameras", Context.MODE_PRIVATE).getBoolean("guard", false); }
+    @JavascriptInterface public void guard(boolean on) {
+        Context c = a.getApplicationContext();
+        c.getSharedPreferences("cameras", Context.MODE_PRIVATE).edit().putBoolean("guard", on).apply();
+        if (on && android.os.Build.VERSION.SDK_INT >= 33 && a.checkSelfPermission("android.permission.POST_NOTIFICATIONS") != android.content.pm.PackageManager.PERMISSION_GRANTED)
+            a.requestPermissions(new String[]{ "android.permission.POST_NOTIFICATIONS" }, 4411);
+        Garde.sync(c);
+    }
+    @JavascriptInterface public void guardFull(boolean on) { a.getSharedPreferences("cameras", Context.MODE_PRIVATE).edit().putBoolean("guardFull", on).apply(); }
+    @JavascriptInterface public String guardInfo() { JSONObject o = new JSONObject(); try { o.put("on", guardOn(a)); JSONObject s = new JSONObject(); synchronized (guardState) { for (Map.Entry<String, String> e : guardState.entrySet()) s.put(e.getKey(), e.getValue()); } o.put("cams", s); } catch (Throwable t) { } return o.toString(); }
+    @JavascriptInterface public boolean ptzMove(final String camJson, final String dir) {
+        new Thread(new Runnable() { public void run() { try { ptz(new JSONObject(camJson), dir, 700); } catch (Throwable t) { } } }).start();
+        return true;
+    }
+
+    public static class Boot extends android.content.BroadcastReceiver {
+        @Override public void onReceive(Context c, Intent i) { if (guardOn(c)) Garde.sync(c); }
+    }
+    public static class Garde extends android.app.Service {
+        static volatile boolean running; volatile boolean stop;
+        android.os.PowerManager.WakeLock wl; WifiManager.WifiLock wfl;
+        static void sync(Context c) {
+            Intent i = new Intent(c, Garde.class);
+            if (guardOn(c)) { try { if (android.os.Build.VERSION.SDK_INT >= 26) c.startForegroundService(i); else c.startService(i); } catch (Throwable t) { } }
+            else c.stopService(i);
+        }
+        @Override public android.os.IBinder onBind(Intent i) { return null; }
+        android.app.Notification.Builder nb(String ch) { return android.os.Build.VERSION.SDK_INT >= 26 ? new android.app.Notification.Builder(this, ch) : new android.app.Notification.Builder(this); }
+        void channels() {
+            if (android.os.Build.VERSION.SDK_INT < 26) return;
+            android.app.NotificationManager m = getSystemService(android.app.NotificationManager.class);
+            m.createNotificationChannel(new android.app.NotificationChannel("cam_garde", "Surveillance active", android.app.NotificationManager.IMPORTANCE_MIN));
+            android.app.NotificationChannel mv = new android.app.NotificationChannel(CH_MOVE, "Mouvement détecté", android.app.NotificationManager.IMPORTANCE_HIGH); mv.enableVibration(true);
+            m.createNotificationChannel(mv);
+        }
+        PendingIntent viewer(String name, int code) {
+            Intent v = new Intent(this, CamerasViewer.class).putExtra("name", name).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            return PendingIntent.getActivity(this, code, v, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+        }
+        @Override public int onStartCommand(Intent in, int f, int id) {
+            channels();
+            android.app.Notification n = nb("cam_garde").setSmallIcon(getApplicationInfo().icon).setContentTitle("Surveillance des caméras").setContentText("Alerte en cas de mouvement").setOngoing(true).setContentIntent(viewer("", 4400)).build();
+            try { if (android.os.Build.VERSION.SDK_INT >= 29) startForeground(4401, n, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE); else startForeground(4401, n); } catch (Throwable t) { stopSelf(); return START_NOT_STICKY; }
+            if (!running) {
+                running = true; stop = false;
+                try { wl = ((android.os.PowerManager) getSystemService(POWER_SERVICE)).newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "cameras:garde"); wl.acquire(); } catch (Throwable t) { }
+                try { wfl = ((WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE)).createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "cameras:garde"); wfl.acquire(); } catch (Throwable t) { }
+                try {
+                    JSONArray l = new JSONArray(getSharedPreferences("cameras", MODE_PRIVATE).getString("cams", "[]"));
+                    guardState.clear();
+                    for (int i = 0; i < l.length(); i++) {
+                        final JSONObject c = l.getJSONObject(i);
+                        if (c.optString("events").isEmpty()) { guardState.put(c.optString("name"), "sans détection (ONVIF)"); continue; }
+                        if (!c.optBoolean("guard", true)) continue;
+                        guardState.put(c.optString("name"), "connexion…");
+                        new Thread(new Runnable() { public void run() { watch(c); } }, "cameras-garde").start();
+                    }
+                } catch (Throwable t) { }
+            }
+            return START_STICKY;
+        }
+        @Override public void onDestroy() {
+            stop = true; running = false;
+            try { if (wl != null && wl.isHeld()) wl.release(); } catch (Throwable t) { }
+            try { if (wfl != null && wfl.isHeld()) wfl.release(); } catch (Throwable t) { }
+            super.onDestroy();
+        }
+        static final Pattern MOTION = Pattern.compile("(?i)Name=\"(IsMotion|State|Motion|MotionActive|MotionAlarm|Alarm)\"\\s+Value=\"(true|1)\"");
+        void watch(JSONObject c) {
+            String name = c.optString("name"), ev = c.optString("events"), user = c.optString("user"), pwd = c.optString("pwd");
+            int mode = c.optInt("mode", 0), fails = 0; long lastAlert = 0;
+            String ns = "http://www.onvif.org/ver10/events/wsdl";
+            while (!stop) {
+                try {
+                    long skew = mode == 0 ? skewOf(c.optString("dev", ev)) : 0;
+                    Http h = post(ev, soapWsa("<CreatePullPointSubscription xmlns=\"" + ns + "\"><InitialTerminationTime>PT600S</InitialTerminationTime></CreatePullPointSubscription>", user, pwd, mode, skew,
+                        ns + "/EventPortType/CreatePullPointSubscriptionRequest", ev), user, pwd);
+                    Matcher am = Pattern.compile("SubscriptionReference>[\\s\\S]*?Address>([^<]+)<").matcher(h.body);
+                    if (h.code >= 400 || !am.find()) { guardState.put(name, refused(h) ? "identifiants refusés" : "détection non prise en charge"); fails++; Thread.sleep(Math.min(600000, 30000L * fails)); continue; }
+                    String sub = local(c.optString("ip", new java.net.URI(ev).getHost()), unXml(am.group(1)));
+                    guardState.put(name, "surveillée"); fails = 0;
+                    long until = System.currentTimeMillis() + 8 * 60000L;
+                    while (!stop && System.currentTimeMillis() < until) {
+                        Http pm = post(sub, soapWsa("<PullMessages xmlns=\"" + ns + "\"><Timeout>PT3S</Timeout><MessageLimit>20</MessageLimit></PullMessages>", user, pwd, mode, skew,
+                            ns + "/PullPointSubscription/PullMessagesRequest", sub), user, pwd);
+                        if (pm.code >= 400 || pm.code == 0) throw new Exception("pull " + pm.code);
+                        boolean motion = false;
+                        for (String chunk : pm.body.split("NotificationMessage>")) if (chunk.toLowerCase(Locale.ROOT).contains("motion") && MOTION.matcher(chunk).find()) motion = true;
+                        if (motion && System.currentTimeMillis() - lastAlert > 60000) { lastAlert = System.currentTimeMillis(); alert(name); }
+                        Thread.sleep(500);
+                    }
+                    try { post(sub, soapWsa("<Unsubscribe xmlns=\"http://docs.oasis-open.org/wsn/b-2\"/>", user, pwd, mode, skew, "http://docs.oasis-open.org/wsn/bw-2/SubscriptionManager/UnsubscribeRequest", sub), user, pwd); } catch (Throwable t) { }
+                } catch (Throwable t) {
+                    guardState.put(name, "caméra injoignable, nouvel essai…"); fails++;
+                    try { Thread.sleep(Math.min(300000, 15000L * fails)); } catch (Throwable e) { }
+                }
+            }
+        }
+        void alert(String name) {
+            try {
+                int code = 4500 + (name.hashCode() & 0xff);
+                boolean full = getSharedPreferences("cameras", MODE_PRIVATE).getBoolean("guardFull", false);
+                android.app.Notification.Builder b = nb(CH_MOVE).setSmallIcon(getApplicationInfo().icon).setContentTitle("Mouvement : " + name)
+                    .setContentText("Touchez pour voir la caméra").setAutoCancel(true).setCategory(android.app.Notification.CATEGORY_ALARM)
+                    .setContentIntent(viewer(name, code)).setVisibility(android.app.Notification.VISIBILITY_PUBLIC);
+                if (full) b.setFullScreenIntent(viewer(name, code + 1), true);
+                ((android.app.NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(code, b.build());
+            } catch (Throwable t) { }
+        }
     }
 
     // ================= Mosaïque =================

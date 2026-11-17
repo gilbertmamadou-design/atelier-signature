@@ -33,6 +33,7 @@ main{padding:4px 16px calc(100px + var(--safe-b));max-width:760px;margin:0 auto}
 #sheet .box{background:var(--bg2);border-radius:20px 20px 0 0;padding:18px 16px calc(18px + var(--safe-b));width:100%;max-width:640px;max-height:90vh;overflow:auto}
 #sheet h2{margin:0 0 6px;font-size:19px}
 #toast{position:fixed;left:50%;bottom:calc(86px + var(--safe-b));transform:translateX(-50%);background:#0b0e14;border:1px solid var(--line2);padding:10px 16px;border-radius:12px;font-size:14px;z-index:20;max-width:90vw;opacity:0;transition:opacity .25s;pointer-events:none}#toast.on{opacity:1}
+.sw{position:relative;width:46px;height:28px;flex:none}.sw input{opacity:0;width:0;height:0;position:absolute}.sw span{position:absolute;inset:0;border-radius:20px;background:var(--bg3);border:1px solid var(--line2);transition:.15s;cursor:pointer}.sw span:after{content:"";position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#cfd6e4;transition:.15s}.sw input:checked+span{background:var(--acc)}.sw input:checked+span:after{transform:translateX(18px);background:#061528}
 ol{margin:6px 0 0;padding-left:20px}ol li{margin:4px 0}
 </style>
 </head>
@@ -41,6 +42,11 @@ ol{margin:6px 0 0;padding-left:20px}ol li{margin:4px 0}
 <main>
   <div class="card"><h3>Mes caméras</h3><div id="list"></div>
     <div class="row" style="margin-top:10px"><button class="btn sm" id="bAdd">+ Ajouter une caméra</button></div></div>
+  <div class="card" id="gCard"><h3>Alertes de mouvement</h3>
+    <div class="row" style="justify-content:space-between;align-items:center"><span>Prévenir quand une caméra détecte un mouvement</span><label class="sw"><input type="checkbox" id="gOn"><span></span></label></div>
+    <div class="row" style="justify-content:space-between;align-items:center;margin-top:8px"><span>Afficher l'alerte en plein écran<br><small class="note" style="margin:0">même téléphone verrouillé</small></span><label class="sw"><input type="checkbox" id="gFull"><span></span></label></div>
+    <div id="gState" class="note"></div>
+    <p class="note">La détection est celle de la caméra (à régler dans Daewoo Home Connect). Le téléphone reste à l'écoute sur le Wi-Fi de la maison : cela consomme un peu plus de batterie.</p></div>
   <div class="card"><h3>Avant de commencer</h3>
     <ol>
       <li>Dans <b>Daewoo Home Connect</b>, ouvre chaque caméra › réglages › active le commutateur <b>ONVIF</b> et choisis un <b>mot de passe</b> (l'identifiant est en général <b>admin</b>).</li>
@@ -61,8 +67,10 @@ ol{margin:6px 0 0;padding-left:20px}ol li{margin:4px 0}
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify(L)); } catch (e) { }
     // caméras prêtes, pour « Jarvis, montre les caméras » (préférences privées de l'appli)
-    try { if (B && B.store) B.store(JSON.stringify(L.filter(function (c) { return c.ok; }).map(function (c) { return { name: c.name, main: rtsp(c, c.main), sub: c.sub ? rtsp(c, c.sub) : '' }; }))); } catch (e) { }
+    try { if (B && B.store) B.store(JSON.stringify(L.filter(function (c) { return c.ok; }).map(camObj))); } catch (e) { }
   }
+  // pour la mosaïque, la commande des caméras motorisées et la surveillance (préférences privées de l'appli)
+  function camObj(c) { var o = c.onvif || {}; return { name: c.name, main: rtsp(c, c.main), sub: c.sub ? rtsp(c, c.sub) : '', ip: c.ip, user: c.user || '', pwd: c.pwd || '', ptz: o.ptz || '', events: o.events || '', token: o.token || '', mode: o.mode || 0, dev: o.dev || '', guard: c.guard !== false }; }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   var tT = 0; function toast(t) { var e = $('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(tT); tT = setTimeout(function () { e.classList.remove('on'); }, 2800); }
   function uid() { return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
@@ -74,7 +82,7 @@ ol{margin:6px 0 0;padding-left:20px}ol li{margin:4px 0}
     var extra = found.filter(function (f) { return !known[f.ip]; });
     $('list').innerHTML = (L.length ? L.map(function (c, i) {
       var st = probing[c.id] ? '<span class="st">Test…</span>' : c.ok ? '<span class="st ok">OK</span>' : c.err ? '<span class="st ko">' + esc(ERR[c.err] || 'Erreur') + '</span>' : '<span class="st">À tester</span>';
-      return '<div class="cam"><div class="t" data-ed="' + i + '"><b>' + esc(c.name) + '</b><small>' + esc(c.ip) + (c.ok ? ' · ' + (c.sub ? 'flux réduit pour la mosaïque' : 'flux principal') : '') + '</small><div style="margin-top:5px">' + st + '</div></div>' +
+      return '<div class="cam"><div class="t" data-ed="' + i + '"><b>' + esc(c.name) + '</b><small>' + esc(c.ip) + (c.ok ? ' · ' + (c.sub ? 'flux réduit pour la mosaïque' : 'flux principal') + (c.onvif && c.onvif.ptz ? ' · motorisée' : '') + (c.onvif && c.onvif.events ? ' · détection de mouvement' : '') : '') + '</small><div style="margin-top:5px">' + st + '</div></div>' +
         (c.ok ? '<button class="btn sm" data-one="' + i + '">Voir</button>' : '<button class="btn sm" data-test="' + i + '">Tester</button>') +
         '<button class="btn sm bad" data-del="' + i + '" aria-label="Effacer ' + esc(c.name) + '" title="Effacer" style="padding:0 10px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>' +
         (c.err && c.diag ? '<small style="flex-basis:100%;color:var(--tx3);font-size:12px;word-break:break-word">Détails : ' + esc(c.diag) + '</small>' : '') + '</div>';
@@ -119,7 +127,7 @@ ol{margin:6px 0 0;padding-left:20px}ol li{margin:4px 0}
       delete probing[d.id];
       var c = L.filter(function (x) { return x.id === d.id; })[0]; if (!c) return;
       c.diag = d.diag || '';
-      if (d.ok) { c.ok = 1; c.port = d.port; c.main = d.main; c.sub = d.sub || ''; delete c.err; toast('« ' + c.name + ' » : vidéo trouvée'); }
+      if (d.ok) { var was = c.ok; c.ok = 1; c.port = d.port; c.main = d.main; c.sub = d.sub || ''; c.onvif = d.onvif || {}; delete c.err; if (!was || !d.silent) toast('« ' + c.name + ' » : vidéo trouvée' + (c.onvif.ptz ? ', caméra motorisée' : '')); guardUi(); }
       else { c.err = d.err; delete c.ok; toast('« ' + c.name + ' » : ' + (ERR[d.err] || 'erreur')); }
       save(); render();
     }
@@ -127,7 +135,7 @@ ol{margin:6px 0 0;padding-left:20px}ol li{margin:4px 0}
   function show(idx) {
     var ok = L.filter(function (c) { return c.ok; });
     if (!ok.length) { toast('Teste d\'abord une caméra'); return; }
-    var j = JSON.stringify(ok.map(function (c) { return { name: c.name, main: rtsp(c, c.main), sub: c.sub ? rtsp(c, c.sub) : '' }; }));
+    var j = JSON.stringify(ok.map(camObj));
     var k = idx == null ? -1 : ok.indexOf(L[idx]);
     if (!B || !B.show(j, k)) toast('La mosaïque s\'ouvre dans l\'appli Android');
   }
@@ -147,7 +155,24 @@ ol{margin:6px 0 0;padding-left:20px}ol li{margin:4px 0}
     if ((b = e.target.closest('[data-ed]'))) { editor(+b.dataset.ed); return; }
   };
   $('sheet').onclick = function (e) { if (e.target.id === 'sheet') $('sheet').hidden = true; };
-  render(); save();
+  // alertes de mouvement (CamerasBridge.Garde)
+  var gT = 0;
+  function guardUi() {
+    if (!B || !B.guardInfo) { $('gCard').hidden = true; return; }
+    var g = {}; try { g = JSON.parse(B.guardInfo()) || {}; } catch (e) { }
+    $('gOn').checked = !!g.on; try { $('gFull').checked = localStorage.getItem('cameras:full') === '1'; } catch (e) { }
+    var withEv = L.filter(function (c) { return c.ok && c.onvif && c.onvif.events; });
+    var st = g.cams || {};
+    $('gState').innerHTML = !L.some(function (c) { return c.ok; }) ? 'Teste d\'abord une caméra.' : !withEv.length ? 'Aucune caméra testée n\'annonce la détection de mouvement en ONVIF (re-teste-les après la mise à jour).' :
+      L.filter(function (c) { return c.ok; }).map(function (c) { return '<div>' + esc(c.name) + ' : ' + esc(g.on ? (st[c.name] || (c.onvif && c.onvif.events ? 'démarrage…' : 'sans détection')) : (c.onvif && c.onvif.events ? 'prête' : 'sans détection')) + '</div>'; }).join('');
+    clearTimeout(gT); if (g.on) gT = setTimeout(guardUi, 4000);
+  }
+  $('gOn').onchange = function () { if (B && B.guard) { save(); B.guard(this.checked); toast(this.checked ? 'Surveillance activée' : 'Surveillance arrêtée'); setTimeout(guardUi, 800); } };
+  $('gFull').onchange = function () { try { localStorage.setItem('cameras:full', this.checked ? '1' : '0'); } catch (e) { } if (B && B.guardFull) B.guardFull(this.checked); };
+  try { if (B && B.guardFull) B.guardFull(localStorage.getItem('cameras:full') === '1'); } catch (e) { }
+  render(); save(); guardUi();
+  // caméras testées avant la mise à jour : nouveau test discret (commande motorisée, détection de mouvement)
+  if (B) L.forEach(function (c, i) { if (c.ok && !c.onvif) setTimeout(function () { B.probe(c.id, c.ip, c.user || '', c.pwd || '', c.xaddr || ''); }, 800 + i * 1500); });
   if (B && !L.length) setTimeout(function () { $('bFind').click(); }, 600);
 })();
 </script>

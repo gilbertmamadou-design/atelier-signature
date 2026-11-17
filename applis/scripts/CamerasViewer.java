@@ -33,7 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CamerasViewer extends Activity {
-    static final class Cam { String name, main, sub; }
+    static final class Cam { String name, main, sub; JSONObject raw; boolean ptz() { return raw != null && !raw.optString("ptz").isEmpty() && !raw.optString("token").isEmpty(); } }
     final class Tile {
         Cam cam; boolean big, useSub; FrameLayout box; Fit fit; SurfaceView sv; TextView label, status; ExoPlayer p; int fails;
         final Runnable retry = new Runnable() { public void run() { start(Tile.this); } };
@@ -61,6 +61,8 @@ public class CamerasViewer extends Activity {
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        // alerte de mouvement en plein écran : visible même téléphone verrouillé
+        if (android.os.Build.VERSION.SDK_INT >= 27) { try { setShowWhenLocked(true); setTurnScreenOn(true); } catch (Throwable t) { } }
         try {
             // depuis la page : liste fournie ; depuis Majordome (« montre les caméras ») : liste gardée par CamerasBridge.store()
             String js = getIntent().getStringExtra("cams");
@@ -68,7 +70,7 @@ public class CamerasViewer extends Activity {
             JSONArray a = new JSONArray(js);
             for (int i = 0; i < a.length(); i++) {
                 JSONObject o = a.getJSONObject(i); Cam c = new Cam();
-                c.name = o.optString("name", "Caméra " + (i + 1)); c.main = o.optString("main"); c.sub = o.optString("sub", "");
+                c.name = o.optString("name", "Caméra " + (i + 1)); c.main = o.optString("main"); c.sub = o.optString("sub", ""); c.raw = o;
                 if (!c.main.isEmpty()) cams.add(c);
             }
         } catch (Throwable t) { }
@@ -200,7 +202,36 @@ public class CamerasViewer extends Activity {
             ui.postDelayed(new Runnable() { public void run() { hint.animate().alpha(0f).setDuration(600).start(); } }, 3500);
             single.box.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { start = -1; showGrid(); } });
         }
+        if (cam.ptz()) ptzPad(cam);
         start(single);
+        // « Jarvis, tourne la caméra du jardin à gauche » : un petit mouvement à l'ouverture
+        final String mv = getIntent().getStringExtra("move");
+        if (mv != null && !mv.isEmpty() && cam.ptz()) { getIntent().removeExtra("move"); final JSONObject r = cam.raw; new Thread(new Runnable() { public void run() { CamerasBridge.ptz(r, mv, 900); } }).start(); }
+    }
+    /** Croix de commande d'une caméra motorisée : appuyer = bouger, relâcher = arrêter */
+    void ptzPad(final Cam cam) {
+        android.widget.GridLayout g = new android.widget.GridLayout(this); g.setColumnCount(3); g.setRowCount(3);
+        String[][] k = { { "", "▲", "" }, { "◀", "", "▶" }, { "－", "▼", "＋" } };
+        String[][] d = { { "", "up", "" }, { "left", "", "right" }, { "out", "down", "in" } };
+        for (int r = 0; r < 3; r++) for (int c = 0; c < 3; c++) {
+            TextView b = text(k[r][c], 20); b.setGravity(Gravity.CENTER);
+            final String dir = d[r][c];
+            if (!dir.isEmpty()) {
+                GradientDrawable bg = new GradientDrawable(); bg.setShape(GradientDrawable.OVAL); bg.setColor(0x88000000); bg.setStroke(dp(1), 0x55FFFFFF); b.setBackground(bg);
+                b.setContentDescription(dir);
+                b.setOnTouchListener(new View.OnTouchListener() { public boolean onTouch(View v, android.view.MotionEvent e) {
+                    final JSONObject raw = cam.raw;
+                    if (e.getAction() == android.view.MotionEvent.ACTION_DOWN) { v.setAlpha(.6f); new Thread(new Runnable() { public void run() { CamerasBridge.ptz(raw, dir, 0); } }).start(); }
+                    else if (e.getAction() == android.view.MotionEvent.ACTION_UP || e.getAction() == android.view.MotionEvent.ACTION_CANCEL) { v.setAlpha(1f); new Thread(new Runnable() { public void run() { CamerasBridge.ptz(raw, "stop", 0); } }).start(); }
+                    return true;
+                } });
+            }
+            android.widget.GridLayout.LayoutParams lp = new android.widget.GridLayout.LayoutParams(android.widget.GridLayout.spec(r), android.widget.GridLayout.spec(c));
+            lp.width = dp(52); lp.height = dp(52); lp.setMargins(dp(3), dp(3), dp(3), dp(3));
+            g.addView(b, lp);
+        }
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.END); lp.setMargins(0, 0, dp(14), dp(14));
+        root.addView(g, lp);
     }
 
     @Override public void onConfigurationChanged(android.content.res.Configuration c) {

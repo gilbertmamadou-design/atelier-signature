@@ -1906,7 +1906,7 @@ if [ "$APP" = "reseau" ]; then
   # VPN : WireGuard (ouvrir l'appli ou sa page Play Store) ; alerte « wifi non protégé » appli fermée (récepteur non exporté,
   # réarmé au démarrage du téléphone et après une mise à jour ; le wifi connecté arrive par PendingIntent de ConnectivityManager)
   addraw '<queries><package android:name="com.wireguard.android" /><intent><action android:name="android.intent.action.VIEW" /><data android:scheme="market" /></intent><intent><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="http" /></intent></queries>'
-  addactivity '<receiver android:name=".ReseauBridge$VpnAlert" android:exported="false"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED" /><action android:name="android.intent.action.MY_PACKAGE_REPLACED" /></intent-filter></receiver>'
+  addactivity '<receiver android:name=".ReseauBridge$VpnAlert" android:exported="false"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED" /><action android:name="android.intent.action.MY_PACKAGE_REPLACED" /><action android:name="android.app.action.NEXT_ALARM_CLOCK_CHANGED" /></intent-filter></receiver>'
 fi
 # Lecteur PDF : « Ouvrir avec » / « Partager » pour les PDF, synthèse vocale, ouverture d'Atelier PDF (LecteurBridge.java),
 # protection de « ma signature » par empreinte / visage / code du téléphone (USE_BIOMETRIC, BiometricPrompt)
@@ -1981,7 +1981,10 @@ fi
 if [ "$APP" = "cameras" ]; then
   for J in CamerasBridge CamerasViewer; do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
   grep -q "androidx.media3:media3-exoplayer-rtsp" "$G" || sed -i '0,/^dependencies {/s//dependencies {\n    implementation "androidx.media3:media3-exoplayer:1.4.1"\n    implementation "androidx.media3:media3-exoplayer-rtsp:1.4.1"/' "$G"
-  addperm INTERNET ACCESS_NETWORK_STATE ACCESS_WIFI_STATE CHANGE_WIFI_MULTICAST_STATE
+  addperm INTERNET ACCESS_NETWORK_STATE ACCESS_WIFI_STATE CHANGE_WIFI_MULTICAST_STATE FOREGROUND_SERVICE FOREGROUND_SERVICE_CONNECTED_DEVICE POST_NOTIFICATIONS WAKE_LOCK USE_FULL_SCREEN_INTENT RECEIVE_BOOT_COMPLETED
+  # alertes de mouvement : service au premier plan (abonnement aux événements ONVIF des caméras), relancé au démarrage
+  addactivity '<service android:name=".CamerasBridge$Garde" android:foregroundServiceType="connectedDevice" android:exported="false" />'
+  addactivity '<receiver android:name=".CamerasBridge$Boot" android:exported="true"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED" /><action android:name="android.intent.action.MY_PACKAGE_REPLACED" /></intent-filter></receiver>'
   addactivity '<activity android:name=".CamerasViewer" android:label="Caméras" android:exported="true" android:permission="fr.magformation13.permission.WIDGET" android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" android:screenOrientation="sensor" android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden" android:resizeableActivity="true" />'
 fi
 # Bluetooth : appareils jumelés, recherche (classique et basse consommation), jumelage, connexion audio, oubli.

@@ -929,6 +929,8 @@ public class MajordomeBridge {
             String act = in.getAction(); if (act == null) return;
             String id = in.getStringExtra("id");
             try {
+                if ("mj.TICK".equals(act) || "mj.NET".equals(act) || "mj.REV1".equals(act) || "mj.REV2".equals(act)) { autoRun(c, act, in, goAsync()); return; }
+                if ("android.app.action.NEXT_ALARM_CLOCK_CHANGED".equals(act)) { reveilArm(c, autoConf(c)); return; }
                 if ("mj.RING".equals(act) && id != null) {
                     JSONObject all = alarms(c), o = all.optJSONObject(id);
                     if (o == null) return;
@@ -972,6 +974,8 @@ public class MajordomeBridge {
                     saveAlarms(c, all);
                     // montre connectée : le serveur local repart s'il était actif (démarrage, mise à jour de l'appli)
                     if (watchOn(c)) Montre.sync(c);
+                    // automatismes : contrôle périodique, rappel réseau, réveil en douceur
+                    autoArm(c);
                 }
             } catch (Throwable t) { }
         }
@@ -1269,6 +1273,15 @@ public class MajordomeBridge {
         } catch (Throwable e) { return false; }
     }
     /** Mosaïque de l'appli Caméras (activité réservée aux applis MAG, permission signature) ; name : une caméra précise */
+    /** Caméra motorisée : ouvre la caméra et la fait bouger (left, right, up, down, in, out) */
+    @JavascriptInterface public String camerasShow2(String name, String move) {
+        Intent i = new Intent().setComponent(new ComponentName("fr.magformation13.cameras", "fr.magformation13.cameras.CamerasViewer"))
+            .putExtra("name", name == null ? "" : name).putExtra("move", move == null ? "" : move).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try { a.startActivity(i); return "ok"; }
+        catch (android.content.ActivityNotFoundException e) { return "absent"; }
+        catch (SecurityException e) { return "refus"; }
+        catch (Throwable t) { return "err"; }
+    }
     @JavascriptInterface public String camerasShow(String name) {
         Context c = a.getApplicationContext();
         Intent i = new Intent().setComponent(new ComponentName("fr.magformation13.cameras", "fr.magformation13.cameras.CamerasViewer"))
@@ -2178,6 +2191,218 @@ public class MajordomeBridge {
             }
             if (pr != null) pr.finish();
         } }, "majordome-hue-later").start();
+    }
+
+    // =====================================================================
+    // Automatismes (mj-plus.js prépare les requêtes, le téléphone les exécute même Majordome fermé)
+    //  - « vent » : toutes les 15 min, rafales Open-Meteo (maintenant et heure suivante) ≥ seuil → stores rentrés (3 h mini entre deux)
+    //  - « retour » : rappel réseau Wi-Fi (registerNetworkCallback + PendingIntent) ; maison reconnue au pont Hue ou au boîtier
+    //    TaHoma joignables ; « ailleurs » confirmé par deux contrôles en ligne sans la maison → routine compilée
+    //  - « nuit » : téléphone en charge après l'heure choisie, une fois par nuit, à la maison
+    //  - « reveil » : prochaine alarme du téléphone (AlarmManager.getNextAlarmClock, entre 4 h et 11 h) : lumière qui monte
+    //    et volets entrouverts avant, volets ouverts à l'heure, notification « point du matin »
+    // =====================================================================
+    static final int N_AUTO = 6690;
+    static JSONObject autoConf(Context c) { try { return new JSONObject(prefs(c).getString("auto", "{}")); } catch (Exception e) { return new JSONObject(); } }
+    static JSONObject autoState(Context c) { try { return new JSONObject(prefs(c).getString("autoState", "{}")); } catch (Exception e) { return new JSONObject(); } }
+    static void autoSaveState(Context c, JSONObject o) { prefs(c).edit().putString("autoState", o.toString()).apply(); }
+    static boolean autoOn(JSONObject cf, String k) { JSONObject o = cf.optJSONObject(k); return o != null && o.optBoolean("on"); }
+    @JavascriptInterface public void autoSet(String json) {
+        try { new JSONObject(json); prefs(a).edit().putString("auto", json).apply(); autoArm(a.getApplicationContext()); askNotif(); } catch (Throwable t) { }
+    }
+    @JavascriptInterface public String autoInfo() { return autoState(a).toString(); }
+    static PendingIntent autoPi(Context c, String act, int code, boolean mutable) {
+        Intent i = new Intent(c, Rappel.class).setAction(act);
+        int fl = PendingIntent.FLAG_UPDATE_CURRENT | (mutable && Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : PendingIntent.FLAG_IMMUTABLE);
+        return PendingIntent.getBroadcast(c, code, i, fl);
+    }
+    static void autoArm(Context c) {
+        JSONObject cf = autoConf(c);
+        boolean any = autoOn(cf, "vent") || autoOn(cf, "retour") || autoOn(cf, "nuit") || autoOn(cf, "reveil");
+        AlarmManager m = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
+        PendingIntent tick = autoPi(c, "mj.TICK", 7101, false);
+        try { m.cancel(tick); if (any) m.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 60000L, tick); } catch (Throwable t) { }
+        try {
+            android.net.ConnectivityManager cm = (android.net.ConnectivityManager) c.getSystemService(Context.CONNECTIVITY_SERVICE);
+            PendingIntent net = autoPi(c, "mj.NET", 7102, true);
+            try { cm.unregisterNetworkCallback(net); } catch (Throwable t) { }
+            if (autoOn(cf, "retour")) cm.registerNetworkCallback(new android.net.NetworkRequest.Builder().addTransportType(android.net.NetworkCapabilities.TRANSPORT_WIFI).addCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET).build(), net);
+        } catch (Throwable t) { }
+        reveilArm(c, cf);
+    }
+    static void exactAt(Context c, long at, PendingIntent p) {
+        AlarmManager m = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
+        try { if (canExact(c)) m.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, p); else m.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, p); }
+        catch (SecurityException e) { try { m.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, p); } catch (Throwable t) { } }
+    }
+    static void reveilArm(Context c, JSONObject cf) {
+        AlarmManager m = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
+        PendingIntent p1 = autoPi(c, "mj.REV1", 7103, false), p2 = autoPi(c, "mj.REV2", 7104, false);
+        try { m.cancel(p1); m.cancel(p2); } catch (Throwable t) { }
+        JSONObject st = autoState(c);
+        try {
+            long next = 0;
+            if (autoOn(cf, "reveil")) {
+                AlarmManager.AlarmClockInfo n = m.getNextAlarmClock();
+                if (n != null) {
+                    long t = n.getTriggerTime(); java.util.Calendar k = java.util.Calendar.getInstance(); k.setTimeInMillis(t); int h = k.get(java.util.Calendar.HOUR_OF_DAY);
+                    long lead = Math.max(1, cf.getJSONObject("reveil").optInt("lead", 10)) * 60000L, now = System.currentTimeMillis();
+                    if (h >= 4 && h < 11 && t > now + 30000) { next = t; if (t - lead > now) exactAt(c, t - lead, p1); exactAt(c, t, p2); }
+                }
+            }
+            JSONObject r = st.optJSONObject("reveil"); if (r == null) r = new JSONObject(); r.put("next", next); st.put("reveil", r); autoSaveState(c, st);
+        } catch (Throwable t) { }
+    }
+    /** Maison joignable : pont Hue (443, 80) ou boîtier TaHoma, par le réseau donné (ou le réseau courant) */
+    static boolean homeReachable(Context c, android.net.Network net) {
+        List<String[]> l = new ArrayList<>();
+        JSONObject h = hueLoad(c); if (h != null) { l.add(new String[]{ h.optString("ip"), "443" }); l.add(new String[]{ h.optString("ip"), "80" }); }
+        JSONObject s = somfyLoad(c); if (s != null) l.add(new String[]{ s.optString("ip"), String.valueOf(s.optInt("port", 8443)) });
+        for (String[] x : l) {
+            java.net.Socket so = null;
+            try {
+                so = net != null ? net.getSocketFactory().createSocket() : new java.net.Socket();
+                so.connect(new java.net.InetSocketAddress(x[0], Integer.parseInt(x[1])), 1800); return true;
+            } catch (Throwable t) { } finally { try { if (so != null) so.close(); } catch (Throwable t) { } }
+        }
+        return false;
+    }
+    static boolean homeKnown(Context c) { return hueLoad(c) != null || somfyLoad(c) != null; }
+    static boolean onlineNow(Context c) {
+        try {
+            android.net.ConnectivityManager cm = (android.net.ConnectivityManager) c.getSystemService(Context.CONNECTIVITY_SERVICE);
+            android.net.Network n = cm.getActiveNetwork(); if (n == null) return false;
+            android.net.NetworkCapabilities nc = cm.getNetworkCapabilities(n);
+            return nc != null && nc.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+        } catch (Throwable t) { return false; }
+    }
+    /** Variante jour / nuit d'une routine compilée, selon le soleil à la position enregistrée */
+    static JSONObject variant(JSONObject cf, JSONObject pk) {
+        try {
+            java.util.Calendar k = java.util.Calendar.getInstance();
+            double[] r = sunUtcMin(k.get(java.util.Calendar.YEAR), k.get(java.util.Calendar.MONTH), k.get(java.util.Calendar.DAY_OF_MONTH), cf.optDouble("lat", 43.3), cf.optDouble("lon", 5.37));
+            java.util.Calendar u = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"));
+            double now = u.get(java.util.Calendar.HOUR_OF_DAY) * 60 + u.get(java.util.Calendar.MINUTE);
+            boolean day = r == null || (now > r[0] && now < r[1]);
+            JSONObject v = pk.optJSONObject(day ? "day" : "night"); return v != null ? v : pk;
+        } catch (Throwable t) { return pk; }
+    }
+    /** Exécute requêtes Hue et actions TaHoma ; renvoie le nombre d'échecs */
+    static int runAuto(Context c, JSONObject v, String label) {
+        int bad = 0;
+        JSONArray reqs = v.optJSONArray("reqs");
+        for (int i = 0; reqs != null && i < reqs.length(); i++) {
+            try { JSONObject r = reqs.getJSONObject(i); Object b = r.opt("body"); Hue.Resp x = hueCall(c, r.optString("method", "PUT"), r.optString("path"), b == null ? null : b.toString()); if (x.code >= 400) bad++; Thread.sleep(120); }
+            catch (Throwable t) { bad++; }
+        }
+        JSONArray acts = v.optJSONArray("acts");
+        if (acts != null && acts.length() > 0) {
+            try {
+                JSONObject cf = somfyLoad(c); if (cf == null) throw new Exception("notset");
+                String body = new JSONObject().put("label", "Majordome : " + label).put("actions", acts).toString();
+                Hue.Resp r = Somfy.http(cf.optString("ip"), cf.optInt("port", 8443), cf.optString("pin"), cf.optString("token"), "POST", "/exec/apply", body, 8000);
+                if (r.code >= 400) bad++;
+            } catch (Throwable t) { bad++; }
+        }
+        return bad;
+    }
+    static void autoNotify(Context c, int id, String title, String text, String socle) {
+        try {
+            channels(c);
+            Intent open = c.getPackageManager().getLaunchIntentForPackage(c.getPackageName());
+            open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP); if (socle != null) open.putExtra("socle", socle);
+            PendingIntent pi = PendingIntent.getActivity(c, 7200 + id, open, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+            Notification n = nb(c, CH_RAPPEL).setSmallIcon(c.getApplicationInfo().icon).setContentTitle(Lien.clip(title, Lien.TITLE_MAX)).setContentText(text)
+                .setStyle(new Notification.BigTextStyle().bigText(text)).setAutoCancel(true).setContentIntent(pi).build();
+            ((NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE)).notify(N_AUTO + id, n);
+        } catch (Throwable t) { }
+    }
+    static String says(JSONObject v, String def) {
+        JSONArray l = v.optJSONArray("say"); StringBuilder b = new StringBuilder();
+        for (int i = 0; l != null && i < l.length(); i++) { String x = l.optString(i).trim(); if (x.isEmpty()) continue; if (b.length() > 0) b.append(' '); b.append(x).append(x.matches(".*[.!?…]$") ? "" : "."); }
+        return b.length() > 0 ? b.toString() : def;
+    }
+    static void autoRun(final Context c, final String act, final Intent in, final BroadcastReceiver.PendingResult pr) {
+        new Thread(new Runnable() { public void run() {
+            try {
+                JSONObject cf = autoConf(c), st = autoState(c); long now = System.currentTimeMillis();
+                if ("mj.TICK".equals(act)) {
+                    boolean home = homeKnown(c) && homeReachable(c, null);
+                    if (autoOn(cf, "retour")) {
+                        if (home) { st.put("away", 0); st.put("lastHome", now); }
+                        else if (onlineNow(c)) { int n = st.optInt("away") + 1; st.put("away", n); if (n == 1) st.put("awaySince", now); }
+                    }
+                    if (autoOn(cf, "vent") && home) {
+                        JSONObject v = cf.getJSONObject("vent"), vs = st.optJSONObject("vent"); if (vs == null) vs = new JSONObject();
+                        double g = gusts(cf.optDouble("lat", 43.3), cf.optDouble("lon", 5.37));
+                        vs.put("gust", g).put("at", now);
+                        if (g >= v.optInt("limit", 50) && now - vs.optLong("last") > 3 * 3600000L && v.optJSONArray("acts") != null && v.optJSONArray("acts").length() > 0) {
+                            int bad = runAuto(c, v, "vent fort");
+                            if (bad == 0) { vs.put("last", now); autoNotify(c, 1, "Vent fort", "Rafales de " + Math.round(g) + " km/h : j'ai rentré les stores.", null); }
+                        }
+                        st.put("vent", vs);
+                    }
+                    if (autoOn(cf, "nuit") && home) {
+                        JSONObject v = cf.getJSONObject("nuit");
+                        java.util.Calendar k = java.util.Calendar.getInstance(); int mins = k.get(java.util.Calendar.HOUR_OF_DAY) * 60 + k.get(java.util.Calendar.MINUTE);
+                        String[] f = v.optString("from", "22:00").split(":"); int from = Integer.parseInt(f[0]) * 60 + (f.length > 1 ? Integer.parseInt(f[1]) : 0);
+                        boolean late = mins >= from || mins < 4 * 60;
+                        if (mins < 4 * 60) k.add(java.util.Calendar.DAY_OF_MONTH, -1);
+                        String night = k.get(java.util.Calendar.YEAR) + "-" + k.get(java.util.Calendar.DAY_OF_YEAR);
+                        BatteryManager bm = (BatteryManager) c.getSystemService(Context.BATTERY_SERVICE);
+                        if (late && bm != null && bm.isCharging() && !night.equals(st.optString("nuitDone"))) {
+                            st.put("nuitDone", night);
+                            JSONObject va = variant(cf, v); runAuto(c, va, v.optString("name", "Bonne nuit"));
+                            autoNotify(c, 2, v.optString("name", "Bonne nuit"), says(va, "Bonne nuit : lumières et volets réglés."), null);
+                        }
+                    }
+                    autoSaveState(c, st);
+                    reveilArm(c, cf);
+                } else if ("mj.NET".equals(act) && autoOn(cf, "retour")) {
+                    android.net.Network n = in.getParcelableExtra(android.net.ConnectivityManager.EXTRA_NETWORK);
+                    Thread.sleep(3000);
+                    if (homeKnown(c) && homeReachable(c, n)) {
+                        boolean wasAway = st.optInt("away") >= 2 && now - st.optLong("awaySince") >= 25 * 60000L;
+                        st.put("away", 0); st.put("lastHome", now); autoSaveState(c, st);
+                        if (wasAway) {
+                            JSONObject v = cf.getJSONObject("retour"), va = variant(cf, v);
+                            runAuto(c, va, v.optString("name", "Je rentre"));
+                            st.put("retourLast", now); autoSaveState(c, st);
+                            autoNotify(c, 3, v.optString("name", "Je rentre"), says(va, "Bon retour à la maison."), null);
+                        }
+                    }
+                } else if ("mj.REV1".equals(act) && autoOn(cf, "reveil")) {
+                    JSONObject v = cf.getJSONObject("reveil"); if (v.optJSONObject("s1") != null) runAuto(c, v.getJSONObject("s1"), "réveil en douceur");
+                } else if ("mj.REV2".equals(act) && autoOn(cf, "reveil")) {
+                    JSONObject v = cf.getJSONObject("reveil"); if (v.optJSONObject("s2") != null) runAuto(c, v.getJSONObject("s2"), "réveil");
+                    if (v.optBoolean("matin")) autoNotify(c, 4, "Bonjour", "Touchez pour le point du matin.", "{\"routine\":\"matin\"}");
+                    reveilArm(c, cf);
+                }
+            } catch (Throwable t) { }
+            finally {
+                if ("mj.TICK".equals(act)) {
+                    try {
+                        JSONObject cf = autoConf(c);
+                        if (autoOn(cf, "vent") || autoOn(cf, "retour") || autoOn(cf, "nuit") || autoOn(cf, "reveil"))
+                            ((AlarmManager) c.getSystemService(Context.ALARM_SERVICE)).setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 15 * 60000L, autoPi(c, "mj.TICK", 7101, false));
+                    } catch (Throwable t) { }
+                }
+                if (pr != null) pr.finish();
+            }
+        } }, "majordome-auto").start();
+    }
+    /** Rafales (km/h) : maximum de maintenant et des deux prochaines heures (Open-Meteo, sans clé) ; -1 si injoignable */
+    static double gusts(double lat, double lon) {
+        try {
+            HttpURLConnection h = httpsOpen("https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon + "&current=wind_gusts_10m&hourly=wind_gusts_10m&forecast_hours=2&wind_speed_unit=kmh&timezone=auto");
+            try (InputStream in = h.getInputStream()) {
+                JSONObject o = new JSONObject(new String(readAll(in, 1 << 18), "UTF-8"));
+                double g = o.getJSONObject("current").optDouble("wind_gusts_10m", -1);
+                JSONArray hh = o.optJSONObject("hourly") != null ? o.getJSONObject("hourly").optJSONArray("wind_gusts_10m") : null;
+                for (int i = 0; hh != null && i < hh.length(); i++) g = Math.max(g, hh.optDouble(i, -1));
+                return g;
+            } finally { h.disconnect(); }
+        } catch (Throwable t) { return -1; }
     }
 
     // =====================================================================
