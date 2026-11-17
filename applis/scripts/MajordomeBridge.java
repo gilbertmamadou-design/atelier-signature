@@ -1059,8 +1059,56 @@ public class MajordomeBridge {
             } catch (Throwable t) { toast("Réglage indisponible"); }
         } });
     }
-    /** Touches multimédia (lecture, pause, suivant, précédent) envoyées au lecteur actif (Mélodie ou autre) */
+    /** Lecteurs du téléphone (MediaSession), visibles si l'accès aux notifications est donné à Majordome (MajordomeNotifs) */
+    private List<android.media.session.MediaController> sessions() {
+        try {
+            android.media.session.MediaSessionManager m = a.getSystemService(android.media.session.MediaSessionManager.class);
+            List<android.media.session.MediaController> l = m.getActiveSessions(new ComponentName(a, MajordomeNotifs.class));
+            return l == null ? new ArrayList<android.media.session.MediaController>() : l;
+        } catch (Throwable t) { return new ArrayList<android.media.session.MediaController>(); }
+    }
+    /** Le son sort-il en ce moment (musique, vidéo) ? */
+    @JavascriptInterface public boolean musicActive() {
+        try { return ((AudioManager) a.getSystemService(Context.AUDIO_SERVICE)).isMusicActive(); } catch (Throwable t) { return false; }
+    }
+    /** Dernier lecteur connu {pkg, app} ou {} */
+    @JavascriptInterface public String lastPlayer() {
+        try {
+            List<android.media.session.MediaController> l = sessions();
+            if (l.isEmpty()) return "{}";
+            String pkg = l.get(0).getPackageName(); PackageManager pm = a.getPackageManager();
+            String app = pkg; try { app = String.valueOf(pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0))); } catch (Throwable e) { }
+            return new JSONObject().put("pkg", pkg).put("app", app).toString();
+        } catch (Throwable t) { return "{}"; }
+    }
+    /** Touches multimédia (lecture, pause, suivant, précédent) envoyées au lecteur actif (Mélodie ou autre).
+        Avec l'accès aux notifications : commande directe au lecteur le plus récent (même en pause depuis longtemps) ;
+        sinon touche multimédia du système, et pour « lecture », si rien ne sort après 1,5 s, touche lecture/pause. */
     @JavascriptInterface public boolean media(String cmd) {
+        List<android.media.session.MediaController> l = sessions();
+        if (!l.isEmpty()) {
+            try {
+                android.media.session.MediaController mc = l.get(0);
+                for (android.media.session.MediaController x : l) { android.media.session.PlaybackState st = x.getPlaybackState(); if (st != null && st.getState() == android.media.session.PlaybackState.STATE_PLAYING) { mc = x; break; } }
+                android.media.session.MediaController.TransportControls t = mc.getTransportControls();
+                switch (cmd == null ? "" : cmd) {
+                    case "play": t.play(); return true;
+                    case "pause": t.pause(); return true;
+                    case "next": t.skipToNext(); return true;
+                    case "prev": t.skipToPrevious(); return true;
+                    default: android.media.session.PlaybackState st = mc.getPlaybackState(); if (st != null && st.getState() == android.media.session.PlaybackState.STATE_PLAYING) t.pause(); else t.play(); return true;
+                }
+            } catch (Throwable e) { }
+        }
+        if ("play".equals(cmd)) ui.postDelayed(new Runnable() { public void run() {
+            try {
+                AudioManager am = (AudioManager) a.getSystemService(Context.AUDIO_SERVICE);
+                if (!am.isMusicActive()) { am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)); am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)); }
+            } catch (Throwable t) { }
+        } }, 1500);
+        return mediaKey(cmd);
+    }
+    private boolean mediaKey(String cmd) {
         int k;
         switch (cmd == null ? "" : cmd) {
             case "play": k = KeyEvent.KEYCODE_MEDIA_PLAY; break;

@@ -961,7 +961,17 @@
       if (P.homeInstalled && P.homeInstalled(MEL) !== '1') { if (B && B.media) { B.media('play'); return answer(lab).done; } return answer('Mélodie n\'est pas installée.').done; }
       P.homeLaunchWith(MEL, JSON.stringify({ play: 1, back: 1 })); return answer(ack('Je lance Mélodie.')).done;
     }
-    if (B && B.media) { B.media(p.cmd === 'start' ? 'play' : p.cmd); return answer(lab).done; }
+    if (B && B.media) {
+      B.media(p.cmd === 'start' ? 'play' : p.cmd);
+      // reprise : si rien ne sort au bout de 3,5 s, le lecteur a été fermé ; on propose de le rouvrir
+      if (p.cmd === 'play' && B.musicActive) setTimeout(function () {
+        if (B.musicActive()) return;
+        var lp = J(B.lastPlayer ? B.lastPlayer() : '{}', {}) || {};
+        var c = answer({ say: 'Rien ne joue : ' + (lp.app ? lp.app + ' a dû être fermée' : 'l\'appli de musique a dû être fermée') + '.', html: '<div class="k">Musique</div><p>Rien ne joue : ' + esc(lp.app ? lp.app + ' a dû être fermée' : 'l\'appli de musique a dû être fermée') + '. Ouvrez-la et touchez lecture, ou dites « mets de la musique » pour Mélodie.</p>' + (lp.pkg ? '<div class="row"><button class="btn pri" data-lp>Ouvrir ' + esc(lp.app) + '</button></div>' : '') + (B.notifAccess && !B.notifAccess() ? '<p class="note">Astuce : donnez à ' + esc(S.name) + ' l\'accès aux notifications (Réglages › Messages) pour reprendre la musique même longtemps après la pause.</p>' : '') });
+        var bt = c.querySelector && c.querySelector('[data-lp]'); if (bt) bt.onclick = function () { B.appLaunch(lp.pkg, '', lp.app); };
+      }, 3500);
+      return answer(lab).done;
+    }
     return answer('Je ne peux pas piloter la musique ici.').done;
   };
 
