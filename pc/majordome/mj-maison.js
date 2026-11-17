@@ -45,12 +45,16 @@
     (model.lights || []).forEach(function (l) { var s = 0; qs.forEach(function (q) { s = Math.max(s, score(q, l.name)); }); if (s > 0) cands.push({ o: l, type: 'light', s: s }); });
     cands.sort(function (a, b) { return b.s - a.s; });
     if (!cands.length || cands[0].s < 0.6) return { none: true };
-    var best = cands[0], close = cands.filter(function (c) { return c === best || (c.s >= 0.6 && best.s - c.s < 0.06 && deacc(c.o.name) !== deacc(best.o.name)); });
-    // même nom pour une pièce et sa seule ampoule : la pièce
-    if (close.length > 1) {
-      var names = {}; close = close.filter(function (c) { var k = deacc(c.o.name); if (names[k]) return false; names[k] = 1; return true; });
-      if (close.length > 1) return { ambiguous: close.slice(0, 4).map(function (c) { return { type: c.type, obj: c.o }; }) };
-    }
+    // « Cuisine » et « La Cuisine » (une pièce et une zone, ou un doublon dans l'appli Hue) se disent pareil : on ne demande
+    // pas de choisir entre deux mots identiques à l'oral. Même nom → le groupe qui contient le plus de lampes (sinon la pièce).
+    function nk(n) { return deacc(n).replace(/^(le|la|les|l)\s+/, '').replace(/\s+/g, ' ').trim(); }
+    function size(c) { return c.type === 'group' ? (c.o.lights || []).length + (c.o.kind === 'room' ? 0.5 : 0) : 0.1; }
+    var byName = {};
+    cands.forEach(function (c) { var k = nk(c.o.name); if (!byName[k] || (Math.abs(c.s - byName[k].s) < 0.06 ? size(c) > size(byName[k]) : c.s > byName[k].s)) byName[k] = c; });
+    cands = cands.filter(function (c) { return byName[nk(c.o.name)] === c; });
+    cands.sort(function (a, b) { return b.s - a.s; });
+    var best = cands[0], close = cands.filter(function (c) { return c === best || (c.s >= 0.6 && best.s - c.s < 0.06); });
+    if (close.length > 1) return { ambiguous: close.slice(0, 4).map(function (c) { return { type: c.type, obj: c.o }; }) };
     return { sel: { type: best.type, obj: best.o } };
   }
   function pickByText(list, text) {
