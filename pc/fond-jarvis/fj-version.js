@@ -1,2 +1,2 @@
 /* GÉNÉRÉ par pc/build-pc.py : version du fond (paquet Lively et page de la Suite). */
-window.FJ_BUILD = {"v": "4b669050776c", "date": "2026-11-17"};
+window.FJ_BUILD = {"v": "66699b9f2a5c", "date": "2026-11-17"};

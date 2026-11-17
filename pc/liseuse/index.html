@@ -2341,7 +2341,7 @@ function voiceId(){
   var l=piperVoices().filter(function(v){ return E.hasVoice(v.id); });
   return l.length?l[0].id:'system';
 }
-function voiceName(id){ if(id==='system') return 'Voix du téléphone'.replace('téléphone', window.MAGPC?'système':'téléphone'); var v=piperVoices().filter(function(x){ return x.id===id; })[0]; return v?v.name:id; }
+function voiceName(id){ if(id==='system') return 'Voix du téléphone'.replace('téléphone', window.MAGPC?'système':'téléphone'); if(/^mls:/.test(id)&&window.MJVoix&&MJVoix.voice) return MJVoix.voice(id).name; var v=piperVoices().filter(function(x){ return x.id===id; })[0]; return v?v.name:id; }
 function fxName(k){ return window.MJVoix && MJVoix.FX[k] ? MJVoix.FX[k].name : 'Aucun'; }
 
 /* Textes des chapitres EPUB avec les débuts de blocs (paragraphes, titres) : mêmes décalages que la page affichée */
@@ -2556,11 +2556,20 @@ function voiceSheet(fxFocus){
   var h='<div>', sys=window.MAGPC?'Voix du système':'Voix du téléphone';
   piperVoices().forEach(function(v){
     var has=E&&E.hasVoice(v.id), m=window.MJVoix.MODELS[v.model], dl=E&&E.dl&&E.dl[v.model];
+    if(v.multi && has){   // 125 lecteurs LibriVox : tes favoris, puis la découverte voix par voix
+      var fav=(S.lect||[]), curN=/^mls:(\d+)$/.exec(cur);
+      h+='<div class="lab" style="margin:12px 2px 4px">Lecteurs de livres audio <span>125 voix à découvrir</span></div>';
+      fav.forEach(function(n){ var id='mls:'+n, nm=voiceName(id); h+='<button class="vrow'+(cur===id?' on':'')+'" data-v="'+id+'"><div class="t"><b>'+esc(nm)+(cur===id?' ✓':'')+'</b><small>Lecteur LibriVox n° '+(n+1)+' · Piper hors ligne</small></div><span class="btn sm" data-lren="'+n+'">Renommer</span><span class="btn sm" data-ldel="'+n+'">✕</span></button>'; });
+      var n0=curN?+curN[1]:(S.lectN||0);
+      h+='<div class="set" style="flex-wrap:wrap;gap:6px"><button class="btn sm" data-lnav="-1">◀</button><b id="lN" style="min-width:5.5em;text-align:center">Lecteur '+(n0+1)+'</b><button class="btn sm" data-lnav="1">▶</button><button class="btn sm" data-lhear>Écouter</button><button class="btn sm" data-lkeep>★ Garder</button><button class="btn sm pri" data-luse>Choisir</button></div>'+
+        '<p class="note" style="margin:2px 2px 8px">Avance avec ▶ : chaque voix lit une phrase. Garde celles qui te plaisent (★), elles s’ajoutent au-dessus avec le nom que tu veux.</p>';
+      return;
+    }
     h+='<button class="vrow'+(cur===v.id?' on':'')+'" data-v="'+v.id+'"'+(has||(!A&&E)?'':' disabled')+'><div class="t"><b>'+esc(v.name)+(cur===v.id?' ✓':'')+'</b><small>'+esc(v.desc)+' · Piper hors ligne'+(has?'':' · '+(A?'à installer dans Majordome':'à télécharger ('+Math.round(m.size/1048576)+' Mo)'))+'</small>'+(dl?'<progress max="1" value="'+(dl.f||0)+'"></progress>':'')+'</div></button>';
   });
   h+='<button class="vrow'+(cur==='system'?' on':'')+'" data-v="system"><div class="t"><b>'+sys+(cur==='system'?' ✓':'')+'</b><small>Synthèse vocale '+(window.MAGPC?'de Windows ou du navigateur':'d’Android')+'</small></div></button></div>';
   if(A){
-    h+='<p class="note" style="margin-top:10px">'+(et.absent?'Les voix Piper viennent de Majordome : installe l’appli Majordome, puis télécharge une voix dans Réglages › Voix.':et.err?'Liseuse n’a pas pu lire les voix de Majordome ('+esc(et.err)+').':'Les voix Piper sont celles de Majordome : téléchargées une fois (60 à 73 Mo), partagées avec Liseuse sans seconde copie.')+'</p>';
+    h+='<p class="note" style="margin-top:10px">'+(et.absent?'Les voix Piper viennent de Majordome : installe l’appli Majordome, puis télécharge une voix dans Réglages › Voix.':et.err?'Liseuse n’a pas pu lire les voix de Majordome ('+esc(et.err)+').':'Les voix Piper sont celles de Majordome : téléchargées une fois (60 à 77 Mo), partagées avec Liseuse sans seconde copie. Pour les 125 lecteurs de livres audio, télécharge « Lecteurs de livres audio » dans Majordome.')+'</p>';
     if(!et.absent && P && P.homeLaunchWith) h+='<div class="row"><button class="btn" id="vMaj">'+I.open+'Installer des voix dans Majordome</button></div>';
   } else if(E) h+='<p class="note" style="margin-top:10px">Voix partagées avec Majordome sur ce site : une voix téléchargée ici sert aussi à Majordome, et inversement.</p>';
   h+='<div class="set" style="margin-top:6px"><div class="lab">Intonation <span>Piper seulement</span></div><div class="seg" id="vExpr">'+[['neutre','Neutre'],['conteur','Conteur'],['theatre','Théâtral']].map(function(x){ return '<button data-expr="'+x[0]+'"'+((S.expr||'conteur')===x[0]?' class="on"':'')+'>'+x[1]+'</button>'; }).join('')+'</div></div>'+
@@ -2568,7 +2577,15 @@ function voiceSheet(fxFocus){
   h+='<div class="set" style="margin-top:6px"><div class="lab">Effet de voix <span>Piper seulement</span></div><div class="seg" id="vFx" style="flex-wrap:wrap">'+(window.MJVoix?Object.keys(MJVoix.FX).map(function(k){ return '<button data-fx="'+k+'"'+(S.fx===k?' class="on"':'')+'>'+esc(MJVoix.FX[k].name)+'</button>'; }).join(''):'')+'</div><p class="note" style="margin:8px 2px 0">« Lecture » (par défaut) rend la voix plus chaude et plus proche ; « Aucun » la laisse brute ; les autres donnent une couleur (radio, IA de film…).</p></div>';
   var sh=openSheet('Voix de lecture', h), sb=sh.querySelector('.sb');
   if(fxFocus) setTimeout(function(){ var f=sb.querySelector('#vFx'); if(f) f.scrollIntoView({block:'center'}); },60);
+  var lN=(function(){ var c=/^mls:(\d+)$/.exec(cur); return c?+c[1]:(S.lectN||0); })();
+  function lHear(){ var E2=vxEngine(); if(!E2) return; if(T.on && AUD) AUD.pause(); toast(voiceName('mls:'+lN)); E2.previewText('mls:'+lN, 'Il était une fois, au bord d’un grand fleuve, une petite maison où l’on aimait lire des histoires le soir.', {fx:S.fx, rate:S.rate||1}).catch(function(){ toast('Écoute impossible', true); }); }
   sb.onclick=function(e){
+    var ln=e.target.closest('[data-lnav]'); if(ln){ lN=(lN+ +ln.dataset.lnav+125)%125; S.lectN=lN; saveS(); var b=sb.querySelector('#lN'); if(b) b.textContent=voiceName('mls:'+lN).replace(/^Lecteur n° /,'Lecteur '); lHear(); return; }
+    if(e.target.closest('[data-lhear]')){ lHear(); return; }
+    if(e.target.closest('[data-lkeep]')){ S.lect=S.lect||[]; if(S.lect.indexOf(lN)<0) S.lect.push(lN); var nm=prompt('Nom de cette voix (par exemple « Conteur grave »)', voiceName('mls:'+lN)); if(nm&&nm.trim()) MJVoix.lectName(lN, nm.trim()); saveS(); toast('Voix gardée'); back(); voiceSheet(); return; }
+    if(e.target.closest('[data-luse]')){ S.voix='mls:'+lN; saveS(); back(); barUi(); if(AUD) AUD.reconfigure(true); toast('Voix : '+voiceName(S.voix)); return; }
+    var lr=e.target.closest('[data-lren]'); if(lr){ e.stopPropagation(); var k=+lr.dataset.lren, nm2=prompt('Nom de cette voix', voiceName('mls:'+k)); if(nm2!=null){ MJVoix.lectName(k, nm2.trim()); back(); voiceSheet(); } return; }
+    var ld=e.target.closest('[data-ldel]'); if(ld){ e.stopPropagation(); var k2=+ld.dataset.ldel; S.lect=(S.lect||[]).filter(function(x){ return x!==k2; }); saveS(); back(); voiceSheet(); return; }
     var r=e.target.closest('[data-v]');
     if(r && !r.disabled){
       var id=r.dataset.v;
