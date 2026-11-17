@@ -361,5 +361,13 @@
   "name": "Réunion",
   "icons": "android-icons-reunion",
   "file": "Reunion.apk"
+ },
+ {
+  "app": "cameras",
+  "web": "www-cameras",
+  "appid": "fr.magformation13.cameras",
+  "name": "Caméras",
+  "icons": "android-icons-cameras",
+  "file": "Cameras.apk"
  }
 ]
