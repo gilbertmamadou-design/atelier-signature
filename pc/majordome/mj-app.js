@@ -948,6 +948,9 @@
     });
   }
   H.music = function (p) {
+    // « reprends », « lecture » tout court : le dernier écouté (musique ou livre audio)
+    if (p.bare && lsGet('majordome:dernierSon', '') === 'livre') return H.book({ cmd: 'resume' });
+    lsSet('majordome:dernierSon', 'musique');
     var lab = { start: 'Musique.', play: 'Lecture.', pause: 'Pause.', next: 'Morceau suivant.', prev: 'Morceau précédent.' }[p.cmd];
     if (PC) {
       return pcMedia(p.cmd === 'start' ? 'play' : p.cmd).then(function (ok) {
@@ -1007,6 +1010,7 @@
   }
   var BOOK_RUNNING = /^(pause|stop|nextch|prevch|sleep)$/;
   H.book = function (p) {
+    lsSet('majordome:dernierSon', 'livre');
     var arg = bookArg(p), say = bookSay(p);
     if (PC) {
       return new Promise(function (res) {
