@@ -545,6 +545,18 @@
     var h = '<div class="mjv">';
     h += '<div class="mjv-r"><label for="mjvEng">Moteur</label><select class="in" id="mjvEng" style="flex:1"><option value="system"' + (piper ? '' : ' selected') + '>Voix du système</option><option value="piper"' + (piper ? ' selected' : '') + '>Voix Piper (hors ligne)</option></select></div>';
     h += '<p class="note mjv-msg" id="mjvMsg">' + (E._msg ? esc(E._msg) : piper ? (E.state === 'error' ? 'Le moteur Piper n\'a pas pu se charger : les voix du système prennent le relais.' : '') : 'Voix neuronales françaises, sans internet après un téléchargement unique (60 à 73 Mo par voix).') + '</p>';
+    // style de voix et réglages fins : en haut, bien visibles ; ils ne s'entendent qu'avec les voix Piper
+    var fxH = '<div class="mjv-r" style="margin-top:.4em"></div>';
+    var opt = function (k) { return '<option value="' + k + '"' + ((S.fx || 'aucun') === k ? ' selected' : '') + '>' + FX[k].name + '</option>'; };
+    fxH += '<div class="mjv-r"><label for="mjvFx"><b>Style de voix</b></label><select class="in" id="mjvFx" style="flex:1"><optgroup label="Styles de voix">' + Object.keys(FX).filter(function (k) { return FX[k].style; }).map(opt).join('') + '</optgroup><optgroup label="Effets">' + Object.keys(FX).filter(function (k) { return !FX[k].style; }).map(opt).join('') + '</optgroup></select></div>';
+    fxH += '<details id="mjvFine"' + (S.fxo ? ' open' : '') + '><summary><b>Réglages fins de la voix</b> (débit, hauteur, graves, écho…)</summary>';
+    var cur = fxParams(S.fx || 'aucun', S.fxo);
+    FINE.forEach(function (f) { fxH += '<div class="mjv-r"><label for="mjvF_' + f[0] + '">' + f[1] + '</label><input type="range" id="mjvF_' + f[0] + '" data-k="' + f[0] + '" min="' + f[2] + '" max="' + f[3] + '" step="' + f[4] + '" value="' + (+cur[f[0]] || 0) + '"><output>' + (+cur[f[0]] || 0) + '</output></div>'; });
+    fxH += '<div class="mjv-r"><label for="mjvF_flanger">Flanger (au lieu du chorus)</label><input type="checkbox" id="mjvF_flanger"' + (cur.flanger ? ' checked' : '') + '></div>';
+    fxH += '<button type="button" class="' + btn + '" id="mjvFxReset">Revenir au préréglage</button></details>';
+    fxH += '<p class="note">L\'effet ne s\'applique qu\'aux voix Piper : les voix du système ne passent pas par le traitement audio de la page. Effet générique : il n\'imite la voix de personne.</p>';
+    if (!piper) fxH = '<div class="mjv-r" style="margin-top:.4em"><label><b>Style de voix</b></label><span style="flex:1;font-size:.9em;opacity:.85">Styles (sensuelle, énergique…) et réglages fins : avec les voix Piper.</span><button type="button" class="' + btn + '" id="mjvToPiper">Utiliser Piper</button></div>';
+    h += fxH;
     h += '<div id="mjvPiper"' + (piper ? '' : ' hidden') + '>';
     E.voices.forEach(function (v) {
       var m = E.models[v.model], has = !!inst[v.model], on = S.piperVoice === v.id || (!S.piperVoice && v === E.voices[0]) || (v.multi && /^mls:/.test(S.piperVoice || '')), dl = E.dl[v.model];
@@ -557,14 +569,6 @@
     });
     h += '<p class="note">Si le téléchargement direct est refusé (pare-feu, réseau), téléchargez les deux fichiers de la voix sur <a href="https://huggingface.co/rhasspy/piper-voices/tree/main/fr/fr_FR" target="_blank" rel="noopener">huggingface.co/rhasspy/piper-voices</a> (fr_FR-…-medium.onnx et .onnx.json), puis : ' +
       (o.android ? '<button type="button" class="' + btn + '" id="mjvPick">Choisir les fichiers téléchargés</button>' : '<label class="' + btn + '" style="cursor:pointer">Choisir les fichiers téléchargés<input type="file" id="mjvFiles" multiple accept=".onnx,.json" hidden></label>') + '</p>';
-    var opt = function (k) { return '<option value="' + k + '"' + ((S.fx || 'aucun') === k ? ' selected' : '') + '>' + FX[k].name + '</option>'; };
-    h += '<div class="mjv-r"><label for="mjvFx">Style et effet</label><select class="in" id="mjvFx" style="flex:1"><optgroup label="Styles de voix">' + Object.keys(FX).filter(function (k) { return FX[k].style; }).map(opt).join('') + '</optgroup><optgroup label="Effets">' + Object.keys(FX).filter(function (k) { return !FX[k].style; }).map(opt).join('') + '</optgroup></select></div>';
-    h += '<details id="mjvFine"' + (S.fxo ? ' open' : '') + '><summary>Réglages fins de l\'effet</summary>';
-    var cur = fxParams(S.fx || 'aucun', S.fxo);
-    FINE.forEach(function (f) { h += '<div class="mjv-r"><label for="mjvF_' + f[0] + '">' + f[1] + '</label><input type="range" id="mjvF_' + f[0] + '" data-k="' + f[0] + '" min="' + f[2] + '" max="' + f[3] + '" step="' + f[4] + '" value="' + (+cur[f[0]] || 0) + '"><output>' + (+cur[f[0]] || 0) + '</output></div>'; });
-    h += '<div class="mjv-r"><label for="mjvF_flanger">Flanger (au lieu du chorus)</label><input type="checkbox" id="mjvF_flanger"' + (cur.flanger ? ' checked' : '') + '></div>';
-    h += '<button type="button" class="' + btn + '" id="mjvFxReset">Revenir au préréglage</button></details>';
-    h += '<p class="note">L\'effet ne s\'applique qu\'aux voix Piper : les voix du système ne passent pas par le traitement audio de la page. Effet générique : il n\'imite la voix de personne.</p>';
     h += '</div>';
     h += '<div id="mjvSys"' + (piper ? ' hidden' : '') + '>' + (o.systemHtml || '') + '</div>';
     h += '</div>';
@@ -575,6 +579,7 @@
         if (!root.document.contains(box)) { off(); return; }
         if (ev.t === 'progress') box.querySelectorAll('[data-v]').forEach(function (row) { if (E.voice(row.getAttribute('data-v')).model === ev.model) { var pr = row.querySelector('progress'); pr.hidden = false; pr.value = ev.f; } });
       });
+      if ($('mjvToPiper')) $('mjvToPiper').onclick = function () { $('mjvEng').value = 'piper'; $('mjvEng').onchange(); if (o.refresh) o.refresh(); };
       $('mjvEng').onchange = function () { S.tts = this.value; if (S.tts === 'piper' && !S.piperVoice) S.piperVoice = E.voices[0].id; o.save(); $('mjvPiper').hidden = S.tts !== 'piper'; $('mjvSys').hidden = S.tts === 'piper'; msg(''); if (S.tts === 'piper' && E.hasVoice(S.piperVoice)) E.warm(S.piperVoice).catch(function () { msg('Le moteur Piper n\'a pas pu se charger : les voix du système prennent le relais.'); }); };
       box.querySelectorAll('[data-v] [data-a]').forEach(function (b) {
         b.onclick = function () {
@@ -606,13 +611,13 @@
       var fl = $('mjvFiles');
       if (fl) fl.onchange = function () { msg('Vérification des fichiers…'); E.pickFiles(this.files).then(function (r) { msg('Voix installée' + (r.verified ? ' (somme SHA-256 vérifiée)' : '') + '.'); S.tts = 'piper'; o.save(); if (o.refresh) o.refresh(); }, function (e) { msg('Fichiers refusés : ' + (e && e.message || e) + '.'); }); };
       var pk = $('mjvPick'); if (pk) pk.onclick = function () { E.pickAndroid(); msg('Choisissez le fichier .onnx et le fichier .onnx.json de la voix.'); };
-      $('mjvFx').onchange = function () { S.fx = this.value; S.fxo = null; o.save(); if (o.refresh) o.refresh(); else if (o.preview) o.preview(S.piperVoice); };
+      if ($('mjvFx')) $('mjvFx').onchange = function () { S.fx = this.value; S.fxo = null; o.save(); if (o.refresh) o.refresh(); else if (o.preview) o.preview(S.piperVoice); };
       box.querySelectorAll('#mjvFine input[type=range]').forEach(function (r) {
         r.oninput = function () { r.nextElementSibling.textContent = r.value; };
         r.onchange = function () { S.fxo = Object.assign({}, fxParams(S.fx || 'aucun', S.fxo)); S.fxo[r.getAttribute('data-k')] = +r.value; o.save(); if (o.preview) o.preview(S.piperVoice); };
       });
-      $('mjvF_flanger').onchange = function () { S.fxo = Object.assign({}, fxParams(S.fx || 'aucun', S.fxo), { flanger: this.checked }); o.save(); };
-      $('mjvFxReset').onclick = function () { S.fxo = null; o.save(); if (o.refresh) o.refresh(); };
+      if ($('mjvF_flanger')) $('mjvF_flanger').onchange = function () { S.fxo = Object.assign({}, fxParams(S.fx || 'aucun', S.fxo), { flanger: this.checked }); o.save(); };
+      if ($('mjvFxReset')) $('mjvFxReset').onclick = function () { S.fxo = null; o.save(); if (o.refresh) o.refresh(); };
     }
     return { html: h, bind: bind };
   }
