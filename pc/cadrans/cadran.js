@@ -28,7 +28,10 @@
     sport: { nom: 'Sport', fam: 'CadSport', fichier: 'texgyreheroscn-bold.otf', echelle: 1.12 },
     militaire: { nom: 'Militaire', fam: 'CadMili', fichier: 'DejaVuSansMono-Bold.ttf', echelle: .9 },
     classique: { nom: 'Classique', fam: 'CadClassique', fichier: 'Lora-Variable.ttf', echelle: .98 },
-    nette: { nom: 'Nette', fam: 'CadPetite', fichier: 'Inter-SemiBold.otf', echelle: 1 }
+    nette: { nom: 'Nette', fam: 'CadPetite', fichier: 'Inter-SemiBold.otf', echelle: 1 },
+    // afficheurs à segments (DSEG, OFL) : avec l'effet « Segments LCD », les segments éteints restent visibles en fantôme
+    lcd: { nom: 'Écran LCD', fam: 'CadLcd', fichier: 'DSEG7Classic-Bold.ttf', echelle: 1 },
+    lcd14: { nom: 'LCD lettres', fam: 'CadLcd14', fichier: 'DSEG14Classic-Bold.ttf', echelle: 1 }
   };
   var PETITE = POLICES.nette;
 
@@ -66,8 +69,9 @@
   var STYLES = { simple: 'Simple', ligne: 'En ligne', case: 'Case colorée', jauge: 'Jauge', cercle: 'Petit cadran' };
   var TAILLES = { s: 'Petite', m: 'Moyenne', l: 'Grande' };
   var DATES = { long: 'MERCREDI 30 OCTOBRE', court: 'MER 30 OCT', jourNum: 'MER 30', numMois: '30 OCT', jour: 'MERCREDI', jour3: 'MER', numero: '30', chiffres: '30/10' };
-  var EFFETS = { aucun: 'Aucun', ombre: 'Ombre', relief: 'Relief 3D', biseau: 'Biseau', contour: 'Contour', creux: 'Creux', lueur: 'Néon', degrade: 'Dégradé', metal: 'Métal' };
-  var TYPES = { heure: 'Heure', aiguilles: 'Aiguilles', date: 'Date', info: 'Info', meteo: 'Météo', texte: 'Texte', trait: 'Trait', image: 'Image' };
+  var EFFETS = { aucun: 'Aucun', ombre: 'Ombre', relief: 'Relief 3D', biseau: 'Biseau', contour: 'Contour', creux: 'Creux', lueur: 'Néon', degrade: 'Dégradé', metal: 'Métal', lcd: 'Segments LCD' };
+  var TYPES = { heure: 'Heure', aiguilles: 'Aiguilles', date: 'Date', info: 'Info', meteo: 'Météo', texte: 'Texte', trait: 'Trait', image: 'Image', panneau: 'Écran / cadre' };
+  var PANNEAUX = { lcd: 'LCD clair', lcdvert: 'LCD vert', ambre: 'LCD ambre', sombre: 'Sombre', verre: 'Verre', cadre: 'Cadre seul' };
   var JOURS = ['LUNDI', 'MARDI', 'MERCREDI', 'JEUDI', 'VENDREDI', 'SAMEDI', 'DIMANCHE'];
   var JOURS3 = ['LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM', 'DIM'];
   var MOIS = ['JANVIER', 'FÉVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN', 'JUILLET', 'AOÛT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DÉCEMBRE'];
@@ -81,7 +85,7 @@
     date: true, anneau: 'graduations', infos: ['meteo', 'coeur', 'pas', 'batterie'], aod: 'heure_date',
     photo: '', voile: .35, calques: [], montre: 'trex3', blocs: null
   };
-  var CHOIX = { MOTIFS: MOTIFS, TROTS: TROTS, CALQUES: CALQUES, EFFETS: EFFETS, ICONES: { trait: 'Dessin', couleur: 'En couleur' }, POLICES: POLICES, INFOS: INFOS, FONDS: FONDS, ANNEAUX: ANNEAUX, AIGUILLES: AIGUILLES, STYLES: STYLES, TAILLES: TAILLES, DATES: DATES, TYPES: TYPES, VIFS: VIFS,
+  var CHOIX = { PANNEAUX: PANNEAUX, MOTIFS: MOTIFS, TROTS: TROTS, CALQUES: CALQUES, EFFETS: EFFETS, ICONES: { trait: 'Dessin', couleur: 'En couleur' }, POLICES: POLICES, INFOS: INFOS, FONDS: FONDS, ANNEAUX: ANNEAUX, AIGUILLES: AIGUILLES, STYLES: STYLES, TAILLES: TAILLES, DATES: DATES, TYPES: TYPES, VIFS: VIFS,
     HEURE: { numerique: 'Numérique', analogique: 'À aiguilles', mixte: 'Aiguilles + heure' }, TAILLE: { grande: 'Grande', moyenne: 'Moyenne' },
     AOD: { heure_date: 'Heure et date', heure: 'Heure seule' } };
 
@@ -93,7 +97,7 @@
     var col = function (c, d) { return c === 'accent' || c === 'texte' || c === 'doux' || HEX.test(c || '') ? c : d; };
     o.couleur = col(b.couleur, b.t === 'info' || b.t === 'meteo' ? 'accent' : 'texte');
     o.police = POLICES[b.police] ? b.police : (b.t === 'heure' ? 'legere' : 'nette');
-    if (b.t !== 'aiguilles' && b.t !== 'trait') o.effet = EFFETS[b.effet] ? b.effet : 'aucun';
+    if (b.t !== 'aiguilles' && b.t !== 'trait' && b.t !== 'panneau') o.effet = EFFETS[b.effet] ? b.effet : 'aucun';
     if (b.t === 'info' || b.t === 'meteo') o.icone = b.icone === 'couleur' ? 'couleur' : 'trait';
     if (b.t === 'heure') { o.taille = Math.round(num(b.taille, 30, 150, 110)); o.secondes = !!b.secondes; o.dp = col(b.dp, 'accent'); }
     if (b.t === 'aiguilles') { o.style = AIGUILLES[b.style] ? b.style : 'epees'; o.secondes = !!b.secondes; o.echelle = num(b.echelle, .2, 1, 1); o.trot = col(b.trot, 'accent'); o.trotStyle = TROTS[b.trotStyle] ? b.trotStyle : 'fine'; o.ombre = !!b.ombre; }
@@ -103,6 +107,7 @@
     if (b.t === 'texte') { o.txt = String(b.txt == null ? 'TEXTE' : b.txt).replace(/[\u0000-\u001f]/g, '').slice(0, 24); o.taille = Math.round(num(b.taille, 10, 80, 18)); o.esp = num(b.esp, 0, 10, 2); }
     if (b.t === 'image') { o.motif = MOTIFS[b.motif] ? b.motif : 'fleur'; o.taille = Math.round(num(b.taille, 16, 240, 60)); o.rot = Math.round(num(b.rot, -180, 180, 0)); o.couleur = b.couleur === 'auto' ? 'auto' : col(b.couleur, 'auto'); }
     if (b.t === 'trait') { o.l = Math.round(num(b.l, 10, 440, 200)); o.ep = num(b.ep, 1, 12, 2); o.vertical = !!b.vertical; }
+    if (b.t === 'panneau') { o.l = Math.round(num(b.l, 20, 460, 300)); o.h = Math.round(num(b.h, 10, 460, 110)); o.r = Math.round(num(b.r, 0, 80, 14)); o.style = PANNEAUX[b.style] ? b.style : 'lcd'; o.couleur = col(b.couleur, 'accent'); }
     return o;
   }
   function norm(c) {
@@ -136,7 +141,9 @@
     throw new Error('Pas de canvas');
   }
   var MES = null;
-  function mesure(fam, taille, t, esp) {
+  // les chiffres DSEG occupent tout le corps (1 em) contre ~0,74 em pour les autres polices : même hauteur visible
+  function tl(fam, taille) { return /^CadLcd/.test(fam) ? Math.round(taille * .74 * 10) / 10 : taille; }
+  function mesure(fam, taille, t, esp) { taille = tl(fam, taille);
     if (!MES) MES = toile(8, 8).getContext('2d');
     MES.font = taille + 'px "' + fam + '"';
     return MES.measureText(t).width + (esp || 0) * Math.max(0, t.length - 1);
@@ -152,15 +159,24 @@
     return k ? Math.ceil(taille * k) + 2 : 0;
   }
   function texte(g, t, x, y, fam, taille, coul, align, esp, fx) {
+    var taille0 = taille; taille = tl(fam, taille);
     g.font = taille + 'px "' + fam + '"'; g.textBaseline = 'alphabetic'; g.textAlign = 'left';
     esp = esp || 0; if (!HEX.test(coul || '')) fx = null;
-    var w = mesure(fam, taille, t, esp), x0 = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+    if (fam === 'CadLcd14') t = String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+    var w = mesure(fam, taille0, t, esp), x0 = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
     var trace = function (dx, dy, creux) {
       var f = creux ? 'strokeText' : 'fillText';
       if (!esp) { g[f](t, x0 + dx, y + dy); return; }
-      var xx = x0 + dx; for (var i = 0; i < t.length; i++) { g[f](t[i], xx, y + dy); xx += mesure(fam, taille, t[i]) + esp; }
+      var xx = x0 + dx; for (var i = 0; i < t.length; i++) { g[f](t[i], xx, y + dy); xx += mesure(fam, taille0, t[i]) + esp; }
     };
     g.save(); g.fillStyle = coul;
+    if (fx === 'lcd') {
+      // segments éteints en fantôme : « 8 » (chiffres) ou « ~ » (tous les segments de DSEG14), puis le texte allumé
+      var gh = fam === 'CadLcd14' ? t.replace(/[0-9A-Z \-]/g, '~') : t.replace(/[0-9 \-]/g, '8');
+      g.globalAlpha = .14;
+      if (!esp) g.fillText(gh, x0, y); else { var xg = x0; for (var gi = 0; gi < gh.length; gi++) { g.fillText(gh[gi], xg, y); xg += mesure(fam, taille0, t[gi] || gh[gi]) + esp; } }
+      g.globalAlpha = 1; trace(0, 0); fx = null;
+    }
     if (fx && fx !== 'aucun') {
       var fonce = mix(coul, '#000000', .62), clair = mix(coul, '#ffffff', .6), k = Math.max(1, Math.round(taille / 45));
       if (fx === 'relief') {
@@ -390,6 +406,46 @@
         { t: 'info', d: 'batterie', x: CX, y: 432, style: 'ligne', taille: 's', couleur: 'doux', effet: 'ombre' }
       ];
     } },
+    lcdretro: { n: 'LCD rétro', f: function () {
+      var enc = '#1f261b';
+      return [
+        { t: 'panneau', x: CX, y: 128, l: 250, h: 50, r: 10, style: 'lcd', couleur: 'accent' },
+        { t: 'date', format: 'court', x: CX, y: 128, taille: 20, police: 'lcd14', effet: 'lcd', couleur: enc, jour: enc },
+        { t: 'panneau', x: CX, y: 228, l: 360, h: 128, r: 16, style: 'lcd', couleur: 'accent' },
+        { t: 'heure', x: CX, y: 228, taille: 92, police: 'lcd', effet: 'lcd', couleur: enc, dp: enc, secondes: true },
+        { t: 'panneau', x: CX, y: 336, l: 300, h: 60, r: 10, style: 'lcd', couleur: 'accent' },
+        { t: 'info', d: 'pas', x: 168, y: 336, style: 'ligne', taille: 's', couleur: enc, valeur: enc, police: 'lcd' },
+        { t: 'info', d: 'coeur', x: 312, y: 336, style: 'ligne', taille: 's', couleur: enc, valeur: enc, police: 'lcd' },
+        { t: 'info', d: 'batterie', x: CX, y: 410, style: 'ligne', taille: 's', couleur: '#ffcc00', valeur: 'texte', police: 'lcd', effet: 'lcd' },
+        { t: 'meteo', x: CX, y: 64, taille: 's', minmax: false }
+      ];
+    } },
+    tactique: { n: 'Tactique', f: function () {
+      var amb = '#ffb000';
+      return [
+        { t: 'texte', txt: 'ALT · PRESS · HUM', x: CX, y: 62, taille: 11, couleur: 'doux', esp: 2 },
+        { t: 'info', d: 'calories', x: 150, y: 104, style: 'ligne', taille: 's', couleur: '#ff7a1a', police: 'lcd' },
+        { t: 'info', d: 'coeur', x: 330, y: 104, style: 'ligne', taille: 's', couleur: '#ff3b3b', police: 'lcd' },
+        { t: 'panneau', x: CX, y: 220, l: 380, h: 120, r: 12, style: 'sombre', couleur: amb },
+        { t: 'heure', x: CX, y: 220, taille: 96, police: 'lcd', effet: 'lcd', couleur: amb, dp: amb, secondes: true },
+        { t: 'panneau', x: CX, y: 318, l: 260, h: 46, r: 8, style: 'sombre', couleur: amb },
+        { t: 'date', format: 'court', x: CX, y: 318, taille: 18, police: 'lcd14', effet: 'lcd', couleur: amb, jour: amb },
+        { t: 'info', d: 'pas', x: 130, y: 390, style: 'jauge', taille: 's', couleur: '#5fd35f', barre: true, police: 'lcd' },
+        { t: 'info', d: 'batterie', x: 350, y: 390, style: 'jauge', taille: 's', couleur: '#46d9c2', barre: true, police: 'lcd' },
+        { t: 'meteo', x: CX, y: 404, taille: 's', minmax: false }
+      ];
+    } },
+    nixie: { n: 'Tubes Nixie', f: function (c) {
+      var o = '#ff8a1f', h = normBloc({ t: 'heure', x: CX, y: 232, taille: 96, police: 'legere', effet: 'lueur', couleur: o, dp: o }), G = geo(h, c);
+      var cx = [G.x + G.cw / 2, G.x + G.cw * 1.5, G.x + 2 * G.cw + G.dpw + G.cw / 2, G.x + 3 * G.cw + G.dpw + G.cw / 2];
+      var l = [{ t: 'date', format: 'court', x: CX, y: 118, taille: 18, couleur: o, jour: o, effet: 'lueur' }];
+      cx.forEach(function (x) { l.push({ t: 'panneau', x: Math.round(x), y: 232, l: Math.round(G.cw - 6), h: 138, r: Math.round((G.cw - 6) / 2.3), style: 'verre', couleur: o }); });
+      l.push(h,
+        { t: 'info', d: 'coeur', x: 156, y: 352, style: 'ligne', taille: 's', couleur: o, valeur: o, effet: 'lueur' },
+        { t: 'info', d: 'pas', x: 324, y: 352, style: 'ligne', taille: 's', couleur: o, valeur: o, effet: 'lueur' },
+        { t: 'info', d: 'batterie', x: CX, y: 398, style: 'ligne', taille: 's', couleur: o, valeur: o, effet: 'lueur' });
+      return l;
+    } },
     vide: { n: 'Vide', f: function () { return [{ t: 'heure', x: CX, y: CY, taille: 110, police: 'legere' }]; } }
   };
   function modele(id, cfg) { var m = MODELES[id] || MODELES.numerique; return m.f(norm(cfg)).map(normBloc).filter(Boolean); }
@@ -412,7 +468,7 @@
     if (b.t === 'aiguilles') { var r = Math.round(200 * b.echelle); return { x: b.x - r, y: b.y - r, w: 2 * r, h: 2 * r }; }
     if (b.t === 'date') {
       var fs = b.taille, pd = padFx(b.effet, fs + 2), hD = Math.round(fs * 1.4) + pd, esp = fs > 18 ? 2 : 1, wD = Math.round(fs * 2.4) + pd, gap = Math.round(fs * .3);
-      var larg = function (l) { return Math.ceil(Math.max.apply(null, l.map(function (t) { return mesure(PETITE.fam, fs, t, esp); }))) + 4 + pd; };
+      var DF = famDate(b), larg = function (l) { return Math.ceil(Math.max.apply(null, l.map(function (t) { return mesure(DF, fs, DF === PETITE.fam ? t : String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase(), esp); }))) + 4 + pd; };
       var f = b.format, P0 = DPARTS[f] || DPARTS.long;
       if (f === 'chiffres') { var wc = wD * 2 + gap * 2 + 8; return { x: Math.round(b.x - wc / 2), y: Math.round(b.y - hD / 2), w: wc, h: hD, wD: wD, gap: gap, fs: fs, esp: esp, parts: [] }; }
       var parts = P0.map(function (q) { return { k: q[0], l: q[1], w: q[0] === 'jour' ? wD : larg(q[1]) }; });
@@ -432,6 +488,7 @@
     if (b.t === 'meteo') { var T2 = TI[b.taille], ic = T2.ic * 2.2, hv2 = Math.round(T2.val * 1.08) + padFx(b.effet, Math.round(T2.val * P.echelle)), wm = Math.round(ic + 12 + T2.w * .9), hm = Math.round(Math.max(ic, hv2 + (b.minmax ? T2.lab * 1.6 + 4 : 0))); return { x: Math.round(b.x - wm / 2), y: Math.round(b.y - hm / 2), w: wm, h: hm, T: T2, ic: Math.round(ic), hv: hv2 }; }
     if (b.t === 'texte') { var pt = padFx(b.effet, b.taille), wt = Math.ceil(mesure(P.fam, Math.round(b.taille * P.echelle), b.txt, b.esp)) + 4 + pt, ht = Math.round(b.taille * 1.3) + pt; return { x: Math.round(b.x - wt / 2), y: Math.round(b.y - ht / 2), w: wt, h: ht }; }
     if (b.t === 'image') { var ti = b.taille; return { x: Math.round(b.x - ti / 2), y: Math.round(b.y - ti / 2), w: ti, h: ti }; }
+    if (b.t === 'panneau') return { x: Math.round(b.x - b.l / 2), y: Math.round(b.y - b.h / 2), w: b.l, h: b.h };
     if (b.t === 'trait') { return b.vertical ? { x: b.x - 4, y: b.y - b.l / 2, w: 8, h: b.l } : { x: b.x - b.l / 2, y: b.y - 4, w: b.l, h: 8 }; }
     return { x: b.x - 20, y: b.y - 20, w: 40, h: 40 };
   }
@@ -506,16 +563,16 @@
         ['', '_aod'].forEach(function (suf, k) {
           if (k && cfg.aod !== 'heure_date') return;
           var dd = 'date' + bi + suf, col = k ? aodDim : coul(cfg, b.couleur === 'texte' ? 'doux' : b.couleur), colJ = k ? aodDim : coul(cfg, b.jour), fx = k ? null : FX;
-          var w = { k: 'date', aod: k ? 1 : 0, dossier: dd, h: G.h, g: { fx: fx || 'aucun', fs: G.fs, esp: G.esp, parts: [] } }, seul = G.parts.length === 1;
+          var w = { k: 'date', aod: k ? 1 : 0, dossier: dd, h: G.h, g: { fx: fx || 'aucun', fs: G.fs, esp: G.esp, fam: famDate(b), parts: [] } }, seul = G.parts.length === 1;
           G.parts.forEach(function (q, qi) {
             var nums = []; for (var n0 = 1; n0 <= 31; n0++) nums.push(n0 === 1 && f === 'long' ? '1ER' : String(n0));
-            if (q.k === 'sem') { q.l.forEach(function (j, i) { put(dd + '/semaine/' + i + '.png', boiteTxt(q.w, G.h, j, PETITE.fam, G.fs, col, seul ? 'center' : 'right', G.esp, fx)); }); w.sem = { x: q.x, y: G.y }; w.g.parts.push({ t: 's', x: q.x, w: q.w, al: seul ? 'center' : 'right', px: G.fs, esp: G.esp, c: col, l: q.l }); }
-            if (q.k === 'jour') { nums.forEach(function (t, i) { put(dd + '/jour/' + i + '.png', boiteTxt(q.w, G.h, t, PETITE.fam, G.fs + 1, colJ, 'center', 0, fx)); }); w.jour = { x: q.x, y: G.y }; w.g.parts.push({ t: 'j', x: q.x, w: q.w, al: 'center', px: G.fs + 1, esp: 0, c: colJ, l: nums }); }
-            if (q.k === 'mois') { q.l.forEach(function (j, i) { put(dd + '/mois/' + i + '.png', boiteTxt(q.w, G.h, j, PETITE.fam, G.fs, col, 'left', G.esp, fx)); }); w.mois = { x: q.x, y: G.y }; w.g.parts.push({ t: 'm', x: q.x, w: q.w, al: 'left', px: G.fs, esp: G.esp, c: col, l: q.l }); }
+            if (q.k === 'sem') { q.l.forEach(function (j, i) { put(dd + '/semaine/' + i + '.png', boiteTxt(q.w, G.h, j, famDate(b), G.fs, col, seul ? 'center' : 'right', G.esp, fx)); }); w.sem = { x: q.x, y: G.y }; w.g.parts.push({ t: 's', x: q.x, w: q.w, al: seul ? 'center' : 'right', px: G.fs, esp: G.esp, c: col, l: q.l }); }
+            if (q.k === 'jour') { nums.forEach(function (t, i) { put(dd + '/jour/' + i + '.png', boiteTxt(q.w, G.h, t, famDate(b), G.fs + 1, colJ, 'center', 0, fx)); }); w.jour = { x: q.x, y: G.y }; w.g.parts.push({ t: 'j', x: q.x, w: q.w, al: 'center', px: G.fs + 1, esp: 0, c: colJ, l: nums }); }
+            if (q.k === 'mois') { q.l.forEach(function (j, i) { put(dd + '/mois/' + i + '.png', boiteTxt(q.w, G.h, j, famDate(b), G.fs, col, 'left', G.esp, fx)); }); w.mois = { x: q.x, y: G.y }; w.g.parts.push({ t: 'm', x: q.x, w: q.w, al: 'left', px: G.fs, esp: G.esp, c: col, l: q.l }); }
           });
           if (f === 'chiffres') {
-            for (var n2 = 1; n2 <= 31; n2++) put(dd + '/jour/' + (n2 - 1) + '.png', boiteTxt(G.wD, G.h, ('0' + n2).slice(-2), PETITE.fam, G.fs + 2, colJ, 'right', 0, fx));
-            for (var m2 = 1; m2 <= 12; m2++) put(dd + '/mois/' + (m2 - 1) + '.png', boiteTxt(G.wD, G.h, ('0' + m2).slice(-2), PETITE.fam, G.fs + 2, col, 'left', 0, fx));
+            for (var n2 = 1; n2 <= 31; n2++) put(dd + '/jour/' + (n2 - 1) + '.png', boiteTxt(G.wD, G.h, ('0' + n2).slice(-2), famDate(b), G.fs + 2, colJ, 'right', 0, fx));
+            for (var m2 = 1; m2 <= 12; m2++) put(dd + '/mois/' + (m2 - 1) + '.png', boiteTxt(G.wD, G.h, ('0' + m2).slice(-2), famDate(b), G.fs + 2, col, 'left', 0, fx));
             w.jour = { x: G.x, y: G.y }; w.mois = { x: G.x + G.wD + 2 * G.gap + 8, y: G.y };
             var d2 = function (n) { var l = []; for (var i = 1; i <= n; i++) l.push(('0' + i).slice(-2)); return l; };
             w.g.parts.push({ t: 'j', x: G.x, w: G.wD, al: 'right', px: G.fs + 2, esp: 0, c: colJ, l: d2(31) }, { t: 'm', x: G.x + G.wD + 2 * G.gap + 8, w: G.wD, al: 'left', px: G.fs + 2, esp: 0, c: col, l: d2(12) });
@@ -665,13 +722,14 @@
       var G = geo(b, cfg), cc = coul(cfg, b.couleur);
       if (b.t === 'texte') { var P = POLICES[b.police] || PETITE; texte(g, b.txt, b.x, Math.round(b.y + b.taille * .36), P.fam, Math.round(b.taille * P.echelle), aod ? aodDimDe(cfg) : cc, 'center', b.esp, aod ? null : b.effet); return; }
       if (b.t === 'image') { if (!aod) { g.save(); g.translate(b.x, b.y); g.rotate(b.rot * Math.PI / 180); motif(g, b.motif, 0, 0, b.taille, b.couleur === 'auto' ? null : coul(cfg, b.couleur)); g.restore(); } return; }
+      if (b.t === 'panneau') { if (!aod) panneau(g, b, G, cfg); return; }
       if (b.t === 'trait') { g.strokeStyle = aod ? mix(cfg.doux, '#000', .6) : cc; g.lineWidth = b.ep; g.lineCap = 'round'; g.beginPath(); if (b.vertical) { g.moveTo(b.x, G.y); g.lineTo(b.x, G.y + G.h); } else { g.moveTo(G.x, b.y); g.lineTo(G.x + G.w, b.y); } g.stroke(); return; }
       if (aod) return;
       if (b.t === 'date' && b.cadre) {
         g.save(); rond(g, G.x - 7, G.y - 2, G.w + 14, G.h + 4, Math.min(10, G.h / 2)); g.fillStyle = 'rgba(0,0,0,.45)'; g.shadowColor = 'rgba(0,0,0,.7)'; g.shadowBlur = 5; g.fill(); g.restore();
         rond(g, G.x - 7, G.y - 2, G.w + 14, G.h + 4, Math.min(10, G.h / 2)); g.strokeStyle = rgba(cfg.accent, .7); g.lineWidth = 1.5; g.stroke();
       }
-      if (b.t === 'date' && b.format === 'chiffres') { texte(g, '/', b.x, Math.round(b.y + b.taille * .4), PETITE.fam, b.taille + 2, cfg.doux, 'center'); return; }
+      if (b.t === 'date' && b.format === 'chiffres') { texte(g, '/', b.x, Math.round(b.y + b.taille * .4), famDate(b), b.taille + 2, cfg.doux, 'center'); return; }
       if (b.t === 'meteo') {
         if (b.minmax) { var T0 = G.T, xt = G.x + G.ic + 10, ys = G.y + G.hv + 4 + Math.round(T0.lab * 1.4 * 1.08) / 2, ws = Math.round((G.w - G.ic - 10) / 2); icone(g, 'bas', xt + 6, ys, 12, '#5ab0ff'); icone(g, 'haut', xt + ws + 6, ys, 12, '#ff7a5a'); }
         return;
@@ -1010,9 +1068,35 @@
     g.restore();
     return pk;
   }
+  /* écran ou cadre fixe (dessiné dans le fond) : afficheur LCD, verre, cadre */
+  function panneau(g, b, G, cfg) {
+    var x = G.x, y = G.y, w = G.w, h = G.h, r = Math.min(b.r, w / 2, h / 2), bord = coul(cfg, b.couleur), st = b.style;
+    var LCD = { lcd: ['#c4cbb0', '#a9b394', '#6d7560'], lcdvert: ['#a8c39a', '#86a77a', '#4f6a47'], ambre: ['#3a2a10', '#24190a', '#5a4214'] };
+    g.save();
+    if (st !== 'cadre') {
+      // ombre portée et boîtier
+      g.shadowColor = 'rgba(0,0,0,.6)'; g.shadowBlur = 8; g.shadowOffsetY = 2;
+      rond(g, x - 4, y - 4, w + 8, h + 8, r + 4); g.fillStyle = st === 'verre' ? 'rgba(0,0,0,.35)' : mix(bord, '#000000', .78); g.fill();
+      g.shadowColor = 'transparent';
+      rond(g, x - 4, y - 4, w + 8, h + 8, r + 4); g.lineWidth = 1.5; g.strokeStyle = rgba(bord, .55); g.stroke();
+      rond(g, x, y, w, h, r);
+      if (LCD[st]) { var gl = g.createLinearGradient(0, y, 0, y + h); gl.addColorStop(0, LCD[st][0]); gl.addColorStop(1, LCD[st][1]); g.fillStyle = gl; }
+      else if (st === 'sombre') { var gs = g.createLinearGradient(0, y, 0, y + h); gs.addColorStop(0, '#1b2026'); gs.addColorStop(1, '#0b0e12'); g.fillStyle = gs; }
+      else { var gv = g.createLinearGradient(0, y, 0, y + h); gv.addColorStop(0, 'rgba(255,255,255,.14)'); gv.addColorStop(.5, 'rgba(255,255,255,.04)'); gv.addColorStop(1, 'rgba(255,255,255,.08)'); g.fillStyle = gv; }
+      g.fill();
+      // ombre intérieure en haut (l'écran est en creux) et reflet
+      g.save(); rond(g, x, y, w, h, r); g.clip();
+      var gi = g.createLinearGradient(0, y, 0, y + Math.min(18, h * .3)); gi.addColorStop(0, 'rgba(0,0,0,' + (LCD[st] ? .28 : .5) + ')'); gi.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gi; g.fillRect(x, y, w, h);
+      if (st === 'verre' || LCD[st]) { var gr = g.createLinearGradient(x, y, x + w * .6, y + h); gr.addColorStop(0, 'rgba(255,255,255,' + (st === 'verre' ? .16 : .1) + ')'); gr.addColorStop(.45, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(x, y, w, h); }
+      g.restore();
+      rond(g, x, y, w, h, r); g.lineWidth = 1; g.strokeStyle = LCD[st] ? LCD[st][2] : 'rgba(255,255,255,.12)'; g.stroke();
+    } else { rond(g, x, y, w, h, r); g.lineWidth = 2; g.strokeStyle = bord; g.stroke(); }
+    g.restore();
+  }
   function boite(b, cfg) { var G = geo(normBloc(b), norm(cfg)); return { x: G.x, y: G.y, w: G.w, h: G.h }; }
 
   /* ---------------- polices ---------------- */
+  function famDate(b) { return b && (b.police === 'lcd' || b.police === 'lcd14') ? POLICES.lcd14.fam : PETITE.fam; }
   function polices(base) {
     if (!root.FontFace || !root.document) return Promise.resolve();
     var vu = {}, l = Object.keys(POLICES).map(function (k) { return POLICES[k]; }).filter(function (p) { if (vu[p.fam]) return false; vu[p.fam] = 1; return true; });
@@ -1119,7 +1203,7 @@
       } else if (w.k === 'date') {
         var parts = g.parts.map(function (q) {
           var fx3 = fxGarmin(g.fx, q.c, q.px * k, cfg.c1);
-          return { x: R(q.x), w: R(q.w), al: q.al === 'left' ? 0 : q.al === 'right' ? 2 : 1, t: q.t, f: police(PETITE.fam, q.px, w.h, lettres(q.l), 0, q.esp), c: fx3.c, fx: fx3.fx, c2: fx3.c2, c3: fx3.c3, n: fx3.n, l: q.l };
+          return { x: R(q.x), w: R(q.w), al: q.al === 'left' ? 0 : q.al === 'right' ? 2 : 1, t: q.t, f: police(g.fam || PETITE.fam, q.px, w.h, lettres(q.l), 0, q.esp), c: fx3.c, fx: fx3.fx, c2: fx3.c2, c3: fx3.c3, n: fx3.n, l: q.l };
         });
         var yy = w.jour ? w.jour.y : w.sem ? w.sem.y : w.mois.y;
         ops.push({ k: 'd', y: R(yy), parts: parts });
@@ -1142,7 +1226,7 @@
     ch.forEach(function (c, i) { var cw = Math.max(larg[i], p.mono || 0) + 2; if (x + cw > maxW) { x = 0; y += p.h + 1; } pos.push([x, y, cw]); x += cw; });
     var Wt = 1; while (Wt < Math.min(maxW, Math.max.apply(null, pos.map(function (q) { return q[0] + q[2]; })))) Wt *= 2;
     var Ht = 1; while (Ht < y + p.h) Ht *= 2;
-    var cv = toile(Wt, Ht), g = cv.getContext('2d'); g.font = p.px + 'px "' + fam + '"'; g.fillStyle = '#ffffff'; g.textBaseline = 'alphabetic'; g.textAlign = 'center';
+    var cv = toile(Wt, Ht), g = cv.getContext('2d'); g.font = tl(fam, p.px) + 'px "' + fam + '"'; g.fillStyle = '#ffffff'; g.textBaseline = 'alphabetic'; g.textAlign = 'center';
     var l = ['info face="' + fam + '" size=' + p.px + ' bold=0 italic=0 charset="" unicode=1 stretchH=100 smooth=1 aa=1 padding=0,0,0,0 spacing=0,0',
       'common lineHeight=' + p.h + ' base=' + base + ' scaleW=' + Wt + ' scaleH=' + Ht + ' pages=1 packed=0', 'page id=0 file="FICHIER"', 'chars count=' + ch.length];
     ch.forEach(function (c, i) {
