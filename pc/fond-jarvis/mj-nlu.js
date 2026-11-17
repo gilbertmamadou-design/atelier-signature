@@ -1311,6 +1311,11 @@
       if (/^(de surveillance|maison|de la maison)$/.test(nm)) nm = '';
       return R('cameras', { name: nm });
     }
+    // --- enceinte Amazon Echo en Bluetooth : « connecte-toi à l'enceinte Amazon », « mets le son sur l'Echo », « déconnecte l'enceinte » ---
+    var ECHO = /\b(enceintes?|echo|echo dot|echo show|alexa|haut parleurs?|baffles?)\b/;
+    if (ECHO.test(t) && /\b(connecte|connecter|connectes|branche|brancher|relie|relier|associe|appaire|apparie|appairer|deconnecte|deconnecter|debranche|son sur|musique sur|passe sur|mets le son|bascule)\b/.test(t) && !/\b(lumiere|lampe|volet|store)\b/.test(t)) {
+      return R('echo_bt', { act: /\b(deconnecte|deconnecter|debranche|coupe)\b/.test(t) ? 'off' : /\b(appaire|apparie|appairer|associe|premiere fois|jumele)\b/.test(t) ? 'pair' : 'on' });
+    }
     // --- son d'une appli ou d'un usage : « monte la musique », « baisse YouTube », « monte la sonnerie » (Android règle par type de son :
     //     musique, vidéos, livres audio et applis partagent le volume multimédia) ---
     var vapp = /^(monte|montez|augmente|augmentez|hausse|remonte|baisse|baissez|diminue|diminuez|descends|reduis|coupe|coupez|mets)\b(?: un (?:petit )?peu| beaucoup| encore| un max)? (?:le son |le volume )?(?:de |du |des |de la |la |le |les |l |sur )?(musique|radio|video|videos|film|tele|television|sonnerie|alarmes?|reveils?|lecture|livre|livre audio|voix de la lecture|podcast|spotify|youtube|deezer|melodie|liseuse|ecran|netflix|media|medias|jeu)\b(.*)$/.exec(t);

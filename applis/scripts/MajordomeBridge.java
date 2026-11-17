@@ -1061,6 +1061,15 @@ public class MajordomeBridge {
             } catch (Throwable t) { toast("Réglage indisponible"); }
         } });
     }
+    /** Sortie audio Bluetooth en cours (nom de l'enceinte), ou "" */
+    @JavascriptInterface public String btAudio() {
+        try {
+            AudioManager am = (AudioManager) a.getSystemService(Context.AUDIO_SERVICE);
+            for (android.media.AudioDeviceInfo d : am.getDevices(AudioManager.GET_DEVICES_OUTPUTS))
+                if (d.getType() == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_A2DP) return String.valueOf(d.getProductName());
+        } catch (Throwable t) { }
+        return "";
+    }
     /** E-mail : adresse du contact (Contacts d'Android), puis l'appli de messagerie s'ouvre avec le message prêt (l'utilisateur envoie) */
     @JavascriptInterface public String mailCompose(String who, String subject, String body) {
         String addr = "";

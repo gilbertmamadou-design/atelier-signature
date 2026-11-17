@@ -1226,6 +1226,30 @@
   }
   /* Alexa : Majordome prononce la demande à voix haute (« Alexa, ferme les stores »), l'Echo l'entend et l'exécute */
   var ALEXA_WORDS = /^(alexa|echo|amazon|ordinateur|ziggy)\b/i;
+  /* Enceinte Amazon Echo en Bluetooth. Android ne laisse pas une appli brancher une enceinte toute seule : Majordome demande
+     à voix haute à l'Echo de se connecter au téléphone (déjà jumelé une fois), puis vérifie la sortie audio. */
+  H.echo_bt = function (p) {
+    if (!ANDROID || !B) return phoneOnly();
+    var cur = B.btAudio ? B.btAudio() : '';
+    if (p.act === 'pair') {
+      alexaVoice('Alexa, appaire');
+      if (B.panel) setTimeout(function () { B.panel('bluetooth'); }, 2500);
+      return answer('Je mets l\'Echo en mode jumelage. Dans le réglage Bluetooth qui s\'ouvre, touchez le nom de l\'Echo. Ensuite, dites-moi simplement « connecte-toi à l\'enceinte ».').done;
+    }
+    if (p.act === 'off') {
+      if (!cur) return answer('Le téléphone n\'est connecté à aucune enceinte Bluetooth.').done;
+      return alexaVoice('Alexa, déconnecte mon téléphone').then(function () { return answer('Je demande à l\'Echo de se déconnecter.').done; });
+    }
+    if (cur) return answer('Le son passe déjà par « ' + cur + ' ».').done;
+    return alexaVoice('Alexa, connecte mon téléphone').then(function () {
+      return new Promise(function (ok) { setTimeout(ok, 5000); });
+    }).then(function () {
+      var now = B.btAudio ? B.btAudio() : '';
+      if (now) return answer(ack('Connecté : le son passe par « ' + now + ' ».')).done;
+      var c = answer({ say: 'L\'enceinte ne s\'est pas connectée.', html: '<div class="k">Enceinte</div><p>L\'enceinte ne s\'est pas connectée. Vérifiez que l\'Echo m\'a entendu et que le Bluetooth du téléphone est allumé. La toute première fois, dites « appaire l\'enceinte » pour jumeler le téléphone.</p><div class="row"><button class="btn" data-bt>Ouvrir le Bluetooth</button></div>' });
+      var b = c.querySelector && c.querySelector('[data-bt]'); if (b) b.onclick = function () { B.panel('bluetooth'); };
+    });
+  };
   function alexaSay(cmd) {
     cmd = String(cmd || '').trim(); if (!cmd) return Promise.resolve();
     // volets et stores : directement par le boîtier Somfy TaHoma s'il est réglé (mj-somfy.js), sinon à voix haute pour l'Echo
