@@ -967,9 +967,12 @@
       if (p.cmd === 'play' && B.musicActive) setTimeout(function () {
         if (B.musicActive()) return;
         var lp = J(B.lastPlayer ? B.lastPlayer() : '{}', {}) || {};
+        // Mélodie (dernier lecteur, ou lecteur inconnu et Mélodie installée) : on la rouvre, elle reprend là où elle s'était arrêtée
+        var melOk = P && P.homeLaunchWith && (!P.homeInstalled || P.homeInstalled(MEL) === '1');
+        if (melOk && (lp.pkg === MEL || !lp.pkg)) { P.homeLaunchWith(MEL, JSON.stringify({ play: 1, back: 1 })); answer(ack('Je relance Mélodie là où elle s\'était arrêtée.')); return; }
         var c = answer({ say: 'Rien ne joue : ' + (lp.app ? lp.app + ' a dû être fermée' : 'l\'appli de musique a dû être fermée') + '.', html: '<div class="k">Musique</div><p>Rien ne joue : ' + esc(lp.app ? lp.app + ' a dû être fermée' : 'l\'appli de musique a dû être fermée') + '. Ouvrez-la et touchez lecture, ou dites « mets de la musique » pour Mélodie.</p>' + (lp.pkg ? '<div class="row"><button class="btn pri" data-lp>Ouvrir ' + esc(lp.app) + '</button></div>' : '') + (B.notifAccess && !B.notifAccess() ? '<p class="note">Astuce : donnez à ' + esc(S.name) + ' l\'accès aux notifications (Réglages › Messages) pour reprendre la musique même longtemps après la pause.</p>' : '') });
         var bt = c.querySelector && c.querySelector('[data-lp]'); if (bt) bt.onclick = function () { B.appLaunch(lp.pkg, '', lp.app); };
-      }, 3500);
+      }, 2500);
       return answer(lab).done;
     }
     return answer('Je ne peux pas piloter la musique ici.').done;
