@@ -298,9 +298,15 @@ public class CamerasBridge {
     }
 
     // ================= Mosaïque =================
+    /** Liste des caméras prêtes, gardée dans les préférences privées de l'appli : Majordome ouvre la mosaïque sans passer par la page */
+    @JavascriptInterface public void store(final String json) {
+        try { new JSONArray(json); a.getSharedPreferences("cameras", Context.MODE_PRIVATE).edit().putString("cams", json).apply(); } catch (Throwable t) { }
+    }
+    @JavascriptInterface public void quit() { a.runOnUiThread(new Runnable() { public void run() { try { a.finishAndRemoveTask(); } catch (Throwable t) { a.finish(); } } }); }
     @JavascriptInterface public boolean show(final String json, final int index) {
         try {
             Class<?> k = Class.forName(CamerasBridge.class.getName().replace("CamerasBridge", "CamerasViewer"));
+            store(json);
             Intent i = new Intent(a, k).putExtra("cams", json).putExtra("start", index);
             a.startActivity(i);
             return true;

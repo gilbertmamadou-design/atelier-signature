@@ -143,6 +143,15 @@
     return say(X.withSir('Je ne pilote pas ' + p.what) + ' : seulement les lumières Philips Hue' + (ANDROID ? ', et j\'ouvre les applis du téléphone.' : '.'));
   };
 
+  /* ---------------- Caméras de la maison (appli Caméras) ---------------- */
+  H.cameras = function (p) {
+    if (!ANDROID || !B || !B.camerasShow) return say('Les caméras s\'affichent sur le téléphone, avec l\'appli Caméras.');
+    var r = B.camerasShow(p.name || '');
+    if (r === 'ok') return say(X.ack(p.name ? 'Voici la caméra ' + p.name : 'Voici les caméras'));
+    if (r === 'absent') return say('Installez d\'abord l\'appli Caméras et réglez-y vos caméras.');
+    return say('Je n\'arrive pas à ouvrir l\'appli Caméras : mettez-la à jour, puis réessayez.');
+  };
+
   /* ---------------- Réglages › Ouvrir une appli : alias personnels ---------------- */
   function targets() {
     if (ANDROID) return (appList() || []).slice().sort(function (a, b) { return a.label.localeCompare(b.label, 'fr'); }).map(function (a) { return { name: a.label, pkg: a.pkg, cls: a.cls }; });

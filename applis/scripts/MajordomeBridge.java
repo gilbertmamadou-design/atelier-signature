@@ -1164,6 +1164,16 @@ public class MajordomeBridge {
         i.addFlags(Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
         return startOrNotify(c, i, name == null || name.isEmpty() ? pkg : name);
     }
+    /** Mosaïque de l'appli Caméras (activité réservée aux applis MAG, permission signature) ; name : une caméra précise */
+    @JavascriptInterface public String camerasShow(String name) {
+        Context c = a.getApplicationContext();
+        Intent i = new Intent().setComponent(new ComponentName("fr.magformation13.cameras", "fr.magformation13.cameras.CamerasViewer"))
+            .putExtra("name", name == null ? "" : name).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try { a.startActivity(i); return "ok"; }
+        catch (android.content.ActivityNotFoundException e) { return "absent"; }
+        catch (SecurityException e) { return "refus"; }
+        catch (Throwable t) { return "err"; }
+    }
     /** Raccourcis du système par intents standard : paramètres (et sous-pages), appareil photo, téléphone, messages,
      *  agenda, horloge, galerie, contacts, calculatrice, navigateur, messagerie, musique, Play Store. */
     @JavascriptInterface public String sysOpen(String what, String sub, String name) {

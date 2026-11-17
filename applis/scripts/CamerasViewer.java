@@ -35,8 +35,9 @@ import java.util.List;
 public class CamerasViewer extends Activity {
     static final class Cam { String name, main, sub; }
     final class Tile {
-        Cam cam; boolean big; FrameLayout box; Fit fit; SurfaceView sv; TextView label, status; ExoPlayer p; int fails;
+        Cam cam; boolean big, useSub; FrameLayout box; Fit fit; SurfaceView sv; TextView label, status; ExoPlayer p; int fails;
         final Runnable retry = new Runnable() { public void run() { start(Tile.this); } };
+        final Runnable fallback = new Runnable() { public void run() { if (p == null || p.getPlaybackState() != Player.STATE_READY) { useSub = true; status.setText("Image allégée…"); start(Tile.this); } } };
     }
     /** Cadre qui garde les proportions de l'image (bandes noires autour) */
     static final class Fit extends FrameLayout {
@@ -61,7 +62,10 @@ public class CamerasViewer extends Activity {
         super.onCreate(b);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         try {
-            JSONArray a = new JSONArray(getIntent().getStringExtra("cams"));
+            // depuis la page : liste fournie ; depuis Majordome (« montre les caméras ») : liste gardée par CamerasBridge.store()
+            String js = getIntent().getStringExtra("cams");
+            if (js == null || js.isEmpty()) js = getSharedPreferences("cameras", MODE_PRIVATE).getString("cams", "[]");
+            JSONArray a = new JSONArray(js);
             for (int i = 0; i < a.length(); i++) {
                 JSONObject o = a.getJSONObject(i); Cam c = new Cam();
                 c.name = o.optString("name", "Caméra " + (i + 1)); c.main = o.optString("main"); c.sub = o.optString("sub", "");
@@ -69,10 +73,25 @@ public class CamerasViewer extends Activity {
             }
         } catch (Throwable t) { }
         start = getIntent().getIntExtra("start", -1);
+        String want = getIntent().getStringExtra("name");   // « montre la caméra de la cuisine »
+        if (want != null && !want.trim().isEmpty()) {
+            String w = norm(want);
+            for (int i = 0; i < cams.size(); i++) { String n = norm(cams.get(i).name); if (n.equals(w) || n.contains(w) || w.contains(n)) { start = i; break; } }
+        }
         root = new FrameLayout(this); root.setBackgroundColor(Color.BLACK);
         setContentView(root);
         immersive();
         if (cams.isEmpty()) { TextView t = text("Aucune caméra réglée", 18); root.addView(t, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER)); }
+    }
+    static String norm(String s) { return java.text.Normalizer.normalize(String.valueOf(s), java.text.Normalizer.Form.NFD).replaceAll("\\p{M}", "").toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9 ]", " ").replaceAll("\\s+", " ").trim(); }
+    /** Bouton « fermer » (en haut à droite), toujours au-dessus des images */
+    void closeBtn() {
+        TextView x = text("✕", 20); x.setGravity(Gravity.CENTER);
+        GradientDrawable bg = new GradientDrawable(); bg.setShape(GradientDrawable.OVAL); bg.setColor(0x99000000); bg.setStroke(dp(1), 0x55FFFFFF); x.setBackground(bg);
+        x.setContentDescription("Fermer les caméras");
+        x.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { finish(); } });
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(dp(44), dp(44), Gravity.TOP | Gravity.END); lp.setMargins(0, dp(10), dp(10), 0);
+        root.addView(x, lp);
     }
     void immersive() {
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
@@ -111,7 +130,9 @@ public class CamerasViewer extends Activity {
 
     void start(final Tile t) {
         stop(t);
-        String url = t.big || t.cam.sub.isEmpty() ? t.cam.main : t.cam.sub;
+        String url = (t.big && !t.useSub) || t.cam.sub.isEmpty() ? t.cam.main : t.cam.sub;
+        // en grand : flux principal ; s'il ne démarre pas en 8 s (trop lourd, H.265…), flux réduit
+        if (t.big && !t.useSub && !t.cam.sub.isEmpty()) ui.postDelayed(t.fallback, 8000);
         try {
             final ExoPlayer p = new ExoPlayer.Builder(this).build();
             t.p = p;
@@ -120,7 +141,7 @@ public class CamerasViewer extends Activity {
             p.setMediaSource(new RtspMediaSource.Factory().setForceUseRtpTcp(true).setTimeoutMs(8000).createMediaSource(MediaItem.fromUri(Uri.parse(url))));
             p.addListener(new Player.Listener() {
                 @Override public void onPlaybackStateChanged(int st) {
-                    if (st == Player.STATE_READY) { t.fails = 0; t.status.setVisibility(View.GONE); }
+                    if (st == Player.STATE_READY) { t.fails = 0; ui.removeCallbacks(t.fallback); t.status.setVisibility(View.GONE); }
                     else if (st == Player.STATE_BUFFERING) { t.status.setText("Connexion…"); }
                 }
                 @Override public void onVideoSizeChanged(VideoSize v) {
@@ -128,6 +149,7 @@ public class CamerasViewer extends Activity {
                 }
                 @Override public void onPlayerError(PlaybackException e) {
                     t.fails++;
+                    if (t.big && !t.useSub && !t.cam.sub.isEmpty()) { ui.removeCallbacks(t.fallback); t.useSub = true; t.status.setText("Image allégée…"); ui.postDelayed(t.retry, 300); return; }
                     t.status.setVisibility(View.VISIBLE);
                     t.status.setText("Caméra injoignable, nouvel essai…");
                     ui.removeCallbacks(t.retry); ui.postDelayed(t.retry, Math.min(30000, 4000L * t.fails));
@@ -137,7 +159,7 @@ public class CamerasViewer extends Activity {
             p.prepare();
         } catch (Throwable e) { t.status.setText("Lecture impossible"); }
     }
-    void stop(Tile t) { ui.removeCallbacks(t.retry); if (t.p != null) { try { t.p.release(); } catch (Throwable e) { } t.p = null; } }
+    void stop(Tile t) { ui.removeCallbacks(t.retry); ui.removeCallbacks(t.fallback); if (t.p != null) { try { t.p.release(); } catch (Throwable e) { } t.p = null; } }
     void releaseAll() { for (Tile t : tiles) stop(t); if (single != null) stop(single); }
 
     void showGrid() {
@@ -161,6 +183,7 @@ public class CamerasViewer extends Activity {
             grid.addView(row, new LinearLayout.LayoutParams(-1, 0, 1));
         }
         root.addView(grid, new FrameLayout.LayoutParams(-1, -1));
+        closeBtn();
         for (Tile t : tiles) start(t);
     }
 
@@ -169,6 +192,7 @@ public class CamerasViewer extends Activity {
         tiles.clear(); root.removeAllViews();
         single = tile(cam, true);
         root.addView(single.box, new FrameLayout.LayoutParams(-1, -1));
+        closeBtn();
         if (cams.size() > 1) {
             final TextView hint = text("Toucher : retour à la mosaïque", 12); hint.setTextColor(0xCCFFFFFF);
             FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL); lp.bottomMargin = dp(14);

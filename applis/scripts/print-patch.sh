@@ -1982,7 +1982,7 @@ if [ "$APP" = "cameras" ]; then
   for J in CamerasBridge CamerasViewer; do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
   grep -q "androidx.media3:media3-exoplayer-rtsp" "$G" || sed -i '0,/^dependencies {/s//dependencies {\n    implementation "androidx.media3:media3-exoplayer:1.4.1"\n    implementation "androidx.media3:media3-exoplayer-rtsp:1.4.1"/' "$G"
   addperm INTERNET ACCESS_NETWORK_STATE ACCESS_WIFI_STATE CHANGE_WIFI_MULTICAST_STATE
-  addactivity '<activity android:name=".CamerasViewer" android:label="Caméras" android:exported="false" android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" android:screenOrientation="sensor" android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden" android:resizeableActivity="true" />'
+  addactivity '<activity android:name=".CamerasViewer" android:label="Caméras" android:exported="true" android:permission="fr.magformation13.permission.WIDGET" android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" android:screenOrientation="sensor" android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden" android:resizeableActivity="true" />'
 fi
 # Réunion : retranscription en direct (reconnaissance vocale d'Android, par DictaBridge commun : speechStart / speechStop)
 # et compte rendu préparé sur le téléphone ; correcteur commun (office-deps.txt). Micro seulement, aucune connexion de l'appli.

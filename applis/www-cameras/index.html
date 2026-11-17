@@ -37,7 +37,7 @@ ol{margin:6px 0 0;padding-left:20px}ol li{margin:4px 0}
 </style>
 </head>
 <body>
-<header><h1>Caméras</h1><button class="btn sm" id="bFind">Rechercher</button></header>
+<header><h1>Caméras</h1><button class="btn sm" id="bFind">Rechercher</button><button class="btn sm" id="bQuit" aria-label="Quitter l'appli">Quitter</button></header>
 <main>
   <div class="card"><h3>Mes caméras</h3><div id="list"></div>
     <div class="row" style="margin-top:10px"><button class="btn sm" id="bAdd">+ Ajouter une caméra</button></div></div>
@@ -58,7 +58,11 @@ ol{margin:6px 0 0;padding-left:20px}ol li{margin:4px 0}
   var B = window.MAGCameras || null, $ = function (id) { return document.getElementById(id); };
   var KEY = 'cameras:v1', L = [];
   try { L = JSON.parse(localStorage.getItem(KEY) || '[]') || []; } catch (e) { L = []; }
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(L)); } catch (e) { } }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(L)); } catch (e) { }
+    // caméras prêtes, pour « Jarvis, montre les caméras » (préférences privées de l'appli)
+    try { if (B && B.store) B.store(JSON.stringify(L.filter(function (c) { return c.ok; }).map(function (c) { return { name: c.name, main: rtsp(c, c.main), sub: c.sub ? rtsp(c, c.sub) : '' }; }))); } catch (e) { }
+  }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   var tT = 0; function toast(t) { var e = $('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(tT); tT = setTimeout(function () { e.classList.remove('on'); }, 2800); }
   function uid() { return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
@@ -128,6 +132,7 @@ ol{margin:6px 0 0;padding-left:20px}ol li{margin:4px 0}
     if (!B || !B.show(j, k)) toast('La mosaïque s\'ouvre dans l\'appli Android');
   }
   $('bAll').onclick = function () { show(null); };
+  $('bQuit').onclick = function () { if (B && B.quit) B.quit(); else window.close(); };
   $('bAdd').onclick = function () { editor(-1); };
   $('bFind').onclick = function () {
     if (!B) { toast('La recherche fonctionne dans l\'appli Android'); return; }
@@ -142,7 +147,7 @@ ol{margin:6px 0 0;padding-left:20px}ol li{margin:4px 0}
     if ((b = e.target.closest('[data-ed]'))) { editor(+b.dataset.ed); return; }
   };
   $('sheet').onclick = function (e) { if (e.target.id === 'sheet') $('sheet').hidden = true; };
-  render();
+  render(); save();
   if (B && !L.length) setTimeout(function () { $('bFind').click(); }, 600);
 })();
 </script>

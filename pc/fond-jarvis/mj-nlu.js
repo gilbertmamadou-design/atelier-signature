@@ -1302,6 +1302,13 @@
       var whoO = orig(P, m.index + m[0].length - m[1].length);
       return R('call', { to: whoO.replace(/^(le|la|l'|au)\s+/i, ''), number: digits(whoO) });
     }
+    // --- caméras de la maison (appli Caméras) : « montre les caméras », « affiche la caméra de la cuisine » ---
+    var cmr = /\bcameras?\b(?! (?:photo|frontale|arriere))/.exec(t);
+    if (cmr && !/\b(prends?|prendre|photo|selfie|filme|video de moi)\b/.test(t) && (/^(montre|montrez|affiche|affichez|ouvre|ouvrez|voir|fais voir|je veux voir|regarde|lance|mets)\b/.test(t) || /^(les |la |ma |mes )?cameras?\b/.test(t))) {
+      var cn = /\bcameras?\s+(?:de surveillance\s*)?(?:de la |du |de l |des |d |de |dans (?:la |le |l )?)?(.+)$/.exec(t), nm = cn ? cn[1].replace(/\b(s il te plait|stp|maintenant)\b/g, '').trim() : '';
+      if (/^(de surveillance|maison|de la maison)$/.test(nm)) nm = '';
+      return R('cameras', { name: nm });
+    }
     // --- volets et stores (Somfy TaHoma, mj-somfy.js) ---
     // « ferme les volets à 21 h », « ouvre les volets demain à 7 h 30 » : commande programmée une fois (mj-somfy.js)
     var sh = null, wsh = SH_VERB.test(t) || SH_RE.test(t) ? findWhen(t, now) : null;
