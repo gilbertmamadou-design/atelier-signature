@@ -96,8 +96,8 @@ public class CamerasBridge {
     }
 
     // ================= Adresse RTSP du flux =================
-    static final String[] MAIN = { "/Streaming/Channels/101", "/stream1", "/onvif1", "/live/ch00_0", "/11", "/h264_stream", "/live/main", "/live", "/" };
-    static final String[] SUB  = { "/Streaming/Channels/102", "/stream2", "/onvif2", "/live/ch00_1", "/12", "", "/live/sub", "", "" };
+    static final String[] MAIN = { "/Streaming/Channels/101", "/stream1", "/onvif1", "/live/ch00_0", "/11", "/h264_stream", "/live/main", "/av0_0", "/ch0_0.h264", "/0", "/live/0/MAIN", "/media/video1", "/h264/ch1/main/av_stream", "/cam/realmonitor?channel=1&subtype=0", "/videoMain", "/live1.sdp", "/ucast/11", "/profile0", "/mainstream", "/live", "/" };
+    static final String[] SUB  = { "/Streaming/Channels/102", "/stream2", "/onvif2", "/live/ch00_1", "/12", "", "/live/sub", "/av0_1", "/ch0_1.h264", "/1", "/live/0/SUB", "/media/video2", "/h264/ch1/sub/av_stream", "/cam/realmonitor?channel=1&subtype=1", "/videoSub", "/live2.sdp", "/ucast/12", "/profile1", "/substream", "", "" };
 
     static String md5(String s) throws Exception {
         byte[] d = MessageDigest.getInstance("MD5").digest(s.getBytes("UTF-8"));
@@ -175,12 +175,17 @@ public class CamerasBridge {
         return new Http();
     }
     /** Enveloppe SOAP avec jeton WS-Security (UsernameToken, mot de passe condensé) */
-    static String soap(String body, String user, String pwd) throws Exception {
+    static String soap(String body, String user, String pwd) throws Exception { return soap(body, user, pwd, 0, 0); }
+    /** mode 0 : mot de passe condensé (PasswordDigest) ; 1 : en clair (PasswordText, réseau local) ; 2 : sans en-tête. skew : écart d'horloge avec la caméra */
+    static String soap(String body, String user, String pwd, int mode, long skew) throws Exception {
         String sec = "";
-        if (user != null && !user.isEmpty()) {
+        if (mode == 1 && user != null && !user.isEmpty()) {
+            sec = "<s:Header><Security s:mustUnderstand=\"1\" xmlns=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd\"><UsernameToken><Username>" + xmlEsc(user) + "</Username>"
+                + "<Password Type=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText\">" + xmlEsc(pwd) + "</Password></UsernameToken></Security></s:Header>";
+        } else if (mode == 0 && user != null && !user.isEmpty()) {
             byte[] nonce = new byte[16]; new java.security.SecureRandom().nextBytes(nonce);
             java.text.SimpleDateFormat f = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US); f.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
-            String created = f.format(new java.util.Date());
+            String created = f.format(new java.util.Date(System.currentTimeMillis() + skew));
             MessageDigest sha = MessageDigest.getInstance("SHA-1"); sha.update(nonce); sha.update(created.getBytes("UTF-8")); sha.update(pwd.getBytes("UTF-8"));
             String dg = android.util.Base64.encodeToString(sha.digest(), android.util.Base64.NO_WRAP), nb = android.util.Base64.encodeToString(nonce, android.util.Base64.NO_WRAP);
             sec = "<s:Header><Security s:mustUnderstand=\"1\" xmlns=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd\"><UsernameToken><Username>" + xmlEsc(user) + "</Username>"
@@ -193,30 +198,52 @@ public class CamerasBridge {
     static String xmlEsc(String s) { return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;"); }
     static String unXml(String s) { return s.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").trim(); }
     static Http call(String url, String body, String user, String pwd) throws Exception { return post(url, soap(body, user, pwd), user, pwd); }
+    static Http call(String url, String body, String user, String pwd, int mode, long skew) throws Exception { return post(url, soap(body, user, pwd, mode, skew), user, pwd); }
+    static boolean refused(Http h) { return h.code == 401 || h.body.contains("NotAuthorized") || h.body.contains("FailedAuthentication") || h.body.contains("Sender not Authorized"); }
+    /** Écart entre l'horloge de la caméra et celle du téléphone (le jeton condensé est refusé si elles diffèrent trop) */
+    static long skewOf(String dev) {
+        try {
+            Http h = post(dev, soap("<GetSystemDateAndTime xmlns=\"http://www.onvif.org/ver10/device/wsdl\"/>", null, null, 2, 0), null, null);
+            Matcher u = Pattern.compile("UTCDateTime>([\\s\\S]*?)</[^>]*UTCDateTime>").matcher(h.body);
+            if (!u.find()) return 0;
+            String x = u.group(1);
+            int[] v = new int[6]; String[] k = { "Year", "Month", "Day", "Hour", "Minute", "Second" };
+            for (int i = 0; i < 6; i++) { Matcher m = Pattern.compile(k[i] + ">(\\d+)<").matcher(x); if (!m.find()) return 0; v[i] = Integer.parseInt(m.group(1)); }
+            java.util.Calendar c = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")); c.clear(); c.set(v[0], v[1] - 1, v[2], v[3], v[4], v[5]);
+            return c.getTimeInMillis() - System.currentTimeMillis();
+        } catch (Throwable t) { return 0; }
+    }
 
     /** Adresses RTSP par ONVIF ; null si la caméra ne répond pas en ONVIF. diag : ce qui s'est passé */
     static String[] onvif(String ip, String xaddr, String user, String pwd, StringBuilder diag) {
         List<String> devs = new ArrayList<>();
         if (xaddr != null && xaddr.startsWith("http")) devs.add(xaddr);
-        for (int p : new int[]{ 8000, 80, 8080, 2020, 6688, 8899, 5000 }) devs.add("http://" + ip + (p == 80 ? "" : ":" + p) + "/onvif/device_service");
+        for (int p : new int[]{ 10000, 8000, 80, 8080, 2020, 6688, 8899, 5000 }) devs.add("http://" + ip + (p == 80 ? "" : ":" + p) + "/onvif/device_service");
         for (String dev : devs) {
             try {
                 String host = new java.net.URI(dev).getHost(); int port = new java.net.URI(dev).getPort(); if (port <= 0) port = 80;
                 if (!ip.equals(host) || !open(ip, port)) continue;
                 Http h = call(dev, "<GetCapabilities xmlns=\"http://www.onvif.org/ver10/device/wsdl\"><Category>Media</Category></GetCapabilities>", user, pwd);
                 diag.append("ONVIF ").append(port).append(" : ").append(h.code).append("; ");
-                if (h.code == 401 || h.body.contains("NotAuthorized")) { diag.append("refus; "); return new String[]{ "auth" }; }
+                if (h.code != 200 && refused(h)) { diag.append("refus; "); }
                 String media = dev;
                 Matcher m = Pattern.compile("Media>\\s*<[^>]*XAddr>([^<]+)<").matcher(h.body); if (m.find()) media = unXml(m.group(1));
                 try { java.net.URI mu = new java.net.URI(media); if (!ip.equals(mu.getHost())) media = "http://" + ip + ":" + (mu.getPort() > 0 ? mu.getPort() : 80) + mu.getRawPath(); } catch (Throwable t) { media = dev; }
-                Http pr = call(media, "<GetProfiles xmlns=\"http://www.onvif.org/ver10/media/wsdl\"/>", user, pwd);
-                if (pr.code == 401 || pr.body.contains("NotAuthorized")) { diag.append("profils refusés; "); return new String[]{ "auth" }; }
+                // profils : mot de passe condensé à l'heure de la caméra, puis en clair, puis sans identification
+                long skew = skewOf(dev); if (Math.abs(skew) > 5000) diag.append("horloge ").append(skew / 1000).append(" s; ");
+                Http pr = null; int mode = -1;
+                for (int md = 0; md < 3; md++) {
+                    Http t2 = call(media, "<GetProfiles xmlns=\"http://www.onvif.org/ver10/media/wsdl\"/>", user, pwd, md, skew);
+                    if (!refused(t2) && t2.body.contains("token=")) { pr = t2; mode = md; break; }
+                }
+                if (pr == null) { diag.append("profils refusés (3 essais); "); return new String[]{ "auth" }; }
+                diag.append("ident ").append(mode == 0 ? "condensée" : mode == 1 ? "en clair" : "aucune").append("; ");
                 Matcher tk = Pattern.compile("Profiles[^>]*token=\"([^\"]+)\"").matcher(pr.body);
                 List<String> tokens = new ArrayList<>(); while (tk.find()) if (!tokens.contains(tk.group(1))) tokens.add(tk.group(1));
                 diag.append(tokens.size()).append(" profil(s); ");
                 List<String> uris = new ArrayList<>();
                 for (String t : tokens) {
-                    Http su = call(media, "<GetStreamUri xmlns=\"http://www.onvif.org/ver10/media/wsdl\"><StreamSetup><Stream xmlns=\"http://www.onvif.org/ver10/schema\">RTP-Unicast</Stream><Transport xmlns=\"http://www.onvif.org/ver10/schema\"><Protocol>RTSP</Protocol></Transport></StreamSetup><ProfileToken>" + xmlEsc(t) + "</ProfileToken></GetStreamUri>", user, pwd);
+                    Http su = call(media, "<GetStreamUri xmlns=\"http://www.onvif.org/ver10/media/wsdl\"><StreamSetup><Stream xmlns=\"http://www.onvif.org/ver10/schema\">RTP-Unicast</Stream><Transport xmlns=\"http://www.onvif.org/ver10/schema\"><Protocol>RTSP</Protocol></Transport></StreamSetup><ProfileToken>" + xmlEsc(t) + "</ProfileToken></GetStreamUri>", user, pwd, mode, skew);
                     Matcher um = Pattern.compile("<[^>]*Uri>([^<]+)<").matcher(su.body);
                     if (um.find()) uris.add(unXml(um.group(1)));
                     if (uris.size() >= 2) break;
