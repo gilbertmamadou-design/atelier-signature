@@ -1164,6 +1164,27 @@ public class MajordomeBridge {
         i.addFlags(Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
         return startOrNotify(c, i, name == null || name.isEmpty() ? pkg : name);
     }
+    /* Raccourci « Sphère seule » : appui long sur l'icône de Majordome, ou icône à part sur l'écran d'accueil (pin) ;
+       ouvre Majordome en mode sphère seule (action socle {"zen":1}, lue par la page : window.onSocle) */
+    private android.content.pm.ShortcutInfo zenShortcut() {
+        Intent i = new Intent(Intent.ACTION_MAIN).setClassName(a.getPackageName(), a.getClass().getName());
+        i.putExtra("socle", "{\"zen\":1}");
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        android.content.pm.ShortcutInfo.Builder b = new android.content.pm.ShortcutInfo.Builder(a, "mj-zen").setShortLabel("Sphère seule").setLongLabel("Sphère seule (plein écran)").setIntent(i);
+        try { b.setIcon(android.graphics.drawable.Icon.createWithResource(a, a.getApplicationInfo().icon)); } catch (Throwable e) { }
+        return b.build();
+    }
+    @JavascriptInterface public boolean zenShortcut(boolean pin) {
+        if (Build.VERSION.SDK_INT < 26) return false;
+        try {
+            android.content.pm.ShortcutManager sm = a.getSystemService(android.content.pm.ShortcutManager.class);
+            if (sm == null) return false;
+            List<android.content.pm.ShortcutInfo> l = new ArrayList<>(); l.add(zenShortcut());
+            sm.addDynamicShortcuts(l);
+            if (!pin) return true;
+            return sm.isRequestPinShortcutSupported() && sm.requestPinShortcut(zenShortcut(), null);
+        } catch (Throwable e) { return false; }
+    }
     /** Mosaïque de l'appli Caméras (activité réservée aux applis MAG, permission signature) ; name : une caméra précise */
     @JavascriptInterface public String camerasShow(String name) {
         Context c = a.getApplicationContext();

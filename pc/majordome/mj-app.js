@@ -1641,6 +1641,7 @@
     else if (o.routine) setTimeout(function () { MJ.voiceTurn = false; H.routine({ id: String(o.routine) }); }, 300);
     else if (o.timer) setTimeout(function () { MJ.voiceTurn = voice; H.timer({}); }, 300);
     else if (o.note) setTimeout(function () { MJ.voiceTurn = voice; H.note_add({}); }, 300);
+    else if (o.zen) { if (MJ.setZen) MJ.setZen(true); }
     else if (o.settings) settingsSheet(o.settings === 1 ? '' : String(o.settings));
     else if (o.cmd) handle(String(o.cmd), 'socle');
   };

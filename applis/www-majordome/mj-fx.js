@@ -239,6 +239,10 @@
   function parleOn() { clearTimeout(parleT); document.documentElement.classList.add('mj-parle'); }
   function parleOff() { clearTimeout(parleT); parleT = setTimeout(function () { if (!cards.querySelector('.card:not(.fx-out)')) document.documentElement.classList.remove('mj-parle'); }, 300); }
   document.head.appendChild(st);
+  /** Sphère seule depuis un bouton, le raccourci de l'écran d'accueil ({zen:1}) ou la voix */
+  MJ.setZen = function (on) { S.zen = on == null ? !S.zen : !!on; save(); applyBulles(); var x = $('shX'); if (S.zen && x) x.click(); return S.zen; };
+  var bZen = $('bZen'); if (bZen) bZen.onclick = function () { MJ.setZen(true); };
+  try { if (X.B && X.B.zenShortcut) X.B.zenShortcut(false); } catch (e) { }   // appui long sur l'icône : « Sphère seule »
   function applyBulles() { var r = document.documentElement; r.classList.toggle('mj-ephem', S.bulles === 'ephemeres'); r.classList.toggle('mj-cases', S.cases === 'annonce'); r.classList.toggle('mj-zen', !!S.zen); if (S.zen) setTimeout(hudPaint, 50); setTimeout(function () { window.dispatchEvent(new Event('resize')); }, 60); }
   applyBulles();
 
@@ -248,6 +252,7 @@
     return (prevExtra ? prevExtra() : '') + '<div class="sect" id="f-effets">Effets et bulles</div>' +
       '<div class="set"><div class="t">Bulles de réponse<small>Éphémères : la réponse s\'affiche pendant qu\'elle est annoncée, puis disparaît</small></div><select class="in" id="sFxB" style="width:auto"><option value="ephemeres"' + (S.bulles === 'ephemeres' ? ' selected' : '') + '>Éphémères</option><option value="garder"' + (S.bulles !== 'ephemeres' ? ' selected' : '') + '>Gardées</option></select></div>' +
       '<div class="set"><div class="t">Sphère seule<small>La sphère en grand au milieu de l\'écran, rien d\'écrit. Touchez la sphère pour parler ; touchez à côté pour Réglages ou Quitter</small></div><label class="sw"><input type="checkbox" id="sFxZ"' + (S.zen ? ' checked' : '') + '><span></span></label></div>' +
+      (X.B && X.B.zenShortcut ? '<div class="set"><div class="t">Raccourci « Sphère seule »<small>Une icône sur l\'écran d\'accueil qui ouvre directement la sphère seule (aussi par appui long sur l\'icône)</small></div><button class="btn sm" id="sFxZpin">Ajouter</button></div>' : '') +
       '<div class="set"><div class="t">Infos en « sphère seule »<small>Discrètes, dans les coins de l\'écran</small></div></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">' +
       [['heure', 'Heure et date'], ['meteo', 'Météo'], ['rdv', 'Prochain rendez-vous'], ['maison', 'Lumières et volets'], ['batterie', 'Batterie']].map(function (z) { return '<button class="btn sm' + (S.zenInfo[z[0]] ? ' pri' : '') + '" data-zi="' + z[0] + '">' + z[1] + '</button>'; }).join('') + '</div>' +
       '<div class="set"><div class="t">Cases Heure, Météo, Rendez-vous, Minuteur<small>« Pendant une réponse » : cachées, elles apparaissent quand il vous répond</small></div><select class="in" id="sFxC" style="width:auto"><option value="annonce"' + (S.cases === 'annonce' ? ' selected' : '') + '>Pendant une réponse</option><option value="toujours"' + (S.cases !== 'annonce' ? ' selected' : '') + '>Toujours</option></select></div>' +
@@ -258,6 +263,7 @@
     if (prevBind) prevBind(b);
     var bb = $('sFxB'); if (bb) bb.onchange = function () { S.bulles = this.value; save(); applyBulles(); };
     var bz = $('sFxZ'); if (bz) bz.onchange = function () { S.zen = this.checked; save(); applyBulles(); if (S.zen) { var x = $('shX'); if (x) x.click(); } };
+    var bp = $('sFxZpin'); if (bp) bp.onclick = function () { var B = X.B; if (!(B && B.zenShortcut && B.zenShortcut(true))) X.toast('Votre écran d\'accueil ne permet pas d\'ajouter ce raccourci : faites un appui long sur l\'icône de ' + (S.name || 'Majordome')); };
     document.querySelectorAll('[data-zi]').forEach(function (z) { z.onclick = function () { S.zenInfo[z.dataset.zi] = !S.zenInfo[z.dataset.zi]; z.classList.toggle('pri', !!S.zenInfo[z.dataset.zi]); save(); hudPaint(); }; });
     var bc = $('sFxC'); if (bc) bc.onchange = function () { S.cases = this.value; save(); applyBulles(); };
     var fi = $('sFxI'); if (fi) fi.oninput = function () { S.fxInt = +this.value; save(); kick(); };
