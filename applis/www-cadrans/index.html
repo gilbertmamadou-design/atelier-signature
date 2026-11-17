@@ -152,7 +152,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     if (TAB === 'collection') {
       h = '<p class="note">' + COL.length + ' cadrans prêts à installer. « Modifier une copie » les ouvre dans l\'atelier.</p><div class="grid">' + COL.map(function (c, i) { return face(c, i, 'col'); }).join('') + '</div>';
     } else if (TAB === 'mes') {
-      h = ST.mes.length ? '<div class="grid">' + ST.mes.map(function (c, i) { return face(c, i, 'mes'); }).join('') + '</div>' :
+      h = ST.mes.length ? '<div class="row" style="margin-bottom:12px"><button class="btn pri" data-nouveau>+ Nouveau cadran</button></div><div class="grid">' + ST.mes.map(function (c, i) { return face(c, i, 'mes'); }).join('') + '</div>' :
         '<div class="card"><b>Aucun cadran pour l\'instant.</b><p class="note">Créez-en un dans « Créer », ou partez d\'un cadran de la collection avec « Modifier une copie ».</p><button class="btn pri" data-go="creer">Créer un cadran</button></div>';
     } else if (TAB === 'creer') {
       if (!ED) { ED = C.norm(C.DEFAUT); EDI = -1; SEL = -1; }
@@ -182,7 +182,9 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
   function editor() {
     var c = C.norm(ED); ED.blocs = c.blocs;
     var M = C.MODELES;
-    return '<div class="ed"><div class="pv"><canvas id="pv" width="480" height="480"></canvas><div class="row"><button class="chip" id="aodT" aria-pressed="' + AOD + '">Écran toujours allumé</button><span class="note" style="margin:0">Glissez un élément pour le placer</span></div></div><div class="v" style="gap:14px">' +
+    var orig = EDI >= 0 && ST.mes[EDI];
+    return '<div class="card" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px"><div style="flex:1;min-width:180px"><b>' + (orig ? 'Modification de « ' + esc(orig.nom) + ' »' : 'Nouveau cadran') + '</b><div class="note" style="margin:2px 0 0">' + (orig ? 'Pour en faire un autre sans toucher à celui-ci : « Enregistrer comme nouveau », ou changez le nom.' : 'Il sera ajouté à Mes cadrans à l\'enregistrement.') + '</div></div><button class="btn sm pri" data-nouveau>+ Nouveau cadran</button></div>' +
+      '<div class="ed"><div class="pv"><canvas id="pv" width="480" height="480"></canvas><div class="row"><button class="chip" id="aodT" aria-pressed="' + AOD + '">Écran toujours allumé</button><span class="note" style="margin:0">Glissez un élément pour le placer</span></div></div><div class="v" style="gap:14px">' +
       '<div class="card"><div class="lbl" style="margin-top:0">Montre</div><div class="chips">' + Object.keys(C.MONTRES).map(function (k) { return '<button class="chip" data-montre="' + k + '" aria-pressed="' + (c.montre === k) + '">' + esc(C.MONTRES[k].n) + '</button>'; }).join('') + '</div>' +
       (c.montre !== 'trex3' ? '<p class="note">Écran Garmin : 64 couleurs, toujours allumé. L\'aperçu montre le rendu réel (dégradés et photos tramés). Trotteuse et secondes visibles quelques secondes après un geste du poignet.</p>' : '') + '</div>' +
       '<div class="card"><div class="lbl" style="margin-top:0">Partir d\'un modèle</div><div class="chips">' + Object.keys(M).map(function (k) { return '<button class="chip" data-mod="' + k + '">' + esc(M[k].n) + '</button>'; }).join('') + '</div><p class="note">Un modèle remplace les éléments (le fond et les couleurs restent).</p></div>' +
@@ -199,7 +201,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
       '<div class="line"><div class="t"><b>Météo en couleur</b><small>Soleil, nuages, pluie, orage… en couleurs avec ombre</small></div><input type="checkbox" class="sw" id="meteoCoul"' + (c.blocs.some(function (b) { return b.icone === 'couleur'; }) ? ' checked' : '') + '></div></div>' +
       '<div class="card"><div class="lbl" style="margin-top:0">Nom</div><input class="in" id="nom" maxlength="24" value="' + esc(c.nom) + '">' +
       '<div class="lbl">Écran toujours allumé</div>' + chips('aod', C.CHOIX.AOD, c.aod) + '<p class="note">Heure (et date) atténuées sur fond noir ; les infos sont masquées pour économiser la batterie.</p></div>' +
-      '<div class="row"><button class="btn pri" id="edSave">' + (EDI >= 0 ? 'Enregistrer' : 'Enregistrer dans Mes cadrans') + '</button><button class="btn" id="edFab">Fabriquer pour la montre</button><button class="btn" id="edNew">Nouveau</button></div>' +
+      '<div class="row"><button class="btn pri" id="edSave">' + (EDI >= 0 ? 'Enregistrer' : 'Enregistrer dans Mes cadrans') + '</button>' + (EDI >= 0 ? '<button class="btn" id="edSaveNew">Enregistrer comme nouveau</button>' : '') + '<button class="btn" id="edFab">Fabriquer pour la montre</button><button class="btn" id="edNew">Nouveau cadran</button></div>' +
       '</div></div>';
   }
   function detail(b) {
@@ -478,14 +480,29 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     };
     $('photoZone').oninput = function (e) { if (e.target.id === 'zoomR' && CROP) { CROP.z = +e.target.value; $('rv-zoom').textContent = CROP.z.toFixed(1) + '×'; borner(CROP); dessineCrop(); return; } if (e.target.dataset.voile != null) { ED.voile = +e.target.value; var v = $('rv-voile'); if (v) v.textContent = e.target.value; dirty = 1; preview(); } };
     $('photoIn').onchange = function () { chargerPhoto(this.files && this.files[0]); this.value = ''; };
-    $('edSave').onclick = function () { saveEd(); toast('Cadran enregistré'); };
-    $('edFab').onclick = function () { var i = saveEd(); fabriquer(i); };
-    $('edNew').onclick = function () { if (dirty && !confirm('Abandonner les changements ?')) return; ED = C.norm(C.DEFAUT); EDI = -1; SEL = -1; SRC = null; dirty = 0; render(); };
+    $('edSave').onclick = function () { var r = saveEd(); if (r >= 0) { toast(saveMsg); var st = $('main').scrollTop; render(); $('main').scrollTop = st; } };
+    if ($('edSaveNew')) $('edSaveNew').onclick = function () { var r = saveEd(true); if (r >= 0) { toast(saveMsg); var st = $('main').scrollTop; render(); $('main').scrollTop = st; } };
+    $('edFab').onclick = function () { var i = saveEd(); if (i >= 0) fabriquer(i); };
+    $('edNew').onclick = nouveau;
   }
-  function saveEd() {
+  /** Repartir d'un cadran vierge (le cadran en cours reste tel qu'il a été enregistré) */
+  function nouveau() {
+    if (TAB === 'creer' && dirty && !confirm('Abandonner les changements non enregistrés ?')) return;
+    ED = C.norm(C.DEFAUT); EDI = -1; SEL = -1; SRC = null; dirty = 0; TAB = 'creer'; render(); try { $('main').scrollTop = 0; } catch (e) { }
+  }
+  var saveMsg = 'Cadran enregistré';
+  /** Enregistre le cadran de l'éditeur. asNew, ou un nom changé : nouveau cadran, l'ancien est gardé. Renvoie son rang, ou -1 si annulé. */
+  function saveEd(asNew) {
     var c = C.norm(ED); c.nom = (c.nom || 'Mon cadran').trim() || 'Mon cadran';
-    if (EDI >= 0 && ST.mes[EDI]) { c.build = null; ST.mes[EDI] = c; }
-    else { ST.mes.unshift(c); EDI = 0; }
+    var orig = EDI >= 0 && ST.mes[EDI] ? ST.mes[EDI] : null;
+    if (orig && !asNew && c.nom !== orig.nom)
+      asNew = confirm('Le nom a changé : enregistrer « ' + c.nom + ' » comme un NOUVEAU cadran ?\n\nOK : nouveau cadran, « ' + orig.nom + ' » est gardé.\nAnnuler : « ' + orig.nom + ' » est remplacé et renommé.');
+    // « Enregistrer comme nouveau » sans changer le nom : « Mon cadran 2 », « Mon cadran 3 »…
+    if (asNew && ST.mes.some(function (x) { return x.nom === c.nom; })) { var base = c.nom.replace(/ \d+$/, '').slice(0, 21), k = 2; while (ST.mes.some(function (x) { return x.nom === base + ' ' + k; })) k++; c.nom = base + ' ' + k; }
+    var same = ST.mes.filter(function (x, i) { return x.nom === c.nom && (asNew || !orig || i !== EDI); })[0];
+    if (same && !confirm('Un autre cadran s\'appelle déjà « ' + c.nom + ' ». Sur la montre, deux cadrans du même nom se remplacent. Enregistrer quand même ?')) return -1;
+    if (orig && !asNew) { c.build = null; ST.mes[EDI] = c; saveMsg = 'Cadran enregistré'; }
+    else { c.build = null; ST.mes.unshift(c); EDI = 0; saveMsg = orig ? 'Nouveau cadran « ' + c.nom + ' » enregistré' : 'Cadran ajouté à Mes cadrans'; }
     ED = clone(c); dirty = 0; save(); return EDI;
   }
 
@@ -627,6 +644,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     if ((b = e.target.closest('[data-gar]'))) { var cg = COL[+b.dataset.gar], ug = {}; Object.keys(C.MONTRES).forEach(function (m) { if (m !== 'trex3') ug[m] = DL + 'garmin-collection/' + cg.id + '-' + m + '.prg'; }); garminSheet(cg.nom, ug); return; }
     if ((b = e.target.closest('[data-inst]'))) { var c0 = COL[+b.dataset.inst]; qrSheet(c0.nom, DL + 'cadrans-collection/' + c0.id + '-qr.png', DL + 'cadrans-collection/' + c0.id + '-apercu.zab'); return; }
     if ((b = e.target.closest('[data-copie]'))) { ED = C.norm(COL[+b.dataset.copie]); SEL = -1; SRC = null; ED.nom = (ED.nom + ' perso').slice(0, 24); EDI = -1; dirty = 1; TAB = 'creer'; render(); $('main').scrollTop = 0; return; }
+    if ((b = e.target.closest('[data-nouveau]'))) { nouveau(); return; }
     if ((b = e.target.closest('[data-edit]'))) { EDI = +b.dataset.edit; ED = C.norm(ST.mes[EDI]); SEL = -1; SRC = null; dirty = 0; TAB = 'creer'; render(); return; }
     if ((b = e.target.closest('[data-dup]'))) { var c1 = clone(ST.mes[+b.dataset.dup]); c1.build = null; c1.nom = (c1.nom + ' 2').slice(0, 24); ST.mes.unshift(c1); save(); render(); return; }
     if ((b = e.target.closest('[data-del]'))) { var i = +b.dataset.del; if (confirm('Supprimer « ' + ST.mes[i].nom + ' » de vos cadrans ? (il reste sur la montre)')) { ST.mes.splice(i, 1); save(); render(); } return; }
