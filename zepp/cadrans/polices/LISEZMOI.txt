@@ -4,4 +4,5 @@ Polices libres utilisées par les cadrans (copiées depuis les paquets Ubuntu, r
 - Lora : SIL Open Font License 1.1, Cyreal.
 - DejaVu Sans Mono Bold : licence Bitstream Vera / DejaVu (libre).
 - TeX Gyre Heros Cn Bold : GUST Font License (libre).
+- DSEG7 Classic Bold et DSEG14 Classic Bold (afficheurs à segments, style LCD) : SIL Open Font License 1.1, keshikan (DSEG-LICENSE.txt).
 Textes de licence des paquets : LICENCES-paquets.txt.
