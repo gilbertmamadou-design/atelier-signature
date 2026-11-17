@@ -88,6 +88,15 @@
   };
   MJ.searchEngines = ENGINES;
 
+  /* ---------- Style de voix (préréglages de mj-voix.js) ---------- */
+  H.voicestyle = function (p) {
+    var w = String(p.style || ''), k = /sensuel|douce|doux/.test(w) ? 'sensuelle' : /energique|dynamique/.test(w) ? 'energique' : /calme|pose/.test(w) ? 'calme' : /joyeu/.test(w) ? 'joyeuse' : /grave|profond/.test(w) ? 'grave' : /intime/.test(w) ? 'intime' : /conteur/.test(w) ? 'conteur' : 'aucun';
+    var FX = window.MJVoix && MJVoix.FX; if (!FX || !FX[k]) return X.answer('Je ne connais pas ce style de voix.').done;
+    S.fx = k; S.fxo = null; X.saveS();
+    if (S.tts !== 'piper') return X.answer({ say: 'C\'est noté. Le style s\'entend seulement avec une voix Piper : choisissez-en une dans Réglages, Voix.', k: 'Voix' }).done;
+    return X.answer(k === 'aucun' ? 'Je reprends ma voix habituelle.' : { sensuelle: 'Voilà… une voix plus douce.', energique: 'C\'est parti, en pleine forme !', calme: 'Bien. Je parlerai calmement.', joyeuse: 'Avec plaisir, et le sourire !', grave: 'Entendu. Une voix plus grave.', intime: 'Comme ceci, tout près de vous.', conteur: 'Il était une fois… une voix de conteur.' }[k]).done;
+  };
+
   /* ---------- Annonce sur les Echo ---------- */
   H.announce = function (p) {
     var t = String(p.text || '').trim(); if (!t) return X.answer('Que faut-il annoncer ?').done;
@@ -237,5 +246,5 @@
   MJ.settingsExtra = function () { return (prevExtra ? prevExtra() : '') + html(); };
   MJ.settingsBind = function (b) { if (prevBind) prevBind(b); bind(b); };
 
-  if (X.HELP) X.HELP.splice(X.HELP.length - 1, 0, ['Plus', ['Ferme les volets et allume le salon', 'Et la cuisine ? (après une commande)', 'Et demain ? (après la météo)', 'C\'est quoi un ornithorynque ?', 'Qui est Victor Hugo ?', 'Le point du soir', 'Annonce à table', 'Tourne la caméra du jardin à gauche', 'Cherche sur internet les horaires de la piscine']]);
+  if (X.HELP) X.HELP.splice(X.HELP.length - 1, 0, ['Plus', ['Ferme les volets et allume le salon', 'Et la cuisine ? (après une commande)', 'Et demain ? (après la météo)', 'C\'est quoi un ornithorynque ?', 'Qui est Victor Hugo ?', 'Le point du soir', 'Annonce à table', 'Tourne la caméra du jardin à gauche', 'Cherche sur internet les horaires de la piscine', 'Prends une voix sensuelle', 'Parle de façon énergique', 'Reprends ta voix normale']]);
 })();

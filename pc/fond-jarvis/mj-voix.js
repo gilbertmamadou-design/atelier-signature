@@ -71,18 +71,26 @@
     discret: { name: 'Discret', pitch: 1, hp: 70, lp: 0, bass: 1, presence: 1.5, drive: 0, chorus: 0, flanger: false, reverb: 0.10, room: 0.28, metal: 0 },
     majordome: { name: 'Majordome', pitch: 0.97, hp: 60, lp: 0, bass: 2.5, presence: 2, drive: 0.06, chorus: 0.12, flanger: false, reverb: 0.16, room: 0.42, metal: 0.1 },
     ia: { name: 'IA de film', pitch: 0.95, hp: 120, lp: 9500, bass: 1.5, presence: 3, drive: 0.14, chorus: 0.35, flanger: true, reverb: 0.24, room: 0.55, metal: 0.55 },
-    radio: { name: 'Radio', pitch: 1, hp: 320, lp: 3400, bass: -4, presence: 4, drive: 0.32, chorus: 0, flanger: false, reverb: 0.04, room: 0.18, metal: 0 }
+    radio: { name: 'Radio', pitch: 1, hp: 320, lp: 3400, bass: -4, presence: 4, drive: 0.32, chorus: 0, flanger: false, reverb: 0.04, room: 0.18, metal: 0 },
+    // styles de voix : débit (rate), hauteur et couleur ensemble ; valables pour Jarvis et Liseuse
+    sensuelle: { name: 'Douce et sensuelle', style: 1, rate: 0.87, pitch: 0.95, hp: 40, lp: 7200, bass: 3.5, presence: -1.5, drive: 0, chorus: 0.06, flanger: false, reverb: 0.12, room: 0.38, metal: 0 },
+    intime: { name: 'Intime, à l\'oreille', style: 1, rate: 0.9, pitch: 0.99, hp: 110, lp: 6500, bass: 1, presence: -1, drive: 0, chorus: 0, flanger: false, reverb: 0, room: 0.1, metal: 0 },
+    calme: { name: 'Calme et posée', style: 1, rate: 0.92, pitch: 0.98, hp: 50, lp: 9000, bass: 2, presence: 0, drive: 0, chorus: 0, flanger: false, reverb: 0.06, room: 0.25, metal: 0 },
+    conteur: { name: 'Conteur', style: 1, rate: 0.95, pitch: 0.98, hp: 50, lp: 0, bass: 2, presence: 1, drive: 0, chorus: 0, flanger: false, reverb: 0.09, room: 0.32, metal: 0 },
+    grave: { name: 'Grave et profonde', style: 1, rate: 0.94, pitch: 0.91, hp: 40, lp: 0, bass: 4, presence: 1, drive: 0, chorus: 0, flanger: false, reverb: 0.08, room: 0.3, metal: 0 },
+    joyeuse: { name: 'Joyeuse', style: 1, rate: 1.06, pitch: 1.07, hp: 70, lp: 0, bass: 0.5, presence: 2, drive: 0, chorus: 0, flanger: false, reverb: 0.05, room: 0.2, metal: 0 },
+    energique: { name: 'Énergique', style: 1, rate: 1.13, pitch: 1.05, hp: 90, lp: 0, bass: 1, presence: 3.5, drive: 0.05, chorus: 0, flanger: false, reverb: 0.03, room: 0.15, metal: 0 }
   };
-  var FX_KEYS = ['pitch', 'hp', 'lp', 'bass', 'presence', 'drive', 'chorus', 'flanger', 'reverb', 'room', 'metal'];
+  var FX_KEYS = ['rate', 'pitch', 'hp', 'lp', 'bass', 'presence', 'drive', 'chorus', 'flanger', 'reverb', 'room', 'metal'];
   function fxParams(name, over) {
     var b = FX[name] || FX.aucun, o = {};
     FX_KEYS.forEach(function (k) { o[k] = over && over[k] != null ? over[k] : b[k]; });
-    o.pitch = Math.max(0.8, Math.min(1.25, +o.pitch || 1));
+    o.pitch = Math.max(0.8, Math.min(1.25, +o.pitch || 1)); o.rate = Math.max(0.7, Math.min(1.4, +o.rate || 1));
     o.drive = Math.max(0, Math.min(1, +o.drive || 0)); o.chorus = Math.max(0, Math.min(1, +o.chorus || 0)); o.reverb = Math.max(0, Math.min(0.6, +o.reverb || 0));
     o.bass = Math.max(-12, Math.min(9, +o.bass || 0)); o.presence = Math.max(-6, Math.min(9, +o.presence || 0));
     return o;
   }
-  function isFlat(p) { return p.pitch === 1 && !p.hp && !p.lp && !p.bass && !p.presence && !p.drive && !p.chorus && !p.reverb; }
+  function isFlat(p) { return p.pitch === 1 && p.rate === 1 && !p.hp && !p.lp && !p.bass && !p.presence && !p.drive && !p.chorus && !p.reverb; }
   /* réponse impulsionnelle : bruit à décroissance exponentielle, plus quelques échos réguliers (« metal ») pour une pièce métallique */
   function impulse(ctx, sr, room, metal) {
     var n = Math.max(64, Math.round(sr * room)), b = ctx.createBuffer(2, n, sr), seed = 12345;
@@ -415,7 +423,7 @@
     function plan(s) {
       var v = voice(s.voice), fxName = s.fx || 'aucun', fxo = s.fxo || null;
       var p = fxParams(fxName, fxo), pitch = Math.max(0.8, Math.min(1.25, (+s.pitch || 1) * p.pitch));
-      return { v: v, fxName: fxName, fxo: fxo, pitch: pitch, speed: Math.max(0.5, Math.min(2, +s.rate || 1)) / pitch, vol: Math.max(0, Math.min(1.5, s.volume == null ? 1 : +s.volume)) };
+      return { v: v, fxName: fxName, fxo: fxo, pitch: pitch, speed: Math.max(0.5, Math.min(2, (+s.rate || 1) * p.rate)) / pitch, vol: Math.max(0, Math.min(1.5, s.volume == null ? 1 : +s.volume)) };
     }
     /** Une phrase : synthèse (worker), effet, volume ; o = {samples, sr, tail, genMs, fxMs, ipa, env} */
     function synthOne(text, q) {
@@ -530,7 +538,7 @@
     '.mjv details{margin:.4em 0}.mjv summary{cursor:pointer;opacity:.85}.mjv .mjv-on{outline:2px solid currentColor;outline-offset:2px;border-radius:6px}.mjv .mjv-msg{font-size:.85em;opacity:.85;min-height:1.2em}';
   function css() { if (root.document && !document.getElementById('mjv-css')) { var st = document.createElement('style'); st.id = 'mjv-css'; st.textContent = CSS; document.head.appendChild(st); } }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  var FINE = [['reverb', 'Réverbération', 0, 0.6, 0.02], ['room', 'Taille de la pièce', 0.15, 0.9, 0.05], ['chorus', 'Chorus / flanger', 0, 1, 0.05], ['hp', 'Passe-haut (Hz)', 0, 400, 10],
+  var FINE = [['rate', 'Débit du style', 0.75, 1.3, 0.01], ['reverb', 'Réverbération', 0, 0.6, 0.02], ['room', 'Taille de la pièce', 0.15, 0.9, 0.05], ['chorus', 'Chorus / flanger', 0, 1, 0.05], ['hp', 'Passe-haut (Hz)', 0, 400, 10],
     ['lp', 'Passe-bas (Hz, 0 = aucun)', 0, 9500, 100], ['drive', 'Saturation', 0, 0.6, 0.02], ['bass', 'Grave (dB)', -9, 9, 0.5], ['presence', 'Présence (dB)', -4, 6, 0.5], ['pitch', 'Hauteur de l\'effet', 0.85, 1.15, 0.01]];
   function panel(E, S, o) {
     css(); o = o || {};
@@ -550,7 +558,8 @@
     });
     h += '<p class="note">Si le téléchargement direct est refusé (pare-feu, réseau), téléchargez les deux fichiers de la voix sur <a href="https://huggingface.co/rhasspy/piper-voices/tree/main/fr/fr_FR" target="_blank" rel="noopener">huggingface.co/rhasspy/piper-voices</a> (fr_FR-…-medium.onnx et .onnx.json), puis : ' +
       (o.android ? '<button type="button" class="' + btn + '" id="mjvPick">Choisir les fichiers téléchargés</button>' : '<label class="' + btn + '" style="cursor:pointer">Choisir les fichiers téléchargés<input type="file" id="mjvFiles" multiple accept=".onnx,.json" hidden></label>') + '</p>';
-    h += '<div class="mjv-r"><label for="mjvFx">Effet</label><select class="in" id="mjvFx" style="flex:1">' + Object.keys(FX).map(function (k) { return '<option value="' + k + '"' + ((S.fx || 'aucun') === k ? ' selected' : '') + '>' + FX[k].name + '</option>'; }).join('') + '</select></div>';
+    var opt = function (k) { return '<option value="' + k + '"' + ((S.fx || 'aucun') === k ? ' selected' : '') + '>' + FX[k].name + '</option>'; };
+    h += '<div class="mjv-r"><label for="mjvFx">Style et effet</label><select class="in" id="mjvFx" style="flex:1"><optgroup label="Styles de voix">' + Object.keys(FX).filter(function (k) { return FX[k].style; }).map(opt).join('') + '</optgroup><optgroup label="Effets">' + Object.keys(FX).filter(function (k) { return !FX[k].style; }).map(opt).join('') + '</optgroup></select></div>';
     h += '<details id="mjvFine"' + (S.fxo ? ' open' : '') + '><summary>Réglages fins de l\'effet</summary>';
     var cur = fxParams(S.fx || 'aucun', S.fxo);
     FINE.forEach(function (f) { h += '<div class="mjv-r"><label for="mjvF_' + f[0] + '">' + f[1] + '</label><input type="range" id="mjvF_' + f[0] + '" data-k="' + f[0] + '" min="' + f[2] + '" max="' + f[3] + '" step="' + f[4] + '" value="' + (+cur[f[0]] || 0) + '"><output>' + (+cur[f[0]] || 0) + '</output></div>'; });
