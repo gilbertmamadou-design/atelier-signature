@@ -339,6 +339,11 @@ public class PhotoCamera extends Activity {
     private final List<View> rotating = new ArrayList<>();
     private int W, H, topH;
     private int countdown = 0;
+    // Rafale : appui long sur le déclencheur (ou touche de volume maintenue), jusqu'à BURST_MAX photos tant qu'on appuie
+    private volatile boolean burst = false;
+    private volatile int burstN = 0;
+    private static final int BURST_MAX = 30;
+    private final java.util.concurrent.atomic.AtomicInteger pendingSaves = new java.util.concurrent.atomic.AtomicInteger();
     private final Runnable tick = new Runnable() { public void run() { countdownTick(); } };
 
     private float dp(float v) { return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v, getResources().getDisplayMetrics()); }
@@ -400,6 +405,7 @@ public class PhotoCamera extends Activity {
     }
 
     @Override protected void onPause() {
+        stopBurst();
         resumed = false;
         commitCaption();
         cancelCountdown();
@@ -455,13 +461,14 @@ public class PhotoCamera extends Activity {
     @Override public boolean onKeyDown(int code, KeyEvent e) {
         if (code == KeyEvent.KEYCODE_VOLUME_UP || code == KeyEvent.KEYCODE_VOLUME_DOWN || code == KeyEvent.KEYCODE_CAMERA) {
             if (e.getRepeatCount() == 0) shutterPressed();
+            else if (e.getRepeatCount() == 2 && !videoMode && !panoMode) startBurst();   // touche maintenue : rafale
             return true;
         }
         if (code == KeyEvent.KEYCODE_FOCUS) return true;
         return super.onKeyDown(code, e);
     }
     @Override public boolean onKeyUp(int code, KeyEvent e) {
-        if (code == KeyEvent.KEYCODE_VOLUME_UP || code == KeyEvent.KEYCODE_VOLUME_DOWN || code == KeyEvent.KEYCODE_CAMERA) return true;
+        if (code == KeyEvent.KEYCODE_VOLUME_UP || code == KeyEvent.KEYCODE_VOLUME_DOWN || code == KeyEvent.KEYCODE_CAMERA) { stopBurst(); return true; }
         return super.onKeyUp(code, e);
     }
 
@@ -853,9 +860,39 @@ public class PhotoCamera extends Activity {
             Meta m = metas.poll(); if (m == null) m = snapshot();
             final byte[] d = data; final Meta mm = m;
             ui.post(new Runnable() { public void run() { shutter.busy(true); } });
-            saver.execute(new Runnable() { public void run() { save(d, mm); } });
+            pendingSaves.incrementAndGet();
+            saver.execute(new Runnable() { public void run() { try { save(d, mm); } finally { pendingSaves.decrementAndGet(); } } });
         }
     };
+
+    // ================= Rafale =================
+    private boolean startBurst() {
+        if (burst || videoMode || panoMode || countdown > 0 || captureIntent || bg == null || session == null) return false;
+        commitCaption();
+        burst = true; burstN = 0;
+        shutter.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+        shutter.setCount(true);
+        bg.post(burstShot);
+        return true;
+    }
+    private void stopBurst() {
+        if (!burst) return;
+        burst = false;
+        final int n = burstN;
+        ui.post(new Runnable() { public void run() { shutter.setCount(false); info(n > 0 ? "Rafale : " + n + " photo" + (n > 1 ? "s" : "") + " (enregistrement en cours…)" : "Rafale annulée"); } });
+    }
+    private final Runnable burstShot = new Runnable() { public void run() {
+        if (!burst) return;
+        if (burstN >= BURST_MAX) { stopBurst(); return; }
+        // une prise à la fois ; on attend si les enregistrements prennent du retard (mémoire)
+        if (state != ST_PREVIEW || session == null || pendingSaves.get() > 3) { if (bg != null) bg.postDelayed(this, 30); return; }
+        burstN++;
+        final int n = burstN;
+        state = ST_LOCK;
+        captureStill();
+        ui.post(new Runnable() { public void run() { info("Rafale : " + n); } });
+        if (bg != null) bg.postDelayed(this, 60);
+    } };
 
     // ================= Minuteur =================
     private void shutterPressed() {
@@ -881,6 +918,7 @@ public class PhotoCamera extends Activity {
     static final class Meta {
         long t; Location l; String addr = "", site = "", siteDir = "", note = "", client = "";
         boolean siteMode, stamp, keepOrig, geo, front, pano;
+        int burst;   // numéro dans la rafale (0 : photo seule)
         // mode voyage
         boolean voyMode, vStamp, vKeep; String voyTitle = "", voyDir = "", vStyle = "carte", vPos = "bas", city = "", country = ""; JSONObject voyage = new JSONObject();
     }
@@ -913,6 +951,7 @@ public class PhotoCamera extends Activity {
         m.stamp = prefB("stamp", true);
         m.keepOrig = prefB("keepOrig", true);
         m.front = lens != null && lens.facing == CameraCharacteristics.LENS_FACING_FRONT;
+        m.burst = burst ? burstN : 0;
         return m;
     }
 
@@ -954,7 +993,7 @@ public class PhotoCamera extends Activity {
             if (ori == ExifInterface.ORIENTATION_UNDEFINED) { ori = ExifInterface.ORIENTATION_NORMAL; }
             fillExif(ex, m);
             ex.saveAttributes();
-            String name = (m.pano ? "Panorama_" : "Photo_") + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date(m.t));
+            String name = (m.pano ? "Panorama_" : "Photo_") + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date(m.t)) + (m.burst > 0 ? String.format(Locale.US, "_R%02d", m.burst) : "");
             String dir = m.voyMode ? "Voyage/" + m.voyDir : m.siteMode ? m.siteDir : "";
             String desc = m.voyMode ? locLine(m) : locLine(m) + (m.note.trim().isEmpty() ? "" : "\n" + m.note.trim());
             if (captureIntent) { deliverCapture(tmp); return; }
@@ -997,7 +1036,8 @@ public class PhotoCamera extends Activity {
                     PhotoBridge.Voy.add(this, vid, nm, m.voyDir, m.t, m.l, m.addr, m.city, m.country, m.voyage, turn ? bo.outHeight : bo.outWidth, turn ? bo.outWidth : bo.outHeight);
                 }
                 final String capFor = m.voyMode && prefB("voyCaption", true) ? vid : "";
-                ui.post(new Runnable() { public void run() { setThumb(th); info(where); if (!capFor.isEmpty()) showCaption(capFor, th); } });
+                final boolean inBurst = m.burst > 0;
+                ui.post(new Runnable() { public void run() { setThumb(th); if (inBurst) return; info(where); if (!capFor.isEmpty()) showCaption(capFor, th); } });
             }
         } catch (OutOfMemoryError e) {
             info("Mémoire insuffisante pour le bandeau : passe en 12 Mpx");
@@ -2053,6 +2093,10 @@ public class PhotoCamera extends Activity {
         rotating.add(thumb);
         shutter = new Shutter(this);
         shutter.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { shutterPressed(); } });
+        shutter.setOnLongClickListener(new View.OnLongClickListener() { public boolean onLongClick(View v) { return startBurst(); } });
+        shutter.setOnTouchListener(new View.OnTouchListener() { public boolean onTouch(View v, MotionEvent ev) {
+            int ac = ev.getActionMasked(); if (burst && (ac == MotionEvent.ACTION_UP || ac == MotionEvent.ACTION_CANCEL)) stopBurst(); return false; } });
+        if (!prefB("burstTip", false)) { sp.edit().putBoolean("burstTip", true).apply(); ui.postDelayed(new Runnable() { public void run() { info("Nouveau : garde le doigt sur le déclencheur pour une rafale"); } }, 1800); }
         row.addView(shutter, new FrameLayout.LayoutParams(dpi(98), dpi(98), Gravity.CENTER));
         TextView[] bl = new TextView[1];
         LinearLayout back = tool(P_DIR, "Chantiers", new View.OnClickListener() { public void onClick(View v) { leave(true); } }, null, bl);
