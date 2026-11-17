@@ -391,17 +391,19 @@
     E.warm = function (id) {
       var v = voice(id), m = v.model;
       if (!hasModel(m)) return Promise.reject(Object.assign(new Error('voix non installée'), { fallback: true }));
-      if (loaded && loaded.model === m) return loaded.p;
+      var T = E.tune || {}, tk = (T.noise || '') + '|' + (T.noiseW || '');
+      if (loaded && loaded.model === m && loaded.tk === tk) return loaded.p;
       E.state = 'loading'; emit({ t: 'state' });
       var t0 = Date.now();
       var lp = E.cfgOf(m).then(function (cfg) {
         var vv = { key: m + '.onnx', cfg: cfg };
         if (ANDROID) vv.url = fileUrl(m, m + '.onnx');
         else if (localM[m]) { vv.url = LOCAL + m + '.onnx'; vv.key = 'local:' + m + '.onnx'; }
+        if (T.noise || T.noiseW) { vv.tune = { noise: T.noise || 0, noiseW: T.noiseW || 0 }; vv.ck = vv.key + '#' + tk; }
         return call({ t: 'load', voice: vv }).then(function (r) { r.cfg = cfg; return r; });
       }).then(function (r) { E.state = 'ready'; E.err = ''; E.loadMs = Date.now() - t0; failCount = 0; emit({ t: 'state' }); return r; },
         function (e) { loaded = null; failCount++; E.state = 'error'; E.err = String(e && e.message || e); emit({ t: 'state' }); throw Object.assign(e instanceof Error ? e : new Error(String(e)), { fallback: true }); });
-      loaded = { model: m, p: lp };
+      loaded = { model: m, tk: tk, p: lp };
       return lp;
     };
     E.usable = function (id) { return typeof Worker !== 'undefined' && typeof WebAssembly !== 'undefined' && hasModel(voice(id).model) && failCount < 3; };
@@ -422,11 +424,11 @@
     function plan(s) {
       var v = voice(s.voice), fxName = s.fx || 'aucun', fxo = s.fxo || null;
       var p = fxParams(fxName, fxo), pitch = Math.max(0.8, Math.min(1.25, (+s.pitch || 1) * p.pitch));
-      return { v: v, fxName: fxName, fxo: fxo, pitch: pitch, speed: Math.max(0.5, Math.min(2, (+s.rate || 1) * p.rate)) / pitch, vol: Math.max(0, Math.min(1.5, s.volume == null ? 1 : +s.volume)) };
+      return { v: v, sil: s.sil != null ? Math.max(0, Math.min(1.5, +s.sil)) : null, fxName: fxName, fxo: fxo, pitch: pitch, speed: Math.max(0.5, Math.min(2, (+s.rate || 1) * p.rate)) / pitch, vol: Math.max(0, Math.min(1.5, s.volume == null ? 1 : +s.volume)) };
     }
     /** Une phrase : synthèse (worker), effet, volume ; o = {samples, sr, tail, genMs, fxMs, ipa, env} */
     function synthOne(text, q) {
-      return call({ t: 'gen', text: text, sid: q.v.sid, speed: q.speed }).then(function (r) {
+      return call({ t: 'gen', text: text, sid: q.v.sid, speed: q.speed, sil: q.sil }).then(function (r) {
         var g = (root.performance || Date).now();
         return render(r.samples, r.sr, q.fxName, Object.assign({}, q.fxo || {}, { pitch: q.pitch })).then(function (o) {
           o.genMs = r.ms; o.fxMs = (root.performance || Date).now() - g; o.ipa = r.ipa; o.text = text;

@@ -60,7 +60,8 @@ function bytesOf(v) {
   return idbGet(v.key).then(function (b) { return b.arrayBuffer ? b.arrayBuffer() : b; });
 }
 function load(v) {
-  if (tts && cur === v.key) return Promise.resolve({ sr: tts.sampleRate, ns: tts.numSpeakers, cached: true });
+  var ck = v.ck || v.key;   // clé de chargement : fichier + réglages d'expressivité (un changement recharge le modèle)
+  if (tts && cur === ck) return Promise.resolve({ sr: tts.sampleRate, ns: tts.numSpeakers, cached: true });
   var t0 = performance.now();
   return boot().then(function () { return bytesOf(v); }).then(function (ab) {
     var cfg = v.cfg, map = cfg.phoneme_id_map || {};
@@ -75,11 +76,11 @@ function load(v) {
     FS.writeFile('/tokens.txt', tok);
     var inf = cfg.inference || {};
     try {
-      tts = new OfflineTts({ offlineTtsModelConfig: { offlineTtsVitsModelConfig: { model: '/voix.onnx', tokens: '/tokens.txt', lexicon: '', dataDir: '', noiseScale: inf.noise_scale || 0.667, noiseScaleW: inf.noise_w || 0.8, lengthScale: inf.length_scale || 1 },
+      tts = new OfflineTts({ offlineTtsModelConfig: { offlineTtsVitsModelConfig: { model: '/voix.onnx', tokens: '/tokens.txt', lexicon: '', dataDir: '', noiseScale: (v.tune && v.tune.noise) || inf.noise_scale || 0.667, noiseScaleW: (v.tune && v.tune.noiseW) || inf.noise_w || 0.8, lengthScale: inf.length_scale || 1 },
         numThreads: 1, debug: 0, provider: 'cpu' }, ruleFsts: '', ruleFars: '', maxNumSentences: 1, silenceScale: 0.2 }, Module);
     } finally { try { FS.unlink('/voix.onnx'); } catch (e) { } }
     if (!tts.handle) { tts = null; throw new Error('modèle illisible'); }
-    cur = v.key;
+    cur = ck;
     return { sr: tts.sampleRate, ns: tts.numSpeakers, ms: Math.round(performance.now() - t0) };
   });
 }
@@ -104,7 +105,7 @@ self.onmessage = function (e) {
       if (!tts) throw new Error('aucune voix chargée');
       var t0 = performance.now(), p = codepoints(d.text);
       if (!p.cps.length) { self.postMessage({ t: 'audio', id: d.id, samples: new Float32Array(0), sr: tts.sampleRate, ms: 0, ipa: [] }); return; }
-      var a = tts.generateWithConfig('', { sid: d.sid || 0, speed: d.speed || 1, silenceScale: 0.2, phonemeCodepoints: p.cps });
+      var a = tts.generateWithConfig('', { sid: d.sid || 0, speed: d.speed || 1, silenceScale: d.sil != null ? d.sil : 0.2, phonemeCodepoints: p.cps });
       self.postMessage({ t: 'audio', id: d.id, samples: a.samples, sr: a.sampleRate || tts.sampleRate, ms: Math.round(performance.now() - t0), ipa: p.ipa }, [a.samples.buffer]);
     } catch (err) { self.postMessage({ t: 'error', id: d.id, msg: String(err && err.message || err) }); }
   } else if (d.t === 'unload') {
