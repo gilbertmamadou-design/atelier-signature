@@ -1340,6 +1340,9 @@
     if (/\b(chanson suivante|morceau suivant|titre suivant|piste suivante|musique suivante|passe a la suivante|suivant|suivante|next|zappe|passe la chanson|change de chanson|chanson d apres)\b/.test(t)) return R('music', { cmd: 'next' });
     if (/\b(chanson precedente|morceau precedent|titre precedent|piste precedente|precedent|precedente|reviens a la chanson d avant|chanson d avant)\b/.test(t)) return R('music', { cmd: 'prev' });
     if (/\b(reprends la musique|relance la musique|continue la musique|remets la musique|reprise de la musique|lecture)\b/.test(t) || /^(reprends|reprend|play|continue)$/.test(t)) return R('music', { cmd: 'play' });
+    // « lance la musique en cours », « remets la chanson », « continue le morceau », « la musique que j'écoutais » : reprise de ce qui jouait
+    if (/\b(musique|chanson|morceau|titre|playlist|son|zik|album|podcast|radio)\b.*\b(en cours|d avant|qui etait en cours|que j ecoutais|qu on ecoutait|ou j en etais|en pause|de tout a l heure|interrompue?)\b/.test(t) ||
+      /\b(reprends|reprend|remets|remet|relance|continue|redemarre|rejoue)\b.*\b(la |le |ma |mon |l |ce |cette )?(musique|chanson|morceau|titre|playlist|zik|album|podcast)\b/.test(t) || /^(mets |appuie sur |fais )?play$/.test(t)) return R('music', { cmd: 'play' });
     if (/\b(mets|joue|lance|demarre|passe|ecouter|ecoute|je veux|j ai envie)\b.*\b(musique|chanson|chansons|zik|playlist|morceau|son)\b/.test(t) || /^(musique|de la musique|un peu de musique)$/.test(t)) return R('music', { cmd: 'start' });
     // --- conversions et calculs ---
     var cv = convert(t);
