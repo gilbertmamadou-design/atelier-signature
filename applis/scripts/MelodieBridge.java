@@ -88,6 +88,10 @@ public class MelodieBridge {
         emit(ev("deleted").put2("ok", delDone > 0).put2("n", delDone));
     }
 
+    // ================= Égaliseur (MelodieEq) =================
+    @JavascriptInterface public String eqInfo() { return MelodieEq.info(a.getApplicationContext()); }
+    @JavascriptInterface public void eqSet(String json) { MelodieEq.set(a.getApplicationContext(), json); }
+
     // ================= Partage =================
     @JavascriptInterface public void share(String idsJson) {
         final List<Uri> l = uris(idsJson);

@@ -145,6 +145,7 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
 .rep1{position:relative}
 .rep1::after{content:"1";position:absolute;font-size:9px;font-weight:800;top:13px;left:50%;transform:translateX(-50%);color:var(--acc)}
 .pbottom{display:flex;justify-content:space-around;margin-top:6px}
+.bigwrap{position:relative}#lyr{position:absolute;inset:0;overflow-y:auto;padding:30% 6px 40%;text-align:center;background:#0009;border-radius:18px;-webkit-mask:linear-gradient(#0000,#000 18%,#000 82%,#0000);mask:linear-gradient(#0000,#000 18%,#000 82%,#0000);scrollbar-width:none}#lyr p{margin:0;padding:7px 4px;font-size:19px;font-weight:650;color:#ffffff66;line-height:1.3;transition:color .25s,transform .25s;cursor:pointer}#lyr p.on{color:#fff;transform:scale(1.04)}#lyr .plain p{color:#ffffffdd;font-weight:500;font-size:17px;cursor:default}#lyr .msg{color:#ffffffaa;font-size:15px;padding:30px 10px}
 .pbottom button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11.5px;color:var(--tx2);padding:6px 10px;border-radius:10px}
 .pbottom button.on{color:var(--acc)}
 
@@ -277,7 +278,7 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
       <div class="lbl" id="pFrom">Lecture en cours</div>
       <button class="iconbtn" id="pMore" aria-label="Options"><svg class="ic"><use href="#i-more"/></svg></button>
     </div>
-    <div class="bigwrap"><div class="bigcov cov" id="pCov"></div></div>
+    <div class="bigwrap"><div class="bigcov cov" id="pCov"></div><div id="lyr" hidden></div></div>
     <div class="pinfo">
       <div class="meta"><h2 id="pT">—</h2><p id="pS"></p></div>
       <button class="iconbtn fav" id="pFav" aria-label="Favori"><svg class="ic"><use href="#i-heart"/></svg></button>
@@ -294,6 +295,7 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
     <div class="pbottom">
       <button id="pQueue"><svg class="ic"><use href="#i-queue"/></svg>File d'attente</button>
       <button id="pSleep"><svg class="ic"><use href="#i-moon"/></svg><span id="pSleepL">Minuterie</span></button>
+      <button id="pLyr"><svg class="ic"><use href="#i-note"/></svg>Paroles</button>
       <button id="pAdd"><svg class="ic"><use href="#i-plus"/></svg>Ajouter à une liste</button>
     </div>
   </div>
@@ -354,7 +356,15 @@ let BYID = new Map();
 let ALBUMS = [], ARTISTS = [], FOLDERS = [];
 const akey = t => NATIVE ? "n" + t.alb : "w" + norm(t.al) + "|" + norm(t.aa || t.a);
 
+// dossiers masqués (et leurs sous-dossiers) et titres supprimés (Android peut mettre un moment à les oublier)
+function hiddenF(f) { f = f || "Musique"; return (ST.hide || []).some(h => f === h || f.startsWith(h + "/")); }
+function visibleTracks(list) {
+  const now = Date.now(), gone = ST.gone || {};
+  for (const k in gone) if (now - gone[k] > 14 * 864e5) delete gone[k];
+  return list.filter(t => !gone[String(t.id)] && !hiddenF(t.f));
+}
 function index() {
+  TR = visibleTracks(TR);
   BYID = new Map(TR.map(t => [String(t.id), t]));
   const am = new Map(), ar = new Map(), fm = new Map();
   for (const t of TR) {
@@ -649,6 +659,7 @@ function paintProgress() {
   $("#miniProg").style.width = d ? (p / d * 100) + "%" : "0";
   if (!dragging) { const s = $("#pSeek"); s.value = d ? Math.round(p / d * 1000) : 0; s.style.setProperty("--p", (s.value / 10) + "%"); $("#pCur").textContent = fmt(p); }
   $("#pDur").textContent = fmt(d);
+  if (LY.on) lyrTick();
 }
 function paintModes() {
   $("#pShuf").classList.toggle("on", P.shuffle);
@@ -804,8 +815,8 @@ function artistDetail(A) {
 function folderDetail(F) {
   const el = $("#v-detail"); clearRows(el);
   const L = sortedTracks(F.tracks, "t");
-  el.innerHTML = detailHead(`<div class="cov gen" style="background:var(--bg3);color:var(--acc);width:132px;height:132px;border-radius:14px">${icon("folder").replace('class="ic', 'style="width:56px;height:56px" class="ic')}</div>`, F.name, `${esc(F.path)}<br>${pl(F.tracks.length, "titre")}`);
-  DL = { list: L, from: F.name, fn: DL.fn };
+  el.innerHTML = detailHead(`<div class="cov gen" style="background:var(--bg3);color:var(--acc);width:132px;height:132px;border-radius:14px">${icon("folder").replace('class="ic', 'style="width:56px;height:56px" class="ic')}</div>`, F.name, `${esc(F.path)}<br>${pl(F.tracks.length, "titre")}`, false, `<button class="pill" data-act="folderMenu" aria-label="Options">${icon("more")}</button>`);
+  DL = { list: L, from: F.name, folder: F, fn: DL.fn };
   trackList(el, L, { from: F.name });
 }
 function autoList(k) {
@@ -873,6 +884,7 @@ const actions = {
   newList: () => askName("Nouvelle liste", "", n => { ST.lists.push({ id: Date.now(), name: n, ids: [] }); save(); render.listes(); toast("Liste « " + n + " » créée"); }),
   listMenu: d => listMenu(+d.i),
   albumMenu: () => albumMenu(DL.album),
+  folderMenu: () => folderMenu(DL.folder),
   rescan: () => loadLibrary(true),
   importFiles: () => $("#fileIn").click(),
   importDir: () => $("#dirIn").click(),
@@ -935,6 +947,38 @@ function delTracks(list, what) {
   MB.delete(JSON.stringify(delPending));
 }
 const RING_K = { ringtone: "sonnerie d'appel", notification: "son des notifications", alarm: "sonnerie d'alarme" };
+/** Retire des titres de l'affichage sans recharger la bibliothèque : on reste sur la page ouverte (dossier, album…) */
+function dropTracks(gone) {
+  const keep = t => !gone.has(String(t.id));
+  TR = TR.filter(keep); gone.forEach(id => BYID.delete(String(id)));
+  for (const G of [ALBUMS, ARTISTS, FOLDERS]) { G.forEach(x => { const k = x.tracks.filter(keep); x.tracks.length = 0; k.forEach(t => x.tracks.push(t)); if (x.rep && !keep(x.rep)) x.rep = x.tracks[0]; }); }
+  ALBUMS = ALBUMS.filter(x => x.tracks.length); ARTISTS = ARTISTS.filter(x => x.tracks.length); FOLDERS = FOLDERS.filter(x => x.tracks.length);
+  if (curView === "detail") {
+    const o = DL.folder || DL.album;
+    if (o && !o.tracks.length) goBack();
+    else if (DL.fn) { const y = $("#main").scrollTop; DL.fn(true); requestAnimationFrame(() => $("#main").scrollTop = y); }
+  } else if (render[curView]) { const y = $("#main").scrollTop; render[curView](); requestAnimationFrame(() => $("#main").scrollTop = y); }
+}
+function folderMenu(F) {
+  if (!F) return;
+  SH = {
+    queue: () => addQueue(F.tracks.map(t => String(t.id))),
+    list: () => addToListMenu(F.tracks.map(t => String(t.id))),
+    hide: () => { if (!confirm("Masquer le dossier « " + F.name + " » ? Ses titres n'apparaîtront plus dans Mélodie (rien n'est effacé). Vous pourrez le réafficher depuis le menu ⋮.")) return; ST.hide = ST.hide || []; ST.hide.push(F.path); save(); dropTracks(new Set(F.tracks.map(t => String(t.id)))); toast("Dossier masqué"); },
+    nshare: () => MB.share(JSON.stringify(F.tracks.map(t => String(t.id)))),
+    ndel: () => delTracks(F.tracks, "les " + F.tracks.length + " titres du dossier « " + F.name + " »")
+  };
+  sheet(`<div class="hd"><div><div class="t">${esc(F.name)}</div><div class="s">${esc(F.path)} · ${pl(F.tracks.length, "titre")}</div></div></div><div class="body">
+    ${mi("queue", "queue", "Ajouter à la file d'attente")}${mi("list", "plus", "Ajouter à une liste…")}
+    ${mi("hide", "x", "Masquer ce dossier dans Mélodie", "messages vocaux, enregistrements…")}
+    ${NATIVE && MB ? mi("nshare", "share", "Envoyer le dossier") + mi("ndel", "trash", "Supprimer ces titres du téléphone", "", "danger") : ""}</div>`);
+}
+function hiddenSheet() {
+  const H = ST.hide || [];
+  SH = { all: () => { ST.hide = []; save(); loadLibrary(false); toast("Tous les dossiers sont réaffichés"); } };
+  H.forEach((h, i) => SH["h" + i] = () => { ST.hide.splice(i, 1); save(); loadLibrary(false); toast("Dossier réaffiché"); });
+  sheet(`<div class="hd"><div><div class="t">Dossiers masqués</div><div class="s">Touchez un dossier pour le réafficher</div></div></div><div class="body">${H.map((h, i) => mi("h" + i, "folder", esc(h.split("/").pop() || h), esc(h))).join("") || '<p style="padding:14px;color:var(--tx3)">Aucun dossier masqué.</p>'}${H.length > 1 ? mi("all", "refresh", "Tout réafficher") : ""}</div>`);
+}
 function ringMenu(t) {
   const id = String(t.id);
   SH = {
@@ -983,8 +1027,9 @@ window.melodieEvent = function (s) {
   if (e.op === "deleted") {
     if (e.ok) {
       const gone = new Set(delPending);
+      ST.gone = ST.gone || {}; gone.forEach(x => { ST.gone[x] = Date.now(); });
       ST.fav = ST.fav.filter(x => !gone.has(String(x))); ST.lists.forEach(L => { L.ids = L.ids.filter(x => !gone.has(String(x))); }); ST.recent = (ST.recent || []).filter(x => !gone.has(String(x))); save();
-      toast(gone.size > 1 ? gone.size + " titres supprimés" : "Titre supprimé"); setTimeout(() => loadLibrary(false), 400);
+      toast(gone.size > 1 ? gone.size + " titres supprimés" : "Titre supprimé"); dropTracks(gone);
     } else toast("Rien n'a été supprimé");
     delPending = [];
   } else if (e.op === "ring") {
@@ -997,6 +1042,82 @@ window.melodieEvent = function (s) {
     toast(r === "ok" ? "« " + e.name + " » : " + RING_K[e.kind] : r === "perm" ? "Autorisez Mélodie à modifier les paramètres, puis revenez" : "Passage enregistré dans les sonneries");
   }
 };
+/* ============ Paroles (lrclib.net : base libre et gratuite, paroles synchronisées quand elles existent) ============ */
+const LY = { on: false, id: null, lines: [], cur: -1 };
+function parseLrc(txt) {
+  const out = [];
+  for (const line of String(txt || "").split(/\r?\n/)) {
+    const tags = [...line.matchAll(/\[(\d+):(\d+(?:[.,]\d+)?)\]/g)], text = line.replace(/\[[^\]]*\]/g, "").trim();
+    for (const m of tags) out.push({ t: (+m[1] * 60 + parseFloat(m[2].replace(",", "."))) * 1000, x: text });
+  }
+  return out.sort((a, b) => a.t - b.t);
+}
+async function fetchLyrics(t) {
+  const key = "lyr:" + t.id, c = await IDB.get(key); if (c) return c;
+  const q = o => Object.entries(o).filter(([, v]) => v).map(([k, v]) => k + "=" + encodeURIComponent(v)).join("&");
+  const art = t.a && t.a !== UNK_A ? splitArtists(t.a)[0] : "", tit = t.t.replace(/\s*[\(\[].*?(remaster|version|live|edit|mix).*?[\)\]]\s*/ig, " ").trim();
+  let r = null;
+  try {
+    const res = await fetch("https://lrclib.net/api/get?" + q({ artist_name: art, track_name: tit, album_name: t.al !== UNK_AL ? t.al : "", duration: t.d ? Math.round(t.d / 1000) : "" }));
+    if (res.ok) r = await res.json();
+    if (!r) { const s2 = await fetch("https://lrclib.net/api/search?" + q({ track_name: tit, artist_name: art })); if (s2.ok) { const l = await s2.json(); r = (l || []).find(x => x.syncedLyrics) || (l || [])[0] || null; } }
+  } catch (e) { return { err: "net" }; }
+  const v = r ? { synced: r.syncedLyrics || "", plain: r.plainLyrics || "", instr: !!r.instrumental } : { none: true };
+  await IDB.set(key, v); return v;
+}
+async function lyrOpen(force) {
+  const t = curTrack(), box = $("#lyr");
+  if (!t) return;
+  LY.on = true; box.hidden = false; $("#pLyr").classList.add("on");
+  if (LY.id === t.id && !force) return lyrTick(true);
+  LY.id = t.id; LY.lines = []; LY.cur = -1;
+  box.innerHTML = '<div class="msg">Recherche des paroles…</div>';
+  const v = await fetchLyrics(t); if (LY.id !== t.id) return;
+  if (v.err) box.innerHTML = '<div class="msg">Pas de connexion internet : les paroles viennent de lrclib.net.</div>';
+  else if (v.instr) box.innerHTML = '<div class="msg">♪ Morceau instrumental</div>';
+  else if (v.synced) { LY.lines = parseLrc(v.synced); box.innerHTML = LY.lines.map((l, i) => `<p data-i="${i}">${esc(l.x || "♪")}</p>`).join(""); lyrTick(true); }
+  else if (v.plain) box.innerHTML = '<div class="plain">' + v.plain.split(/\r?\n/).map(l => `<p>${esc(l) || "&nbsp;"}</p>`).join("") + "</div>";
+  else box.innerHTML = '<div class="msg">Paroles introuvables pour ce titre.</div>';
+}
+function lyrClose() { LY.on = false; $("#lyr").hidden = true; $("#pLyr").classList.remove("on"); }
+function lyrTick(jump) {
+  const t = curTrack(); if (!t) return;
+  if (LY.id !== t.id) { lyrOpen(); return; }
+  if (!LY.lines.length) return;
+  let i = -1; for (let k = 0; k < LY.lines.length; k++) { if (LY.lines[k].t <= (P.pos || 0) + 250) i = k; else break; }
+  if (i === LY.cur && !jump) return;
+  const box = $("#lyr"), old = box.querySelector("p.on"); if (old) old.classList.remove("on");
+  LY.cur = i; const e = box.querySelector(`p[data-i="${i}"]`);
+  if (e) { e.classList.add("on"); box.scrollTo({ top: e.offsetTop - box.clientHeight / 2 + e.offsetHeight / 2, behavior: jump ? "auto" : "smooth" }); }
+}
+$("#pLyr").onclick = () => LY.on ? lyrClose() : lyrOpen();
+$("#lyr").addEventListener("click", e => { const p = e.target.closest("p[data-i]"); if (p) { seek(LY.lines[+p.dataset.i].t); lyrTick(true); } });
+
+/* ============ Égaliseur (MelodieEq.java) ============ */
+const EQN = { Normal: "Normal", Classical: "Classique", Dance: "Dance", Flat: "Plat", Folk: "Folk", "Heavy Metal": "Métal", "Hip Hop": "Hip-hop", Jazz: "Jazz", Pop: "Pop", Rock: "Rock" };
+function eqSheet() {
+  let E = {}; try { E = JSON.parse(MB.eqInfo()) || {}; } catch (e) { }
+  if (E.unsupported) { toast("Égaliseur non disponible sur ce téléphone"); return; }
+  const hz = h => h >= 1000 ? (h / 1000).toFixed(h % 1000 ? 1 : 0).replace(".", ",") + " kHz" : h + " Hz";
+  SH = {};
+  sheet(`<div class="hd"><div><div class="t">Égaliseur</div><div class="s">${E.playing ? "Le changement s'entend tout de suite" : "S'appliquera au prochain morceau lancé"}</div></div></div>
+    <div class="body" style="padding:6px 16px 14px">
+      <div class="btns" style="justify-content:flex-start;margin:0 0 10px"><button class="pill${E.on ? " main" : ""}" id="eqOn">${E.on ? "Activé" : "Désactivé"}</button></div>
+      <div id="eqBody" style="${E.on ? "" : "opacity:.45;pointer-events:none"}">
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">${(E.presets || []).map((n, i) => `<button class="pill${E.preset === i ? " main" : ""}" data-pre="${i}">${esc(EQN[n] || n)}</button>`).join("")}<button class="pill${E.preset < 0 ? " main" : ""}" data-pre="-1">Personnalisé</button></div>
+        ${(E.bands || []).map((b, i) => `<div style="display:flex;align-items:center;gap:10px;margin:7px 0"><span style="width:64px;font-size:13px;color:var(--tx2)">${hz(b.hz)}</span><input type="range" data-band="${i}" min="${E.min}" max="${E.max}" step="50" value="${b.level}" style="flex:1"><span style="width:56px;text-align:right;font-size:12px;color:var(--tx2)" id="eqv${i}">${(b.level / 100).toFixed(1).replace(".", ",")} dB</span></div>`).join("")}
+        <div style="display:flex;align-items:center;gap:10px;margin:14px 0 4px"><span style="width:64px;font-size:13px;color:var(--tx2)">Basses</span><input type="range" id="eqBass" min="0" max="1000" step="50" value="${E.bass || 0}" style="flex:1"><span style="width:56px;text-align:right;font-size:12px;color:var(--tx2)" id="eqBv">${Math.round((E.bass || 0) / 10)} %</span></div>
+      </div>
+      <p style="color:var(--tx3);font-size:12.5px;margin:12px 2px 0">Réglage gardé pour tous les morceaux. Selon le téléphone, certains réglages peuvent ne pas s'entendre au casque Bluetooth.</p></div>`);
+  const box = $("#sheetIn"), bands = () => [...box.querySelectorAll("[data-band]")].map(r => +r.value);
+  box.querySelector("#eqOn").onclick = () => { E.on = !E.on; MB.eqSet(JSON.stringify({ on: E.on })); eqSheet(); };
+  box.querySelectorAll("[data-pre]").forEach(b => b.onclick = () => { const i = +b.dataset.pre; MB.eqSet(JSON.stringify(i < 0 ? { preset: -1, bands: bands() } : { preset: i })); eqSheet(); });
+  box.querySelectorAll("[data-band]").forEach(r => {
+    r.oninput = () => { $("#eqv" + r.dataset.band).textContent = (r.value / 100).toFixed(1).replace(".", ",") + " dB"; };
+    r.onchange = () => { MB.eqSet(JSON.stringify({ preset: -1, bands: bands() })); box.querySelectorAll("[data-pre]").forEach(b => b.classList.toggle("main", b.dataset.pre === "-1")); };
+  });
+  const bs = box.querySelector("#eqBass"); bs.oninput = () => { $("#eqBv").textContent = Math.round(bs.value / 10) + " %"; }; bs.onchange = () => MB.eqSet(JSON.stringify({ bass: +bs.value }));
+}
 function infoSheet(t) {
   const row = (k, v) => v ? `<div class="mi" style="cursor:default"><span style="color:var(--tx3);width:90px;flex:none">${k}</span><span style="word-break:break-word">${esc(v)}</span></div>` : "";
   SH = {};
@@ -1182,12 +1303,16 @@ function mainMenu() {
     clear: () => { if (confirm("Retirer toute la musique importée de Mélodie ? (vos listes et favoris sont gardés)")) clearWeb(); },
     stats: () => statsSheet(),
     vol: () => volSheet(),
-    covers: () => findCovers(ALBUMS, false)
+    covers: () => findCovers(ALBUMS, false),
+    hidden: () => hiddenSheet(),
+    eq: () => eqSheet()
   };
   sheet(`<div class="hd"><div class="logo"><i>♪</i><span>Mélodie</span></div></div><div class="body">
     ${NATIVE ? mi("rescan", "refresh", "Actualiser la bibliothèque", pl(TR.length, "titre")) : mi("files", "upload", "Ajouter des fichiers") + mi("dir", "folder", "Ajouter un dossier")}
     ${TR.length ? mi("covers", "img", "Chercher les pochettes manquantes", "sur Internet") : ""}
     ${NATIVE && MP.musicVolState ? mi("vol", "vol", "Volume égal", ["Désactivé", "Activé", "Activé + doux"][volMode()] || "") : ""}
+    ${NATIVE && MB && MB.eqInfo ? mi("eq", "vol", "Égaliseur", (() => { try { return JSON.parse(MB.eqInfo()).on ? "activé" : ""; } catch (e) { return ""; } })()) : ""}
+    ${(ST.hide || []).length ? mi("hidden", "folder", "Dossiers masqués", String(ST.hide.length)) : ""}
     ${mi("stats", "note", "Mes statistiques")}
     ${mi("help", "help", "Aide : comment ça marche")}
     ${!NATIVE && TR.length ? mi("clear", "trash", "Tout retirer", "", "danger") : ""}</div>`);

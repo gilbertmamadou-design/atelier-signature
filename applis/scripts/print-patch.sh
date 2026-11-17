@@ -1433,6 +1433,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
             for (int k = 0; k < n; k++) { int j = ORDER.get(pos + 1 + k); up[k] = j < Q.size() ? Q.get(j)[0] : -1; }
         }
         try { MelodieVolume.apply(this, mp, Q.get(i)[0], up); } catch (Throwable t) { }
+        try { MelodieEq.attach(getApplicationContext(), mp.getAudioSessionId()); } catch (Throwable t) { }
     }
     void pause() { if (mp != null && prepared && mp.isPlaying()) mp.pause(); playing = false; updateState(); notifyNow(); }
     void resume() {
@@ -1522,6 +1523,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         try { unregisterReceiver(noisy); } catch (Exception e) { }
         if (mp != null) { try { mp.release(); } catch (Exception e) { } mp = null; }
         try { MelodieVolume.release(); } catch (Throwable t) { }
+        try { MelodieEq.release(); MelodieEq.session = -1; } catch (Throwable t) { }
         ms.setActive(false); ms.release();
         super.onDestroy();
     }
@@ -1678,7 +1680,7 @@ cp scripts/FileService.java "$FSV"
 sed -i "s/__PKG__/$PKG/" "$FSV"
 # Réveil, lever de soleil et endormissement (application Aube)
 for J in $(ls scripts/*Bridge.java 2>/dev/null | xargs -n1 basename 2>/dev/null | sed 's/\.java$//' | grep -vxE 'PdfBridge|MajordomeBridge|TraducteurBridge|SereniteBridge|LanguesBridge|CamerasBridge|BtBridge|MelodieBridge'); do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
-for J in AlarmService AlarmReceiver WallpaperJob WallpaperTile LauncherService LauncherA11y LauncherMedia WidgetProvider SauvegardeJob PhotoCamera EcranPlayer EcranMedia DictaService MeteoPersoJob MelodieVolume; do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
+for J in AlarmService AlarmReceiver WallpaperJob WallpaperTile LauncherService LauncherA11y LauncherMedia WidgetProvider SauvegardeJob PhotoCamera EcranPlayer EcranMedia DictaService MeteoPersoJob MelodieVolume MelodieEq; do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
 # Bibliothèque des tâches de fond
 G=android/app/build.gradle
 grep -q "androidx.work:work-runtime" "$G" || sed -i '0,/^dependencies {/s//dependencies {\n    implementation "androidx.work:work-runtime:2.9.1"/' "$G"
@@ -1990,7 +1992,7 @@ fi
 # Mélodie : supprimer, partager, sonneries (appel, notification, alarme, contact), passage découpé pour la sonnerie
 if [ "$APP" = "musique" ]; then
   cp scripts/MelodieBridge.java "$(dirname "$F")/MelodieBridge.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/MelodieBridge.java"
-  addraw '<uses-permission android:name="android.permission.WRITE_SETTINGS" /><uses-permission android:name="android.permission.WRITE_CONTACTS" /><uses-permission android:name="android.permission.READ_CONTACTS" /><uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />'
+  addraw '<uses-permission android:name="android.permission.WRITE_SETTINGS" /><uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" /><uses-permission android:name="android.permission.WRITE_CONTACTS" /><uses-permission android:name="android.permission.READ_CONTACTS" /><uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />'
 fi
 # Bluetooth : appareils jumelés, recherche (classique et basse consommation), jumelage, connexion audio, oubli.
 # BtBridge.java copié ici seulement. Android 12+ : « Appareils à proximité » (BLUETOOTH_SCAN sans localisation, BLUETOOTH_CONNECT).
