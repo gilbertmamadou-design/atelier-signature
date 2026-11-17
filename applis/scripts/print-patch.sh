@@ -424,7 +424,7 @@ public class MainActivity extends BridgeActivity {
     private final java.util.List<Object> extraBridges = new java.util.ArrayList<Object>();
     private void loadExtraBridges(WebView wv) {
         String pkg = MainActivity.class.getPackage().getName();
-        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge", "ReseauBridge", "LecteurBridge", "PdfBridge", "SolaireBridge", "SocleBridge", "FichiersBridge", "ActualitesBridge", "ToileBridge", "OfficeBridge", "MajordomeBridge", "VoyageBridge", "TraducteurBridge", "SereniteBridge", "LanguesBridge", "CorrecteurBridge", "CamerasBridge" }) {
+        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge", "ReseauBridge", "LecteurBridge", "PdfBridge", "SolaireBridge", "SocleBridge", "FichiersBridge", "ActualitesBridge", "ToileBridge", "OfficeBridge", "MajordomeBridge", "VoyageBridge", "TraducteurBridge", "SereniteBridge", "LanguesBridge", "CorrecteurBridge", "CamerasBridge", "BtBridge" }) {
             try {
                 Class<?> k = Class.forName(pkg + "." + n);
                 Object o = k.getConstructor(android.app.Activity.class, WebView.class).newInstance(this, wv);
@@ -1677,7 +1677,7 @@ FSV="$(dirname "$F")/FileService.java"
 cp scripts/FileService.java "$FSV"
 sed -i "s/__PKG__/$PKG/" "$FSV"
 # Réveil, lever de soleil et endormissement (application Aube)
-for J in $(ls scripts/*Bridge.java 2>/dev/null | xargs -n1 basename 2>/dev/null | sed 's/\.java$//' | grep -vxE 'PdfBridge|MajordomeBridge|TraducteurBridge|SereniteBridge|LanguesBridge|CamerasBridge'); do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
+for J in $(ls scripts/*Bridge.java 2>/dev/null | xargs -n1 basename 2>/dev/null | sed 's/\.java$//' | grep -vxE 'PdfBridge|MajordomeBridge|TraducteurBridge|SereniteBridge|LanguesBridge|CamerasBridge|BtBridge'); do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
 for J in AlarmService AlarmReceiver WallpaperJob WallpaperTile LauncherService LauncherA11y LauncherMedia WidgetProvider SauvegardeJob PhotoCamera EcranPlayer EcranMedia DictaService MeteoPersoJob MelodieVolume; do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
 # Bibliothèque des tâches de fond
 G=android/app/build.gradle
@@ -1983,6 +1983,12 @@ if [ "$APP" = "cameras" ]; then
   grep -q "androidx.media3:media3-exoplayer-rtsp" "$G" || sed -i '0,/^dependencies {/s//dependencies {\n    implementation "androidx.media3:media3-exoplayer:1.4.1"\n    implementation "androidx.media3:media3-exoplayer-rtsp:1.4.1"/' "$G"
   addperm INTERNET ACCESS_NETWORK_STATE ACCESS_WIFI_STATE CHANGE_WIFI_MULTICAST_STATE
   addactivity '<activity android:name=".CamerasViewer" android:label="Caméras" android:exported="true" android:permission="fr.magformation13.permission.WIDGET" android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" android:screenOrientation="sensor" android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden" android:resizeableActivity="true" />'
+fi
+# Bluetooth : appareils jumelés, recherche (classique et basse consommation), jumelage, connexion audio, oubli.
+# BtBridge.java copié ici seulement. Android 12+ : « Appareils à proximité » (BLUETOOTH_SCAN sans localisation, BLUETOOTH_CONNECT).
+if [ "$APP" = "bluetooth" ]; then
+  cp scripts/BtBridge.java "$(dirname "$F")/BtBridge.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/BtBridge.java"
+  addraw '<uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" /><uses-permission android:name="android.permission.BLUETOOTH_CONNECT" /><uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" /><uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" /><uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" /><uses-feature android:name="android.hardware.bluetooth" android:required="false" /><uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />'
 fi
 # Réunion : retranscription en direct (reconnaissance vocale d'Android, par DictaBridge commun : speechStart / speechStop)
 # et compte rendu préparé sur le téléphone ; correcteur commun (office-deps.txt). Micro seulement, aucune connexion de l'appli.

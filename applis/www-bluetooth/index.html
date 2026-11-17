@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bluetooth</title>
+<meta name="theme-color" content="#0f1218">
+<!-- Bluetooth : appareils jumelés (connecté, batterie), recherche des appareils proches (classique et basse consommation),
+     jumelage, connexion audio, oubli. Pont : MAGBt (BtBridge.java) ; événements window.btEvent. -->
+<style>
+:root{color-scheme:dark;--bg:#0f1218;--bg2:#171b24;--bg3:#202634;--line:#ffffff14;--line2:#ffffff24;--tx:#f1f3f8;--tx2:#b3b9c9;--tx3:#7c8396;--acc:#5fa8ff;--ok:#67d49c;--bad:#ff7a7a;--warn:#ffb85c;--r:16px;--safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:15.5px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}[hidden]{display:none!important}
+header{padding:calc(14px + var(--safe-t)) 16px 8px;display:flex;align-items:center;gap:10px}
+header h1{margin:0;font-size:22px;font-weight:800;flex:1}
+main{padding:4px 16px calc(100px + var(--safe-b));max-width:720px;margin:0 auto}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:12px 16px;margin-bottom:12px}
+.sect{font-size:12px;letter-spacing:.7px;text-transform:uppercase;color:var(--tx3);font-weight:700;margin:6px 2px 8px;display:flex;align-items:center;gap:8px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 15px;border-radius:13px;background:var(--bg3);border:1px solid var(--line2);font-weight:650}
+.btn.pri{background:var(--acc);color:#061528;border-color:transparent}.btn.sm{min-height:36px;padding:0 12px;font-size:14px;border-radius:11px}.btn.bad{color:var(--bad)}
+.dev{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}.dev:first-child{border-top:0}
+.ico{width:40px;height:40px;border-radius:12px;background:var(--bg3);display:flex;align-items:center;justify-content:center;flex:none;font-size:20px}
+.dev.on .ico{background:#5fa8ff26;box-shadow:inset 0 0 0 1px var(--acc)}
+.dev .t{flex:1;min-width:0}.dev b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dev small{color:var(--tx3);font-size:13px}
+.dev small .c{color:var(--ok);font-weight:700}
+.bars{display:inline-flex;gap:2px;align-items:flex-end;height:12px;margin-left:6px;vertical-align:middle}.bars i{width:3px;background:var(--tx3);border-radius:1px}.bars i.on{background:var(--acc)}
+.note{color:var(--tx3);font-size:13.5px;margin:8px 2px 0}
+.empty{color:var(--tx3);padding:10px 0}
+.warn{background:#ffb85c14;border:1px solid #ffb85c40;color:#ffd9a8;border-radius:12px;padding:12px;margin-bottom:12px}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid var(--line2);border-top-color:var(--acc);animation:sp 1s linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+.fab{position:fixed;left:16px;right:16px;bottom:calc(16px + var(--safe-b));max-width:688px;margin:0 auto}.fab .btn{width:100%;min-height:54px;font-size:16.5px;box-shadow:0 8px 24px #0008}
+#sheet{position:fixed;inset:0;background:#000a;display:flex;align-items:flex-end;justify-content:center;z-index:10}
+#sheet .box{background:var(--bg2);border-radius:20px 20px 0 0;padding:18px 16px calc(18px + var(--safe-b));width:100%;max-width:640px}
+#sheet h2{margin:0 0 4px;font-size:19px}#sheet .acts{display:flex;flex-direction:column;gap:8px;margin-top:14px}#sheet .acts .btn{width:100%;min-height:48px}
+#toast{position:fixed;left:50%;bottom:calc(86px + var(--safe-b));transform:translateX(-50%);background:#0b0e14;border:1px solid var(--line2);padding:10px 16px;border-radius:12px;font-size:14px;z-index:20;max-width:90vw;opacity:0;transition:opacity .25s;pointer-events:none}#toast.on{opacity:1}
+</style>
+</head>
+<body>
+<header><h1>Bluetooth</h1><button class="btn sm" id="bSet">Réglages</button><button class="btn sm" id="bQuit">Quitter</button></header>
+<main>
+  <div id="state"></div>
+  <div class="sect">Mes appareils</div>
+  <div class="card" id="paired"></div>
+  <div class="sect">Appareils à proximité <span id="spin" class="spin" hidden></span></div>
+  <div class="card" id="near"><p class="empty">Touche « Rechercher » pour trouver les appareils autour de toi (casque, enceinte, voiture, montre…). L'appareil doit être en mode jumelage.</p></div>
+  <p class="note">Android ne laisse pas toujours une appli brancher un casque ou une enceinte déjà jumelés : dans ce cas, le réglage Bluetooth s'ouvre, touche simplement le nom de l'appareil.</p>
+</main>
+<div class="fab"><button class="btn pri" id="bScan">Rechercher</button></div>
+<div id="sheet" hidden><div class="box" id="sheetBox"></div></div>
+<div id="toast"></div>
+<script>
+(function () {
+  'use strict';
+  var B = window.MAGBt || null, $ = function (id) { return document.getElementById(id); };
+  function J(s, d) { try { return JSON.parse(s); } catch (e) { return d; } }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  var tT = 0; function toast(t) { var e = $('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(tT); tT = setTimeout(function () { e.classList.remove('on'); }, 2800); }
+  var ICO = { casque: '🎧', enceinte: '🔊', audio: '🔊', voiture: '🚗', tv: '📺', telephone: '📱', ordinateur: '💻', montre: '⌚', peripherique: '⌨️', sante: '❤️', imprimante: '🖨️', ble: '📡', autre: '🔷' };
+  var KIND = { casque: 'Casque', enceinte: 'Enceinte', audio: 'Audio', voiture: 'Voiture', tv: 'Télévision', telephone: 'Téléphone', ordinateur: 'Ordinateur', montre: 'Montre ou bracelet', peripherique: 'Clavier, souris', sante: 'Santé', imprimante: 'Imprimante', ble: 'Basse consommation', autre: 'Appareil' };
+  var ST = {}, P = [], N = {}, scanning = false;
+  function bars(r) { var n = r == null ? 0 : r > -60 ? 4 : r > -70 ? 3 : r > -80 ? 2 : 1; return '<span class="bars" title="Signal">' + [4, 7, 10, 12].map(function (h, i) { return '<i style="height:' + h + 'px" class="' + (i < n ? 'on' : '') + '"></i>'; }).join('') + '</span>'; }
+  function row(d, near) {
+    var name = d.name || d.addr, on = d.connected;
+    return '<div class="dev' + (on ? ' on' : '') + '" data-a="' + esc(d.addr) + '" data-near="' + (near ? 1 : 0) + '"><div class="ico">' + (ICO[d.kind] || ICO.autre) + '</div><div class="t"><b>' + esc(name) + '</b><small>' +
+      (on ? '<span class="c">Connecté</span> · ' : '') + esc(KIND[d.kind] || 'Appareil') + (d.battery != null ? ' · 🔋 ' + d.battery + ' %' : '') + (near && d.rssi != null ? bars(d.rssi) : '') + '</small></div>' +
+      (near ? (d.bonded ? '<span class="btn sm">Jumelé</span>' : '<button class="btn sm pri" data-pair="' + esc(d.addr) + '">Jumeler</button>') : '<button class="btn sm" data-more="' + esc(d.addr) + '">⋯</button>') + '</div>';
+  }
+  function load() {
+    ST = J(B ? B.state() : '{}', {}) || {};
+    var s = $('state');
+    if (!B) s.innerHTML = '<div class="warn">Cette page fonctionne dans l\'appli Android « Bluetooth ».</div>';
+    else if (!ST.present) s.innerHTML = '<div class="warn">Ce téléphone n\'a pas de Bluetooth.</div>';
+    else if (!ST.perm) s.innerHTML = '<div class="warn">Pour voir et connecter les appareils, autorise « Appareils à proximité ».<div style="margin-top:10px"><button class="btn sm pri" id="bPerm">Autoriser</button></div></div>';
+    else if (!ST.on) s.innerHTML = '<div class="warn">Le Bluetooth est éteint.<div style="margin-top:10px"><button class="btn sm pri" id="bOn">Allumer le Bluetooth</button></div></div>';
+    else s.innerHTML = '';
+    var bp = $('bPerm'); if (bp) bp.onclick = function () { B.askPerm(); };
+    var bo = $('bOn'); if (bo) bo.onclick = function () { B.enable(); };
+    P = ST.perm && ST.on ? (J(B.paired(), []) || []) : [];
+    P.sort(function (a, b) { return (b.connected ? 1 : 0) - (a.connected ? 1 : 0) || (a.name || '').localeCompare(b.name || '', 'fr'); });
+    $('paired').innerHTML = P.length ? P.map(function (d) { return row(d, false); }).join('') : '<p class="empty">' + (ST.perm && ST.on ? 'Aucun appareil jumelé.' : '—') + '</p>';
+    paintNear();
+  }
+  function paintNear() {
+    var known = {}; P.forEach(function (d) { known[d.addr] = 1; });
+    var l = Object.keys(N).map(function (k) { return N[k]; }).filter(function (d) { return !known[d.addr]; }).sort(function (a, b) { return (b.rssi || -200) - (a.rssi || -200); });
+    if (l.length) $('near').innerHTML = l.map(function (d) { return row(d, true); }).join('');
+    else if (scanning) $('near').innerHTML = '<p class="empty">Recherche en cours… mets l\'appareil en mode jumelage.</p>';
+    $('spin').hidden = !scanning;
+    $('bScan').textContent = scanning ? 'Arrêter la recherche' : 'Rechercher';
+  }
+  window.btEvent = function (s) {
+    var e = J(s, {}) || {};
+    if (e.op === 'found' && e.dev) { N[e.dev.addr] = e.dev; paintNear(); }
+    else if (e.op === 'scanstart') { scanning = true; N = {}; paintNear(); }
+    else if (e.op === 'scanend') { scanning = false; paintNear(); if (!Object.keys(N).length) $('near').innerHTML = '<p class="empty">Aucun nouvel appareil trouvé. Vérifie qu\'il est allumé et en mode jumelage, puis relance.</p>'; }
+    else if (e.op === 'bond') { if (e.state === 'bonded') toast('Appareil jumelé'); else if (e.state === 'none') toast('Jumelage annulé'); load(); }
+    else load();
+  };
+  $('bScan').onclick = function () {
+    if (!B) return toast('Fonctionne dans l\'appli Android');
+    if (!ST.perm) return B.askPerm();
+    if (!ST.on) return B.enable();
+    if (scanning) B.stopScan(); else B.scan();
+  };
+  $('bSet').onclick = function () { if (B) B.settings(); };
+  $('bQuit').onclick = function () { if (B && B.quit) B.quit(); else window.close(); };
+  document.body.addEventListener('click', function (ev) {
+    var b = ev.target.closest('[data-pair]');
+    if (b) { if (B.pair(b.dataset.pair)) toast('Confirme le jumelage dans la fenêtre d\'Android'); else toast('Jumelage impossible'); return; }
+    b = ev.target.closest('[data-more]');
+    if (b) { sheet(P.filter(function (d) { return d.addr === b.dataset.more; })[0]); return; }
+  });
+  function sheet(d) {
+    if (!d) return;
+    $('sheetBox').innerHTML = '<h2>' + esc(d.name || d.addr) + '</h2><p class="note" style="margin:0">' + esc(KIND[d.kind] || 'Appareil') + (d.connected ? ' · connecté' : ' · non connecté') + (d.battery != null ? ' · batterie ' + d.battery + ' %' : '') + '</p>' +
+      '<div class="acts">' + (d.connected ? '<button class="btn" data-x="off">Déconnecter</button>' : '<button class="btn pri" data-x="on">Connecter</button>') +
+      '<button class="btn" data-x="ren">Renommer</button><button class="btn bad" data-x="forget">Oublier cet appareil</button><button class="btn" data-x="close">Fermer</button></div>';
+    $('sheet').hidden = false;
+    $('sheetBox').onclick = function (ev) {
+      var x = ev.target.closest('[data-x]'); if (!x) return; var k = x.dataset.x, r;
+      if (k === 'close') { $('sheet').hidden = true; return; }
+      if (k === 'on') { r = B.connect(d.addr); toast(r === 'ok' ? 'Connexion…' : 'Touche « ' + (d.name || 'l\'appareil') + ' » dans le réglage Bluetooth'); setTimeout(load, 2500); }
+      if (k === 'off') { r = B.disconnect(d.addr); toast(r === 'ok' ? 'Déconnecté' : 'Touche l\'appareil dans le réglage Bluetooth pour le déconnecter'); setTimeout(load, 1500); }
+      if (k === 'ren') { var n = prompt('Nouveau nom', d.name || ''); if (n && n.trim()) { toast(B.rename(d.addr, n.trim()) ? 'Renommé' : 'Ce téléphone ne permet pas de renommer ici'); load(); } }
+      if (k === 'forget') { if (!confirm('Oublier « ' + (d.name || d.addr) + ' » ? Il faudra le jumeler à nouveau.')) return; r = B.forget(d.addr); toast(r === 'ok' ? 'Appareil oublié' : 'Oublie-le dans le réglage Bluetooth qui s\'ouvre'); setTimeout(load, 1200); }
+      $('sheet').hidden = true;
+    };
+  }
+  $('sheet').onclick = function (e) { if (e.target.id === 'sheet') $('sheet').hidden = true; };
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) load(); });
+  load();
+  setInterval(function () { if (!document.hidden && !scanning) load(); }, 8000);
+})();
+</script>
+</body>
+</html>

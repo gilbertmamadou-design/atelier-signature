@@ -369,5 +369,13 @@
   "name": "Caméras",
   "icons": "android-icons-cameras",
   "file": "Cameras.apk"
+ },
+ {
+  "app": "bluetooth",
+  "web": "www-bluetooth",
+  "appid": "fr.magformation13.bluetooth",
+  "name": "Bluetooth",
+  "icons": "android-icons-bluetooth",
+  "file": "Bluetooth.apk"
  }
 ]
