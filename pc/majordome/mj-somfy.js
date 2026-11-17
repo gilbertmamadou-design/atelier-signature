@@ -444,6 +444,17 @@
   var sb = document.getElementById('bStores');
   if (sb) { sb.hidden = !OK; sb.onclick = storesSheet; }
   MJ.shutterRun = function (p, quiet) { return run(p, quiet); };
+  /** Habitude repérée (mj-appris.js) : même commande, même heure, plusieurs jours → programme qui se répète. → { at, where } ou null */
+  MJ.shutterHabit = function (p, time, days) {
+    if (!MJ.somfyReady()) return Promise.resolve(null);
+    return fetchModel(false).then(function () {
+      var l = pick(p); if (!l.length) return null;
+      var pg = { id: 'sfp' + X.uid(), name: '', act: p.act === 'stop' ? 'my' : p.act, pos: p.pos != null ? p.pos : 50, urls: l.map(function (x) { return x.url; }), days: days, once: '', mode: 'time', time: time, off: 0, on: true };
+      if (!actionsOf(pg).length) return null;
+      progs().push(pg); X.saveS();
+      var at = arm(pg); return at ? { at: at, where: 'Volets et stores', label: progLabel(pg) } : null;
+    }).catch(function () { return null; });
+  };
   /** Routine « Demander à Alexa » : volets et stores directement par le boîtier quand il est réglé */
   MJ.alexaDirect = function (cmd) {
     if (!MJ.somfyReady()) return null;

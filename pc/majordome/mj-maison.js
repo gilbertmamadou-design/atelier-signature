@@ -453,6 +453,24 @@
     }, opt.quiet ? function (e) { X.card('<div class="k">Lumières</div><p>' + esc(errText(e.code)) + '</p>', 'err'); } : fail);
   }
   H.light = function (p) { return lightCmd(p || {}); };
+  /** Habitude repérée (mj-appris.js) : programme de lumières qui se répète (pièce, zone ou toute la maison ; scène). → { at, where } ou null */
+  MJ.lightHabit = function (p, time, days) {
+    if (!HUE || S.hueNone || !refreshInfo().paired || !MJ.sched) return Promise.resolve(null);
+    return fetchModel(false).then(function () {
+      var pg = { id: 'lp' + X.uid(), name: '', act: p.act, bri: Math.max(1, Math.min(100, +p.bri || 60)), groups: [], scene: '', days: days, once: '', mode: 'time', time: time, off: 0, on: true };
+      if (p.act === 'scene') { var f = findScene(p); if (!f.scene) return null; pg.scene = f.scene.id; }
+      else {
+        var last = MJ.lastLight && Date.now() - MJ.lastLight.at < 5 * 60000 ? MJ.lastLight.sel : null, sel = last || resolve(model, p).sel;
+        if (!sel) return null;
+        if (sel.type === 'all') pg.groups = ['*'];
+        else if (sel.type === 'group') pg.groups = [sel.obj.id];
+        else return null;   // une lampe seule : les programmes visent des pièces
+      }
+      if (!lreqs(pg).length) return null;
+      lprogs().push(pg); X.saveS();
+      var at = larm(pg); return at ? { at: at, where: 'Maison › Lumières', label: llabel(pg) } : null;
+    }).catch(function () { return null; });
+  };
   MJ.lightStep = function (phrase) {
     var r = window.MJNLU.parse(phrase, { now: Date.now(), names: [] });
     if (r.intent !== 'light') return Promise.resolve();
