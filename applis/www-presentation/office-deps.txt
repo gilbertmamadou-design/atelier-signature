@@ -5,4 +5,6 @@
 ../pc/shared/vendor/lucide-icons.js lucide-icons.js
 ../pc/shared/vendor/katex/ katex/
 ../pc/shared/vendor/LICENSES/ LICENSES/
+../pc/shared/correcteur/ correcteur/
+../pc/shared/vendor/grammalecte/ correcteur/grammalecte/
 # jszip.min.js et jspdf.umd.min.js : copiés par le workflow depuis node_modules (mêmes versions que pc/shared/vendor/)

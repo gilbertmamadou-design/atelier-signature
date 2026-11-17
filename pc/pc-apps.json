@@ -537,7 +537,7 @@
     {
       "id": "presentation",
       "android": "presentation",
-      "correcteur": true,
+      "correcteur": "copie",
       "office": true,
       "name": "Présentation",
       "short_name": "Présentation",
@@ -667,7 +667,7 @@
     {
       "id": "tableur",
       "android": "tableur",
-      "correcteur": true,
+      "correcteur": "copie",
       "office": true,
       "name": "Tableur",
       "short_name": "Tableur",

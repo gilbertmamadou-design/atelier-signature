@@ -5,5 +5,7 @@
 ../pc/shared/vendor/exceljs.min.js exceljs.min.js
 ../pc/shared/vendor/fonts/ fonts/
 ../pc/shared/vendor/LICENSES/ LICENSES/
+../pc/shared/correcteur/ correcteur/
+../pc/shared/vendor/grammalecte/ correcteur/grammalecte/
 www-presentation/pres-shapes.js pres-shapes.js
 # jszip.min.js, jspdf.umd.min.js, xlsx.full.min.js, pdf.min.js et pdf.worker.min.js : copiés par le workflow depuis node_modules (mêmes versions que pc/shared/vendor/)
