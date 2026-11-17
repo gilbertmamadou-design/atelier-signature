@@ -19,7 +19,7 @@
   function ctx() { return X.ctx ? X.ctx() : { now: Date.now(), names: [] }; }
 
   /* ---------- Plusieurs ordres dans une phrase ---------- */
-  var NOSPLIT = /^(teach|teach_forget|note_add|list_add|list_remove|sms|reminder|reminder_cancel|msgs|calc|convert|quiz|wiki|announce|call|search|website|agenda_add|translate|book|routine)$/;
+  var NOSPLIT = /^(websearch|teach|teach_forget|note_add|list_add|list_remove|sms|reminder|reminder_cancel|msgs|calc|convert|quiz|wiki|announce|call|search|website|agenda_add|translate|book|routine)$/;
   MJ.multi = function (text, r) {
     if (!MJ.splitActs || NOSPLIT.test(r.intent) || !/[,;]|\s(et|puis|ensuite)\s/i.test(text)) return null;
     var parts = MJ.splitActs(text); if (parts.length < 2) return null;
@@ -76,6 +76,17 @@
       return c.done;
     }).catch(function () { return X.answer('Je n\'ai rien trouvé sur « ' + q + ' » dans Wikipédia.').done; });
   };
+
+  /* ---------- Recherche sur internet : résultats dans le navigateur ; réponse courte de Wikipédia quand elle existe ---------- */
+  var ENGINES = { google: ['Google', 'https://www.google.com/search?q='], qwant: ['Qwant', 'https://www.qwant.com/?q='], duck: ['DuckDuckGo', 'https://duckduckgo.com/?q='], bing: ['Bing', 'https://www.bing.com/search?q='], ecosia: ['Ecosia', 'https://www.ecosia.org/search?q='] };
+  H.websearch = function (p) {
+    var q = String(p.q || '').replace(/\s*\?+$/, '').trim(); if (!q) return X.answer('Que voulez-vous chercher ?').done;
+    var e = ENGINES[S.searchEngine] || ENGINES.google, url = e[1] + encodeURIComponent(q);
+    var c = X.answer({ say: X.ack('Je cherche « ' + q + ' » sur ' + e[0]), html: '<div class="k">Recherche · ' + esc(e[0]) + '</div><p>« ' + esc(q) + ' »</p><div class="row"><button class="btn sm pri" data-ws>Voir les résultats</button></div>' });
+    c.querySelector('[data-ws]').onclick = function () { X.openLink(url, 'la recherche'); };
+    return c.done.then(function () { return X.openLink(url, 'la recherche'); });
+  };
+  MJ.searchEngines = ENGINES;
 
   /* ---------- Annonce sur les Echo ---------- */
   H.announce = function (p) {
@@ -168,12 +179,16 @@
   /* ---------- Réglages › Automatismes ---------- */
   function rtOpts(cur) { return (S.routines || []).map(function (r) { return '<option value="' + esc(r.id) + '"' + (r.id === cur ? ' selected' : '') + '>' + esc(r.name) + '</option>'; }).join(''); }
   function sw(id, on) { return '<label class="sw"><input type="checkbox" id="' + id + '"' + (on ? ' checked' : '') + '><span></span></label>'; }
+  function searchHtml() {
+    return '<div class="sect" id="f-recherche">Recherche sur internet</div><div class="set"><div class="t">Moteur de recherche<small>« Cherche sur internet … » ouvre les résultats dans le navigateur.</small></div><select class="in" id="seEng" style="max-width:150px">' +
+      Object.keys(ENGINES).map(function (k) { return '<option value="' + k + '"' + ((S.searchEngine || 'google') === k ? ' selected' : '') + '>' + ENGINES[k][0] + '</option>'; }).join('') + '</select></div>';
+  }
   function html() {
-    if (!AUTO) return '';
+    if (!AUTO) return searchHtml();
     var a = A(), info = X.J(B.autoInfo ? B.autoInfo() : '{}', {}) || {}, devs = MJ.somfyDevs ? MJ.somfyDevs() : [], groups = MJ.hueGroups ? MJ.hueGroups() : [];
     var vurls = a.vent.urls || devs.filter(function (d) { return d.kind === 'banne'; }).map(function (d) { return d.url; });
     function skipNote(id) { var c = compile(id), n = c.day.reqs.length + c.day.acts.length + c.night.reqs.length + c.night.acts.length; return n ? (c.skip.length ? ' Sans la page, seules les lumières, les volets et les phrases (en notification) s\'exécutent.' : '') : ' Cette routine n\'a ni lumières Hue ni volets TaHoma : rien à faire tout seul.'; }
-    var h = '<div class="sect" id="f-auto">Automatismes</div><p class="note">Exécutés par le téléphone, même Majordome fermé, s\'il est sur le Wi-Fi de la maison.</p>';
+    var h = searchHtml() + '<div class="sect" id="f-auto">Automatismes</div><p class="note">Exécutés par le téléphone, même Majordome fermé, s\'il est sur le Wi-Fi de la maison.</p>';
     h += '<div class="set"><div class="t">Vent fort : rentrer les stores<small>Contrôle toutes les 20 minutes (Open-Meteo, rafales maintenant et dans l\'heure).' + (info.vent && info.vent.last ? ' Dernière fois : ' + esc(new Date(info.vent.last).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) + '.' : '') + '</small></div>' + sw('auVent', a.vent.on) + '</div>';
     if (a.vent.on) {
       h += '<div class="set"><div class="t">Rafales à partir de (km/h)</div><input class="in" id="auVentL" type="number" min="20" max="120" step="5" value="' + (+a.vent.limit || 50) + '" style="width:90px"></div>' +
@@ -194,6 +209,7 @@
     return h;
   }
   function bind(b) {
+    var se = b.querySelector('#seEng'); if (se) se.onchange = function () { S.searchEngine = this.value; X.saveS(); };
     if (!AUTO) return;
     var $ = function (id) { return b.querySelector('#' + id); }, a = A();
     function save(re) { X.saveS(); push(); if (re) X.settingsSheet('auto'); }
@@ -221,5 +237,5 @@
   MJ.settingsExtra = function () { return (prevExtra ? prevExtra() : '') + html(); };
   MJ.settingsBind = function (b) { if (prevBind) prevBind(b); bind(b); };
 
-  if (X.HELP) X.HELP.splice(X.HELP.length - 1, 0, ['Plus', ['Ferme les volets et allume le salon', 'Et la cuisine ? (après une commande)', 'Et demain ? (après la météo)', 'C\'est quoi un ornithorynque ?', 'Qui est Victor Hugo ?', 'Le point du soir', 'Annonce à table', 'Tourne la caméra du jardin à gauche']]);
+  if (X.HELP) X.HELP.splice(X.HELP.length - 1, 0, ['Plus', ['Ferme les volets et allume le salon', 'Et la cuisine ? (après une commande)', 'Et demain ? (après la météo)', 'C\'est quoi un ornithorynque ?', 'Qui est Victor Hugo ?', 'Le point du soir', 'Annonce à table', 'Tourne la caméra du jardin à gauche', 'Cherche sur internet les horaires de la piscine']]);
 })();
