@@ -56,6 +56,7 @@
   // chorus : 0..1 ; flanger : vrai = retard court et réinjecté ; reverb : 0..1 (envoi) ; room : durée de la queue (s) ; metal : résonance de la queue
   var FX = {
     aucun: { name: 'Aucun', pitch: 1, hp: 0, lp: 0, bass: 0, presence: 0, drive: 0, chorus: 0, flanger: false, reverb: 0, room: 0.3, metal: 0 },
+    lecture: { name: 'Lecture', pitch: 1, hp: 55, lp: 0, bass: 1.5, presence: 0.8, drive: 0, chorus: 0, flanger: false, reverb: 0.05, room: 0.22, metal: 0 },
     discret: { name: 'Discret', pitch: 1, hp: 70, lp: 0, bass: 1, presence: 1.5, drive: 0, chorus: 0, flanger: false, reverb: 0.10, room: 0.28, metal: 0 },
     majordome: { name: 'Majordome', pitch: 0.97, hp: 60, lp: 0, bass: 2.5, presence: 2, drive: 0.06, chorus: 0.12, flanger: false, reverb: 0.16, room: 0.42, metal: 0.1 },
     ia: { name: 'IA de film', pitch: 0.95, hp: 120, lp: 9500, bass: 1.5, presence: 3, drive: 0.14, chorus: 0.35, flanger: true, reverb: 0.24, room: 0.55, metal: 0.55 },
