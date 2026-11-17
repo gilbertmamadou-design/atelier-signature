@@ -453,6 +453,27 @@
     }, opt.quiet ? function (e) { X.card('<div class="k">Lumières</div><p>' + esc(errText(e.code)) + '</p>', 'err'); } : fail);
   }
   H.light = function (p) { return lightCmd(p || {}); };
+  /* Pour les automatismes (mj-plus.js) : requêtes Hue préparées à l'avance, exécutées par le téléphone sans la page */
+  MJ.hueReady = function () { return !!(HUE && !S.hueNone && refreshInfo().paired && model); };
+  MJ.hueGroups = function () { return model ? model.groups.map(function (g) { return { id: g.id, name: g.name, kind: g.kind }; }) : []; };
+  MJ.lightPlanFor = function (p) {
+    if (!MJ.hueReady() || !p) return null;
+    if (p.act === 'scene') { var f = findScene(p); return f.scene ? plan(model, { type: 'all' }, { act: 'scene', scene: f.scene }) : null; }
+    if (!/^(on|off|bri|ct|color)$/.test(p.act)) return null;
+    var r = resolve(model, p); if (!r.sel) return null;
+    return plan(model, r.sel, { act: p.act, bri: p.bri, ct: p.ct, color: p.color });
+  };
+  MJ.hueGroupPlan = function (gid, cmd) { if (!MJ.hueReady()) return []; var g = gid === '*' ? null : model.groups.filter(function (x) { return x.id === gid; })[0]; return plan(model, g ? { type: 'group', obj: g } : { type: 'all' }, cmd); };
+  MJ.hueV2 = function () { return !!(model && model.api === 'v2'); };
+  /** Lumières restées allumées : liste de noms (pièces), [] si tout est éteint, null si inconnu */
+  MJ.lightsOn = function () {
+    if (!HUE || S.hueNone || !refreshInfo().paired) return Promise.resolve(null);
+    return freshStates().then(function () {
+      var onL = model.lights.filter(function (l) { return l.on; }); if (!onL.length) return [];
+      var rooms = model.groups.filter(function (g) { return g.kind === 'room' && g.lights.some(function (i) { return onL.some(function (l) { return l.id === i; }); }); });
+      return rooms.map(function (g) { return g.name; }).concat(onL.filter(function (l) { return !l.rooms.length; }).map(function (l) { return l.name; }));
+    }).catch(function () { return null; });
+  };
   /** Habitude repérée (mj-appris.js) : programme de lumières qui se répète (pièce, zone ou toute la maison ; scène). → { at, where } ou null */
   MJ.lightHabit = function (p, time, days) {
     if (!HUE || S.hueNone || !refreshInfo().paired || !MJ.sched) return Promise.resolve(null);

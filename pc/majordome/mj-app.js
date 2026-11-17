@@ -315,11 +315,15 @@
       else { w.resolve(null); }
     } else card('<p>' + esc(text) + '</p>', 'q');
     var r = NLU.parse(text, ctx());
+    // suite d'une question (« et la cuisine ? », « et demain ? ») : mj-plus.js
+    if (r.intent === 'unknown' && MJ.follow) try { var rf = MJ.follow(text); if (rf) r = rf; } catch (e) { console.warn(e); }
     MJ.cur = { at: now(), q: text, a: '', intent: r.intent };
     if (via !== 'voice' && via !== 'socle') MJ.backAfter = false;
     status('…', 'think');
     var p;
-    try { p = Promise.resolve(exec(r)); } catch (e) { p = Promise.reject(e); }
+    // plusieurs ordres dans une phrase (« ferme les volets et allume le salon ») : mj-plus.js
+    var seq = null; if (MJ.multi) try { seq = MJ.multi(text, r); } catch (e) { console.warn(e); }
+    try { p = seq ? seq : Promise.resolve(exec(r)); } catch (e) { p = Promise.reject(e); }
     return p.catch(function (e) { console.warn(e); errorReply('Une erreur est survenue : ' + (e && e.message || e) + '.'); }).then(function () {
       // apprentissage (mj-appris.js) : habitudes repérées après la commande
       if (MJ.afterCmd) try { return Promise.resolve(MJ.afterCmd(text, r)).catch(function (e) { console.warn(e); }); } catch (e) { console.warn(e); }
@@ -1212,7 +1216,7 @@
   };
 
   /* --- Routines --- */
-  var STEPS = { salut: 'Salutation', heure: 'Heure', date: 'Date', meteo: 'Météo du jour', vent: 'Vent (échafaudage)', vigilance: 'Vigilance météo', agenda: 'Agenda du jour', titres: '3 titres de l\'actualité', rappels: 'Rappels', liste: 'Liste de courses', musique: 'Lancer la musique', reveil: 'Réveil de demain', bonnenuit: 'Bonne nuit', ecoute_off: 'Couper l\'écoute continue', lampe_off: 'Éteindre la lampe', silencieux: 'Mode silencieux', dnd: 'Ne pas déranger', sonnerie: 'Rétablir la sonnerie' };
+  var STEPS = { salut: 'Salutation', pointsoir: 'Point du soir', heure: 'Heure', date: 'Date', meteo: 'Météo du jour', vent: 'Vent (échafaudage)', vigilance: 'Vigilance météo', agenda: 'Agenda du jour', titres: '3 titres de l\'actualité', rappels: 'Rappels', liste: 'Liste de courses', musique: 'Lancer la musique', reveil: 'Réveil de demain', bonnenuit: 'Bonne nuit', ecoute_off: 'Couper l\'écoute continue', lampe_off: 'Éteindre la lampe', silencieux: 'Mode silencieux', dnd: 'Ne pas déranger', sonnerie: 'Rétablir la sonnerie' };
   var COND = { jour: 'le jour', nuit: 'la nuit' };
   function condOf(s) { var m = /^(jour|nuit)>/.exec(s); return m ? [m[1], s.slice(m[0].length)] : ['', s]; }
   /* Jour ou nuit : lever et coucher du soleil calculés sur l'appareil (ville choisie, dernière position, sinon Marseille) */
@@ -1282,6 +1286,7 @@
     switch (s) {
       case 'salut': var h = new Date(now()).getHours(); return answer(withSir(h < 18 ? 'Bonjour' : 'Bonsoir') + '.').done;
       case 'bonnenuit': return answer(withSir('Bonne nuit') + '.').done;
+      case 'pointsoir': return H.evening ? H.evening({}) : Promise.resolve();
       case 'heure': return H.time();
       case 'date': return H.date({ offset: 0 });
       case 'meteo': return H.weather({ when: 'today' });
@@ -1753,7 +1758,7 @@
   }, 400);
   publish();
   MJ.S = S; MJ.VX = VX; MJ.AL = function () { return AL; };
-  MJ._ = { H: H, ctx: ctx, exec: exec, answer: answer, ask: ask, errorReply: errorReply, openSheet: openSheet, closeSheet: closeSheet, curSheet: function () { return curSheet; }, esc: esc, J: J, lsGet: lsGet, lsSet: lsSet, uid: uid, now: now, cap: cap, deacc: deacc,
+  MJ._ = { H: H, ctx: ctx, exec: exec, alexaSay: alexaSay, httpText: httpText, online: online, dayName: dayName, isDay: isDay, answer: answer, ask: ask, errorReply: errorReply, openSheet: openSheet, closeSheet: closeSheet, curSheet: function () { return curSheet; }, esc: esc, J: J, lsGet: lsGet, lsSet: lsSet, uid: uid, now: now, cap: cap, deacc: deacc,
     S: S, saveS: saveS, toast: toast, card: card, withSir: withSir, sir: sir, ack: ack, dur: dur, hm: hm, hmSay: hmSay, addAlarm: addAlarm, removeAlarm: removeAlarm, setAL: function (l) { AL = l; saveAL(); renderTimers(); },
     HELP: HELP, openLink: openLink, settingsSheet: settingsSheet, handle: handle, ANDROID: ANDROID, PC: PC, B: B, P: P, KEY: KEY, WMO: WMO, weatherData: weatherData, vigilanceData: vigilanceData, speaking: speaking };
   if (MJ.onReady) try { MJ.onReady(); } catch (e) { console.warn(e); } MJ.LS = function () { return LS; }; MJ.orb = orb; MJ.moment = function () { try { moment(); } catch (e) { } }; MJ.momentCells = function () { try { return momentCells(); } catch (e) { return []; } }; MJ.ask = ask; MJ.speakText = speechText; MJ.refresh = refreshInfo;

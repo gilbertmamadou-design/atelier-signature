@@ -58,6 +58,8 @@
     return out;
   }
 
+  MJ.splitActs = splitActs; MJ.known = known;
+
   /* ---------- 1. Phrases apprises ---------- */
   H.teach = function (p) {
     var say = p.say, todo = p.todo;

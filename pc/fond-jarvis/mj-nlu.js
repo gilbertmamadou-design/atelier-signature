@@ -1159,6 +1159,10 @@
     if ((m = /^(?:oublie|efface|supprime) (?:la phrase|l expression|la commande apprise|la commande|ce que je t ai appris (?:pour|sur|avec)|ce que je t ai dit pour|ce que veut dire) (.+)$/.exec(t))) return R('teach_forget', { say: orig(P, m.index + m[0].length - m[1].length) });
     // --- révisions, quiz (mj-appris.js) ---
     if ((m = /^(?:fais moi reviser|fait moi reviser|faites moi reviser|on revise|reviser|revision|revisions|interroge moi|interrogez moi|pose moi des questions|pose moi une question|pose moi un quiz|fais moi un quiz|fait moi un quiz|un quiz|quiz|lance un quiz|teste moi|testez moi|teste mes connaissances|on fait un quiz|jouons|on joue)(?: un peu)?(?: (?:sur |en |avec |a )?(?:les |la |le |l |mes |des |ma )?(.+))?$/.exec(t))) return R('quiz', { theme: m[1] || '' });
+    // --- point du soir (mj-plus.js) ---
+    if (/^(?:le |mon |fais (?:moi )?le |donne moi le )?(?:point|resume|bilan|briefing) du soir$/.test(t)) return R('evening');
+    // --- annonce sur les Echo (Alexa « annonce ») : « annonce à table », « dis à toute la maison qu'on mange » ---
+    if ((m = /^(?:annonce|fais une annonce|fait une annonce|annonce sur (?:les |toutes les )?(?:echo|enceintes)|dis a toute la maison|previens toute la maison|appelle tout le monde pour|annonce a tout le monde)(?: que| qu| :)? (.+)$/.exec(t))) return R('announce', { text: orig(P, m.index + m[0].length - m[1].length) });
     if ((m = /^(?:lance|demarre|execute|fais|joue) (?:la )?routine (.+)$/.exec(t)) || (m = /^routine (.+)$/.exec(t))) return R('routine', { name: orig(P, m.index + m[0].length - m[1].length) });
     if (/^(bonjour|bonjour a toi|bon matin|salut bonjour|bonjour bonjour|debut de journee|on commence|briefing|le point du matin|ma journee|resume de la journee)$/.test(t)) return R('routine', { id: 'matin' });
     if (/^(bonne nuit|bonsoir et bonne nuit|je vais me coucher|je vais dormir|au lit|dodo|fin de journee|bonne soiree)$/.test(t)) return R('routine', { id: 'nuit' });
@@ -1324,6 +1328,11 @@
     if ((m = /^(?:appelle|appeler|appelez|telephone a|telephone au|telephoner a|passe un coup de fil a|passe moi|compose le|compose|a pelle|appelle le|appelle la) (.+)$/.exec(t)) && !/^(moi|nous)\b/.test(m[1])) {
       var whoO = orig(P, m.index + m[0].length - m[1].length);
       return R('call', { to: whoO.replace(/^(le|la|l'|au)\s+/i, ''), number: digits(whoO) });
+    }
+    // --- caméra motorisée (ONVIF PTZ) : « tourne la caméra du jardin à gauche », « zoome la caméra de l'entrée » ---
+    if ((m = /^(?:tourne|tournez|oriente|orientez|bouge|bougez|deplace|deplacez|pivote|dirige|monte|baisse|descends|leve|zoome|zoom|dezoome|dezoom)\s+(?:la |ma )?cameras?(?:\s+(?:de la |du |de l |des |d |de )?(.+?))?(?:\s+(?:vers |a |en |sur |sur la |sur le )?(?:la |le |l )?(gauche|droite|haut|bas|avant|arriere))?$/.exec(t))) {
+      var verb = /^(\w+)/.exec(t)[1], dir = m[2] || (/^(monte|leve)/.test(verb) ? 'haut' : /^(baisse|descends)/.test(verb) ? 'bas' : /^zoom/.test(verb) ? 'avant' : /^dezoom/.test(verb) ? 'arriere' : '');
+      if (dir) return R('cameras', { name: (m[1] || '').trim(), move: { gauche: 'left', droite: 'right', haut: 'up', bas: 'down', avant: 'in', arriere: 'out' }[dir] });
     }
     // --- caméras de la maison (appli Caméras) : « montre les caméras », « affiche la caméra de la cuisine » ---
     var cmr = /\bcameras?\b(?! (?:photo|frontale|arriere))/.exec(t);
@@ -1539,6 +1548,11 @@
     var only = /^(?:l appli |l application |le |la |les |l )?(.+)$/.exec(t), ap2 = only && only[1].split(' ').length <= 3 ? findApp(only[1]) : null;
     if (ap2 && ap2.id !== 'photo' && ap2.id !== 'calcul') return R('open_app', ap2);
     if (apps && only && only[1].split(' ').length <= 3) { var pk2 = pickApp(only[1], apps); if (pk2.app && pk2.app.score >= 0.95) return R('open_app', pk2.app); }
+    // --- encyclopédie (Wikipédia en français, mj-plus.js) : « c'est quoi un ornithorynque », « qui est Victor Hugo » ---
+    if ((m = /^(?:c est quoi|c etait quoi|qu est ce que c est que|qu est ce que c est|qu est ce que|qu est ce qu|c est qui|qui est|qui etait|qui sont|qui etaient|parle moi de|parle moi d|parle moi du|parle moi des|dis moi qui est|dis moi qui etait|dis moi ce qu est|dis moi ce que c est que|definition de|definition du|definition d|definis|que signifie|que veut dire|cherche sur wikipedia|recherche sur wikipedia|regarde sur wikipedia|wikipedia) (.+)$/.exec(t)) && !/^(ca|cela|ceci|tu|toi|vous|moi|la|le)$/.test(m[1])) {
+      var wq = orig(P, m.index + m[0].length - m[1].length);
+      if (wq.length >= 2) return R('wiki', { q: wq.replace(/\s*\?+$/, '') });
+    }
     // --- heure simple après coup (« il est quelle heure à … ») ---
     if (/\bheure\b/.test(t) && /\b(quel|quelle)\b/.test(t)) return R('time');
     var sg = null;

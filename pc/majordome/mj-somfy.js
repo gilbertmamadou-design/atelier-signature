@@ -444,6 +444,23 @@
   var sb = document.getElementById('bStores');
   if (sb) { sb.hidden = !OK; sb.onclick = storesSheet; }
   MJ.shutterRun = function (p, quiet) { return run(p, quiet); };
+  /* Pour les automatismes (mj-plus.js) : actions TaHoma préparées à l'avance (modèle en mémoire, aucune requête) */
+  MJ.somfyDevs = function () { return model ? model.devs.map(function (d) { return { url: d.url, name: d.name, kind: kindOf(d) }; }) : []; };
+  MJ.shutterActsFor = function (p) {
+    if (!MJ.somfyReady() || !model || !p || !/^(open|close|my|pos|stop)$/.test(p.act)) return null;
+    var out = []; pick(p).forEach(function (d) { var c = commandFor(d, p); if (c) out.push({ deviceURL: d.url, commands: [{ name: c.name, parameters: c.parameters || [] }] }); });
+    return out;
+  };
+  MJ.somfyActsFor = function (urls, act, pos) { if (!model) return []; return actionsOf({ act: act, pos: pos == null ? 50 : pos, urls: urls || [] }); };
+  /** Volets restés ouverts : noms, [] si tout est fermé, null si inconnu (moteurs sans retour) */
+  MJ.shuttersOpen = function () {
+    if (!MJ.somfyReady()) return Promise.resolve(null);
+    return fetchModel(true).then(function () {
+      var known = model.devs.filter(function (d) { return closedOf(d) != null && kindOf(d) !== 'banne'; });
+      if (!known.length) return null;
+      return known.filter(function (d) { return !closedOf(d); }).map(function (d) { return d.name; });
+    }).catch(function () { return null; });
+  };
   /** Habitude repérée (mj-appris.js) : même commande, même heure, plusieurs jours → programme qui se répète. → { at, where } ou null */
   MJ.shutterHabit = function (p, time, days) {
     if (!MJ.somfyReady()) return Promise.resolve(null);
