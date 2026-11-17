@@ -1059,6 +1059,25 @@ public class MajordomeBridge {
             } catch (Throwable t) { toast("Réglage indisponible"); }
         } });
     }
+    /** E-mail : adresse du contact (Contacts d'Android), puis l'appli de messagerie s'ouvre avec le message prêt (l'utilisateur envoie) */
+    @JavascriptInterface public String mailCompose(String who, String subject, String body) {
+        String addr = "";
+        try {
+            if (who != null && who.contains("@")) addr = who.trim();
+            else if (who != null && !who.trim().isEmpty()) {
+                try (android.database.Cursor c = a.getContentResolver().query(android.provider.ContactsContract.CommonDataKinds.Email.CONTENT_URI,
+                        new String[]{ android.provider.ContactsContract.CommonDataKinds.Email.ADDRESS, android.provider.ContactsContract.Contacts.DISPLAY_NAME },
+                        android.provider.ContactsContract.Contacts.DISPLAY_NAME + " LIKE ?", new String[]{ "%" + who.trim() + "%" }, null)) {
+                    if (c != null && c.moveToFirst()) addr = c.getString(0);
+                }
+            }
+        } catch (Throwable t) { }
+        try {
+            Uri u = Uri.parse("mailto:" + Uri.encode(addr == null ? "" : addr) + "?subject=" + Uri.encode(subject == null ? "" : subject) + "&body=" + Uri.encode(body == null ? "" : body));
+            a.startActivity(new Intent(Intent.ACTION_SENDTO, u).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            return addr == null || addr.isEmpty() ? "noaddr" : "ok";
+        } catch (Throwable t) { return "err"; }
+    }
     /** Mélodie : commande à son lecteur s'il tourne (resume, pause, toggle, next, prev) ; false s'il n'est plus lancé */
     @JavascriptInterface public boolean melodie(String cmd) {
         try { return LauncherService.widgetCall(a.getApplicationContext(), "fr.magformation13.musique", "music_cmd", cmd); } catch (Throwable t) { return false; }

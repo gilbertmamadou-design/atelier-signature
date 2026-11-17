@@ -1106,16 +1106,36 @@
       });
     });
   };
+  /** « envoie un message à Sophie je suis en retard » (sans « : » ni « que ») : le nom du contact est le début, le reste est le message */
+  function splitWho(p) {
+    if (p.text || p.number || !P || !P.homeContacts) return;
+    var w = String(p.to || '').split(/\s+/);
+    for (var k = Math.min(4, w.length - 1); k >= 1; k--) {
+      var l = J(P.homeContacts(w.slice(0, k).join(' ')), null);
+      if (l && l.length) { p.to = w.slice(0, k).join(' '); p.text = w.slice(k).join(' '); return; }
+    }
+  }
+  function waNum(n) { n = String(n || '').replace(/[^\d+]/g, ''); if (/^\+/.test(n)) return n.slice(1); if (/^00/.test(n)) return n.slice(2); if (/^0\d{9}$/.test(n)) return '33' + n.slice(1); return n; }
   H.sms = function (p) {
     if (!ANDROID || !B.sms) return phoneOnly();
+    splitWho(p);
+    // e-mail : l'appli de messagerie s'ouvre avec le message prêt (adresse prise dans les contacts)
+    if (p.via === 'mail') {
+      return (p.text ? Promise.resolve(p.text) : ask('Que voulez-vous écrire à ' + p.to + ' ?', 'text')).then(function (x) {
+        if (!x) return answer('Message annulé.');
+        var r = B.mailCompose ? B.mailCompose(p.to, '', x) : 'err';
+        return answer(r === 'ok' ? 'Votre messagerie s\'ouvre avec le mail pour ' + p.to + ' : touchez Envoyer.' : r === 'noaddr' ? 'Je n\'ai pas trouvé l\'adresse mail de ' + p.to + ' dans vos contacts : complétez le destinataire dans la messagerie qui s\'ouvre.' : 'Je n\'ai pas pu ouvrir la messagerie.').done;
+      });
+    }
     var c0, text = p.text;
     var who = p.number ? Promise.resolve({ name: p.number, num: p.number }) : findContact(p.to);
     return who.then(function (c) {
       if (!c) return; c0 = c;
       return (text ? Promise.resolve(text) : ask('Que voulez-vous écrire à ' + c.name + ' ?', 'text')).then(function (x) {
         text = x; if (!text) return answer('Message annulé.');
-        return ask('J\'envoie à ' + c0.name + ' : « ' + text + ' ». Je confirme ?', 'yesno', { yes: 'Envoyer', k: 'SMS' }).then(function (ok) {
+        return ask('J\'envoie à ' + c0.name + (p.via === 'whatsapp' ? ' sur WhatsApp' : '') + ' : « ' + text + ' ». Je confirme ?', 'yesno', { yes: 'Envoyer', k: p.via === 'whatsapp' ? 'WhatsApp' : 'SMS' }).then(function (ok) {
           if (!ok) return answer('Message annulé.');
+          if (p.via === 'whatsapp') { B.openUrl('https://wa.me/' + waNum(c0.num) + '?text=' + encodeURIComponent(text)); return answer('WhatsApp s\'ouvre avec le message pour ' + c0.name + ' : touchez Envoyer.'); }
           B.sms(c0.num, text); return answer('Envoi en cours…');
         });
       });

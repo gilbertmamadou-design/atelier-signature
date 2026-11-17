@@ -1285,7 +1285,7 @@
       return R('msg_reply', { who: who.replace(/^(?:a|à|au)\s+/i, ''), text: body });
     }
     // --- appels et SMS ---
-    if ((m = /^(?:envoie|envoyer|envoi|ecris|ecrit|ecrire|redige|tape|manda) (?:un |une )?(?:sms|message|msg|petit message) (?:a|au|aux|pour) (.+)$/.exec(t)) || (m = /^(?:sms|message) (?:a|au|pour) (.+)$/.exec(t)) || (m = /^(?:ecris|ecrit|dis|dit|previens) (?:a|au) (.+?) (?:que|qu) (.+)$/.exec(t))) {
+    if ((m = /^(?:envoie|envoyer|envoi|ecris|ecrit|ecrire|redige|rediger|tape|manda) (?:un |une )?(?:sms|message|msg|petit message|whatsapp|whats app|watsap|message whatsapp|mail|e mail|email|courriel|mel) (?:sur whatsapp )?(?:a|au|aux|pour) (.+)$/.exec(t)) || (m = /^(?:sms|message|whatsapp|mail|e mail|email|courriel) (?:a|au|pour) (.+)$/.exec(t)) || (m = /^(?:ecris|ecrit|dis|dit|previens) (?:a|au) (.+?) (?:que|qu) (.+)$/.exec(t))) {
       var rest2 = m[1], toN = rest2, bodyN = '', sep;
       if (m[2]) { toN = m[1]; bodyN = m[2]; }
       else if ((sep = /^(.+?) (?::|disant|pour dire|pour lui dire|en disant|qui dit|dis lui|dites lui|que|qu|avec le texte|texte) (.+)$/.exec(rest2))) { toN = sep[1]; bodyN = sep[2]; }
@@ -1295,7 +1295,9 @@
       // dans l'original, le texte après « : » est gardé tel quel
       var colon = P.raw.indexOf(':');
       if (colon > 0 && !m[2]) { var aft = P.raw.slice(colon + 1).trim(); if (aft) { bodyO = aft; var bt = prep(aft, {}).t; if (t.lastIndexOf(bt) > 0) toO = orig(P, base2, t.lastIndexOf(bt)).replace(/\s*:\s*$/, ''); } }
-      return R('sms', { to: toO.replace(/^(a|à|au)\s+/i, ''), number: digits(toO), text: bodyO });
+      var via = /\b(whatsapp|whats app|watsap)\b/.test(t) ? 'whatsapp' : /^(?:envoie|envoyer|envoi|ecris|ecrit|ecrire|redige|rediger|tape) (?:un |une )?(?:mail|e mail|email|courriel|mel)\b|^(?:mail|e mail|email|courriel) /.test(t) ? 'mail' : '';
+      toO = toO.replace(/\s*:.*$/, '').replace(/\s+(?:sur|par) (?:whatsapp|whats app|watsap|mail|e-?mail|sms)$/i, '');
+      return R('sms', { to: toO.replace(/^(a|à|au)\s+/i, ''), number: digits(toO), text: bodyO, via: via });
     }
     if ((m = /^(?:appelle|appeler|appelez|telephone a|telephone au|telephoner a|passe un coup de fil a|passe moi|compose le|compose|a pelle|appelle le|appelle la) (.+)$/.exec(t)) && !/^(moi|nous)\b/.test(m[1])) {
       var whoO = orig(P, m.index + m[0].length - m[1].length);
