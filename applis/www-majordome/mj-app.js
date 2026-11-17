@@ -320,6 +320,9 @@
     var p;
     try { p = Promise.resolve(exec(r)); } catch (e) { p = Promise.reject(e); }
     return p.catch(function (e) { console.warn(e); errorReply('Une erreur est survenue : ' + (e && e.message || e) + '.'); }).then(function () {
+      // apprentissage (mj-appris.js) : habitudes repérées après la commande
+      if (MJ.afterCmd) try { return Promise.resolve(MJ.afterCmd(text, r)).catch(function (e) { console.warn(e); }); } catch (e) { console.warn(e); }
+    }).then(function () {
       if (orb.get() === 'think') orb.state('idle');
       if (!MJ.listening) status('Prêt');
       logHist(MJ.cur);
@@ -1749,7 +1752,7 @@
   }, 400);
   publish();
   MJ.S = S; MJ.VX = VX; MJ.AL = function () { return AL; };
-  MJ._ = { H: H, answer: answer, ask: ask, errorReply: errorReply, openSheet: openSheet, closeSheet: closeSheet, curSheet: function () { return curSheet; }, esc: esc, J: J, lsGet: lsGet, lsSet: lsSet, uid: uid, now: now, cap: cap, deacc: deacc,
+  MJ._ = { H: H, ctx: ctx, exec: exec, answer: answer, ask: ask, errorReply: errorReply, openSheet: openSheet, closeSheet: closeSheet, curSheet: function () { return curSheet; }, esc: esc, J: J, lsGet: lsGet, lsSet: lsSet, uid: uid, now: now, cap: cap, deacc: deacc,
     S: S, saveS: saveS, toast: toast, card: card, withSir: withSir, sir: sir, ack: ack, dur: dur, hm: hm, hmSay: hmSay, addAlarm: addAlarm, removeAlarm: removeAlarm, setAL: function (l) { AL = l; saveAL(); renderTimers(); },
     HELP: HELP, openLink: openLink, settingsSheet: settingsSheet, handle: handle, ANDROID: ANDROID, PC: PC, B: B, P: P, KEY: KEY, WMO: WMO, weatherData: weatherData, vigilanceData: vigilanceData, speaking: speaking };
   if (MJ.onReady) try { MJ.onReady(); } catch (e) { console.warn(e); } MJ.LS = function () { return LS; }; MJ.orb = orb; MJ.moment = function () { try { moment(); } catch (e) { } }; MJ.momentCells = function () { try { return momentCells(); } catch (e) { return []; } }; MJ.ask = ask; MJ.speakText = speechText; MJ.refresh = refreshInfo;

@@ -1137,6 +1137,27 @@
         if (rp && (t === rp || t === 'routine ' + rp || t === 'lance la routine ' + rp || t === 'lance ' + rp || t === 'mode ' + rp || t === 'active la routine ' + rp)) return R('routine', { id: routines[ri].id });
       }
     }
+    // --- apprentissage (mj-appris.js) : « quand je dis soirée film, ferme les volets puis allume le salon à 20 % » ---
+    if ((m = /^(?:(?:apprends|apprend|retiens|retient|souviens toi|memorise|enregistre|note|note bien)(?: bien)?(?: que| qu)? )?(?:quand|lorsque|si) je (?:te )?(?:dis|dirai|dis juste) (.+?) (?:tu (?:fais|fait|dois faire|feras|dois|devras|comprends)|fais|fait|il faut|ca veut dire|ca signifie|cela veut dire|cela signifie|ca correspond a|c est|alors|je veux dire|tu)\b(?: que| qu)? (.+)$/.exec(t))) {
+      var tp = /^.*?(?:quand|lorsque|si) je (?:te )?(?:dis|dirai|dis juste) /.exec(t), s1 = tp ? tp[0].length : 0;
+      return R('teach', { say: orig(P, s1, s1 + m[1].length), todo: orig(P, t.length - m[2].length) });
+    }
+    // sans mot de liaison : « quand je dis soirée film, ferme les volets » (virgule) ou la première coupure dont la suite est une commande connue
+    if ((m = /^(?:(?:apprends|apprend|retiens|retient|souviens toi|memorise|enregistre|note|note bien)(?: bien)?(?: que| qu)? )?(?:quand|lorsque|si) je (?:te )?(?:dis|dirai|dis juste) (.+)$/.exec(t)) && !ctx._teach) {
+      var s2 = t.length - m[1].length, ws = m[1].split(' '), comma = /^(.*?(?:quand|lorsque|si) je (?:te )?(?:dis|dirai|dis juste)\s+)(.+?)\s*,\s*(.+)$/i.exec(P.raw);
+      if (comma) return R('teach', { say: comma[2].replace(/[«»"]/g, '').trim(), todo: comma[3].trim() });
+      for (var wi = 1; wi < ws.length; wi++) {
+        var head = ws.slice(0, wi).join(' '), rest = ws.slice(wi).join(' '), rr = parse(rest, Object.assign({}, ctx, { _teach: true, _noFix: true, routines: [] }));
+        if (rr.intent !== 'unknown' && rr.intent !== 'empty' && rr.intent !== 'wake') return R('teach', { say: orig(P, s2, s2 + head.length), todo: orig(P, s2 + head.length + 1) });
+      }
+      return R('teach', { say: orig(P, s2) });
+    }
+    if (/^(?:je vais t apprendre|je veux t apprendre|apprends|apprend|apprendre|retiens|enregistre)(?: une| un)?(?: nouvelle| nouveau)? (?:phrase|commande|chose|quelque chose|truc|mot|expression)(?: nouvelle| nouveau)?$/.test(t) || /^(?:mode )?apprentissage$/.test(t)) return R('teach', {});
+    if (/^(?:qu est ce que|quest ce que|qu|que) (?:tu as|t as|as tu) appris$/.test(t) || /^(?:quelles|les) (?:phrases|commandes) (?:apprises|que tu as apprises|que je t ai apprises)$/.test(t) || /^(?:liste|montre|dis)(?: moi)? (?:les |tes |mes )?(?:phrases|commandes) apprises$/.test(t)) return R('teach_list');
+    if (/^(?:oublie|efface|supprime) tout ce que (?:je t ai appris|tu as appris|t as appris)$/.test(t)) return R('teach_forget', { all: true });
+    if ((m = /^(?:oublie|efface|supprime) (?:la phrase|l expression|la commande apprise|la commande|ce que je t ai appris (?:pour|sur|avec)|ce que je t ai dit pour|ce que veut dire) (.+)$/.exec(t))) return R('teach_forget', { say: orig(P, m.index + m[0].length - m[1].length) });
+    // --- révisions, quiz (mj-appris.js) ---
+    if ((m = /^(?:fais moi reviser|fait moi reviser|faites moi reviser|on revise|reviser|revision|revisions|interroge moi|interrogez moi|pose moi des questions|pose moi une question|pose moi un quiz|fais moi un quiz|fait moi un quiz|un quiz|quiz|lance un quiz|teste moi|testez moi|teste mes connaissances|on fait un quiz|jouons|on joue)(?: un peu)?(?: (?:sur |en |avec |a )?(?:les |la |le |l |mes |des |ma )?(.+))?$/.exec(t))) return R('quiz', { theme: m[1] || '' });
     if ((m = /^(?:lance|demarre|execute|fais|joue) (?:la )?routine (.+)$/.exec(t)) || (m = /^routine (.+)$/.exec(t))) return R('routine', { name: orig(P, m.index + m[0].length - m[1].length) });
     if (/^(bonjour|bonjour a toi|bon matin|salut bonjour|bonjour bonjour|debut de journee|on commence|briefing|le point du matin|ma journee|resume de la journee)$/.test(t)) return R('routine', { id: 'matin' });
     if (/^(bonne nuit|bonsoir et bonne nuit|je vais me coucher|je vais dormir|au lit|dodo|fin de journee|bonne soiree)$/.test(t)) return R('routine', { id: 'nuit' });
