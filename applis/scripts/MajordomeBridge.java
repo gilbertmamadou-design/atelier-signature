@@ -1059,12 +1059,17 @@ public class MajordomeBridge {
             } catch (Throwable t) { toast("Réglage indisponible"); }
         } });
     }
+    /** Mélodie : commande à son lecteur s'il tourne (resume, pause, toggle, next, prev) ; false s'il n'est plus lancé */
+    @JavascriptInterface public boolean melodie(String cmd) {
+        try { return LauncherService.widgetCall(a.getApplicationContext(), "fr.magformation13.musique", "music_cmd", cmd); } catch (Throwable t) { return false; }
+    }
     /** Lecteurs du téléphone (MediaSession), visibles si l'accès aux notifications est donné à Majordome (MajordomeNotifs) */
     private List<android.media.session.MediaController> sessions() {
         try {
             android.media.session.MediaSessionManager m = a.getSystemService(android.media.session.MediaSessionManager.class);
-            List<android.media.session.MediaController> l = m.getActiveSessions(new ComponentName(a, MajordomeNotifs.class));
-            return l == null ? new ArrayList<android.media.session.MediaController>() : l;
+            List<android.media.session.MediaController> l = m.getActiveSessions(new ComponentName(a, MajordomeNotifs.class)), out = new ArrayList<>();
+            if (l != null) for (android.media.session.MediaController x : l) if (!a.getPackageName().equals(x.getPackageName())) out.add(x);   // pas la voix de Majordome
+            return out;
         } catch (Throwable t) { return new ArrayList<android.media.session.MediaController>(); }
     }
     /** Le son sort-il en ce moment (musique, vidéo) ? */

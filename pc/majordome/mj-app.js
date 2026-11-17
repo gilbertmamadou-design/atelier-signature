@@ -961,6 +961,16 @@
       if (P.homeInstalled && P.homeInstalled(MEL) !== '1') { if (B && B.media) { B.media('play'); return answer(lab).done; } return answer('Mélodie n\'est pas installée.').done; }
       P.homeLaunchWith(MEL, JSON.stringify({ play: 1, back: 1 })); return answer(ack('Je lance Mélodie.')).done;
     }
+    // Mélodie d'abord : commande directe à son lecteur s'il tourne ; s'il a été arrêté, « reprends » la rouvre là où elle en était
+    if (B && B.melodie && p.cmd !== 'start') {
+      var mc = { play: 'resume', pause: 'pause', next: 'next', prev: 'prev' }[p.cmd];
+      var lp0 = J(B.lastPlayer ? B.lastPlayer() : '{}', {}) || {};
+      var autre = lp0.pkg && lp0.pkg !== MEL;   // le dernier lecteur est une autre appli (Spotify…) : on la laisse faire
+      if (mc && !autre && B.melodie(mc)) return answer(lab).done;
+      if (p.cmd === 'play' && !autre && P && P.homeLaunchWith && (!P.homeInstalled || P.homeInstalled(MEL) === '1')) {
+        P.homeLaunchWith(MEL, JSON.stringify({ play: 1, back: 1 })); return answer(ack('Je relance Mélodie là où elle s\'était arrêtée.')).done;
+      }
+    }
     if (B && B.media) {
       B.media(p.cmd === 'start' ? 'play' : p.cmd);
       // reprise : si rien ne sort au bout de 3,5 s, le lecteur a été fermé ; on propose de le rouvrir

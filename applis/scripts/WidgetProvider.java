@@ -85,6 +85,17 @@ public class WidgetProvider extends ContentProvider {
                 Class<?> k = Class.forName(c.getPackageName() + ".MusicService");
                 b.putBoolean("ok", k.getDeclaredField("alive").getBoolean(null));
             }
+            // Mélodie : commande au lecteur (Jarvis : « reprends la musique », pause, suivant…) ; ok = false si le lecteur n'est plus lancé
+            else if ("music_cmd".equals(method) && c.getPackageName().endsWith(".musique")) {
+                Class<?> k = Class.forName(c.getPackageName() + ".MusicService");
+                boolean alive = k.getDeclaredField("alive").getBoolean(null);
+                String act = arg == null ? "" : arg;
+                if (alive && act.matches("resume|pause|toggle|next|prev")) {
+                    java.lang.reflect.Method m = k.getDeclaredMethod("cmd", Context.class, String.class, int.class, int.class); m.setAccessible(true);
+                    m.invoke(null, c, act, 0, 0);
+                    b.putBoolean("ok", true);
+                } else b.putBoolean("ok", false);
+            }
             // Majordome : lumières Philips Hue (relire l'état, tout éteindre) sans ouvrir l'appli ; la clé du pont reste chez Majordome
             else if ("hue_refresh".equals(method) || "hue_all_off".equals(method) || "hue_room".equals(method)) {
                 Class<?> k = Class.forName(c.getPackageName() + ".MajordomeBridge");
