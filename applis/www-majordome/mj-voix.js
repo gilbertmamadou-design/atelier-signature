@@ -26,7 +26,8 @@
    celles de Majordome, lues par Liseuse à travers un fournisseur protégé par signature (opt.store = pont de Liseuse).
 
    Voix (licences vérifiées dans les MODEL_CARD de rhasspy/piper-voices ; fr_FR-tom-medium exclue : AGPL-3.0) :
-     Pierre (UPMC, homme, CC BY-SA 4.0), Jessica (UPMC, femme, CC BY-SA 4.0), Gilles (homme, CC0), Siwis (femme, CC BY 4.0).
+     Pierre (UPMC, homme, CC BY-SA 4.0), Jessica (UPMC, femme, CC BY-SA 4.0), Gilles (homme, CC0), Siwis (femme, CC BY 4.0),
+     Lecteurs (Multilingual LibriSpeech, 125 lecteurs de LibriVox, CC BY 4.0).
    Téléchargement unique depuis huggingface.co/rhasspy/piper-voices, somme SHA-256 vérifiée (API de HuggingFace : oid LFS),
    puis gardé sur l'appareil. Repli : « Choisir les fichiers téléchargés » (.onnx et .onnx.json).
    ===================================================================== */
@@ -38,15 +39,25 @@
     // une somme différente est aussi acceptée si l'API de HuggingFace l'annonce (voix mise à jour en amont)
     'fr_FR-upmc-medium': { dir: 'fr/fr_FR/upmc/medium/', size: 76733615, sha256: '9abb3800c199148897a9ed64e100d224f3de83579f100044174ad19418f1786f', sr: 22050, lic: 'CC BY-SA 4.0', src: 'UPMC (Pierre et Jessica), github.com/marytts/upmc-pierre-data' },
     'fr_FR-gilles-low': { dir: 'fr/fr_FR/gilles/low/', size: 63104526, sha256: '5cd711846720e261c2a176f6924c198a7424d0a75dd4b0a5357a5fb9cb739285', sr: 16000, lic: 'CC0', src: 'French Single Speaker Speech Dataset (Kaggle)' },
-    'fr_FR-siwis-medium': { dir: 'fr/fr_FR/siwis/medium/', size: 63201294, sha256: '641d1ab097da2b81128c076810edb052b385decc8be3381814802a64a73baf99', sr: 22050, lic: 'CC BY 4.0', src: 'SIWIS, université d\'Édimbourg' }
+    'fr_FR-siwis-medium': { dir: 'fr/fr_FR/siwis/medium/', size: 63201294, sha256: '641d1ab097da2b81128c076810edb052b385decc8be3381814802a64a73baf99', sr: 22050, lic: 'CC BY 4.0', src: 'SIWIS, université d\'Édimbourg' },
+    // 125 lecteurs bénévoles de LibriVox (Multilingual LibriSpeech, openslr.org/94, CC BY 4.0) ; somme vérifiée par l'API de HuggingFace
+    'fr_FR-mls-medium': { dir: 'fr/fr_FR/mls/medium/', size: 76700000, sha256: '', sr: 22050, lic: 'CC BY 4.0', src: 'Multilingual LibriSpeech : lecteurs de LibriVox (openslr.org/94)', speakers: 125 }
   };
   var VOICES = [
     { id: 'pierre', name: 'Pierre', desc: 'Homme, voix posée', model: 'fr_FR-upmc-medium', sid: 1 },
     { id: 'gilles', name: 'Gilles', desc: 'Homme, timbre grave (qualité « basse », 16 kHz)', model: 'fr_FR-gilles-low', sid: 0 },
     { id: 'siwis', name: 'Siwis', desc: 'Femme, voix claire', model: 'fr_FR-siwis-medium', sid: 0 },
-    { id: 'jessica', name: 'Jessica', desc: 'Femme, voix douce', model: 'fr_FR-upmc-medium', sid: 0 }
+    { id: 'jessica', name: 'Jessica', desc: 'Femme, voix douce', model: 'fr_FR-upmc-medium', sid: 0 },
+    { id: 'lecteurs', name: 'Lecteurs de livres audio', desc: '125 voix d\'hommes et de femmes qui lisent des livres (LibriVox) : à écouter, puis choisir', model: 'fr_FR-mls-medium', sid: 0, multi: 125 }
   ];
-  function voice(id) { return VOICES.filter(function (v) { return v.id === id; })[0] || VOICES[0]; }
+  // un lecteur précis : « mls:12 » (numéro 0 à 124) ; nom donné par l'utilisateur gardé sur l'appareil
+  function lectNames() { try { return JSON.parse(root.localStorage.getItem('mj-voix-lecteurs') || '{}') || {}; } catch (e) { return {}; } }
+  function lectName(n, name) { var o = lectNames(); if (name) o[n] = String(name).slice(0, 40); else delete o[n]; try { root.localStorage.setItem('mj-voix-lecteurs', JSON.stringify(o)); } catch (e) { } }
+  function voice(id) {
+    var m = /^mls:(\d{1,3})$/.exec(String(id || ''));
+    if (m && +m[1] < 125) { var n = +m[1], nm = lectNames()[n]; return { id: 'mls:' + n, name: nm || 'Lecteur n° ' + (n + 1), desc: 'Lecteur LibriVox n° ' + (n + 1), model: 'fr_FR-mls-medium', sid: n }; }
+    return VOICES.filter(function (v) { return v.id === id; })[0] || VOICES[0];
+  }
   function mo(n) { return Math.round(n / 1048576) + ' Mo'; }
 
   /* ---------------- Effets ---------------- */
@@ -502,6 +513,7 @@
       });
     };
     /** Aperçu d'une voix (réglages : effet, vitesse, hauteur) */
+    E.previewText = function (id, text, s, cb) { E.stop(); return E.speak(text, Object.assign({}, s || {}, { voice: id }), cb); };
     E.preview = function (id, s, cb) { E.stop(); return E.speak('Bonjour. Je suis ' + voice(id).name + ', votre majordome. Tous les systèmes sont opérationnels.', Object.assign({}, s || {}, { voice: id }), cb); };
     E.voice = voice; E.size = function (id) { return MODELS[voice(id).model].size; }; E.mo = mo;
     return E;
@@ -527,9 +539,10 @@
     h += '<p class="note mjv-msg" id="mjvMsg">' + (E._msg ? esc(E._msg) : piper ? (E.state === 'error' ? 'Le moteur Piper n\'a pas pu se charger : les voix du système prennent le relais.' : '') : 'Voix neuronales françaises, sans internet après un téléchargement unique (60 à 73 Mo par voix).') + '</p>';
     h += '<div id="mjvPiper"' + (piper ? '' : ' hidden') + '>';
     E.voices.forEach(function (v) {
-      var m = E.models[v.model], has = !!inst[v.model], on = S.piperVoice === v.id || (!S.piperVoice && v === E.voices[0]), dl = E.dl[v.model];
+      var m = E.models[v.model], has = !!inst[v.model], on = S.piperVoice === v.id || (!S.piperVoice && v === E.voices[0]) || (v.multi && /^mls:/.test(S.piperVoice || '')), dl = E.dl[v.model];
       var shared = E.voices.filter(function (x) { return x.model === v.model && x !== v; }).map(function (x) { return x.name; });
       h += '<div class="mjv-v' + (on ? ' mjv-on' : '') + '" data-v="' + v.id + '"><div class="mjv-n"><b>' + esc(v.name) + (on && has ? ' ✓' : '') + '</b><small>' + esc(v.desc) + ' · ' + mo(m.size) + (shared.length ? ' (fichier partagé avec ' + esc(shared.join(', ')) + ')' : '') + ' · licence ' + esc(m.lic) + '</small>' +
+        (v.multi && has ? '<div class="mjv-r" style="flex-wrap:wrap"><button type="button" class="' + btn + '" data-l="-1">◀</button><input class="in" type="number" min="1" max="' + v.multi + '" id="mjvLn" value="' + ((/^mls:(\d+)$/.exec(S.piperVoice || '') || [0, 0])[1] * 1 + 1) + '" style="width:4.5em"><button type="button" class="' + btn + '" data-l="1">▶</button><button type="button" class="' + btn + '" data-l="hear">Écouter</button><button type="button" class="' + btn + '" data-l="use">Choisir</button></div>' + (/^mls:/.test(S.piperVoice || '') ? '<small>Choisi : ' + esc(voice(S.piperVoice).name) + '</small>' : '') : '') +
         '<progress' + (dl ? '' : ' hidden') + ' max="1" value="' + (dl ? dl.f || 0 : 0) + '"></progress></div><div class="mjv-b">' +
         (has ? '<button type="button" class="' + btn + '" data-a="use">' + (on ? 'Choisie' : 'Choisir') + '</button><button type="button" class="' + btn + '" data-a="hear">Aperçu</button>' + (inst[v.model].local ? '<small title="Fichier rangé dans le dossier de la page : gardé même si le stockage du navigateur est effacé">dans le paquet</small>' : '<button type="button" class="' + btn + '" data-a="del">Supprimer</button>')
           : '<button type="button" class="' + btn + '" data-a="get"' + (dl ? ' disabled>Téléchargement…' : '>Télécharger') + '</button>') + '</div></div>';
@@ -572,6 +585,15 @@
           }
         };
       });
+      box.querySelectorAll('[data-l]').forEach(function (b) {
+        b.onclick = function () {
+          var inp = $('mjvLn'), n = Math.max(1, Math.min(125, +inp.value || 1)), a = b.getAttribute('data-l');
+          if (a === '1' || a === '-1') { n = (n - 1 + +a + 125) % 125 + 1; inp.value = n; a = 'hear'; }
+          var id = 'mls:' + (n - 1);
+          if (a === 'hear') { msg('Lecteur n° ' + n + '…'); if (o.preview) o.preview(id); }
+          else if (a === 'use') { S.piperVoice = id; o.save(); msg('Voix choisie : lecteur n° ' + n + '.'); E.warm(id).catch(function () { }); if (o.refresh) o.refresh(); }
+        };
+      });
       var fl = $('mjvFiles');
       if (fl) fl.onchange = function () { msg('Vérification des fichiers…'); E.pickFiles(this.files).then(function (r) { msg('Voix installée' + (r.verified ? ' (somme SHA-256 vérifiée)' : '') + '.'); S.tts = 'piper'; o.save(); if (o.refresh) o.refresh(); }, function (e) { msg('Fichiers refusés : ' + (e && e.message || e) + '.'); }); };
       var pk = $('mjvPick'); if (pk) pk.onclick = function () { E.pickAndroid(); msg('Choisissez le fichier .onnx et le fichier .onnx.json de la voix.'); };
@@ -586,5 +608,5 @@
     return { html: h, bind: bind };
   }
 
-  root.MJVoix = { create: create, render: render, envelope: envelope, stats: stats, split: split, fxParams: fxParams, FX: FX, VOICES: VOICES, MODELS: MODELS, panel: panel, HF: HF, HFAPI: HFAPI };
+  root.MJVoix = { lectName: lectName, lectNames: lectNames, voice: voice, create: create, render: render, envelope: envelope, stats: stats, split: split, fxParams: fxParams, FX: FX, VOICES: VOICES, MODELS: MODELS, panel: panel, HF: HF, HFAPI: HFAPI };
 })(typeof self !== 'undefined' ? self : this);
