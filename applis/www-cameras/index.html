@@ -23,7 +23,7 @@ main{padding:4px 16px calc(100px + var(--safe-b));max-width:760px;margin:0 auto}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .note{color:var(--tx3);font-size:13.5px;margin:8px 0 0}
 .cam{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}.cam:first-child{border-top:0}
-.cam .t{flex:1;min-width:0}.cam b{display:block}.cam small{color:var(--tx3)}
+.cam{flex-wrap:wrap;row-gap:6px}.cam .st{display:inline-block;white-space:normal}.cam .t{flex:1;min-width:0}.cam b{display:block}.cam small{color:var(--tx3)}
 .st{font-size:12.5px;font-weight:700;padding:2px 9px;border-radius:10px;background:var(--bg3);color:var(--tx2);white-space:nowrap}.st.ok{background:#67d49c22;color:var(--ok)}.st.ko{background:#ff7a7a22;color:var(--bad)}
 .lbl{display:block;font-size:13px;color:var(--tx2);margin:10px 0 5px}
 .in{width:100%;background:var(--bg3);border:1px solid var(--line2);border-radius:12px;padding:11px 12px;outline:none}.in:focus{border-color:var(--acc)}
@@ -70,8 +70,10 @@ ol{margin:6px 0 0;padding-left:20px}ol li{margin:4px 0}
     var extra = found.filter(function (f) { return !known[f.ip]; });
     $('list').innerHTML = (L.length ? L.map(function (c, i) {
       var st = probing[c.id] ? '<span class="st">Test…</span>' : c.ok ? '<span class="st ok">OK</span>' : c.err ? '<span class="st ko">' + esc(ERR[c.err] || 'Erreur') + '</span>' : '<span class="st">À tester</span>';
-      return '<div class="cam"><div class="t" data-ed="' + i + '"><b>' + esc(c.name) + '</b><small>' + esc(c.ip) + (c.ok ? ' · ' + (c.sub ? 'flux réduit pour la mosaïque' : 'flux principal') : '') + '</small>' + (c.err && c.diag ? '<small style="display:block;font-size:11.5px;word-break:break-all">Détails : ' + esc(c.diag) + '</small>' : '') + '</div>' + st +
-        (c.ok ? '<button class="btn sm" data-one="' + i + '">Voir</button>' : '<button class="btn sm" data-test="' + i + '">Tester</button>') + '</div>';
+      return '<div class="cam"><div class="t" data-ed="' + i + '"><b>' + esc(c.name) + '</b><small>' + esc(c.ip) + (c.ok ? ' · ' + (c.sub ? 'flux réduit pour la mosaïque' : 'flux principal') : '') + '</small><div style="margin-top:5px">' + st + '</div></div>' +
+        (c.ok ? '<button class="btn sm" data-one="' + i + '">Voir</button>' : '<button class="btn sm" data-test="' + i + '">Tester</button>') +
+        '<button class="btn sm bad" data-del="' + i + '" aria-label="Effacer ' + esc(c.name) + '" title="Effacer" style="padding:0 10px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>' +
+        (c.err && c.diag ? '<small style="flex-basis:100%;color:var(--tx3);font-size:12px;word-break:break-word">Détails : ' + esc(c.diag) + '</small>' : '') + '</div>';
     }).join('') : '<p class="note" style="margin:0">Aucune caméra : touche « Rechercher » ou « Ajouter une caméra ».</p>') +
       (extra.length ? '<p class="note">Trouvées sur le Wi-Fi :</p>' + extra.map(function (f, k) { return '<div class="cam"><div class="t"><b>' + esc(f.name || f.model || 'Caméra ONVIF') + '</b><small>' + esc(f.ip) + (f.model ? ' · ' + esc(f.model) : '') + '</small></div><button class="btn sm pri" data-addf="' + k + '">Ajouter</button></div>'; }).join('') : '');
     $('bAll').disabled = !L.some(function (c) { return c.ok; });
@@ -133,6 +135,7 @@ ol{margin:6px 0 0;padding-left:20px}ol li{margin:4px 0}
   };
   $('list').onclick = function (e) {
     var b;
+    if ((b = e.target.closest('[data-del]'))) { var k = +b.dataset.del; if (L[k] && confirm('Effacer « ' + L[k].name + ' » ?')) { L.splice(k, 1); save(); render(); toast('Caméra effacée'); } return; }
     if ((b = e.target.closest('[data-test]'))) { test(+b.dataset.test); return; }
     if ((b = e.target.closest('[data-one]'))) { show(+b.dataset.one); return; }
     if ((b = e.target.closest('[data-addf]'))) { var known = {}; L.forEach(function (c) { known[c.ip] = 1; }); editor(-1, found.filter(function (f) { return !known[f.ip]; })[+b.dataset.addf]); return; }
