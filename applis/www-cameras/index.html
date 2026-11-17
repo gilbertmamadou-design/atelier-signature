@@ -70,7 +70,7 @@ ol{margin:6px 0 0;padding-left:20px}ol li{margin:4px 0}
     var extra = found.filter(function (f) { return !known[f.ip]; });
     $('list').innerHTML = (L.length ? L.map(function (c, i) {
       var st = probing[c.id] ? '<span class="st">Test…</span>' : c.ok ? '<span class="st ok">OK</span>' : c.err ? '<span class="st ko">' + esc(ERR[c.err] || 'Erreur') + '</span>' : '<span class="st">À tester</span>';
-      return '<div class="cam"><div class="t" data-ed="' + i + '"><b>' + esc(c.name) + '</b><small>' + esc(c.ip) + (c.ok ? ' · ' + (c.sub ? 'flux réduit pour la mosaïque' : 'flux principal') : '') + '</small></div>' + st +
+      return '<div class="cam"><div class="t" data-ed="' + i + '"><b>' + esc(c.name) + '</b><small>' + esc(c.ip) + (c.ok ? ' · ' + (c.sub ? 'flux réduit pour la mosaïque' : 'flux principal') : '') + '</small>' + (c.err && c.diag ? '<small style="display:block;font-size:11.5px;word-break:break-all">Détails : ' + esc(c.diag) + '</small>' : '') + '</div>' + st +
         (c.ok ? '<button class="btn sm" data-one="' + i + '">Voir</button>' : '<button class="btn sm" data-test="' + i + '">Tester</button>') + '</div>';
     }).join('') : '<p class="note" style="margin:0">Aucune caméra : touche « Rechercher » ou « Ajouter une caméra ».</p>') +
       (extra.length ? '<p class="note">Trouvées sur le Wi-Fi :</p>' + extra.map(function (f, k) { return '<div class="cam"><div class="t"><b>' + esc(f.name || f.model || 'Caméra ONVIF') + '</b><small>' + esc(f.ip) + (f.model ? ' · ' + esc(f.model) : '') + '</small></div><button class="btn sm pri" data-addf="' + k + '">Ajouter</button></div>'; }).join('') : '');
@@ -91,7 +91,7 @@ ol{margin:6px 0 0;padding-left:20px}ol li{margin:4px 0}
     $('eSave').onclick = function () {
       var ip = $('eIp').value.trim();
       if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) { toast('Adresse IP ? ex. 192.168.1.40'); return; }
-      var n = { id: c.id, name: $('eName').value.trim() || 'Caméra', ip: ip, user: $('eUser').value.trim(), pwd: $('ePwd').value };
+      var n = { id: c.id, name: $('eName').value.trim() || 'Caméra', ip: ip, user: $('eUser').value.trim(), pwd: $('ePwd').value, xaddr: ip === c.ip ? (c.xaddr || (pre && pre.xaddr) || '') : '' };
       if (i >= 0) L[i] = n; else L.push(n);
       save(); $('sheet').hidden = true; render(); test(L.indexOf(n));
     };
@@ -99,8 +99,9 @@ ol{margin:6px 0 0;padding-left:20px}ol li{margin:4px 0}
   function test(i) {
     var c = L[i]; if (!c) return;
     if (!B) { toast('Le test fonctionne dans l\'appli Android'); return; }
+    if (!c.xaddr) { var f = found.filter(function (x) { return x.ip === c.ip && x.xaddr; })[0]; if (f) c.xaddr = f.xaddr; }
     probing[c.id] = 1; delete c.ok; delete c.err; render();
-    B.probe(c.id, c.ip, c.user || '', c.pwd || '');
+    B.probe(c.id, c.ip, c.user || '', c.pwd || '', c.xaddr || '');
   }
   window.camerasEvent = function (s) {
     var d = {}; try { d = JSON.parse(s); } catch (e) { }
@@ -111,6 +112,7 @@ ol{margin:6px 0 0;padding-left:20px}ol li{margin:4px 0}
     } else if (d.op === 'probe') {
       delete probing[d.id];
       var c = L.filter(function (x) { return x.id === d.id; })[0]; if (!c) return;
+      c.diag = d.diag || '';
       if (d.ok) { c.ok = 1; c.port = d.port; c.main = d.main; c.sub = d.sub || ''; delete c.err; toast('« ' + c.name + ' » : vidéo trouvée'); }
       else { c.err = d.err; delete c.ok; toast('« ' + c.name + ' » : ' + (ERR[d.err] || 'erreur')); }
       save(); render();
