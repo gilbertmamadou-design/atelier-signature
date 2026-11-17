@@ -918,7 +918,10 @@ function trackMenu(t, ctx, k) {
     rmRecent: () => { ST.recent = ST.recent.filter(x => x !== id); save(); autoDetail("recent"); },
     share: () => shareTrack(t),
     del: () => { if (confirm("Retirer « " + t.t + " » de Mélodie ?")) removeWebTrack(id); },
-    info: () => infoSheet(t)
+    info: () => infoSheet(t),
+    nshare: () => MB.share(JSON.stringify([id])),
+    ring: () => ringMenu(t),
+    ndel: () => delTracks([t])
   };
   sheet(`<div class="hd">${covHTML(t, "", 48)}<div style="min-width:0"><div class="t">${esc(t.t)}</div><div class="s">${esc(t.a)} · ${esc(t.al)}</div></div></div><div class="body">
     ${ctx.queueView ? mi("rmQ", "x", "Retirer de la file d'attente") : mi("next", "next2", "Lire ensuite") + mi("queue", "queue", "Ajouter à la file d'attente")}
@@ -930,8 +933,82 @@ function trackMenu(t, ctx, k) {
     ${Ar ? mi("artist", "user", "Voir l'artiste", esc(splitArtists(t.a)[0])) : ""}
     ${mi("info", "help", "Informations")}
     ${!NATIVE ? mi("share", "share", "Envoyer le fichier") + mi("del", "trash", "Retirer de Mélodie", "", "danger") : ""}
+    ${NATIVE && MB ? mi("ring", "note", "Utiliser comme sonnerie…") + mi("nshare", "share", "Envoyer") + mi("ndel", "trash", "Supprimer du téléphone", "", "danger") : ""}
   </div>`);
 }
+/* ============ Téléphone : supprimer, envoyer, sonneries (MelodieBridge.java, window.MAGMelodie) ============ */
+let MB = window.MAGMelodie || null; setTimeout(() => { MB = MB || window.MAGMelodie || null; }, 300);
+let delPending = [];
+function delTracks(list, what) {
+  if (!MB || !list.length) return;
+  const label = what || (list.length === 1 ? "« " + list[0].t + " »" : list.length + " titres");
+  if (!confirm("Supprimer " + label + " du téléphone ? Le fichier sera effacé (Android demandera de confirmer).")) return;
+  delPending = list.map(t => String(t.id));
+  MB.delete(JSON.stringify(delPending));
+}
+const RING_K = { ringtone: "sonnerie d'appel", notification: "son des notifications", alarm: "sonnerie d'alarme" };
+function ringMenu(t) {
+  const id = String(t.id);
+  SH = {
+    ringtone: () => setRing(id, "ringtone", t.t), notification: () => setRing(id, "notification", t.t), alarm: () => setRing(id, "alarm", t.t),
+    contact: () => { MB.contactRingtone(id); toast("Choisissez le contact"); },
+    cut: () => cutSheet(t)
+  };
+  sheet(`<div class="hd">${covHTML(t, "", 48)}<div style="min-width:0"><div class="t">${esc(t.t)}</div><div class="s">Utiliser comme sonnerie</div></div></div><div class="body">
+    ${mi("ringtone", "note", "Sonnerie d'appel")}${mi("notification", "note", "Son des notifications")}${mi("alarm", "note", "Sonnerie d'alarme")}
+    ${mi("contact", "user", "Sonnerie d'un contact…")}
+    ${mi("cut", "edit", "Choisir un passage de 30 secondes…", "le refrain, par exemple")}</div>`);
+}
+function setRing(id, kind, name) {
+  const r = MB.setRingtone(id, kind);
+  if (r === "ok") toast("« " + name + " » : " + RING_K[kind]);
+  else if (r === "perm") toast("Autorisez Mélodie à modifier les paramètres, puis revenez");
+  else toast("Impossible de régler la sonnerie");
+}
+function mmss(ms) { ms = Math.max(0, Math.round(ms / 1000)); return Math.floor(ms / 60) + ":" + String(ms % 60).padStart(2, "0"); }
+function cutSheet(t) {
+  const cur = curTrack(), here = cur && String(cur.id) === String(t.id);
+  let start = here ? Math.max(0, Math.round((P.pos || 0) / 1000) * 1000) : 30000, len = 30000, kind = "ringtone";
+  const dur = t.d || 0;
+  const paint = () => { const e = $("#cutS"); if (e) e.textContent = mmss(start) + " → " + mmss(Math.min(dur || start + len, start + len)); };
+  SH = {
+    m10: () => { start = Math.max(0, start - 10000); paint(); }, m1: () => { start = Math.max(0, start - 1000); paint(); },
+    p1: () => { start = Math.min(Math.max(0, dur - 5000), start + 1000); paint(); }, p10: () => { start = Math.min(Math.max(0, dur - 5000), start + 10000); paint(); },
+    hear: () => { const c = curTrack(); if (c && String(c.id) === String(t.id)) { seek(start); if (!P.playing) toggle(); } else { playList([t], 0, "Aperçu"); setTimeout(() => seek(start), 900); } toast("Aperçu à partir de " + mmss(start)); },
+    now: () => { const c = curTrack(); if (c && String(c.id) === String(t.id)) { start = Math.round((P.pos || 0) / 1000) * 1000; paint(); } else toast("Lancez d'abord ce titre"); },
+    k1: d => { kind = d.k; $("#sheetIn").querySelectorAll("[data-k]").forEach(b => b.classList.toggle("main", b.dataset.k === kind)); },
+    cancel: () => {},
+    ok: () => { toast("Découpe du passage…"); MB.cut(String(t.id), start, len, t.t, kind); }
+  };
+  sheet(`<div class="hd">${covHTML(t, "", 48)}<div style="min-width:0"><div class="t">${esc(t.t)}</div><div class="s">Passage de 30 secondes</div></div></div>
+    <div class="body" style="padding:6px 16px 14px">
+      <div style="text-align:center;font-size:26px;font-weight:700;margin:8px 0" id="cutS"></div>
+      <div class="btns" style="justify-content:center;flex-wrap:wrap"><button class="pill" data-sh="m10" data-keep="1">−10 s</button><button class="pill" data-sh="m1" data-keep="1">−1 s</button><button class="pill" data-sh="p1" data-keep="1">+1 s</button><button class="pill" data-sh="p10" data-keep="1">+10 s</button></div>
+      <div class="btns" style="justify-content:center;flex-wrap:wrap;margin-top:8px"><button class="pill" data-sh="hear" data-keep="1">Écouter le début</button><button class="pill" data-sh="now" data-keep="1">Depuis la position actuelle</button></div>
+      <div class="btns" style="justify-content:center;flex-wrap:wrap;margin-top:12px">${[["ringtone", "Appel"], ["notification", "Notification"], ["alarm", "Alarme"]].map(x => `<button class="pill${x[0] === kind ? " main" : ""}" data-sh="k1" data-keep="1" data-k="${x[0]}">${x[1]}</button>`).join("")}</div>
+      <p style="color:var(--tx3);font-size:13px;margin:12px 2px">Le passage est enregistré dans le dossier des sonneries du téléphone, sans toucher au morceau. Il devient aussitôt la sonnerie choisie.</p>
+      <div class="btns"><button class="pill" data-sh="cancel">Annuler</button><button class="pill main" data-sh="ok">Créer la sonnerie</button></div></div>`);
+  paint();
+}
+window.melodieEvent = function (s) {
+  let e = {}; try { e = JSON.parse(s); } catch (x) { return; }
+  if (e.op === "deleted") {
+    if (e.ok) {
+      const gone = new Set(delPending);
+      ST.fav = ST.fav.filter(x => !gone.has(String(x))); ST.lists.forEach(L => { L.ids = L.ids.filter(x => !gone.has(String(x))); }); ST.recent = (ST.recent || []).filter(x => !gone.has(String(x))); save();
+      toast(gone.size > 1 ? gone.size + " titres supprimés" : "Titre supprimé"); setTimeout(() => loadLibrary(false), 400);
+    } else toast("Rien n'a été supprimé");
+    delPending = [];
+  } else if (e.op === "ring") {
+    if (e.r === "ok") toast("Sonnerie réglée : " + (RING_K[e.kind] || "")); else if (e.r === "refus") toast("Autorisation non donnée : sonnerie inchangée"); else toast("Impossible de régler la sonnerie");
+  } else if (e.op === "contact") {
+    toast(e.ok ? "Sonnerie de " + (e.name || "ce contact") + " réglée" : e.err === "perm" ? "Mélodie a besoin de l'accès aux contacts" : "Sonnerie du contact inchangée");
+  } else if (e.op === "cut") {
+    if (!e.ok) { toast("Découpe impossible" + (e.err ? " : " + e.err : "")); return; }
+    const r = MB.setRingtone(e.uri, e.kind);
+    toast(r === "ok" ? "« " + e.name + " » : " + RING_K[e.kind] : r === "perm" ? "Autorisez Mélodie à modifier les paramètres, puis revenez" : "Passage enregistré dans les sonneries");
+  }
+};
 function infoSheet(t) {
   const row = (k, v) => v ? `<div class="mi" style="cursor:default"><span style="color:var(--tx3);width:90px;flex:none">${k}</span><span style="word-break:break-word">${esc(v)}</span></div>` : "";
   SH = {};
@@ -975,14 +1052,17 @@ function albumMenu(A) {
     cover: () => { imgTarget = A; $("#imgIn").click(); },
     web: () => findCovers([A], true),
     undl: async () => { if (NATIVE && MP.musicCoverDelete) MP.musicCoverDelete(String(A.rep.alb)); ST.dl = (ST.dl || []).filter(x => x !== k); save(); const u = NATIVE ? nativeArt(A.rep) : ""; ART.set(k, u); await IDB.set(ARTV + k, u); if (u) applyArt(k, u); albumDetail(A); paintNow(); toast("Pochette téléchargée retirée"); },
-    reset: async () => { await IDB.del("cart:" + k); ART.delete("c:" + k); albumDetail(A); paintNow(); toast("Pochette d'origine rétablie"); }
+    reset: async () => { await IDB.del("cart:" + k); ART.delete("c:" + k); albumDetail(A); paintNow(); toast("Pochette d'origine rétablie"); },
+    nshare: () => MB.share(JSON.stringify(A.tracks.map(t => String(t.id)))),
+    ndel: () => delTracks(A.tracks, "l'album « " + A.al + " »")
   };
   sheet(`<div class="hd">${covHTML(A.rep, "", 48)}<div style="min-width:0"><div class="t">${esc(A.al)}</div><div class="s">${esc(A.a)}</div></div></div><div class="body">
     ${mi("next", "next2", "Lire ensuite")}${mi("queue", "queue", "Ajouter à la file d'attente")}${mi("list", "plus", "Ajouter à une liste…")}
     ${mi("web", "search", artUrl(A.rep) ? "Chercher une autre pochette sur Internet" : "Chercher la pochette sur Internet")}
     ${mi("cover", "img", artUrl(A.rep) ? "Changer la pochette (image de l’ordinateur)" : "Ajouter une pochette (image de l’ordinateur)")}
     ${(ST.dl || []).includes(k) ? mi("undl", "x", "Retirer la pochette trouvée sur Internet") : ""}
-    ${hasC ? mi("reset", "refresh", "Revenir à la pochette d'origine") : ""}</div>`);
+    ${hasC ? mi("reset", "refresh", "Revenir à la pochette d'origine") : ""}
+    ${NATIVE && MB ? mi("nshare", "share", "Envoyer l'album") + mi("ndel", "trash", "Supprimer l'album du téléphone", "", "danger") : ""}</div>`);
 }
 $("#imgIn").addEventListener("change", async e => {
   const f = e.target.files[0]; e.target.value = ""; if (!f || !imgTarget) return;
