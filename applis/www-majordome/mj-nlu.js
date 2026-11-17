@@ -1547,6 +1547,9 @@
     var only = /^(?:l appli |l application |le |la |les |l )?(.+)$/.exec(t), ap2 = only && only[1].split(' ').length <= 3 ? findApp(only[1]) : null;
     if (ap2 && ap2.id !== 'photo' && ap2.id !== 'calcul') return R('open_app', ap2);
     if (apps && only && only[1].split(' ').length <= 3) { var pk2 = pickApp(only[1], apps); if (pk2.app && pk2.app.score >= 0.95) return R('open_app', pk2.app); }
+    // --- style de voix (mj-plus.js) : « prends une voix sensuelle », « parle de façon énergique », « voix normale » ---
+    if ((m = /^(?:(?:prends|reprends|mets|remets|utilise|passe (?:en|sur|a)|choisis|adopte|parle (?:avec|d|de facon|sur un ton|d une facon|d une maniere|de maniere))\s+)?(?:une |un |la |le |ta )?(?:voix|ton|style|facon|maniere)?\s*(sensuelle|sensuel|douce|doux|energique|dynamique|calme|posee|pose|joyeuse|joyeux|grave|profonde|intime|de conteur|conteur|normale|normal|naturelle|neutre|habituelle)$/.exec(t)) && /voix|ton|style|parle|facon|maniere|prends|mets|utilise|passe|choisis|adopte/.test(t))
+      return R('voicestyle', { style: m[1] });
     // --- recherche sur internet (mj-plus.js) : « cherche sur internet les horaires de la piscine », « recherche sur Google … » ---
     if ((m = /^(?:cherche|recherche|trouve|fais une recherche|fait une recherche|lance une recherche|regarde|google|googlise)(?: moi)?(?: sur (?:internet|le web|google|le net|qwant)| en ligne| sur la toile)(?: pour| sur| de| a propos de| concernant)? (.+)$/.exec(t)) ||
         (m = /^(?:cherche|recherche|trouve|regarde)(?: moi)? (.+?) sur (?:internet|le web|google|le net|qwant)$/.exec(t)) ||
