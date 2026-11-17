@@ -1153,7 +1153,9 @@
     if (!B || !B.volume) return phoneOnly();
     var r = J(B.volume(JSON.stringify(p)), {});
     if (r.err) return answer({ say: r.err, cls: 'err' }).done;
-    return answer(p.dir === 'mute' ? ack('Son coupé.') : 'Volume ' + (p.stream === 'ring' ? 'de la sonnerie' : p.stream === 'alarm' ? 'des alarmes' : 'multimédia') + ' : ' + Math.round(100 * r.level / Math.max(1, r.max)) + ' %.').done;
+    var appNote = p.stream === 'music' && /^(spotify|youtube|deezer|melodie|liseuse|netflix|video|videos|film|tele|television|podcast|radio|jeu|lecture|livre|livre audio|voix de la lecture)$/.test(p.what || '') && !lsGet('majordome:noteVolume', false);
+    if (appNote) lsSet('majordome:noteVolume', true);   // expliqué une fois : Android règle le son par type, pas par appli
+    return answer(p.dir === 'mute' ? ack('Son coupé.') : 'Volume ' + (p.stream === 'ring' ? 'de la sonnerie' : p.stream === 'alarm' ? 'des alarmes' : 'multimédia') + ' : ' + Math.round(100 * r.level / Math.max(1, r.max)) + ' %.' + (appNote ? ' Sur Android, musique, vidéos et livres audio partagent ce même volume.' : '')).done;
   };
   H.silent = function (p) {
     if (!B || !B.ringer || PC) return phoneOnly();

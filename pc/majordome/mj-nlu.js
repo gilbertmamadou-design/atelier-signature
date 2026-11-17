@@ -1311,6 +1311,15 @@
       if (/^(de surveillance|maison|de la maison)$/.test(nm)) nm = '';
       return R('cameras', { name: nm });
     }
+    // --- son d'une appli ou d'un usage : « monte la musique », « baisse YouTube », « monte la sonnerie » (Android règle par type de son :
+    //     musique, vidéos, livres audio et applis partagent le volume multimédia) ---
+    var vapp = /^(monte|montez|augmente|augmentez|hausse|remonte|baisse|baissez|diminue|diminuez|descends|reduis|coupe|coupez|mets)\b(?: un (?:petit )?peu| beaucoup| encore| un max)? (?:le son |le volume )?(?:de |du |des |de la |la |le |les |l |sur )?(musique|radio|video|videos|film|tele|television|sonnerie|alarmes?|reveils?|lecture|livre|livre audio|voix de la lecture|podcast|spotify|youtube|deezer|melodie|liseuse|ecran|netflix|media|medias|jeu)\b(.*)$/.exec(t);
+    if (vapp && !/\b(suivante?|precedente?|en pause|pause)\b/.test(t) && !(vapp[1] === 'mets' && !/\b\d+ ?%|\b(au max|a fond|plus fort|moins fort|en sourdine)\b/.test(t))) {
+      var vl = /\b(?:a|au|sur) (\d+) ?%/.exec(t), vk = vapp[1];
+      var vdir = /^coupe/.test(vk) || /\bsourdine\b/.test(t) ? 'mute' : /\b(au max|maximum|a fond|un max)\b/.test(t) ? 'max' : vl ? 'set' : /^(monte|augmente|hausse|remonte)/.test(vk) || /plus fort/.test(t) ? 'up' : 'down';
+      return R('volume', { dir: vdir, level: vl ? Math.min(100, +vl[1]) : null, steps: /\bun (petit )?peu\b/.test(t) ? 1 : /\b(beaucoup|encore)\b/.test(t) ? 4 : 2,
+        stream: /sonnerie/.test(vapp[2]) ? 'ring' : /alarme|reveil/.test(vapp[2]) ? 'alarm' : 'music', what: vapp[2] });
+    }
     // --- volets et stores (Somfy TaHoma, mj-somfy.js) ---
     // « ferme les volets à 21 h », « ouvre les volets demain à 7 h 30 » : commande programmée une fois (mj-somfy.js)
     var sh = null, wsh = SH_VERB.test(t) || SH_RE.test(t) ? findWhen(t, now) : null;
@@ -1328,10 +1337,11 @@
       if (/\b(mode normal|mode sonnerie|remets la sonnerie|reactive la sonnerie)\b/.test(t)) mode = 'normal';
       return R('silent', { mode: mode, off: off });
     }
+    if (/^(?:son|volume) (?:au max|au maximum|a fond)$|^(?:monte|baisse|augmente|diminue) (?:un (?:petit )?peu|beaucoup|encore)$/.test(t)) return R('volume', { dir: /^(son|volume)/.test(t) ? 'max' : /^(monte|augmente)/.test(t) ? 'up' : 'down', level: null, steps: /un (petit )?peu/.test(t) ? 1 : 4, stream: 'music' });
     if (/\b(volume|le son|plus fort|moins fort|monte le son|baisse le son|coupe le son|mets le son|remets le son)\b/.test(t) && !/\b(musique suivante)\b/.test(t)) {
       var lvl = /\b(?:a|au|sur) (\d+) ?%/.exec(t) || /\bvolume (?:a|au|sur) (\d+)\b/.exec(t);
       var dir = /\b(coupe|muet|sourdine|mute)\b/.test(t) ? 'mute' : /\b(au max|maximum|a fond|au maximum|max)\b/.test(t) ? 'max' : /\b(monte|augmente|plus fort|hausse|monter|plus haut|remets)\b/.test(t) ? 'up' : /\b(baisse|diminue|moins fort|descends|descend|plus bas|reduis)\b/.test(t) ? 'down' : lvl ? 'set' : 'query';
-      return R('volume', { dir: dir, level: lvl ? Math.min(100, +lvl[1]) : null, stream: /\b(sonnerie)\b/.test(t) ? 'ring' : /\b(alarme|reveil)\b/.test(t) ? 'alarm' : 'music' });
+      return R('volume', { dir: dir, level: lvl ? Math.min(100, +lvl[1]) : null, steps: /\bun (petit )?peu\b/.test(t) ? 1 : /\b(beaucoup|encore)\b/.test(t) ? 4 : 2, stream: /\b(sonnerie)\b/.test(t) ? 'ring' : /\b(alarme|reveil)\b/.test(t) ? 'alarm' : 'music' });
     }
     if (/\b(wifi|wi fi)\b/.test(t)) return R('wifi', { on: /\b(active|allume|connecte|mets|ouvre|demarre|branche)\b/.test(t) ? true : /\b(desactive|coupe|eteins|deconnecte|arrete)\b/.test(t) ? false : null });
     if (/\b(bluetooth|blue tooth|bluetouth)\b/.test(t)) return R('bluetooth', { on: /\b(active|allume|connecte|mets|ouvre|demarre)\b/.test(t) ? true : /\b(desactive|coupe|eteins|deconnecte|arrete)\b/.test(t) ? false : null });

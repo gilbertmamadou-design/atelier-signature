@@ -1015,8 +1015,10 @@ public class MajordomeBridge {
             int st = "ring".equals(o.optString("stream")) ? AudioManager.STREAM_RING : "alarm".equals(o.optString("stream")) ? AudioManager.STREAM_ALARM : AudioManager.STREAM_MUSIC;
             int max = am.getStreamMaxVolume(st), cur = am.getStreamVolume(st);
             switch (o.optString("dir")) {
-                case "up": am.adjustStreamVolume(st, AudioManager.ADJUST_RAISE, AudioManager.FLAG_SHOW_UI); am.adjustStreamVolume(st, AudioManager.ADJUST_RAISE, 0); break;
-                case "down": am.adjustStreamVolume(st, AudioManager.ADJUST_LOWER, AudioManager.FLAG_SHOW_UI); am.adjustStreamVolume(st, AudioManager.ADJUST_LOWER, 0); break;
+                case "up": case "down": {   // « un peu » : 1 cran, normal : 2, « beaucoup » : 4
+                    int n = Math.max(1, Math.min(8, o.optInt("steps", 2))), d = "up".equals(o.optString("dir")) ? AudioManager.ADJUST_RAISE : AudioManager.ADJUST_LOWER;
+                    for (int i = 0; i < n; i++) am.adjustStreamVolume(st, d, i == 0 ? AudioManager.FLAG_SHOW_UI : 0);
+                    break; }
                 case "max": am.setStreamVolume(st, max, AudioManager.FLAG_SHOW_UI); break;
                 case "mute": am.adjustStreamVolume(st, AudioManager.ADJUST_MUTE, AudioManager.FLAG_SHOW_UI); break;
                 case "set": am.setStreamVolume(st, Math.round(max * Math.max(0, Math.min(100, o.optInt("level", 50))) / 100f), AudioManager.FLAG_SHOW_UI); break;
