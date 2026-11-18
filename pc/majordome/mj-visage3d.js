@@ -51,6 +51,7 @@
     var A = { yaw: 0, pitch: 0, roll: 0, gx: 0, gy: 0, open: 1, brow: 0, worry: 0, furrow: 0, smile: 0.25, mouth: 0, pupil: 1, wink: 0, cons: 0 };
     var blinkAt = 0, blinkDur = 150, nextBlink = performance.now() + 1500, gazeT = { x: 0, y: 0 }, nextGaze = 0, shakeAt = -1e9, nodK = 0;
     var moodN = '', moodUntil = 0;
+    var amb = 0, ambAt = 0, ambS = 0;   // son de la pièce (option « Réagir à l'ambiance »)
     // three.js
     var T = null, renderer = null, scene = null, cam = null, model = null, morphs = {}, bones = {}, rest = {}, lights = {}, halo = null, headPos = null, W = 0, H = 0;
 
@@ -265,6 +266,9 @@
       var mood = now < moodUntil ? moodN : '', ek = exprK(), mv = reduce ? 0 : ek;
       var G = { yaw: 0, pitch: 0, roll: 0, open: 1, brow: 0, worry: 0, furrow: 0, smile: 0.25, pupil: 1 };
       if (st === 'idle') { G.yaw = mv * (0.07 * Math.sin(t * 0.31) + 0.03 * Math.sin(t * 0.83)); G.pitch = mv * 0.03 * Math.sin(t * 0.47); G.roll = mv * 0.025 * Math.sin(t * 0.23); }
+      if (performance.now() - ambAt > 600) amb = 0;
+      ambS += (amb - ambS) * (1 - Math.exp(-dt / 0.4));
+      if (st === 'idle' && (ambS > 0.02 || nodK > 0.02)) { G.pitch += mv * nodK * 0.07; G.roll += mv * Math.min(1, ambS * 1.6) * 0.06 * Math.sin(t * 2.3); G.yaw += mv * Math.min(1, ambS * 1.6) * 0.05 * Math.sin(t * 1.15); }   // en rythme avec la pièce
       else if (st === 'listen') { G.roll = mv * 0.08; G.pitch = mv * -0.03; G.yaw = mv * 0.02 * Math.sin(t * 0.6); G.open = 1.1; G.brow = (0.45 + env * 0.4) * ek; G.smile = 0.35; }
       else if (st === 'think') { G.yaw = mv * (0.14 + 0.03 * Math.sin(t * 0.9)); G.roll = mv * -0.05; G.pitch = mv * -0.06; G.furrow = 0.6 * ek; G.smile = 0.0; G.open = 0.9; }
       else if (st === 'speak') { G.yaw = mv * (0.05 * Math.sin(t * 0.7) + 0.02 * Math.sin(t * 1.9)); G.pitch = mv * (0.02 * Math.sin(t * 1.3) + nodK * 0.06); G.roll = mv * 0.03 * Math.sin(t * 0.5); G.brow = (0.1 + nodK * 0.5) * ek; G.smile = 0.2; }
@@ -377,6 +381,7 @@
       },
       pulse: function () { burst = Math.min(0.45, burst + 0.24); kick(); },
       voice: function (v) { vReal = clamp(+v || 0, 0, 1); vRealAt = performance.now(); if (!spk) api.speak(true); kick(); },
+      ambient: function (v, beat, startle) { amb = Math.max(0, Math.min(1, +v || 0)); ambAt = performance.now(); if (beat) nodK = Math.min(1, nodK + 0.55); if (startle) { moodN = 'surprise'; moodUntil = performance.now() + 900; nextGaze = 0; } kick(); },
       mood: function (n, ms) { moodN = n || ''; moodUntil = performance.now() + (ms || 2600); kick(); },
       look: function (o) {
         if (!o) return;

@@ -294,10 +294,51 @@ public class MajordomeBridge {
     // =====================================================================
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences(PREFS, Context.MODE_PRIVATE); }
     boolean hasMic() { return a.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED; }
+    /* ---- « Réagir à l'ambiance » (désactivé par défaut) : niveau sonore de la pièce pour animer l'apparence.
+       Micro ouvert seulement quand la page le demande (Majordome à l'écran, sans écoute en cours) ; rien n'est gardé :
+       chaque bloc d'échantillons est réduit à trois nombres (niveau, graves, aigus) puis écrasé. ---- */
+    private volatile boolean ambRun = false;
+    private Thread ambTh;
+    @JavascriptInterface public boolean ambientStart() {
+        if (!hasMic()) { ui.post(new Runnable() { public void run() { a.requestPermissions(new String[]{ Manifest.permission.RECORD_AUDIO }, REQ_MIC); } }); return false; }
+        if (ambTh != null && ambTh.isAlive()) { ambRun = true; return true; }
+        ambRun = true;
+        ambTh = new Thread(new Runnable() { public void run() {
+            AudioRecord rec = null;
+            try {
+                int rate = 16000, min = AudioRecord.getMinBufferSize(rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
+                rec = new AudioRecord(MediaRecorder.AudioSource.MIC, rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, Math.max(min, 4096) * 2);
+                if (rec.getState() != AudioRecord.STATE_INITIALIZED) throw new IllegalStateException("micro occupé");
+                rec.startRecording();
+                short[] buf = new short[800]; long last = 0; double lp = 0;
+                while (ambRun) {
+                    int n = rec.read(buf, 0, buf.length);
+                    if (n < 0) throw new IllegalStateException("lecture du micro : " + n);
+                    if (n == 0) continue;
+                    double s = 0, sl = 0, sh = 0;
+                    for (int i = 0; i < n; i++) { double x = buf[i] / 32768.0; lp += 0.04 * (x - lp); s += x * x; sl += lp * lp; sh += (x - lp) * (x - lp); }
+                    double v = Math.min(1, Math.sqrt(s / n) * 7), lo = Math.min(1, Math.sqrt(sl / n) * 12), hi = Math.min(1, Math.sqrt(sh / n) * 9);
+                    long now = System.nanoTime() / 1000000L;
+                    if (now - last >= 45) { last = now; emit("ambient", "{\"v\":" + Math.round(v * 1000) / 1000.0 + ",\"lo\":" + Math.round(lo * 1000) / 1000.0 + ",\"hi\":" + Math.round(hi * 1000) / 1000.0 + "}"); }
+                }
+            } catch (Throwable t) {
+                emit("ambient", "{\"err\":" + JSONObject.quote(String.valueOf(t.getMessage())) + "}");
+            } finally {
+                if (rec != null) { try { rec.stop(); } catch (Throwable t) { } try { rec.release(); } catch (Throwable t) { } }
+            }
+        } }, "majordome-ambiance");
+        ambTh.start();
+        return true;
+    }
+    @JavascriptInterface public void ambientStop() { ambRun = false; }
+    /** libère le micro avant une écoute (un seul enregistrement à la fois sur Android) */
+    private void ambientRelease() { ambRun = false; Thread t = ambTh; if (t != null && t.isAlive()) try { t.join(500); } catch (Throwable x) { } }
+
     private SpeechRecognizer sr;
     @JavascriptInterface public void listen(String json) {
         JSONObject o; try { o = new JSONObject(json == null ? "{}" : json); } catch (Exception e) { o = new JSONObject(); }
         if (!hasMic()) { ui.post(new Runnable() { public void run() { a.requestPermissions(new String[]{ Manifest.permission.RECORD_AUDIO }, REQ_MIC); } }); emit("error", obj("msg", "Autorisez le micro, puis touchez à nouveau le micro.")); return; }
+        ambientRelease();
         final int max = Math.max(3000, o.optInt("maxMs", 9000));
         if ("android".equals(o.optString("engine"))) { ui.post(new Runnable() { public void run() { androidListen(max); } }); return; }
         if (!modelReady(a)) { emit("error", obj("msg", "Le modèle vocal n'est pas installé.")); return; }

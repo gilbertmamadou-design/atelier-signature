@@ -119,6 +119,7 @@
     var A = { yaw: 0, pitch: 0, roll: 0, gx: 0, gy: 0, open: 1, brow: 0, worry: 0, furrow: 0, smile: 0.3, mouth: 0, mw: 1, pupil: 1, blush: 0.3, wink: 0, hairLag: 0 };
     var blinkAt = 0, blinkDur = 150, nextBlink = performance.now() + 1500, gazeT = { x: 0, y: 0 }, nextGaze = 0, shakeAt = -1e9, nodK = 0;
     var moodN = '', moodUntil = 0;
+    var amb = 0, ambAt = 0, ambS = 0;   // son de la pièce (option « Réagir à l'ambiance »)
     // détails fixes (graine) : taches de rousseur, boucles
     var R0 = rng(7), FRECK = [], CURLS = [], CURLF = [];
     for (var i = 0; i < 46; i++) { var fx = (R0() - 0.5) * 1.0, fy = 0.02 + R0() * 0.3 - Math.abs(fx) * 0.12; if (Math.abs(fx) < 0.06 && fy > 0.2) continue; FRECK.push([fx, fy, 0.005 + R0() * 0.008, 0.25 + R0() * 0.3]); }
@@ -205,6 +206,9 @@
       var T = { yaw: 0, pitch: 0, roll: 0, open: 1, brow: 0, worry: 0, furrow: 0, smile: 0.32, pupil: 1, blush: 0.3 };
       var mv = reduce ? 0 : ek;
       if (st === 'idle') { T.yaw = mv * (0.07 * Math.sin(t * 0.31) + 0.03 * Math.sin(t * 0.83)); T.pitch = mv * 0.03 * Math.sin(t * 0.47); T.roll = mv * 0.025 * Math.sin(t * 0.23); }
+      if (performance.now() - ambAt > 600) amb = 0;
+      ambS += (amb - ambS) * (1 - Math.exp(-dt / 0.4));
+      if (st === 'idle' && (ambS > 0.02 || nodK > 0.02)) { T.pitch += mv * nodK * 0.07; T.roll += mv * Math.min(1, ambS * 1.6) * 0.06 * Math.sin(t * 2.3); T.yaw += mv * Math.min(1, ambS * 1.6) * 0.05 * Math.sin(t * 1.15); }   // en rythme avec la pièce
       else if (st === 'listen') { T.roll = mv * 0.07; T.pitch = mv * -0.02; T.yaw = mv * 0.02 * Math.sin(t * 0.6); T.open = 1.1; T.brow = (0.5 + env * 0.4) * ek; T.smile = 0.42; T.pupil = 1.15 + env * 0.25; }
       else if (st === 'think') { T.yaw = mv * (0.12 + 0.03 * Math.sin(t * 0.9)); T.roll = mv * -0.05; T.pitch = mv * -0.05; T.furrow = 0.7 * ek; T.smile = 0.05; T.open = 0.92; }
       else if (st === 'speak') { T.yaw = mv * (0.05 * Math.sin(t * 0.7) + 0.02 * Math.sin(t * 1.9)); T.pitch = mv * (0.02 * Math.sin(t * 1.3) + nodK * 0.05); T.roll = mv * 0.03 * Math.sin(t * 0.5); T.brow = (0.15 + nodK * 0.5) * ek; T.smile = 0.3; }
@@ -823,6 +827,7 @@
       },
       pulse: function () { burst = Math.min(0.45, burst + 0.24); kick(); },
       voice: function (v) { vReal = clamp(+v || 0, 0, 1); vRealAt = performance.now(); if (!spk) api.speak(true); kick(); },
+      ambient: function (v, beat, startle) { amb = Math.max(0, Math.min(1, +v || 0)); ambAt = performance.now(); if (beat) nodK = Math.min(1, nodK + 0.55); if (startle) { moodN = 'surprise'; moodUntil = performance.now() + 900; nextGaze = 0; } kick(); },
       mood: function (n, ms) { moodN = n || ''; moodUntil = performance.now() + (ms || 2600); kick(); },
       look: function (o) { if (o) Object.keys(o).forEach(function (k) { if (o[k] != null && k in DEFLOOK) look[k] = o[k]; }); if (reduce) frame(performance.now()); else kick(); },
       metrics: function () { return { level: M.level, mouth: M.mouth, frames: M.frames, state: st, running: !!(raf || tmo) }; },
