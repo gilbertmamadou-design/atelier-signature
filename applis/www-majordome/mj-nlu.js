@@ -502,7 +502,18 @@
     ['sauvegarde', 'Sauvegarde', 'fr.magformation13.sauvegarde', /\b(sauvegarde)\b/],
     ['petitspas', 'Petits Pas', 'fr.magformation13.petitspas', /\b(petits pas|petit pas)\b/],
     ['chasse', 'Carnet de chasse', 'fr.magformation13.chasse', /\b(chasse|carnet de chasse)\b/],
-    ['accueil', 'Socle', 'fr.magformation13.socle', /\b(socle|accueil)\b/]
+    ['accueil', 'Socle', 'fr.magformation13.socle', /\b(socle|accueil)\b/],
+    ['voyage', 'Carnet de voyage', 'fr.magformation13.voyage', /\b(carnet de voyage|voyages?)\b/],
+    ['traducteur', 'Traducteur', 'fr.magformation13.traducteur', /\b(traducteur|appli de traduction)\b/],
+    ['cadrans', 'Atelier de cadrans', 'fr.magformation13.cadrans', /\b(atelier de cadrans?|cadrans?)\b/],
+    ['langues', 'Langues', 'fr.magformation13.langues', /\b(langues|appli de langues)\b/],
+    ['reperes', 'Repères', 'fr.magformation13.reperes', /\b(reperes)\b/],
+    ['serenite', 'Sérénité', 'fr.magformation13.serenite', /\b(serenite|meditation)\b/],
+    ['correcteur', 'Correcteur', 'fr.magformation13.correcteur', /\b(correcteur|correcteur d orthographe)\b/],
+    ['reunion', 'Réunion', 'fr.magformation13.reunion', /\b(reunions?|comptes? rendus?)\b/],
+    ['cameras', 'Caméras', 'fr.magformation13.cameras', /\b(appli cameras?|application cameras?)\b/],
+    ['bluetooth', 'Bluetooth', 'fr.magformation13.bluetooth', /\b(appli bluetooth|application bluetooth)\b/],
+    ['wifi', 'Wi-Fi', 'fr.magformation13.wifi', /\b(appli wi ?fi|application wi ?fi|appli wifi)\b/]
   ];
   var SITES = [
     [/\b(youtube|you tube)\b/, 'YouTube', 'https://www.youtube.com/'], [/\b(wikipedia|wiki)\b/, 'Wikipédia', 'https://fr.wikipedia.org/'],
@@ -1135,6 +1146,22 @@
       for (var pj = 0; pj < phs.length; pj++) {
         var rp = prep(phs[pj], ctx).t;
         if (rp && (t === rp || t === 'routine ' + rp || t === 'lance la routine ' + rp || t === 'lance ' + rp || t === 'mode ' + rp || t === 'active la routine ' + rp)) return R('routine', { id: routines[ri].id });
+      }
+    }
+    // --- les applis Wi-Fi, Bluetooth, Caméras (à ne pas confondre avec « active le Wi-Fi ») ---
+    if ((m = /^(?:ouvre|ouvrir|lance|lancer|demarre|affiche|montre moi|va dans|va sur)\s+(?:l |la |mon |ma )?(?:appli|application) (wi ?fi|bluetooth|cameras?)$/.exec(t))) {
+      if (/^camera/.test(m[1])) return R('cameras', { name: '' });
+      return R('open_app', findApp('appli ' + m[1].replace(' ', '')));
+    }
+    // --- reprendre une appli de la Suite où on l'a laissée : « reprends Mélodie », « continue le tableur », « relance la Liseuse » ---
+    if ((m = /^(?:reprends|reprendre|reprenez|continue|continuer|continuez|relance|relancer|relancez|poursuis|poursuivre|retourne (?:sur|dans)|retourner (?:sur|dans)|reviens (?:sur|dans)|revenir (?:sur|dans)) (?:l appli |l application |mon |ma |mes |le |la |les |l )?(.+)$/.exec(t))) {
+      if (/^cameras?$/.test(m[1])) return R('cameras', { name: '' });
+      var ra = findApp(m[1]);
+      if (ra && !(ra.id === 'qr' && !/\b(qr|q r)\b/.test(m[1]))) {
+        if (ra.id === 'musique') return R('music', { cmd: 'play' });
+        if (ra.id === 'liseuse') return R('book', { cmd: 'resume' });
+        if (ra.id === 'cameras') return R('cameras', { name: '' });
+        ra.resume = true; return R('open_app', ra);
       }
     }
     // --- apprentissage (mj-appris.js) : « quand je dis soirée film, ferme les volets puis allume le salon à 20 % » ---
