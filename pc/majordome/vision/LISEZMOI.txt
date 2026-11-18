@@ -1,0 +1,5 @@
+Suivi du regard (option « Me suivre du regard ») de Majordome
+- pico.js : détection de visages en JavaScript, Nenad Markus, licence MIT (https://github.com/nenadmarkus/picojs).
+- facefinder.bin : modèle de détection de visages « facefinder » du projet pico, © 2013 Nenad Markus, licence MIT
+  (https://github.com/nenadmarkus/pico, rnt/cascades/facefinder) ; texte de la licence : PICO-LICENSE.txt.
+Les images de la caméra sont analysées sur l'appareil, en basse résolution, et jamais enregistrées ni envoyées.

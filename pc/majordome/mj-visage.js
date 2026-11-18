@@ -119,7 +119,8 @@
     var A = { yaw: 0, pitch: 0, roll: 0, gx: 0, gy: 0, open: 1, brow: 0, worry: 0, furrow: 0, smile: 0.3, mouth: 0, mw: 1, pupil: 1, blush: 0.3, wink: 0, hairLag: 0 };
     var blinkAt = 0, blinkDur = 150, nextBlink = performance.now() + 1500, gazeT = { x: 0, y: 0 }, nextGaze = 0, shakeAt = -1e9, nodK = 0;
     var moodN = '', moodUntil = 0;
-    var amb = 0, ambAt = 0, ambS = 0;   // son de la pièce (option « Réagir à l'ambiance »)
+    var amb = 0, ambAt = 0, ambS = 0;
+    var folX = 0, folY = 0, folAt = -1e9;   // votre position vue par la caméra (option « Me suivre du regard »)   // son de la pièce (option « Réagir à l'ambiance »)
     // détails fixes (graine) : taches de rousseur, boucles
     var R0 = rng(7), FRECK = [], CURLS = [], CURLF = [];
     for (var i = 0; i < 46; i++) { var fx = (R0() - 0.5) * 1.0, fy = 0.02 + R0() * 0.3 - Math.abs(fx) * 0.12; if (Math.abs(fx) < 0.06 && fy > 0.2) continue; FRECK.push([fx, fy, 0.005 + R0() * 0.008, 0.25 + R0() * 0.3]); }
@@ -228,6 +229,8 @@
         else { gazeT = Math.random() < 0.55 ? { x: (Math.random() - 0.5) * 0.2, y: (Math.random() - 0.5) * 0.1 } : { x: (Math.random() - 0.5) * 1.2 * gr, y: (Math.random() - 0.5) * 0.65 * gr }; nextGaze = now + 1300 + Math.random() * 2800; }
         if (reduce) gazeT = { x: 0, y: 0 };
       }
+      var suit = now - folAt < 2000 && st !== 'think' && st !== 'sleep' && mood !== 'triste';
+      if (suit) { gazeT = { x: folX * 0.9, y: -folY * 0.5 }; nextGaze = now + 400; T.yaw += mv * folX * 0.1; T.pitch += mv * -folY * 0.04; }   // vous suivre des yeux, la tête un peu tournée vers vous
       var gk = 1 - Math.exp(-dt / 0.045);
       A.gx += (gazeT.x - A.gx) * gk; A.gy += (gazeT.y - A.gy) * gk;
       if (now > nextBlink && st !== 'sleep') {
@@ -827,6 +830,7 @@
       },
       pulse: function () { burst = Math.min(0.45, burst + 0.24); kick(); },
       voice: function (v) { vReal = clamp(+v || 0, 0, 1); vRealAt = performance.now(); if (!spk) api.speak(true); kick(); },
+      follow: function (x, y) { folX = +x || 0; folY = +y || 0; folAt = performance.now(); kick(); },
       ambient: function (v, beat, startle) { amb = Math.max(0, Math.min(1, +v || 0)); ambAt = performance.now(); if (beat) nodK = Math.min(1, nodK + 0.55); if (startle) { moodN = 'surprise'; moodUntil = performance.now() + 900; nextGaze = 0; } kick(); },
       mood: function (n, ms) { moodN = n || ''; moodUntil = performance.now() + (ms || 2600); kick(); },
       look: function (o) { if (o) Object.keys(o).forEach(function (k) { if (o[k] != null && k in DEFLOOK) look[k] = o[k]; }); if (reduce) frame(performance.now()); else kick(); },

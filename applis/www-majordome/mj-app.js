@@ -103,6 +103,7 @@
     var cur = null, kind = '', px = {};
     ['state', 'get', 'level', 'speak', 'word', 'voice', 'pulse', 'metrics'].forEach(function (m) { px[m] = function () { return cur[m].apply(cur, arguments); }; });
     px.mood = function (n, ms) { if (cur && cur.mood) cur.mood(n, ms); };
+    px.follow = function (x, y) { if (cur && cur.follow) cur.follow(x, y); };
     px.ambient = function (v, beat, startle) { if (!cur) return; if (cur.ambient) cur.ambient(v, beat, startle); else if (beat && cur.pulse) cur.pulse(); };
     px.kind = function () { return kind; };
     function freshCanvas() {   // un canvas ne change pas de type de contexte (2D ↔ WebGL) : on le remplace
@@ -1606,7 +1607,7 @@
   }
   MJ.settingsSheet = settingsSheet;
   /* Apparence : sphère ou visage animé ; personnalisation du visage avec aperçu en direct */
-  var MJ_VERSION = '18 novembre 2026 (ambiance)';   // affichée dans Réglages › Apparence : pour vérifier que la mise à jour est installée
+  var MJ_VERSION = '18 novembre 2026 (suivi du regard)';   // affichée dans Réglages › Apparence : pour vérifier que la mise à jour est installée
   var FACEOPT = {
     faceStyle: ['Style', [['naturel', 'Naturel'], ['holo', 'Hologramme']]],
     faceCoiffure: ['Coiffure', [['long', 'Longs lisses'], ['ondules', 'Longs ondulés'], ['frange', 'Longs avec frange'], ['carre', 'Carré'], ['court', 'Courts'], ['chignon', 'Chignon'], ['boucles', 'Bouclés']]],
@@ -1631,6 +1632,7 @@
       '<select class="in" id="sAvatar">' + [['sphere', 'Sphère'], ['visage', 'Visage dessiné'], ['visage3d', 'Visage 3D'], ['androide', 'Androïde (hologramme)']].map(function (o) { return '<option value="' + o[0] + '"' + (S.avatar === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
       '<div class="set"><div class="t">Pleine page<small>L\'apparence en grand au milieu de l\'écran, rien d\'écrit (touchez l\'écran pour les menus)</small></div><label class="sw"><input type="checkbox" id="sZenA"' + (S.zen ? ' checked' : '') + '><span></span></label></div>' +
       '<div class="set"><div class="t">Réagir à l\'ambiance<small>Hoche la tête en rythme avec la musique, sursaute à un bruit soudain. Micro ouvert seulement quand Majordome est à l\'écran, rien n\'est enregistré' + (ANDROID ? ' ; en pause pendant l\'écoute continue (mot de réveil)' : '') + '</small></div><label class="sw"><input type="checkbox" id="sAmbiance"' + (S.ambiance ? ' checked' : '') + '><span></span></label></div>' +
+      '<div class="set"><div class="t">Me suivre du regard<small>Avec un visage : la caméra frontale repère votre visage, ses yeux vous suivent et sa tête tourne légèrement vers vous. Images analysées sur l\'appareil, jamais enregistrées</small></div><label class="sw"><input type="checkbox" id="sSuivi"' + (S.suivi ? ' checked' : '') + '><span></span></label></div>' +
       '<div id="sAndroBox"' + (S.avatar === 'androide' ? '' : ' hidden') + '><div class="set"><div class="t">Cadrage</div><select class="in" id="sAndroFrame">' + [['corps', 'Silhouette entière'], ['buste', 'Buste'], ['proche', 'Gros plan']].map(function (o) { return '<option value="' + o[0] + '"' + (S.faceFrame === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
       '<div class="set"><div class="t">Garder le décor autour (anneaux, planètes, effets)</div><label class="sw"><input type="checkbox" id="sAndroDeco"' + (S.faceDeco ? ' checked' : '') + '><span></span></label></div>' +
       '<p class="note">Androïde féminine originale, dessinée par l\'appli : plaques sculptées, modules d\'oreille et anneau qui s\'allument avec la voix, couleur de l\'état.</p></div>' +
@@ -1680,6 +1682,7 @@
     var c3 = function (id, key) { var e = $(id); if (e) e.onchange = function () { S[key] = e.type === 'checkbox' ? e.checked : this.value; saveS(); orb.apply(); prev3d(); }; };
     c3('sAndroFrame', 'faceFrame'); c3('sAndroDeco', 'faceDeco');
     var zA = $('sZenA'); if (zA) zA.onchange = function () { if (MJ.setZen) MJ.setZen(this.checked); };
+    var suA = $('sSuivi'); if (suA) suA.onchange = function () { S.suivi = this.checked; saveS(); if (MJ.suivi) MJ.suivi.refresh(); if (S.suivi && !/visage|androide/.test(S.avatar)) toast('Le suivi du regard marche avec une apparence de visage (dessiné, 3D ou androïde).'); };
     var amA = $('sAmbiance'); if (amA) amA.onchange = function () { S.ambiance = this.checked; saveS(); if (MJ.ambiance) MJ.ambiance.refresh(); };
     c3('sFace3dModel', 'face3dModel'); c3('sFace3dStyle', 'face3dStyle'); c3('sFace3dFrame', 'faceFrame'); c3('sFace3dExpr', 'faceExpr'); c3('sFace3dDeco', 'faceDeco');
     $('sFace3dSmile').onclick = function () { if (face3dPrev) face3dPrev.f.mood(Math.random() < 0.3 ? 'clin' : 'joie', 2200); };
