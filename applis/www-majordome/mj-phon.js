@@ -300,6 +300,7 @@
         if ((x === 'dix' || x === 'six') && parts[k + 1] === 'sept') ph = ph.slice(0, -1);   // pronom après le verbe : sans accent
         // liaison interne (« quatre-vingt-un », « dix-huit », « kilomètres-heure »)
         var nx = parts[k + 1];
+        if (nx === 'heure' && /^(kilo)?m[eè]tres$/.test(x)) { ps.push(ph); continue; }   // « kilomètres-heure » : sans liaison
         if (nx && inf.l && startsVowel(wordInfo(nx).p)) ph = inf.l.charAt(0) === '~' ? ph.slice(0, -1) + inf.l.slice(1) : ph + inf.l;
         else if (nx && /^(il|ils|elle|elles|on)$/.test(nx) && /[td]$/.test(x) && !/t$/.test(ph)) ph += 't';
         else if (nx && /s$/.test(x) && !/s$/.test(ph) && startsVowel(wordInfo(nx).p) && !HASP[nx]) ph += 'z';
