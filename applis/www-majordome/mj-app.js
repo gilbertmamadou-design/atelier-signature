@@ -101,12 +101,12 @@
       var old = $('orb'), cv = document.createElement('canvas'); cv.id = 'orb'; cv.className = old.className; old.parentNode.replaceChild(cv, old); return cv;
     }
     px.apply = function () {
-      var want = S.avatar === 'visage3d' && window.MJFace3D ? 'visage3d' : S.avatar === 'visage' && window.MJFace ? 'visage' : 'sphere', was = cur ? cur.get() : 'idle';
+      var want = S.avatar === 'visage3d' && window.MJFace3D ? 'visage3d' : S.avatar === 'androide' && window.MJFace ? 'androide' : S.avatar === 'visage' && window.MJFace ? 'visage' : 'sphere', was = cur ? cur.get() : 'idle';
       document.documentElement.classList.toggle('mj-visage-seul', want !== 'sphere' && !S.faceDeco);
-      if (cur && want === kind) { if (cur.look) cur.look(want === 'visage3d' ? { model: S.face3dModel, frame: S.faceFrame, expr: S.faceExpr, style: S.face3dStyle } : faceLook()); return; }
+      if (cur && want === kind) { if (cur.look) cur.look(want === 'androide' ? { style: 'androide', frame: S.faceFrame, expr: S.faceExpr } : want === 'visage3d' ? { model: S.face3dModel, frame: S.faceFrame, expr: S.faceExpr, style: S.face3dStyle } : faceLook()); return; }
       if (cur) cur.stop();
       var o = { pad: 1.32, onLevel: orbLevel }, cv = kind ? freshCanvas() : $('orb');
-      if (want === 'visage') { var l = faceLook(); for (var k in l) o[k] = l[k]; }
+      if (want === 'visage' || want === 'androide') { var l = faceLook(); for (var k in l) o[k] = l[k]; if (want === 'androide') o.style = 'androide'; }
       if (want === 'visage3d') {
         o.model = S.face3dModel; o.frame = S.faceFrame; o.expr = S.faceExpr; o.style = S.face3dStyle; o.urlFor = url3d;
         o.onFail = function (e) {   // pas de WebGL, ou modèle introuvable (hors connexion) : visage dessiné à la place
@@ -115,7 +115,7 @@
           S.avatar = 'visage'; saveS(); px.apply();
         };
       }
-      cur = want === 'visage3d' ? window.MJFace3D.create(cv, o) : want === 'visage' ? window.MJFace.create(cv, o) : window.MJOrb.create(cv, o);
+      cur = want === 'visage3d' ? window.MJFace3D.create(cv, o) : want === 'visage' || want === 'androide' ? window.MJFace.create(cv, o) : window.MJOrb.create(cv, o);
       kind = want; cur.state(was);
       orbBox.classList.toggle('visage', kind !== 'sphere');
     };
@@ -1615,7 +1615,11 @@
     var row = function (id) { return '<div class="set"' + (id !== 'faceStyle' && id !== 'faceCoiffure' && id !== 'faceFrame' && id !== 'faceExpr' ? ' data-nat' : '') + '><div class="t">' + FACEOPT[id][0] + '</div>' + sel(id) + '</div>'; };
     var sw = function (id) { return '<div class="set"' + (id === 'faceDeco' ? '' : ' data-nat') + '><div class="t">' + FACEBOOL[id] + '</div><label class="sw"><input type="checkbox" id="s_' + id + '"' + (S[id] ? ' checked' : '') + '><span></span></label></div>'; };
     return '<div class="set" id="f-apparence"><div class="t">Apparence<small>La sphère de particules, ou un visage qui cligne des yeux, vous regarde et parle avec la voix</small></div>' +
-      '<select class="in" id="sAvatar">' + [['sphere', 'Sphère'], ['visage', 'Visage dessiné'], ['visage3d', 'Visage 3D']].map(function (o) { return '<option value="' + o[0] + '"' + (S.avatar === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
+      '<select class="in" id="sAvatar">' + [['sphere', 'Sphère'], ['visage', 'Visage dessiné'], ['visage3d', 'Visage 3D'], ['androide', 'Androïde (hologramme)']].map(function (o) { return '<option value="' + o[0] + '"' + (S.avatar === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
+      '<div class="set"><div class="t">Pleine page<small>L\'apparence en grand au milieu de l\'écran, rien d\'écrit (touchez l\'écran pour les menus)</small></div><label class="sw"><input type="checkbox" id="sZenA"' + (S.zen ? ' checked' : '') + '><span></span></label></div>' +
+      '<div id="sAndroBox"' + (S.avatar === 'androide' ? '' : ' hidden') + '><div class="set"><div class="t">Cadrage</div><select class="in" id="sAndroFrame"><option value="buste"' + (S.faceFrame !== 'proche' ? ' selected' : '') + '>Buste</option><option value="proche"' + (S.faceFrame === 'proche' ? ' selected' : '') + '>Gros plan</option></select></div>' +
+      '<div class="set"><div class="t">Garder le décor autour (anneaux, planètes, effets)</div><label class="sw"><input type="checkbox" id="sAndroDeco"' + (S.faceDeco ? ' checked' : '') + '><span></span></label></div>' +
+      '<p class="note">Androïde féminine originale, dessinée par l\'appli : plaques sculptées, modules d\'oreille et anneau qui s\'allument avec la voix, couleur de l\'état.</p></div>' +
       '<div id="sFace3dBox"' + (S.avatar === 'visage3d' ? '' : ' hidden') + '>' +
       '<div style="position:relative;width:min(220px,60vw);aspect-ratio:1;margin:22px auto 34px"><canvas id="sFace3dPrev" style="position:absolute;left:-16%;top:-16%;width:132%;height:132%;pointer-events:none"></canvas><div id="sFace3dWait" class="note" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center">Chargement…</div></div>' +
       '<div class="row" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:6px"><button class="btn sm" id="sFace3dTalk">Faire parler</button><button class="btn sm" id="sFace3dSmile">Sourire</button></div>' +
@@ -1646,7 +1650,7 @@
     function num(id, v) { return id === 'faceMakeup' ? +v : v; }
     Object.keys(FACEOPT).forEach(function (id) { var e = $('s_' + id); if (e) e.onchange = function () { S[id] = num(id, this.value); if (id === 'faceStyle') natVis(); apply(); }; });
     Object.keys(FACEBOOL).forEach(function (id) { var e = $('s_' + id); if (e) e.onchange = function () { S[id] = this.checked; apply(); }; });
-    $('sAvatar').onchange = function () { S.avatar = this.value; box.hidden = S.avatar !== 'visage'; $('sFace3dBox').hidden = S.avatar !== 'visage3d'; apply(); prev3d(); if (S.avatar === 'visage') { orb.mood('joie', 1800); if (facePrev) facePrev.f.mood('joie', 1800); } };
+    $('sAvatar').onchange = function () { S.avatar = this.value; box.hidden = S.avatar !== 'visage'; $('sFace3dBox').hidden = S.avatar !== 'visage3d'; $('sAndroBox').hidden = S.avatar !== 'androide'; apply(); prev3d(); if (S.avatar === 'androide') orb.mood('joie', 1800); if (S.avatar === 'visage') { orb.mood('joie', 1800); if (facePrev) facePrev.f.mood('joie', 1800); } };
     // visage 3D : aperçu, modèle, cadrage, expressivité
     function prev3d() {
       var cv = $('sFace3dPrev'); if (!cv || S.avatar !== 'visage3d' || !window.MJFace3D) { if (face3dPrev) { face3dPrev.f.stop(); face3dPrev = null; } return; }
@@ -1660,6 +1664,8 @@
       var stopper = setInterval(function () { if (!cv.isConnected) { clearInterval(stopper); if (face3dPrev && face3dPrev.cv === cv) { face3dPrev.f.stop(); face3dPrev = null; } } }, 1000);
     }
     var c3 = function (id, key) { var e = $(id); if (e) e.onchange = function () { S[key] = e.type === 'checkbox' ? e.checked : this.value; saveS(); orb.apply(); prev3d(); }; };
+    c3('sAndroFrame', 'faceFrame'); c3('sAndroDeco', 'faceDeco');
+    var zA = $('sZenA'); if (zA) zA.onchange = function () { if (MJ.setZen) MJ.setZen(this.checked); };
     c3('sFace3dModel', 'face3dModel'); c3('sFace3dStyle', 'face3dStyle'); c3('sFace3dFrame', 'faceFrame'); c3('sFace3dExpr', 'faceExpr'); c3('sFace3dDeco', 'faceDeco');
     $('sFace3dSmile').onclick = function () { if (face3dPrev) face3dPrev.f.mood(Math.random() < 0.3 ? 'clin' : 'joie', 2200); };
     $('sFace3dTalk').onclick = function () {

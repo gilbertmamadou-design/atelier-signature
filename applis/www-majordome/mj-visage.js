@@ -154,6 +154,14 @@
     }
     function palette() {
       var c = col, mk = clamp(+look.makeup || 0, 0, 3);
+      if (look.style === 'androide') {
+        // androïde en hologramme (personnage original) : peau lisse « porcelaine » teintée par l'état, plaques sculptées
+        return {
+          holo: true, andro: true, skin: mix(c, [190, 205, 222], 0.55), skinA: 0.96, skinHi: mix(c, WHITE, 0.55), skinLo: mix(c, [6, 12, 22], 0.7), hair: mix(c, [20, 30, 46], 0.55), hairHi: mix(c, WHITE, 0.45), hairLo: [6, 10, 18], hairA: 0.85,
+          lip: mix(c, [235, 225, 240], 0.35), lipA: 0.7, iris: mix(c, WHITE, 0.25), sclera: [8, 14, 24], scleraA: 0.92, line: mix(c, WHITE, 0.45), brow: mix(c, WHITE, 0.5), lash: mix(c, WHITE, 0.4),
+          mouthIn: mix(c, [4, 8, 16], 0.6), glow: c, cloth: mix(c, [14, 22, 34], 0.62), metal: mix(c, WHITE, 0.6), blush: mix(c, WHITE, 0.3), shadow: c, mk: 0
+        };
+      }
       if (look.style === 'holo') {
         return {
           holo: true, skin: mix(c, [8, 16, 28], 0.72), skinA: 0.8, skinHi: mix(c, WHITE, 0.35), skinLo: [4, 8, 16], hair: mix(c, [6, 10, 20], 0.62), hairHi: mix(c, WHITE, 0.25), hairLo: [4, 8, 14], hairA: 0.82,
@@ -343,7 +351,61 @@
         }
       }
 
-      hairBack();
+
+      /* ---------- androïde : coque sculptée, plaques, modules d'oreille, anneau lumineux ---------- */
+      function glowLine(pts, a, w) { ctx.beginPath(); curve(ctx, pts, false); ctx.lineCap = 'round'; ctx.strokeStyle = rgba(P.glow, a * 0.35); ctx.lineWidth = s * w * 3.2; ctx.stroke(); ctx.strokeStyle = rgba(P.line, a); ctx.lineWidth = s * w; ctx.stroke(); }
+      function node(x, y, r, a, d) { var px = X(x, d), py = Y(y, d), g = ctx.createRadialGradient(px, py, 0, px, py, s * r * 3); g.addColorStop(0, rgba(WHITE, a)); g.addColorStop(0.25, rgba(P.glow, a * 0.8)); g.addColorStop(1, rgba(P.glow, 0)); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, s * r * 3, 0, 6.2832); ctx.fill(); }
+      function plate(list, d, a) {
+        var pp = list.map(function (q) { return pt(q[0] + (q[2] || 0) * sway, q[1], d); });
+        ctx.beginPath(); curve(ctx, pp, true);
+        var g = ctx.createLinearGradient(0, Y(-1.3), 0, Y(0.9));
+        g.addColorStop(0, rgba(mix(P.hair, P.hairHi, 0.45), P.hairA * a)); g.addColorStop(0.6, rgba(P.hair, P.hairA * a)); g.addColorStop(1, rgba(P.hairLo, P.hairA * a * 0.6));
+        ctx.fillStyle = g; ctx.fill();
+        ctx.strokeStyle = rgba(P.line, 0.55); ctx.lineWidth = s * 0.008; ctx.stroke();
+      }
+      function androBack() {
+        // crâne lisse et plaques balayées vers l'arrière (volume d'une coiffure, en éléments rigides)
+        plate([[0, -1.24], [0.62, -1.12], [0.92, -0.7], [0.98, -0.1], [0.9, 0.42, 0.4], [0.7, 0.62, 0.4], [0.5, 0.3], [0, 0.2], [-0.5, 0.3], [-0.7, 0.62, 0.4], [-0.9, 0.42, 0.4], [-0.98, -0.1], [-0.92, -0.7], [-0.62, -1.12]], -0.3, 1);
+        [-1, 1].forEach(function (sd) {
+          plate([[sd * 0.55, -1.08], [sd * 1.0, -0.78], [sd * 1.12, -0.25], [sd * 1.08, 0.38, 0.6], [sd * 0.98, 0.7, 0.8], [sd * 0.92, 0.3], [sd * 0.88, -0.3], [sd * 0.7, -0.82]], -0.32, 0.95);
+          plate([[sd * 0.72, -0.62], [sd * 1.16, -0.1], [sd * 1.2, 0.5, 0.7], [sd * 1.08, 0.95, 1], [sd * 1.0, 0.6, 0.8], [sd * 0.96, 0.1]], -0.34, 0.85);
+        });
+      }
+      function androFront() {
+        // calotte avant : bord net au-dessus du front, rainures
+        var cap = [[-0.74, -0.32], [-0.82, -0.7], [-0.58, -1.06], [0, -1.2], [0.58, -1.06], [0.82, -0.7], [0.74, -0.32], [0.68, -0.52], [0.5, -0.74], [0.24, -0.84], [0, -0.87], [-0.24, -0.84], [-0.5, -0.74], [-0.68, -0.52]];
+        plate(cap, 0.02, 1);
+        glowLine([pt(-0.66, -0.56, 0.02), pt(-0.4, -0.86, 0.02), pt(0, -0.98, 0.02), pt(0.4, -0.86, 0.02), pt(0.66, -0.56, 0.02)], 0.55, 0.006);
+        glowLine([pt(0, -1.18, 0.02), pt(0, -0.88, 0.02)], 0.45, 0.005);
+        // modules d'oreille : anneaux concentriques qui s'allument avec la voix
+        [-1, 1].forEach(function (sd) {
+          var ex = X(sd * 0.78, -0.02), ey = Y(-0.02, -0.02);
+          ctx.fillStyle = rgba(mix(P.hair, P.hairHi, 0.3), 0.95); ctx.beginPath(); ctx.ellipse(ex, ey, s * 0.085, s * 0.13, 0, 0, 6.2832); ctx.fill();
+          for (var r = 0; r < 3; r++) { ctx.beginPath(); ctx.ellipse(ex, ey, s * (0.07 - r * 0.02), s * (0.11 - r * 0.03), 0, 0, 6.2832); ctx.strokeStyle = rgba(P.line, 0.35 + r * 0.15 + lvlS * 0.3); ctx.lineWidth = s * 0.006; ctx.stroke(); }
+          node(sd * 0.78, -0.02, 0.012, 0.6 + lvlS * 0.4, -0.02);
+        });
+        // anneau lumineux au-dessus de la tête (tourne lentement, s'intensifie avec le son)
+        var rx = s * 0.62, ry = s * 0.12, hx = X(0, -0.1), hy = Y(-1.42, -0.1), rot = t * 0.6;
+        ctx.save(); ctx.lineCap = 'round';
+        for (var k = 0; k < 24; k++) {
+          var a0 = rot + k / 24 * 6.2832, a1 = a0 + 0.17, front = Math.sin(a0 + 0.08) > 0;
+          ctx.beginPath(); ctx.ellipse(hx, hy, rx, ry, 0, a0, a1);
+          ctx.strokeStyle = rgba(front ? P.line : P.glow, (front ? 0.75 : 0.25) * (0.6 + lvlS * 0.6)); ctx.lineWidth = s * (front ? 0.014 : 0.008); ctx.stroke();
+        }
+        ctx.restore();
+      }
+      function androFace() {
+        // jointures du visage (fines lignes lumineuses) et points de lumière
+        [-1, 1].forEach(function (sd) {
+          glowLine([pt(sd * 0.5, -0.86, 0.05), pt(sd * 0.64, -0.5, 0.05), pt(sd * 0.68, -0.05, 0.05), pt(sd * 0.6, 0.38, 0.05), pt(sd * 0.42, 0.66, 0.05)], 0.4, 0.005);
+          glowLine([pt(sd * 0.2, 0.06, 0.14), pt(sd * 0.32, 0.1, 0.14), pt(sd * 0.46, 0.08, 0.14)], 0.3, 0.004);
+          node(sd * 0.68, -0.05, 0.008, 0.5 + lvlS * 0.5, 0.05);
+          node(sd * 0.42, 0.66, 0.006, 0.4 + lvlS * 0.4, 0.05);
+        });
+        glowLine([pt(0, 0.8, 0.12), pt(0, 0.95, 0.12)], 0.35, 0.004);
+        node(0, -0.72, 0.008, 0.45 + lvlS * 0.5, 0.1);
+      }
+      if (P.andro) androBack(); else hairBack();
 
       /* ---------- cou, épaules, vêtement, collier ---------- */
       var chinDrop = A.mouth * 0.06;
@@ -353,9 +415,13 @@
       var ng = ctx.createLinearGradient(0, Y(0.75), 0, Y(1.6));
       ng.addColorStop(0, rgba(mix(P.skin, P.skinLo, 0.55), P.skinA)); ng.addColorStop(0.45, rgba(mix(P.skin, P.skinLo, 0.15), P.skinA)); ng.addColorStop(1, rgba(P.skin, P.skinA));
       ctx.fillStyle = ng; ctx.fill();
-      // muscles du cou, creux et clavicules
+      // androïde : cou segmenté (anneaux) et câbles ; sinon muscles du cou, creux et clavicules
+      if (P.andro) {
+        for (var nr = 0; nr < 6; nr++) { var ny = 0.86 + nr * 0.085; ctx.beginPath(); ctx.ellipse(X(0), Y(ny), s * 0.255, s * 0.035, 0, 0.1, Math.PI - 0.1); ctx.strokeStyle = rgba(P.line, 0.4); ctx.lineWidth = s * 0.006; ctx.stroke(); }
+        [-1, 1].forEach(function (sd) { glowLine([pt(sd * 0.2, 0.85), pt(sd * 0.24, 1.1), pt(sd * 0.34, 1.32), pt(sd * 0.6, 1.46)], 0.35, 0.005); });
+      }
       ctx.lineCap = 'round';
-      [-1, 1].forEach(function (sd) {
+      if (!P.andro) [-1, 1].forEach(function (sd) {
         strand(pt(sd * 0.22, 0.92), pt(sd * 0.17, 1.1), pt(sd * 0.1, 1.28), pt(sd * 0.05, 1.38), P.skinLo, 0.08, s * 0.02);
         strand(pt(sd * 0.1, 1.44), pt(sd * 0.3, 1.38), pt(sd * 0.55, 1.4), pt(sd * 0.82, 1.45), P.skinLo, 0.22, s * 0.014);
         strand(pt(sd * 0.12, 1.41), pt(sd * 0.3, 1.35), pt(sd * 0.55, 1.37), pt(sd * 0.8, 1.42), P.skinHi, 0.25, s * 0.01);
@@ -369,7 +435,7 @@
       ctx.fillStyle = cg; ctx.fill();
       strand(pt(-0.62, 1.56), pt(-0.4, 1.66), pt(-0.2, 1.76), pt(0, 1.8), mix(P.cloth, WHITE, 0.35), 0.5, s * 0.015);
       strand(pt(0.62, 1.56), pt(0.4, 1.66), pt(0.2, 1.76), pt(0, 1.8), mix(P.cloth, WHITE, 0.35), 0.5, s * 0.015);
-      if (look.jewels) {
+      if (look.jewels && !P.andro) {
         strand(pt(-0.27, 1.12), pt(-0.22, 1.42), pt(0.22, 1.42), pt(0.27, 1.12), P.metal, 0.85, s * 0.008);
         var pX = X(0), pY = Y(1.47);
         ctx.fillStyle = rgba(P.metal, 0.95); ctx.beginPath(); ctx.moveTo(pX, pY - s * 0.035); ctx.lineTo(pX + s * 0.022, pY); ctx.lineTo(pX, pY + s * 0.04); ctx.lineTo(pX - s * 0.022, pY); ctx.closePath(); ctx.fill();
@@ -379,7 +445,7 @@
       ell(0, 0.98 + chinDrop, 0.42, 0.22, P.skinLo, P.holo ? 0.45 : 0.4);
 
       /* ---------- oreilles (coiffures courtes ou relevées) ---------- */
-      if (HS.ears) {
+      if (HS.ears && !P.andro) {
         [-1, 1].forEach(function (sd) {
           var ep = [pt(sd * 0.71, -0.2, -0.05), pt(sd * 0.82, -0.24, -0.05), pt(sd * 0.87, -0.08, -0.05), pt(sd * 0.84, 0.1, -0.05), pt(sd * 0.78, 0.24, -0.05), pt(sd * 0.71, 0.24, -0.05)];
           ctx.beginPath(); curve(ctx, ep, true);
@@ -420,13 +486,14 @@
       ell(0, 0.71 + A.mouth * 0.13, 0.13, 0.04, P.skinLo, 0.22, 0.2);  // sous la lèvre
       // taches de rousseur, grain de beauté
       if (look.freckles && !P.holo) FRECK.forEach(function (f) { ctx.fillStyle = rgba(mix(P.skinLo, [130, 70, 40], 0.4), f[3]); ctx.beginPath(); ctx.arc(X(f[0], 0.12), Y(f[1], 0.12), f[2] * s, 0, 6.2832); ctx.fill(); });
-      if (look.mole) { ctx.fillStyle = P.holo ? rgba(P.line, 0.8) : 'rgba(70,40,30,0.85)'; ctx.beginPath(); ctx.arc(X(0.3, 0.18), Y(0.5, 0.18), s * 0.011, 0, 6.2832); ctx.fill(); }
+      if (look.mole && !P.andro) { ctx.fillStyle = P.holo ? rgba(P.line, 0.8) : 'rgba(70,40,30,0.85)'; ctx.beginPath(); ctx.arc(X(0.3, 0.18), Y(0.5, 0.18), s * 0.011, 0, 6.2832); ctx.fill(); }
       ctx.restore();
       // contour : lueur de l'état
       ctx.beginPath(); curve(ctx, face, true);
       ctx.lineWidth = s * (P.holo ? 0.05 : 0.03); ctx.strokeStyle = rgba(P.glow, P.holo ? 0.18 + lv * 0.2 : 0.08 + lv * 0.14); ctx.stroke();
       ctx.lineWidth = Math.max(1, s * 0.008); ctx.strokeStyle = rgba(P.holo ? P.line : mix(P.skinLo, P.glow, 0.2), P.holo ? 0.85 : 0.3); ctx.stroke();
 
+      if (P.andro) androFace();
       /* ---------- sourcils : forme effilée et poils ---------- */
       [-1, 1].forEach(function (sd) {
         var r = A.brow * 0.05, w = A.worry, f = A.furrow;
@@ -443,7 +510,7 @@
         bg.addColorStop(0, rgba(P.brow, P.holo ? 0.55 : 0.6)); bg.addColorStop(0.35, rgba(P.brow, P.holo ? 0.9 : 0.92)); bg.addColorStop(1, rgba(P.brow, P.holo ? 0.75 : 0.8));
         ctx.fillStyle = bg; ctx.fill();
         ctx.lineCap = 'round';
-        for (k = 0; k < 9; k++) {
+        for (k = 0; k < (P.andro ? 0 : 9); k++) {
           var u2 = k / 9, pp = bz(b0, b1, b2, b3, u2 * 0.9);
           strand(pt(pp[0], pp[1] + 0.012, 0.16), pt(pp[0] + sd * 0.01, pp[1], 0.16), pt(pp[0] + sd * 0.02, pp[1] - 0.012, 0.16), pt(pp[0] + sd * (0.025 + u2 * 0.02), pp[1] - 0.018 + u2 * 0.012, 0.16), mix(P.brow, BLACK, 0.3), 0.45, s * 0.005);
         }
@@ -478,9 +545,13 @@
           sg.addColorStop(0, 'rgba(0,0,0,0)'); sg.addColorStop(1, rgba(P.holo ? BLACK : [150, 110, 110], 0.4));
           ctx.fillStyle = sg; ctx.fillRect(X(ex - 0.22, d), Y(ey - 0.2, d), s * 0.44, s * 0.36);
           var ix = X(ex + A.gx * 0.065, d + 0.02), iy = Y(ey + A.gy * 0.035 + 0.008, d + 0.02), ir = s * 0.08;
+          if (P.andro) {
+            var gl2 = ctx.createRadialGradient(ix, iy, 0, ix, iy, ir * 1.6); gl2.addColorStop(0, rgba(P.glow, 0.5 + lvlS * 0.3)); gl2.addColorStop(1, rgba(P.glow, 0)); ctx.fillStyle = gl2; ctx.fillRect(ix - ir * 2, iy - ir * 2, ir * 4, ir * 4);
+          }
           var ig = ctx.createRadialGradient(ix, iy, ir * 0.2, ix, iy, ir);
           ig.addColorStop(0, rgba(mix(P.iris, [240, 200, 120], 0.35), 1)); ig.addColorStop(0.45, rgba(mix(P.iris, WHITE, 0.12), 1)); ig.addColorStop(0.85, rgba(P.iris, 1)); ig.addColorStop(1, rgba(mix(P.iris, BLACK, 0.6), 1));
           ctx.fillStyle = ig; ctx.beginPath(); ctx.arc(ix, iy, ir, 0, 6.2832); ctx.fill();
+          if (P.andro) { [0.55, 0.78].forEach(function (k2, q) { ctx.beginPath(); ctx.arc(ix, iy, ir * k2, t * (q ? -0.8 : 1.2), t * (q ? -0.8 : 1.2) + 4.7); ctx.strokeStyle = rgba(WHITE, 0.55); ctx.lineWidth = Math.max(0.7, ir * 0.06); ctx.stroke(); }); }
           ctx.lineWidth = Math.max(0.6, ir * 0.04);
           for (var f = 0; f < (small ? 18 : 28); f++) {
             var an = f / (small ? 18 : 28) * 6.2832, r1 = ir * 0.42, r2 = ir * (0.82 + (f % 3) * 0.05);
@@ -520,7 +591,7 @@
           ctx.lineWidth = s * 0.012; ctx.stroke();
         }
         // cils (vers le haut ; vers le bas quand l'œil est fermé)
-        var nL = small ? 8 : 11, dn = op < 0.25;
+        var nL = P.andro ? 0 : small ? 8 : 11, dn = op < 0.25;
         for (var l = 0; l < nL; l++) {
           var u = 0.22 + 0.78 * l / (nL - 1), b = bz(iC, u1, u2, oC, u), len = s * (0.02 + u * 0.034) * (1 + P.mk * 0.12) * (0.85 + 0.3 * ((l * 7) % 5) / 4);
           var dx = sd * (0.25 + u * 0.95), dy = dn ? 0.75 : -1, nn = Math.hypot(dx, dy);
@@ -573,12 +644,15 @@
         ctx.beginPath(); line(upIn, true); line(loIn, false); ctx.closePath();
         ctx.fillStyle = rgba(P.mouthIn, P.holo ? 0.8 : 1); ctx.fill();
         ctx.save(); ctx.clip();
+        if (P.andro) { var mg = ctx.createRadialGradient(X(0, md), Y(my + o * 0.05, md), 0, X(0, md), Y(my + o * 0.05, md), s * w); mg.addColorStop(0, rgba(WHITE, 0.4 + lvlS * 0.5)); mg.addColorStop(0.4, rgba(P.glow, 0.7)); mg.addColorStop(1, rgba(P.glow, 0.1)); ctx.fillStyle = mg; ctx.fillRect(X(-0.3, md), Y(my - 0.1, md), s * 0.6, s * 0.35); ctx.restore(); }
+        else {
         ctx.fillStyle = P.holo ? rgba(mix(P.glow, WHITE, 0.7), 0.8) : 'rgba(246,244,238,0.97)';
         ctx.beginPath(); ctx.ellipse(X(0, md), Y(my - 0.012 - o * 0.012, md), s * w * 0.8, s * 0.032, 0, 0, 6.2832); ctx.fill();
         ctx.fillStyle = 'rgba(0,0,0,0.12)'; for (var tq = -2; tq <= 2; tq++) ctx.fillRect(X(tq * 0.045 + 0.022, md), Y(my - 0.04, md), Math.max(0.6, s * 0.004), s * 0.05);
         ctx.fillStyle = P.holo ? rgba(mix(P.glow, [255, 120, 160], 0.5), 0.5) : 'rgba(196,84,96,0.9)';
         ctx.beginPath(); ctx.ellipse(X(0, md), Y(my + o * 0.12, md), s * w * 0.62, s * 0.05, 0, 0, 6.2832); ctx.fill();
         ctx.restore();
+        }
       }
       ctx.beginPath(); upperOuter(); line(upIn, false); ctx.closePath();
       var ug2 = ctx.createLinearGradient(0, pkL[1], 0, Y(my, md));
@@ -597,7 +671,7 @@
       [[cL, -1], [cR, 1]].forEach(function (cc) { ctx.beginPath(); ctx.moveTo(cc[0][0], cc[0][1]); ctx.quadraticCurveTo(cc[0][0] + cc[1] * s * 0.018, cc[0][1] - s * A.smile * 0.012, cc[0][0] + cc[1] * s * 0.028, cc[0][1] - s * A.smile * 0.028); ctx.stroke(); });
       if (P.holo) { ctx.beginPath(); upperOuter(); line(loBot, false); ctx.strokeStyle = rgba(P.line, 0.5); ctx.lineWidth = s * 0.007; ctx.stroke(); }
 
-      hairFront();
+      if (P.andro) androFront(); else hairFront();
 
       /* ---------- lunettes ---------- */
       if (look.glasses === 'fines' || look.glasses === 'rondes') {

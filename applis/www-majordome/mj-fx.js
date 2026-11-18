@@ -166,6 +166,7 @@
     /* sphère seule */
     'html.mj-zen #topbar,html.mj-zen #who,html.mj-zen #status,html.mj-zen #heard,html.mj-zen #rts,html.mj-zen #moment,html.mj-zen footer,html.mj-zen #dock,html.mj-zen #hint,html.mj-zen #last{display:none!important}' +
     'html.mj-zen #orbBox{position:fixed!important;left:50%;top:50%;transform:translate(-50%,-50%);width:min(94vw,82vh,720px)!important;margin:0!important;z-index:1}' +
+    'html.mj-zen #orbBox.visage{width:min(100vw,92vh,1000px)!important}' +
     'html.mj-zen #side{position:fixed;left:12px;right:12px;bottom:calc(14px + var(--safe-b,0px));z-index:3;max-height:38vh;overflow:auto;pointer-events:auto}' +
     'html.mj-zen #side .card{backdrop-filter:blur(8px);background:rgb(8 16 24 / .78)}' +
     'html.mj-zen #side .card.q{display:none}' +
