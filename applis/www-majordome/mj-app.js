@@ -35,7 +35,8 @@
 
   /* ---------------- Réglages (stockés localement seulement) ---------------- */
   var DEF = {
-    avatar: 'sphere', faceStyle: 'naturel', faceSkin: 'claire', faceHair: 'brun', faceEyes: 'noisette',
+    avatar: 'sphere', faceStyle: 'naturel', faceSkin: 'claire', faceHair: 'brun', faceEyes: 'noisette', faceCoiffure: 'long', faceLips: 'naturel', faceMakeup: 1,
+    faceFreckles: false, faceMole: false, faceJewels: true, faceGlasses: 'aucune', faceCloth: 'nuit', faceFrame: 'buste', faceExpr: 'normal',
     name: 'Majordome', wake: '', address: 'monsieur', prenom: '', voice: '', rate: 1, pitch: 1, volume: 1, voiceOn: true, beeps: true,
     tts: 'system', piperVoice: 'pierre', fx: 'majordome', fxo: null,
     engine: ANDROID ? 'vosk' : 'vosk', webOk: false, wakeOn: false, wakeCharging: false, autoListen: true,
@@ -86,7 +87,8 @@
   var orbBox = $('orbBox'), lvShown = -1;
   // sphère ou visage (réglage « Apparence ») : même interface, échangeable à chaud
   function orbLevel(v) { v = Math.round(v * 50) / 50; if (v !== lvShown) { lvShown = v; orbBox.style.setProperty('--lv', v); } }
-  function faceLook() { return { style: S.faceStyle, skin: S.faceSkin, hair: S.faceHair, eyes: S.faceEyes }; }
+  var FACEKEYS = { style: 'faceStyle', coiffure: 'faceCoiffure', hair: 'faceHair', skin: 'faceSkin', eyes: 'faceEyes', lips: 'faceLips', makeup: 'faceMakeup', freckles: 'faceFreckles', mole: 'faceMole', jewels: 'faceJewels', glasses: 'faceGlasses', cloth: 'faceCloth', frame: 'faceFrame', expr: 'faceExpr' };
+  function faceLook() { var o = {}; for (var k in FACEKEYS) o[k] = S[FACEKEYS[k]]; return o; }
   var orb = (function () {
     var cur = null, kind = '', px = {};
     ['state', 'get', 'level', 'speak', 'word', 'voice', 'pulse', 'metrics'].forEach(function (m) { px[m] = function () { return cur[m].apply(cur, arguments); }; });
@@ -1577,25 +1579,68 @@
     if (focus) { var f = $('f-' + focus); if (f) setTimeout(function () { f.scrollIntoView({ block: 'start' }); }, 50); }
   }
   MJ.settingsSheet = settingsSheet;
-  /* Apparence : sphère ou visage animé, style et traits du visage */
+  /* Apparence : sphère ou visage animé ; personnalisation du visage avec aperçu en direct */
+  var FACEOPT = {
+    faceStyle: ['Style', [['naturel', 'Naturel'], ['holo', 'Hologramme']]],
+    faceCoiffure: ['Coiffure', [['long', 'Longs lisses'], ['ondules', 'Longs ondulés'], ['frange', 'Longs avec frange'], ['carre', 'Carré'], ['court', 'Courts'], ['chignon', 'Chignon'], ['boucles', 'Bouclés']]],
+    faceHair: ['Couleur des cheveux', [['brun', 'Bruns'], ['chatain', 'Châtains'], ['blond', 'Blonds'], ['platine', 'Blond platine'], ['roux', 'Roux'], ['auburn', 'Auburn'], ['noir', 'Noirs'], ['argent', 'Argentés'], ['rose', 'Roses'], ['bleu', 'Bleus']]],
+    faceSkin: ['Teint', [['claire', 'Clair'], ['rosee', 'Rosé'], ['medium', 'Doré'], ['mate', 'Mat'], ['foncee', 'Foncé'], ['ebene', 'Ébène']]],
+    faceEyes: ['Yeux', [['noisette', 'Noisette'], ['marron', 'Marron'], ['vert', 'Verts'], ['bleu', 'Bleus'], ['gris', 'Gris'], ['ambre', 'Ambre'], ['violet', 'Violets']]],
+    faceLips: ['Lèvres', [['naturel', 'Naturelles'], ['rose', 'Rose'], ['nude', 'Nude'], ['corail', 'Corail'], ['rouge', 'Rouge'], ['framboise', 'Framboise'], ['prune', 'Prune']]],
+    faceMakeup: ['Maquillage', [['0', 'Aucun'], ['1', 'Léger'], ['2', 'Moyen (eye-liner)'], ['3', 'Soutenu']]],
+    faceGlasses: ['Lunettes', [['aucune', 'Aucune'], ['fines', 'Fines'], ['rondes', 'Rondes dorées']]],
+    faceCloth: ['Haut', [['nuit', 'Bleu nuit'], ['noir', 'Noir'], ['blanc', 'Blanc'], ['bordeaux', 'Bordeaux'], ['emeraude', 'Émeraude'], ['lavande', 'Lavande'], ['moutarde', 'Moutarde']]],
+    faceFrame: ['Cadrage', [['buste', 'Buste'], ['proche', 'Gros plan']]],
+    faceExpr: ['Expressivité', [['calme', 'Calme'], ['normal', 'Normale'], ['expressif', 'Très expressive']]]
+  };
+  var FACEBOOL = { faceFreckles: 'Taches de rousseur', faceMole: 'Grain de beauté', faceJewels: 'Bijoux (collier, boucles d\'oreilles visibles avec cheveux courts ou relevés)' };
+  var facePrev = null;
   function faceHtml() {
-    var sel = function (id, cur, l) { return '<select class="in" id="' + id + '">' + l.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === cur ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>'; };
-    var nat = S.faceStyle !== 'holo';
+    var sel = function (id) { var cur = String(S[id]); return '<select class="in" id="s_' + id + '">' + FACEOPT[id][1].map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === cur ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>'; };
+    var row = function (id) { return '<div class="set"' + (id !== 'faceStyle' && id !== 'faceCoiffure' && id !== 'faceFrame' && id !== 'faceExpr' ? ' data-nat' : '') + '><div class="t">' + FACEOPT[id][0] + '</div>' + sel(id) + '</div>'; };
+    var sw = function (id) { return '<div class="set" data-nat><div class="t">' + FACEBOOL[id] + '</div><label class="sw"><input type="checkbox" id="s_' + id + '"' + (S[id] ? ' checked' : '') + '><span></span></label></div>'; };
     return '<div class="set" id="f-apparence"><div class="t">Apparence<small>La sphère de particules, ou un visage qui cligne des yeux, vous regarde et parle avec la voix</small></div>' +
-      sel('sAvatar', S.avatar, [['sphere', 'Sphère'], ['visage', 'Visage']]) + '</div>' +
+      '<select class="in" id="sAvatar"><option value="sphere"' + (S.avatar !== 'visage' ? ' selected' : '') + '>Sphère</option><option value="visage"' + (S.avatar === 'visage' ? ' selected' : '') + '>Visage</option></select></div>' +
       '<div id="sFaceBox"' + (S.avatar === 'visage' ? '' : ' hidden') + '>' +
-      '<div class="set"><div class="t">Style du visage</div>' + sel('sFaceStyle', S.faceStyle, [['naturel', 'Naturel'], ['holo', 'Hologramme']]) + '</div>' +
-      '<div id="sFaceNat"' + (nat ? '' : ' hidden') + '>' +
-      '<div class="set"><div class="t">Teint</div>' + sel('sFaceSkin', S.faceSkin, [['claire', 'Clair'], ['rosee', 'Rosé'], ['medium', 'Doré'], ['mate', 'Mat'], ['foncee', 'Foncé']]) + '</div>' +
-      '<div class="set"><div class="t">Cheveux</div>' + sel('sFaceHair', S.faceHair, [['brun', 'Bruns'], ['chatain', 'Châtains'], ['blond', 'Blonds'], ['roux', 'Roux'], ['noir', 'Noirs'], ['argent', 'Argentés']]) + '</div>' +
-      '<div class="set"><div class="t">Yeux</div>' + sel('sFaceEyes', S.faceEyes, [['noisette', 'Noisette'], ['marron', 'Marron'], ['vert', 'Verts'], ['bleu', 'Bleus'], ['gris', 'Gris']]) + '</div>' +
-      '</div><p class="note">La couleur de l\'état (écoute, réflexion, parole) reste visible dans le halo' + (nat ? ' et le contour du visage' : '') + '.</p></div>';
+      '<div style="position:relative;width:min(220px,60vw);aspect-ratio:1;margin:6px auto 4px"><canvas id="sFacePrev" style="position:absolute;left:-16%;top:-16%;width:132%;height:132%;pointer-events:none"></canvas></div>' +
+      '<div class="row" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:6px"><button class="btn sm" id="sFaceRnd">🎲 Au hasard</button><button class="btn sm" id="sFaceTalk">Faire parler</button><button class="btn sm" id="sFaceSmile">Sourire</button><button class="btn sm" id="sFaceRaz">Par défaut</button></div>' +
+      row('faceStyle') + row('faceCoiffure') + row('faceHair') + row('faceSkin') + row('faceEyes') + row('faceLips') + row('faceMakeup') + row('faceGlasses') + row('faceCloth') +
+      sw('faceFreckles') + sw('faceMole') + sw('faceJewels') + row('faceFrame') + row('faceExpr') +
+      '<p class="note">Personnage original dessiné par l\'appli. La couleur de l\'état (écoute, réflexion, parole) reste visible dans le halo et le contour du visage.</p></div>';
   }
   function faceBind() {
-    var ch = function (id, key, after) { var e = $(id); if (e) e.onchange = function () { S[key] = this.value; saveS(); orb.apply(); if (after) after(); }; };
-    ch('sAvatar', 'avatar', function () { $('sFaceBox').hidden = S.avatar !== 'visage'; if (S.avatar === 'visage') orb.mood('joie', 1800); });
-    ch('sFaceStyle', 'faceStyle', function () { $('sFaceNat').hidden = S.faceStyle === 'holo'; });
-    ch('sFaceSkin', 'faceSkin'); ch('sFaceHair', 'faceHair'); ch('sFaceEyes', 'faceEyes');
+    var box = $('sFaceBox'); if (!box) return;
+    function natVis() { box.querySelectorAll('[data-nat]').forEach(function (e) { e.hidden = S.faceStyle === 'holo' && !/faceGlasses/.test(e.innerHTML); }); }
+    function prev() {
+      var cv = $('sFacePrev'); if (!cv || S.avatar !== 'visage' || !window.MJFace) return;
+      if (facePrev && facePrev.cv === cv) { facePrev.f.look(faceLook()); return; }
+      if (facePrev) facePrev.f.stop();
+      var o = faceLook(); o.pad = 1.32; o.preview = true;
+      facePrev = { cv: cv, f: window.MJFace.create(cv, o) };
+    }
+    function apply() { saveS(); orb.apply(); prev(); }
+    function num(id, v) { return id === 'faceMakeup' ? +v : v; }
+    Object.keys(FACEOPT).forEach(function (id) { var e = $('s_' + id); if (e) e.onchange = function () { S[id] = num(id, this.value); if (id === 'faceStyle') natVis(); apply(); }; });
+    Object.keys(FACEBOOL).forEach(function (id) { var e = $('s_' + id); if (e) e.onchange = function () { S[id] = this.checked; apply(); }; });
+    $('sAvatar').onchange = function () { S.avatar = this.value; box.hidden = S.avatar !== 'visage'; apply(); if (S.avatar === 'visage') { orb.mood('joie', 1800); if (facePrev) facePrev.f.mood('joie', 1800); } };
+    function sync() { Object.keys(FACEOPT).forEach(function (id) { var e = $('s_' + id); if (e) e.value = String(S[id]); }); Object.keys(FACEBOOL).forEach(function (id) { var e = $('s_' + id); if (e) e.checked = !!S[id]; }); natVis(); }
+    $('sFaceRnd').onclick = function () {
+      var pick = function (id) { var l = FACEOPT[id][1]; return num(id, l[Math.floor(Math.random() * l.length)][0]); };
+      ['faceCoiffure', 'faceHair', 'faceSkin', 'faceEyes', 'faceLips', 'faceMakeup', 'faceCloth'].forEach(function (id) { S[id] = pick(id); });
+      if (Math.random() < 0.6 && /rose|bleu/.test(S.faceHair)) S.faceHair = pick('faceHair');   // couleurs fantaisie plus rares
+      S.faceGlasses = Math.random() < 0.2 ? (Math.random() < 0.5 ? 'fines' : 'rondes') : 'aucune';
+      S.faceFreckles = Math.random() < 0.25; S.faceMole = Math.random() < 0.2; S.faceJewels = Math.random() < 0.7; S.faceStyle = 'naturel';
+      sync(); apply(); if (facePrev) facePrev.f.mood('joie', 1500);
+    };
+    $('sFaceRaz').onclick = function () { ['faceStyle', 'faceCoiffure', 'faceHair', 'faceSkin', 'faceEyes', 'faceLips', 'faceMakeup', 'faceFreckles', 'faceMole', 'faceJewels', 'faceGlasses', 'faceCloth', 'faceFrame', 'faceExpr'].forEach(function (k) { S[k] = DEF[k]; }); sync(); apply(); };
+    $('sFaceSmile').onclick = function () { if (facePrev) facePrev.f.mood(Math.random() < 0.3 ? 'clin' : 'joie', 2200); };
+    $('sFaceTalk').onclick = function () {
+      if (!facePrev) return;
+      var f = facePrev.f, t0 = Date.now(), txt = 'Bonjour, je suis ' + S.name + '. Comment me trouvez-vous ?';
+      f.speak(true, txt, 1);
+      var iv = setInterval(function () { var e = (Date.now() - t0) / 1000; if (e > 2.6 || !facePrev || facePrev.f !== f) { clearInterval(iv); f.speak(false); f.state('idle'); return; } var syl = Math.abs(Math.sin(e * Math.PI * 4.4)); f.voice((e % 1.3) > 1.15 ? 0 : 0.15 + 0.8 * Math.pow(syl, 1.5)); }, 33);
+    };
+    natVis(); prev();
   }
   /* Écran d'accueil de n'importe quel lanceur : widget Android (redimensionnable jusqu'au plein écran) et fond d'écran animé */
   function homeHtml() {
