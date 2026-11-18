@@ -253,7 +253,7 @@
     function draw(t, eyeOpen, breathe, P) {
       var close = look.frame === 'proche', CORPS = look.frame === 'corps' && P.andro;
       var box = Math.min(W, H) / PAD, s = box * (close ? 0.42 : 0.33), cx = W / 2, cy = H / 2 - box * (close ? 0.02 : 0.08);
-      if (CORPS) { var hb = H / PAD; s = Math.min(hb / 18.6, (W / PAD) / 4.6); cx = W / 2; cy = (H - hb) / 2 + 1.55 * s; }   // silhouette entière : la hauteur commande
+      if (CORPS) { var hb = H / PAD; s = Math.min(hb / 15.9, (W / PAD) / 4.2); cx = W / 2; cy = (H - hb) / 2 + 1.7 * s; }   // silhouette entière : la hauteur commande
       var yaw = A.yaw, pitch = A.pitch, HS = HAIR[look.coiffure] || HAIR.long;
       function X(x, d) { return cx + (x * (1 - Math.abs(yaw) * 0.12) + yaw * (d || 0) * 1.1) * s; }
       function Y(y, d) { return cy + (y * (1 + breathe) + pitch * (d || 0) * 0.9 + pitch * 0.15) * s; }
@@ -408,8 +408,9 @@
       }
 
       /* ---------- androïde : silhouette entière (personnage original, élégant, sans détail anatomique) ---------- */
-      function BX(x) { return cx + x * s; }
-      function BY(y) { return cy + y * s; }
+      var BK = 0.9;   // corps un peu plus petit que la tête (proportions plus harmonieuses)
+      function BX(x) { return cx + x * s * BK; }
+      function BY(y) { return cy + (0.95 + (y - 0.95) * BK) * s; }
       function bp(x, y) { return [BX(x), BY(y)]; }
       function limb(c, w) {   // contour lisse autour d'une ligne médiane (largeurs aux points)
         var L = [], R = [], n = c.length;
@@ -430,50 +431,53 @@
       function seam(list, a) { ctx.beginPath(); curve(ctx, list.map(function (q) { return bp(q[0], q[1]); }), false); ctx.lineCap = 'round'; ctx.strokeStyle = rgba(P.glow, a * 0.3); ctx.lineWidth = s * 0.07; ctx.stroke(); ctx.strokeStyle = rgba(P.line, a); ctx.lineWidth = Math.max(0.8, s * 0.018); ctx.stroke(); }
       function joint(x, y, r) { var px = BX(x), py = BY(y), g = ctx.createRadialGradient(px, py, 0, px, py, s * r * 3); g.addColorStop(0, rgba(WHITE, 0.6 + lvlS * 0.3)); g.addColorStop(0.3, rgba(P.glow, 0.55)); g.addColorStop(1, rgba(P.glow, 0)); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, s * r * 3, 0, 6.2832); ctx.fill(); }
       function drawBody() {
-        var hx = reduce ? 0 : Math.sin(t * 0.45) * 0.07, ar = reduce ? 0 : Math.sin(t * 0.7) * 0.04;
-        var hipY = function (sd) { return 6.05 + sd * 0.1; }, shY = function (sd) { return 1.8 - sd * 0.05; };   // déhanché : poids sur la jambe gauche
-        // bas du corps d'un seul tenant (hanches, cuisses, genoux, mollets) : silhouette en sablier, jambe gauche d'appui
-        var kn = 0.1, kr = function (sd) { return sd > 0 ? -0.12 : 0; }, an = function (sd) { return sd > 0 ? 0.1 : 0; };
-        var side = function (sd) { var k = kr(sd), a = an(sd); return [[sd * 0.74 + hx * 0.5, 4.6], [sd * 0.98 + hx, 5.3], [sd * 1.32 + hx, 6.1 + sd * 0.08], [sd * 1.2 + hx * 0.7, 7.5], [sd * 0.98 + k * 0.5, 8.9], [sd * 0.74 + k, 10.15], [sd * 0.8 + k, 11.1], [sd * 0.62 + a * 0.6, 12.9], [sd * 0.46 + a, 14.4]]; };
-        var inner = function (sd) { var k = kr(sd), a = an(sd); return [[sd * 0.24 + a, 14.4], [sd * 0.26 + a * 0.6, 12.4], [sd * 0.3 + k, 10.9], [sd * 0.3 + k, 10.15], [sd * 0.2 + k * 0.5, 8.6], [sd * 0.07 + hx, 7.25]]; };
-        var low = side(1).concat(inner(1), inner(-1).reverse(), side(-1).reverse());
-        shell(low.map(function (q) { return bp(q[0], q[1]); }), 0.97);
-        [-1, 1].forEach(function (sd) {
-          var k = kr(sd), a = an(sd), kx = sd * 0.52 + k, ax = sd * 0.35 + a, ay = 14.42;
-          seam([[kx - 0.2, 10.15], [kx, 10.22], [kx + 0.2, 10.15]], 0.45);                                   // genou
-          seam([[sd * 1.05 + hx, 6.6], [sd * 0.95, 8.0], [sd * 0.72 + k, 9.6]], 0.3);                       // ligne de cuisse
-          // pied fin sur talon
-          shell([bp(ax - 0.12, ay - 0.08), bp(ax + 0.12, ay - 0.08), bp(ax + 0.13, ay + 0.55), bp(ax + 0.07, ay + 1.45), bp(ax, ay + 1.75), bp(ax - 0.07, ay + 1.45), bp(ax - 0.13, ay + 0.55)], 1);
-          seam([[ax - 0.11, ay + 0.5], [ax - 0.1, ay + 0.95], [ax - 0.11, ay + 1.55]], 0.4);
-          joint(kx, 10.15, 0.05); joint(ax, ay + 0.02, 0.04);
+        var sw = reduce ? 0 : Math.sin(t * 0.45), hx = sw * 0.06, ar = reduce ? 0 : Math.sin(t * 0.7) * 0.03;
+        // silhouette d'un seul tenant, en S (déhanché : poids sur la jambe gauche, hanche droite plus basse)
+        var R = [[0.24, 0.95], [0.27, 1.36], [0.7, 1.58], [1.1, 1.84], [1.2, 2.12], [1.04, 2.6], [1.1, 3.0], [1.04, 3.42], [0.9, 3.92], [0.76 + hx * 0.4, 4.5],
+          [0.96 + hx, 5.2], [1.2 + hx, 5.95], [1.16 + hx * 0.8, 6.9], [1.0 + hx * 0.5, 8.2], [0.72, 9.65], [0.8, 10.6], [0.66, 12.05], [0.46, 13.55],
+          [0.2, 13.6], [0.14, 12.0], [0.16, 10.7], [0.14, 9.7], [0.08 + hx * 0.5, 8.2], [0.02 + hx, 6.95]];
+        var L = [[-0.24, 0.95], [-0.27, 1.36], [-0.7, 1.6], [-1.1, 1.9], [-1.2, 2.18], [-1.04, 2.62], [-1.1, 3.02], [-1.04, 3.44], [-0.9, 3.94], [-0.74 + hx * 0.4, 4.52],
+          [-0.98 + hx, 5.12], [-1.26 + hx, 5.82], [-1.22 + hx * 0.8, 6.8], [-1.06 + hx * 0.5, 8.1], [-0.84, 9.65], [-0.9, 10.6], [-0.76, 12.05], [-0.54, 13.55],
+          [-0.28, 13.6], [-0.24, 12.0], [-0.27, 10.7], [-0.25, 9.7], [-0.14 + hx * 0.5, 8.1], [-0.04 + hx, 6.95]];
+        var path = R.slice(0, 18).concat(R.slice(18), L.slice(18).reverse(), L.slice(0, 18).reverse());
+        var pts = path.map(function (q) { return bp(q[0], q[1]); });
+        ctx.beginPath(); curve(ctx, pts, true);
+        var g = ctx.createLinearGradient(BX(-1.3), 0, BX(1.3), 0);
+        g.addColorStop(0, rgba(mix(P.skin, P.skinLo, 0.45), P.skinA)); g.addColorStop(0.4, rgba(mix(P.skin, P.skinHi, 0.25), P.skinA)); g.addColorStop(0.62, rgba(P.skin, P.skinA)); g.addColorStop(1, rgba(mix(P.skin, P.skinLo, 0.55), P.skinA));
+        ctx.fillStyle = g; ctx.fill();
+        ctx.save(); ctx.clip();
+        // modelé : volumes arrondis (lumière de face, un peu à gauche)
+        [[-0.4, 2.95, 0.42, 0.38, 0.22], [0.42, 2.95, 0.42, 0.38, 0.16], [-0.2, 4.3, 0.35, 0.6, 0.12], [-0.58 + hx, 6.6, 0.38, 1.0, 0.18], [0.5 + hx, 6.7, 0.34, 1.0, 0.13],
+          [-0.55, 11.0, 0.2, 0.9, 0.16], [0.42, 11.0, 0.18, 0.9, 0.12], [0, 1.7, 0.5, 0.18, 0.12]].forEach(function (e) { ell(e[0], e[1], e[2], e[3], P.skinHi, e[4], 0); });
+        ell(0.95, 4.6, 0.35, 1.2, P.skinLo, 0.18, 0); ell(-1.0, 4.6, 0.3, 1.2, P.skinLo, 0.12, 0);
+        ctx.restore();
+        ctx.beginPath(); curve(ctx, pts, true);
+        ctx.strokeStyle = rgba(P.glow, 0.22); ctx.lineWidth = s * 0.06; ctx.stroke();
+        ctx.strokeStyle = rgba(P.line, 0.7); ctx.lineWidth = Math.max(1, s * 0.014); ctx.stroke();
+        // jointures discrètes
+        seam([[-0.95, 3.5], [-0.5, 3.66], [-0.12, 3.52]], 0.3); seam([[0.95, 3.5], [0.5, 3.66], [0.12, 3.52]], 0.3);   // sous la poitrine
+        seam([[0, 3.6], [0, 4.5]], 0.4);                                                                           // ligne centrale
+        seam([[-0.9 + hx, 5.25], [-0.4 + hx, 6.1], [-0.06 + hx, 6.6]], 0.25); seam([[0.9 + hx, 5.3], [0.4 + hx, 6.15], [0.06 + hx, 6.6]], 0.25);   // hanches
+        seam([[-0.72, 9.62], [-0.55, 9.7], [-0.4, 9.62]], 0.35); seam([[0.27, 9.62], [0.42, 9.7], [0.58, 9.62]], 0.35);   // genoux
+        seam([[-0.24, 1.0], [0, 1.08], [0.24, 1.0]], 0.3); seam([[-0.26, 1.2], [0, 1.28], [0.26, 1.2]], 0.3);       // cou
+        // pieds fins sur talons
+        [[-0.41, 13.58, -1], [0.33, 13.58, 1]].forEach(function (f) {
+          var ax = f[0], ay = f[1];
+          shell([bp(ax - 0.1, ay - 0.06), bp(ax + 0.1, ay - 0.06), bp(ax + 0.11, ay + 0.5), bp(ax + 0.06, ay + 1.35), bp(ax, ay + 1.62), bp(ax - 0.06, ay + 1.35), bp(ax - 0.11, ay + 0.5)], 1);
+          seam([[ax - 0.1, ay + 0.45], [ax - 0.09, ay + 0.9], [ax - 0.1, ay + 1.45]], 0.35);
         });
-        // buste : épaules, poitrine, taille fine
-        var R = function (sd) { return [[sd * 0.3, 1.4], [sd * 0.95, 1.62 - sd * 0.03], [sd * 1.3, shY(sd)], [sd * 1.12, 2.55], [sd * 1.2, 3.05], [sd * 1.02, 3.62], [sd * 0.74 + hx * 0.5, 4.62], [sd * 0.78 + hx * 0.6, 4.95]]; };
-        var rt = R(1), lt = R(-1).reverse();
-        shell(rt.concat([[hx * 0.6, 5.0]], lt).map(function (q) { return bp(q[0], q[1]); }), 1);
-        ell(-0.42, 3.1, 0.5, 0.42, P.skinHi, 0.16, 0); ell(0.42, 3.1, 0.5, 0.42, P.skinHi, 0.12, 0);
-        seam([[-1.02, 3.62], [-0.5, 3.8], [0, 3.62], [0.5, 3.8], [1.02, 3.62]], 0.45);          // sous la poitrine
-        seam([[0, 1.62], [0, 2.5], [0, 3.6]], 0.3);
-        seam([[0, 3.7], [0, 4.7]], 0.55);                                                       // ligne centrale lumineuse
-        seam([[-0.78 + hx * 0.6, 4.95], [0, 5.08], [0.78 + hx * 0.6, 4.95]], 0.6);              // taille
-        seam([[-1.15 + hx, 5.6], [-1.25 + hx, 6.3]], 0.35); seam([[1.15 + hx, 5.6], [1.25 + hx, 6.3]], 0.35);   // flancs
-        seam([[-0.95, 1.62], [-0.7, 2.1], [-0.3, 2.3]], 0.35); seam([[0.95, 1.62], [0.7, 2.1], [0.3, 2.3]], 0.35);   // épaules
-        // cou
-        shell([bp(-0.27, 0.75), bp(0.27, 0.75), bp(0.3, 1.5), bp(-0.3, 1.5)], 1);
-        for (var nr = 0; nr < 6; nr++) seam([[-0.26, 0.86 + nr * 0.1], [0, 0.9 + nr * 0.1], [0.26, 0.86 + nr * 0.1]], 0.28);
-        // bras : l'un le long du corps, l'autre la main posée sur la hanche
-        var A1 = [[-1.22, shY(-1) + 0.15], [-1.44 - ar, 3.0], [-1.55 - ar, 4.3], [-1.6 - ar * 1.5, 5.35], [-1.6 - ar * 2, 6.25]];
-        var A2 = [[1.22, shY(1) + 0.15], [1.62, 2.9], [2.0, 4.0], [1.72 + hx * 0.5, 4.85], [1.38 + hx, 5.45]];
-        shell(limb(A1, [0.6, 0.5, 0.34, 0.36, 0.22]), 1);
-        shell([bp(-1.72 - ar * 2, 6.2), bp(-1.48 - ar * 2, 6.2), bp(-1.46 - ar * 2, 6.8), bp(-1.55 - ar * 2, 7.3), bp(-1.66 - ar * 2, 6.85)], 1);   // main détendue
-        shell(limb(A2, [0.6, 0.5, 0.34, 0.36, 0.22]), 1);
-        shell([bp(1.46 + hx, 5.3), bp(1.36 + hx, 5.62), bp(1.08 + hx, 5.82), bp(1.0 + hx, 5.62), bp(1.2 + hx, 5.38)], 1);   // main sur la hanche
-        [[A1, -1], [A2, 1]].forEach(function (aa) { var a = aa[0]; joint(a[0][0], a[0][1], 0.06); joint(a[2][0], a[2][1], 0.045); joint(a[4][0], a[4][1], 0.035); });
-        
+        // bras : l'un le long du corps, légèrement plié ; l'autre, la main posée sur la hanche
+        var A1 = [[-1.1, 2.04], [-1.32 - ar, 2.95], [-1.44 - ar, 3.95], [-1.42 - ar * 1.4, 4.85], [-1.32 - ar * 1.8, 5.7]];
+        var A2 = [[1.1, 2.0], [1.46, 2.85], [1.82, 3.8], [1.58 + hx * 0.5, 4.62], [1.24 + hx, 5.22]];
+        shell(limb(A1, [0.54, 0.43, 0.3, 0.31, 0.19]), 1);
+        shell([bp(-1.4 - ar * 1.8, 5.65), bp(-1.2 - ar * 1.8, 5.66), bp(-1.16 - ar * 1.8, 6.15), bp(-1.22 - ar * 1.8, 6.55), bp(-1.32 - ar * 1.8, 6.2)], 1);   // main détendue
+        shell(limb(A2, [0.54, 0.43, 0.3, 0.31, 0.19]), 1);
+        shell([bp(1.26 + hx, 5.1), bp(1.2 + hx, 5.45), bp(0.98 + hx, 5.68), bp(0.9 + hx, 5.5), bp(1.06 + hx, 5.2)], 1);   // main sur la hanche
+        joint(-1.1, 2.04, 0.04); joint(1.1, 2.0, 0.04); joint(-1.44 - ar, 3.95, 0.03); joint(1.82, 3.8, 0.03);
         // reflet de sol
-        var fg = ctx.createRadialGradient(BX(0), BY(16.25), 0, BX(0), BY(16.25), s * 1.6);
+        var gy = 15.25, fg = ctx.createRadialGradient(BX(0), BY(gy), 0, BX(0), BY(gy), s * 1.6);
         fg.addColorStop(0, rgba(P.glow, 0.35 + lvlS * 0.2)); fg.addColorStop(1, rgba(P.glow, 0));
-        ctx.save(); ctx.translate(BX(0), BY(16.25)); ctx.scale(1, 0.18); ctx.translate(-BX(0), -BY(16.25)); ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(BX(0), BY(16.25), s * 1.6, 0, 6.2832); ctx.fill(); ctx.restore();
+        ctx.save(); ctx.translate(BX(0), BY(gy)); ctx.scale(1, 0.18); ctx.translate(-BX(0), -BY(gy)); ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(BX(0), BY(gy), s * 1.6, 0, 6.2832); ctx.fill(); ctx.restore();
       }
       if (P.andro) androBack(); else hairBack();
       if (CORPS) { ctx.save(); ctx.translate(pvx, pvy); ctx.rotate(-A.roll); ctx.translate(-pvx, -pvy); drawBody(); ctx.restore(); }

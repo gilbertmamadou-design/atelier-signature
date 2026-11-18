@@ -103,7 +103,7 @@
     px.apply = function () {
       var want = S.avatar === 'visage3d' && window.MJFace3D ? 'visage3d' : S.avatar === 'androide' && window.MJFace ? 'androide' : S.avatar === 'visage' && window.MJFace ? 'visage' : 'sphere', was = cur ? cur.get() : 'idle';
       document.documentElement.classList.toggle('mj-visage-seul', want !== 'sphere' && !S.faceDeco);
-      orbBox.classList.toggle('corps', want === 'androide' && S.faceFrame === 'corps');
+      orbBox.classList.toggle('corps', (want === 'androide' || want === 'visage3d') && S.faceFrame === 'corps');
       if (cur && want === kind) { if (cur.look) cur.look(want === 'androide' ? { style: 'androide', frame: S.faceFrame, expr: S.faceExpr } : want === 'visage3d' ? { model: S.face3dModel, frame: S.faceFrame, expr: S.faceExpr, style: S.face3dStyle } : faceLook()); return; }
       if (cur) cur.stop();
       var o = { pad: 1.32, onLevel: orbLevel }, cv = kind ? freshCanvas() : $('orb');
@@ -1626,7 +1626,7 @@
       '<div class="row" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:6px"><button class="btn sm" id="sFace3dTalk">Faire parler</button><button class="btn sm" id="sFace3dSmile">Sourire</button></div>' +
       '<div class="set"><div class="t">Visage</div><select class="in" id="sFace3dModel">' + (window.MJFace3D ? MJFace3D.MODELES : []).map(function (o) { return '<option value="' + o[0] + '"' + (S.face3dModel === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
       '<div class="set"><div class="t">Style</div><select class="in" id="sFace3dStyle"><option value="naturel"' + (S.face3dStyle !== 'holo' ? ' selected' : '') + '>Naturel</option><option value="holo"' + (S.face3dStyle === 'holo' ? ' selected' : '') + '>Hologramme</option></select></div>' +
-      '<div class="set"><div class="t">Cadrage</div><select class="in" id="sFace3dFrame"><option value="buste"' + (S.faceFrame !== 'proche' ? ' selected' : '') + '>Buste</option><option value="proche"' + (S.faceFrame === 'proche' ? ' selected' : '') + '>Gros plan</option></select></div>' +
+      '<div class="set"><div class="t">Cadrage</div><select class="in" id="sFace3dFrame">' + [['corps', 'Silhouette entière'], ['buste', 'Buste'], ['proche', 'Gros plan']].map(function (o) { return '<option value="' + o[0] + '"' + (S.faceFrame === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
       '<div class="set"><div class="t">Expressivité</div><select class="in" id="sFace3dExpr">' + [['calme', 'Calme'], ['normal', 'Normale'], ['expressif', 'Très expressive']].map(function (o) { return '<option value="' + o[0] + '"' + (S.faceExpr === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
       '<div class="set"><div class="t">Garder le décor autour (anneaux, planètes, effets)</div><label class="sw"><input type="checkbox" id="sFace3dDeco"' + (S.faceDeco ? ' checked' : '') + '><span></span></label></div>' +
       '<p class="note">Visages 3D réalistes (Microsoft Rocketbox, licence libre MIT), animés par l\'appli : lèvres sur la voix, regard, clignements, expressions. ' + (ANDROID ? 'Léa est incluse ; les autres se téléchargent une fois (8 à 10 Mo). ' : '') + 'Plus gourmand en batterie que le visage dessiné.</p></div>' +

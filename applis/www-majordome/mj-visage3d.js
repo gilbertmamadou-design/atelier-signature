@@ -125,10 +125,11 @@
     }
     function frameCam() {
       if (!headPos || !cam) return;
-      var close = look.frame === 'proche', hh = headPos.h;
+      var close = look.frame === 'proche', corps = look.frame === 'corps', hh = headPos.h;
       var tgt = headPos.p.clone(); tgt.y -= close ? hh * 0.05 : hh * 0.42;
       var fovR = cam.fov * Math.PI / 180, span = close ? hh * 1.55 : hh * 2.45, pad = opt.pad || 1;
-      var dist = (span * pad / 2) / Math.tan(fovR / 2) / Math.min(1, cam.aspect);
+      if (corps && headPos.box) { tgt.set(headPos.p.x, (headPos.box.min.y + headPos.p.y + hh * 0.6) / 2, headPos.p.z); span = (headPos.p.y + hh * 0.7 - headPos.box.min.y) * 1.04; }
+      var dist = corps ? (span * pad / 2) / Math.tan(fovR / 2) : (span * pad / 2) / Math.tan(fovR / 2) / Math.min(1, cam.aspect);
       cam.position.set(tgt.x, tgt.y + hh * 0.08, tgt.z + dist);
       cam.lookAt(tgt);
       cam.updateProjectionMatrix();
@@ -165,13 +166,14 @@
          bande qui défile, léger scintillement, transparence partielle. */
     var HOLO = [
       'if (uHolo > 0.5) {',
+      '  if (diffuseColor.a < 0.6) discard;',
       '  float lum = dot(gl_FragColor.rgb, vec3(0.3, 0.55, 0.15));',
       '  float fr = pow(1.0 - clamp(abs(dot(normalize(normal), normalize(vViewPosition))), 0.0, 1.0), 2.2);',
       '  float sl = 0.7 + 0.3 * step(0.5, fract(gl_FragCoord.y * 0.33 - uTime * 1.5));',
       '  float sw = smoothstep(0.965, 1.0, fract(gl_FragCoord.y / 650.0 - uTime * 0.22)) * 0.8;',
       '  float fl = 0.93 + 0.07 * sin(uTime * 37.0) * sin(uTime * 13.0);',
       '  gl_FragColor.rgb = (uHoloCol * (0.08 + lum * 0.95) * sl + uHoloCol * fr * 1.5 + uHoloCol * sw) * fl;',
-      '  gl_FragColor.a = clamp(0.55 + fr * 0.45 + sw, 0.0, 1.0);',
+      '  gl_FragColor.a = diffuseColor.a * clamp(0.55 + fr * 0.45 + sw, 0.0, 1.0);',
       '}'].join('\n');
     function patchMat(m) {
       m.onBeforeCompile = function (sh) {
@@ -210,7 +212,7 @@
         var hp = new T.Vector3(); if (head) head.getWorldPosition(hp);
         var box = new T.Box3().setFromObject(model), tall = box.max.y - box.min.y;
         var hh = tall * 0.13;
-        headPos = { p: hp.add(new T.Vector3(0, hh * 0.35, 0)), h: hh };
+        headPos = { p: hp.add(new T.Vector3(0, hh * 0.35, 0)), h: hh, box: box };
         darkMouth(hh);
         frameCam();
         M.loaded = true; M.error = '';
