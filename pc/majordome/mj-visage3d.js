@@ -38,7 +38,8 @@
   function create(cv, opt) {
     opt = opt || {};
     var base = opt.base || '3d/';
-    var look = { model: opt.model || 'Female_Adult_01', frame: opt.frame || 'buste', expr: opt.expr || 'normal' };
+    var look = { model: opt.model || 'Female_Adult_01', frame: opt.frame || 'buste', expr: opt.expr || 'normal', style: opt.style || 'naturel' };
+    var U = null;   // uniformes partagés par les matériaux du modèle (hologramme, couleur de l'état, temps)
     var reduce = false;
     try { reduce = root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { }
     var small = Math.min(root.innerWidth || 800, root.innerHeight || 800) < 600 || /Android|Mobile/i.test(navigator.userAgent || '');
@@ -63,6 +64,7 @@
       renderer.outputColorSpace = T.SRGBColorSpace;
       renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.95;
       scene = new T.Scene();
+      U = { uHolo: { value: 0 }, uHoloCol: { value: new T.Color(0x46d9c2) }, uTime: { value: 0 } };
       cam = new T.PerspectiveCamera(20, 1, 0.05, 100);
       lights.hemi = new T.HemisphereLight(0xf2f4f8, 0x4a4040, 1.05); scene.add(lights.hemi);
       lights.key = new T.DirectionalLight(0xfffaf4, 1.55); lights.key.position.set(-0.9, 1.3, 2.6); scene.add(lights.key);
@@ -155,16 +157,32 @@
           if (behind > 0.007 && e2 < 1 && !(nz > 0.7 && behind < 0.014)) { dark[i] = 0.55 + clamp((behind - 0.007) / 0.01, 0, 1) * 0.35; done++; }
         }
         g.setAttribute('aDark', new T.BufferAttribute(dark, 1));
-        mats.forEach(function (m) {
-          if (!/head/i.test(m.name)) return;
-          m.onBeforeCompile = function (sh) {
-            sh.vertexShader = 'attribute float aDark;\nvarying float vDark;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvDark = aDark;');
-            sh.fragmentShader = 'varying float vDark;\n' + sh.fragmentShader.replace('#include <tonemapping_fragment>', 'gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.42, 0.13, 0.14) * min(dot(gl_FragColor.rgb, vec3(0.3, 0.5, 0.2)), 1.0), clamp(vDark, 0.0, 1.0));\n#include <tonemapping_fragment>');
-          };
-          m.needsUpdate = true;
-        });
       });
       M.dark = done;
+    }
+    /* Modification des shaders de tous les matériaux du modèle :
+       - intérieur de la bouche assombri (attribut aDark, voir darkMouth) ;
+       - style « Hologramme » : couleur de l'état selon la luminosité, contour lumineux (effet Fresnel), lignes de balayage,
+         bande qui défile, léger scintillement, transparence partielle. */
+    var HOLO = [
+      'if (uHolo > 0.5) {',
+      '  float lum = dot(gl_FragColor.rgb, vec3(0.3, 0.55, 0.15));',
+      '  float fr = pow(1.0 - clamp(abs(dot(normalize(normal), normalize(vViewPosition))), 0.0, 1.0), 2.2);',
+      '  float sl = 0.7 + 0.3 * step(0.5, fract(gl_FragCoord.y * 0.33 - uTime * 1.5));',
+      '  float sw = smoothstep(0.965, 1.0, fract(gl_FragCoord.y / 650.0 - uTime * 0.22)) * 0.8;',
+      '  float fl = 0.93 + 0.07 * sin(uTime * 37.0) * sin(uTime * 13.0);',
+      '  gl_FragColor.rgb = (uHoloCol * (0.08 + lum * 0.95) * sl + uHoloCol * fr * 1.5 + uHoloCol * sw) * fl;',
+      '  gl_FragColor.a = clamp(0.55 + fr * 0.45 + sw, 0.0, 1.0);',
+      '}'].join('\n');
+    function patchMat(m) {
+      m.onBeforeCompile = function (sh) {
+        sh.uniforms.uHolo = U.uHolo; sh.uniforms.uHoloCol = U.uHoloCol; sh.uniforms.uTime = U.uTime;
+        sh.vertexShader = 'attribute float aDark;\nvarying float vDark;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvDark = aDark;');
+        sh.fragmentShader = 'varying float vDark;\nuniform float uHolo;\nuniform vec3 uHoloCol;\nuniform float uTime;\n' + sh.fragmentShader.replace('#include <tonemapping_fragment>',
+          'gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.42, 0.13, 0.14) * min(dot(gl_FragColor.rgb, vec3(0.3, 0.5, 0.2)), 1.0), clamp(vDark, 0.0, 1.0));\n#include <tonemapping_fragment>\n' + HOLO);
+      };
+      m.customProgramCacheKey = function () { return 'mj3d-1'; };
+      m.needsUpdate = true;
     }
     function loadModel() {
       M.loaded = false;
@@ -178,6 +196,7 @@
             [].concat(o.material).forEach(function (m) {
               if (m.transparent || (m.map && /opacity|hair|lash/i.test(m.name + ' ' + (m.map.name || '')))) { m.transparent = false; m.alphaTest = 0.35; m.alphaToCoverage = true; m.depthWrite = true; m.side = T.DoubleSide; }
               if (m.normalMap) m.normalScale.set(0.65, 0.65);
+              patchMat(m);
               if (/head|body/i.test(m.name)) { m.roughness = Math.max(m.roughness || 0, /head/i.test(m.name) ? 0.68 : 0.8); m.metalness = 0; if (m.color) m.color.setRGB(0.97, 0.95, 0.96); }   // peau plus mate, un peu moins orangée
             });
             if (o.morphTargetDictionary) Object.keys(o.morphTargetDictionary).forEach(function (n) { if (/^(.*\.)?SR_/i.test(n)) return; var k = normName(n); (morphs[k] = morphs[k] || []).push([o, o.morphTargetDictionary[n]]); });   // SR_ : formes du traqueur Vive, doublons
@@ -318,6 +337,8 @@
       lights.rim.color.copy(cc); lights.rim.intensity = (st === 'sleep' ? 0.6 : 1.2) + lvlS * 1.4;
       halo.material.color.copy(cc).multiplyScalar(st === 'sleep' ? 0.25 : 0.45 + lvlS * 0.5);
       halo.lookAt(cam.position);
+      U.uHolo.value = look.style === 'holo' ? 1 : 0; U.uTime.value = t;
+      U.uHoloCol.value.setRGB(Math.min(1, col[0] / 255 * 1.1), Math.min(1, col[1] / 255 * 1.1), Math.min(1, col[2] / 255 * 1.1));
     }
 
     function active() { return st === 'listen' || spk || burst > 0.01 || lvlS > 0.01 || A.mouth > 0.01; }
@@ -358,7 +379,7 @@
       look: function (o) {
         if (!o) return;
         var mdl = o.model && o.model !== look.model;
-        ['model', 'frame', 'expr'].forEach(function (k) { if (o[k]) look[k] = o[k]; });
+        ['model', 'frame', 'expr', 'style'].forEach(function (k) { if (o[k]) look[k] = o[k]; });
         if (mdl && LIB) loadModel().catch(fail); else frameCam();
         kick();
       },

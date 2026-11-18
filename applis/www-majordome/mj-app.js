@@ -36,7 +36,7 @@
   /* ---------------- Réglages (stockés localement seulement) ---------------- */
   var DEF = {
     avatar: 'sphere', faceStyle: 'naturel', faceSkin: 'claire', faceHair: 'brun', faceEyes: 'noisette', faceCoiffure: 'long', faceLips: 'naturel', faceMakeup: 1,
-    faceFreckles: false, faceMole: false, faceJewels: true, faceGlasses: 'aucune', faceCloth: 'nuit', faceFrame: 'buste', faceExpr: 'normal', faceDeco: false, face3dModel: 'Female_Adult_08',
+    faceFreckles: false, faceMole: false, faceJewels: true, faceGlasses: 'aucune', faceCloth: 'nuit', faceFrame: 'buste', faceExpr: 'normal', faceDeco: false, face3dModel: 'Female_Adult_08', face3dStyle: 'naturel',
     name: 'Majordome', wake: '', address: 'monsieur', prenom: '', voice: '', rate: 1, pitch: 1, volume: 1, voiceOn: true, beeps: true,
     tts: 'system', piperVoice: 'pierre', fx: 'majordome', fxo: null,
     engine: ANDROID ? 'vosk' : 'vosk', webOk: false, wakeOn: false, wakeCharging: false, autoListen: true,
@@ -103,12 +103,12 @@
     px.apply = function () {
       var want = S.avatar === 'visage3d' && window.MJFace3D ? 'visage3d' : S.avatar === 'visage' && window.MJFace ? 'visage' : 'sphere', was = cur ? cur.get() : 'idle';
       document.documentElement.classList.toggle('mj-visage-seul', want !== 'sphere' && !S.faceDeco);
-      if (cur && want === kind) { if (cur.look) cur.look(want === 'visage3d' ? { model: S.face3dModel, frame: S.faceFrame, expr: S.faceExpr } : faceLook()); return; }
+      if (cur && want === kind) { if (cur.look) cur.look(want === 'visage3d' ? { model: S.face3dModel, frame: S.faceFrame, expr: S.faceExpr, style: S.face3dStyle } : faceLook()); return; }
       if (cur) cur.stop();
       var o = { pad: 1.32, onLevel: orbLevel }, cv = kind ? freshCanvas() : $('orb');
       if (want === 'visage') { var l = faceLook(); for (var k in l) o[k] = l[k]; }
       if (want === 'visage3d') {
-        o.model = S.face3dModel; o.frame = S.faceFrame; o.expr = S.faceExpr; o.urlFor = url3d;
+        o.model = S.face3dModel; o.frame = S.faceFrame; o.expr = S.faceExpr; o.style = S.face3dStyle; o.urlFor = url3d;
         o.onFail = function (e) {   // pas de WebGL, ou modèle introuvable (hors connexion) : visage dessiné à la place
           if (kind !== 'visage3d') return;
           toast('Visage 3D indisponible (' + (online() ? 'affichage 3D impossible' : 'pas de connexion pour télécharger le modèle') + ') : visage dessiné à la place');
@@ -1620,6 +1620,7 @@
       '<div style="position:relative;width:min(220px,60vw);aspect-ratio:1;margin:22px auto 34px"><canvas id="sFace3dPrev" style="position:absolute;left:-16%;top:-16%;width:132%;height:132%;pointer-events:none"></canvas><div id="sFace3dWait" class="note" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center">Chargement…</div></div>' +
       '<div class="row" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:6px"><button class="btn sm" id="sFace3dTalk">Faire parler</button><button class="btn sm" id="sFace3dSmile">Sourire</button></div>' +
       '<div class="set"><div class="t">Visage</div><select class="in" id="sFace3dModel">' + (window.MJFace3D ? MJFace3D.MODELES : []).map(function (o) { return '<option value="' + o[0] + '"' + (S.face3dModel === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
+      '<div class="set"><div class="t">Style</div><select class="in" id="sFace3dStyle"><option value="naturel"' + (S.face3dStyle !== 'holo' ? ' selected' : '') + '>Naturel</option><option value="holo"' + (S.face3dStyle === 'holo' ? ' selected' : '') + '>Hologramme</option></select></div>' +
       '<div class="set"><div class="t">Cadrage</div><select class="in" id="sFace3dFrame"><option value="buste"' + (S.faceFrame !== 'proche' ? ' selected' : '') + '>Buste</option><option value="proche"' + (S.faceFrame === 'proche' ? ' selected' : '') + '>Gros plan</option></select></div>' +
       '<div class="set"><div class="t">Expressivité</div><select class="in" id="sFace3dExpr">' + [['calme', 'Calme'], ['normal', 'Normale'], ['expressif', 'Très expressive']].map(function (o) { return '<option value="' + o[0] + '"' + (S.faceExpr === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
       '<div class="set"><div class="t">Garder le décor autour (anneaux, planètes, effets)</div><label class="sw"><input type="checkbox" id="sFace3dDeco"' + (S.faceDeco ? ' checked' : '') + '><span></span></label></div>' +
@@ -1649,17 +1650,17 @@
     // visage 3D : aperçu, modèle, cadrage, expressivité
     function prev3d() {
       var cv = $('sFace3dPrev'); if (!cv || S.avatar !== 'visage3d' || !window.MJFace3D) { if (face3dPrev) { face3dPrev.f.stop(); face3dPrev = null; } return; }
-      var lk = { model: S.face3dModel, frame: S.faceFrame, expr: S.faceExpr };
+      var lk = { model: S.face3dModel, frame: S.faceFrame, expr: S.faceExpr, style: S.face3dStyle };
       if (face3dPrev && face3dPrev.cv === cv) { $('sFace3dWait').hidden = false; face3dPrev.f.look(lk); return; }
       if (face3dPrev) face3dPrev.f.stop();
       $('sFace3dWait').hidden = false; $('sFace3dWait').textContent = 'Chargement…';
-      face3dPrev = { cv: cv, f: window.MJFace3D.create(cv, { pad: 1.32, model: lk.model, frame: lk.frame, expr: lk.expr, urlFor: url3d,
+      face3dPrev = { cv: cv, f: window.MJFace3D.create(cv, { pad: 1.32, model: lk.model, frame: lk.frame, expr: lk.expr, style: lk.style, urlFor: url3d,
         onReady: function () { var w = $('sFace3dWait'); if (w) w.hidden = true; },
         onFail: function () { var w = $('sFace3dWait'); if (w) { w.hidden = false; w.textContent = online() ? 'Affichage 3D impossible sur cet appareil' : 'Connexion nécessaire pour télécharger ce visage'; } } }) };
       var stopper = setInterval(function () { if (!cv.isConnected) { clearInterval(stopper); if (face3dPrev && face3dPrev.cv === cv) { face3dPrev.f.stop(); face3dPrev = null; } } }, 1000);
     }
     var c3 = function (id, key) { var e = $(id); if (e) e.onchange = function () { S[key] = e.type === 'checkbox' ? e.checked : this.value; saveS(); orb.apply(); prev3d(); }; };
-    c3('sFace3dModel', 'face3dModel'); c3('sFace3dFrame', 'faceFrame'); c3('sFace3dExpr', 'faceExpr'); c3('sFace3dDeco', 'faceDeco');
+    c3('sFace3dModel', 'face3dModel'); c3('sFace3dStyle', 'face3dStyle'); c3('sFace3dFrame', 'faceFrame'); c3('sFace3dExpr', 'faceExpr'); c3('sFace3dDeco', 'faceDeco');
     $('sFace3dSmile').onclick = function () { if (face3dPrev) face3dPrev.f.mood(Math.random() < 0.3 ? 'clin' : 'joie', 2200); };
     $('sFace3dTalk').onclick = function () {
       if (!face3dPrev) return;
