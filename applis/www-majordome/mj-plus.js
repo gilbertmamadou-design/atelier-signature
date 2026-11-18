@@ -127,6 +127,28 @@
     });
   };
 
+  /* ---------- Au revoir : ce qu'il reste à faire avant de partir ----------
+     Rendez-vous restants de la journée, pluie ou vent à prévoir, puis lumières et volets à fermer (avec accord). */
+  H.depart = function () {
+    var now = Date.now(), h = new Date(now).getHours(), end = NLU.startOfDay(now) + DAY;
+    var wish = h < 12 ? 'Bonne journée' : h < 18 ? 'Bonne fin de journée' : 'Bonne soirée';
+    if (MJ.avatar && MJ.avatar.mood) try { MJ.avatar.mood('joie', 2500); } catch (e) { }
+    var chain = X.answer({ say: X.withSir('Au revoir') + '. Avant de partir, voici ce qui vous attend.', k: 'Au revoir' }).done;
+    if (X.ANDROID) chain = chain.then(function () { return H.agenda({ from: now, to: end }); }).catch(function () { });
+    chain = chain.then(function () { return H.weather({ when: 'today' }); }).catch(function () { });
+    return chain.then(function () {
+      return Promise.all([MJ.lightsOn ? MJ.lightsOn() : null, MJ.shuttersOpen ? MJ.shuttersOpen() : null]);
+    }).then(function (res) {
+      var lo = res[0], parts = [];
+      if (lo && lo.length) parts.push('lumière allumée : ' + andList(lo));
+      if (!parts.length) return X.answer({ say: wish + ', à tout à l\'heure !', k: 'Au revoir' }).done;
+      return X.ask('Dans la maison, ' + parts.join(' ; ') + '. J\'éteins tout ?', 'yesno', { yes: 'Oui, tout éteindre', k: 'Maison' }).then(function (y) {
+        var c = y ? X.exec({ intent: 'light', p: { act: 'off', all: true } }) : Promise.resolve();
+        return c.then(function () { return X.answer(X.withSir((y ? 'C\'est éteint. ' : '') + wish) + ', à tout à l\'heure !').done; });
+      });
+    }).catch(function () { return X.answer(X.withSir(wish) + ' !').done; });
+  };
+
   /* ---------- Automatismes : préparés ici, exécutés par le téléphone ---------- */
   var AUTO = !!(B && B.autoSet && X.ANDROID && !X.PC);
   function A() {

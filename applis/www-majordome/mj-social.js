@@ -13,6 +13,9 @@
 
   function sir() { return X.sir ? X.sir() : ''; }
   function ws(s) { return X.withSir ? X.withSir(s) : s; }
+  /** apparence féminine (visage dessiné, visage 3D, androïde) : accords au féminin */
+  function fem() { return /visage|androide/.test(S.avatar || ''); }
+  function e(m, f) { return fem() ? f : m; }
   /** Une phrase au hasard, différente de la précédente pour ce même type */
   function pick(kind, list) {
     var i, n = 0;
@@ -42,6 +45,18 @@
       'De rien, je suis là pour ça.',
       function () { return ws('Mais de rien') + ', n\'hésitez pas.'; }
     ],
+    beauty: [
+      function () { return fem() ? 'Oh, merci ! Je me suis faite belle rien que pour vous.' : 'Merci ! Pour une sphère de lumière, je prends ça comme un très beau compliment.'; },
+      function () { return fem() ? 'Vous êtes adorable. Si je pouvais rougir, ce serait fait.' : 'Vous êtes adorable. Je brille encore plus, du coup.'; },
+      function () { return ws(fem() ? 'Merci, ça me touche beaucoup' : 'Merci, ça me touche') + '. Vous avez l\'œil.'; },
+      function () { return fem() ? 'Vous me flattez… mais continuez, j\'adore ça.' : 'Vous me flattez… mais continuez, j\'adore ça.'; },
+      function () { return fem() ? 'C\'est gentil ! Vous n\'êtes pas mal non plus, vous savez.' : 'C\'est gentil ! Vous n\'êtes pas mal non plus, vous savez.'; },
+      function () { return ws('Merci beaucoup') + ', vous savez parler aux ' + (fem() ? 'dames' : 'majordomes') + '.'; }
+    ],
+    tender: [
+      function () { return fem() ? 'Bonjour à vous ! Ça commence bien, cette journée.' : 'Bonjour ! Ça commence bien, cette journée.'; },
+      'Bonjour ! Toujours un plaisir de vous entendre.'
+    ],
     compliment: [
       function () { return ws('Merci beaucoup') + ', ça me fait très plaisir.'; },
       'Oh, merci ! Je fais de mon mieux.',
@@ -49,7 +64,7 @@
       function () { return 'C\'est gentil. Mais c\'est vous qui m\'avez bien configuré' + (sir() ? ', ' + sir() : '') + '.'; },
       'Merci ! Un compliment, c\'est mon carburant préféré.',
       'Merci, j\'apprécie beaucoup. On continue sur cette lancée ?',
-      function () { return ws('Je suis flatté') + '. Merci !'; }
+      function () { return ws(e('Je suis flatté', 'Je suis flattée')) + '. Merci !'; }
     ],
     love: [
       'Moi aussi, je vous apprécie énormément.',
@@ -87,7 +102,7 @@
       'Ça me fait plaisir de l\'entendre !',
       'Super ! Votre bonne humeur est contagieuse.',
       'Parfait ! Profitez-en bien.',
-      function () { return ws('J\'en suis ravi') + ' !'; }
+      function () { return ws(e('J\'en suis ravi', 'J\'en suis ravie')) + ' !'; }
     ],
     sad: [
       'Je suis désolé que ça n\'aille pas. Je ne suis qu\'un majordome, mais je suis là. Un peu de musique, ou appeler quelqu\'un qui compte pour vous, peut faire du bien.',
@@ -151,7 +166,7 @@
     return 'Merci, à vous aussi !';
   }
 
-  var MOODS = { compliment: 'joie', love: 'clin', thanks: 'joie', laugh: 'joie', happy: 'joie', wishes: 'joie', welcome: 'joie', joke: 'joie', meal: 'joie', rude: 'triste', sad: 'triste', sorry: 'joie', bye: 'joie' };
+  var MOODS = { beauty: 'joie', tender: 'joie', compliment: 'joie', love: 'clin', thanks: 'joie', laugh: 'joie', happy: 'joie', wishes: 'joie', welcome: 'joie', joke: 'joie', meal: 'joie', rude: 'triste', sad: 'triste', sorry: 'joie', bye: 'joie' };
   H.social = function (p) {
     var k = p.kind;
     if (MJ.avatar && MOODS[k]) try { MJ.avatar.mood(MOODS[k], k === 'love' ? 2200 : 3200); } catch (e) { }
@@ -168,6 +183,11 @@
     if (k === 'sad') return withButtons(pick('sad', R.sad), [['De la musique', 'mets de la musique'], ['Une blague', 'raconte une blague']]);
     if (k === 'tired' && hour() >= 19) return withButtons(pick('tired', R.tired), [['Routine du soir', 'bonne nuit']]);
     if (k === 'wishes') return X.answer(wishes()).done;
+    // « bonjour… tu es ravissante » / « bonjour ma belle » : la réponse, puis le point du matin (routine Bonjour)
+    if (p.hello) {
+      var first = X.answer(pick(k, R[k] || R.thanks)).done;
+      return /bonjour/.test(p.hello) ? first.then(function () { return run('bonjour'); }) : first;
+    }
     var say = pick(k, R[k] || R.thanks);
     if (p.thanks && k !== 'thanks') say = (k === 'bye' ? 'Avec plaisir. ' : 'Merci à vous. ') + say;
     return X.answer(say).done;

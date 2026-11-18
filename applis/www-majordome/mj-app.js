@@ -49,6 +49,13 @@
   var S = Object.assign({}, DEF, lsGet(KEY.set, {}));
   if (!Array.isArray(S.routines) || !S.routines.length) S.routines = DEF.routines;
   function saveS() { lsSet(KEY.set, S); if (typeof publish === 'function') publish(); if (typeof paintRts === 'function') paintRts(); }
+  // Routine « Au revoir » proposée une fois : ce qu'il reste à faire avant de partir (modifiable dans Réglages › Routines)
+  if (!S.rtDepart) {
+    S.rtDepart = 1;
+    if (!S.routines.some(function (r) { return /au revoir/i.test(r.phrase || ''); }))
+      S.routines.push({ id: 'depart', name: 'Au revoir', phrase: 'au revoir, a plus tard, a tout a l heure, a ce soir, je pars, je m en vais, j y vais, je sors', btn: true, steps: ['depart'] });
+    setTimeout(saveS, 0);
+  }
   // Routine « Bonsoir » proposée une fois (modifiable ou supprimable dans Réglages › Routines)
   if (!S.rtSoir) {
     S.rtSoir = 1;
@@ -1254,7 +1261,7 @@
   };
 
   /* --- Routines --- */
-  var STEPS = { salut: 'Salutation', pointsoir: 'Point du soir', heure: 'Heure', date: 'Date', meteo: 'Météo du jour', vent: 'Vent (échafaudage)', vigilance: 'Vigilance météo', agenda: 'Agenda du jour', titres: '3 titres de l\'actualité', rappels: 'Rappels', liste: 'Liste de courses', musique: 'Lancer la musique', reveil: 'Réveil de demain', bonnenuit: 'Bonne nuit', ecoute_off: 'Couper l\'écoute continue', lampe_off: 'Éteindre la lampe', silencieux: 'Mode silencieux', dnd: 'Ne pas déranger', sonnerie: 'Rétablir la sonnerie' };
+  var STEPS = { salut: 'Salutation', depart: 'Au revoir : ce qu\'il reste à faire (agenda, météo, maison)', pointsoir: 'Point du soir', heure: 'Heure', date: 'Date', meteo: 'Météo du jour', vent: 'Vent (échafaudage)', vigilance: 'Vigilance météo', agenda: 'Agenda du jour', titres: '3 titres de l\'actualité', rappels: 'Rappels', liste: 'Liste de courses', musique: 'Lancer la musique', reveil: 'Réveil de demain', bonnenuit: 'Bonne nuit', ecoute_off: 'Couper l\'écoute continue', lampe_off: 'Éteindre la lampe', silencieux: 'Mode silencieux', dnd: 'Ne pas déranger', sonnerie: 'Rétablir la sonnerie' };
   var COND = { jour: 'le jour', nuit: 'la nuit' };
   function condOf(s) { var m = /^(jour|nuit)>/.exec(s); return m ? [m[1], s.slice(m[0].length)] : ['', s]; }
   /* Jour ou nuit : lever et coucher du soleil calculés sur l'appareil (ville choisie, dernière position, sinon Marseille) */
@@ -1325,6 +1332,7 @@
       case 'salut': var h = new Date(now()).getHours(); return answer(withSir(h < 18 ? 'Bonjour' : 'Bonsoir') + '.').done;
       case 'bonnenuit': return answer(withSir('Bonne nuit') + '.').done;
       case 'pointsoir': return H.evening ? H.evening({}) : Promise.resolve();
+      case 'depart': return H.depart ? H.depart({}) : answer(withSir('Au revoir') + '.').done;
       case 'heure': return H.time();
       case 'date': return H.date({ offset: 0 });
       case 'meteo': return H.weather({ when: 'today' });
