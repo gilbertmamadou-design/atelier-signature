@@ -57,6 +57,13 @@ for mat in bpy.data.materials:
         nt.links.new(tn2.outputs['Color'], nm.inputs['Color'])
         nt.links.new(nm.outputs['Normal'], bsdf.inputs['Normal'])
 
+# expressions gardées : visèmes (AA_VI_) et ARKit (AK_) ; les autres (traqueur Vive, unités d'action, « HB ») alourdiraient le fichier
+import re
+for ob in bpy.data.objects:
+    if ob.type == 'MESH' and ob.data.shape_keys:
+        for kb in list(ob.data.shape_keys.key_blocks):
+            if kb.name != 'Basis' and not re.match(r'^(AA_VI_|AK_)', kb.name):
+                ob.shape_key_remove(kb)
 for ob in bpy.data.objects:
     if ob.type == 'MESH':
         keys = [k.name for k in ob.data.shape_keys.key_blocks] if ob.data.shape_keys else []
@@ -65,6 +72,7 @@ for ob in bpy.data.objects:
         info['bones'] = [b.name for b in ob.data.bones]
 
 bpy.ops.export_scene.gltf(filepath=out, export_format='GLB', export_morph=True, export_morph_normal=False, export_skins=True,
-                          export_animations=False, export_image_format='AUTO', export_yup=True, export_apply=False)
+                          export_animations=False, export_image_format='AUTO', export_yup=True, export_apply=False,
+                          export_try_sparse_sk=True)
 json.dump(info, open(out.replace('.glb', '.json'), 'w'), ensure_ascii=False, indent=1)
 print('OK', out, os.path.getsize(out))

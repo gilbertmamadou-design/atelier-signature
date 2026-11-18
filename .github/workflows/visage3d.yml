@@ -8,7 +8,7 @@ on:
       avatars:
         description: "Avatars Rocketbox (dossiers Assets/Avatars/Adults), séparés par des virgules"
         required: false
-        default: "Female_Adult_01,Female_Adult_03,Female_Adult_05,Female_Adult_08,Female_Adult_11,Female_Adult_12,Female_Adult_15,Female_Adult_17,Female_Party_01,Female_Party_02"
+        default: "Female_Adult_08,Female_Adult_15,Female_Adult_05,Female_Party_02,Female_Party_01,Female_Adult_03"
       texture:
         description: "Taille maximale des textures (px)"
         required: false
