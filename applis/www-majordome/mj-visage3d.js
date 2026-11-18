@@ -60,12 +60,12 @@
       renderer = new T.WebGLRenderer({ canvas: cv, alpha: true, antialias: true, powerPreference: 'low-power' });
       renderer.setClearColor(0x000000, 0);
       renderer.outputColorSpace = T.SRGBColorSpace;
-      renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
+      renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.95;
       scene = new T.Scene();
       cam = new T.PerspectiveCamera(20, 1, 0.05, 100);
-      lights.hemi = new T.HemisphereLight(0xf4f6ff, 0x3a3230, 0.75); scene.add(lights.hemi);
-      lights.key = new T.DirectionalLight(0xfff6ee, 2.1); lights.key.position.set(-1.2, 1.6, 2.2); scene.add(lights.key);
-      lights.fill = new T.DirectionalLight(0xdfe8ff, 0.7); lights.fill.position.set(1.6, 0.4, 1.4); scene.add(lights.fill);
+      lights.hemi = new T.HemisphereLight(0xf2f4f8, 0x4a4040, 1.05); scene.add(lights.hemi);
+      lights.key = new T.DirectionalLight(0xfffaf4, 1.55); lights.key.position.set(-0.9, 1.3, 2.6); scene.add(lights.key);
+      lights.fill = new T.DirectionalLight(0xf0f2ff, 0.95); lights.fill.position.set(1.4, 0.5, 1.8); scene.add(lights.fill);
       lights.rim = new T.DirectionalLight(0x46d9c2, 2.0); lights.rim.position.set(0.4, 1.2, -2.0); scene.add(lights.rim);
       // halo derrière la tête (dégradé radial, teinte de l'état)
       var hc = document.createElement('canvas'); hc.width = hc.height = 128;
@@ -176,7 +176,8 @@
             o.frustumCulled = false;
             [].concat(o.material).forEach(function (m) {
               if (m.transparent || (m.map && /opacity|hair|lash/i.test(m.name + ' ' + (m.map.name || '')))) { m.transparent = false; m.alphaTest = 0.35; m.alphaToCoverage = true; m.depthWrite = true; m.side = T.DoubleSide; }
-              if (m.normalMap) m.normalScale.set(0.8, 0.8);
+              if (m.normalMap) m.normalScale.set(0.65, 0.65);
+              if (/head|body/i.test(m.name)) { m.roughness = Math.max(m.roughness || 0, /head/i.test(m.name) ? 0.68 : 0.8); m.metalness = 0; if (m.color) m.color.setRGB(0.97, 0.95, 0.96); }   // peau plus mate, un peu moins orangée
             });
             if (o.morphTargetDictionary) Object.keys(o.morphTargetDictionary).forEach(function (n) { if (/^(.*\.)?SR_/i.test(n)) return; var k = normName(n); (morphs[k] = morphs[k] || []).push([o, o.morphTargetDictionary[n]]); });   // SR_ : formes du traqueur Vive, doublons
           }
@@ -261,18 +262,18 @@
         else { gazeT = Math.random() < 0.55 ? { x: (Math.random() - 0.5) * 0.2, y: (Math.random() - 0.5) * 0.1 } : { x: (Math.random() - 0.5) * 1.1 * gr, y: (Math.random() - 0.5) * 0.6 * gr }; nextGaze = now + 1300 + Math.random() * 2800; }
         if (reduce) gazeT = { x: 0, y: 0 };
       }
-      var gk = 1 - Math.exp(-dt / 0.045);
-      A.gx += (gazeT.x - A.gx) * gk; A.gy += (gazeT.y - A.gy) * gk;
+      var gk = 1 - Math.exp(-dt / 0.06);
+      A.gx += (gazeT.x * 0.6 - A.gx) * gk; A.gy += (gazeT.y * 0.6 - A.gy) * gk;   // amplitude réduite : moins de regards « fixes » ou exorbités
       if (now > nextBlink && st !== 'sleep') { blinkAt = now; blinkDur = 130 + Math.random() * 60; nextBlink = now + (Math.random() < 0.15 ? 260 : (st === 'think' ? 1800 : 2400) + Math.random() * 3800); }
       var bp = (now - blinkAt) / blinkDur, blink = bp >= 0 && bp < 1 ? Math.sin(Math.PI * bp) : 0;
-      var sk = 1 - Math.exp(-dt / 0.35), fk = 1 - Math.exp(-dt / 0.12);
+      var sk = 1 - Math.exp(-dt / 0.6), fk = 1 - Math.exp(-dt / 0.16);
       A.yaw += (G.yaw - A.yaw) * (st === 'error' ? 1 - Math.exp(-dt / 0.04) : sk); A.pitch += (G.pitch - A.pitch) * (1 - Math.exp(-dt / 0.15)); A.roll += (G.roll - A.roll) * sk;
       A.open += (G.open - A.open) * fk; A.brow += (G.brow - A.brow) * fk; A.worry += (G.worry - A.worry) * fk; A.furrow += (G.furrow - A.furrow) * fk;
       A.smile += (G.smile - A.smile) * (1 - Math.exp(-dt / 0.2));
       A.wink += ((mood === 'clin' ? 1 : 0) - A.wink) * (1 - Math.exp(-dt / 0.06));
       var shp = SHAPES[vCur] || SHAPES.A, mo = spk ? clamp(sEnv * 1.2, 0, 1) * shp.o : 0;
       if (mood === 'surprise' && !spk) mo = 0.35;
-      A.mouth += (mo - A.mouth) * (1 - Math.exp(-dt / (mo > A.mouth ? 0.03 : 0.06)));
+      A.mouth += (mo - A.mouth) * (1 - Math.exp(-dt / (mo > A.mouth ? 0.05 : 0.09)));
       M.level = lvlS; M.mouth = A.mouth;
       if (opt.onLevel) try { opt.onLevel(lvlS * (reduce ? 0.35 : 1)); } catch (e) { }
       // 30 images/s au plus
@@ -282,11 +283,11 @@
 
     var VIS = ['aa', 'e', 'i', 'o', 'u', 'pp', 'ff', 'ss', 'sil', 'dd', 'kk', 'ch', 'th', 'nn', 'rr'];
     function apply(t, blink, mood) {
-      var eo = clamp(A.open * (1 - blink), 0, 1.3);
+      var eo = clamp(A.open * (1 - blink), 0, 1.15) * 0.9;   // paupières légèrement baissées : regard plus doux
       var bl = 1 - Math.min(1, eo), wide = Math.max(0, eo - 1) * 3;
-      var squint = Math.max(0, A.smile - 0.4) * 0.6;
+      var squint = 0.12 + Math.max(0, A.smile - 0.3) * 0.55;
       morph('eyeblinkleft', clamp(bl + squint * 0.3, 0, 1)); morph('eyeblinkright', clamp(bl + squint * 0.3 + A.wink, 0, 1));
-      morph('eyewideleft', wide); morph('eyewideright', wide);
+      wide *= 0.45; morph('eyewideleft', wide); morph('eyewideright', wide);
       morph('eyesquintleft', squint); morph('eyesquintright', squint);
       var gx = A.gx, gy = A.gy;
       morph('eyelookoutleft', Math.max(0, -gx)); morph('eyelookinleft', Math.max(0, gx));
@@ -303,17 +304,17 @@
       // bouche : visème de la voyelle × ouverture, petites fermetures entre syllabes
       var m = A.mouth, cur = (SHAPES[vCur] || SHAPES.A).v;
       for (var i = 0; i < VIS.length; i++) morph(VIS[i], 0);
-      if (hasMorph(cur)) { morph(cur, clamp(m * 0.78, 0, 1)); morph('jawopen', clamp(m * 0.12, 0, 1)); }
+      if (hasMorph(cur)) { morph(cur, clamp(m * 0.55, 0, 1)); morph('jawopen', clamp(m * 0.08, 0, 1)); }
       else morph('jawopen', clamp(m * 0.7, 0, 1));
-      if (spk && A.cons > 0.05) morph('pp', clamp(A.cons * 0.5 * (1 - m), 0, 1));
+      if (spk && A.cons > 0.05) morph('pp', clamp(A.cons * 0.3 * (1 - m), 0, 1));
       // tête, cou, respiration
       var br = reduce ? 0 : Math.sin(t * 1.6) * 0.012;
-      turn('neck', A.pitch * 0.35, A.yaw * 0.35, A.roll * 0.35);
-      turn('head', A.pitch * 0.65, A.yaw * 0.65, A.roll * 0.65);
+      turn('neck', A.pitch * 0.25, A.yaw * 0.25, A.roll * 0.25);
+      turn('head', A.pitch * 0.45, A.yaw * 0.45, A.roll * 0.45);
       if (bones.spine) turn('spine', br, 0, 0);
       // lumières : contre-jour et halo à la couleur de l'état
       var cc = new T.Color(col[0] / 255, col[1] / 255, col[2] / 255);
-      lights.rim.color.copy(cc); lights.rim.intensity = (st === 'sleep' ? 0.8 : 1.8) + lvlS * 2.2;
+      lights.rim.color.copy(cc); lights.rim.intensity = (st === 'sleep' ? 0.6 : 1.2) + lvlS * 1.4;
       halo.material.color.copy(cc).multiplyScalar(st === 'sleep' ? 0.25 : 0.45 + lvlS * 0.5);
       halo.lookAt(cam.position);
     }
