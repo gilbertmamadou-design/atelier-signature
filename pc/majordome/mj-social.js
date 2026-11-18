@@ -152,8 +152,10 @@
     return 'Merci, à vous aussi !';
   }
 
+  var MOODS = { compliment: 'joie', love: 'clin', thanks: 'joie', laugh: 'joie', happy: 'joie', wishes: 'joie', welcome: 'joie', joke: 'joie', meal: 'joie', rude: 'triste', sad: 'triste', sorry: 'joie', bye: 'joie' };
   H.social = function (p) {
     var k = p.kind;
+    if (MJ.avatar && MOODS[k]) try { MJ.avatar.mood(MOODS[k], k === 'love' ? 2200 : 3200); } catch (e) { }
     if (k === 'joke') {
       var j = pick('joke', JOKES), qa = j.split(/\?\s+/);
       return X.answer({ say: j, html: '<p>' + esc(qa.length > 1 ? qa[0] + ' ?' : j) + '</p>' + (qa.length > 1 ? '<p><b>' + esc(qa.slice(1).join('? ')) + '</b></p>' : '') }).done;

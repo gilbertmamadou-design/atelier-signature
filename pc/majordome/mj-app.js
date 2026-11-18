@@ -36,6 +36,7 @@
 
   /* ---------------- Réglages (stockés localement seulement) ---------------- */
   var DEF = {
+    avatar: 'sphere', faceStyle: 'naturel', faceSkin: 'claire', faceHair: 'brun', faceEyes: 'noisette',
     name: 'Majordome', wake: '', address: 'monsieur', prenom: '', voice: '', rate: 1, pitch: 1, volume: 1, voiceOn: true, beeps: true,
     tts: 'system', piperVoice: 'pierre', fx: 'majordome', fxo: null,
     engine: ANDROID ? 'vosk' : 'vosk', webOk: false, wakeOn: false, wakeCharging: false, autoListen: true,
@@ -84,7 +85,27 @@
   /* ---------------- Interface ---------------- */
   // la sphère déborde de sa boîte (halo, gonflement au son) ; l'anneau gradué suit légèrement le niveau
   var orbBox = $('orbBox'), lvShown = -1;
-  var orb = window.MJOrb.create($('orb'), { pad: 1.32, onLevel: function (v) { v = Math.round(v * 50) / 50; if (v !== lvShown) { lvShown = v; orbBox.style.setProperty('--lv', v); } } });
+  // sphère ou visage (réglage « Apparence ») : même interface, échangeable à chaud
+  function orbLevel(v) { v = Math.round(v * 50) / 50; if (v !== lvShown) { lvShown = v; orbBox.style.setProperty('--lv', v); } }
+  function faceLook() { return { style: S.faceStyle, skin: S.faceSkin, hair: S.faceHair, eyes: S.faceEyes }; }
+  var orb = (function () {
+    var cur = null, kind = '', px = {};
+    ['state', 'get', 'level', 'speak', 'word', 'voice', 'pulse', 'metrics'].forEach(function (m) { px[m] = function () { return cur[m].apply(cur, arguments); }; });
+    px.mood = function (n, ms) { if (cur && cur.mood) cur.mood(n, ms); };
+    px.kind = function () { return kind; };
+    px.apply = function () {
+      var want = S.avatar === 'visage' && window.MJFace ? 'visage' : 'sphere', was = cur ? cur.get() : 'idle';
+      if (cur && want === kind) { if (cur.look) cur.look(faceLook()); return; }
+      if (cur) cur.stop();
+      var o = { pad: 1.32, onLevel: orbLevel };
+      if (want === 'visage') { var l = faceLook(); for (var k in l) o[k] = l[k]; }
+      cur = want === 'visage' ? window.MJFace.create($('orb'), o) : window.MJOrb.create($('orb'), o);
+      kind = want; cur.state(was);
+      orbBox.classList.toggle('visage', kind === 'visage');
+    };
+    return px;
+  })();
+  orb.apply();
   var ticks = '';
   for (var ti = 0; ti < 60; ti++) { var an = ti / 60 * Math.PI * 2, r1 = ti % 5 ? 47 : 45.5; ticks += '<line class="tick" x1="' + (50 + Math.cos(an) * r1).toFixed(2) + '" y1="' + (50 + Math.sin(an) * r1).toFixed(2) + '" x2="' + (50 + Math.cos(an) * 49).toFixed(2) + '" y2="' + (50 + Math.sin(an) * 49).toFixed(2) + '"/>'; }
   $('ticks').innerHTML = ticks;
@@ -189,7 +210,7 @@
   function shush() { try { if (VX) VX.stop(); if (B && B.shush) B.shush(); if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) { } Object.keys(speakWait).forEach(function (k) { speakWait[k](); }); }
 
   /* ---------------- Réponse : carte + voix ---------------- */
-  var MJ = window.Majordome = { listening: false, wait: null, last: null, voiceTurn: false };
+  var MJ = window.Majordome = { listening: false, wait: null, last: null, voiceTurn: false, avatar: orb };
   function answer(o) {
     if (typeof o === 'string') o = { say: o };
     var html = o.html != null ? o.html : '<p>' + esc(o.show || o.say) + '</p>';
@@ -1477,6 +1498,7 @@
       '<div class="set"><div class="t">Autres mots de réveil<small>Séparés par des virgules (facultatif)</small></div></div><input class="in" id="sWake" maxlength="80" value="' + esc(S.wake) + '" placeholder="ex. jarvis, maestro">' +
       '<div class="set"><div class="t">Je vous appelle</div><select class="in" id="sAddr"><option value="monsieur">Monsieur</option><option value="madame">Madame</option><option value="prenom">Par votre prénom</option><option value="rien">Rien</option></select></div>' +
       '<div id="sPrenomBox"' + (S.address === 'prenom' ? '' : ' hidden') + '><input class="in" id="sPrenom" maxlength="30" placeholder="Votre prénom" value="' + esc(S.prenom) + '"></div>' +
+      faceHtml() +
       '<div class="sect" id="f-voix">Voix</div>' +
       '<div class="set"><div class="t">Répondre à voix haute</div><label class="sw"><input type="checkbox" id="sVoiceOn"' + (S.voiceOn ? ' checked' : '') + '><span></span></label></div>' +
       voxPanel.html +
@@ -1519,6 +1541,7 @@
     on('sName', 'onchange', function () { S.name = this.value.trim() || 'Majordome'; saveS(); applyName(); applyWake(); chips(); });
     on('sWake', 'onchange', function () { S.wake = this.value; saveS(); applyWake(); });
     on('sAddr', 'onchange', function () { S.address = this.value; saveS(); $('sPrenomBox').hidden = S.address !== 'prenom'; });
+    faceBind();
     on('sPrenom', 'onchange', function () { S.prenom = this.value.trim(); saveS(); });
     on('sVoiceOn', 'onchange', function () { S.voiceOn = this.checked; saveS(); });
     on('sVoice', 'onchange', function () { S.voice = this.value; saveS(); });
@@ -1555,6 +1578,26 @@
     if (focus) { var f = $('f-' + focus); if (f) setTimeout(function () { f.scrollIntoView({ block: 'start' }); }, 50); }
   }
   MJ.settingsSheet = settingsSheet;
+  /* Apparence : sphère ou visage animé, style et traits du visage */
+  function faceHtml() {
+    var sel = function (id, cur, l) { return '<select class="in" id="' + id + '">' + l.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === cur ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>'; };
+    var nat = S.faceStyle !== 'holo';
+    return '<div class="set" id="f-apparence"><div class="t">Apparence<small>La sphère de particules, ou un visage qui cligne des yeux, vous regarde et parle avec la voix</small></div>' +
+      sel('sAvatar', S.avatar, [['sphere', 'Sphère'], ['visage', 'Visage']]) + '</div>' +
+      '<div id="sFaceBox"' + (S.avatar === 'visage' ? '' : ' hidden') + '>' +
+      '<div class="set"><div class="t">Style du visage</div>' + sel('sFaceStyle', S.faceStyle, [['naturel', 'Naturel'], ['holo', 'Hologramme']]) + '</div>' +
+      '<div id="sFaceNat"' + (nat ? '' : ' hidden') + '>' +
+      '<div class="set"><div class="t">Teint</div>' + sel('sFaceSkin', S.faceSkin, [['claire', 'Clair'], ['rosee', 'Rosé'], ['medium', 'Doré'], ['mate', 'Mat'], ['foncee', 'Foncé']]) + '</div>' +
+      '<div class="set"><div class="t">Cheveux</div>' + sel('sFaceHair', S.faceHair, [['brun', 'Bruns'], ['chatain', 'Châtains'], ['blond', 'Blonds'], ['roux', 'Roux'], ['noir', 'Noirs'], ['argent', 'Argentés']]) + '</div>' +
+      '<div class="set"><div class="t">Yeux</div>' + sel('sFaceEyes', S.faceEyes, [['noisette', 'Noisette'], ['marron', 'Marron'], ['vert', 'Verts'], ['bleu', 'Bleus'], ['gris', 'Gris']]) + '</div>' +
+      '</div><p class="note">La couleur de l\'état (écoute, réflexion, parole) reste visible dans le halo' + (nat ? ' et le contour du visage' : '') + '.</p></div>';
+  }
+  function faceBind() {
+    var ch = function (id, key, after) { var e = $(id); if (e) e.onchange = function () { S[key] = this.value; saveS(); orb.apply(); if (after) after(); }; };
+    ch('sAvatar', 'avatar', function () { $('sFaceBox').hidden = S.avatar !== 'visage'; if (S.avatar === 'visage') orb.mood('joie', 1800); });
+    ch('sFaceStyle', 'faceStyle', function () { $('sFaceNat').hidden = S.faceStyle === 'holo'; });
+    ch('sFaceSkin', 'faceSkin'); ch('sFaceHair', 'faceHair'); ch('sFaceEyes', 'faceEyes');
+  }
   /* Écran d'accueil de n'importe quel lanceur : widget Android (redimensionnable jusqu'au plein écran) et fond d'écran animé */
   function homeHtml() {
     if (!B || !B.wallpaperGet) return '';
