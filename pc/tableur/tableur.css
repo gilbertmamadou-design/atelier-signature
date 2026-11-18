@@ -60,6 +60,10 @@ button{font:inherit;color:inherit}
 #gridObjsIn{position:absolute;left:0;top:0;width:0;height:0}
 .g-obj{position:absolute;pointer-events:auto;cursor:move;user-select:none}
 .g-obj.sel{outline:1.5px solid #3D7BD9;outline-offset:1px}
+.g-obj .mv{position:absolute;cursor:move;z-index:2;touch-action:none}
+.g-obj .mv.t,.g-obj .mv.b{left:0;right:0;height:10px}.g-obj .mv.t{top:-6px}.g-obj .mv.b{bottom:-6px}
+.g-obj .mv.l,.g-obj .mv.r{top:0;bottom:0;width:10px}.g-obj .mv.l{left:-6px}.g-obj .mv.r{right:-6px}
+@media (pointer:coarse){.g-obj .mv.t,.g-obj .mv.b{height:20px}.g-obj .mv.t{top:-11px}.g-obj .mv.b{bottom:-11px}.g-obj .mv.l,.g-obj .mv.r{width:20px}.g-obj .mv.l{left:-11px}.g-obj .mv.r{right:-11px}}
 .g-obj .hdl{position:absolute;width:10px;height:10px;background:#fff;border:1.5px solid #3D7BD9;border-radius:50%;z-index:3}
 .g-obj .hdl.nw{left:-6px;top:-6px;cursor:nwse-resize}.g-obj .hdl.ne{right:-6px;top:-6px;cursor:nesw-resize}.g-obj .hdl.sw{left:-6px;bottom:-6px;cursor:nesw-resize}.g-obj .hdl.se{right:-6px;bottom:-6px;cursor:nwse-resize}
 .g-obj .hdl.n{left:calc(50% - 5px);top:-6px;cursor:ns-resize}.g-obj .hdl.s{left:calc(50% - 5px);bottom:-6px;cursor:ns-resize}.g-obj .hdl.w{top:calc(50% - 5px);left:-6px;cursor:ew-resize}.g-obj .hdl.e{top:calc(50% - 5px);right:-6px;cursor:ew-resize}

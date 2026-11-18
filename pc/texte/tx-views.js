@@ -44,7 +44,9 @@
     const box = O.h('span', { cls: 'tx-hdl', contenteditable: 'false' });
     ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'].forEach((k) => box.appendChild(O.h('i', { 'data-h': k })));
     if (opt.rotate !== false) box.appendChild(O.h('i', { 'data-h': 'rot', title: 'Faire pivoter' }));
+    ['t', 'r', 'b', 'l'].forEach((k) => box.insertBefore(O.h('b', { cls: 'tx-mv ' + k, title: 'Glisser pour déplacer' }), box.firstChild));
     box.addEventListener('pointerdown', (e) => {
+      if (e.button === 0 && e.target.classList && e.target.classList.contains('tx-mv')) { e.preventDefault(); e.stopPropagation(); if (document.activeElement && el.contains(document.activeElement)) document.activeElement.blur(); if (view.editable) startMove(view, getPos, el, e); return; }
       const h = e.target.dataset && e.target.dataset.h; if (!h) return;
       e.preventDefault(); e.stopPropagation();
       const pos = getPos(), node = view.state.doc.nodeAt(pos); if (!node) return;
@@ -81,6 +83,77 @@
     const vx = isPos ? parseFloat(el.style.left) || 0 : x0, vy = isPos ? parseFloat(el.style.top) || 0 : y0;
     O.drag(e, { threshold: 3, move: (dx, dy) => { el.style.left = r2(vx + dx / scale / PX) + 'pt'; el.style.top = r2(vy + dy / scale / PX) + 'pt'; el._xy = [r2(x0 + dx / scale / PX), r2(y0 + dy / scale / PX)]; }, end: (dx, dy, ev, moved) => { if (moved && el._xy) setAttrs(view, getPos(), isPos ? { x: el._xy[0], y: el._xy[1], al: 'left' } : { x: el._xy[0], y: el._xy[1] }); else view.dispatch(view.state.tr.setSelection(PMs.NodeSelection.create(view.state.doc, getPos()))); el._xy = null; } });
   }
+  /** Déplacer un objet à la souris, quel que soit son habillage (comme dans Word) */
+  function startMove(view, getPos, el, e) {
+    const node = view.state.doc.nodeAt(getPos()); if (!node) return;
+    const a = node.attrs;
+    if (/front|behind/.test(a.wrap) || a.pos) return freeMove(view, getPos, el, e);
+    if (!a.wrap || a.wrap === 'inline') return inlineMove(view, getPos, el, e);
+    return floatMove(view, getPos, el, e);
+  }
+  TX.startObjMove = startMove;
+  function selectObj(view, getPos) { view.dispatch(view.state.tr.setSelection(PMs.NodeSelection.create(view.state.doc, getPos()))); }
+  /** Objet habillé (carré, rapproché, haut et bas) : on le pose librement sur la page, ancré à son paragraphe, en gardant l'habillage */
+  function floatMove(view, getPos, el, e) {
+    const node = view.state.doc.nodeAt(getPos()); if (!node) return;
+    const scale = TX.scaleOf(el) || 1;
+    const r = el.getBoundingClientRect(), dr = view.dom.getBoundingClientRect();
+    const w = node.attrs.w * PX * scale, h = node.attrs.h * PX * scale, left = (r.left + r.right) / 2 - w / 2, top = (r.top + r.bottom) / 2 - h / 2;
+    O.drag(e, { threshold: 3, move: (dx, dy) => { el.style.translate = r2(dx / scale) + 'px ' + r2(dy / scale) + 'px'; el.style.pointerEvents = 'none'; }, end: (dx, dy, ev, moved) => {
+      el.style.translate = ''; el.style.pointerEvents = '';
+      if (!moved) return selectObj(view, getPos);
+      // paragraphe sous la souris : l'objet s'y ancre (il suit ce paragraphe ensuite, comme dans Word)
+      const from = getPos(), cur = view.state.doc.nodeAt(from); if (!cur) return;
+      let at = null, blkTop = null, inCell = false;
+      const hit = view.posAtCoords({ left: ev.clientX, top: ev.clientY });
+      if (hit) { const $h = view.state.doc.resolve(hit.pos); if ($h.parent.isTextblock) { const bd = view.nodeDOM($h.before()); if (bd && bd.getBoundingClientRect) { at = $h.start(); blkTop = bd.getBoundingClientRect().top; inCell = !!bd.closest('td,th'); } } }
+      if (at == null) { const blk = (el.parentElement && el.parentElement.closest('p,li,h1,h2,h3,h4,h5,h6,td,th')) || el.parentElement; if (!blk) return; blkTop = blk.getBoundingClientRect().top; inCell = !!blk.closest('td,th'); }
+      let ml = 0; try { ml = TX.pg(view.state.doc.child(view.state.doc.resolve(at == null ? from : at).index(0))).ml || 0; } catch (err) { }
+      // dans un tableau : l'objet change seulement de place dans le texte de la cellule (pas de position libre)
+      const attrs = inCell ? cur.attrs : Object.assign({}, cur.attrs, { pos: true, vrel: 'p', al: 'left', x: r2((left + dx - dr.left) / scale / PX - ml), y: r2((top + dy - blkTop) / scale / PX) });
+      const paper = el.closest('.tx-paper'), pr0 = paper ? paper.getBoundingClientRect() : { left: 0, top: 0 };
+      const want = [left + dx - pr0.left, top + dy - pr0.top];   // par rapport à la feuille (la page peut défiler entre-temps)
+      let p2 = from;
+      try {
+        const tr = view.state.tr; p2 = from;
+        if (at != null && (at < from || at > from + cur.nodeSize)) { tr.delete(from, from + cur.nodeSize); p2 = tr.mapping.map(at); tr.insert(p2, cur.type.create(attrs, cur.content, cur.marks)); }
+        else tr.setNodeMarkup(from, null, attrs);
+        tr.setSelection(PMs.NodeSelection.create(tr.doc, p2));
+        view.dispatch(tr.setMeta('tx-label', 'Déplacement'));
+      } catch (err) { return; }
+      if (inCell) return;
+      // une fois la page remise en forme (le texte se réorganise autour), on rattrape le petit écart éventuel pour que l'objet reste là où on l'a lâché
+      setTimeout(() => {
+        try {
+          const pos = p2, n = view.state.doc.nodeAt(pos), dom = view.nodeDOM(pos); if (!n || n.type !== cur.type || !n.attrs.pos || !dom) return;
+          const rr = dom.getBoundingClientRect(), k = TX.scaleOf(dom) || 1, w2 = n.attrs.w * PX * k, h2 = n.attrs.h * PX * k;
+          const pp = dom.closest('.tx-paper'), pr = pp ? pp.getBoundingClientRect() : { left: 0, top: 0 };
+          const ex = (want[0] - ((rr.left + rr.right) / 2 - w2 / 2 - pr.left)) / k / PX, ey = (want[1] - ((rr.top + rr.bottom) / 2 - h2 / 2 - pr.top)) / k / PX;
+          if ((Math.abs(ex) < 0.75 && Math.abs(ey) < 0.75) || Math.abs(ex) > 60 || Math.abs(ey) > 60) return;   // grand écart : mise en page pas encore finie, on n'y touche pas
+          const tr = view.state.tr.setNodeMarkup(pos, null, Object.assign({}, n.attrs, { x: r2(n.attrs.x + ex), y: r2(n.attrs.y + ey) }));
+          tr.setSelection(PMs.NodeSelection.create(tr.doc, pos));
+          view.dispatch(tr.setMeta('addToHistory', false));
+        } catch (err) { }
+      }, 250);
+    } });
+  }
+  /** Objet aligné sur le texte : on le déplace dans le texte, là où on le lâche */
+  function inlineMove(view, getPos, el, e) {
+    const scale = TX.scaleOf(el) || 1;
+    O.drag(e, { threshold: 3, move: (dx, dy) => { el.style.translate = r2(dx / scale) + 'px ' + r2(dy / scale) + 'px'; el.style.opacity = '.6'; el.style.pointerEvents = 'none'; }, end: (dx, dy, ev, moved) => {
+      el.style.translate = ''; el.style.opacity = ''; el.style.pointerEvents = '';
+      if (!moved) return selectObj(view, getPos);
+      const from = getPos(), node = view.state.doc.nodeAt(from); if (!node) return;
+      const hit = view.posAtCoords({ left: ev.clientX, top: ev.clientY }); if (!hit) return;
+      if (hit.pos >= from && hit.pos <= from + node.nodeSize) return selectObj(view, getPos);
+      try {
+        const tr = view.state.tr.delete(from, from + node.nodeSize); const to = tr.mapping.map(hit.pos);
+        if (!tr.doc.resolve(to).parent.inlineContent) return;
+        tr.insert(to, node); tr.setSelection(PMs.NodeSelection.create(tr.doc, to));
+        view.dispatch(tr.setMeta('tx-label', 'Déplacement'));
+      } catch (err) { }
+    } });
+  }
   TX.scaleOf = function (el) { const p = el.closest && el.closest('.tx-paper'); return p ? (p._scale || 1) : 1; };
 
   /* ---------------- image ---------------- */
@@ -97,12 +170,12 @@
       this.dom.innerHTML = '<span class="tx-img-in"><img draggable="false" alt="' + O.esc(a.alt || '') + '" src="' + O.esc(src) + '" style="' + (cropped ? 'position:absolute;width:' + r2(kw * 100) + '%;height:' + r2(kh * 100) + '%;left:' + r2(-(c.l || 0) * kw * 100) + '%;top:' + r2(-(c.t || 0) * kh * 100) + '%' : 'width:100%;height:100%') + '"></span>';
       this.dom.setAttribute('role', 'img'); this.dom.setAttribute('aria-label', a.alt || 'Image');
       if (this.sel) this.dom.appendChild(handles(this.view, this.getPos, this.dom, { rotate: true }));
-      this.dom.onpointerdown = (e) => { if (e.button !== 0 || e.target.closest('.tx-hdl')) return; if ((/front|behind/.test(this.node.attrs.wrap) || this.node.attrs.pos) && this.view.editable) { e.preventDefault(); freeMove(this.view, this.getPos, this.dom, e); } };
+      this.dom.onpointerdown = (e) => { if (e.button !== 0 || e.target.closest('.tx-hdl')) return; if (this.view.editable) { e.preventDefault(); startMove(this.view, this.getPos, this.dom, e); } };
     }
     update(node) { if (node.type !== this.node.type) return false; this.render(node); return true; }
     selectNode() { this.sel = true; this.dom.classList.add('sel'); this.render(this.node); }
     deselectNode() { this.sel = false; this.dom.classList.remove('sel'); this.render(this.node); }
-    stopEvent(e) { return !!(e.target.closest && e.target.closest('.tx-hdl')) || (e.type === 'pointerdown' && /front|behind/.test(this.node.attrs.wrap)); }
+    stopEvent(e) { return !!(e.target.closest && e.target.closest('.tx-hdl')) || (e.type === 'pointerdown' && this.view.editable); }
     ignoreMutation() { return true; }
   }
 
@@ -136,7 +209,7 @@
       if (a.kind === 'shape' || a.kind === 'textbox') h += '<span class="tx-drw-t" style="padding:' + r2(a.pad == null ? 7.2 : a.pad) + 'pt;justify-content:' + ({ top: 'flex-start', middle: 'center', bottom: 'flex-end' }[a.va] || 'center') + ';' + (a.kind === 'shape' ? 'text-align:center;' : '') + '"><span class="tx-drw-ti">' + (a.html || '') + '</span></span>';
       this.dom.innerHTML = h;
       if (this.sel) this.dom.appendChild(handles(this.view, this.getPos, this.dom, { keepRatio: a.kind === 'icon', rotate: true }));
-      this.dom.onpointerdown = (e) => { if (e.button !== 0 || e.target.closest('.tx-hdl') || e.target.closest('[contenteditable=true]')) return; if ((/front|behind/.test(this.node.attrs.wrap) || this.node.attrs.pos) && this.view.editable) { e.preventDefault(); freeMove(this.view, this.getPos, this.dom, e); } };
+      this.dom.onpointerdown = (e) => { if (e.button !== 0 || e.target.closest('.tx-hdl') || this.editingTarget(e)) return; if (this.view.editable) { e.preventDefault(); startMove(this.view, this.getPos, this.dom, e); } };
       this.dom.ondblclick = (e) => { if ((this.node.attrs.kind === 'shape' || this.node.attrs.kind === 'textbox') && this.view.editable) { e.preventDefault(); this.editText(); } else if (this.view._tx && this.view._tx.onObjectDblClick) this.view._tx.onObjectDblClick(this.node, this.getPos()); };
     }
     editText() {
@@ -156,7 +229,9 @@
     update(node) { if (node.type !== this.node.type) return false; if (this.editing) { this.node = node; return true; } this.render(node); return true; }
     selectNode() { this.sel = true; this.dom.classList.add('sel'); if (!this.editing) this.render(this.node); }
     deselectNode() { this.sel = false; this.dom.classList.remove('sel'); if (!this.editing) this.render(this.node); }
-    stopEvent(e) { return !!(e.target.closest && (e.target.closest('.tx-hdl') || e.target.closest('[contenteditable=true]'))) || (e.type === 'pointerdown' && /front|behind/.test(this.node.attrs.wrap)); }
+    /** clic dans le texte de la zone en cours de saisie (et pas dans le document qui la contient) */
+    editingTarget(e) { const ce = e.target.closest && e.target.closest('[contenteditable=true]'); return !!(ce && this.dom.contains(ce)); }
+    stopEvent(e) { return !!(e.target.closest && e.target.closest('.tx-hdl')) || this.editingTarget(e) || (e.type === 'pointerdown' && this.view.editable); }
     ignoreMutation() { return true; }
   }
 

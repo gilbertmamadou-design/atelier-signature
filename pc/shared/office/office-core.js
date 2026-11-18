@@ -455,8 +455,11 @@
     const x0 = e0.clientX, y0 = e0.clientY, th = h.threshold == null ? 3 : h.threshold, id = e0.pointerId;
     let moved = false;
     const tgt = e0.target; try { tgt.setPointerCapture && tgt.setPointerCapture(id); } catch (e) { }
-    const mv = (e) => { if (e.pointerId !== id) return; const dx = e.clientX - x0, dy = e.clientY - y0; if (!moved && Math.hypot(dx, dy) < th) return; moved = true; h.move && h.move(dx, dy, e); };
-    const up = (e) => { if (e.pointerId !== id) return; window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); h.end && h.end(e.clientX - x0, e.clientY - y0, e, moved); };
+    // fluidité : la souris envoie souvent plus de mouvements que l'écran n'affiche d'images ; on n'applique que le dernier, une fois par image
+    let last = null, raf = 0;
+    const flush = () => { raf = 0; const e = last; last = null; if (e && h.move) h.move(e.clientX - x0, e.clientY - y0, e); };
+    const mv = (e) => { if (e.pointerId !== id) return; const dx = e.clientX - x0, dy = e.clientY - y0; if (!moved && Math.hypot(dx, dy) < th) return; moved = true; last = e; if (!raf) raf = requestAnimationFrame(flush); };
+    const up = (e) => { if (e.pointerId !== id) return; window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); if (raf) { cancelAnimationFrame(raf); flush(); } h.end && h.end(e.clientX - x0, e.clientY - y0, e, moved); };
     window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
   };
 

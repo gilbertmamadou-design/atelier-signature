@@ -36,7 +36,7 @@
       if (o.type !== 'chart' && o.type !== 'image' && o.type !== 'icon') { const tx = el.querySelector('.tx'); if (tx) tx.style.fontSize = ((o.fs || 11) * 4 / 3 * z) + 'px'; }
       el.classList.toggle('sel', A.selObj && A.selObj.id === o.id);
       let hs = el.querySelector('.hdls');
-      if (A.selObj && A.selObj.id === o.id) { if (!hs) { hs = O.h('div', { cls: 'hdls' }); hs.innerHTML = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'].map((k) => '<i class="hdl ' + k + '" data-h="' + k + '"></i>').join(''); el.appendChild(hs); } }
+      if (A.selObj && A.selObj.id === o.id) { if (!hs) { hs = O.h('div', { cls: 'hdls' }); hs.innerHTML = '<b class="mv t"></b><b class="mv r"></b><b class="mv b"></b><b class="mv l"></b>' + ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'].map((k) => '<i class="hdl ' + k + '" data-h="' + k + '"></i>').join(''); el.appendChild(hs); } }
       else if (hs) hs.remove();
     });
     els.forEach((el, id) => { if (!live.has(id) || el._sheet !== s.id) { el.remove(); els.delete(id); } });
@@ -59,6 +59,8 @@
       const id = el.dataset.id, s = sh(); const o = s.objs.find((x) => x.id === id); if (!o) return;
       if (e.target.closest('.tx[contenteditable="true"]')) return;
       e.preventDefault(); e.stopPropagation();
+      // bord du cadre pendant la saisie du texte d'une forme : on termine la saisie puis on déplace
+      if (document.activeElement && el.contains(document.activeElement)) document.activeElement.blur();
       if (G().edit) G().commitEdit(null);
       if (s.protect && !(s.protect.allow || {}).objects) { selectObj(o); return; }
       selectObj(o);
@@ -66,13 +68,17 @@
       const z = G().zoom, x0 = e.clientX, y0 = e.clientY;
       const P0 = { x: G().ax().pos(o.from.c) + (o.from.dx || 0), y: G().ay().pos(o.from.r) + (o.from.dy || 0), w: o.w, h: o.h };
       let cur = Object.assign({}, P0), moved = false;
-      const mv = (ev) => {
+      // fluidité : un seul déplacement par image affichée (la souris en envoie souvent davantage)
+      let last = null, raf = 0;
+      const mv = (ev) => { last = ev; if (!raf) raf = requestAnimationFrame(apply); };
+      const apply = () => {
+        raf = 0; const ev = last; if (!ev) return; last = null;
         const dx = (ev.clientX - x0) / z, dy = (ev.clientY - y0) / z; if (!moved && Math.hypot(dx, dy) < 3) return; moved = true;
         if (hdl) { const k = hdl.dataset.h; cur = Object.assign({}, P0); if (/e/.test(k)) cur.w = Math.max(10, P0.w + dx); if (/s/.test(k)) cur.h = Math.max(10, P0.h + dy); if (/w/.test(k)) { cur.w = Math.max(10, P0.w - dx); cur.x = P0.x + P0.w - cur.w; } if (/n/.test(k)) { cur.h = Math.max(10, P0.h - dy); cur.y = P0.y + P0.h - cur.h; } if (ev.shiftKey && o.type !== 'shape') { const r = P0.w / P0.h; if (/[ew]/.test(k) && !/[ns]/.test(k)) cur.h = cur.w / r; else cur.w = cur.h * r; } }
         else { cur.x = Math.max(0, P0.x + dx); cur.y = Math.max(0, P0.y + dy); }
         el.style.left = cur.x * z + 'px'; el.style.top = cur.y * z + 'px'; el.style.width = cur.w * z + 'px'; el.style.height = cur.h * z + 'px';
       };
-      const up = () => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); if (moved) A.objSet(Object.assign({}, anchorOf(cur.x, cur.y), { w: Math.round(cur.w), h: Math.round(cur.h) }), o); };
+      const up = () => { if (raf) { cancelAnimationFrame(raf); apply(); } window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); if (moved) A.objSet(Object.assign({}, anchorOf(cur.x, cur.y), { w: Math.round(cur.w), h: Math.round(cur.h) }), o); };
       window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
     });
     el.addEventListener('dblclick', (e) => {

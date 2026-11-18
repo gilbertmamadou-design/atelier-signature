@@ -506,7 +506,10 @@
     O.$$('.guide', overlay).forEach((g) => g.remove());
     gs.forEach((g) => { const d = O.h('div', { cls: 'guide ' + g[0] }); if (g[0] === 'v') Object.assign(d.style, { left: g[1] * A.zoom + 'px', top: '-2000px', height: '6000px' }); else Object.assign(d.style, { top: g[1] * A.zoom + 'px', left: '-2000px', width: '6000px' }); overlay.appendChild(d); });
   }
-  function tip(text, cx, cy) { let t = overlay.querySelector('.size-tip'); if (!t) { t = O.h('div', { cls: 'size-tip' }); overlay.appendChild(t); } const r = overlay.getBoundingClientRect(); t.textContent = text; t.style.left = (cx - r.left + 14) + 'px'; t.style.top = (cy - r.top + 14) + 'px'; }
+  // place du calque mesurée une fois par glisser (la mesurer à chaque mouvement oblige le navigateur à recalculer toute la page)
+  let tipRect = null; const tipReset = () => { tipRect = null; };
+  window.addEventListener('pointerup', tipReset, true); window.addEventListener('pointercancel', tipReset, true); window.addEventListener('scroll', tipReset, true); window.addEventListener('resize', tipReset);
+  function tip(text, cx, cy) { let t = overlay.querySelector('.size-tip'); if (!t) { t = O.h('div', { cls: 'size-tip' }); overlay.appendChild(t); } const r = tipRect || (tipRect = overlay.getBoundingClientRect()); t.textContent = text; t.style.left = (cx - r.left + 14) + 'px'; t.style.top = (cy - r.top + 14) + 'px'; }
   const cm = (px) => O.round(px / 96 * 2.54, 2).toString().replace('.', ',');
 
   function moveDrag(ev, onClick) {
