@@ -1,0 +1,7 @@
+Visage 3D de Majordome
+- Modèles : Microsoft Rocketbox Avatar Library (https://github.com/microsoft/Microsoft-Rocketbox), licence MIT,
+  © Microsoft Corporation. Convertis en GLB (textures 1024 px, visèmes et expressions ARKit seulement)
+  par applis/visage3d/convertir.py (workflow « Visage 3D »).
+- three-mj.js : three.js (https://threejs.org), licence MIT, © 2010-2024 three.js authors, avec GLTFLoader.
+Le modèle par défaut (Female_Adult_08) est livré avec l'appli Android ; les autres sont publiés avec la version PC
+(pc/shared/visage3d) et téléchargés à la demande.
