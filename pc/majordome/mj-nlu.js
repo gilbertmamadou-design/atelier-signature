@@ -1118,6 +1118,53 @@
     return null;
   }
 
+  /* ---------------- Politesses et mots gentils ----------------
+     Sur la phrase brute (prep() retire « merci » en tête) : merci, compliments, « je t'aime », excuses,
+     au revoir, humeur (« je suis fatigué »), vœux, et les mots moins gentils. */
+  var SOC = [
+    ['thanks', /^(?:(?:oh |ah |bon |super |parfait |top |nickel |cool |genial |impeccable |ok |d accord )?merci(?: (?:beaucoup|bien|infiniment|mille fois|encore|a toi|a vous|mon ami|mon grand|ma belle|mon pote|cher ami|pour tout|pour ca|pour cela|pour l info|pour l information|pour (?:la|le|les|l|ton|ta|tes|votre|vos|ce|cette) [a-z ]{2,40}|c est (?:parfait|super|top|gentil|sympa|genial)|bien|beaucoup))*|mille mercis?|c est (?:gentil|sympa|adorable|tres gentil|trop gentil|vraiment gentil)|trop gentil|tres gentil|c est cool|thanks|thank you|merci bien|grand merci|un grand merci)$/],
+    ['compliment', /^(?:(?:tu es|t es|vous etes|tu es vraiment|t es vraiment|vous etes vraiment|tu es trop|t es trop|t es un|tu es un|tu es une|t es une|quel|quelle) (?:genial|geniale|super|top|formidable|fantastique|extra|excellent|excellente|merveilleux|merveilleuse|parfait|parfaite|fort|forte|tres fort|tres forte|trop fort|trop forte|intelligent|intelligente|malin|maline|gentil|gentille|adorable|beau|belle|incroyable|doue|douee|efficace|rapide|drole|marrant|marrante|sympa|sympathique|serviable|le meilleur|la meilleure|le plus fort|un amour|un ange|un champion|une championne|une perle|un genie|au top|trop bien|bon|bonne|assistant genial|bon assistant|le meilleur assistant|la meilleure assistante|un bon assistant|une bonne assistante|un super assistant)|bravo(?: a toi| a vous| mon ami)?|bien joue|bien vu|bien fait|excellent|impeccable|chapeau(?: bas)?|trop fort|trop bien|tu assures|t assures|tu geres|t geres|tu es au top|good job|beau travail|bon travail|super travail|joli travail|bien travaille|je suis fier de toi|je suis fiere de toi|tu m impressionnes|tu m epates|tu es mon prefere|t es mon prefere|tu es ma preferee|j adore|j adore ca|c est genial|c est parfait|c est top|c est super|super boulot|beau boulot|bon boulot|nickel|parfait|top|super|genial)$/],
+    ['love', /^(?:je t aime(?: bien| beaucoup| fort| tres fort| trop| a la folie| moi aussi)?|moi aussi je t aime|je vous aime(?: bien| beaucoup)?|je t adore|je vous adore|tu me plais|je te kiffe|je t apprecie(?: beaucoup)?|bisou|bisous|gros bisous?|un bisou|je t embrasse|calin|un calin|fais moi un calin|tu m aimes|est ce que tu m aimes|tu m aimes bien)$/],
+    ['sorry', /^(?:desole|desolee|je suis desole|je suis desolee|vraiment desole|excuse moi|excusez moi|je m excuse|je te demande pardon|je vous demande pardon|pardon je me suis trompe|pardon je me suis trompee|je me suis trompe|je me suis trompee|oups|oups pardon|mea culpa|ma faute|c est ma faute|autant pour moi|au temps pour moi)$/],
+    ['rude', /^(?:(?:tu es|t es|vous etes|tu es vraiment|t es vraiment|tu es trop|t es trop|t es qu un|tu n es qu un|espece d) (?:nul|nulle|bete|idiot|idiote|imbecile|stupide|debile|abruti|abrutie|con|conne|cretin|cretine|lent|lente|bouche|bouchee|sourd|sourde|inutile|pas doue|pas douee|pas tres malin|nase|naze|une buse|un boulet)|nul|t es nul|trop nul|tu sers a rien|tu ne sers a rien|tu sers a rien du tout|tu comprends rien|tu ne comprends rien|tu comprends jamais rien|tu ne comprends jamais rien|t es lourd|tu es lourd|tu m enerves|tu m agaces|tu me saoules|tu me soules|tu me fatigues|ferme la|la ferme|idiot|imbecile|abruti|debile|cretin)$/],
+    ['bye', /^(?:au revoir|aurevoir|a plus|a plus tard|a la prochaine|a bientot|a tout a l heure|a toute|a tout de suite|a demain|a ce soir|a lundi|a la semaine prochaine|salut a plus|ciao|tchao|bye|bye bye|adieu|bonne journee|bonne fin de journee|bonne apres midi|bonne fin d apres midi|bon week end|bonne semaine|bonne continuation|je m en vais|je pars|je sors|j y vais|je file|je te laisse|je vous laisse|on se reparle plus tard)$/],
+    ['welcome', /^(?:de rien|je t en prie|je vous en prie|avec plaisir|c est normal|pas de quoi|y a pas de quoi|il n y a pas de quoi)$/],
+    ['tired', /^(?:je suis (?:fatigue|fatiguee|creve|crevee|epuise|epuisee|lessive|lessivee|naze|vanne|vannee|mort de fatigue|morte de fatigue|KO|ko)|je suis tres fatigue|je suis tres fatiguee|quelle journee|grosse journee|dure journee|journee difficile|j ai sommeil|je tombe de sommeil)$/],
+    ['happy', /^(?:je suis (?:content|contente|heureux|heureuse|ravi|ravie|de bonne humeur|en forme|joyeux|joyeuse|super content|super contente|trop content|trop contente)|ca va bien|ca va tres bien|je vais bien|je vais tres bien|tout va bien|super journee|belle journee|quelle belle journee|bonne nouvelle|j ai une bonne nouvelle|youpi|yes|trop bien)$/],
+    ['sad', /^(?:je suis (?:triste|pas bien|pas en forme|deprime|deprimee|decourage|decouragee|de mauvaise humeur|degoute|degoutee|enerve|enervee|stresse|stressee|angoisse|angoissee|seul|seule)|ca va pas|ca ne va pas|ca va pas fort|ca ne va pas fort|je vais pas bien|je ne vais pas bien|j ai pas le moral|je n ai pas le moral|j ai le moral a zero|mauvaise journee|sale journee|journee pourrie|c est pas la forme|bof)$/],
+    ['bored', /^(?:je m ennuie|je m ennuie un peu|on s ennuie|je sais pas quoi faire|je ne sais pas quoi faire|qu est ce que je pourrais faire|j ai rien a faire|je n ai rien a faire)$/],
+    ['meal', /^(?:bon appetit|a table|on mange|je vais manger|on passe a table)$/],
+    ['wishes', /^(?:joyeux noel|bonne annee|bonne annee a toi|meilleurs voeux|joyeuses paques|joyeux anniversaire|bon anniversaire|joyeuses fetes|bonnes fetes|bonne fete)$/],
+    ['joke', /^(?:(?:raconte|dis|fais)(?: moi| nous)? (?:une|un|encore une) (?:autre )?(?:blague|histoire drole|truc drole|devinette)|(?:moi )?une (?:autre )?blague|encore une blague|une autre blague|fais moi rire|fais nous rire|tu connais une blague|tu connais des blagues|t as une blague|tu as une blague|blague|une devinette)$/],
+    ['laugh', /^(?:ha ha|haha|ha ha ha|hahaha|hihi|hi hi|mdr|lol|ptdr|trop drole|tres drole|t es drole|tu es drole|c est drole|elle est bonne|t es marrant|tu es marrant)$/]
+  ];
+  function social(raw, ctx) {
+    var names = (ctx && ctx.names || []).map(deacc).concat(['majordome', 'jarvis']);
+    var s = deacc(raw).replace(/[’']/g, ' ').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+    var strip = true, g = 0;
+    while (strip && g++ < 6) {
+      strip = false;
+      names.forEach(function (n) {
+        if (!n) return;
+        if (s.indexOf(n + ' ') === 0) { s = s.slice(n.length + 1); strip = true; }
+        if (s.length > n.length && s.slice(-n.length - 1) === ' ' + n) { s = s.slice(0, -n.length - 1); strip = true; }
+      });
+      var m0 = /^(?:ok|hey|he|eh|oh|ah|alors|bon|euh|dis|dis donc|tiens) (.+)$/.exec(s); if (m0 && m0[1] !== 'merci' && !/^(?:appetit|anniversaire|week end|travail|boulot|courage|retour|vent|moi une blague$)/.test(m0[1]) || m0 && /^dis /.test(s) && m0[1] !== 'merci') { s = m0[1]; strip = true; }
+    }
+    if (!s) return null;
+    for (var i = 0; i < SOC.length; i++) if (SOC[i][1].test(s)) return { kind: SOC[i][0] };
+    // « merci et bonne journée », « merci beaucoup, à demain », « bravo merci »
+    var parts = s.split(/ (?:et|puis) | (?=bonne |bon |a demain|a plus|a bientot|au revoir|merci)/).filter(Boolean);
+    if (parts.length > 1 && parts.length < 4) {
+      var kinds = parts.map(function (p) { for (var k = 0; k < SOC.length; k++) if (SOC[k][1].test(p.trim())) return SOC[k][0]; return null; });
+      if (kinds.every(Boolean)) {
+        var main = kinds.indexOf('bye') >= 0 ? 'bye' : kinds.indexOf('love') >= 0 ? 'love' : kinds.indexOf('compliment') >= 0 ? 'compliment' : kinds[0];
+        return { kind: main, thanks: kinds.indexOf('thanks') >= 0 && main !== 'thanks' };
+      }
+    }
+    return null;
+  }
+
   /* ---------------- Analyse ---------------- */
   function parse(raw, ctx) {
     ctx = ctx || {};
@@ -1149,6 +1196,9 @@
         if (rp && (t === rp || t === 'routine ' + rp || t === 'lance la routine ' + rp || t === 'lance ' + rp || t === 'mode ' + rp || t === 'active la routine ' + rp)) return R('routine', { id: routines[ri].id });
       }
     }
+    // --- politesses, compliments, humeur (réponses dans mj-social.js), après les routines de l'utilisateur ---
+    var soc = social(P.raw, ctx);
+    if (soc) return R('social', soc);
     // --- les applis Wi-Fi, Bluetooth, Caméras (à ne pas confondre avec « active le Wi-Fi ») ---
     if ((m = /^(?:ouvre|ouvrir|lance|lancer|demarre|affiche|montre moi|va dans|va sur)\s+(?:l |la |mon |ma )?(?:appli|application) (wi ?fi|bluetooth|cameras?)$/.exec(t))) {
       if (/^camera/.test(m[1])) return R('cameras', { name: '' });

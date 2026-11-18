@@ -19,7 +19,7 @@
   function ctx() { return X.ctx ? X.ctx() : { now: Date.now(), names: [] }; }
 
   /* ---------- Plusieurs ordres dans une phrase ---------- */
-  var NOSPLIT = /^(websearch|teach|teach_forget|note_add|list_add|list_remove|sms|reminder|reminder_cancel|msgs|calc|convert|quiz|wiki|announce|call|search|website|agenda_add|translate|book|routine)$/;
+  var NOSPLIT = /^(social|websearch|teach|teach_forget|note_add|list_add|list_remove|sms|reminder|reminder_cancel|msgs|calc|convert|quiz|wiki|announce|call|search|website|agenda_add|translate|book|routine)$/;
   MJ.multi = function (text, r) {
     if (!MJ.splitActs || NOSPLIT.test(r.intent) || !/[,;]|\s(et|puis|ensuite)\s/i.test(text)) return null;
     var parts = MJ.splitActs(text); if (parts.length < 2) return null;
