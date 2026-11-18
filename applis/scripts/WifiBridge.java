@@ -191,16 +191,27 @@ public class WifiBridge {
             testing = false; emit(res);
         } }, "wifi-test").start();
     }
+    /** Mesure rapide pour une pièce : ~4 s de téléchargement → événement « quick » {mbps} */
+    @JavascriptInterface public void quickTest() {
+        if (testing) return; testing = true;
+        new Thread(new Runnable() { public void run() {
+            JSONObject r = new JSONObject();
+            try { r.put("op", "quick").put("mbps", downFor(4_000_000_000L, null)).put("ok", true); }
+            catch (Throwable t) { try { r.put("op", "quick").put("ok", false); } catch (Throwable e) { } }
+            testing = false; emit(r);
+        } }, "wifi-quick").start();
+    }
     private void prog(String phase, double v) { try { emit(new JSONObject().put("op", "prog").put("phase", phase).put("v", v)); } catch (Throwable t) { } }
     /** Débit descendant (Mbit/s) : téléchargements successifs pendant ~8 s */
-    private double down() throws Exception {
-        long t0 = System.nanoTime(), bytes = 0, end = t0 + 8_000_000_000L, lastEmit = 0;
+    private double down() throws Exception { return downFor(8_000_000_000L, "down"); }
+    private double downFor(long ns, String phase) throws Exception {
+        long t0 = System.nanoTime(), bytes = 0, end = t0 + ns, lastEmit = 0;
         byte[] b = new byte[64 * 1024];
         while (System.nanoTime() < end) {
             HttpURLConnection h = (HttpURLConnection) new URL("https://speed.cloudflare.com/__down?bytes=25000000").openConnection();
             h.setConnectTimeout(5000); h.setReadTimeout(5000); h.setUseCaches(false);
             try (InputStream in = h.getInputStream()) {
-                int n; while ((n = in.read(b)) > 0) { bytes += n; long now = System.nanoTime(); if (now - lastEmit > 400_000_000L) { lastEmit = now; prog("down", bytes * 8 / ((now - t0) / 1e9) / 1e6); } if (now > end) break; }
+                int n; while ((n = in.read(b)) > 0) { bytes += n; long now = System.nanoTime(); if (phase != null && now - lastEmit > 400_000_000L) { lastEmit = now; prog(phase, bytes * 8 / ((now - t0) / 1e9) / 1e6); } if (now > end) break; }
             } finally { h.disconnect(); }
         }
         return bytes * 8 / ((System.nanoTime() - t0) / 1e9) / 1e6;

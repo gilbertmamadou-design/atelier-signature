@@ -75,9 +75,13 @@ canvas{width:100%;height:170px;display:block}
   function J(s, d) { try { return JSON.parse(s); } catch (e) { return d; } }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function ls(k, v) { try { if (v === undefined) return JSON.parse(localStorage.getItem('wifi:' + k)); localStorage.setItem('wifi:' + k, JSON.stringify(v)); } catch (e) { return null; } }
+  var QUICK = null;
   var tT = 0; function toast(t) { var e = $('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(tT); tT = setTimeout(function () { e.classList.remove('on'); }, 2800); }
   function fr(n, d) { return (Math.round(n * Math.pow(10, d || 0)) / Math.pow(10, d || 0)).toString().replace('.', ','); }
-  var ST = {}, NETS = [], band = '2', ROOMS = ls('rooms') || [];
+  var ST = {}, NETS = [], band = '2', ROOMS = ls('rooms') || [], APS = ls('aps') || {};
+  // points d'accès (box, répéteur) : reconnus à leur adresse matérielle (BSSID) ; nom donné par l'utilisateur
+  function apKey(b) { return String(b || '').toLowerCase().slice(0, 14); }   // les 2,4 et 5 GHz d'un même appareil ne diffèrent souvent que par le dernier octet
+  function apName(b) { if (!b) return ''; var k = apKey(b); if (APS[k]) return APS[k]; var ks = Object.keys(ROOMS.reduce(function (o, r) { if (r.ap) o[apKey(r.ap)] = 1; return o; }, {})); var i = ks.indexOf(k); return 'Point d\'accès ' + (i < 0 ? ks.length + 1 : i + 1); }
 
   // qualité du signal (dBm)
   function qual(r) { return r >= -55 ? ['Excellent', 'okc', 4] : r >= -65 ? ['Bon', 'okc', 3] : r >= -72 ? ['Moyen', 'midc', 2] : r >= -80 ? ['Faible', 'badc', 1] : ['Très faible', 'badc', 0]; }
@@ -116,11 +120,12 @@ canvas{width:100%;height:170px;display:block}
     var col = { okc: '#67d49c', midc: '#ffd166', badc: '#ff7a7a' }[q[1]];
     el.innerHTML = '<div class="big"><svg class="gauge" viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="none" stroke="#ffffff14" stroke-width="10"/><circle cx="50" cy="50" r="42" fill="none" stroke="' + col + '" stroke-width="10" stroke-linecap="round" stroke-dasharray="' + (264 * p / 100) + ' 264" transform="rotate(-90 50 50)"/><text x="50" y="48" text-anchor="middle" fill="#f1f3f8" font-size="22" font-weight="800">' + p + '%</text><text x="50" y="66" text-anchor="middle" fill="#7c8396" font-size="11">' + c.rssi + ' dBm</text></svg>' +
       '<div style="min-width:0"><div class="ssid">' + esc(c.ssid || 'Réseau Wi-Fi') + '</div><div class="q ' + q[1] + '">' + q[0] + '</div><div class="note" style="margin:2px 0 0">' + esc(c.band) + ' · canal ' + c.ch + (m && m.w > 20 ? ' (' + m.w + ' MHz)' : '') + '</div></div></div>' +
-      '<div class="kv"><div><small>Débit du lien</small><b>' + (c.rx > 0 ? c.rx + ' ↓ / ' + c.tx + ' ↑' : c.link) + ' Mbit/s</b></div>' +
+      '<div class="kv"><div><small>Point d\'accès</small><b>' + esc(apName(c.bssid) || '—') + '</b> <button class="btn sm" id="bAp" style="min-height:28px;padding:0 8px;font-size:12px">Nommer</button></div><div><small>Débit du lien</small><b>' + Math.max(c.link || 0, c.rx || 0, c.tx || 0) + ' Mbit/s</b><small>monte quand le téléphone travaille</small></div>' +
       '<div><small>Norme</small><b>' + esc(STD[c.std] || '—') + '</b></div><div><small>Sécurité</small><b>' + esc(m ? m.sec : '—') + '</b></div>' +
       '<div><small>Adresse du téléphone</small><b>' + esc(c.ip) + '</b></div><div><small>Box</small><b>' + esc(c.gw || '—') + '</b></div>' + (bx ? '<div><small>Modèle probable</small><b>' + esc(bx.n) + '</b></div>' : '') + '</div>' +
       (bx ? '<div class="row" style="margin-top:12px"><button class="btn sm" id="bBox">Ouvrir l\'interface de la box</button></div>' : '');
     if ($('bBox')) $('bBox').onclick = function () { B.openUrl(bx.url); };
+    if ($('bAp')) $('bAp').onclick = function () { var n = prompt('Nom de ce point d\'accès (par exemple « Box garage » ou « Répéteur bureau »)', APS[apKey(c.bssid)] || ''); if (n == null) return; if (n.trim()) APS[apKey(c.bssid)] = n.trim(); else delete APS[apKey(c.bssid)]; ls('aps', APS); load(); };
   }
 
   /* ---------- réseaux et canaux ---------- */
@@ -199,26 +204,34 @@ canvas{width:100%;height:170px;display:block}
   function paintRooms() {
     $('rooms').innerHTML = ROOMS.length ? ROOMS.slice().sort(function (a, b) { return b.rssi - a.rssi; }).map(function (r) {
       var q = qual(r.rssi);
-      return '<div class="room">' + sig(r.rssi) + '<div class="t"><b>' + esc(r.name) + '</b><br><small><span class="' + q[1] + '">' + q[0] + '</span> · ' + r.rssi + ' dBm · ' + esc(r.band) + ' · lien ' + r.link + ' Mbit/s</small></div><button class="btn sm" data-del="' + esc(r.id) + '">✕</button></div>';
+      var sp = r.mbps != null ? (r.mbps >= 0 ? '<b class="' + (r.mbps >= 50 ? 'okc' : r.mbps >= 15 ? 'midc' : 'badc') + '">' + fr(r.mbps, r.mbps < 10 ? 1 : 0) + ' Mbit/s</b>' : 'débit ?') : 'lien ' + r.link + ' Mbit/s';
+      return '<div class="room">' + sig(r.rssi) + '<div class="t"><b>' + esc(r.name) + '</b><br><small><span class="' + q[1] + '">' + q[0] + '</span> · ' + r.rssi + ' dBm · ' + esc(r.band) + ' · ' + sp + (r.ap ? ' · via ' + esc(apName(r.ap)) : '') + '</small></div><button class="btn sm" data-del="' + esc(r.id) + '">✕</button></div>';
     }).join('') : '';
   }
   $('rooms').onclick = function (e) { var d = e.target.closest('[data-del]'); if (d) { ROOMS = ROOMS.filter(function (r) { return r.id !== d.dataset.del; }); ls('rooms', ROOMS); paintRooms(); paintTips(); } };
   $('bRoom').onclick = function () {
     if (!B || !(ST = J(B.state(), {})).conn) return toast('Connectez-vous d\'abord à votre Wi-Fi');
     var name = prompt('Nom de la pièce', ''); if (!name || !name.trim()) return;
-    var v = [], n = 0, ph = $('roomPh');
-    ph.textContent = 'Mesure… ne bougez pas';
+    var v = [], n = 0, ph = $('roomPh'), mb = null, finished = false;
+    ph.textContent = 'Mesure du signal et du débit (5 s)… ne bougez pas';
+    $('bRoom').disabled = true;
+    QUICK = function (e) { mb = e.ok ? e.mbps : -1; fin(); };
+    if (B.quickTest) B.quickTest(); else mb = -1;
     var it = setInterval(function () {
       var s = J(B.state(), {}); if (s.conn) v.push(s.conn);
-      if (++n >= 6) {
-        clearInterval(it); ph.textContent = '';
-        if (!v.length) return toast('Mesure impossible');
-        var rs = v.map(function (x) { return x.rssi; }).sort(function (a, b) { return a - b; }), med = rs[Math.floor(rs.length / 2)], last = v[v.length - 1];
-        ROOMS = ROOMS.filter(function (r) { return r.name.toLowerCase() !== name.trim().toLowerCase(); });
-        ROOMS.push({ id: String(Date.now()), name: name.trim(), rssi: med, band: last.band, link: last.rx > 0 ? last.rx : last.link, at: Date.now() });
-        ls('rooms', ROOMS); paintRooms(); paintTips(); toast(name.trim() + ' : ' + qual(med)[0].toLowerCase());
-      }
+      if (++n >= 8) { clearInterval(it); fin(); }
     }, 600);
+    setTimeout(function () { if (mb == null) { mb = -1; fin(); } }, 15000);
+    function fin() {
+      if (finished || n < 8 || mb == null) return; finished = true;
+      QUICK = null; ph.textContent = ''; $('bRoom').disabled = false;
+      if (!v.length) return toast('Mesure impossible');
+      var rs = v.map(function (x) { return x.rssi; }).sort(function (a, b) { return a - b; }), med = rs[Math.floor(rs.length / 2)], last = v[v.length - 1];
+      var link = Math.max.apply(null, v.map(function (x) { return Math.max(x.link || 0, x.rx || 0, x.tx || 0); }));
+      ROOMS = ROOMS.filter(function (r) { return r.name.toLowerCase() !== name.trim().toLowerCase(); });
+      ROOMS.push({ id: String(Date.now()), name: name.trim(), rssi: med, band: last.band, link: link, mbps: mb, ap: last.bssid || '', at: Date.now() });
+      ls('rooms', ROOMS); paintRooms(); paintTips(); toast(name.trim() + ' : ' + qual(med)[0].toLowerCase() + (mb >= 0 ? ', ' + fr(mb, 0) + ' Mbit/s' : ''));
+    }
   };
 
   /* ---------- conseils ---------- */
@@ -236,6 +249,10 @@ canvas{width:100%;height:170px;display:block}
       if (m && m.sec === 'WPA2' && m.std >= 6) add('🔐', 'WPA3 possible', 'Votre box est en Wi-Fi 6 : si tous vos appareils le supportent, le mode « WPA2/WPA3 » renforce la sécurité.');
       if (c.std && c.std < 5 && c.freq > 5000) add('🧭', 'Norme ancienne', 'La liaison est en ' + (STD[c.std] || 'ancienne norme') + ' : vérifiez que le mode Wi-Fi 5/6 (ac/ax) est activé sur la box.');
     }
+    var aps = {}; ROOMS.forEach(function (r) { if (r.ap) aps[apKey(r.ap)] = 1; });
+    var slow = ROOMS.filter(function (r) { return r.mbps != null && r.mbps >= 0 && r.mbps < 15; });
+    if (slow.length) add('🐌', 'Débit faible : ' + slow.map(function (r) { return r.name + ' (' + fr(r.mbps, 0) + ' Mbit/s)'; }).join(', '), 'Même avec un bon signal, un débit faible vient souvent du répéteur : s\'il est relié à la box par le Wi-Fi, il partage le débit et dépend de la liaison avec la box. Relié par un câble réseau ou des prises CPL, il donne le plein débit.');
+    if (Object.keys(aps).length >= 2) add('🔁', Object.keys(aps).length + ' points d\'accès utilisés', 'Le téléphone passe de la box au répéteur selon la pièce (colonne « via »). Nommez-les avec le bouton « Nommer » de « Ma connexion » pour savoir lequel dessert chaque pièce.');
     var weak = ROOMS.filter(function (r) { return r.rssi < -72; });
     if (weak.length) add('🏠', 'Pièces mal couvertes : ' + weak.map(function (r) { return r.name; }).join(', '), 'Placez un répéteur (ou un point d\'accès maillé) à mi-chemin entre la box et ' + (weak.length > 1 ? 'ces pièces' : 'cette pièce') + ', là où le signal est encore « Bon » ou « Moyen ». Une prise CPL Wi-Fi marche bien à travers les murs épais.');
     if (last) {
@@ -250,6 +267,7 @@ canvas{width:100%;height:170px;display:block}
     var e = J(s, {}) || {};
     if (e.op === 'scan' || e.op === 'perm' || e.op === 'changed') { if (e.op === 'scan') toast('Réseaux mis à jour'); load(); if (e.op === 'perm' && B && ST.perm) B.scan(); }
     else if (e.op === 'prog') { $('phase').textContent = PH[e.phase] + (e.v > 0 ? ' ' + fr(e.v, e.v < 10 ? 1 : 0) + ' Mbit/s' : ''); $('pbar').firstChild.style.width = ({ ping: 10, down: 55, up: 90 }[e.phase]) + '%'; }
+    else if (e.op === 'quick') { if (QUICK) QUICK(e); }
     else if (e.op === 'speed') {
       $('bSpeed').disabled = false; $('pbar').hidden = true; $('phase').textContent = '';
       if (!e.ok) { toast('Test impossible : vérifiez la connexion internet'); return; }
