@@ -103,6 +103,7 @@
     px.apply = function () {
       var want = S.avatar === 'visage3d' && window.MJFace3D ? 'visage3d' : S.avatar === 'androide' && window.MJFace ? 'androide' : S.avatar === 'visage' && window.MJFace ? 'visage' : 'sphere', was = cur ? cur.get() : 'idle';
       document.documentElement.classList.toggle('mj-visage-seul', want !== 'sphere' && !S.faceDeco);
+      orbBox.classList.toggle('corps', want === 'androide' && S.faceFrame === 'corps');
       if (cur && want === kind) { if (cur.look) cur.look(want === 'androide' ? { style: 'androide', frame: S.faceFrame, expr: S.faceExpr } : want === 'visage3d' ? { model: S.face3dModel, frame: S.faceFrame, expr: S.faceExpr, style: S.face3dStyle } : faceLook()); return; }
       if (cur) cur.stop();
       var o = { pad: 1.32, onLevel: orbLevel }, cv = kind ? freshCanvas() : $('orb');
@@ -1617,7 +1618,7 @@
     return '<div class="set" id="f-apparence"><div class="t">Apparence<small>La sphère de particules, ou un visage qui cligne des yeux, vous regarde et parle avec la voix</small></div>' +
       '<select class="in" id="sAvatar">' + [['sphere', 'Sphère'], ['visage', 'Visage dessiné'], ['visage3d', 'Visage 3D'], ['androide', 'Androïde (hologramme)']].map(function (o) { return '<option value="' + o[0] + '"' + (S.avatar === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
       '<div class="set"><div class="t">Pleine page<small>L\'apparence en grand au milieu de l\'écran, rien d\'écrit (touchez l\'écran pour les menus)</small></div><label class="sw"><input type="checkbox" id="sZenA"' + (S.zen ? ' checked' : '') + '><span></span></label></div>' +
-      '<div id="sAndroBox"' + (S.avatar === 'androide' ? '' : ' hidden') + '><div class="set"><div class="t">Cadrage</div><select class="in" id="sAndroFrame"><option value="buste"' + (S.faceFrame !== 'proche' ? ' selected' : '') + '>Buste</option><option value="proche"' + (S.faceFrame === 'proche' ? ' selected' : '') + '>Gros plan</option></select></div>' +
+      '<div id="sAndroBox"' + (S.avatar === 'androide' ? '' : ' hidden') + '><div class="set"><div class="t">Cadrage</div><select class="in" id="sAndroFrame">' + [['corps', 'Silhouette entière'], ['buste', 'Buste'], ['proche', 'Gros plan']].map(function (o) { return '<option value="' + o[0] + '"' + (S.faceFrame === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
       '<div class="set"><div class="t">Garder le décor autour (anneaux, planètes, effets)</div><label class="sw"><input type="checkbox" id="sAndroDeco"' + (S.faceDeco ? ' checked' : '') + '><span></span></label></div>' +
       '<p class="note">Androïde féminine originale, dessinée par l\'appli : plaques sculptées, modules d\'oreille et anneau qui s\'allument avec la voix, couleur de l\'état.</p></div>' +
       '<div id="sFace3dBox"' + (S.avatar === 'visage3d' ? '' : ' hidden') + '>' +

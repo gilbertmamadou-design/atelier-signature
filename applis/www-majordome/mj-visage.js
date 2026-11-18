@@ -251,8 +251,9 @@
     }
 
     function draw(t, eyeOpen, breathe, P) {
-      var close = look.frame === 'proche';
+      var close = look.frame === 'proche', CORPS = look.frame === 'corps' && P.andro;
       var box = Math.min(W, H) / PAD, s = box * (close ? 0.42 : 0.33), cx = W / 2, cy = H / 2 - box * (close ? 0.02 : 0.08);
+      if (CORPS) { var hb = H / PAD; s = Math.min(hb / 18.6, (W / PAD) / 4.6); cx = W / 2; cy = (H - hb) / 2 + 1.55 * s; }   // silhouette entière : la hauteur commande
       var yaw = A.yaw, pitch = A.pitch, HS = HAIR[look.coiffure] || HAIR.long;
       function X(x, d) { return cx + (x * (1 - Math.abs(yaw) * 0.12) + yaw * (d || 0) * 1.1) * s; }
       function Y(y, d) { return cy + (y * (1 + breathe) + pitch * (d || 0) * 0.9 + pitch * 0.15) * s; }
@@ -405,10 +406,81 @@
         glowLine([pt(0, 0.8, 0.12), pt(0, 0.95, 0.12)], 0.35, 0.004);
         node(0, -0.72, 0.008, 0.45 + lvlS * 0.5, 0.1);
       }
+
+      /* ---------- androïde : silhouette entière (personnage original, élégant, sans détail anatomique) ---------- */
+      function BX(x) { return cx + x * s; }
+      function BY(y) { return cy + y * s; }
+      function bp(x, y) { return [BX(x), BY(y)]; }
+      function limb(c, w) {   // contour lisse autour d'une ligne médiane (largeurs aux points)
+        var L = [], R = [], n = c.length;
+        for (var i = 0; i < n; i++) {
+          var a = c[Math.max(0, i - 1)], b = c[Math.min(n - 1, i + 1)], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l;
+          L.push(bp(c[i][0] + nx * w[i] / 2, c[i][1] + ny * w[i] / 2)); R.push(bp(c[i][0] - nx * w[i] / 2, c[i][1] - ny * w[i] / 2));
+        }
+        return L.concat(R.reverse());
+      }
+      function shell(pts, a) {
+        ctx.beginPath(); curve(ctx, pts, true);
+        var g = ctx.createLinearGradient(BX(-1.4), 0, BX(1.4), 0);
+        g.addColorStop(0, rgba(mix(P.skin, P.skinLo, 0.35), P.skinA * a)); g.addColorStop(0.42, rgba(mix(P.skin, P.skinHi, 0.3), P.skinA * a)); g.addColorStop(1, rgba(mix(P.skin, P.skinLo, 0.5), P.skinA * a));
+        ctx.fillStyle = g; ctx.fill();
+        ctx.strokeStyle = rgba(P.glow, 0.25); ctx.lineWidth = s * 0.05; ctx.stroke();
+        ctx.strokeStyle = rgba(P.line, 0.75); ctx.lineWidth = Math.max(1, s * 0.016); ctx.stroke();
+      }
+      function seam(list, a) { ctx.beginPath(); curve(ctx, list.map(function (q) { return bp(q[0], q[1]); }), false); ctx.lineCap = 'round'; ctx.strokeStyle = rgba(P.glow, a * 0.3); ctx.lineWidth = s * 0.07; ctx.stroke(); ctx.strokeStyle = rgba(P.line, a); ctx.lineWidth = Math.max(0.8, s * 0.018); ctx.stroke(); }
+      function joint(x, y, r) { var px = BX(x), py = BY(y), g = ctx.createRadialGradient(px, py, 0, px, py, s * r * 3); g.addColorStop(0, rgba(WHITE, 0.6 + lvlS * 0.3)); g.addColorStop(0.3, rgba(P.glow, 0.55)); g.addColorStop(1, rgba(P.glow, 0)); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, s * r * 3, 0, 6.2832); ctx.fill(); }
+      function drawBody() {
+        var hx = reduce ? 0 : Math.sin(t * 0.45) * 0.07, ar = reduce ? 0 : Math.sin(t * 0.7) * 0.04;
+        var hipY = function (sd) { return 6.05 + sd * 0.1; }, shY = function (sd) { return 1.8 - sd * 0.05; };   // déhanché : poids sur la jambe gauche
+        // bas du corps d'un seul tenant (hanches, cuisses, genoux, mollets) : silhouette en sablier, jambe gauche d'appui
+        var kn = 0.1, kr = function (sd) { return sd > 0 ? -0.12 : 0; }, an = function (sd) { return sd > 0 ? 0.1 : 0; };
+        var side = function (sd) { var k = kr(sd), a = an(sd); return [[sd * 0.74 + hx * 0.5, 4.6], [sd * 0.98 + hx, 5.3], [sd * 1.32 + hx, 6.1 + sd * 0.08], [sd * 1.2 + hx * 0.7, 7.5], [sd * 0.98 + k * 0.5, 8.9], [sd * 0.74 + k, 10.15], [sd * 0.8 + k, 11.1], [sd * 0.62 + a * 0.6, 12.9], [sd * 0.46 + a, 14.4]]; };
+        var inner = function (sd) { var k = kr(sd), a = an(sd); return [[sd * 0.24 + a, 14.4], [sd * 0.26 + a * 0.6, 12.4], [sd * 0.3 + k, 10.9], [sd * 0.3 + k, 10.15], [sd * 0.2 + k * 0.5, 8.6], [sd * 0.07 + hx, 7.25]]; };
+        var low = side(1).concat(inner(1), inner(-1).reverse(), side(-1).reverse());
+        shell(low.map(function (q) { return bp(q[0], q[1]); }), 0.97);
+        [-1, 1].forEach(function (sd) {
+          var k = kr(sd), a = an(sd), kx = sd * 0.52 + k, ax = sd * 0.35 + a, ay = 14.42;
+          seam([[kx - 0.2, 10.15], [kx, 10.22], [kx + 0.2, 10.15]], 0.45);                                   // genou
+          seam([[sd * 1.05 + hx, 6.6], [sd * 0.95, 8.0], [sd * 0.72 + k, 9.6]], 0.3);                       // ligne de cuisse
+          // pied fin sur talon
+          shell([bp(ax - 0.12, ay - 0.08), bp(ax + 0.12, ay - 0.08), bp(ax + 0.13, ay + 0.55), bp(ax + 0.07, ay + 1.45), bp(ax, ay + 1.75), bp(ax - 0.07, ay + 1.45), bp(ax - 0.13, ay + 0.55)], 1);
+          seam([[ax - 0.11, ay + 0.5], [ax - 0.1, ay + 0.95], [ax - 0.11, ay + 1.55]], 0.4);
+          joint(kx, 10.15, 0.05); joint(ax, ay + 0.02, 0.04);
+        });
+        // buste : épaules, poitrine, taille fine
+        var R = function (sd) { return [[sd * 0.3, 1.4], [sd * 0.95, 1.62 - sd * 0.03], [sd * 1.3, shY(sd)], [sd * 1.12, 2.55], [sd * 1.2, 3.05], [sd * 1.02, 3.62], [sd * 0.74 + hx * 0.5, 4.62], [sd * 0.78 + hx * 0.6, 4.95]]; };
+        var rt = R(1), lt = R(-1).reverse();
+        shell(rt.concat([[hx * 0.6, 5.0]], lt).map(function (q) { return bp(q[0], q[1]); }), 1);
+        ell(-0.42, 3.1, 0.5, 0.42, P.skinHi, 0.16, 0); ell(0.42, 3.1, 0.5, 0.42, P.skinHi, 0.12, 0);
+        seam([[-1.02, 3.62], [-0.5, 3.8], [0, 3.62], [0.5, 3.8], [1.02, 3.62]], 0.45);          // sous la poitrine
+        seam([[0, 1.62], [0, 2.5], [0, 3.6]], 0.3);
+        seam([[0, 3.7], [0, 4.7]], 0.55);                                                       // ligne centrale lumineuse
+        seam([[-0.78 + hx * 0.6, 4.95], [0, 5.08], [0.78 + hx * 0.6, 4.95]], 0.6);              // taille
+        seam([[-1.15 + hx, 5.6], [-1.25 + hx, 6.3]], 0.35); seam([[1.15 + hx, 5.6], [1.25 + hx, 6.3]], 0.35);   // flancs
+        seam([[-0.95, 1.62], [-0.7, 2.1], [-0.3, 2.3]], 0.35); seam([[0.95, 1.62], [0.7, 2.1], [0.3, 2.3]], 0.35);   // épaules
+        // cou
+        shell([bp(-0.27, 0.75), bp(0.27, 0.75), bp(0.3, 1.5), bp(-0.3, 1.5)], 1);
+        for (var nr = 0; nr < 6; nr++) seam([[-0.26, 0.86 + nr * 0.1], [0, 0.9 + nr * 0.1], [0.26, 0.86 + nr * 0.1]], 0.28);
+        // bras : l'un le long du corps, l'autre la main posée sur la hanche
+        var A1 = [[-1.22, shY(-1) + 0.15], [-1.44 - ar, 3.0], [-1.55 - ar, 4.3], [-1.6 - ar * 1.5, 5.35], [-1.6 - ar * 2, 6.25]];
+        var A2 = [[1.22, shY(1) + 0.15], [1.62, 2.9], [2.0, 4.0], [1.72 + hx * 0.5, 4.85], [1.38 + hx, 5.45]];
+        shell(limb(A1, [0.6, 0.5, 0.34, 0.36, 0.22]), 1);
+        shell([bp(-1.72 - ar * 2, 6.2), bp(-1.48 - ar * 2, 6.2), bp(-1.46 - ar * 2, 6.8), bp(-1.55 - ar * 2, 7.3), bp(-1.66 - ar * 2, 6.85)], 1);   // main détendue
+        shell(limb(A2, [0.6, 0.5, 0.34, 0.36, 0.22]), 1);
+        shell([bp(1.46 + hx, 5.3), bp(1.36 + hx, 5.62), bp(1.08 + hx, 5.82), bp(1.0 + hx, 5.62), bp(1.2 + hx, 5.38)], 1);   // main sur la hanche
+        [[A1, -1], [A2, 1]].forEach(function (aa) { var a = aa[0]; joint(a[0][0], a[0][1], 0.06); joint(a[2][0], a[2][1], 0.045); joint(a[4][0], a[4][1], 0.035); });
+        
+        // reflet de sol
+        var fg = ctx.createRadialGradient(BX(0), BY(16.25), 0, BX(0), BY(16.25), s * 1.6);
+        fg.addColorStop(0, rgba(P.glow, 0.35 + lvlS * 0.2)); fg.addColorStop(1, rgba(P.glow, 0));
+        ctx.save(); ctx.translate(BX(0), BY(16.25)); ctx.scale(1, 0.18); ctx.translate(-BX(0), -BY(16.25)); ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(BX(0), BY(16.25), s * 1.6, 0, 6.2832); ctx.fill(); ctx.restore();
+      }
       if (P.andro) androBack(); else hairBack();
+      if (CORPS) { ctx.save(); ctx.translate(pvx, pvy); ctx.rotate(-A.roll); ctx.translate(-pvx, -pvy); drawBody(); ctx.restore(); }
 
       /* ---------- cou, épaules, vêtement, collier ---------- */
       var chinDrop = A.mouth * 0.06;
+      if (!CORPS) {
       ctx.beginPath();
       curve(ctx, [pt(-0.27, 0.7), pt(-0.27, 1.2), pt(-0.6, 1.42), pt(-1.32, 1.66), pt(-1.6, 2.4), pt(1.6, 2.4), pt(1.32, 1.66), pt(0.6, 1.42), pt(0.27, 1.2), pt(0.27, 0.7)], false);
       ctx.closePath();
@@ -443,6 +515,7 @@
       }
       // ombre portée de la tête sur le cou
       ell(0, 0.98 + chinDrop, 0.42, 0.22, P.skinLo, P.holo ? 0.45 : 0.4);
+      }
 
       /* ---------- oreilles (coiffures courtes ou relevées) ---------- */
       if (HS.ears && !P.andro) {
@@ -698,11 +771,12 @@
         ctx.save(); ctx.globalCompositeOperation = 'source-atop';
         var off = (t * 18) % 4;
         ctx.fillStyle = rgba(P.glow, 0.07);
-        for (var yy = Y(-1.5) + off; yy < Y(2.2); yy += 4) ctx.fillRect(X(-1.8), yy, s * 3.6, 1.2);
+        for (var yy = Y(-1.5) + off; yy < (CORPS ? H : Y(2.2)); yy += 4) ctx.fillRect(CORPS ? 0 : X(-1.8), yy, CORPS ? W : s * 3.6, 1.2);
         ctx.restore();
       }
       ctx.restore();
       // fondu du bas (épaules) : aucun bord net dans le canvas
+      if (CORPS) return;
       ctx.save(); ctx.globalCompositeOperation = 'destination-out';
       var fa = close ? 1.15 : 1.42, fb = close ? 1.6 : 1.98;
       var fo = ctx.createLinearGradient(0, Y(fa), 0, Math.min(H, Y(fb)));
