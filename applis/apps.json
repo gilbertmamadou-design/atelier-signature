@@ -377,5 +377,13 @@
   "name": "Bluetooth",
   "icons": "android-icons-bluetooth",
   "file": "Bluetooth.apk"
+ },
+ {
+  "app": "wifi",
+  "web": "www-wifi",
+  "appid": "fr.magformation13.wifi",
+  "name": "Wi-Fi",
+  "icons": "android-icons-wifi",
+  "file": "Wi-Fi.apk"
  }
 ]

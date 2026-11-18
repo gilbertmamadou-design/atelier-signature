@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Wi-Fi</title>
+<meta name="theme-color" content="#0f1218">
+<!-- Wi-Fi : connexion (signal, bande, canal, débit du lien, box), mesure pièce par pièce, test de débit, réseaux voisins et
+     occupation des canaux, conseils de réglage. Pont : MAGWifi (WifiBridge.java) ; événements window.wifiEvent.
+     Rien n'est envoyé ailleurs que vers speed.cloudflare.com pendant le test de débit ; les mesures restent sur le téléphone. -->
+<style>
+:root{color-scheme:dark;--bg:#0f1218;--bg2:#171b24;--bg3:#202634;--line:#ffffff14;--line2:#ffffff24;--tx:#f1f3f8;--tx2:#b3b9c9;--tx3:#7c8396;--acc:#5fa8ff;--ok:#67d49c;--mid:#ffd166;--bad:#ff7a7a;--warn:#ffb85c;--r:16px;--safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:15.5px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}[hidden]{display:none!important}
+header{padding:calc(14px + var(--safe-t)) 16px 8px;display:flex;align-items:center;gap:10px}
+header h1{margin:0;font-size:22px;font-weight:800;flex:1}
+main{padding:4px 16px calc(40px + var(--safe-b));max-width:720px;margin:0 auto}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;margin-bottom:12px}
+.card h2{margin:0 0 10px;font-size:16px;display:flex;align-items:center;gap:8px}.card h2 span{margin-left:auto;font-size:13px;color:var(--tx3);font-weight:500}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 15px;border-radius:13px;background:var(--bg3);border:1px solid var(--line2);font-weight:650}
+.btn.pri{background:var(--acc);color:#061528;border-color:transparent}.btn.sm{min-height:36px;padding:0 12px;font-size:14px;border-radius:11px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px 14px;margin-top:10px}
+.kv div small{display:block;color:var(--tx3);font-size:12.5px}.kv div b{font-size:15.5px}
+.big{display:flex;align-items:center;gap:16px}
+.gauge{width:96px;height:96px;flex:none}
+.q{font-size:22px;font-weight:800}.ssid{font-size:17px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.note{color:var(--tx3);font-size:13.5px;margin:8px 0 0}
+.warn{background:#ffb85c14;border:1px solid #ffb85c40;color:#ffd9a8;border-radius:12px;padding:12px;margin-bottom:12px}
+.res{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:12px}
+.res div{background:var(--bg3);border-radius:12px;padding:10px 12px}.res small{display:block;color:var(--tx3);font-size:12px}.res b{font-size:20px}.res i{font-style:normal;color:var(--tx3);font-size:13px}
+.bar{height:8px;background:var(--bg3);border-radius:8px;overflow:hidden;margin-top:10px}.bar i{display:block;height:100%;background:var(--acc);width:0;transition:width .3s}
+.room{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}.room:first-child{border-top:0}
+.room .t{flex:1;min-width:0}.room small{color:var(--tx3);font-size:13px}
+.sig{display:inline-flex;gap:2px;align-items:flex-end;height:14px}.sig i{width:4px;border-radius:1px;background:var(--line2)}
+.net{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}.net:first-child{border-top:0}.net .t{flex:1;min-width:0}.net b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.net small{color:var(--tx3);font-size:12.5px}
+.me{color:var(--acc)}
+.tabs{display:flex;gap:6px;margin-bottom:8px}.tabs button{padding:6px 12px;border-radius:10px;background:var(--bg3);font-size:14px}.tabs button.on{background:var(--acc);color:#061528;font-weight:700}
+canvas{width:100%;height:170px;display:block}
+.tip{display:flex;gap:10px;padding:9px 0;border-top:1px solid var(--line)}.tip:first-child{border-top:0}.tip .ic{flex:none;width:26px;text-align:center;font-size:18px}.tip p{margin:2px 0 0;color:var(--tx2);font-size:14px}
+.okc{color:var(--ok)}.midc{color:var(--mid)}.badc{color:var(--bad)}
+#toast{position:fixed;left:50%;bottom:calc(24px + var(--safe-b));transform:translateX(-50%);background:#0b0e14;border:1px solid var(--line2);padding:10px 16px;border-radius:12px;font-size:14px;z-index:20;max-width:90vw;opacity:0;transition:opacity .25s;pointer-events:none}#toast.on{opacity:1}
+</style>
+</head>
+<body>
+<header><h1>Wi-Fi</h1><button class="btn sm" id="bSet">Réglages</button><button class="btn sm" id="bQuit">Quitter</button></header>
+<main>
+  <div id="state"></div>
+  <div class="card" id="cConn"><h2>Ma connexion</h2><div id="conn"><p class="note">Lecture…</p></div></div>
+  <div class="card"><h2>Test de débit <span id="lastT"></span></h2>
+    <div class="row"><button class="btn pri" id="bSpeed">Lancer le test</button><span class="note" id="phase" style="margin:0"></span></div>
+    <div class="bar" id="pbar" hidden><i></i></div>
+    <div class="res" id="speed"></div>
+    <p class="note">Mesure la réactivité de la box et d'internet, puis le débit descendant et montant (serveurs Cloudflare). Utilise environ 50 à 300 Mo de données : à faire sur le Wi-Fi.</p>
+  </div>
+  <div class="card"><h2>Pièce par pièce</h2>
+    <div class="row"><button class="btn" id="bRoom">Mesurer ici</button><span class="note" id="roomPh" style="margin:0"></span></div>
+    <div id="rooms" style="margin-top:8px"></div>
+    <p class="note">Faites une mesure dans chaque pièce (téléphone tenu normalement). Les pièces en rouge ont un signal trop faible.</p>
+  </div>
+  <div class="card"><h2>Réseaux et canaux <span id="scanInfo"></span></h2>
+    <div class="tabs"><button data-b="2" class="on">2,4 GHz</button><button data-b="5">5 GHz</button><button class="btn sm" id="bScan" style="margin-left:auto">Actualiser</button></div>
+    <canvas id="chart"></canvas>
+    <p class="note" id="reco"></p>
+    <div id="nets" style="margin-top:6px"></div>
+  </div>
+  <div class="card"><h2>Conseils</h2><div id="tips"><p class="note">Les conseils apparaissent après la lecture du réseau.</p></div></div>
+</main>
+<div id="toast"></div>
+<script>
+(function () {
+  'use strict';
+  var B = window.MAGWifi || null, $ = function (id) { return document.getElementById(id); };
+  function J(s, d) { try { return JSON.parse(s); } catch (e) { return d; } }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function ls(k, v) { try { if (v === undefined) return JSON.parse(localStorage.getItem('wifi:' + k)); localStorage.setItem('wifi:' + k, JSON.stringify(v)); } catch (e) { return null; } }
+  var tT = 0; function toast(t) { var e = $('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(tT); tT = setTimeout(function () { e.classList.remove('on'); }, 2800); }
+  function fr(n, d) { return (Math.round(n * Math.pow(10, d || 0)) / Math.pow(10, d || 0)).toString().replace('.', ','); }
+  var ST = {}, NETS = [], band = '2', ROOMS = ls('rooms') || [];
+
+  // qualité du signal (dBm)
+  function qual(r) { return r >= -55 ? ['Excellent', 'okc', 4] : r >= -65 ? ['Bon', 'okc', 3] : r >= -72 ? ['Moyen', 'midc', 2] : r >= -80 ? ['Faible', 'badc', 1] : ['Très faible', 'badc', 0]; }
+  function pct(r) { return Math.max(0, Math.min(100, Math.round((r + 95) * 100 / 50))); }
+  function sig(r) { var n = qual(r)[2] + 1, c = { okc: 'var(--ok)', midc: 'var(--mid)', badc: 'var(--bad)' }[qual(r)[1]]; return '<span class="sig">' + [5, 8, 11, 14, 14].slice(0, 5).map(function (h, i) { return '<i style="height:' + Math.min(h, 14) + 'px;' + (i < n ? 'background:' + c : '') + '"></i>'; }).join('') + '</span>'; }
+  var STD = { 1: 'Wi-Fi 1-3', 4: 'Wi-Fi 4 (n)', 5: 'Wi-Fi 5 (ac)', 6: 'Wi-Fi 6 (ax)', 7: 'WiGig (ad)', 8: 'Wi-Fi 7 (be)' };
+  // box reconnue au nom du réseau (indicatif)
+  function boxOf(ssid, gw) {
+    var s = String(ssid || '').toLowerCase();
+    if (/^livebox|^orange/.test(s)) return { n: 'Livebox (Orange)', url: 'http://' + (gw || '192.168.1.1'), how: 'Interface de la Livebox (mot de passe d\'administration au dos de la box) › Wi-Fi, ou l\'appli « Ma Livebox ».' };
+    if (/^freebox/.test(s)) return { n: 'Freebox (Free)', url: 'http://mafreebox.freebox.fr', how: 'Freebox OS (mafreebox.freebox.fr) › Paramètres de la Freebox › Wi-Fi, ou l\'appli Freebox Connect.' };
+    if (/^bbox/.test(s)) return { n: 'Bbox (Bouygues)', url: 'https://mabbox.bytel.fr', how: 'Interface de la Bbox (mabbox.bytel.fr) › Wi-Fi, ou l\'appli « B.iG » / Bbox.' };
+    if (/^sfr|^red_/.test(s)) return { n: 'Box SFR / RED', url: 'http://' + (gw || '192.168.1.1'), how: 'Interface de la box (adresse ci-dessous) › Wi-Fi, ou l\'appli SFR & Moi.' };
+    return gw ? { n: 'Box ou routeur', url: 'http://' + gw, how: 'Interface de la box : ouvrez son adresse dans le navigateur, rubrique Wi-Fi.' } : null;
+  }
+
+  function load() {
+    ST = J(B ? B.state() : '{}', {}) || {};
+    var s = $('state');
+    if (!B) s.innerHTML = '<div class="warn">Cette page fonctionne dans l\'appli Android « Wi-Fi ».</div>';
+    else if (!ST.on) s.innerHTML = '<div class="warn">Le Wi-Fi est coupé.<div style="margin-top:10px"><button class="btn sm pri" id="bOn">Ouvrir le Wi-Fi</button></div></div>';
+    else if (!ST.perm) s.innerHTML = '<div class="warn">Pour voir le nom du réseau, les réseaux voisins et les canaux, Android demande l\'autorisation de localisation (rien n\'est localisé ni envoyé).<div style="margin-top:10px"><button class="btn sm pri" id="bPerm">Autoriser</button></div></div>';
+    else if (!ST.loc) s.innerHTML = '<div class="warn">Android ne montre les réseaux Wi-Fi que si la localisation est activée.<div style="margin-top:10px"><button class="btn sm pri" id="bLoc">Activer la localisation</button></div></div>';
+    else s.innerHTML = '';
+    if ($('bOn')) $('bOn').onclick = function () { B.wifiSettings(); };
+    if ($('bPerm')) $('bPerm').onclick = function () { B.askPerm(); };
+    if ($('bLoc')) $('bLoc').onclick = function () { B.locSettings(); };
+    if (B && ST.perm) NETS = J(B.results(), []) || [];
+    paintConn(); paintNets(); paintRooms(); paintTips();
+  }
+  function mine() { var c = ST.conn; return c ? NETS.filter(function (n) { return c.bssid ? n.bssid === c.bssid : n.ssid && n.ssid === c.ssid && n.freq === c.freq; })[0] : null; }
+  function paintConn() {
+    var c = ST.conn, el = $('conn');
+    if (!c) { el.innerHTML = '<p class="note">Pas connecté à un Wi-Fi.</p>'; return; }
+    var q = qual(c.rssi), m = mine(), bx = boxOf(c.ssid, c.gw), p = pct(c.rssi);
+    var col = { okc: '#67d49c', midc: '#ffd166', badc: '#ff7a7a' }[q[1]];
+    el.innerHTML = '<div class="big"><svg class="gauge" viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="none" stroke="#ffffff14" stroke-width="10"/><circle cx="50" cy="50" r="42" fill="none" stroke="' + col + '" stroke-width="10" stroke-linecap="round" stroke-dasharray="' + (264 * p / 100) + ' 264" transform="rotate(-90 50 50)"/><text x="50" y="48" text-anchor="middle" fill="#f1f3f8" font-size="22" font-weight="800">' + p + '%</text><text x="50" y="66" text-anchor="middle" fill="#7c8396" font-size="11">' + c.rssi + ' dBm</text></svg>' +
+      '<div style="min-width:0"><div class="ssid">' + esc(c.ssid || 'Réseau Wi-Fi') + '</div><div class="q ' + q[1] + '">' + q[0] + '</div><div class="note" style="margin:2px 0 0">' + esc(c.band) + ' · canal ' + c.ch + (m && m.w > 20 ? ' (' + m.w + ' MHz)' : '') + '</div></div></div>' +
+      '<div class="kv"><div><small>Débit du lien</small><b>' + (c.rx > 0 ? c.rx + ' ↓ / ' + c.tx + ' ↑' : c.link) + ' Mbit/s</b></div>' +
+      '<div><small>Norme</small><b>' + esc(STD[c.std] || '—') + '</b></div><div><small>Sécurité</small><b>' + esc(m ? m.sec : '—') + '</b></div>' +
+      '<div><small>Adresse du téléphone</small><b>' + esc(c.ip) + '</b></div><div><small>Box</small><b>' + esc(c.gw || '—') + '</b></div>' + (bx ? '<div><small>Modèle probable</small><b>' + esc(bx.n) + '</b></div>' : '') + '</div>' +
+      (bx ? '<div class="row" style="margin-top:12px"><button class="btn sm" id="bBox">Ouvrir l\'interface de la box</button></div>' : '');
+    if ($('bBox')) $('bBox').onclick = function () { B.openUrl(bx.url); };
+  }
+
+  /* ---------- réseaux et canaux ---------- */
+  function is2(n) { return n.freq < 3000; }
+  function weight(r) { return Math.pow(10, (r + 100) / 20); }   // un voisin à -50 dBm gêne bien plus qu'un à -85
+  function reco2() {
+    var me = ST.conn, cands = [1, 6, 11], best = null;
+    var others = NETS.filter(function (n) { return is2(n) && !(me && (n.bssid === me.bssid || (me.ssid && n.ssid === me.ssid))); });
+    cands.forEach(function (c) {
+      var sc = 0; others.forEach(function (n) { var d = Math.abs(n.ch - c), span = n.w >= 40 ? 7 : 4; if (d <= span) sc += weight(n.rssi) * (1 - d / (span + 1)); });
+      if (!best || sc < best.sc) best = { ch: c, sc: sc };
+    });
+    var cur = me && me.freq < 3000 ? me.ch : 0, curSc = 0;
+    if (cur) others.forEach(function (n) { var d = Math.abs(n.ch - cur), span = n.w >= 40 ? 7 : 4; if (d <= span) curSc += weight(n.rssi) * (1 - d / (span + 1)); });
+    return { best: best, cur: cur, curSc: curSc, n: others.length };
+  }
+  function reco5() {
+    var me = ST.conn, blocs = [[36, 48, 'sans radar (DFS)'], [52, 64, 'DFS'], [100, 112, 'DFS'], [116, 128, 'DFS']], best = null;
+    var others = NETS.filter(function (n) { return !is2(n) && n.freq < 5925 && !(me && (n.bssid === me.bssid || (me.ssid && n.ssid === me.ssid))); });
+    blocs.forEach(function (b, i) { var sc = 0; others.forEach(function (n) { if (n.ch >= b[0] && n.ch <= b[1]) sc += weight(n.rssi); }); sc += i ? 0.5 : 0; if (!best || sc < best.sc) best = { ch: b[0], sc: sc, note: b[2] }; });
+    return { best: best, n: others.length };
+  }
+  function paintNets() {
+    var l = NETS.filter(function (n) { return band === '2' ? is2(n) : !is2(n); }).sort(function (a, b) { return b.rssi - a.rssi; });
+    var me = ST.conn;
+    $('scanInfo').textContent = NETS.length ? NETS.length + ' émetteurs' : '';
+    $('nets').innerHTML = l.length ? l.slice(0, 40).map(function (n) {
+      var my = me && (n.bssid === me.bssid || (me.ssid && n.ssid === me.ssid));
+      return '<div class="net">' + sig(n.rssi) + '<div class="t"><b class="' + (my ? 'me' : '') + '">' + esc(n.ssid || '(réseau caché)') + (my ? ' · le vôtre' : '') + '</b><small>canal ' + n.ch + (n.w > 20 ? ' · ' + n.w + ' MHz' : '') + ' · ' + n.rssi + ' dBm · ' + esc(n.sec) + (STD[n.std] ? ' · ' + STD[n.std] : '') + '</small></div></div>';
+    }).join('') : '<p class="note">' + (ST.perm ? 'Touchez « Actualiser » pour chercher les réseaux.' : 'Autorisez l\'accès pour voir les réseaux voisins.') + '</p>';
+    if (band === '2') { var r = reco2(); $('reco').innerHTML = r.best && r.n ? 'Canal conseillé en 2,4 GHz : <b>' + r.best.ch + '</b>' + (r.cur ? (r.cur === r.best.ch ? ' (c\'est déjà le vôtre ✓)' : ' (vous êtes sur le ' + r.cur + ')') : '') + '.' : ''; }
+    else { var r5 = reco5(); $('reco').innerHTML = r5.best && r5.n ? 'Zone la plus libre en 5 GHz : canaux <b>' + r5.best.ch + ' à ' + (r5.best.ch + 12) + '</b> (' + r5.best.note + ')' + (me && me.freq > 5000 ? ' ; vous êtes sur le ' + me.ch : '') + '.' : ''; }
+    chart(l);
+  }
+  function chart(l) {
+    var cv = $('chart'), dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight; if (!W) return;
+    cv.width = W * dpr; cv.height = H * dpr; var g = cv.getContext('2d'); g.scale(dpr, dpr); g.clearRect(0, 0, W, H);
+    var two = band === '2', lo = two ? -1 : 32, hi = two ? 15 : 148, X = function (ch) { return 24 + (ch - lo) * (W - 34) / (hi - lo); }, Y = function (r) { return 12 + (H - 34) * (1 - Math.max(0, Math.min(1, (r + 95) / 65))); };
+    g.strokeStyle = '#ffffff12'; g.fillStyle = '#7c8396'; g.font = '10px system-ui'; g.lineWidth = 1;
+    [-40, -60, -80].forEach(function (r) { g.beginPath(); g.moveTo(24, Y(r)); g.lineTo(W - 6, Y(r)); g.stroke(); g.fillText(r, 0, Y(r) + 3); });
+    var ticks = two ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] : [36, 44, 52, 60, 100, 108, 116, 124, 132, 140];
+    g.textAlign = 'center'; ticks.forEach(function (c) { g.fillText(c, X(c), H - 6); });
+    var me = ST.conn, pal = ['#5fa8ff', '#ff9f6b', '#b48cff', '#5fd3c0', '#ff6b9a', '#c5d86d', '#6bc5ff', '#ffcf5f'];
+    l.slice().reverse().forEach(function (n, i) {
+      var my = me && (n.bssid === me.bssid || (me.ssid && n.ssid === me.ssid)), half = two ? (n.w >= 40 ? 4 : 2) : (n.w || 20) / 10, c = my ? '#ffffff' : pal[i % pal.length];
+      var x0 = X(n.ch - half), x1 = X(n.ch + half), yb = Y(-95), yt = Y(n.rssi);
+      g.beginPath(); g.moveTo(x0, yb); g.bezierCurveTo(x0 + (x1 - x0) * .15, yt, x1 - (x1 - x0) * .15, yt, x1, yb);
+      g.fillStyle = c + (my ? '30' : '1c'); g.fill(); g.strokeStyle = c; g.lineWidth = my ? 2.2 : 1.2; g.stroke();
+      if (my || i >= l.length - 4) { g.fillStyle = c; g.font = (my ? '700 ' : '') + '10px system-ui'; g.fillText(String(n.ssid || '?').slice(0, 14), X(n.ch), yt - 4); }
+    });
+  }
+  document.querySelectorAll('.tabs [data-b]').forEach(function (b) { b.onclick = function () { band = b.dataset.b; document.querySelectorAll('.tabs [data-b]').forEach(function (x) { x.classList.toggle('on', x === b); }); paintNets(); }; });
+  $('bScan').onclick = function () {
+    if (!B) return; var r = B.scan();
+    if (r === 'perm') { B.askPerm(); return; }
+    toast(r === 'ok' ? 'Recherche des réseaux…' : 'Android limite les recherches : résultats des dernières secondes');
+    if (r !== 'ok') load();
+  };
+
+  /* ---------- test de débit ---------- */
+  function paintSpeed(r) {
+    if (!r) { $('speed').innerHTML = ''; return; }
+    var cell = function (k, v, u, good, bad, inv) { var cl = v < 0 || v == null ? '' : (inv ? (v <= good ? 'okc' : v <= bad ? 'midc' : 'badc') : (v >= good ? 'okc' : v >= bad ? 'midc' : 'badc')); return '<div><small>' + k + '</small><b class="' + cl + '">' + (v < 0 || v == null ? '—' : fr(v, v < 10 ? 1 : 0)) + '</b> <i>' + u + '</i></div>'; };
+    $('speed').innerHTML = cell('Descendant', r.down, 'Mbit/s', 50, 10) + cell('Montant', r.up, 'Mbit/s', 20, 3) + cell('Réactivité internet', r.ping, 'ms', 30, 80, 1) + cell('Réactivité box', r.pingBox, 'ms', 10, 40, 1) + cell('Variation (gigue)', r.jitter, 'ms', 10, 30, 1);
+    if (r.at) $('lastT').textContent = new Date(r.at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  }
+  var PH = { ping: 'Réactivité…', down: 'Débit descendant…', up: 'Débit montant…' };
+  $('bSpeed').onclick = function () {
+    if (!B) return toast('Fonctionne dans l\'appli Android');
+    if (!ST.conn) return toast('Connectez-vous d\'abord à votre Wi-Fi');
+    $('bSpeed').disabled = true; $('pbar').hidden = false; $('pbar').firstChild.style.width = '3%'; $('phase').textContent = PH.ping;
+    B.speedTest(ST.conn.gw || '');
+  };
+
+  /* ---------- pièce par pièce ---------- */
+  function paintRooms() {
+    $('rooms').innerHTML = ROOMS.length ? ROOMS.slice().sort(function (a, b) { return b.rssi - a.rssi; }).map(function (r) {
+      var q = qual(r.rssi);
+      return '<div class="room">' + sig(r.rssi) + '<div class="t"><b>' + esc(r.name) + '</b><br><small><span class="' + q[1] + '">' + q[0] + '</span> · ' + r.rssi + ' dBm · ' + esc(r.band) + ' · lien ' + r.link + ' Mbit/s</small></div><button class="btn sm" data-del="' + esc(r.id) + '">✕</button></div>';
+    }).join('') : '';
+  }
+  $('rooms').onclick = function (e) { var d = e.target.closest('[data-del]'); if (d) { ROOMS = ROOMS.filter(function (r) { return r.id !== d.dataset.del; }); ls('rooms', ROOMS); paintRooms(); paintTips(); } };
+  $('bRoom').onclick = function () {
+    if (!B || !(ST = J(B.state(), {})).conn) return toast('Connectez-vous d\'abord à votre Wi-Fi');
+    var name = prompt('Nom de la pièce', ''); if (!name || !name.trim()) return;
+    var v = [], n = 0, ph = $('roomPh');
+    ph.textContent = 'Mesure… ne bougez pas';
+    var it = setInterval(function () {
+      var s = J(B.state(), {}); if (s.conn) v.push(s.conn);
+      if (++n >= 6) {
+        clearInterval(it); ph.textContent = '';
+        if (!v.length) return toast('Mesure impossible');
+        var rs = v.map(function (x) { return x.rssi; }).sort(function (a, b) { return a - b; }), med = rs[Math.floor(rs.length / 2)], last = v[v.length - 1];
+        ROOMS = ROOMS.filter(function (r) { return r.name.toLowerCase() !== name.trim().toLowerCase(); });
+        ROOMS.push({ id: String(Date.now()), name: name.trim(), rssi: med, band: last.band, link: last.rx > 0 ? last.rx : last.link, at: Date.now() });
+        ls('rooms', ROOMS); paintRooms(); paintTips(); toast(name.trim() + ' : ' + qual(med)[0].toLowerCase());
+      }
+    }, 600);
+  };
+
+  /* ---------- conseils ---------- */
+  function paintTips() {
+    var c = ST.conn, t = [], last = ls('speed'), box = c && boxOf(c.ssid, c.gw), m = mine();
+    var add = function (ic, title, txt) { t.push('<div class="tip"><div class="ic">' + ic + '</div><div><b>' + title + '</b><p>' + txt + '</p></div></div>'); };
+    if (c) {
+      var q = qual(c.rssi);
+      if (c.rssi < -72) add('📶', 'Signal ' + q[0].toLowerCase() + ' ici (' + c.rssi + ' dBm)', 'Rapprochez-vous de la box ou dégagez-la : posée en hauteur, au centre du logement, hors d\'un meuble fermé et loin du micro-ondes, des miroirs et de l\'aquarium. Si plusieurs pièces sont faibles, un répéteur Wi-Fi (ou un système maillé) de votre opérateur règle le problème.');
+      if (c.freq < 3000 && ST.has5) add('⚡', 'Vous êtes en 2,4 GHz', 'Près de la box, le 5 GHz est bien plus rapide et moins encombré. Si votre box diffuse un seul nom pour les deux bandes, rapprochez-vous : le téléphone bascule seul. Sinon, connectez-vous au réseau 5 GHz (souvent le même nom suivi de « 5G » ou « _5GHz »).');
+      var r2 = reco2();
+      if (c.freq < 3000 && r2.best && r2.cur && r2.best.ch !== r2.cur && r2.curSc > r2.best.sc * 1.8 + 1) add('📡', 'Canal ' + r2.cur + ' encombré : essayez le ' + r2.best.ch, 'Vos voisins utilisent beaucoup le canal ' + r2.cur + '. Dans l\'interface de la box, réglez le Wi-Fi 2,4 GHz sur le canal ' + r2.best.ch + ' (largeur 20 MHz). Les canaux 1, 6 et 11 ne se chevauchent pas.');
+      if (c.freq < 3000 && m && m.w >= 40 && NETS.filter(is2).length > 8) add('↔️', 'Largeur 40 MHz en 2,4 GHz', 'Avec autant de voisins, la largeur 20 MHz est souvent plus stable en 2,4 GHz (moins de chevauchements).');
+      if (m && /WEP|ouvert|^WPA$/.test(m.sec)) add('🔒', 'Sécurité insuffisante (' + m.sec + ')', 'Passez en WPA2 ou WPA2/WPA3 dans l\'interface de la box, avec un mot de passe long.');
+      if (m && m.sec === 'WPA2' && m.std >= 6) add('🔐', 'WPA3 possible', 'Votre box est en Wi-Fi 6 : si tous vos appareils le supportent, le mode « WPA2/WPA3 » renforce la sécurité.');
+      if (c.std && c.std < 5 && c.freq > 5000) add('🧭', 'Norme ancienne', 'La liaison est en ' + (STD[c.std] || 'ancienne norme') + ' : vérifiez que le mode Wi-Fi 5/6 (ac/ax) est activé sur la box.');
+    }
+    var weak = ROOMS.filter(function (r) { return r.rssi < -72; });
+    if (weak.length) add('🏠', 'Pièces mal couvertes : ' + weak.map(function (r) { return r.name; }).join(', '), 'Placez un répéteur (ou un point d\'accès maillé) à mi-chemin entre la box et ' + (weak.length > 1 ? 'ces pièces' : 'cette pièce') + ', là où le signal est encore « Bon » ou « Moyen ». Une prise CPL Wi-Fi marche bien à travers les murs épais.');
+    if (last) {
+      if (last.pingBox > 40) add('🐢', 'La box répond lentement (' + last.pingBox + ' ms)', 'Redémarrez la box (débranchez 30 secondes). Si cela revient, trop d\'appareils ou un téléchargement en cours peuvent saturer le Wi-Fi.');
+      if (last.down >= 0 && last.down < 10) add('📉', 'Débit faible (' + fr(last.down, 1) + ' Mbit/s)', 'Refaites le test près de la box. S\'il reste faible même à côté, le souci vient de la ligne internet : contactez votre opérateur. S\'il est bon à côté, c\'est la couverture Wi-Fi.');
+    }
+    if (box) add('🛠️', 'Où faire les réglages', esc(box.how) + ' Un canal « automatique » convient le plus souvent : ne passez en manuel que si un canal est clairement encombré.');
+    $('tips').innerHTML = t.length ? t.join('') : (c ? '<p class="note">Tout va bien ici ✓. Faites une mesure dans les autres pièces et un test de débit pour un bilan complet.</p>' : '<p class="note">Connectez-vous à votre Wi-Fi pour avoir des conseils.</p>');
+  }
+
+  window.wifiEvent = function (s) {
+    var e = J(s, {}) || {};
+    if (e.op === 'scan' || e.op === 'perm' || e.op === 'changed') { if (e.op === 'scan') toast('Réseaux mis à jour'); load(); if (e.op === 'perm' && B && ST.perm) B.scan(); }
+    else if (e.op === 'prog') { $('phase').textContent = PH[e.phase] + (e.v > 0 ? ' ' + fr(e.v, e.v < 10 ? 1 : 0) + ' Mbit/s' : ''); $('pbar').firstChild.style.width = ({ ping: 10, down: 55, up: 90 }[e.phase]) + '%'; }
+    else if (e.op === 'speed') {
+      $('bSpeed').disabled = false; $('pbar').hidden = true; $('phase').textContent = '';
+      if (!e.ok) { toast('Test impossible : vérifiez la connexion internet'); return; }
+      e.at = Date.now(); ls('speed', e); paintSpeed(e); paintTips();
+    }
+  };
+  $('bSet').onclick = function () { if (B) B.wifiSettings(); };
+  $('bQuit').onclick = function () { if (B && B.quit) B.quit(); else window.close(); };
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) load(); });
+  window.addEventListener('resize', function () { chart(NETS.filter(function (n) { return band === '2' ? is2(n) : !is2(n); })); });
+  paintSpeed(ls('speed'));
+  load();
+  if (B && ST.perm && ST.loc) B.scan();
+  setInterval(function () { if (!document.hidden) { ST = J(B ? B.state() : '{}', {}) || {}; paintConn(); } }, 3000);
+})();
+</script>
+</body>
+</html>
