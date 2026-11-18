@@ -143,7 +143,7 @@
   var lastSaid = '', speakWait = {}, speakChain = Promise.resolve();
   function speechText(s) {
     return String(s || '').replace(/<[^>]+>/g, ' ').replace(/[«»"]/g, '').replace(/\b(\d{1,2}) h (\d{2})\b/g, '$1 heures $2').replace(/\b(\d{1,2}) h\b/g, '$1 heures')
-      .replace(/ km\/h/g, ' kilomètres-heure').replace(/°C/g, ' degrés').replace(/%/g, ' pour cent').replace(/€/g, ' euros').replace(/\s+/g, ' ').replace(/ ([.,])/g, '$1').trim();
+      .replace(/ ?km ?\/ ?h\b/gi, ' kilomètre-heure').replace(/°C/g, ' degrés').replace(/%/g, ' pour cent').replace(/€/g, ' euros').replace(/\s+/g, ' ').replace(/ ([.,])/g, '$1').trim();
   }
   function frVoices() {
     if (B && B.voices) return J(B.voices(), []);
