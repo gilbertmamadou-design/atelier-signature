@@ -203,6 +203,7 @@
   };
 
   /* ---------------- Calque de sélection ---------------- */
+  const MOVE_GRIPS = '<b class="mv t"></b><b class="mv r"></b><b class="mv b"></b><b class="mv l"></b>';
   A.renderOverlay = function () {
     if (!overlay || !A.doc) return;
     const z = A.zoom; let h = '';
@@ -220,6 +221,7 @@
         return;
       }
       h += '<div class="sel-box' + (multi ? ' multi' : '') + (e.locked ? ' lockd' : '') + '" data-for="' + e.id + '" style="left:' + a.x * z + 'px;top:' + a.y * z + 'px;width:' + a.w * z + 'px;height:' + a.h * z + 'px;transform:rotate(' + a.rot + 'deg);transform-origin:50% 50%">';
+      if (!e.locked) h += MOVE_GRIPS; // cadre : on attrape le bord pour déplacer (comme dans PowerPoint)
       if (!multi && !e.locked) {
         const W = a.w * z, H = a.h * z;
         const hs = [['nw', 0, 0], ['n', W / 2, 0], ['ne', W, 0], ['e', W, H / 2], ['se', W, H], ['s', W / 2, H], ['sw', 0, H], ['w', 0, H / 2]];
@@ -230,7 +232,7 @@
       }
       h += '</div>';
     });
-    if (multi) { const b = A.bbox(els); h += '<div class="sel-box" style="left:' + b.x * z + 'px;top:' + b.y * z + 'px;width:' + b.w * z + 'px;height:' + b.h * z + 'px">' + (els.some((e) => e.locked) ? '' : ['nw', 'ne', 'se', 'sw'].map((k) => '<i class="hd" data-h="' + k + '" style="left:' + (/w/.test(k) ? 0 : b.w * z) + 'px;top:' + (/n/.test(k) ? 0 : b.h * z) + 'px;cursor:' + cursorFor(k, 0) + '"></i>').join('')) + '</div>'; }
+    if (multi) { const b = A.bbox(els); h += '<div class="sel-box" style="left:' + b.x * z + 'px;top:' + b.y * z + 'px;width:' + b.w * z + 'px;height:' + b.h * z + 'px">' + (els.some((e) => e.locked) ? '' : MOVE_GRIPS + ['nw', 'ne', 'se', 'sw'].map((k) => '<i class="hd" data-h="' + k + '" style="left:' + (/w/.test(k) ? 0 : b.w * z) + 'px;top:' + (/n/.test(k) ? 0 : b.h * z) + 'px;cursor:' + cursorFor(k, 0) + '"></i>').join('')) + '</div>'; }
     overlay.innerHTML = h;
     A.markTableSel();
   };
@@ -402,6 +404,8 @@
     if (A.editing && A.editing.cell) { const td = t.closest && t.closest('td'); const n = t.closest && t.closest('.el'); if (td && n && n.dataset.id === A.editing.id) { if (ev.shiftKey) { ev.preventDefault(); A.tableSel.r1 = +td.dataset.r; A.tableSel.c1 = +td.dataset.c; A.markTableSel(); A.refreshUi(); return; } A.stopEdit(); A.startEdit(n.dataset.id, { cell: [+td.dataset.r, +td.dataset.c], at: [ev.clientX, ev.clientY] }); tableDrag(ev, n.dataset.id, +td.dataset.r, +td.dataset.c); return; } }
     const hd = t.closest && t.closest('.hd');
     if (hd) { ev.preventDefault(); ev.stopPropagation(); return handleDrag(ev, hd.dataset.h); }
+    // bord du cadre de sélection : déplacer l'élément, même pendant la saisie du texte
+    if (t.closest && t.closest('.mv')) { ev.preventDefault(); ev.stopPropagation(); clearTimeout(longT); if (A.editing) { const sel = A.sel.slice(); A.stopEdit(); A.sel = sel; A.renderOverlay(); } if (A.selEls().some((x) => x.locked)) return; return moveDrag(ev); }
     if (A.drawMode) { ev.preventDefault(); return drawStart(ev); }
     const id = hitEl(t);
     const touch = ev.pointerType === 'touch';
@@ -429,7 +433,7 @@
     else if (A.editing) A.stopEdit();
     // clic dans le texte d'une zone déjà sélectionnée : saisie directe (comme dans les logiciels de présentation)
     if (A.sel.length === 1 && e && (e.type === 'text' || e.type === 'shape') && !e.locked && wasSelected(id) && t.closest('.el-tx') && !touch) {
-      ev.preventDefault(); A.startEdit(id, { at: [ev.clientX, ev.clientY] }); return;
+      ev.preventDefault(); moveDrag(ev, () => A.startEdit(id, { at: [ev.clientX, ev.clientY] })); return;
     }
     if (e && e.type === 'table' && wasSelected(id) && t.closest('td') && !touch) { ev.preventDefault(); const td = t.closest('td'); A.startEdit(id, { cell: [+td.dataset.r, +td.dataset.c], at: [ev.clientX, ev.clientY] }); tableDrag(ev, id, +td.dataset.r, +td.dataset.c); return; }
     markSelected(id);

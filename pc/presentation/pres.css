@@ -144,6 +144,10 @@ button{font:inherit;color:inherit}
 /* ---------------- poignées de sélection ---------------- */
 .sel-box{position:absolute;border:1.5px solid var(--o-acc);pointer-events:none;transform-origin:0 0}
 .sel-box.multi{border-style:dashed}
+.sel-box .mv{position:absolute;pointer-events:auto;cursor:move;touch-action:none}
+.sel-box .mv.t,.sel-box .mv.b{left:0;right:0;height:12px}.sel-box .mv.t{top:-7px}.sel-box .mv.b{bottom:-7px}
+.sel-box .mv.l,.sel-box .mv.r{top:0;bottom:0;width:12px}.sel-box .mv.l{left:-7px}.sel-box .mv.r{right:-7px}
+@media (pointer:coarse){ .sel-box .mv.t,.sel-box .mv.b{height:22px}.sel-box .mv.t{top:-12px}.sel-box .mv.b{bottom:-12px} .sel-box .mv.l,.sel-box .mv.r{width:22px}.sel-box .mv.l{left:-12px}.sel-box .mv.r{right:-12px} }
 .sel-box.lockd{border-color:#868e96;border-style:dotted}
 .sel-box.group-in{border-color:#7048E8;border-style:dashed}
 .hd{position:absolute;width:11px;height:11px;margin:-6px 0 0 -6px;background:#fff;border:1.5px solid var(--o-acc);border-radius:2px;pointer-events:auto;touch-action:none}
