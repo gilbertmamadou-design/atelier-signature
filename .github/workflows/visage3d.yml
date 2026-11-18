@@ -1,0 +1,74 @@
+name: Visage 3D (avatars Rocketbox → GLB, three.js)
+# Convertit des avatars féminins Microsoft Rocketbox (licence MIT, expressions du visage ARKit et visèmes) en GLB allégés
+# pour le « Visage 3D » de Majordome, et prépare un paquet three.js (licence MIT) en script classique.
+# Résultat : artefact « visage3d » (GLB, aperçus JSON des expressions, three-mj.js, licences).
+on:
+  workflow_dispatch:
+    inputs:
+      avatars:
+        description: "Avatars Rocketbox (dossiers Assets/Avatars/Adults), séparés par des virgules"
+        required: false
+        default: "Female_Adult_01,Female_Adult_03,Female_Adult_05,Female_Adult_08,Female_Adult_11,Female_Adult_12,Female_Adult_15,Female_Adult_17,Female_Party_01,Female_Party_02"
+      texture:
+        description: "Taille maximale des textures (px)"
+        required: false
+        default: "1024"
+      three:
+        description: "Version de three.js"
+        required: false
+        default: "0.170.0"
+
+permissions:
+  contents: read
+
+jobs:
+  convertir:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Blender (module bpy) et bibliothèques système
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libxrender1 libxxf86vm1 libxfixes3 libxi6 libxkbcommon0 libsm6 libgl1 libegl1 >/dev/null
+          pip install -q bpy==4.2.0
+      - name: Avatars Rocketbox (extraction partielle)
+        run: |
+          git clone -q --depth 1 --filter=blob:none --no-checkout https://github.com/microsoft/Microsoft-Rocketbox rb
+          cd rb
+          git sparse-checkout init --no-cone
+          P=""
+          for a in $(echo "${{ inputs.avatars }}" | tr ',' ' '); do P="$P Assets/Avatars/Adults/$a/Export/${a}_facial.fbx Assets/Avatars/Adults/$a/Textures/*.tga Assets/Avatars/Adults/$a/*.png"; done
+          git sparse-checkout set $P LICENSE.md
+          git checkout -q HEAD
+          ls -R Assets | head -80
+      - name: Conversion en GLB
+        run: |
+          mkdir -p out
+          for a in $(echo "${{ inputs.avatars }}" | tr ',' ' '); do
+            d=rb/Assets/Avatars/Adults/$a
+            python applis/visage3d/convertir.py "$d/Export/${a}_facial.fbx" "$d/Textures" "$PWD/out/$a.glb" "${{ inputs.texture }}" || echo "ÉCHEC $a"
+            cp $d/*.png out/ 2>/dev/null || true
+            rm -rf out/tmp_$a
+          done
+          cp rb/LICENSE.md out/ROCKETBOX-LICENSE.md
+          ls -la out
+      - name: Paquet three.js (script classique)
+        run: |
+          mkdir -p js && cd js
+          npm init -y >/dev/null
+          npm i -s three@${{ inputs.three }} esbuild@0.24.0
+          cp ../applis/visage3d/entree.js .
+          npx esbuild entree.js --bundle --minify --format=iife --outfile=../out/three-mj.js
+          cp node_modules/three/LICENSE ../out/THREE-LICENSE
+          ls -la ../out/three-mj.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: visage3d
+          path: out/
+          retention-days: 7
