@@ -1148,6 +1148,12 @@
   function social(raw, ctx) {
     var names = (ctx && ctx.names || []).map(deacc).concat(['majordome', 'jarvis']);
     var s = deacc(raw).replace(/[’']/g, ' ').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+    // dictée vocale approximative : « tu est », « tes », accords au masculin ou au pluriel (« jolies », « ravissant »)
+    s = (' ' + s + ' ').replace(/ (?:tu est|tu et|tu ai|tues|tu e) /g, ' tu es ').replace(/^ tes /, ' t es ').replace(/ vous etes /g, ' vous etes ')
+      .replace(/ (jolie?s?) /g, ' jolie ').replace(/ (?:belles|beaux|beau|bel) /g, ' belle ')
+      .replace(/ ravissant(?:e|es|s)? /g, ' ravissante ').replace(/ charmant(?:e|es|s)? /g, ' charmante ').replace(/ mignon(?:ne|nes|s)? /g, ' mignonne ')
+      .replace(/ (magnifique|sublime|superbe|splendide|adorable|divine|parfaite|seduisante|attirante|elegante|craquante|rayonnante|resplendissante)s /g, ' $1 ')
+      .replace(/ elegant /g, ' elegante ').replace(/ radieu(?:x|se|ses) /g, ' radieuse ').replace(/ parfait /g, ' parfaite ').replace(/ divin /g, ' divine ').trim();
     var strip = true, g = 0;
     while (strip && g++ < 6) {
       strip = false;

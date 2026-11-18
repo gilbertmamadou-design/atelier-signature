@@ -1605,6 +1605,7 @@
   }
   MJ.settingsSheet = settingsSheet;
   /* Apparence : sphère ou visage animé ; personnalisation du visage avec aperçu en direct */
+  var MJ_VERSION = '18 novembre 2026 (compliments v2)';   // affichée dans Réglages › Apparence : pour vérifier que la mise à jour est installée
   var FACEOPT = {
     faceStyle: ['Style', [['naturel', 'Naturel'], ['holo', 'Hologramme']]],
     faceCoiffure: ['Coiffure', [['long', 'Longs lisses'], ['ondules', 'Longs ondulés'], ['frange', 'Longs avec frange'], ['carre', 'Carré'], ['court', 'Courts'], ['chignon', 'Chignon'], ['boucles', 'Bouclés']]],
@@ -1624,7 +1625,8 @@
     var sel = function (id) { var cur = String(S[id]); return '<select class="in" id="s_' + id + '">' + FACEOPT[id][1].map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === cur ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>'; };
     var row = function (id) { return '<div class="set"' + (id !== 'faceStyle' && id !== 'faceCoiffure' && id !== 'faceFrame' && id !== 'faceExpr' ? ' data-nat' : '') + '><div class="t">' + FACEOPT[id][0] + '</div>' + sel(id) + '</div>'; };
     var sw = function (id) { return '<div class="set"' + (id === 'faceDeco' ? '' : ' data-nat') + '><div class="t">' + FACEBOOL[id] + '</div><label class="sw"><input type="checkbox" id="s_' + id + '"' + (S[id] ? ' checked' : '') + '><span></span></label></div>'; };
-    return '<div class="set" id="f-apparence"><div class="t">Apparence<small>La sphère de particules, ou un visage qui cligne des yeux, vous regarde et parle avec la voix</small></div>' +
+    return '<p class="note" style="text-align:right;margin:0 0 4px">Version de Majordome : ' + MJ_VERSION + '</p>' +
+      '<div class="set" id="f-apparence"><div class="t">Apparence<small>La sphère de particules, ou un visage qui cligne des yeux, vous regarde et parle avec la voix</small></div>' +
       '<select class="in" id="sAvatar">' + [['sphere', 'Sphère'], ['visage', 'Visage dessiné'], ['visage3d', 'Visage 3D'], ['androide', 'Androïde (hologramme)']].map(function (o) { return '<option value="' + o[0] + '"' + (S.avatar === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
       '<div class="set"><div class="t">Pleine page<small>L\'apparence en grand au milieu de l\'écran, rien d\'écrit (touchez l\'écran pour les menus)</small></div><label class="sw"><input type="checkbox" id="sZenA"' + (S.zen ? ' checked' : '') + '><span></span></label></div>' +
       '<div id="sAndroBox"' + (S.avatar === 'androide' ? '' : ' hidden') + '><div class="set"><div class="t">Cadrage</div><select class="in" id="sAndroFrame">' + [['corps', 'Silhouette entière'], ['buste', 'Buste'], ['proche', 'Gros plan']].map(function (o) { return '<option value="' + o[0] + '"' + (S.faceFrame === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
