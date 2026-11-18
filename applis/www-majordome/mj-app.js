@@ -36,7 +36,7 @@
   /* ---------------- Réglages (stockés localement seulement) ---------------- */
   var DEF = {
     avatar: 'sphere', faceStyle: 'naturel', faceSkin: 'claire', faceHair: 'brun', faceEyes: 'noisette', faceCoiffure: 'long', faceLips: 'naturel', faceMakeup: 1,
-    faceFreckles: false, faceMole: false, faceJewels: true, faceGlasses: 'aucune', faceCloth: 'nuit', faceFrame: 'buste', faceExpr: 'normal',
+    faceFreckles: false, faceMole: false, faceJewels: true, faceGlasses: 'aucune', faceCloth: 'nuit', faceFrame: 'buste', faceExpr: 'normal', faceDeco: false,
     name: 'Majordome', wake: '', address: 'monsieur', prenom: '', voice: '', rate: 1, pitch: 1, volume: 1, voiceOn: true, beeps: true,
     tts: 'system', piperVoice: 'pierre', fx: 'majordome', fxo: null,
     engine: ANDROID ? 'vosk' : 'vosk', webOk: false, wakeOn: false, wakeCharging: false, autoListen: true,
@@ -96,6 +96,7 @@
     px.kind = function () { return kind; };
     px.apply = function () {
       var want = S.avatar === 'visage' && window.MJFace ? 'visage' : 'sphere', was = cur ? cur.get() : 'idle';
+      document.documentElement.classList.toggle('mj-visage-seul', want === 'visage' && !S.faceDeco);
       if (cur && want === kind) { if (cur.look) cur.look(faceLook()); return; }
       if (cur) cur.stop();
       var o = { pad: 1.32, onLevel: orbLevel };
@@ -1593,19 +1594,19 @@
     faceFrame: ['Cadrage', [['buste', 'Buste'], ['proche', 'Gros plan']]],
     faceExpr: ['Expressivité', [['calme', 'Calme'], ['normal', 'Normale'], ['expressif', 'Très expressive']]]
   };
-  var FACEBOOL = { faceFreckles: 'Taches de rousseur', faceMole: 'Grain de beauté', faceJewels: 'Bijoux (collier, boucles d\'oreilles visibles avec cheveux courts ou relevés)' };
+  var FACEBOOL = { faceFreckles: 'Taches de rousseur', faceMole: 'Grain de beauté', faceJewels: 'Bijoux (collier, boucles d\'oreilles visibles avec cheveux courts ou relevés)', faceDeco: 'Garder le décor autour (anneaux, planètes, effets)' };
   var facePrev = null;
   function faceHtml() {
     var sel = function (id) { var cur = String(S[id]); return '<select class="in" id="s_' + id + '">' + FACEOPT[id][1].map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === cur ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>'; };
     var row = function (id) { return '<div class="set"' + (id !== 'faceStyle' && id !== 'faceCoiffure' && id !== 'faceFrame' && id !== 'faceExpr' ? ' data-nat' : '') + '><div class="t">' + FACEOPT[id][0] + '</div>' + sel(id) + '</div>'; };
-    var sw = function (id) { return '<div class="set" data-nat><div class="t">' + FACEBOOL[id] + '</div><label class="sw"><input type="checkbox" id="s_' + id + '"' + (S[id] ? ' checked' : '') + '><span></span></label></div>'; };
+    var sw = function (id) { return '<div class="set"' + (id === 'faceDeco' ? '' : ' data-nat') + '><div class="t">' + FACEBOOL[id] + '</div><label class="sw"><input type="checkbox" id="s_' + id + '"' + (S[id] ? ' checked' : '') + '><span></span></label></div>'; };
     return '<div class="set" id="f-apparence"><div class="t">Apparence<small>La sphère de particules, ou un visage qui cligne des yeux, vous regarde et parle avec la voix</small></div>' +
       '<select class="in" id="sAvatar"><option value="sphere"' + (S.avatar !== 'visage' ? ' selected' : '') + '>Sphère</option><option value="visage"' + (S.avatar === 'visage' ? ' selected' : '') + '>Visage</option></select></div>' +
       '<div id="sFaceBox"' + (S.avatar === 'visage' ? '' : ' hidden') + '>' +
       '<div style="position:relative;width:min(220px,60vw);aspect-ratio:1;margin:6px auto 4px"><canvas id="sFacePrev" style="position:absolute;left:-16%;top:-16%;width:132%;height:132%;pointer-events:none"></canvas></div>' +
       '<div class="row" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:6px"><button class="btn sm" id="sFaceRnd">🎲 Au hasard</button><button class="btn sm" id="sFaceTalk">Faire parler</button><button class="btn sm" id="sFaceSmile">Sourire</button><button class="btn sm" id="sFaceRaz">Par défaut</button></div>' +
       row('faceStyle') + row('faceCoiffure') + row('faceHair') + row('faceSkin') + row('faceEyes') + row('faceLips') + row('faceMakeup') + row('faceGlasses') + row('faceCloth') +
-      sw('faceFreckles') + sw('faceMole') + sw('faceJewels') + row('faceFrame') + row('faceExpr') +
+      sw('faceFreckles') + sw('faceMole') + sw('faceJewels') + row('faceFrame') + row('faceExpr') + sw('faceDeco') +
       '<p class="note">Personnage original dessiné par l\'appli. La couleur de l\'état (écoute, réflexion, parole) reste visible dans le halo et le contour du visage.</p></div>';
   }
   function faceBind() {

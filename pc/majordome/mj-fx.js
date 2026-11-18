@@ -66,7 +66,7 @@
 
   function draw(now) {
     wrap(); size(); g.clearRect(0, 0, W, H);
-    if (!on()) return;
+    if (!on() || (S.avatar === 'visage' && !S.faceDeco)) return;   // visage seul : pas de décor autour
     var c = centre(); if (!c) return;
     var k = K(); lvl += (cible - lvl) * .25;
     if (gad('etoiles')) {
