@@ -127,7 +127,7 @@ public class MajordomeBridge {
     }
 
     // ---------- Cycle de vie (appelé par MainActivity) ----------
-    public void onResume() { resumed = true; live = this; emit("perm", "{}"); refreshApps(a.getApplicationContext()); }
+    public void onResume() { resumed = true; live = this; emit("perm", "{}"); refreshApps(a.getApplicationContext()); try { MajordomeRecents.refreshAll(a.getApplicationContext()); } catch (Throwable t) { } }
     public void onPermissions(int code) { emit("perm", "{}"); }
     public void onIntent(Intent i) { takeIntent(i); }
     public void onResult(int code, int res, Intent data) {
