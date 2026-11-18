@@ -93,6 +93,7 @@
       if (p.sys) { var sn = (NLU.SYS.filter(function (x) { return x[0] === p.sys; })[0] || [0, p.name])[1]; return sysOpen(p.sys, '', sn); }
       return say('L\'appli ' + p.name + ' n\'est pas installée sur ce téléphone.');
     }
+    if (p.resume && ((B && B.appLaunch) || (P && P.homeLaunch))) { X.card('<p class="note">Je rouvre ' + X.esc(p.name) + ' là où vous l\'aviez laissée (si Android ne l\'a pas fermée entre-temps).</p>'); return launch(p.pkg, '', p.name); }
     if ((B && B.appLaunch) || (P && P.homeLaunch)) return launch(p.pkg, '', p.name);
     return say('Je ne peux pas ouvrir ' + p.name + ' ici.');
   };
