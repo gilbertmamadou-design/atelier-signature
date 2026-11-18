@@ -521,7 +521,7 @@ var TYPES = {
   budget:{n:'Budget : dépenses du mois',i:'wallet',w:2,tall:1}, dicta:{n:'Dictaphone',i:'mic',w:1},
   meteoapp:{n:'Météo : aujourd\'hui',i:'sun',w:2}, reseau:{n:'Réseau : connexion, débit et VPN',i:'web',w:1}, lecteur:{n:'Lecteur PDF : documents récents',i:'pdf',w:2}, solaire:{n:'Solaire : dernier projet',i:'solar',w:1}, presentation:{n:'Présentation : dernière présentation',i:'easel',w:1}, voyage:{n:'Carnet de voyage : dernier carnet',i:'stamp',w:1}, majordome:{n:'Majordome : commande vocale',i:'orb',w:1}, mjpanel:{n:'Majordome : panneau d\'accueil (sphère et résumé)',i:'orb',w:2,tall:1,h:2}, texte:{n:'Texte : dernier document',i:'doc',w:1}, tableur:{n:'Tableur : dernier classeur',i:'sheet',w:1}, actu:{n:'Actualités : l\'essentiel',i:'news',w:2}, power:{n:'Éteindre le téléphone',i:'power',w:1}, mag:{n:'Mes applis MAG',i:'mag',w:2}, note:{n:'Note rapide',i:'note',w:1},
   app:{n:'Une appli',i:'grid',w:1,pick:1}, contact:{n:'Un contact',i:'user',w:1,pick:1}, link:{n:'Un site web',i:'link',w:1,pick:1},
-  nextev:{n:'Prochain rendez-vous',i:'cal',w:1}, device:{n:'Batterie et stockage',i:'phonedev',w:1}, wxdetail:{n:'Météo détaillée',i:'cloud',w:2}
+  nextev:{n:'Prochain rendez-vous',i:'cal',w:1}, magrecent:{n:'Ma Suite : applis récentes',i:'mag',w:2,tall:1}, device:{n:'Batterie et stockage',i:'phonedev',w:1}, wxdetail:{n:'Météo détaillée',i:'cloud',w:2}
 };
 
 
@@ -741,7 +741,22 @@ function pumpIcons(){
   if(iconQ.length) setTimeout(pumpIcons,16); else iconBusy=false;
 }
 function appBtn(a){ return '<button class="app" data-app="'+esc(a.key)+'">'+iconHtml(a)+'<span class="sh">'+esc(a.label)+'</span></button>'; }
-function launch(a){ if(INT && a && a.pkg===MJ){ intShow(); return; } if(A) A.homeLaunch(a.pkg, a.cls); }
+function launch(a){ magNote(a); if(INT && a && a.pkg===MJ){ intShow(); return; } if(A) A.homeLaunch(a.pkg, a.cls); }
+/* Ma Suite récente : ouvertures depuis Socle (toujours) et statistiques d'utilisation d'Android (si l'accès est donné) */
+var MAGREC='socle-magrecent';
+function magNote(a){ if(!a || !a.pkg || a.pkg.indexOf('fr.magformation13.')!==0) return; var h=J(lsGet(MAGREC),{}); h[a.pkg]=Date.now(); lsSet(MAGREC, JSON.stringify(h)); setTimeout(function(){ refresh('magrecent'); }, 1500); }
+function magRecentList(n){
+  var own=J(lsGet(MAGREC),{}), use=(A && A.homeRecent) ? J(A.homeRecent(), null) : null;
+  var self='fr.magformation13.socle', l=APPS.filter(function(a){ return a.c==='mag' && a.pkg!==self; }).map(function(a){ return { a:a, t:Math.max(own[a.pkg]||0, (use&&use[a.pkg])||0) }; });
+  l=l.filter(function(x){ return x.t>0; }).sort(function(x,y){ return y.t-x.t; });
+  var seen={}; l=l.filter(function(x){ if(seen[x.a.pkg]) return false; seen[x.a.pkg]=1; return true; });
+  return { list:l.slice(0,n).map(function(x){ return x.a; }), usage:!!use };
+}
+function magRecentHtml(cfg){
+  var r=magRecentList(cfg.h===2||cfg.w===2?8:4);
+  var hint=r.usage?'':'<button class="mini" data-act="usage-ask" style="margin-top:8px;width:100%;justify-content:center">Autoriser l\'accès à l\'utilisation (plus précis)</button>';
+  return '<div class="hd">'+ic('mag')+'Ma Suite · récentes</div>'+(r.list.length?'<div class="apps4">'+r.list.map(appBtn).join('')+'</div>':'<div class="empty">Ouvre une appli de ta Suite : elle apparaîtra ici</div>')+hint;
+}
 
 /* ---------- Tuiles ---------- */
 var W = J(localStorage.getItem('socle-meteo'), null), BAT=[], weatherBusy=false;
@@ -800,6 +815,7 @@ function tileBody(cfg){
     case 'contact': body = contactTileHtml(cfg); break;
     case 'link': body = linkTileHtml(cfg); break;
     case 'nextev': body = nextEvHtml(cfg); break;
+    case 'magrecent': body = magRecentHtml(cfg); break;
     case 'device': body = deviceHtml(cfg); break;
     case 'wxdetail': body = wxDetailHtml(cfg); break;
   }
@@ -1922,6 +1938,7 @@ $('pages').addEventListener('click', safe(function(e){
     if(k2==='ecran-resume') A.homeLaunchWith(ECRAN, JSON.stringify({resume:1}));
     if(k2==='ecran-open'){ var e3=app(ECRAN); if(e3) launch(e3); }
     if(k2==='sos') A.homeLaunchWith(URG, JSON.stringify({sos:1}));
+    if(k2==='usage-ask'){ if(A && A.homeUsageAsk) A.homeUsageAsk(); }
     if(k2==='pw-off'){ if(!(A.homePower && A.homePower())) gestureHelp(); }
     if(k2==='pw-lock'){ if(!A.homeLock()) gestureHelp(); }
     if(k2==='res-speed') A.homeLaunchWith(RES, JSON.stringify({speed:1}));
@@ -2401,7 +2418,7 @@ setInterval(safe(function(){ hueTick(false); },'Lumières'), 60000);
 setInterval(safe(function(){ pollMedia(); if(!document.hidden) document.querySelectorAll('[data-since]').forEach(function(el){ el.textContent=mt(Date.now()-el.dataset.since); }); },'Musique'), 1000);
 setInterval(safe(function(){ if(!document.hidden){ ['battery','alarm','agenda','nextev','device','mjpanel'].forEach(refresh); fetchWeather(false); } },'Mise à jour'), 120000);
 document.addEventListener('visibilitychange', safe(function(){
-  if(!document.hidden){ window.accueilResume(); MJO.act=performance.now(); mjOrbKick(); if(C.jv.station || STN.on) stationCheck(); }
+  if(!document.hidden){ window.accueilResume(); refresh('magrecent'); MJO.act=performance.now(); mjOrbKick(); if(C.jv.station || STN.on) stationCheck(); }
   else { endEdit(); saveSnap(); persistW(); if(MJO.raf){ cancelAnimationFrame(MJO.raf); MJO.raf=0; } stationApply(); roomSync(); }   // on quitte l'accueil : instantané et cache pour le prochain démarrage
 },'Visibilité'));
 })();

@@ -246,6 +246,24 @@ public class MainActivity extends BridgeActivity {
         // ----- Socle : écran d'accueil en tableau de bord -----
         @JavascriptInterface
         public String homeApps() { return LauncherService.apps(getApplicationContext()); }
+        // Applis récentes (Socle, tuile « Ma Suite récente ») : dernière utilisation sur 7 jours, si « accès à l'utilisation » accordé ; sinon ""
+        @JavascriptInterface
+        public String homeRecent() {
+            try {
+                android.app.AppOpsManager ops = (android.app.AppOpsManager) getSystemService(android.content.Context.APP_OPS_SERVICE);
+                int mode = android.os.Build.VERSION.SDK_INT >= 29 ? ops.unsafeCheckOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), getPackageName())
+                                                                  : ops.checkOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), getPackageName());
+                if (mode != android.app.AppOpsManager.MODE_ALLOWED) return "";
+                android.app.usage.UsageStatsManager usm = (android.app.usage.UsageStatsManager) getSystemService(android.content.Context.USAGE_STATS_SERVICE);
+                long now = System.currentTimeMillis();
+                java.util.List<android.app.usage.UsageStats> l = usm.queryUsageStats(android.app.usage.UsageStatsManager.INTERVAL_DAILY, now - 7L * 86400000L, now);
+                org.json.JSONObject o = new org.json.JSONObject();
+                if (l != null) for (android.app.usage.UsageStats u : l) { long t = u.getLastTimeUsed(); if (t > 0 && t > o.optLong(u.getPackageName(), 0)) o.put(u.getPackageName(), t); }
+                return o.toString();
+            } catch (Throwable t) { return ""; }
+        }
+        @JavascriptInterface
+        public void homeUsageAsk() { runOnUiThread(new Runnable() { public void run() { try { startActivity(new Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); } catch (Exception e) { } } }); }
         @JavascriptInterface
         public String homeIcon(String pkg, String cls, int size, double upd) { return LauncherService.icon(getApplicationContext(), pkg, cls, size, (long) upd); }
         @JavascriptInterface
@@ -1809,6 +1827,8 @@ if x not in s:
     open(p, 'w', encoding='utf-8').write(s)
 PYM
 }
+# Socle : statistiques d'utilisation (tuile « Ma Suite récente »), accordées par l'utilisateur dans les réglages d'Android
+if [ "$APP" = "accueil" ]; then addperm PACKAGE_USAGE_STATS; fi
 if [ "$APP" = "agenda" ]; then
   addperm READ_CALENDAR WRITE_CALENDAR
   addfilters '<intent-filter><action android:name="android.intent.action.VIEW"/><action android:name="android.intent.action.EDIT"/><category android:name="android.intent.category.DEFAULT"/><data android:mimeType="vnd.android.cursor.item/event"/></intent-filter><intent-filter><action android:name="android.intent.action.INSERT"/><action android:name="android.intent.action.EDIT"/><category android:name="android.intent.category.DEFAULT"/><data android:mimeType="vnd.android.cursor.dir/event"/></intent-filter><intent-filter><action android:name="android.intent.action.VIEW"/><category android:name="android.intent.category.DEFAULT"/><data android:scheme="content" android:host="com.android.calendar" android:pathPrefix="/time"/></intent-filter><intent-filter><action android:name="android.intent.action.VIEW"/><category android:name="android.intent.category.DEFAULT"/><data android:mimeType="text/calendar"/></intent-filter>'
