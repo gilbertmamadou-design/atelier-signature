@@ -1,7 +1,7 @@
 name: Visage 3D (avatars Rocketbox → GLB, three.js)
 # Convertit des avatars féminins Microsoft Rocketbox (licence MIT, expressions du visage ARKit et visèmes) en GLB allégés
 # pour le « Visage 3D » de Majordome, et prépare un paquet three.js (licence MIT) en script classique.
-# Résultat : artefact « visage3d » (GLB, aperçus JSON des expressions, three-mj.js, licences).
+# Résultat : pré-version « visage3d-N » (GLB, JSON des expressions, aperçus PNG, three-mj.js, licences).
 on:
   workflow_dispatch:
     inputs:
@@ -19,7 +19,7 @@ on:
         default: "0.170.0"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   convertir:
@@ -52,7 +52,8 @@ jobs:
           mkdir -p out
           for a in $(echo "${{ inputs.avatars }}" | tr ',' ' '); do
             d=rb/Assets/Avatars/Adults/$a
-            python applis/visage3d/convertir.py "$d/Export/${a}_facial.fbx" "$d/Textures" "$PWD/out/$a.glb" "${{ inputs.texture }}" || echo "ÉCHEC $a"
+            python applis/visage3d/convertir.py "$d/Export/${a}_facial.fbx" "$d/Textures" "$PWD/out/$a.glb" "${{ inputs.texture }}" || true   # bpy plante parfois en quittant, après l'export
+            [ -s "out/$a.glb" ] || echo "ÉCHEC $a"
             cp $d/*.png out/ 2>/dev/null || true
             rm -rf out/tmp_$a
           done
@@ -67,8 +68,8 @@ jobs:
           npx esbuild entree.js --bundle --minify --format=iife --outfile=../out/three-mj.js
           cp node_modules/three/LICENSE ../out/THREE-LICENSE
           ls -la ../out/three-mj.js
-      - uses: actions/upload-artifact@v4
-        with:
-          name: visage3d
-          path: out/
-          retention-days: 7
+      - name: Publication (pré-version « visage3d-N »)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "visage3d-${{ github.run_number }}" out/* --prerelease --title "Visage 3D ${{ github.run_number }}" --notes "Avatars Microsoft Rocketbox (MIT) convertis en GLB pour Majordome, et paquet three.js (MIT)."
