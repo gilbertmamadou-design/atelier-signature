@@ -46,6 +46,8 @@ nav button[aria-current="page"]{color:var(--acc)}
 .face{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px;border-radius:18px;background:#ffffff06;border:1px solid var(--line);text-align:center}
 .face canvas{width:100%;max-width:200px;aspect-ratio:1;border-radius:50%;box-shadow:0 6px 24px #0008}
 .face b{font-size:14px}
+.face.mini{cursor:pointer;color:inherit;font:inherit;width:100%}.face.mini:active{transform:scale(.98)}
+.fiche{display:flex;flex-direction:column;align-items:center;gap:12px}.fiche canvas{width:min(72vw,300px);aspect-ratio:1;border-radius:50%;box-shadow:0 8px 30px #000a}.fiche .acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 .face .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 14px;border-radius:12px;background:var(--bg3);border:1px solid var(--line2);font-weight:700;font-size:13.5px}
 .btn.pri{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#081018;border-color:transparent}
@@ -190,6 +192,8 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
   function dessiner(cv, cfg, opt) { var m = garminDe(cfg); if (m) C.apercuGarmin(cv, cfg, C.MONTRES[m].S, opt); else C.apercu(cv, cfg, opt); }
   function draw(cv, cfg, aod) { try { dessiner(cv, cfg, { aod: !!aod }); } catch (e) { console.warn(e); } }
   function face(cfg, i, kind) {
+    // Mes cadrans : seulement la montre et son nom ; un appui ouvre sa fiche (fabriquer, modifier, renommer…)
+    if (kind === 'mes') return '<button class="face mini" data-fiche="' + i + '"><canvas width="240" height="240" data-pv="mes:' + i + '"></canvas><b>' + esc(cfg.nom) + '</b>' + (cfg.build && cfg.build.qr ? '<small class="note" style="margin:0">Prêt à installer</small>' : '') + '</button>';
     return '<div class="face"><canvas width="240" height="240" data-pv="' + kind + ':' + i + '"></canvas><b>' + esc(cfg.nom) + '</b><div class="acts">' +
       (kind === 'col' ? '<button class="btn sm pri" data-inst="' + i + '">T-Rex 3</button><button class="btn sm pri" data-gar="' + i + '">Garmin</button><button class="btn sm" data-copie="' + i + '">Modifier une copie</button>'
         : '<button class="btn sm pri" data-fab="' + i + '">' + (cfg.build && cfg.build.qr ? 'QR' : cfg.build && cfg.build.garmin ? 'Télécharger' : 'Fabriquer') + '</button><button class="btn sm" data-edit="' + i + '">Modifier</button><button class="btn sm" data-dup="' + i + '">Copier</button><button class="btn sm bad" data-del="' + i + '" aria-label="Supprimer">✕</button>') + '</div></div>';
@@ -548,8 +552,8 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     };
     $('photoZone').oninput = function (e) { if (e.target.id === 'zoomR' && CROP) { CROP.z = +e.target.value; $('rv-zoom').textContent = CROP.z.toFixed(1) + '×'; borner(CROP); dessineCrop(); return; } if (e.target.dataset.voile != null) { ED.voile = +e.target.value; var v = $('rv-voile'); if (v) v.textContent = e.target.value; dirty = 1; preview(); } };
     $('photoIn').onchange = function () { chargerPhoto(this.files && this.files[0]); this.value = ''; };
-    $('edSave').onclick = function () { var r = saveEd(); if (r >= 0) { toast(saveMsg); var st = $('main').scrollTop; render(); $('main').scrollTop = st; } };
-    if ($('edSaveNew')) $('edSaveNew').onclick = function () { var r = saveEd(true); if (r >= 0) { toast(saveMsg); var st = $('main').scrollTop; render(); $('main').scrollTop = st; } };
+    $('edSave').onclick = function () { nommer(false); };
+    if ($('edSaveNew')) $('edSaveNew').onclick = function () { nommer(true); };
     $('edFab').onclick = function () { var i = saveEd(); if (i >= 0) fabriquer(i); };
     $('edNew').onclick = nouveau;
   }
@@ -572,6 +576,37 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     if (orig && !asNew) { c.build = null; ST.mes[EDI] = c; saveMsg = 'Cadran enregistré'; }
     else { c.build = null; ST.mes.unshift(c); EDI = 0; saveMsg = orig ? 'Nouveau cadran « ' + c.nom + ' » enregistré' : 'Cadran ajouté à Mes cadrans'; }
     ED = clone(c); dirty = 0; save(); return EDI;
+  }
+
+  /* Enregistrer : on donne (ou confirme) le nom, puis on retrouve le cadran seul, sans les réglages, dans Mes cadrans */
+  function nommer(asNew) {
+    var nom = (ED.nom || '').trim(), defaut = !nom || /^Mon cadran( \d+)?$/.test(nom);
+    sheet('<div class="fiche"><h2 style="margin:0">' + (asNew ? 'Enregistrer comme nouveau' : 'Enregistrer le cadran') + '</h2><canvas id="nmPv" width="480" height="480"></canvas>' +
+      '<label style="width:100%;max-width:340px"><div class="lbl" style="margin-top:0">Nom du cadran</div><input class="in" id="nmIn" maxlength="24" value="' + esc(defaut ? '' : nom) + '" placeholder="Ex. : Tourbillon doré" autocomplete="off"></label>' +
+      '<p class="note" style="margin:0;text-align:center">C\'est aussi le nom qui apparaît sur la montre.</p>' +
+      '<div class="acts"><button class="btn pri" id="nmOk">Enregistrer</button><button class="btn" data-close>Annuler</button></div></div>');
+    draw($('nmPv'), ED, false);
+    var i = $('nmIn'); setTimeout(function () { try { i.focus(); i.select(); } catch (e) { } }, 60);
+    var ok = function () {
+      var v = i.value.trim(); if (!v) { toast('Donnez un nom à votre cadran'); i.focus(); return; }
+      ED.nom = v.slice(0, 24); var r = saveEd(asNew); if (r < 0) return;
+      closeSheet(); toast(saveMsg); SEL = -1; TAB = 'mes'; render(); try { $('main').scrollTop = 0; } catch (e) { } fiche(r);
+    };
+    $('nmOk').onclick = ok; i.onkeydown = function (e) { if (e.key === 'Enter') ok(); };
+  }
+  /* fiche d'un de mes cadrans : la montre en grand, son nom (modifiable) et les actions */
+  function fiche(i) {
+    var c = ST.mes[i]; if (!c) return;
+    sheet('<div class="fiche"><canvas id="fiPv" width="480" height="480"></canvas>' +
+      '<div class="row" style="gap:6px;width:100%;max-width:340px"><input class="in" id="fiNom" maxlength="24" value="' + esc(c.nom) + '" style="flex:1;text-align:center;font-weight:700"><button class="btn sm" id="fiRen">Renommer</button></div>' +
+      '<div class="acts"><button class="btn pri" data-fab="' + i + '">' + (c.build && c.build.qr ? 'Installer (QR)' : c.build && c.build.garmin ? 'Télécharger' : 'Fabriquer pour la montre') + '</button><button class="btn" data-edit="' + i + '">Modifier</button><button class="btn" data-dup="' + i + '">Copier</button><button class="btn bad" data-del="' + i + '">Supprimer</button></div>' +
+      '<button class="btn sm" data-close>Fermer</button></div>');
+    draw($('fiPv'), c, false);
+    $('fiRen').onclick = function () {
+      var v = $('fiNom').value.trim().slice(0, 24); if (!v || v === c.nom) return;
+      if (ST.mes.some(function (x, k) { return k !== i && x.nom === v; }) && !confirm('Un autre cadran s\'appelle déjà « ' + v + ' ». Sur la montre, deux cadrans du même nom se remplacent. Renommer quand même ?')) return;
+      c.nom = v; c.build = null; save(); toast('Cadran renommé : refabriquez-le pour la montre'); render(); fiche(i);
+    };
   }
 
   /* ---------------- installation / fabrication ---------------- */
@@ -706,6 +741,9 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
 
   /* ---------------- gestes ---------------- */
   document.addEventListener('click', function (e) {
+    var b0;
+    if ((b0 = e.target.closest('[data-fiche]'))) { fiche(+b0.dataset.fiche); return; }
+    if (e.target.closest('#sheet') && e.target.closest('[data-edit],[data-dup],[data-del]')) closeSheet();
     if (e.target.closest('#unB')) { histGo(-1); return; }
     if (e.target.closest('#reB')) { histGo(1); return; }
     var b;
