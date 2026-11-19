@@ -1045,7 +1045,7 @@ public class MajordomeBridge {
        AudioManager ; certains téléphones laissent seul le composeur choisir la sortie du son pendant un appel. ---- */
     private boolean ringMuted = false;
     private android.telecom.TelecomManager telecom() { return (android.telecom.TelecomManager) a.getSystemService(Context.TELECOM_SERVICE); }
-    private boolean ringing() { try { return has(Manifest.permission.READ_PHONE_STATE) && telecom().isRinging(); } catch (Throwable t) { return false; } }
+    private boolean ringing() { try { return has(Manifest.permission.READ_PHONE_STATE) && ((android.telephony.TelephonyManager) a.getSystemService(Context.TELEPHONY_SERVICE)).getCallState() == android.telephony.TelephonyManager.CALL_STATE_RINGING; } catch (Throwable t) { return false; } }
     private boolean inCall() { try { return has(Manifest.permission.READ_PHONE_STATE) && telecom().isInCall(); } catch (Throwable t) { return false; } }
     private boolean callPerms() {
         if (Build.VERSION.SDK_INT < 26) return false;
