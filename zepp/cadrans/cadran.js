@@ -57,11 +57,11 @@
     pression: { n: 'Pression', type: 'ALTIMETER', lab: 'HPA', ic: 'jauge', ex: 1013 },
     vent: { n: 'Vent', type: 'WIND', lab: 'VENT', ic: 'vent', ex: 3 }
   };
-  var FONDS = { uni: 'Uni', degrade: 'Dégradé', radial: 'Halo', carbone: 'Carbone', grille: 'Grille', hud: 'HUD', camo: 'Camouflage', fleurs: 'Fleurs', printemps: 'Printemps', ete: 'Été', automne: 'Automne', hiver: 'Hiver', noel: 'Noël', espace: 'Espace', photo: 'Ma photo' };
+  var FONDS = { uni: 'Uni', degrade: 'Dégradé', radial: 'Halo', carbone: 'Carbone', grille: 'Grille', hud: 'HUD', camo: 'Camouflage', fleurs: 'Fleurs', printemps: 'Printemps', ete: 'Été', automne: 'Automne', hiver: 'Hiver', noel: 'Noël', espace: 'Espace', soleil: 'Soleillé', guilloche: 'Guilloché', damas: 'Damas', nacre: 'Nacre', mouvement: 'Mouvement mécanique', photo: 'Ma photo' };
   var MOTIFS = { fleur: 'Fleur', marguerite: 'Marguerite', tulipe: 'Tulipe', feuille: 'Feuille', erable: 'Feuille d\'érable', flocon: 'Flocon', soleil: 'Soleil', lune: 'Lune', sapin: 'Sapin',
     etoile: 'Étoile', coeur: 'Cœur', papillon: 'Papillon', champignon: 'Champignon', citrouille: 'Citrouille', cadeau: 'Cadeau', montagne: 'Montagne',
     planete: 'Planète', saturne: 'Planète à anneau', terre: 'Terre', fusee: 'Fusée', atome: 'Atome', comete: 'Comète', ovni: 'Soucoupe' };
-  var ANNEAUX = { graduations: 'Graduations', chiffres: 'Chiffres', batterie: 'Batterie', pas: 'Pas (objectif)', aucun: 'Aucun' };
+  var ANNEAUX = { graduations: 'Graduations', chiffres: 'Chiffres', romains: 'Chiffres romains', plongee: 'Lunette de plongée', cockpit: 'Compteur (cockpit)', batterie: 'Batterie', pas: 'Pas (objectif)', aucun: 'Aucun' };
   var AIGUILLES = { fines: 'Fines', epees: 'Épées', larges: 'Larges', baton: 'Bâtons', dauphine: 'Dauphine', squelette: 'Squelette', fleche: 'Flèches' };
   var TROTS = { fine: 'Fine', contrepoids: 'Contrepoids', fleche: 'Flèche', sucette: 'Sucette', sport: 'Sport', epaisse: 'Épaisse' };
   var CALQUES = { vignette: 'Vignette', halo: 'Halo', lignes: 'Lignes', points: 'Points', rayons: 'Rayons', teinte: 'Teinte', verre: 'Reflet verre', lunette: 'Lunette 3D' };
@@ -69,7 +69,7 @@
   var TAILLES = { s: 'Petite', m: 'Moyenne', l: 'Grande' };
   var DATES = { long: 'MERCREDI 30 OCTOBRE', court: 'MER 30 OCT', jourNum: 'MER 30', numMois: '30 OCT', jour: 'MERCREDI', jour3: 'MER', numero: '30', chiffres: '30/10' };
   var EFFETS = { aucun: 'Aucun', ombre: 'Ombre', relief: 'Relief 3D', biseau: 'Biseau', contour: 'Contour', creux: 'Creux', lueur: 'Néon', degrade: 'Dégradé', metal: 'Métal', lcd: 'Segments LCD' };
-  var TYPES = { heure: 'Heure', aiguilles: 'Aiguilles', date: 'Date', info: 'Info', meteo: 'Météo', texte: 'Texte', trait: 'Trait', image: 'Image', panneau: 'Écran / cadre' };
+  var TYPES = { heure: 'Heure', aiguilles: 'Aiguilles', date: 'Date', info: 'Info', meteo: 'Météo', texte: 'Texte', trait: 'Trait', image: 'Image', panneau: 'Écran / cadre', anim: 'Animation' };
   var PANNEAUX = { lcd: 'LCD clair', lcdvert: 'LCD vert', ambre: 'LCD ambre', sombre: 'Sombre', verre: 'Verre', cadre: 'Cadre seul' };
   var JOURS = ['LUNDI', 'MARDI', 'MERCREDI', 'JEUDI', 'VENDREDI', 'SAMEDI', 'DIMANCHE'];
   var JOURS3 = ['LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM', 'DIM'];
@@ -84,7 +84,7 @@
     date: true, anneau: 'graduations', infos: ['meteo', 'coeur', 'pas', 'batterie'], aod: 'heure_date',
     photo: '', voile: .35, calques: [], montre: 'trex3', blocs: null
   };
-  var CHOIX = { PANNEAUX: PANNEAUX, MOTIFS: MOTIFS, TROTS: TROTS, CALQUES: CALQUES, EFFETS: EFFETS, ICONES: { trait: 'Dessin', couleur: 'En couleur' }, POLICES: POLICES, INFOS: INFOS, FONDS: FONDS, ANNEAUX: ANNEAUX, AIGUILLES: AIGUILLES, STYLES: STYLES, TAILLES: TAILLES, DATES: DATES, TYPES: TYPES, VIFS: VIFS,
+  var CHOIX = { ANIMS: ANIMS, PANNEAUX: PANNEAUX, MOTIFS: MOTIFS, TROTS: TROTS, CALQUES: CALQUES, EFFETS: EFFETS, ICONES: { trait: 'Dessin', couleur: 'En couleur' }, POLICES: POLICES, INFOS: INFOS, FONDS: FONDS, ANNEAUX: ANNEAUX, AIGUILLES: AIGUILLES, STYLES: STYLES, TAILLES: TAILLES, DATES: DATES, TYPES: TYPES, VIFS: VIFS,
     HEURE: { numerique: 'Numérique', analogique: 'À aiguilles', mixte: 'Aiguilles + heure' }, TAILLE: { grande: 'Grande', moyenne: 'Moyenne' },
     AOD: { heure_date: 'Heure et date', heure: 'Heure seule' } };
 
@@ -99,12 +99,13 @@
     if (b.t !== 'aiguilles' && b.t !== 'trait' && b.t !== 'panneau') o.effet = EFFETS[b.effet] ? b.effet : 'aucun';
     if (b.t === 'info' || b.t === 'meteo') o.icone = b.icone === 'couleur' ? 'couleur' : 'trait';
     if (b.t === 'heure') { o.taille = Math.round(num(b.taille, 30, 150, 110)); o.secondes = !!b.secondes; o.dp = col(b.dp, 'accent'); }
-    if (b.t === 'aiguilles') { o.style = AIGUILLES[b.style] ? b.style : 'epees'; o.secondes = !!b.secondes; o.echelle = num(b.echelle, .2, 1, 1); o.trot = col(b.trot, 'accent'); o.trotStyle = TROTS[b.trotStyle] ? b.trotStyle : 'fine'; o.ombre = !!b.ombre; }
+    if (b.t === 'aiguilles') { o.style = AIGUILLES[b.style] ? b.style : 'epees'; o.secondes = !!b.secondes; o.echelle = num(b.echelle, .2, 1, 1); o.trot = col(b.trot, 'accent'); o.trotStyle = TROTS[b.trotStyle] ? b.trotStyle : 'fine'; o.ombre = !!b.ombre; o.lume = !!b.lume; }
     if (b.t === 'date') { o.format = DATES[b.format] ? b.format : 'long'; o.taille = Math.round(num(b.taille, 12, 40, 21)); o.jour = col(b.jour, 'accent'); o.cadre = !!b.cadre; }
     if (b.t === 'info') { o.d = INFOS[b.d] && INFOS[b.d].type ? b.d : 'pas'; o.style = STYLES[b.style] ? b.style : 'simple'; o.taille = TAILLES[b.taille] ? b.taille : 'm'; o.barre = !!b.barre && !!INFOS[o.d].prog; o.valeur = col(b.valeur, 'texte'); if (o.style === 'aiguille' && !INFOS[o.d].prog) o.style = 'jauge'; }
     if (b.t === 'meteo') { o.taille = TAILLES[b.taille] ? b.taille : 'm'; o.minmax = b.minmax !== false; o.valeur = col(b.valeur, 'texte'); }
     if (b.t === 'texte') { o.txt = String(b.txt == null ? 'TEXTE' : b.txt).replace(/[\u0000-\u001f]/g, '').slice(0, 24); o.taille = Math.round(num(b.taille, 10, 80, 18)); o.esp = num(b.esp, 0, 10, 2); }
     if (b.t === 'image') { o.motif = MOTIFS[b.motif] ? b.motif : 'fleur'; o.taille = Math.round(num(b.taille, 16, 240, 60)); o.rot = Math.round(num(b.rot, -180, 180, 0)); o.couleur = b.couleur === 'auto' ? 'auto' : col(b.couleur, 'auto'); }
+    if (b.t === 'anim') { o.motif = ANIMS[b.motif] ? b.motif : 'engrenages'; o.taille = Math.round(num(b.taille, 40, 240, 110)); o.couleur = col(b.couleur, 'accent'); }
     if (b.t === 'trait') { o.l = Math.round(num(b.l, 10, 440, 200)); o.ep = num(b.ep, 1, 12, 2); o.vertical = !!b.vertical; }
     if (b.t === 'panneau') { o.l = Math.round(num(b.l, 20, 460, 300)); o.h = Math.round(num(b.h, 10, 460, 110)); o.r = Math.round(num(b.r, 0, 80, 14)); o.style = PANNEAUX[b.style] ? b.style : 'lcd'; o.couleur = col(b.couleur, 'accent'); }
     return o;
@@ -486,6 +487,7 @@
     }
     if (b.t === 'meteo') { var T2 = TI[b.taille], ic = T2.ic * 2.2, hv2 = Math.round(T2.val * 1.08) + padFx(b.effet, Math.round(T2.val * P.echelle)), wm = Math.round(ic + 12 + T2.w * .9), hm = Math.round(Math.max(ic, hv2 + (b.minmax ? T2.lab * 1.6 + 4 : 0))); return { x: Math.round(b.x - wm / 2), y: Math.round(b.y - hm / 2), w: wm, h: hm, T: T2, ic: Math.round(ic), hv: hv2 }; }
     if (b.t === 'texte') { var pt = padFx(b.effet, b.taille), wt = Math.ceil(mesure(P.fam, Math.round(b.taille * P.echelle), b.txt, b.esp)) + 4 + pt, ht = Math.round(b.taille * 1.3) + pt; return { x: Math.round(b.x - wt / 2), y: Math.round(b.y - ht / 2), w: wt, h: ht }; }
+    if (b.t === 'anim') { var ta = b.taille; return { x: Math.round(b.x - ta / 2), y: Math.round(b.y - ta / 2), w: ta, h: ta }; }
     if (b.t === 'image') { var ti = b.taille; return { x: Math.round(b.x - ti / 2), y: Math.round(b.y - ti / 2), w: ti, h: ti }; }
     if (b.t === 'panneau') return { x: Math.round(b.x - b.l / 2), y: Math.round(b.y - b.h / 2), w: b.l, h: b.h };
     if (b.t === 'trait') { return b.vertical ? { x: b.x - 4, y: b.y - b.l / 2, w: 8, h: b.l } : { x: b.x - b.l / 2, y: b.y - 4, w: b.l, h: 8 }; }
@@ -621,6 +623,11 @@
         }
         add({ k: 'click', type: 'WEATHER_CURRENT', x: G.x, y: G.y, w: G.w, h: G.h });
       }
+      else if (b.t === 'anim') {
+        var na = ANIM_N[b.motif] || 24, da = 'anim' + bi + hash(b.motif + b.taille + coul(cfg, b.couleur));
+        for (var fa = 0; fa < na; fa++) put(da + '/f_' + fa + '.png', imageAnim(b, cfg, fa, na));
+        add({ k: 'anim', x: G.x, y: G.y, w: G.w, h: G.h, dossier: da, n: na, fps: b.motif === 'flamme' ? 12 : b.motif === 'radar' ? 15 : 12 });
+      }
       else if (b.t === 'aiguilles') pointeurs.push(b);
     });
     // aiguilles en dernier : au-dessus de tout
@@ -704,10 +711,12 @@
         g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(0, 0, W, W);
       }
     }
+    if (!aod && cfg.fond !== 'transparent') fondLuxe(g, cfg);
     if (!aod && cfg.fond !== 'transparent') calquesFond(g, cfg);
     // anneau fixe
     var acc = aod ? mix(cfg.doux, '#000', .5) : cfg.accent, fin = aod ? mix(cfg.doux, '#000', .65) : rgba(cfg.texte, .5);
-    if (cfg.anneau === 'graduations' || (ana && cfg.anneau !== 'chiffres' && cfg.anneau !== 'aucun')) {
+    anneauLuxe(g, cfg, aod);
+    if (cfg.anneau === 'graduations' || (ana && (cfg.anneau === 'batterie' || cfg.anneau === 'pas'))) {
       for (var i = 0; i < 60; i++) {
         if (aod && i % 5) continue;
         var an2 = i * Math.PI / 30, maj = i % 5 === 0, r1 = 236, r2 = maj ? 220 : 229;
@@ -966,6 +975,207 @@
     }
     g.restore(); return c;
   }
+  /* ---------------- matières de luxe, mouvement mécanique, lunettes, animations ---------------- */
+  function alea(seed) { var s = seed || 7; return function () { s = (s * 16807) % 2147483647; return s / 2147483647; }; }
+  /* roue dentée centrée en (x, y) : n dents, rayon r, couleur de base c ; a : angle ; bras : nombre de bras (ajourée) */
+  function roue(g, x, y, r, n, c, a, bras) {
+    g.save(); g.translate(x, y); g.rotate(a || 0);
+    var d = r * .1, p = new Path2D();
+    for (var i = 0; i < n; i++) {
+      var a0 = i / n * Math.PI * 2, a1 = (i + .3) / n * Math.PI * 2, a2 = (i + .5) / n * Math.PI * 2, a3 = (i + .8) / n * Math.PI * 2;
+      p[i ? 'lineTo' : 'moveTo'](Math.cos(a0) * r, Math.sin(a0) * r); p.lineTo(Math.cos(a1) * (r + d), Math.sin(a1) * (r + d));
+      p.lineTo(Math.cos(a2) * (r + d), Math.sin(a2) * (r + d)); p.lineTo(Math.cos(a3) * r, Math.sin(a3) * r);
+    }
+    p.closePath();
+    if (bras) {
+      var ri = r * .78, rm = r * .2;
+      p.moveTo(ri, 0); p.arc(0, 0, ri, 0, Math.PI * 2, true);
+      for (var k = 0; k < bras; k++) { var b0 = k / bras * Math.PI * 2, w2 = Math.PI / bras * .78; p.moveTo(Math.cos(b0 + .16) * rm, Math.sin(b0 + .16) * rm); p.arc(0, 0, ri, b0 + .16, b0 + w2 * 2 - .16); p.arc(0, 0, rm, b0 + w2 * 2 - .16, b0 + .16, true); }
+    }
+    var gr = g.createLinearGradient(-r, -r, r, r); gr.addColorStop(0, mix(c, '#ffffff', .55)); gr.addColorStop(.45, c); gr.addColorStop(1, mix(c, '#000000', .45));
+    g.shadowColor = 'rgba(0,0,0,.6)'; g.shadowBlur = r * .12; g.shadowOffsetY = r * .04;
+    g.fillStyle = gr; g.fill(p, 'evenodd'); g.shadowColor = 'transparent';
+    g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = Math.max(.6, r * .015); g.stroke(p);
+    // axe et rubis
+    disque(g, 0, 0, r * .16, mix(c, '#000000', .3)); rubis(g, 0, 0, r * .09);
+    g.restore();
+  }
+  function rubis(g, x, y, r) {
+    var gr = g.createRadialGradient(x - r * .3, y - r * .3, r * .1, x, y, r); gr.addColorStop(0, '#ff9aa8'); gr.addColorStop(.5, '#c4102c'); gr.addColorStop(1, '#5a0010');
+    g.beginPath(); g.arc(x, y, r, 0, 7); g.fillStyle = gr; g.fill(); g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = Math.max(.5, r * .15); g.stroke();
+  }
+  function vis(g, x, y, r) {
+    var gr = g.createRadialGradient(x - r * .4, y - r * .4, 1, x, y, r); gr.addColorStop(0, '#ffffff'); gr.addColorStop(1, '#6b6f78');
+    disque(g, x, y, r, '#2a2c31'); disque(g, x, y, r * .82, '#c9ccd3'); g.beginPath(); g.arc(x, y, r * .82, 0, 7); g.fillStyle = gr; g.fill();
+    g.strokeStyle = '#3a3d44'; g.lineWidth = r * .25; g.beginPath(); g.moveTo(x - r * .6, y - r * .3); g.lineTo(x + r * .6, y + r * .3); g.stroke();
+  }
+  /* pont (plaque) du mouvement : chemin p, côtes de Genève, biseau poli */
+  function pont(g, p, c) {
+    g.save(); g.shadowColor = 'rgba(0,0,0,.75)'; g.shadowBlur = 10; g.shadowOffsetY = 4; g.fillStyle = c; g.fill(p); g.restore();
+    g.save(); g.clip(p);
+    for (var x = -W; x < W * 2; x += 18) { var gr = g.createLinearGradient(x, 0, x + 18, 18); gr.addColorStop(0, 'rgba(255,255,255,.16)'); gr.addColorStop(.5, 'rgba(255,255,255,0)'); gr.addColorStop(1, 'rgba(0,0,0,.14)');
+      g.fillStyle = gr; g.beginPath(); g.moveTo(x, 0); g.lineTo(x + 18, 0); g.lineTo(x + 18 - W, W); g.lineTo(x - W, W); g.closePath(); g.fill(); }
+    g.restore();
+    g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 1.6; g.stroke(p);
+    g.strokeStyle = 'rgba(0,0,0,.45)'; g.lineWidth = .8; g.stroke(p);
+  }
+  function fondLuxe(g, cfg) {
+    var A = cfg.c1, B = cfg.c2, i, a;
+    if (cfg.fond === 'soleil') {   // soleillé : reflets en rayons, comme un cadran brossé
+      for (i = 0; i < 720; i++) { a = i / 720 * Math.PI * 2; var k = .5 + .5 * Math.cos(2 * a - .6), k2 = .5 + .5 * Math.cos(6 * a); g.fillStyle = mix(A, B, .25 + .6 * k + .1 * k2);
+        g.beginPath(); g.moveTo(CX, CY); g.arc(CX, CY, W, a, a + Math.PI / 340); g.closePath(); g.fill(); }
+      var rd = g.createRadialGradient(CX, CY, 20, CX, CY, CX); rd.addColorStop(0, 'rgba(255,255,255,.08)'); rd.addColorStop(1, 'rgba(0,0,0,.35)'); g.fillStyle = rd; g.fillRect(0, 0, W, W);
+    }
+    if (cfg.fond === 'guilloche') {   // clous de Paris : petites pyramides
+      var s = 12; for (var y = -s; y < W + s; y += s) for (var x = -s; x < W + s; x += s) {
+        var cx = x + s / 2, cy = y + s / 2, rr = Math.hypot(cx - CX, cy - CY) / CX;
+        g.fillStyle = mix(A, B, .55 - rr * .25); g.fillRect(x, y, s, s);
+        g.fillStyle = mix(B, '#ffffff', .22); g.beginPath(); g.moveTo(x, y); g.lineTo(x + s, y); g.lineTo(cx, cy); g.closePath(); g.fill();
+        g.fillStyle = mix(A, '#000000', .25); g.beginPath(); g.moveTo(x, y + s); g.lineTo(x + s, y + s); g.lineTo(cx, cy); g.closePath(); g.fill();
+        g.fillStyle = mix(A, B, .4); g.beginPath(); g.moveTo(x + s, y); g.lineTo(x + s, y + s); g.lineTo(cx, cy); g.closePath(); g.fill();
+      }
+      var vg = g.createRadialGradient(CX, CY * .8, 30, CX, CY, CX); vg.addColorStop(0, 'rgba(255,255,255,.1)'); vg.addColorStop(1, 'rgba(0,0,0,.3)'); g.fillStyle = vg; g.fillRect(0, 0, W, W);
+    }
+    if (cfg.fond === 'damas') {   // acier damassé : veines ondulées
+      for (i = 0; i < 70; i++) {
+        g.strokeStyle = i % 2 ? mix(A, '#000000', .25) : mix(B, '#ffffff', .12); g.lineWidth = 4 + (i % 3) * 1.5; g.beginPath();
+        for (var xx = -20; xx <= W + 20; xx += 6) { var yy = i * 8 - 40 + Math.sin(xx / 37 + i * .35) * 14 + Math.sin(xx / 13 + i) * 4 + Math.sin((xx + i * 20) / 90) * 20; g[xx > -20 ? 'lineTo' : 'moveTo'](xx, yy); }
+        g.stroke();
+      }
+      var sh = g.createLinearGradient(0, 0, W, W); sh.addColorStop(0, 'rgba(255,255,255,.12)'); sh.addColorStop(.5, 'rgba(255,255,255,0)'); sh.addColorStop(1, 'rgba(0,0,0,.35)'); g.fillStyle = sh; g.fillRect(0, 0, W, W);
+    }
+    if (cfg.fond === 'nacre') {   // nacre : reflets irisés
+      var rnd = alea(11), cols = ['#ffd6e8', '#cfe8ff', '#d8ffe9', '#fff1cc', '#e6d9ff'];
+      g.fillStyle = mix(A, '#ffffff', .3); g.fillRect(0, 0, W, W);
+      for (i = 0; i < 60; i++) { var px = rnd() * W, py = rnd() * W, r0 = 40 + rnd() * 120, gr = g.createRadialGradient(px, py, 0, px, py, r0);
+        gr.addColorStop(0, rgba(cols[i % cols.length], .45)); gr.addColorStop(1, rgba(cols[i % cols.length], 0)); g.fillStyle = gr; g.fillRect(px - r0, py - r0, r0 * 2, r0 * 2); }
+      g.globalAlpha = .18; for (i = 0; i < 40; i++) { g.strokeStyle = i % 2 ? '#ffffff' : B; g.lineWidth = 1 + rnd() * 2; g.beginPath(); var y0 = rnd() * W; for (var x2 = 0; x2 <= W; x2 += 10) g[x2 ? 'lineTo' : 'moveTo'](x2, y0 + Math.sin(x2 / 40 + i) * 12); g.stroke(); } g.globalAlpha = 1;
+      var vn = g.createRadialGradient(CX, CY, CX * .5, CX, CY, CX); vn.addColorStop(0, 'rgba(0,0,0,0)'); vn.addColorStop(1, rgba(B, .35)); g.fillStyle = vn; g.fillRect(0, 0, W, W);
+    }
+    if (cfg.fond === 'mouvement') {   // mouvement squelette : platine perlée, ponts, rouages, rubis, vis
+      g.fillStyle = mix(A, '#000000', .2); g.fillRect(0, 0, W, W);
+      var r2 = alea(5); for (i = 0; i < 900; i++) { var qx = r2() * W, qy = r2() * W; g.strokeStyle = 'rgba(255,255,255,.035)'; g.beginPath(); g.arc(qx, qy, 6 + r2() * 4, 0, 7); g.stroke(); }   // perlage
+      var met = B;
+      roue(g, 150, 160, 70, 60, met, .2, 5); roue(g, 330, 140, 52, 44, met, .5, 4); roue(g, 120, 330, 46, 40, met, .1, 4);
+      roue(g, 345, 315, 34, 30, mix(met, '#d4a24c', .5), .3, 3); roue(g, 240, 250, 26, 18, met, 0, 0); roue(g, 260, 380, 38, 32, met, .8, 4);
+      var p1 = new Path2D(); p1.moveTo(40, 230); p1.bezierCurveTo(90, 180, 200, 205, 260, 180); p1.lineTo(300, 205); p1.bezierCurveTo(230, 240, 120, 250, 60, 290); p1.closePath();
+      var p2 = new Path2D(); p2.moveTo(250, 420); p2.bezierCurveTo(300, 360, 380, 360, 440, 300); p2.lineTo(455, 330); p2.bezierCurveTo(400, 390, 330, 410, 285, 455); p2.closePath();
+      var p3 = new Path2D(); p3.moveTo(300, 60); p3.bezierCurveTo(340, 110, 400, 150, 430, 200); p3.lineTo(405, 215); p3.bezierCurveTo(370, 165, 320, 130, 280, 80); p3.closePath();
+      [p1, p2, p3].forEach(function (p) { pont(g, p, mix(met, '#000000', .1)); });
+      [[70, 252], [270, 196], [272, 436], [430, 312], [300, 76], [418, 205]].forEach(function (v) { vis(g, v[0], v[1], 7); });
+      [[150, 160], [330, 140], [120, 330], [345, 315], [260, 380], [170, 228], [360, 380]].forEach(function (v) { rubis(g, v[0], v[1], 5); });
+      var vm = g.createRadialGradient(CX, CY, CX * .45, CX, CY, CX); vm.addColorStop(0, 'rgba(0,0,0,0)'); vm.addColorStop(1, 'rgba(0,0,0,.55)'); g.fillStyle = vm; g.fillRect(0, 0, W, W);
+    }
+  }
+  var ROMAINS = ['XII', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'];
+  function anneauLuxe(g, cfg, aod) {
+    var acc = aod ? mix(cfg.doux, '#000', .5) : cfg.accent, tx = aod ? mix(cfg.doux, '#000', .4) : cfg.texte, i, a;
+    var LUME = '#d6ffe2';
+    if (cfg.anneau === 'plongee') {   // lunette tournante de plongée (0 à 60 min, premier quart marqué)
+      if (!aod) {
+        var gr = g.createRadialGradient(CX, CY, 196, CX, CY, 240); gr.addColorStop(0, mix(cfg.c1, '#000000', .5)); gr.addColorStop(.5, mix(cfg.c2, '#000000', .3)); gr.addColorStop(1, mix(cfg.c1, '#000000', .6));
+        g.beginPath(); g.arc(CX, CY, 240, 0, 7); g.arc(CX, CY, 198, 0, 7, true); g.fillStyle = gr; g.fill();
+        g.beginPath(); g.arc(CX, CY, 240, -Math.PI / 2, 0); g.arc(CX, CY, 198, 0, -Math.PI / 2, true); g.closePath(); g.fillStyle = rgba(acc, .22); g.fill();
+        g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 1.2; g.beginPath(); g.arc(CX, CY, 198, 0, 7); g.stroke();
+      }
+      for (i = 0; i < 60; i++) {
+        a = i * Math.PI / 30; var mj = i % 5 === 0;
+        if (aod && !mj) continue;
+        if (i === 0) { g.fillStyle = aod ? acc : LUME; if (!aod) { g.shadowColor = '#7dffb0'; g.shadowBlur = 8; } g.beginPath(); g.moveTo(CX, 236); g.moveTo(CX - 13, 203 - 0); g.lineTo(CX + 13, 203); g.lineTo(CX, 226); g.closePath();
+          g.beginPath(); g.moveTo(CX - 13, 6); g.lineTo(CX + 13, 6); g.lineTo(CX, 30); g.closePath(); g.fill(); g.shadowColor = 'transparent'; continue; }
+        if (mj && i % 10 === 0) { texte(g, String(i), CX + Math.sin(a) * 219, CY - Math.cos(a) * 219 + 7, PETITE.fam, 19, tx, 'center'); continue; }
+        var r1 = 236, r2 = mj ? 214 : (i < 15 ? 222 : 230);
+        g.strokeStyle = mj ? tx : rgba(tx, .7); g.lineWidth = mj ? 4 : 1.6; g.lineCap = 'round';
+        g.beginPath(); g.moveTo(CX + Math.sin(a) * r1, CY - Math.cos(a) * r1); g.lineTo(CX + Math.sin(a) * r2, CY - Math.cos(a) * r2); g.stroke();
+      }
+      // index luminescents sur le cadran
+      for (i = 0; i < 12; i++) { a = i * Math.PI / 6; var x0 = CX + Math.sin(a) * 178, y0 = CY - Math.cos(a) * 178;
+        g.save(); g.translate(x0, y0); g.rotate(a); if (!aod) { g.shadowColor = '#7dffb0'; g.shadowBlur = 7; }
+        g.fillStyle = aod ? acc : LUME; g.strokeStyle = aod ? 'transparent' : mix(acc, '#ffffff', .4); g.lineWidth = 2;
+        if (i % 3) { g.beginPath(); g.arc(0, 0, 8, 0, 7); g.fill(); g.stroke(); } else { rond(g, -7, -16, 14, i ? 30 : 26, 3); g.fill(); g.stroke(); }
+        g.restore(); }
+    }
+    if (cfg.anneau === 'romains') {
+      var PF = POLICES.classique;
+      for (i = 0; i < 12; i++) { if (aod && i % 3) continue; a = i * Math.PI / 6;
+        g.save(); g.translate(CX + Math.sin(a) * 204, CY - Math.cos(a) * 204);
+        if (!aod) { g.shadowColor = 'rgba(0,0,0,.6)'; g.shadowBlur = 3; g.shadowOffsetY = 1.5; }
+        texte(g, ROMAINS[i], 0, 9, PF.fam, i % 3 ? 22 : 27, i % 3 ? tx : acc, 'center'); g.restore(); }
+      if (!aod) for (i = 0; i < 60; i++) { a = i * Math.PI / 30; g.strokeStyle = i % 5 ? rgba(tx, .45) : acc; g.lineWidth = i % 5 ? 1 : 2.4;
+        g.beginPath(); g.moveTo(CX + Math.sin(a) * 236, CY - Math.cos(a) * 236); g.lineTo(CX + Math.sin(a) * (i % 5 ? 230 : 226), CY - Math.cos(a) * (i % 5 ? 230 : 226)); g.stroke(); }
+      g.strokeStyle = rgba(acc, aod ? .3 : .5); g.lineWidth = 1; g.beginPath(); g.arc(CX, CY, 224, 0, 7); g.stroke();
+    }
+    if (cfg.anneau === 'cockpit') {   // compteur de voiture de sport : graduations 0 à 12, zone rouge, lueur
+      var a0 = Math.PI * .75, span = Math.PI * 1.5;
+      if (!aod) { g.lineWidth = 14; g.strokeStyle = rgba(acc, .12); g.beginPath(); g.arc(CX, CY, 222, a0, a0 + span); g.stroke();
+        g.shadowColor = '#ff2a2a'; g.shadowBlur = 12; g.strokeStyle = '#ff3b3b'; g.lineWidth = 8; g.beginPath(); g.arc(CX, CY, 222, a0 + span * .82, a0 + span); g.stroke(); g.shadowColor = 'transparent'; }
+      for (i = 0; i <= 60; i++) { a = a0 + span * i / 60; var maj2 = i % 5 === 0; if (aod && !maj2) continue;
+        var red = i >= 50, c2 = red ? '#ff4d4d' : maj2 ? acc : rgba(tx, .55);
+        if (!aod && maj2) { g.shadowColor = red ? '#ff2a2a' : acc; g.shadowBlur = 8; }
+        g.strokeStyle = aod ? acc : c2; g.lineWidth = maj2 ? 3.5 : 1.4; g.beginPath(); g.moveTo(CX + Math.cos(a) * 234, CY + Math.sin(a) * 234); g.lineTo(CX + Math.cos(a) * (maj2 ? 210 : 222), CY + Math.sin(a) * (maj2 ? 210 : 222)); g.stroke(); g.shadowColor = 'transparent';
+        if (maj2 && !aod) texte(g, String(i / 5), CX + Math.cos(a) * 190, CY + Math.sin(a) * 190 + 7, POLICES.sport.fam, 21, red ? '#ff6b6b' : tx, 'center'); }
+    }
+  }
+  /* animations : une image par étape (f_0.png…), jouées par la montre (IMG_ANIM) quand l'écran est allumé */
+  var ANIMS = { engrenages: 'Engrenages', balancier: 'Balancier', radar: 'Radar', coeur: 'Cœur qui bat', etoiles: 'Étoiles scintillantes', flamme: 'Flamme', onde: 'Onde lumineuse' };
+  var ANIM_N = { engrenages: 24, balancier: 24, radar: 30, coeur: 20, etoiles: 24, flamme: 16, onde: 24 };
+  function imageAnim(b, cfg, f, n) {
+    var s = b.taille, c = toile(s, s), g = c.getContext('2d'), cc = coul(cfg, b.couleur), t = f / n, R = s / 2, i;
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    if (b.motif === 'engrenages') {
+      var dent = 2 * Math.PI / 24;   // la grande roue (24 dents) avance d'une dent par tour d'animation : boucle sans saut
+      roue(g, R * .62, R * .78, R * .48, 24, cc, t * dent, 4);
+      roue(g, R * 1.36, R * 1.22, R * .3, 15, mix(cc, '#d4a24c', .4), -t * dent * 24 / 15 + .1, 3);
+    }
+    if (b.motif === 'balancier') {
+      var ang = Math.sin(t * Math.PI * 2) * 2.2;
+      g.save(); g.translate(R, R);
+      g.strokeStyle = rgba(mix(cc, '#ffffff', .3), .75); g.lineWidth = Math.max(1, s * .008); g.beginPath();   // spiral qui respire
+      for (i = 0; i <= 360; i++) { var th = i / 360 * Math.PI * 2 * 5 + ang * .6, rr = R * (.08 + .5 * i / 360) * (1 + .04 * Math.sin(t * Math.PI * 2)); g[i ? 'lineTo' : 'moveTo'](Math.cos(th) * rr, Math.sin(th) * rr); } g.stroke();
+      g.rotate(ang);
+      var gr = g.createLinearGradient(-R, -R, R, R); gr.addColorStop(0, mix(cc, '#ffffff', .6)); gr.addColorStop(.5, cc); gr.addColorStop(1, mix(cc, '#000000', .4));
+      g.shadowColor = 'rgba(0,0,0,.6)'; g.shadowBlur = s * .04;
+      g.strokeStyle = gr; g.lineWidth = s * .07; g.beginPath(); g.arc(0, 0, R * .78, 0, 7); g.stroke();
+      g.lineWidth = s * .035; for (i = 0; i < 3; i++) { var aa = i * Math.PI * 2 / 3; g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.cos(aa) * R * .78, Math.sin(aa) * R * .78); g.stroke(); }
+      for (i = 0; i < 6; i++) { var ab = i * Math.PI / 3 + .5; disque(g, Math.cos(ab) * R * .78, Math.sin(ab) * R * .78, s * .04, mix(cc, '#ffffff', .3)); }
+      g.shadowColor = 'transparent'; rubis(g, 0, 0, s * .06); g.restore();
+    }
+    if (b.motif === 'radar') {
+      g.translate(R, R); var a = t * Math.PI * 2 - Math.PI / 2;
+      g.strokeStyle = rgba(cc, .35); g.lineWidth = 1; [.33, .66, .97].forEach(function (k) { g.beginPath(); g.arc(0, 0, R * k, 0, 7); g.stroke(); });
+      g.beginPath(); g.moveTo(-R, 0); g.lineTo(R, 0); g.moveTo(0, -R); g.lineTo(0, R); g.stroke();
+      for (i = 0; i < 40; i++) { g.fillStyle = rgba(cc, .5 * (1 - i / 40)); g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, R * .97, a - (i + 1) * .03, a - i * .03); g.closePath(); g.fill(); }
+      g.strokeStyle = mix(cc, '#ffffff', .5); g.lineWidth = 2; g.shadowColor = cc; g.shadowBlur = 8; g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.cos(a) * R * .97, Math.sin(a) * R * .97); g.stroke();
+      [[.6, .5], [.35, 2.4], [.8, 4.1]].forEach(function (p) { var d = ((a - p[1]) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2), al = Math.max(0, 1 - d / 3); if (al > 0) { g.fillStyle = rgba(mix(cc, '#ffffff', .4), al); g.beginPath(); g.arc(Math.cos(p[1]) * R * p[0], Math.sin(p[1]) * R * p[0], s * .03, 0, 7); g.fill(); } });
+      g.shadowColor = 'transparent';
+    }
+    if (b.motif === 'coeur') {
+      var bt = t < .12 ? Math.sin(t / .12 * Math.PI) : t > .2 && t < .34 ? .6 * Math.sin((t - .2) / .14 * Math.PI) : 0, k = .78 + .16 * bt;
+      g.translate(R, R * 1.05); g.scale(k * R / 16, k * R / 16);
+      g.shadowColor = cc; g.shadowBlur = 6 + 10 * bt;
+      g.beginPath(); g.moveTo(0, 12); g.bezierCurveTo(-18, 0, -14, -14, 0, -6); g.bezierCurveTo(14, -14, 18, 0, 0, 12); g.closePath();
+      var hg = g.createLinearGradient(0, -12, 0, 12); hg.addColorStop(0, mix(cc, '#ffffff', .35)); hg.addColorStop(1, mix(cc, '#000000', .3)); g.fillStyle = hg; g.fill();
+    }
+    if (b.motif === 'etoiles') {
+      var rs = alea(3);
+      for (i = 0; i < 16; i++) { var ex = rs() * s, ey = rs() * s, ph = rs(), sz = (1 + rs() * 2.5) * s / 120, al2 = .25 + .75 * Math.pow(.5 + .5 * Math.sin((t + ph) * Math.PI * 2), 2);
+        g.fillStyle = rgba(mix(cc, '#ffffff', .5), al2); g.shadowColor = cc; g.shadowBlur = 6 * al2; etoileP(g, ex, ey, sz * 3, sz, 4, rgba(mix(cc, '#ffffff', .6), al2)); }
+    }
+    if (b.motif === 'flamme') {
+      g.translate(R, s * .95);
+      [[1, mix(cc, '#000000', .1)], [.72, mix(cc, '#ffcc00', .5)], [.45, '#fff2b0']].forEach(function (L, j) {
+        var h = s * .85 * L[0], w = s * .32 * L[0], q = function (k) { return Math.sin((t + k + j * .13) * Math.PI * 2) * w * .18; };
+        g.shadowColor = cc; g.shadowBlur = j ? 0 : s * .08;
+        g.beginPath(); g.moveTo(0, 0); g.bezierCurveTo(-w * 1.2, -h * .1, -w * .7 + q(.1), -h * .6, q(.3), -h); g.bezierCurveTo(w * .7 + q(.6), -h * .6, w * 1.2, -h * .1, 0, 0); g.closePath(); g.fillStyle = L[1]; g.fill();
+      });
+    }
+    if (b.motif === 'onde') {
+      g.translate(R, R);
+      for (i = 0; i < 3; i++) { var u = (t + i / 3) % 1; g.strokeStyle = rgba(cc, (1 - u) * .9); g.lineWidth = s * .03 * (1 - u) + 1; g.shadowColor = cc; g.shadowBlur = 10 * (1 - u); g.beginPath(); g.arc(0, 0, R * (.15 + .8 * u), 0, 7); g.stroke(); }
+      g.shadowBlur = 12; disque(g, 0, 0, s * .07, mix(cc, '#ffffff', .4)); g.shadowColor = 'transparent';
+    }
+    return c;
+  }
   function aodDimDe(cfg) { return mix(cfg.doux, '#000000', .25); }
   function anneau(cfg, f) {
     var c = toile(W, W), g = c.getContext('2d');
@@ -1037,6 +1247,12 @@
           g.globalAlpha = 1;
         }
       }
+      // matière luminescente (Super-LumiNova) : bande claire au centre de l'aiguille, qui brille aussi en AOD
+      if (b.lume && st !== 'fines') {
+        var lw2 = Math.max(2, lw * (st === 'larges' || st === 'baton' ? .5 : .38)), y1 = st === 'fleche' ? lw * 2.4 : L * .14, y2 = py - Math.max(10, lw * 1.2);
+        g.save(); g.shadowColor = '#7dffb0'; g.shadowBlur = aod ? 5 : 7; g.fillStyle = aod ? '#9fe6b4' : '#e2ffe9';
+        rond(g, cx - lw2 / 2, y1, lw2, Math.max(4, y2 - y1), lw2 / 2); g.fill(); g.restore();
+      }
     }
     return { c: c, px: Math.round(cx + P), py: py + P };
   }
@@ -1062,6 +1278,7 @@
     sp.w.forEach(function (w) {
       if (!!w.aod !== aod) return;
       if (w.k === 'img') { var i0 = im(w.src); if (i0) g.drawImage(i0, w.x, w.y); }
+      else if (w.k === 'anim') { var fi = opt.frame != null ? opt.frame % w.n : Math.floor(Date.now() / (1000 / w.fps)) % w.n, ia = IM[w.dossier + '/f_' + fi + '.png']; if (ia) g.drawImage(ia, w.x, w.y); }
       else if (w.k === 'level') {
         var v = val[w.type] != null ? val[w.type] : w.type === 'BATTERY' ? 86 : w.type === 'STEP' ? 64 : w.type === 'CAL' ? 45 : 3;
         var idx = w.type === 'WEATHER' ? v : Math.max(0, Math.min(w.n - 1, Math.round(v / 100 * (w.n - 1))));

@@ -1,0 +1,78 @@
+{
+ "id": "cockpit",
+ "appId": 1093228,
+ "nom": "Cockpit",
+ "fond": "carbone",
+ "c1": "#050608",
+ "c2": "#16191e",
+ "accent": "#2ec4ff",
+ "texte": "#eaf6ff",
+ "doux": "#7f8b99",
+ "anneau": "cockpit",
+ "aod": "heure_date",
+ "calques": [
+  "vignette",
+  "verre"
+ ],
+ "blocs": [
+  {
+   "t": "anim",
+   "motif": "radar",
+   "x": 240,
+   "y": 140,
+   "taille": 110,
+   "couleur": "#2ec4ff"
+  },
+  {
+   "t": "heure",
+   "x": 240,
+   "y": 246,
+   "taille": 78,
+   "police": "sport",
+   "effet": "lueur",
+   "couleur": "texte",
+   "dp": "#2ec4ff",
+   "secondes": true
+  },
+  {
+   "t": "date",
+   "format": "court",
+   "x": 240,
+   "y": 304,
+   "taille": 16,
+   "effet": "lueur",
+   "couleur": "doux",
+   "jour": "#2ec4ff"
+  },
+  {
+   "t": "info",
+   "d": "pas",
+   "x": 168,
+   "y": 366,
+   "style": "ligne",
+   "taille": "s",
+   "couleur": "#5fd35f",
+   "effet": "lueur"
+  },
+  {
+   "t": "info",
+   "d": "coeur",
+   "x": 320,
+   "y": 366,
+   "style": "ligne",
+   "taille": "s",
+   "couleur": "#ff3b3b",
+   "effet": "lueur"
+  },
+  {
+   "t": "info",
+   "d": "batterie",
+   "x": 240,
+   "y": 420,
+   "style": "ligne",
+   "taille": "s",
+   "couleur": "#2ec4ff",
+   "effet": "lueur"
+  }
+ ]
+}

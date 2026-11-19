@@ -1,0 +1,59 @@
+{
+ "id": "nacre",
+ "appId": 1093229,
+ "nom": "Nacre",
+ "fond": "nacre",
+ "c1": "#e9e4f2",
+ "c2": "#9aa6c8",
+ "accent": "#c49a3a",
+ "texte": "#2b3f73",
+ "doux": "#5d6a8f",
+ "anneau": "romains",
+ "aod": "heure_date",
+ "calques": [
+  "verre",
+  "lunette"
+ ],
+ "blocs": [
+  {
+   "t": "anim",
+   "motif": "etoiles",
+   "x": 240,
+   "y": 150,
+   "taille": 120,
+   "couleur": "#c49a3a"
+  },
+  {
+   "t": "texte",
+   "txt": "Nacre",
+   "x": 240,
+   "y": 168,
+   "taille": 22,
+   "couleur": "#2b3f73",
+   "police": "classique",
+   "esp": 2
+  },
+  {
+   "t": "date",
+   "format": "jourNum",
+   "x": 240,
+   "y": 330,
+   "taille": 16,
+   "couleur": "#2b3f73",
+   "jour": "#c49a3a",
+   "police": "nette"
+  },
+  {
+   "t": "aiguilles",
+   "x": 240,
+   "y": 240,
+   "style": "fines",
+   "secondes": true,
+   "trotStyle": "fine",
+   "ombre": true,
+   "couleur": "#2b3f73",
+   "trot": "#c49a3a",
+   "echelle": 1
+  }
+ ]
+}

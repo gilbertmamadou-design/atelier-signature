@@ -1,0 +1,71 @@
+{
+ "id": "plongee",
+ "appId": 1093227,
+ "nom": "Plongée",
+ "fond": "soleil",
+ "c1": "#03142e",
+ "c2": "#1d5fa8",
+ "accent": "#ff7a1a",
+ "texte": "#f2f6ff",
+ "doux": "#9db4d6",
+ "anneau": "plongee",
+ "aod": "heure_date",
+ "calques": [
+  "verre",
+  "lunette"
+ ],
+ "blocs": [
+  {
+   "t": "texte",
+   "txt": "AUTOMATIC",
+   "x": 240,
+   "y": 128,
+   "taille": 14,
+   "couleur": "texte",
+   "esp": 3,
+   "police": "nette"
+  },
+  {
+   "t": "texte",
+   "txt": "300 m · 1000 ft",
+   "x": 240,
+   "y": 148,
+   "taille": 12,
+   "couleur": "#ff7a1a",
+   "esp": 1,
+   "police": "nette"
+  },
+  {
+   "t": "date",
+   "format": "numero",
+   "x": 338,
+   "y": 240,
+   "taille": 19,
+   "cadre": true,
+   "couleur": "texte",
+   "jour": "#ff7a1a"
+  },
+  {
+   "t": "info",
+   "d": "batterie",
+   "x": 240,
+   "y": 330,
+   "style": "aiguille",
+   "taille": "s",
+   "couleur": "#ff7a1a"
+  },
+  {
+   "t": "aiguilles",
+   "x": 240,
+   "y": 240,
+   "style": "larges",
+   "secondes": true,
+   "trotStyle": "sucette",
+   "ombre": true,
+   "lume": true,
+   "couleur": "#e9eef7",
+   "trot": "#ff7a1a",
+   "echelle": 1
+  }
+ ]
+}

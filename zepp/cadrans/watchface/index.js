@@ -18,7 +18,9 @@ const pris = (groupe, cle) => {
   return undefined
 }
 const table = (groupe, cles) => { const o = {}; cles.forEach((k) => { const v = pris(groupe, k); if (v !== undefined) o[k] = v }); return o }
-const widget = table('widget', ['IMG', 'FILL_RECT', 'IMG_TIME', 'IMG_WEEK', 'IMG_DATE', 'IMG_LEVEL', 'TEXT_IMG', 'IMG_CLICK', 'TIME_POINTER'])
+const widget = table('widget', ['IMG', 'FILL_RECT', 'IMG_TIME', 'IMG_WEEK', 'IMG_DATE', 'IMG_LEVEL', 'TEXT_IMG', 'IMG_CLICK', 'TIME_POINTER', 'IMG_ANIM', 'WIDGET_DELEGATE'])
+const prop = table('prop', ['ANIM_STATUS'])
+const animSt = table('anim_status', ['START', 'STOP'])
 const niveau = table('show_level', ['ONLY_NORMAL', 'ONAL_AOD'])
 const donnee = table('data_type', ['WEATHER', 'WEATHER_CURRENT', 'WEATHER_LOW', 'WEATHER_HIGH', 'WIND', 'HEART', 'STEP', 'BATTERY', 'CAL', 'DISTANCE',
   'SUN_RISE', 'SUN_SET', 'ALTITUDE', 'ALTIMETER', 'SPO2', 'STRESS', 'PAI_WEEKLY', 'UVI', 'HUMIDITY', 'STAND'])
@@ -40,6 +42,7 @@ const AOD = niveau.ONAL_AOD
 const serie = (dossier, n, depart) => Array.from({ length: n }, (_, i) => 'images/' + dossier + '/' + (i + (depart || 0)) + '.png')
 const typeDe = (t) => (t === 'WEATHER' ? (donnee.WEATHER !== undefined ? donnee.WEATHER : donnee.WEATHER_CURRENT) : donnee[t])
 
+const ANIMS = []
 const FAIRE = {
   img(w, show) { return creer(widget.IMG, { x: w.x, y: w.y, w: w.w, h: w.h, src: w.src, show_level: show, aod: w.aod }) },
   level(w, show) {
@@ -89,6 +92,16 @@ const FAIRE = {
     }
     return creer(widget.IMG_DATE, o)
   },
+  // animation (engrenages, balancier, radar…) : même réglages que la sphère du cadran Jarvis, déjà éprouvée sur la T-Rex 3
+  anim(w) {
+    const a = creer(widget.IMG_ANIM, {
+      x: w.x, y: w.y, anim_path: 'images/' + w.dossier, anim_prefix: 'f', anim_ext: 'png', anim_fps: w.fps || 12,
+      anim_size: w.n, repeat_count: 0, anim_repeat: true, anim_status: animSt.START,
+      display_on_restart: true, default_frame_index: 0, show_level: NORMAL,
+    })
+    if (a) ANIMS.push(a)
+    return a
+  },
   pointer(w, show) {
     const cx = w.cx == null ? 240 : w.cx, cy = w.cy == null ? 240 : w.cy
     const o = {
@@ -109,6 +122,14 @@ WatchFace({
       if (w.aod && AOD === undefined) return
       const f = FAIRE[w.k]; if (f) f(w, w.aod ? AOD : NORMAL)
     }))
+    // animations : relancées quand le cadran revient à l'écran, arrêtées écran éteint ou en AOD (autonomie)
+    if (ANIMS.length && widget.WIDGET_DELEGATE !== undefined) {
+      const pour = (st) => ANIMS.forEach((a) => { try { a.setProperty(prop.ANIM_STATUS, st) } catch (e) {} })
+      bloc(() => creer(widget.WIDGET_DELEGATE, {
+        resume_call: () => { pour(animSt.STOP); pour(animSt.START) },
+        pause_call: () => { pour(animSt.STOP) },
+      }))
+    }
   },
   onDestroy() {},
 })

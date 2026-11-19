@@ -1,0 +1,59 @@
+{
+ "id": "tourbillon",
+ "appId": 1093226,
+ "nom": "Tourbillon",
+ "fond": "mouvement",
+ "c1": "#0b0c10",
+ "c2": "#8f96a3",
+ "accent": "#d9a441",
+ "texte": "#f4ead2",
+ "doux": "#a99f88",
+ "anneau": "romains",
+ "aod": "heure_date",
+ "calques": [
+  "vignette",
+  "verre",
+  "lunette"
+ ],
+ "blocs": [
+  {
+   "t": "anim",
+   "motif": "balancier",
+   "x": 240,
+   "y": 352,
+   "taille": 118,
+   "couleur": "#d9a441"
+  },
+  {
+   "t": "anim",
+   "motif": "engrenages",
+   "x": 332,
+   "y": 176,
+   "taille": 96,
+   "couleur": "#b8bec9"
+  },
+  {
+   "t": "date",
+   "format": "numero",
+   "x": 150,
+   "y": 240,
+   "taille": 18,
+   "cadre": true,
+   "couleur": "texte",
+   "jour": "#d9a441"
+  },
+  {
+   "t": "aiguilles",
+   "x": 240,
+   "y": 240,
+   "style": "dauphine",
+   "secondes": true,
+   "trotStyle": "fine",
+   "ombre": true,
+   "lume": true,
+   "couleur": "#d9a441",
+   "trot": "#e8c26a",
+   "echelle": 1
+  }
+ ]
+}

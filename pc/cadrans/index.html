@@ -186,7 +186,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
 
   /* ---------------- éditeur : assemblage libre ---------------- */
   var SEL = -1, DRAG = null;
-  var ICO = { heure: '🕘', aiguilles: '🕑', date: '📅', info: '▦', meteo: '⛅', texte: 'T', trait: '—', image: '❀', panneau: '▭' };
+  var ICO = { heure: '🕘', aiguilles: '🕑', date: '📅', info: '▦', meteo: '⛅', texte: 'T', trait: '—', image: '❀', panneau: '▭', anim: '✺' };
   function chips(name, map, val, attr) { return '<div class="chips" ' + (attr || 'data-set') + '="' + name + '">' + Object.keys(map).map(function (k) { return '<button class="chip" data-v="' + k + '" aria-pressed="' + (String(val) === k) + '"' + (name === 'police' ? ' style="font-family:\'' + C.CHOIX.POLICES[k].fam + '\';font-size:15px"' : '') + '>' + esc(map[k].nom || map[k].n || map[k]) + '</button>'; }).join('') + '</div>'; }
   function editor() {
     var c = C.norm(ED); ED.blocs = c.blocs;
@@ -221,6 +221,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     if (b.t === 'heure') return C2.POLICES[b.police].nom + (b.secondes ? ' · secondes' : '');
     if (b.t === 'aiguilles') return C2.AIGUILLES[b.style] + (b.secondes ? ' · trotteuse' : '');
     if (b.t === 'image') return C.CHOIX.MOTIFS[b.motif];
+    if (b.t === 'anim') return C.CHOIX.ANIMS[b.motif];
     if (b.t === 'panneau') return C2.PANNEAUX[b.style] + ' · ' + b.l + ' × ' + b.h;
     if (b.t === 'meteo') return 'Icône + température' + (b.minmax ? ' · mini/maxi' : '');
     return '';
@@ -254,7 +255,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
         '<div class="lbl">Couleur des chiffres</div>' + swatches('couleur', b.couleur) + '<div class="lbl">Couleur des « : » et des secondes</div>' + swatches('dp', b.dp);
     } else if (b.t === 'aiguilles') {
       h += '<div class="lbl">Forme</div>' + chips('style', K.AIGUILLES, b.style, 'data-p') + pRange('echelle', 'Taille', .2, 1, .05, b.echelle) + pSw('secondes', 'Trotteuse', b.secondes, 'Aiguille des secondes (consomme un peu plus)') +
-        (b.secondes ? '<div class="lbl">Forme de la trotteuse</div>' + chips('trotStyle', K.TROTS, b.trotStyle, 'data-p') : '') + pSw('ombre', 'Ombre sous les aiguilles', b.ombre, 'Les aiguilles semblent flotter au-dessus du cadran') +
+        (b.secondes ? '<div class="lbl">Forme de la trotteuse</div>' + chips('trotStyle', K.TROTS, b.trotStyle, 'data-p') : '') + pSw('ombre', 'Ombre sous les aiguilles', b.ombre, 'Les aiguilles semblent flotter au-dessus du cadran') + pSw('lume', 'Luminescentes', b.lume, 'Bande claire qui brille, aussi écran en veille (AOD)') +
         '<div class="lbl">Couleur</div>' + swatches('couleur', b.couleur) + '<div class="lbl">Couleur de la trotteuse</div>' + swatches('trot', b.trot) + '<p class="note">Petites aiguilles : réduisez la taille et placez-les où vous voulez (petit cadran secondaire).</p>';
     } else if (b.t === 'date') {
       h += '<div class="lbl">Format</div>' + chips('format', K.DATES, b.format, 'data-p') + '<div class="lbl">Police</div>' + chips('police', { nette: 'Normale', lcd14: 'Écran LCD' }, b.police === 'lcd' ? 'lcd14' : b.police, 'data-p') + pSw('cadre', 'Guichet', b.cadre, 'Cadre autour de la date, comme une fenêtre de montre') + pRange('taille', 'Taille', 12, 40, 1, b.taille) + '<div class="lbl">Couleur du texte</div>' + swatches('couleur', b.couleur) + '<div class="lbl">Couleur du jour</div>' + swatches('jour', b.jour);
@@ -270,6 +271,9 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
       h += '<div class="lbl">Aspect</div>' + chips('style', K.PANNEAUX, b.style, 'data-p') + pRange('l', 'Largeur', 20, 460, 2, b.l) + pRange('h', 'Hauteur', 10, 460, 2, b.h) + pRange('r', 'Arrondi des coins', 0, 80, 1, b.r) +
         '<div class="lbl">Couleur du bord</div>' + swatches('couleur', b.couleur) +
         '<p class="note">Un écran se place derrière l\'heure, la date ou des infos : mettez-le avant eux dans la liste (bouton ↓ pour le passer derrière). Pour l\'effet LCD : police « Écran LCD » et effet « Segments LCD » sur l\'heure.</p>';
+    } else if (b.t === 'anim') {
+      h += '<div class="lbl">Animation</div>' + chips('motif', K.ANIMS, b.motif, 'data-p') + pRange('taille', 'Taille', 40, 240, 2, b.taille) + '<div class="lbl">Couleur</div>' + swatches('couleur', b.couleur) +
+        '<p class="note">Elle bouge quand l\'écran est allumé et s\'arrête en veille (autonomie). Sur Garmin, l\'animation n\'est pas reprise.</p>';
     } else if (b.t === 'trait') {
       h += pRange('l', 'Longueur', 10, 440, 2, b.l) + pRange('ep', 'Épaisseur', 1, 12, .5, b.ep) + pSw('vertical', 'Vertical', b.vertical) + '<div class="lbl">Couleur</div>' + swatches('couleur', b.couleur);
     }
@@ -291,13 +295,15 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
       (ED.fond === 'photo' ? pRange('voile', 'Assombrir la photo (lisibilité)', 0, .9, .05, ED.voile == null ? .35 : ED.voile).replace('data-pr=', 'data-voile=') : '');
   }
   var RAF = 0;
+  // aperçu animé : redessiné 12 fois par seconde tant qu'une animation est dans le cadran ouvert
+  setInterval(function () { if (!document.hidden && $('pv') && ED && ED.blocs && ED.blocs.some(function (b) { return b.t === 'anim'; })) preview(); }, 83);
   function preview() { cancelAnimationFrame(RAF); RAF = requestAnimationFrame(function () { var cv = $('pv'); if (cv && !DRAG && !CROP) { try { dessiner(cv, ED, { aod: AOD, sel: AOD ? null : SEL }); } catch (e) { console.warn(e); } } }); }
   function changed(full) { dirty = 1; ED.blocs[SEL] = C.normBloc(ED.blocs[SEL]); preview(); paintList(); if (full) paintProps(); }
   function selectionne(i) { SEL = i; paintList(); paintProps(); preview(); }
   function ajouter(t) {
     var d = { heure: { t: 'heure', x: 240, y: 240, taille: 90 }, aiguilles: { t: 'aiguilles', x: 240, y: 240, echelle: 1 }, date: { t: 'date', x: 240, y: 330, format: 'court', taille: 18 },
       info: { t: 'info', d: 'pas', x: 240, y: 360, style: 'simple', taille: 's' }, meteo: { t: 'meteo', x: 240, y: 110, taille: 's' }, texte: { t: 'texte', x: 240, y: 400, txt: 'MAG', taille: 18 },
-      trait: { t: 'trait', x: 240, y: 300, l: 200, ep: 2, couleur: 'doux' }, panneau: { t: 'panneau', x: 240, y: 240, l: 320, h: 120, r: 14, style: 'lcd', couleur: 'accent' }, image: { t: 'image', motif: 'fleur', x: 360, y: 330, taille: 60 } }[t];
+      trait: { t: 'trait', x: 240, y: 300, l: 200, ep: 2, couleur: 'doux' }, panneau: { t: 'panneau', x: 240, y: 240, l: 320, h: 120, r: 14, style: 'lcd', couleur: 'accent' }, image: { t: 'image', motif: 'fleur', x: 360, y: 330, taille: 60 }, anim: { t: 'anim', motif: 'balancier', x: 240, y: 340, taille: 110, couleur: 'accent' } }[t];
     if (t === 'panneau') { ED.blocs.unshift(C.normBloc(d)); dirty = 1; selectionne(0); return; }   // un écran va derrière les autres éléments
     ED.blocs.push(C.normBloc(d)); dirty = 1; selectionne(ED.blocs.length - 1);
   }

@@ -1,0 +1,66 @@
+{
+ "id": "brasier",
+ "appId": 1093230,
+ "nom": "Brasier",
+ "fond": "damas",
+ "c1": "#101113",
+ "c2": "#4a4e57",
+ "accent": "#ff5a1f",
+ "texte": "#fff1e6",
+ "doux": "#b6a79a",
+ "anneau": "graduations",
+ "aod": "heure_date",
+ "calques": [
+  "vignette",
+  "lunette"
+ ],
+ "blocs": [
+  {
+   "t": "anim",
+   "motif": "flamme",
+   "x": 240,
+   "y": 340,
+   "taille": 120,
+   "couleur": "#ff5a1f"
+  },
+  {
+   "t": "heure",
+   "x": 240,
+   "y": 200,
+   "taille": 96,
+   "police": "grasse",
+   "effet": "metal",
+   "couleur": "texte",
+   "dp": "#ff5a1f"
+  },
+  {
+   "t": "date",
+   "format": "long",
+   "x": 240,
+   "y": 262,
+   "taille": 16,
+   "effet": "ombre",
+   "couleur": "doux",
+   "jour": "#ff5a1f"
+  },
+  {
+   "t": "info",
+   "d": "coeur",
+   "x": 132,
+   "y": 340,
+   "style": "jauge",
+   "taille": "s",
+   "couleur": "#ff5a1f"
+  },
+  {
+   "t": "info",
+   "d": "pas",
+   "x": 348,
+   "y": 340,
+   "style": "jauge",
+   "taille": "s",
+   "couleur": "#ffb000",
+   "barre": true
+  }
+ ]
+}
