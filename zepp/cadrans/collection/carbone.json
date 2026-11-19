@@ -1,0 +1,79 @@
+{
+ "id": "carbone",
+ "appId": 1093224,
+ "nom": "Carbone doré",
+ "fond": "carbone",
+ "c1": "#050505",
+ "c2": "#1b1b1b",
+ "accent": "#d9a441",
+ "texte": "#f4e8cc",
+ "doux": "#9c8f73",
+ "anneau": "graduations",
+ "aod": "heure_date",
+ "calques": [
+  "vignette",
+  "lunette"
+ ],
+ "blocs": [
+  {
+   "t": "texte",
+   "txt": "12",
+   "x": 240,
+   "y": 96,
+   "taille": 64,
+   "police": "grasse",
+   "couleur": "#d9a441",
+   "effet": "metal",
+   "esp": 0
+  },
+  {
+   "t": "info",
+   "d": "pas",
+   "x": 146,
+   "y": 240,
+   "style": "cercle",
+   "taille": "s",
+   "couleur": "#d9a441"
+  },
+  {
+   "t": "info",
+   "d": "coeur",
+   "x": 334,
+   "y": 240,
+   "style": "cercle",
+   "taille": "s",
+   "couleur": "#d9a441"
+  },
+  {
+   "t": "date",
+   "format": "numero",
+   "x": 240,
+   "y": 352,
+   "taille": 22,
+   "cadre": true,
+   "couleur": "texte",
+   "jour": "#d9a441"
+  },
+  {
+   "t": "date",
+   "format": "jour3",
+   "x": 240,
+   "y": 398,
+   "taille": 14,
+   "couleur": "doux",
+   "jour": "#d9a441"
+  },
+  {
+   "t": "aiguilles",
+   "x": 240,
+   "y": 240,
+   "style": "dauphine",
+   "secondes": true,
+   "trotStyle": "fine",
+   "ombre": true,
+   "couleur": "#d9a441",
+   "trot": "#e8c26a",
+   "echelle": 1
+  }
+ ]
+}

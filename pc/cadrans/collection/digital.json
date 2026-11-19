@@ -1,0 +1,115 @@
+{
+ "id": "digital",
+ "appId": 1093225,
+ "nom": "Digital",
+ "fond": "radial",
+ "c1": "#0b0d10",
+ "c2": "#262a30",
+ "accent": "#46d9c2",
+ "texte": "#e9eef2",
+ "doux": "#7f8a94",
+ "anneau": "batterie",
+ "aod": "heure_date",
+ "blocs": [
+  {
+   "t": "meteo",
+   "x": 240,
+   "y": 66,
+   "taille": "s",
+   "minmax": false
+  },
+  {
+   "t": "info",
+   "d": "lever",
+   "x": 172,
+   "y": 118,
+   "style": "ligne",
+   "taille": "s",
+   "couleur": "#ffb000",
+   "police": "lcd"
+  },
+  {
+   "t": "info",
+   "d": "coucher",
+   "x": 308,
+   "y": 118,
+   "style": "ligne",
+   "taille": "s",
+   "couleur": "#ffb000",
+   "police": "lcd"
+  },
+  {
+   "t": "panneau",
+   "x": 240,
+   "y": 200,
+   "l": 370,
+   "h": 104,
+   "r": 14,
+   "style": "sombre",
+   "couleur": "#46d9c2"
+  },
+  {
+   "t": "heure",
+   "x": 240,
+   "y": 200,
+   "taille": 84,
+   "police": "lcd",
+   "effet": "lcd",
+   "couleur": "texte",
+   "dp": "#46d9c2",
+   "secondes": true
+  },
+  {
+   "t": "date",
+   "format": "court",
+   "x": 240,
+   "y": 276,
+   "taille": 18,
+   "police": "lcd14",
+   "effet": "lcd",
+   "couleur": "texte",
+   "jour": "#46d9c2"
+  },
+  {
+   "t": "panneau",
+   "x": 240,
+   "y": 336,
+   "l": 300,
+   "h": 56,
+   "r": 10,
+   "style": "sombre",
+   "couleur": "#46d9c2"
+  },
+  {
+   "t": "info",
+   "d": "pas",
+   "x": 240,
+   "y": 336,
+   "style": "ligne",
+   "taille": "m",
+   "couleur": "#46d9c2",
+   "police": "lcd",
+   "effet": "lcd"
+  },
+  {
+   "t": "info",
+   "d": "coeur",
+   "x": 160,
+   "y": 402,
+   "style": "ligne",
+   "taille": "s",
+   "couleur": "#ff3b3b",
+   "police": "lcd"
+  },
+  {
+   "t": "info",
+   "d": "calories",
+   "x": 320,
+   "y": 402,
+   "style": "ligne",
+   "taille": "s",
+   "couleur": "#ff7a1a",
+   "police": "lcd"
+  }
+ ]
+}

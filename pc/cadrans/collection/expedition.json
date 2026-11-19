@@ -1,0 +1,116 @@
+{
+ "id": "expedition",
+ "appId": 1093223,
+ "nom": "Expédition",
+ "fond": "radial",
+ "c1": "#04101f",
+ "c2": "#1c4a7e",
+ "accent": "#ff7a1a",
+ "texte": "#eef5ff",
+ "doux": "#8fb0d0",
+ "anneau": "graduations",
+ "aod": "heure_date",
+ "calques": [
+  "vignette",
+  "verre",
+  "lunette"
+ ],
+ "blocs": [
+  {
+   "t": "info",
+   "d": "coeur",
+   "x": 240,
+   "y": 118,
+   "style": "cercle",
+   "taille": "s",
+   "couleur": "#ff7a1a"
+  },
+  {
+   "t": "meteo",
+   "x": 120,
+   "y": 160,
+   "taille": "s",
+   "minmax": false
+  },
+  {
+   "t": "info",
+   "d": "humidite",
+   "x": 124,
+   "y": 250,
+   "style": "ligne",
+   "taille": "s",
+   "couleur": "#7cc4ff"
+  },
+  {
+   "t": "panneau",
+   "x": 336,
+   "y": 214,
+   "l": 150,
+   "h": 44,
+   "r": 8,
+   "style": "sombre",
+   "couleur": "#ff7a1a"
+  },
+  {
+   "t": "date",
+   "format": "court",
+   "x": 336,
+   "y": 214,
+   "taille": 17,
+   "couleur": "texte",
+   "jour": "#ff7a1a"
+  },
+  {
+   "t": "panneau",
+   "x": 336,
+   "y": 270,
+   "l": 150,
+   "h": 52,
+   "r": 8,
+   "style": "sombre",
+   "couleur": "#ff7a1a"
+  },
+  {
+   "t": "heure",
+   "x": 336,
+   "y": 270,
+   "taille": 40,
+   "police": "lcd",
+   "effet": "lcd",
+   "couleur": "#ff7a1a",
+   "dp": "#ff7a1a"
+  },
+  {
+   "t": "info",
+   "d": "pas",
+   "x": 124,
+   "y": 318,
+   "style": "case",
+   "taille": "s",
+   "couleur": "#ff7a1a",
+   "barre": true
+  },
+  {
+   "t": "info",
+   "d": "batterie",
+   "x": 256,
+   "y": 366,
+   "style": "jauge",
+   "taille": "s",
+   "couleur": "#7cc4ff",
+   "barre": true
+  },
+  {
+   "t": "aiguilles",
+   "x": 240,
+   "y": 240,
+   "style": "epees",
+   "secondes": true,
+   "trotStyle": "contrepoids",
+   "ombre": true,
+   "couleur": "texte",
+   "trot": "#ff7a1a",
+   "echelle": 1
+  }
+ ]
+}
