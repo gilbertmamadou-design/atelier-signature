@@ -1609,7 +1609,7 @@
   }
   MJ.settingsSheet = settingsSheet;
   /* Apparence : sphère ou visage animé ; personnalisation du visage avec aperçu en direct */
-  var MJ_VERSION = '19 novembre 2026 (sphère, appels)';   // affichée dans Réglages › Apparence : pour vérifier que la mise à jour est installée
+  var MJ_VERSION = '19 novembre 2026 (verbes en -er, -ez)';   // affichée dans Réglages › Apparence : pour vérifier que la mise à jour est installée
   var FACEOPT = {
     faceStyle: ['Style', [['naturel', 'Naturel'], ['holo', 'Hologramme']]],
     faceCoiffure: ['Coiffure', [['long', 'Longs lisses'], ['ondules', 'Longs ondulés'], ['frange', 'Longs avec frange'], ['carre', 'Carré'], ['court', 'Courts'], ['chignon', 'Chignon'], ['boucles', 'Bouclés']]],

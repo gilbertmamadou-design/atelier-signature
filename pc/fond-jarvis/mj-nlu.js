@@ -33,6 +33,13 @@
     'sec': 'seconde', 'secs': 'seconde', 'hrs': 'heure', 'fahrenheit': 'fahrenheit', 'farenheit': 'fahrenheit', 'farenheight': 'fahrenheit', 'celcius': 'celsius',
     'minuteurs': 'minuteur', 'heur': 'heure', 'chui': 'je suis', 'jsuis': 'je suis', 'texto': 'sms', 'textos': 'sms', 'textot': 'sms', 'massage': 'message', 'courses': 'courses'
   };
+  // Verbes de commande : la dictée écrit souvent « connecter », « connectez », « connectée » pour « connecte » (même son).
+  // Ces formes sont ramenées à la forme de commande ; le texte d'origine (corps d'un SMS, d'un rappel…) n'est pas touché.
+  var VERBS = {}; 'abaisse achete active affiche ajoute allume annule appaire arrete augmente baisse bouge branche change commande commence confirme connecte continue copie couche coupe cree debute deconnecte decroche demande demarre deplace deroule desactive diminue donne ecoute enleve enroule eteigne excuse ferme garde importe interroge lance leve monte montre note oriente ouvre parle passe place positionne programme quitte raccroche rallume range redemarre redige regle rejoue relance releve relie remonte rentre repete replie retourne reveille revise stoppe tamise telephone termine teste tourne valide joue'.split(' ').forEach(function (v) { VERBS[v] = 1; });
+  function verbForm(n) {
+    var m = /^([a-z]{3,})(er|ez|ee|ees|es)$/.exec(n);
+    return m && VERBS[m[1] + 'e'] ? m[1] + 'e' : n;
+  }
   var NUMW = { zero: 0, un: 1, une: 1, deux: 2, trois: 3, quatre: 4, cinq: 5, six: 6, sept: 7, huit: 8, neuf: 9, dix: 10, onze: 11, douze: 12,
     treize: 13, quatorze: 14, quinze: 15, seize: 16, vingt: 20, vingts: 20, trente: 30, quarante: 40, cinquante: 50, soixante: 60,
     septante: 70, huitante: 80, octante: 80, nonante: 90, cent: 100, cents: 100, mille: 1000, mil: 1000, million: 1e6, millions: 1e6,
@@ -53,7 +60,7 @@
     // corrections mot à mot (les remplacements à deux mots sont éclatés en deux jetons)
     var res = [];
     out.forEach(function (t) {
-      var f = Object.prototype.hasOwnProperty.call(FIX, t.n) ? FIX[t.n] : t.n;
+      var f = Object.prototype.hasOwnProperty.call(FIX, t.n) ? FIX[t.n] : verbForm(t.n);
       f.split(' ').forEach(function (w) { res.push({ n: w, s: t.s, e: t.e }); });
     });
     return res;
