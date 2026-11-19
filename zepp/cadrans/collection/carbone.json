@@ -29,18 +29,27 @@
   {
    "t": "info",
    "d": "pas",
-   "x": 146,
+   "x": 138,
    "y": 240,
-   "style": "cercle",
-   "taille": "s",
+   "style": "aiguille",
+   "taille": "m",
+   "couleur": "#d9a441"
+  },
+  {
+   "t": "info",
+   "d": "calories",
+   "x": 342,
+   "y": 240,
+   "style": "aiguille",
+   "taille": "m",
    "couleur": "#d9a441"
   },
   {
    "t": "info",
    "d": "coeur",
-   "x": 334,
-   "y": 240,
-   "style": "cercle",
+   "x": 240,
+   "y": 164,
+   "style": "ligne",
    "taille": "s",
    "couleur": "#d9a441"
   },

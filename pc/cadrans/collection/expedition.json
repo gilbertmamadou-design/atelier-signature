@@ -18,35 +18,35 @@
  "blocs": [
   {
    "t": "info",
-   "d": "coeur",
+   "d": "pas",
    "x": 240,
-   "y": 118,
-   "style": "cercle",
+   "y": 122,
+   "style": "aiguille",
    "taille": "s",
    "couleur": "#ff7a1a"
   },
   {
    "t": "meteo",
-   "x": 120,
-   "y": 160,
+   "x": 118,
+   "y": 168,
    "taille": "s",
    "minmax": false
   },
   {
    "t": "info",
    "d": "humidite",
-   "x": 124,
-   "y": 250,
+   "x": 122,
+   "y": 246,
    "style": "ligne",
    "taille": "s",
    "couleur": "#7cc4ff"
   },
   {
    "t": "panneau",
-   "x": 336,
-   "y": 214,
-   "l": 150,
-   "h": 44,
+   "x": 338,
+   "y": 212,
+   "l": 146,
+   "h": 42,
    "r": 8,
    "style": "sombre",
    "couleur": "#ff7a1a"
@@ -54,27 +54,27 @@
   {
    "t": "date",
    "format": "court",
-   "x": 336,
-   "y": 214,
-   "taille": 17,
+   "x": 338,
+   "y": 212,
+   "taille": 16,
    "couleur": "texte",
    "jour": "#ff7a1a"
   },
   {
    "t": "panneau",
-   "x": 336,
-   "y": 270,
-   "l": 150,
-   "h": 52,
+   "x": 338,
+   "y": 266,
+   "l": 146,
+   "h": 50,
    "r": 8,
    "style": "sombre",
    "couleur": "#ff7a1a"
   },
   {
    "t": "heure",
-   "x": 336,
-   "y": 270,
-   "taille": 40,
+   "x": 338,
+   "y": 266,
+   "taille": 38,
    "police": "lcd",
    "effet": "lcd",
    "couleur": "#ff7a1a",
@@ -82,22 +82,30 @@
   },
   {
    "t": "info",
-   "d": "pas",
-   "x": 124,
-   "y": 318,
+   "d": "coeur",
+   "x": 116,
+   "y": 342,
    "style": "case",
    "taille": "s",
-   "couleur": "#ff7a1a",
-   "barre": true
+   "couleur": "#ff7a1a"
   },
   {
    "t": "info",
    "d": "batterie",
-   "x": 256,
+   "x": 240,
    "y": 366,
-   "style": "jauge",
+   "style": "aiguille",
    "taille": "s",
-   "couleur": "#7cc4ff",
+   "couleur": "#7cc4ff"
+  },
+  {
+   "t": "info",
+   "d": "calories",
+   "x": 364,
+   "y": 342,
+   "style": "case",
+   "taille": "s",
+   "couleur": "#ff7a1a",
    "barre": true
   },
   {
