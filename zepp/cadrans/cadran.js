@@ -57,11 +57,11 @@
     pression: { n: 'Pression', type: 'ALTIMETER', lab: 'HPA', ic: 'jauge', ex: 1013 },
     vent: { n: 'Vent', type: 'WIND', lab: 'VENT', ic: 'vent', ex: 3 }
   };
-  var FONDS = { uni: 'Uni', degrade: 'Dégradé', radial: 'Halo', carbone: 'Carbone', grille: 'Grille', hud: 'HUD', camo: 'Camouflage', fleurs: 'Fleurs', printemps: 'Printemps', ete: 'Été', automne: 'Automne', hiver: 'Hiver', noel: 'Noël', espace: 'Espace', soleil: 'Soleillé', guilloche: 'Guilloché', damas: 'Damas', nacre: 'Nacre', mouvement: 'Mouvement mécanique', photo: 'Ma photo' };
+  var FONDS = { uni: 'Uni', degrade: 'Dégradé', radial: 'Halo', carbone: 'Carbone', grille: 'Grille', hud: 'HUD', camo: 'Camouflage', fleurs: 'Fleurs', printemps: 'Printemps', ete: 'Été', automne: 'Automne', hiver: 'Hiver', noel: 'Noël', espace: 'Espace', soleil: 'Soleillé', guilloche: 'Guilloché', damas: 'Damas', nacre: 'Nacre', mouvement: 'Mouvement mécanique', marbre: 'Marbre', bois: 'Bois', cuir: 'Cuir surpiqué', topo: 'Carte topographique', aurore: 'Aurore boréale', hexa: 'Nid d\'abeille', vagues: 'Vagues', photo: 'Ma photo' };
   var MOTIFS = { fleur: 'Fleur', marguerite: 'Marguerite', tulipe: 'Tulipe', feuille: 'Feuille', erable: 'Feuille d\'érable', flocon: 'Flocon', soleil: 'Soleil', lune: 'Lune', sapin: 'Sapin',
     etoile: 'Étoile', coeur: 'Cœur', papillon: 'Papillon', champignon: 'Champignon', citrouille: 'Citrouille', cadeau: 'Cadeau', montagne: 'Montagne',
     planete: 'Planète', saturne: 'Planète à anneau', terre: 'Terre', fusee: 'Fusée', atome: 'Atome', comete: 'Comète', ovni: 'Soucoupe' };
-  var ANNEAUX = { graduations: 'Graduations', chiffres: 'Chiffres', romains: 'Chiffres romains', plongee: 'Lunette de plongée', cockpit: 'Compteur (cockpit)', batterie: 'Batterie', pas: 'Pas (objectif)', aucun: 'Aucun' };
+  var ANNEAUX = { graduations: 'Graduations', chiffres: 'Chiffres', romains: 'Chiffres romains', plongee: 'Lunette de plongée', cockpit: 'Compteur (cockpit)', tachy: 'Tachymètre', chemin: 'Chemin de fer', boussole: 'Boussole', h24: '24 heures', batterie: 'Batterie', pas: 'Pas (objectif)', aucun: 'Aucun' };
   var AIGUILLES = { fines: 'Fines', epees: 'Épées', larges: 'Larges', baton: 'Bâtons', dauphine: 'Dauphine', squelette: 'Squelette', fleche: 'Flèches' };
   var TROTS = { fine: 'Fine', contrepoids: 'Contrepoids', fleche: 'Flèche', sucette: 'Sucette', sport: 'Sport', epaisse: 'Épaisse' };
   var CALQUES = { vignette: 'Vignette', halo: 'Halo', lignes: 'Lignes', points: 'Points', rayons: 'Rayons', teinte: 'Teinte', verre: 'Reflet verre', lunette: 'Lunette 3D' };
@@ -84,6 +84,9 @@
     date: true, anneau: 'graduations', infos: ['meteo', 'coeur', 'pas', 'batterie'], aod: 'heure_date',
     photo: '', voile: .35, calques: [], montre: 'trex3', blocs: null
   };
+  /* animations : une image par étape (f_0.png…), jouées par la montre (IMG_ANIM) quand l'écran est allumé */
+  var ANIMS = { engrenages: 'Engrenages', balancier: 'Balancier', radar: 'Radar', coeur: 'Cœur qui bat', etoiles: 'Étoiles scintillantes', flamme: 'Flamme', onde: 'Onde lumineuse', cage: 'Cage de tourbillon', pendule: 'Pendule', neige: 'Neige', bulles: 'Bulles', eclair: 'Éclair', sablier: 'Sablier', soleil: 'Soleil qui rayonne', vague: 'Vague', disco: 'Lumières disco' };
+  var ANIM_N = { engrenages: 24, balancier: 24, radar: 30, coeur: 20, etoiles: 24, flamme: 16, onde: 24, cage: 24, pendule: 24, neige: 24, bulles: 24, eclair: 20, sablier: 24, soleil: 24, vague: 24, disco: 16 };
   var CHOIX = { ANIMS: ANIMS, PANNEAUX: PANNEAUX, MOTIFS: MOTIFS, TROTS: TROTS, CALQUES: CALQUES, EFFETS: EFFETS, ICONES: { trait: 'Dessin', couleur: 'En couleur' }, POLICES: POLICES, INFOS: INFOS, FONDS: FONDS, ANNEAUX: ANNEAUX, AIGUILLES: AIGUILLES, STYLES: STYLES, TAILLES: TAILLES, DATES: DATES, TYPES: TYPES, VIFS: VIFS,
     HEURE: { numerique: 'Numérique', analogique: 'À aiguilles', mixte: 'Aiguilles + heure' }, TAILLE: { grande: 'Grande', moyenne: 'Moyenne' },
     AOD: { heure_date: 'Heure et date', heure: 'Heure seule' } };
@@ -1052,6 +1055,61 @@
       g.globalAlpha = .18; for (i = 0; i < 40; i++) { g.strokeStyle = i % 2 ? '#ffffff' : B; g.lineWidth = 1 + rnd() * 2; g.beginPath(); var y0 = rnd() * W; for (var x2 = 0; x2 <= W; x2 += 10) g[x2 ? 'lineTo' : 'moveTo'](x2, y0 + Math.sin(x2 / 40 + i) * 12); g.stroke(); } g.globalAlpha = 1;
       var vn = g.createRadialGradient(CX, CY, CX * .5, CX, CY, CX); vn.addColorStop(0, 'rgba(0,0,0,0)'); vn.addColorStop(1, rgba(B, .35)); g.fillStyle = vn; g.fillRect(0, 0, W, W);
     }
+    if (cfg.fond === 'marbre') {
+      var rm = alea(21); g.fillStyle = A; g.fillRect(0, 0, W, W);
+      for (i = 0; i < 26; i++) { g.strokeStyle = rgba(i % 3 ? B : mix(B, '#ffffff', .5), .12 + rm() * .3); g.lineWidth = .6 + rm() * 3; g.beginPath(); var mx = rm() * W, my = -20, ma = .4 + rm() * 1.2;
+        g.moveTo(mx, my); for (var st = 0; st < 40; st++) { ma += (rm() - .5) * .5; mx += Math.cos(ma) * 14; my += Math.abs(Math.sin(ma)) * 14 + 4; g.lineTo(mx, my); } g.stroke(); }
+      var mg = g.createRadialGradient(CX * .7, CY * .6, 20, CX, CY, CX * 1.1); mg.addColorStop(0, 'rgba(255,255,255,.12)'); mg.addColorStop(1, 'rgba(0,0,0,.25)'); g.fillStyle = mg; g.fillRect(0, 0, W, W);
+    }
+    if (cfg.fond === 'bois') {
+      var rb = alea(8); g.fillStyle = A; g.fillRect(0, 0, W, W);
+      for (i = 0; i < 90; i++) { var yb = i * 5.6; g.strokeStyle = rgba(i % 4 ? B : mix(A, '#000000', .4), .25 + rb() * .35); g.lineWidth = 1 + rb() * 2.5; g.beginPath();
+        for (var xb = 0; xb <= W; xb += 8) { var nd = Math.exp(-Math.pow((xb - 300) / 60, 2) - Math.pow((yb - 180) / 70, 2)) * 26; g[xb ? 'lineTo' : 'moveTo'](xb, yb + Math.sin(xb / 70 + i * .2) * 3 + nd); } g.stroke(); }
+      var bg2 = g.createLinearGradient(0, 0, W, 0); bg2.addColorStop(0, 'rgba(0,0,0,.25)'); bg2.addColorStop(.5, 'rgba(255,255,255,.05)'); bg2.addColorStop(1, 'rgba(0,0,0,.3)'); g.fillStyle = bg2; g.fillRect(0, 0, W, W);
+    }
+    if (cfg.fond === 'cuir') {
+      var rc = alea(13); g.fillStyle = A; g.fillRect(0, 0, W, W);
+      for (i = 0; i < 2600; i++) { var cx2 = rc() * W, cy2 = rc() * W; g.fillStyle = rc() > .5 ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.04)'; g.beginPath(); g.arc(cx2, cy2, 1 + rc() * 2.2, 0, 7); g.fill(); }
+      g.setLineDash([9, 7]); g.lineWidth = 2.2; g.strokeStyle = B; g.beginPath(); g.arc(CX, CY, 216, 0, 7); g.stroke(); g.setLineDash([]);
+      g.strokeStyle = 'rgba(0,0,0,.4)'; g.lineWidth = 1; g.beginPath(); g.arc(CX, CY, 222, 0, 7); g.stroke();
+    }
+    if (cfg.fond === 'topo') {   // courbes de niveau, comme une carte de randonnée
+      g.fillStyle = A; g.fillRect(0, 0, W, W);
+      var bumps = [[150, 170, 1], [330, 300, 1.2], [360, 120, .8], [120, 360, .9]];
+      var hgt = function (x, y) { var h = 0; bumps.forEach(function (b) { h += b[2] * Math.exp(-((x - b[0]) * (x - b[0]) + (y - b[1]) * (y - b[1])) / 9000); }); return h + .15 * Math.sin(x / 50) * Math.cos(y / 60); };
+      var step = 6, cols2 = W / step;
+      for (var lvl = 1; lvl < 14; lvl++) { var th2 = lvl * .09; g.strokeStyle = rgba(lvl % 5 ? B : mix(B, '#ffffff', .4), lvl % 5 ? .45 : .8); g.lineWidth = lvl % 5 ? 1 : 1.8; g.beginPath();
+        for (var gy = 0; gy < cols2; gy++) for (var gx = 0; gx < cols2; gx++) {   // carrés qui avancent (marching squares simplifié)
+          var x0 = gx * step, y0 = gy * step, a1 = hgt(x0, y0) > th2, b1 = hgt(x0 + step, y0) > th2, c1 = hgt(x0 + step, y0 + step) > th2, d1 = hgt(x0, y0 + step) > th2;
+          var pts = []; if (a1 !== b1) pts.push([x0 + step / 2, y0]); if (b1 !== c1) pts.push([x0 + step, y0 + step / 2]); if (c1 !== d1) pts.push([x0 + step / 2, y0 + step]); if (d1 !== a1) pts.push([x0, y0 + step / 2]);
+          if (pts.length >= 2) { g.moveTo(pts[0][0], pts[0][1]); g.lineTo(pts[1][0], pts[1][1]); if (pts.length === 4) { g.moveTo(pts[2][0], pts[2][1]); g.lineTo(pts[3][0], pts[3][1]); } }
+        } g.stroke(); }
+    }
+    if (cfg.fond === 'aurore') {
+      var ga = g.createLinearGradient(0, 0, 0, W); ga.addColorStop(0, mix(A, '#000000', .3)); ga.addColorStop(1, A); g.fillStyle = ga; g.fillRect(0, 0, W, W);
+      var ra = alea(31); for (i = 0; i < 160; i++) { g.fillStyle = 'rgba(255,255,255,' + (.2 + ra() * .6) + ')'; g.fillRect(ra() * W, ra() * W * .7, 1.3, 1.3); }
+      [[B, 150, 1], [cfg.accent, 210, .7], [mix(B, '#ff4fd8', .5), 120, .5]].forEach(function (L, j) {
+        for (var k3 = 0; k3 < 26; k3++) { g.strokeStyle = rgba(L[0], .05 * L[2]); g.lineWidth = 30 - k3; g.beginPath();
+          for (var xa = -20; xa <= W + 20; xa += 10) { var ya = L[1] + Math.sin(xa / 80 + j * 2) * 40 + Math.sin(xa / 31 + j) * 12 - k3 * 2.4; g[xa > -20 ? 'lineTo' : 'moveTo'](xa, ya); } g.stroke(); }
+      });
+      var gm = g.createLinearGradient(0, W * .72, 0, W); gm.addColorStop(0, 'rgba(0,0,0,0)'); gm.addColorStop(1, 'rgba(0,0,0,.9)'); g.fillStyle = gm; g.fillRect(0, 0, W, W);
+      g.fillStyle = '#020306'; g.beginPath(); g.moveTo(0, W); g.lineTo(0, 400); g.lineTo(70, 360); g.lineTo(120, 390); g.lineTo(190, 330); g.lineTo(260, 385); g.lineTo(330, 345); g.lineTo(400, 395); g.lineTo(W, 360); g.lineTo(W, W); g.closePath(); g.fill();
+    }
+    if (cfg.fond === 'hexa') {
+      g.fillStyle = A; g.fillRect(0, 0, W, W); var hr = 18, hw = hr * Math.sqrt(3);
+      for (var hy = -1; hy < W / (hr * 1.5) + 1; hy++) for (var hx = -1; hx < W / hw + 1; hx++) {
+        var hcx = hx * hw + (hy % 2 ? hw / 2 : 0), hcy = hy * hr * 1.5, dd = Math.hypot(hcx - CX, hcy - CY) / CX;
+        g.beginPath(); for (var v6 = 0; v6 < 6; v6++) { var av = Math.PI / 6 + v6 * Math.PI / 3; g[v6 ? 'lineTo' : 'moveTo'](hcx + Math.cos(av) * (hr - 2), hcy + Math.sin(av) * (hr - 2)); } g.closePath();
+        var hg = g.createLinearGradient(hcx, hcy - hr, hcx, hcy + hr); hg.addColorStop(0, mix(B, '#ffffff', .12)); hg.addColorStop(1, mix(A, '#000000', .2)); g.fillStyle = hg; g.globalAlpha = .9 - dd * .4; g.fill(); g.globalAlpha = 1;
+        g.strokeStyle = rgba(cfg.accent, .08 + (1 - Math.min(1, dd)) * .12); g.lineWidth = 1; g.stroke();
+      }
+    }
+    if (cfg.fond === 'vagues') {
+      g.fillStyle = A; g.fillRect(0, 0, W, W);
+      for (i = 0; i < 28; i++) { var yv = i * 19 - 10; var gv = g.createLinearGradient(0, yv - 20, 0, yv + 20); gv.addColorStop(0, mix(A, B, .3 + .5 * (i / 28))); gv.addColorStop(1, mix(A, '#000000', .3));
+        g.fillStyle = gv; g.beginPath(); g.moveTo(0, W); for (var xv = 0; xv <= W; xv += 8) g.lineTo(xv, yv + Math.sin(xv / 40 + i * .7) * 9 + Math.sin(xv / 17 + i) * 3); g.lineTo(W, W); g.closePath(); g.fill();
+        g.strokeStyle = rgba(mix(B, '#ffffff', .5), .25); g.lineWidth = 1; g.beginPath(); for (xv = 0; xv <= W; xv += 8) g[xv ? 'lineTo' : 'moveTo'](xv, yv + Math.sin(xv / 40 + i * .7) * 9 + Math.sin(xv / 17 + i) * 3); g.stroke(); }
+    }
     if (cfg.fond === 'mouvement') {   // mouvement squelette : platine perlée, ponts, rouages, rubis, vis
       g.fillStyle = mix(A, '#000000', .2); g.fillRect(0, 0, W, W);
       var r2 = alea(5); for (i = 0; i < 900; i++) { var qx = r2() * W, qy = r2() * W; g.strokeStyle = 'rgba(255,255,255,.035)'; g.beginPath(); g.arc(qx, qy, 6 + r2() * 4, 0, 7); g.stroke(); }   // perlage
@@ -1105,6 +1163,35 @@
         g.beginPath(); g.moveTo(CX + Math.sin(a) * 236, CY - Math.cos(a) * 236); g.lineTo(CX + Math.sin(a) * (i % 5 ? 230 : 226), CY - Math.cos(a) * (i % 5 ? 230 : 226)); g.stroke(); }
       g.strokeStyle = rgba(acc, aod ? .3 : .5); g.lineWidth = 1; g.beginPath(); g.arc(CX, CY, 224, 0, 7); g.stroke();
     }
+    if (cfg.anneau === 'tachy' || cfg.anneau === 'chemin' || cfg.anneau === 'boussole' || cfg.anneau === 'h24') {
+      var fam = PETITE.fam;
+      if (cfg.anneau === 'chemin') {   // chemin de fer : deux cercles et 60 traverses
+        g.strokeStyle = rgba(tx, .8); g.lineWidth = 1.2; g.beginPath(); g.arc(CX, CY, 232, 0, 7); g.stroke(); g.beginPath(); g.arc(CX, CY, 220, 0, 7); g.stroke();
+        for (i = 0; i < 60; i++) { a = i * Math.PI / 30; g.lineWidth = i % 5 ? 1.2 : 3; g.strokeStyle = i % 5 ? rgba(tx, .8) : acc; g.beginPath(); g.moveTo(CX + Math.sin(a) * 232, CY - Math.cos(a) * 232); g.lineTo(CX + Math.sin(a) * (i % 5 ? 220 : 210), CY - Math.cos(a) * (i % 5 ? 220 : 210)); g.stroke(); }
+        if (!aod) for (i = 1; i <= 12; i++) { a = i * Math.PI / 6; texte(g, String(i), CX + Math.sin(a) * 190, CY - Math.cos(a) * 190 + 9, POLICES.classique.fam, 26, tx, 'center'); }
+      }
+      if (cfg.anneau === 'tachy') {   // tachymètre : vitesse en km/h selon les secondes écoulées sur 1 km
+        if (!aod) { g.fillStyle = mix(cfg.c1, '#000000', .45); g.beginPath(); g.arc(CX, CY, 240, 0, 7); g.arc(CX, CY, 204, 0, 7, true); g.fill(); }
+        [500, 400, 300, 250, 200, 180, 160, 140, 120, 110, 100, 90, 80, 75, 70, 65, 60].forEach(function (v) { var sec = 3600 / v; if (sec > 60) return; a = sec / 60 * Math.PI * 2;
+          g.strokeStyle = acc; g.lineWidth = 2; g.beginPath(); g.moveTo(CX + Math.sin(a) * 238, CY - Math.cos(a) * 238); g.lineTo(CX + Math.sin(a) * 228, CY - Math.cos(a) * 228); g.stroke();
+          if (!aod) { g.save(); g.translate(CX + Math.sin(a) * 216, CY - Math.cos(a) * 216); g.rotate(a > Math.PI / 2 && a < Math.PI * 1.5 ? a + Math.PI : a); texte(g, String(v), 0, 5, fam, 13, tx, 'center'); g.restore(); } });
+        if (!aod) { texte(g, 'TACHYMÈTRE', CX, CY + 150, fam, 11, acc, 'center', 2); }
+        for (i = 0; i < 12; i++) { a = i * Math.PI / 6; g.strokeStyle = tx; g.lineWidth = i % 3 ? 3 : 6; g.beginPath(); g.moveTo(CX + Math.sin(a) * 198, CY - Math.cos(a) * 198); g.lineTo(CX + Math.sin(a) * 178, CY - Math.cos(a) * 178); g.stroke(); }
+      }
+      if (cfg.anneau === 'boussole') {   // rose des vents : N E S O et 360°
+        if (!aod) { g.strokeStyle = rgba(tx, .35); g.lineWidth = 1; g.beginPath(); g.arc(CX, CY, 206, 0, 7); g.stroke(); }
+        for (i = 0; i < 72; i++) { a = i * Math.PI / 36; if (aod && i % 9) continue; g.strokeStyle = i % 9 ? rgba(tx, .55) : tx; g.lineWidth = i % 9 ? 1 : 2.5;
+          g.beginPath(); g.moveTo(CX + Math.sin(a) * 236, CY - Math.cos(a) * 236); g.lineTo(CX + Math.sin(a) * (i % 9 ? 228 : 220), CY - Math.cos(a) * (i % 9 ? 228 : 220)); g.stroke(); }
+        [['N', 0, '#ff3b3b'], ['E', 90, tx], ['S', 180, tx], ['O', 270, tx]].forEach(function (c) { a = c[1] * Math.PI / 180; texte(g, c[0], CX + Math.sin(a) * 194, CY - Math.cos(a) * 194 + 10, POLICES.sport.fam, 28, aod ? acc : c[2], 'center'); });
+        if (!aod) [45, 135, 225, 315].forEach(function (d) { a = d * Math.PI / 180; texte(g, String(d), CX + Math.sin(a) * 196, CY - Math.cos(a) * 196 + 5, fam, 13, rgba(tx, .7), 'center'); });
+      }
+      if (cfg.anneau === 'h24') {   // 24 heures, comme une montre de pilote
+        for (i = 0; i < 24; i++) { a = i * Math.PI / 12; var lab = String(i === 0 ? 24 : i);
+          if (!aod || i % 6 === 0) texte(g, lab, CX + Math.sin(a) * 214, CY - Math.cos(a) * 214 + 7, fam, i % 6 === 0 ? 20 : 15, i % 6 === 0 ? acc : tx, 'center');
+          g.strokeStyle = rgba(tx, .6); g.lineWidth = 1.4; var a2 = a + Math.PI / 24; if (!aod) { g.beginPath(); g.moveTo(CX + Math.sin(a2) * 236, CY - Math.cos(a2) * 236); g.lineTo(CX + Math.sin(a2) * 228, CY - Math.cos(a2) * 228); g.stroke(); } }
+        if (!aod) { g.strokeStyle = rgba(acc, .5); g.lineWidth = 1; g.beginPath(); g.arc(CX, CY, 196, 0, 7); g.stroke(); }
+      }
+    }
     if (cfg.anneau === 'cockpit') {   // compteur de voiture de sport : graduations 0 à 12, zone rouge, lueur
       var a0 = Math.PI * .75, span = Math.PI * 1.5;
       if (!aod) { g.lineWidth = 14; g.strokeStyle = rgba(acc, .12); g.beginPath(); g.arc(CX, CY, 222, a0, a0 + span); g.stroke();
@@ -1117,8 +1204,6 @@
     }
   }
   /* animations : une image par étape (f_0.png…), jouées par la montre (IMG_ANIM) quand l'écran est allumé */
-  var ANIMS = { engrenages: 'Engrenages', balancier: 'Balancier', radar: 'Radar', coeur: 'Cœur qui bat', etoiles: 'Étoiles scintillantes', flamme: 'Flamme', onde: 'Onde lumineuse' };
-  var ANIM_N = { engrenages: 24, balancier: 24, radar: 30, coeur: 20, etoiles: 24, flamme: 16, onde: 24 };
   function imageAnim(b, cfg, f, n) {
     var s = b.taille, c = toile(s, s), g = c.getContext('2d'), cc = coul(cfg, b.couleur), t = f / n, R = s / 2, i;
     g.lineCap = 'round'; g.lineJoin = 'round';
@@ -1168,6 +1253,64 @@
         g.shadowColor = cc; g.shadowBlur = j ? 0 : s * .08;
         g.beginPath(); g.moveTo(0, 0); g.bezierCurveTo(-w * 1.2, -h * .1, -w * .7 + q(.1), -h * .6, q(.3), -h); g.bezierCurveTo(w * .7 + q(.6), -h * .6, w * 1.2, -h * .1, 0, 0); g.closePath(); g.fillStyle = L[1]; g.fill();
       });
+    }
+    if (b.motif === 'cage') {   // cage de tourbillon : le balancier tourne sur lui-même, la cage fait un tour
+      g.translate(R, R); g.rotate(t * Math.PI * 2);
+      var cg = g.createLinearGradient(-R, -R, R, R); cg.addColorStop(0, mix(cc, '#ffffff', .6)); cg.addColorStop(1, mix(cc, '#000000', .4));
+      g.strokeStyle = cg; g.lineWidth = s * .05; g.beginPath(); g.arc(0, 0, R * .86, 0, 7); g.stroke();
+      for (i = 0; i < 3; i++) { var a4 = i * Math.PI * 2 / 3; g.lineWidth = s * .04; g.beginPath(); g.moveTo(Math.cos(a4) * R * .86, Math.sin(a4) * R * .86); g.quadraticCurveTo(Math.cos(a4 + .5) * R * .3, Math.sin(a4 + .5) * R * .3, 0, 0); g.stroke(); }
+      g.rotate(Math.sin(t * Math.PI * 8) * 1.6);
+      g.strokeStyle = mix(cc, '#ffffff', .3); g.lineWidth = s * .03; g.beginPath(); g.arc(0, 0, R * .5, 0, 7); g.stroke();
+      for (i = 0; i < 2; i++) { g.beginPath(); g.moveTo(-R * .5, 0); g.lineTo(R * .5, 0); g.stroke(); g.rotate(Math.PI / 2); }
+      rubis(g, 0, 0, s * .055);
+    }
+    if (b.motif === 'pendule') {
+      var ap = Math.sin(t * Math.PI * 2) * .45; g.translate(R, s * .06); g.rotate(ap);
+      g.strokeStyle = mix(cc, '#ffffff', .2); g.lineWidth = s * .025; g.beginPath(); g.moveTo(0, 0); g.lineTo(0, s * .7); g.stroke();
+      var pg = g.createRadialGradient(-s * .04, s * .74, 2, 0, s * .76, s * .16); pg.addColorStop(0, mix(cc, '#ffffff', .7)); pg.addColorStop(1, mix(cc, '#000000', .4));
+      g.shadowColor = 'rgba(0,0,0,.6)'; g.shadowBlur = s * .05; g.beginPath(); g.arc(0, s * .76, s * .15, 0, 7); g.fillStyle = pg; g.fill(); g.shadowColor = 'transparent';
+      disque(g, 0, 0, s * .03, cc);
+    }
+    if (b.motif === 'neige' || b.motif === 'bulles') {
+      var rn = alea(b.motif === 'neige' ? 9 : 17);
+      for (i = 0; i < 22; i++) { var bx = rn() * s, sp = .5 + rn(), sz2 = (b.motif === 'neige' ? 1.5 + rn() * 3 : 3 + rn() * 7) * s / 120, ph2 = rn();
+        var yy2 = b.motif === 'neige' ? ((ph2 + t * sp) % 1) * (s + 20) - 10 : s + 10 - ((ph2 + t * sp) % 1) * (s + 20), xx2 = bx + Math.sin((t + ph2) * Math.PI * 2) * s * .04;
+        if (b.motif === 'neige') { g.fillStyle = rgba(mix(cc, '#ffffff', .7), .9); g.shadowColor = '#ffffff'; g.shadowBlur = 4; g.beginPath(); g.arc(xx2, yy2, sz2, 0, 7); g.fill(); }
+        else { g.strokeStyle = rgba(mix(cc, '#ffffff', .4), .8); g.lineWidth = 1.2; g.beginPath(); g.arc(xx2, yy2, sz2, 0, 7); g.stroke(); g.fillStyle = 'rgba(255,255,255,.7)'; g.beginPath(); g.arc(xx2 - sz2 * .35, yy2 - sz2 * .35, sz2 * .22, 0, 7); g.fill(); }
+      }
+      g.shadowColor = 'transparent';
+    }
+    if (b.motif === 'eclair') {
+      var fl = f === 0 || f === 2 ? 1 : f === 1 || f === 3 ? .45 : f < 7 ? .3 * (1 - (f - 4) / 3) : 0;
+      if (fl > 0) { var re = alea(4 + (f < 4 ? 0 : 1)); g.strokeStyle = rgba(mix(cc, '#ffffff', .6), fl); g.shadowColor = cc; g.shadowBlur = 14 * fl; g.lineWidth = s * .035;
+        g.beginPath(); var ex2 = R + (re() - .5) * s * .2, ey2 = 0; g.moveTo(ex2, ey2); while (ey2 < s * .95) { ex2 += (re() - .5) * s * .22; ey2 += s * (.08 + re() * .1); g.lineTo(ex2, ey2); } g.stroke();
+        g.lineWidth = s * .015; g.beginPath(); g.moveTo(R, s * .35); g.lineTo(R + s * .2, s * .5); g.lineTo(R + s * .15, s * .65); g.stroke(); g.shadowColor = 'transparent'; }
+    }
+    if (b.motif === 'sablier') {
+      var sbr = t < .9 ? t / .9 : 1, rot = t < .9 ? 0 : (t - .9) / .1 * Math.PI;
+      g.translate(R, R); g.rotate(rot); var hw2 = s * .3, hh = s * .42;
+      g.strokeStyle = mix(cc, '#ffffff', .4); g.lineWidth = s * .025; g.beginPath(); g.moveTo(-hw2, -hh); g.lineTo(hw2, -hh); g.lineTo(s * .03, 0); g.lineTo(hw2, hh); g.lineTo(-hw2, hh); g.lineTo(-s * .03, 0); g.closePath(); g.stroke();
+      g.fillStyle = cc; var top = (1 - sbr) * hh * .85;
+      if (top > 1) { g.beginPath(); g.moveTo(-hw2 * top / hh, -top); g.lineTo(hw2 * top / hh, -top); g.lineTo(0, 0); g.closePath(); g.fill(); }
+      var bot = sbr * hh * .85; g.beginPath(); g.moveTo(-hw2 * .95, hh - 2); g.lineTo(hw2 * .95, hh - 2); g.lineTo(0, hh - bot); g.closePath(); g.fill();
+      if (sbr < 1) { g.fillRect(-1, 0, 2, hh - bot); }
+      g.fillStyle = mix(cc, '#000000', .4); g.fillRect(-hw2 * 1.2, -hh - s * .05, hw2 * 2.4, s * .05); g.fillRect(-hw2 * 1.2, hh, hw2 * 2.4, s * .05);
+    }
+    if (b.motif === 'soleil') {
+      g.translate(R, R); g.rotate(t * Math.PI / 6);
+      for (i = 0; i < 12; i++) { g.rotate(Math.PI / 6); var ln = R * (.75 + .12 * Math.sin((t * 2 + i / 3) * Math.PI * 2)); g.strokeStyle = rgba(mix(cc, '#ffdd55', .5), .9); g.lineWidth = s * .04; g.beginPath(); g.moveTo(R * .45, 0); g.lineTo(ln, 0); g.stroke(); }
+      var sg = g.createRadialGradient(0, 0, 2, 0, 0, R * .4); sg.addColorStop(0, '#fff6c9'); sg.addColorStop(1, mix(cc, '#ffaa00', .5)); g.shadowColor = cc; g.shadowBlur = s * .15; g.beginPath(); g.arc(0, 0, R * .38, 0, 7); g.fillStyle = sg; g.fill(); g.shadowColor = 'transparent';
+    }
+    if (b.motif === 'vague') {
+      for (i = 0; i < 3; i++) { g.fillStyle = rgba(mix(cc, '#ffffff', i * .25), .35 + i * .2); g.beginPath(); g.moveTo(0, s);
+        for (var xw = 0; xw <= s; xw += 4) g.lineTo(xw, s * (.45 + i * .15) + Math.sin(xw / s * Math.PI * 4 + t * Math.PI * 2 * (i % 2 ? -1 : 1) + i) * s * .06); g.lineTo(s, s); g.closePath(); g.fill(); }
+    }
+    if (b.motif === 'disco') {
+      var dc = ['#ff4fd8', '#46d9ff', '#ffe14a', '#5dff8a', cc];
+      g.translate(R, R);
+      for (i = 0; i < 8; i++) { var ad = i * Math.PI / 4 + t * Math.PI * 2; g.fillStyle = rgba(dc[(i + f) % dc.length], .35); g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, R, ad - .18, ad + .18); g.closePath(); g.fill(); }
+      var bd = g.createRadialGradient(-R * .1, -R * .1, 2, 0, 0, R * .3); bd.addColorStop(0, '#ffffff'); bd.addColorStop(1, '#8a8f99'); g.beginPath(); g.arc(0, 0, R * .28, 0, 7); g.fillStyle = bd; g.fill();
+      g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 1; for (i = -3; i <= 3; i++) { g.beginPath(); g.moveTo(-R * .28, i * R * .08); g.lineTo(R * .28, i * R * .08); g.stroke(); g.beginPath(); g.moveTo(i * R * .08, -R * .28); g.lineTo(i * R * .08, R * .28); g.stroke(); }
     }
     if (b.motif === 'onde') {
       g.translate(R, R);
