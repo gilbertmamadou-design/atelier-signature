@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bourse</title>
+<meta name="theme-color" content="#0e1220">
+<!-- Bourse : suivi des cours (Yahoo Finance, données publiques parfois différées), graphique, portefeuille (prix d'achat,
+     quantité, montant payé en euros), alertes de cours appli fermée. Pont Android : MAGBourse (BourseBridge.java).
+     Sur PC : lecture directe si le site l'autorise, sinon par le relais personnel (voir pc/README.md, « Relais réseau »).
+     Le portefeuille reste sur l'appareil (localStorage « bourse: ») : rien n'est envoyé. Ce n'est pas un conseil en investissement. -->
+<style>
+:root{color-scheme:dark;--bg:#0e1220;--bg2:#161b2c;--bg3:#1f2639;--line:#ffffff14;--line2:#ffffff26;--tx:#f1f3f9;--tx2:#b4bbcd;--tx3:#7d8599;--acc:#7aa7ff;--up:#4fd18b;--down:#ff6b6b;--r:16px;--safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:15.5px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}[hidden]{display:none!important}
+input,select{font:inherit;color:var(--tx);background:var(--bg3);border:1px solid var(--line2);border-radius:11px;padding:9px 11px;min-width:0;width:100%}
+header{padding:calc(14px + var(--safe-t)) 16px 8px;display:flex;align-items:center;gap:10px;max-width:760px;margin:0 auto}
+header h1{margin:0;font-size:22px;font-weight:800;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.back{font-size:22px;width:36px;height:36px;border-radius:11px;background:var(--bg3)}
+main{padding:4px 16px calc(40px + var(--safe-b));max-width:760px;margin:0 auto}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;margin-bottom:12px}
+.card h2{margin:0 0 10px;font-size:16px;display:flex;align-items:center;gap:8px}.card h2 span{margin-left:auto;font-size:13px;color:var(--tx3);font-weight:500}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 15px;border-radius:13px;background:var(--bg3);border:1px solid var(--line2);font-weight:650}
+.btn.pri{background:var(--acc);color:#081430;border-color:transparent}.btn.sm{min-height:36px;padding:0 12px;font-size:14px;border-radius:11px}
+.btn.del{color:var(--down)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.note{color:var(--tx3);font-size:13px;margin:8px 0 0}
+.up{color:var(--up)}.down{color:var(--down)}
+.tot{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}.tot b{font-size:30px;font-weight:800;letter-spacing:-.5px}
+.pill{display:inline-block;padding:3px 9px;border-radius:9px;font-weight:700;font-size:14px}.pill.up{background:#4fd18b1f}.pill.down{background:#ff6b6b1f}
+.kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px 14px;margin-top:12px}
+.kv div small{display:block;color:var(--tx3);font-size:12.5px}.kv div b{font-size:15.5px}
+.stock{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line);width:100%;text-align:left}.stock:first-child{border-top:0}
+.stock .t{flex:1;min-width:0}.stock .t b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.stock .t small{color:var(--tx3);font-size:13px}
+.stock .p{text-align:right}.stock .p b{display:block}.stock .p small{font-weight:700;font-size:13.5px}
+.stock canvas{width:72px;height:34px;flex:none}
+.price{font-size:38px;font-weight:800;letter-spacing:-1px}
+.tabs{display:flex;gap:6px;margin:10px 0 6px;flex-wrap:wrap}.tabs button{padding:6px 11px;border-radius:10px;background:var(--bg3);font-size:14px;font-weight:600}.tabs button.on{background:var(--acc);color:#081430}
+#chart{width:100%;height:230px;display:block;touch-action:none}
+.cross{min-height:20px;font-size:13.5px;color:var(--tx2)}
+.lot{display:flex;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}.lot:first-child{border-top:0}.lot .t{flex:1;min-width:0}.lot small{color:var(--tx3);font-size:13px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.grid2 label,.f label{font-size:13px;color:var(--tx3);display:block}
+.f{margin-top:8px}
+.res{padding:10px 0;border-top:1px solid var(--line);display:flex;gap:10px;align-items:center;width:100%;text-align:left}.res:first-child{border-top:0}.res .t{flex:1;min-width:0}.res small{color:var(--tx3)}
+.state{font-size:13px;color:var(--tx3)}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--tx3)}.dot.on{background:var(--up)}
+.warn{background:#ffb85c14;border:1px solid #ffb85c40;color:#ffd9a8;border-radius:12px;padding:12px;margin-bottom:12px;font-size:14px}
+.sw{position:relative;width:46px;height:28px;flex:none}.sw input{opacity:0;width:0;height:0;position:absolute}.sw span{position:absolute;inset:0;background:var(--bg3);border:1px solid var(--line2);border-radius:20px;transition:.2s}.sw span:after{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;border-radius:50%;background:#cfd5e6;transition:.2s}.sw input:checked+span{background:var(--acc)}.sw input:checked+span:after{transform:translateX(18px);background:#fff}
+#toast{position:fixed;left:50%;bottom:calc(24px + var(--safe-b));transform:translateX(-50%);background:#090c16;border:1px solid var(--line2);padding:10px 16px;border-radius:12px;font-size:14px;z-index:20;max-width:90vw;opacity:0;transition:opacity .25s;pointer-events:none}#toast.on{opacity:1}
+</style>
+</head>
+<body>
+<header><button class="back" id="bBack" hidden>‹</button><h1 id="title">Bourse</h1><button class="btn sm" id="bRefresh">Actualiser</button><button class="btn sm" id="bQuit">Quitter</button></header>
+<main>
+  <section id="vHome">
+    <div class="card" id="cPf"></div>
+    <div class="card"><h2>Mes actions suivies <span id="mkt"></span></h2><div id="list"></div>
+      <div class="row" style="margin-top:10px"><button class="btn" id="bAdd">+ Ajouter une action</button></div></div>
+    <div class="card" id="cAlerts" hidden><h2>Dernières alertes</h2><div id="alog"></div></div>
+  </section>
+  <section id="vAdd" hidden>
+    <div class="card"><h2>Ajouter une action</h2>
+      <input id="q" placeholder="Nom ou symbole : Anthropic, Airbus, AAPL, MC.PA…" autocomplete="off" spellcheck="false">
+      <div id="results" style="margin-top:8px"></div>
+      <p class="note">Symboles : ANT (Anthropic, Nasdaq), AIR.PA (Airbus, Paris), ^FCHI (CAC 40)… Les actions de Paris finissent par « .PA ».</p></div>
+  </section>
+  <section id="vDetail" hidden>
+    <div class="card">
+      <div class="state" id="dEx"></div>
+      <div class="price" id="dPrice">—</div>
+      <div id="dChg"></div>
+      <div class="tabs" id="ranges"></div>
+      <canvas id="chart"></canvas>
+      <div class="cross" id="cross"></div>
+      <div class="kv" id="dStats"></div>
+    </div>
+    <div class="card"><h2>Mes actions <span id="dPfSum"></span></h2>
+      <div id="lots"></div>
+      <details id="addLot" style="margin-top:8px"><summary class="btn sm" style="list-style:none">+ Ajouter un achat</summary>
+        <div class="grid2 f"><div><label>Nombre d'actions</label><input id="lQ" inputmode="decimal" placeholder="10"></div>
+          <div><label id="lPL">Prix d'achat par action</label><input id="lP" inputmode="decimal" placeholder="83"></div></div>
+        <div class="grid2 f"><div><label>Montant payé en € (facultatif, frais compris)</label><input id="lE" inputmode="decimal" placeholder="Débité sur le compte"></div>
+          <div><label>Date</label><input id="lD" type="date"></div></div>
+        <div class="row f"><button class="btn pri sm" id="bLot">Enregistrer</button></div>
+        <p class="note">Avec le montant payé en euros, le gain en euros tient compte du taux de change du jour d'achat.</p>
+      </details>
+    </div>
+    <div class="card"><h2>Alertes</h2>
+      <div class="grid2"><div><label>Si le cours dépasse</label><input id="aH" inputmode="decimal" placeholder="—"></div><div><label>Si le cours descend sous</label><input id="aB" inputmode="decimal" placeholder="—"></div></div>
+      <div class="f"><label>Si le cours bouge de plus de (% sur la journée)</label><input id="aM" inputmode="decimal" placeholder="ex. 5"></div>
+      <div class="row f"><button class="btn pri sm" id="bAl">Enregistrer les alertes</button><button class="btn sm" id="bAlX">Effacer</button></div>
+      <p class="note" id="alNote"></p>
+    </div>
+    <div class="row" style="margin-bottom:12px"><button class="btn sm del" id="bRemove">Retirer de la liste</button></div>
+  </section>
+  <p class="note">Cours fournis par Yahoo Finance, parfois différés de 15 minutes. À titre d'information : ce n'est pas un conseil en investissement. Le portefeuille reste sur cet appareil.</p>
+</main>
+<div id="toast"></div>
+<script>
+(function () {
+  'use strict';
+  var B = window.MAGBourse || null, $ = function (id) { return document.getElementById(id); };
+  var YF = 'https://query1.finance.yahoo.com';
+  function J(s, d) { try { return JSON.parse(s); } catch (e) { return d; } }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function ls(k, v) { try { if (v === undefined) return JSON.parse(localStorage.getItem('bourse:' + k)); localStorage.setItem('bourse:' + k, JSON.stringify(v)); } catch (e) { return null; } }
+  var tT = 0; function toast(t) { var e = $('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(tT); tT = setTimeout(function () { e.classList.remove('on'); }, 2800); }
+  function num(s) { var v = parseFloat(String(s == null ? '' : s).replace(/\s/g, '').replace(',', '.')); return isFinite(v) ? v : null; }
+  function fr(n, d) { if (n == null || !isFinite(n)) return '—'; if (d == null) d = Math.abs(n) >= 1000 ? 0 : 2; return n.toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d }); }
+  var SYM = { USD: '$', EUR: '€', GBP: '£', GBp: 'p', CHF: 'CHF', JPY: '¥', CAD: 'CA$' };
+  function money(n, cur, d) { return fr(n, d) + ' ' + (SYM[cur] || cur || ''); }
+  function sgn(n, cur, d) { return (n > 0 ? '+' : n < 0 ? '−' : '') + (cur ? money(Math.abs(n), cur, d) : fr(Math.abs(n), d == null ? 2 : d)); }
+  function pct(n) { return (n > 0 ? '+' : n < 0 ? '−' : '') + fr(Math.abs(n), 2) + ' %'; }
+  function cls(n) { return n > 0 ? 'up' : n < 0 ? 'down' : ''; }
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+  /* ---------- données ---------- */
+  var LIST = ls('list') || [{ sym: 'ANT', nom: 'Anthropic' }];
+  var LOTS = ls('lots') || {}, AL = ls('alertes') || {}, CACHE = ls('cache') || {};
+  function save() { ls('list', LIST); ls('lots', LOTS); ls('alertes', AL); }
+
+  function http(url) {
+    if (B && B.get) return new Promise(function (ok) {
+      var k = 'k' + uid(); B.get(k, url); var n = 0;
+      (function poll() { var r = B.take(k); if (r != null && r !== '__wait__') return ok(r === '__err__' ? null : r); if (++n > 60) return ok(null); setTimeout(poll, 250); })();
+    });
+    return fetch(url, { credentials: 'omit' }).then(function (r) { return r.ok ? r.text() : null; }).catch(function () { return null; });
+  }
+  var RANGES = [['1d', '1J', '5m'], ['5d', '5J', '30m'], ['1mo', '1M', '1d'], ['6mo', '6M', '1d'], ['ytd', 'Cette année', '1d'], ['1y', '1A', '1d'], ['5y', '5A', '1wk'], ['max', 'Tout', '1wk']];
+  function chart(sym, range) {
+    var R = RANGES.filter(function (r) { return r[0] === range; })[0] || RANGES[0];
+    return http(YF + '/v8/finance/chart/' + encodeURIComponent(sym) + '?range=' + R[0] + '&interval=' + R[2] + '&includePrePost=false').then(function (t) {
+      var d = J(t, null), res = d && d.chart && d.chart.result && d.chart.result[0];
+      if (!res) return null;
+      var m = res.meta || {}, ts = res.timestamp || [], cl = (res.indicators && res.indicators.quote && res.indicators.quote[0] && res.indicators.quote[0].close) || [], pts = [];
+      ts.forEach(function (x, i) { if (cl[i] != null) pts.push([x * 1000, cl[i]]); });
+      var o = { sym: sym, cur: m.currency || '', price: m.regularMarketPrice, prev: range === '1d' ? (m.chartPreviousClose != null ? m.chartPreviousClose : m.previousClose) : null,
+        ex: m.fullExchangeName || m.exchangeName || '', nom: m.longName || m.shortName || '', hi52: m.fiftyTwoWeekHigh, lo52: m.fiftyTwoWeekLow, dayHi: m.regularMarketDayHigh, dayLo: m.regularMarketDayLow,
+        vol: m.regularMarketVolume, t: (m.regularMarketTime || 0) * 1000, per: m.currentTradingPeriod && m.currentTradingPeriod.regular, pts: pts };
+      if (range === '1d') { CACHE[sym] = { cur: o.cur, price: o.price, prev: o.prev, nom: o.nom, ex: o.ex, t: o.t, per: o.per, pts: pts.filter(function (p, i) { return i % 3 === 0 || i === pts.length - 1; }) }; ls('cache', CACHE); }
+      return o;
+    });
+  }
+  var FX = ls('fx') || {};
+  function fx(cur) {   // valeur en euros d'une unité de la devise
+    if (!cur || cur === 'EUR') return Promise.resolve(1);
+    var base = cur === 'GBp' ? 'GBP' : cur, div = cur === 'GBp' ? 100 : 1;
+    var c = FX[base]; if (c && Date.now() - c.at < 30 * 60e3) return Promise.resolve(c.v / div);
+    return http(YF + '/v8/finance/chart/' + base + 'EUR=X?range=1d&interval=1d').then(function (t) {
+      var d = J(t, null), v = d && d.chart && d.chart.result && d.chart.result[0] && d.chart.result[0].meta.regularMarketPrice;
+      if (v) { FX[base] = { v: v, at: Date.now() }; ls('fx', FX); return v / div; }
+      return c ? c.v / div : null;
+    });
+  }
+  function search(q) {
+    return http(YF + '/v1/finance/search?q=' + encodeURIComponent(q) + '&quotesCount=10&newsCount=0&lang=fr-FR&region=FR').then(function (t) {
+      var d = J(t, null); return (d && d.quotes || []).filter(function (x) { return x.symbol && /EQUITY|ETF|INDEX|MUTUALFUND|CRYPTOCURRENCY/.test(x.quoteType || ''); });
+    });
+  }
+
+  /* ---------- portefeuille ---------- */
+  function lotsOf(sym) { return LOTS[sym] || []; }
+  function position(sym, q, rate) {   // q : cotation (CACHE) ; rate : € par unité de devise
+    var L = lotsOf(sym); if (!L.length || !q || q.price == null) return null;
+    var n = 0, cost = 0, paid = 0, allEur = true;
+    L.forEach(function (l) { n += l.q; cost += l.q * l.p; if (l.eur != null) paid += l.eur; else { allEur = false; paid += rate != null ? l.q * l.p * rate : 0; } });
+    var val = n * q.price, valE = rate != null ? val * rate : null, day = q.prev != null ? n * (q.price - q.prev) : null;
+    return { n: n, cost: cost, val: val, gain: val - cost, gainPct: cost ? (val - cost) / cost * 100 : 0, valE: valE, paidE: paid, gainE: valE != null ? valE - paid : null, gainEPct: paid ? (valE - paid) / paid * 100 : 0, dayE: day != null && rate != null ? day * rate : null, allEur: allEur };
+  }
+
+  /* ---------- accueil ---------- */
+  function marketTxt(q) {
+    if (!q || !q.per) return '';
+    var now = Date.now() / 1000, on = now >= q.per.start && now < q.per.end;
+    var hm = function (s) { return new Date(s * 1000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); };
+    return '<span class="dot' + (on ? ' on' : '') + '"></span>' + (on ? 'Marché ouvert jusqu\'à ' + hm(q.per.end) : 'Marché fermé · ouvre à ' + hm(q.per.start + (now > q.per.end ? 86400 : 0)));
+  }
+  function spark(cv, pts, prev) {
+    var r = window.devicePixelRatio || 1, w = cv.clientWidth || 72, h = cv.clientHeight || 34; cv.width = w * r; cv.height = h * r;
+    var g = cv.getContext('2d'); g.scale(r, r); if (!pts || pts.length < 2) return;
+    var vs = pts.map(function (p) { return p[1]; }).concat(prev != null ? [prev] : []), mn = Math.min.apply(null, vs), mx = Math.max.apply(null, vs), sp = mx - mn || 1;
+    var t0 = pts[0][0], t1 = pts[pts.length - 1][0] || t0 + 1, X = function (t) { return 2 + (t - t0) / (t1 - t0 || 1) * (w - 4); }, Y = function (v) { return h - 3 - (v - mn) / sp * (h - 6); };
+    var up = pts[pts.length - 1][1] >= (prev != null ? prev : pts[0][1]);
+    if (prev != null) { g.strokeStyle = '#ffffff30'; g.setLineDash([2, 3]); g.beginPath(); g.moveTo(0, Y(prev)); g.lineTo(w, Y(prev)); g.stroke(); g.setLineDash([]); }
+    g.strokeStyle = up ? '#4fd18b' : '#ff6b6b'; g.lineWidth = 1.6; g.beginPath(); pts.forEach(function (p, i) { g[i ? 'lineTo' : 'moveTo'](X(p[0]), Y(p[1])); }); g.stroke();
+  }
+  var RATES = {};
+  function renderHome() {
+    var tot = 0, paid = 0, day = 0, any = false, dayOk = true;
+    LIST.forEach(function (s) { var q = CACHE[s.sym], p = position(s.sym, q, RATES[q && q.cur]); if (p && p.valE != null) { any = true; tot += p.valE; paid += p.paidE; if (p.dayE != null) day += p.dayE; else dayOk = false; } });
+    $('cPf').innerHTML = any ? '<h2>Mon portefeuille <span>en euros</span></h2><div class="tot"><b>' + money(tot, 'EUR') + '</b><span class="pill ' + cls(tot - paid) + '">' + sgn(tot - paid, 'EUR') + ' · ' + pct(paid ? (tot - paid) / paid * 100 : 0) + '</span></div>' +
+      (dayOk ? '<p class="note">Aujourd\'hui : <b class="' + cls(day) + '">' + sgn(day, 'EUR') + '</b> · investi : ' + money(paid, 'EUR') + '</p>' : '')
+      : '<h2>Mon portefeuille</h2><p class="note" style="margin:0">Touchez une action, puis « Ajouter un achat » pour suivre vos gains et pertes.</p>';
+    $('list').innerHTML = LIST.length ? LIST.map(function (s, i) {
+      var q = CACHE[s.sym] || {}, ch = q.price != null && q.prev ? (q.price - q.prev) / q.prev * 100 : null, p = position(s.sym, q, RATES[q.cur]);
+      return '<button class="stock" data-i="' + i + '"><div class="t"><b>' + esc(s.nom || q.nom || s.sym) + '</b><small>' + esc(s.sym) + (p ? ' · ' + fr(p.n, p.n % 1 ? 2 : 0) + ' action' + (p.n > 1 ? 's' : '') + (p.gainE != null ? ' · <span class="' + cls(p.gainE) + '">' + sgn(p.gainE, 'EUR', 0) + '</span>' : '') : '') + '</small></div><canvas></canvas>' +
+        '<div class="p"><b>' + (q.price != null ? money(q.price, q.cur) : '—') + '</b><small class="' + cls(ch) + '">' + (ch != null ? pct(ch) : '') + '</small></div></button>';
+    }).join('') : '<p class="note">Aucune action suivie.</p>';
+    Array.prototype.forEach.call($('list').querySelectorAll('.stock'), function (b) { var s = LIST[+b.dataset.i], q = CACHE[s.sym]; spark(b.querySelector('canvas'), q && q.pts, q && q.prev); b.onclick = function () { openDetail(s.sym); }; });
+    $('mkt').innerHTML = marketTxt(CACHE[(LIST[0] || {}).sym]);
+    var log = ls('alog') || []; $('cAlerts').hidden = !log.length;
+    $('alog').innerHTML = log.slice(-5).reverse().map(function (a) { return '<div class="lot"><div class="t"><b>' + esc(a.t) + '</b><br><small>' + esc(a.x) + ' · ' + new Date(a.at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + '</small></div></div>'; }).join('');
+  }
+  var busy = false;
+  function refreshAll(quiet) {
+    if (busy) return; busy = true;
+    var curs = {};
+    Promise.all(LIST.map(function (s) { return chart(s.sym, '1d').then(function (q) { if (q) { curs[q.cur] = 1; if (!s.nom && q.nom) { s.nom = q.nom; save(); } } return q; }); })).then(function (r) {
+      var ok = r.filter(Boolean).length;
+      if (!ok && LIST.length && !quiet) toast(B ? 'Pas de réponse du service des cours. Vérifiez la connexion.' : 'Cours indisponibles ici : sur PC, il faut le relais réseau (Lanceur › Relais réseau).');
+      return Promise.all(Object.keys(curs).map(function (c) { return fx(c).then(function (v) { RATES[c] = v; }); }));
+    }).then(function () { busy = false; publish(); if (VIEW === 'home') renderHome(); else if (VIEW === 'detail') renderPf(); }, function () { busy = false; });
+    takeLog();
+  }
+  /* résumé pour la tuile de Socle et pour Majordome (canal privé MAGPrint.widgetPut ; sur PC, même localStorage) */
+  function publish() {
+    var rates = {}, list = LIST.map(function (s) {
+      var q = CACHE[s.sym] || {}, r = RATES[q.cur]; if (q.cur && r != null) rates[q.cur] = r;
+      var L = lotsOf(s.sym), n = 0, paid = 0, cost = 0; L.forEach(function (l) { n += l.q; cost += l.q * l.p; paid += l.eur != null ? l.eur : (r != null ? l.q * l.p * r : 0); });
+      return { sym: s.sym, nom: s.nom || q.nom || s.sym, cur: q.cur || '', price: q.price, prev: q.prev, n: n || 0, cost: cost, paidE: n ? Math.round(paid * 100) / 100 : 0 };
+    });
+    var o = { bourse: { list: list, rates: rates, at: Date.now() } };
+    ls('resume', o.bourse);
+    var P = window.MAGPrint; if (P && P.widgetPut) try { P.widgetPut(JSON.stringify(o)); } catch (e) { }
+  }
+  function takeLog() { if (!B || !B.alertLog) return; var l = J(B.alertLog(), []); if (l.length) { var all = (ls('alog') || []).concat(l).slice(-30); ls('alog', all); if (VIEW === 'home') renderHome(); } }
+
+  /* ---------- fiche ---------- */
+  var VIEW = 'home', CUR = null, RANGE = '1d', DATA = null;
+  function show(v) {
+    if (v !== 'home' && !(history.state && history.state.bourse)) try { history.pushState({ bourse: 1 }, ''); } catch (e) { }
+    if (v === 'home' && history.state && history.state.bourse) try { history.back(); } catch (e) { }
+    VIEW = v; ['Home', 'Add', 'Detail'].forEach(function (k) { $('v' + k).hidden = v !== k.toLowerCase(); });
+    $('bBack').hidden = v === 'home'; $('bRefresh').hidden = v === 'add';
+    if (v === 'home') { $('title').textContent = 'Bourse'; renderHome(); }
+    window.scrollTo(0, 0);
+  }
+  function openDetail(sym) {
+    CUR = sym; RANGE = '1d'; DATA = null; var s = LIST.filter(function (x) { return x.sym === sym; })[0] || { sym: sym };
+    $('title').textContent = s.nom || sym; show('detail');
+    $('ranges').innerHTML = RANGES.map(function (r) { return '<button data-r="' + r[0] + '"' + (r[0] === RANGE ? ' class="on"' : '') + '>' + r[1] + '</button>'; }).join('');
+    var a = AL[sym] || {}; $('aH').value = a.above != null ? String(a.above).replace('.', ',') : ''; $('aB').value = a.below != null ? String(a.below).replace('.', ',') : ''; $('aM').value = a.move != null ? String(a.move).replace('.', ',') : '';
+    $('alNote').textContent = B ? 'Vérifiées toutes les 15 minutes environ, même appli fermée (notification).' : 'Sur PC, les alertes ne sont vérifiées que dans l\'appli ouverte.';
+    $('lD').value = new Date().toISOString().slice(0, 10);
+    var q = CACHE[sym]; if (q) { DATA = { sym: sym, cur: q.cur, price: q.price, prev: q.prev, ex: q.ex, pts: q.pts, per: q.per }; paint(); }
+    renderPf(); loadRange();
+  }
+  function loadRange() {
+    var sym = CUR, rg = RANGE;
+    chart(sym, rg).then(function (d) {
+      if (sym !== CUR || rg !== RANGE) return;
+      if (!d) { $('cross').textContent = 'Cours indisponibles pour le moment.'; return; }
+      if (rg !== '1d' && DATA && DATA.prev != null) d.prev1d = DATA.prev1d != null ? DATA.prev1d : DATA.prev;
+      DATA = d; paint(); renderPf(); checkAlertsHere(d);
+    });
+  }
+  function paint() {
+    var d = DATA; if (!d) return;
+    var ref = RANGE === '1d' ? d.prev : (d.pts.length ? d.pts[0][1] : null), ch = d.price != null && ref ? d.price - ref : null;
+    $('dPrice').textContent = d.price != null ? money(d.price, d.cur) : '—';
+    var lab = { '1d': 'aujourd\'hui', '5d': 'sur 5 jours', '1mo': 'sur 1 mois', '6mo': 'sur 6 mois', ytd: 'depuis le 1er janvier', '1y': 'sur 1 an', '5y': 'sur 5 ans', max: 'depuis l\'entrée en bourse' }[RANGE];
+    $('dChg').innerHTML = ch != null ? '<span class="pill ' + cls(ch) + '">' + sgn(ch, d.cur) + ' · ' + pct(ch / ref * 100) + '</span> <span class="state">' + lab + '</span>' : '';
+    $('dEx').innerHTML = esc(d.sym) + (d.ex ? ' · ' + esc(d.ex) : '') + (d.per ? ' · ' + marketTxt(d) : '');
+    var st = [['Ouverture du jour', null], ['Plus haut du jour', d.dayHi], ['Plus bas du jour', d.dayLo], ['Clôture précédente', RANGE === '1d' ? d.prev : null], ['Plus haut sur 52 sem.', d.hi52], ['Plus bas sur 52 sem.', d.lo52]].filter(function (x) { return x[1] != null; });
+    $('dStats').innerHTML = st.map(function (x) { return '<div><small>' + x[0] + '</small><b>' + money(x[1], d.cur) + '</b></div>'; }).join('') + (d.vol ? '<div><small>Volume échangé</small><b>' + fr(d.vol, 0) + '</b></div>' : '') +
+      (d.t ? '<div><small>Dernier cours</small><b>' + new Date(d.t).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + '</b></div>' : '');
+    draw(-1);
+  }
+  function draw(hx) {
+    var cv = $('chart'), r = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight; cv.width = w * r; cv.height = h * r;
+    var g = cv.getContext('2d'); g.scale(r, r); var d = DATA, pts = d && d.pts || [];
+    if (pts.length < 2) { g.fillStyle = '#7d8599'; g.font = '14px system-ui'; g.textAlign = 'center'; g.fillText(pts.length ? 'Pas encore assez de cours pour un graphique' : 'Chargement…', w / 2, h / 2); return; }
+    var prev = RANGE === '1d' ? d.prev : null, vs = pts.map(function (p) { return p[1]; }).concat(prev != null ? [prev] : []), mn = Math.min.apply(null, vs), mx = Math.max.apply(null, vs), pad = (mx - mn) * .08 || 1;
+    mn -= pad; mx += pad; var L = 4, Rr = 54, T = 8, Bm = 22, W = w - L - Rr, H = h - T - Bm;
+    var t0 = pts[0][0], t1 = pts[pts.length - 1][0];
+    if (RANGE === '1d' && d.per) { t0 = d.per.start * 1000; t1 = Math.max(t1, d.per.end * 1000); }
+    var X = function (t) { return L + (t - t0) / (t1 - t0 || 1) * W; }, Y = function (v) { return T + (mx - v) / (mx - mn) * H; };
+    var up = pts[pts.length - 1][1] >= (prev != null ? prev : pts[0][1]), col = up ? '#4fd18b' : '#ff6b6b';
+    g.font = '11.5px system-ui'; g.fillStyle = '#7d8599'; g.strokeStyle = '#ffffff10'; g.lineWidth = 1; g.textAlign = 'left';
+    for (var k = 0; k <= 4; k++) { var v = mn + (mx - mn) * k / 4, y = Y(v); g.beginPath(); g.moveTo(L, y); g.lineTo(L + W, y); g.stroke(); g.fillText(fr(v, v >= 1000 ? 0 : 2), L + W + 6, y + 4); }
+    var span = t1 - t0, fmt = span < 2 * 864e5 ? { hour: '2-digit', minute: '2-digit' } : span < 70 * 864e5 ? { day: 'numeric', month: 'short' } : span < 800 * 864e5 ? { month: 'short' } : { year: 'numeric' };
+    g.textAlign = 'center'; for (var j = 0; j <= 3; j++) { var tt = t0 + (t1 - t0) * (j + .5) / 4; g.fillText(new Date(tt).toLocaleString('fr-FR', fmt), X(tt), h - 5); }
+    if (prev != null) { g.strokeStyle = '#ffffff40'; g.setLineDash([3, 4]); g.beginPath(); g.moveTo(L, Y(prev)); g.lineTo(L + W, Y(prev)); g.stroke(); g.setLineDash([]); }
+    var gr = g.createLinearGradient(0, T, 0, T + H); gr.addColorStop(0, up ? '#4fd18b40' : '#ff6b6b40'); gr.addColorStop(1, '#00000000');
+    g.beginPath(); pts.forEach(function (p, i) { g[i ? 'lineTo' : 'moveTo'](X(p[0]), Y(p[1])); }); g.lineTo(X(pts[pts.length - 1][0]), T + H); g.lineTo(X(pts[0][0]), T + H); g.closePath(); g.fillStyle = gr; g.fill();
+    g.beginPath(); pts.forEach(function (p, i) { g[i ? 'lineTo' : 'moveTo'](X(p[0]), Y(p[1])); }); g.strokeStyle = col; g.lineWidth = 2; g.lineJoin = 'round'; g.stroke();
+    var lots = lotsOf(CUR); if (lots.length) { var n = 0, c = 0; lots.forEach(function (l) { n += l.q; c += l.q * l.p; }); var pm = c / n; if (pm >= mn && pm <= mx) { g.strokeStyle = '#7aa7ff90'; g.setLineDash([6, 4]); g.beginPath(); g.moveTo(L, Y(pm)); g.lineTo(L + W, Y(pm)); g.stroke(); g.setLineDash([]); g.fillStyle = '#7aa7ff'; g.textAlign = 'left'; g.fillText('mon prix', L + 4, Y(pm) - 5); } }
+    if (hx >= 0) {
+      var best = pts[0]; pts.forEach(function (p) { if (Math.abs(X(p[0]) - hx) < Math.abs(X(best[0]) - hx)) best = p; });
+      g.strokeStyle = '#ffffff60'; g.beginPath(); g.moveTo(X(best[0]), T); g.lineTo(X(best[0]), T + H); g.stroke();
+      g.fillStyle = col; g.beginPath(); g.arc(X(best[0]), Y(best[1]), 4.5, 0, 7); g.fill();
+      var f2 = span < 2 * 864e5 ? { hour: '2-digit', minute: '2-digit' } : { day: 'numeric', month: 'short', year: span > 400 * 864e5 ? 'numeric' : undefined };
+      $('cross').textContent = new Date(best[0]).toLocaleString('fr-FR', f2) + ' : ' + money(best[1], d.cur);
+    } else $('cross').textContent = '';
+  }
+  (function () {
+    var cv = $('chart'), mv = function (e) { var t = e.touches ? e.touches[0] : e, b = cv.getBoundingClientRect(); draw(t.clientX - b.left); if (e.cancelable) e.preventDefault(); };
+    cv.addEventListener('touchstart', mv, { passive: false }); cv.addEventListener('touchmove', mv, { passive: false }); cv.addEventListener('mousemove', mv);
+    var end = function () { draw(-1); }; cv.addEventListener('touchend', end); cv.addEventListener('mouseleave', end);
+  })();
+  $('ranges').onclick = function (e) { var b = e.target.closest('[data-r]'); if (!b) return; RANGE = b.dataset.r; Array.prototype.forEach.call(this.children, function (x) { x.classList.toggle('on', x === b); }); DATA && (DATA.pts = []); draw(-1); loadRange(); };
+
+  function renderPf() {
+    if (!CUR) return;
+    var q = CACHE[CUR] || DATA, cur = q && q.cur || 'USD', p = position(CUR, q, RATES[cur]), L = lotsOf(CUR);
+    $('lPL').textContent = 'Prix d\'achat par action (' + (SYM[cur] || cur) + ')';
+    $('dPfSum').innerHTML = p ? '<b class="' + cls(p.gainE != null ? p.gainE : p.gain) + '">' + (p.gainE != null ? sgn(p.gainE, 'EUR') : sgn(p.gain, cur)) + '</b>' : '';
+    var head = p ? '<div class="kv" style="margin:0 0 8px"><div><small>Actions</small><b>' + fr(p.n, p.n % 1 ? 2 : 0) + '</b></div><div><small>Prix moyen</small><b>' + money(p.cost / p.n, cur) + '</b></div>' +
+      '<div><small>Valeur</small><b>' + money(p.val, cur) + (cur !== 'EUR' && p.valE != null ? '<br><span class="state">' + money(p.valE, 'EUR') + '</span>' : '') + '</b></div>' +
+      '<div><small>Gain ou perte</small><b class="' + cls(p.gain) + '">' + sgn(p.gain, cur) + ' (' + pct(p.gainPct) + ')</b>' + (cur !== 'EUR' && p.gainE != null ? '<br><b class="' + cls(p.gainE) + '">' + sgn(p.gainE, 'EUR') + ' (' + pct(p.gainEPct) + ')</b>' : '') + '</div>' +
+      (p.dayE != null ? '<div><small>Aujourd\'hui</small><b class="' + cls(p.dayE) + '">' + sgn(p.dayE, 'EUR') + '</b></div>' : '') + '</div>' +
+      (cur !== 'EUR' && !p.allEur ? '<p class="note">Gain en euros calculé au taux de change actuel pour les achats sans montant en euros.</p>' : '') : '';
+    $('lots').innerHTML = head + (L.length ? L.map(function (l) {
+      return '<div class="lot"><div class="t"><b>' + fr(l.q, l.q % 1 ? 2 : 0) + ' × ' + money(l.p, cur) + '</b><br><small>' + (l.d ? new Date(l.d).toLocaleDateString('fr-FR') : '') + (l.eur != null ? ' · payé ' + money(l.eur, 'EUR') : '') + '</small></div><button class="btn sm del" data-x="' + l.id + '">Supprimer</button></div>';
+    }).join('') : '<p class="note" style="margin:0">Aucun achat noté.</p>');
+    Array.prototype.forEach.call($('lots').querySelectorAll('[data-x]'), function (b) { b.onclick = function () { if (!confirm('Supprimer cet achat ?')) return; LOTS[CUR] = lotsOf(CUR).filter(function (l) { return l.id !== b.dataset.x; }); if (!LOTS[CUR].length) delete LOTS[CUR]; save(); publish(); renderPf(); draw(-1); }; });
+  }
+  $('bLot').onclick = function () {
+    var q = num($('lQ').value), p = num($('lP').value), e = num($('lE').value);
+    if (!q || q <= 0 || !p || p <= 0) { toast('Indiquez le nombre d\'actions et le prix d\'achat.'); return; }
+    (LOTS[CUR] = lotsOf(CUR)).push({ id: uid(), q: q, p: p, eur: e != null && e > 0 ? e : null, d: $('lD').value || '' });
+    save(); publish(); $('lQ').value = $('lP').value = $('lE').value = ''; $('addLot').open = false; toast('Achat enregistré'); renderPf(); draw(-1);
+    var cur = (CACHE[CUR] || DATA || {}).cur; if (cur && RATES[cur] == null) fx(cur).then(function (v) { RATES[cur] = v; renderPf(); });
+  };
+
+  /* ---------- alertes ---------- */
+  function syncAlerts() {
+    var rules = Object.keys(AL).map(function (s) { var a = AL[s], l = LIST.filter(function (x) { return x.sym === s; })[0]; return { id: s, sym: s, nom: (l && l.nom) || s, above: a.above, below: a.below, move: a.move }; });
+    if (B && B.alerts) B.alerts(JSON.stringify({ on: rules.length > 0, rules: rules }));
+  }
+  $('bAl').onclick = function () {
+    var a = { above: num($('aH').value), below: num($('aB').value), move: num($('aM').value) };
+    if (a.above == null && a.below == null && a.move == null) { delete AL[CUR]; } else AL[CUR] = a;
+    save(); syncAlerts(); toast(AL[CUR] ? 'Alertes enregistrées' : 'Aucune alerte pour cette action');
+  };
+  $('bAlX').onclick = function () { delete AL[CUR]; $('aH').value = $('aB').value = $('aM').value = ''; save(); syncAlerts(); toast('Alertes effacées'); };
+  var SEEN = ls('vu') || {};
+  function checkAlertsHere(d) {   // PC et appli ouverte : prévenir dans la page
+    if (B || !d || d.price == null || !AL[d.sym]) return;
+    var a = AL[d.sym], k = function (x, on) { var was = SEEN[d.sym + x]; SEEN[d.sym + x] = on; if (on && !was) toast(d.sym + ' : alerte « ' + x + ' » (' + money(d.price, d.cur) + ')'); };
+    if (a.above != null) k('au-dessus de ' + fr(a.above), d.price >= a.above);
+    if (a.below != null) k('en dessous de ' + fr(a.below), d.price <= a.below);
+    ls('vu', SEEN);
+  }
+
+  /* ---------- ajouter / retirer ---------- */
+  var tS = 0;
+  $('bAdd').onclick = function () { $('title').textContent = 'Ajouter'; show('add'); $('q').value = ''; $('results').innerHTML = ''; setTimeout(function () { $('q').focus(); }, 50); };
+  $('q').oninput = function () {
+    clearTimeout(tS); var v = this.value.trim(); if (v.length < 2) { $('results').innerHTML = ''; return; }
+    tS = setTimeout(function () {
+      $('results').innerHTML = '<p class="note">Recherche…</p>';
+      search(v).then(function (l) {
+        if ($('q').value.trim() !== v) return;
+        var direct = /^[\^A-Z0-9.=\-]{1,12}$/i.test(v) ? [{ symbol: v.toUpperCase(), shortname: 'Ajouter le symbole « ' + v.toUpperCase() + ' »', exchDisp: '' }] : [];
+        l = l.length ? l : direct;
+        $('results').innerHTML = l.length ? l.map(function (x, i) { return '<button class="res" data-i="' + i + '"><div class="t"><b>' + esc(x.longname || x.shortname || x.symbol) + '</b><br><small>' + esc(x.symbol) + (x.exchDisp ? ' · ' + esc(x.exchDisp) : '') + (x.typeDisp ? ' · ' + esc(x.typeDisp) : '') + '</small></div><span class="btn sm">Ajouter</span></button>'; }).join('')
+          : '<p class="note">Rien trouvé' + (B ? '' : ' (sur PC, la recherche passe par le relais réseau)') + '.</p>';
+        Array.prototype.forEach.call($('results').querySelectorAll('[data-i]'), function (b) {
+          b.onclick = function () {
+            var x = l[+b.dataset.i]; if (!LIST.some(function (s) { return s.sym === x.symbol; })) { LIST.push({ sym: x.symbol, nom: /^Ajouter le symbole/.test(x.shortname || '') ? '' : (x.shortname || x.longname || '') }); save(); }
+            show('home'); refreshAll(true); toast((x.shortname || x.symbol) + ' ajouté');
+          };
+        });
+      });
+    }, 350);
+  };
+  $('bRemove').onclick = function () {
+    if (!confirm('Retirer cette action de la liste ?' + (lotsOf(CUR).length ? ' Vos achats notés seront aussi effacés.' : ''))) return;
+    LIST = LIST.filter(function (s) { return s.sym !== CUR; }); delete LOTS[CUR]; delete AL[CUR]; delete CACHE[CUR]; save(); ls('cache', CACHE); publish(); syncAlerts(); show('home');
+  };
+
+  $('bBack').onclick = function () { if (history.state && history.state.bourse) history.back(); else show('home'); };
+  $('bRefresh').onclick = function () { if (VIEW === 'detail') loadRange(); refreshAll(); };
+  $('bQuit').onclick = function () { if (B && B.quit) B.quit(); else window.close(); };
+  window.addEventListener('popstate', function () { if (VIEW !== 'home') show('home'); });
+  window.addEventListener('resize', function () { if (VIEW === 'detail') draw(-1); });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) { refreshAll(true); if (VIEW === 'detail') loadRange(); } });
+  // demande de Majordome ou de Socle : {sym} ouvre la fiche de l'action
+  window.onSocle = function (a) {
+    var o = a; if (typeof a === 'string') o = J(a, {}); if (!o || !o.sym) return;
+    var sym = String(o.sym).toUpperCase(); if (!/^[\^A-Z0-9.=\-]{1,15}$/.test(sym)) return;
+    if (!LIST.some(function (s) { return s.sym === sym; })) { LIST.push({ sym: sym, nom: '' }); save(); }
+    openDetail(sym);
+  };
+  // ouverture directe d'une action : bourse.html#ANT (Socle, Majordome)
+  var h = decodeURIComponent((location.hash || '').slice(1));
+  show('home'); refreshAll(true);
+  if (h && /^[\^A-Z0-9.=\-]{1,15}$/i.test(h)) { if (!LIST.some(function (s) { return s.sym === h.toUpperCase(); })) { LIST.push({ sym: h.toUpperCase(), nom: '' }); save(); } openDetail(h.toUpperCase()); }
+  setInterval(function () { if (!document.hidden) { refreshAll(true); if (VIEW === 'detail' && RANGE === '1d') loadRange(); } }, 60000);
+  syncAlerts();
+})();
+</script>
+</body>
+</html>

@@ -1431,6 +1431,7 @@
     ['Minuteurs, réveils, rappels', ['Mets un minuteur de 10 minutes', 'Minuteur de 8 minutes pour les pâtes', 'Combien de temps reste-t-il ?', 'Lance le chronomètre', 'Réveille-moi demain à 6 h 30', 'Rappelle-moi d\'appeler le plombier à 17 h', 'Rappelle-moi dans 20 minutes de sortir le linge', 'Quels sont mes rappels ?']],
     ['Météo et vent', ['Quel temps fait-il ?', 'La météo de demain', 'Est-ce qu\'il va pleuvoir ?', 'Quel temps à Marseille demain ?', 'Y a-t-il du vent pour monter l\'échafaudage ?', 'Y a-t-il une vigilance météo ?', 'La météo de la semaine']],
     ['Actualités', ['Les titres', 'L\'essentiel', 'Les titres du sport']],
+    ['Bourse', ['Comment va Anthropic ?', 'Le cours de l\'action Airbus', 'Mon portefeuille']],
     ['Agenda', ['Qu\'est-ce que j\'ai aujourd\'hui ?', 'Qu\'est-ce que j\'ai demain ?', 'Mon prochain rendez-vous', 'Ajoute un rendez-vous chez le dentiste jeudi à 14 h']],
     ['Notes et listes', ['Note : commander les vis de 6', 'Ajoute du pain à la liste de courses', 'Lis ma liste de courses', 'Enlève le pain de la liste', 'Lis mes notes']],
     ['Budget (jamais de solde lu)', ['J\'ai dépensé 45 euros de carburant sur le compte courant', 'J\'ai payé 12,50 € au restaurant par carte']],
@@ -1610,7 +1611,7 @@
   }
   MJ.settingsSheet = settingsSheet;
   /* Apparence : sphère ou visage animé ; personnalisation du visage avec aperçu en direct */
-  var MJ_VERSION = '19 novembre 2026 (IA en ligne)';   // affichée dans Réglages › Apparence : pour vérifier que la mise à jour est installée
+  var MJ_VERSION = '19 novembre 2026 (bourse)';   // affichée dans Réglages › Apparence : pour vérifier que la mise à jour est installée
   var FACEOPT = {
     faceStyle: ['Style', [['naturel', 'Naturel'], ['holo', 'Hologramme']]],
     faceCoiffure: ['Coiffure', [['long', 'Longs lisses'], ['ondules', 'Longs ondulés'], ['frange', 'Longs avec frange'], ['carre', 'Carré'], ['court', 'Courts'], ['chignon', 'Chignon'], ['boucles', 'Bouclés']]],

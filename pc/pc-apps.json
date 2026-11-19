@@ -272,6 +272,16 @@
       "data": { "ls": ["meteo-"] }
     },
     {
+      "id": "bourse",
+      "android": "bourse",
+      "name": "Bourse",
+      "short_name": "Bourse",
+      "description": "Cours des actions, graphique, portefeuille en euros et alertes",
+      "theme_color": "#0e1220",
+      "background_color": "#0e1220",
+      "data": { "ls": ["bourse:"] }
+    },
+    {
       "id": "ciel",
       "android": "ciel",
       "name": "Ciel",
@@ -628,7 +638,7 @@
       "theme_color": "#070b14",
       "background_color": "#070b14",
       "vendor": ["vosk/vosk-worker.js"],
-      "copies": { "mj-nlu.js": "applis/www-majordome/mj-nlu.js", "mj-orb.js": "applis/www-majordome/mj-orb.js", "mj-depts.js": "applis/www-majordome/mj-depts.js", "mj-app.js": "applis/www-majordome/mj-app.js", "mj-fx.js": "applis/www-majordome/mj-fx.js", "mj-appris.js": "applis/www-majordome/mj-appris.js", "mj-plus.js": "applis/www-majordome/mj-plus.js", "mj-social.js": "applis/www-majordome/mj-social.js", "mj-ambiance.js": "applis/www-majordome/mj-ambiance.js", "mj-carnet.js": "applis/www-majordome/mj-carnet.js", "mj-ia.js": "applis/www-majordome/mj-ia.js", "mj-maison.js": "applis/www-majordome/mj-maison.js", "mj-somfy.js": "applis/www-majordome/mj-somfy.js", "mj-montre.js": "applis/www-majordome/mj-montre.js", "mj-applis.js": "applis/www-majordome/mj-applis.js", "mj-lanceur.js": "applis/www-majordome/mj-lanceur.js", "mj-messages.js": "applis/www-majordome/mj-messages.js", "mj-phon.js": "applis/www-majordome/mj-phon.js", "mj-voix.js": "applis/www-majordome/mj-voix.js", "mj-voix-worker.js": "applis/www-majordome/mj-voix-worker.js" },
+      "copies": { "mj-nlu.js": "applis/www-majordome/mj-nlu.js", "mj-orb.js": "applis/www-majordome/mj-orb.js", "mj-depts.js": "applis/www-majordome/mj-depts.js", "mj-app.js": "applis/www-majordome/mj-app.js", "mj-fx.js": "applis/www-majordome/mj-fx.js", "mj-appris.js": "applis/www-majordome/mj-appris.js", "mj-plus.js": "applis/www-majordome/mj-plus.js", "mj-social.js": "applis/www-majordome/mj-social.js", "mj-ambiance.js": "applis/www-majordome/mj-ambiance.js", "mj-carnet.js": "applis/www-majordome/mj-carnet.js", "mj-ia.js": "applis/www-majordome/mj-ia.js", "mj-bourse.js": "applis/www-majordome/mj-bourse.js", "mj-maison.js": "applis/www-majordome/mj-maison.js", "mj-somfy.js": "applis/www-majordome/mj-somfy.js", "mj-montre.js": "applis/www-majordome/mj-montre.js", "mj-applis.js": "applis/www-majordome/mj-applis.js", "mj-lanceur.js": "applis/www-majordome/mj-lanceur.js", "mj-messages.js": "applis/www-majordome/mj-messages.js", "mj-phon.js": "applis/www-majordome/mj-phon.js", "mj-voix.js": "applis/www-majordome/mj-voix.js", "mj-voix-worker.js": "applis/www-majordome/mj-voix-worker.js" },
       
       "extra": ["../shared/apps/agenda.js"],
       "patches": [],

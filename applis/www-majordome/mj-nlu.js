@@ -494,6 +494,7 @@
     ['ciel', 'Ciel', 'fr.magformation13.ciel', /\b(ciel)\b/],
     ['actualites', 'Actualités', 'fr.magformation13.actualites', /\b(actualites|actu|actus)\b/],
     ['budget', 'Budget', 'fr.magformation13.budget', /\b(budget|mes comptes)\b/],
+    ['bourse', 'Bourse', 'fr.magformation13.bourse', /\b(bourse|l appli bourse)\b/],
     ['musique', 'Mélodie', 'fr.magformation13.musique', /\b(melodie|lecteur de musique|ma musique)\b/],
     ['ondes', 'Ondes', 'fr.magformation13.ondes', /\b(ondes|podcasts?)\b/],
     ['ecran', 'Écran', 'fr.magformation13.ecran', /\b(ecran|videos?)\b/],
@@ -1398,6 +1399,14 @@
     if (new RegExp('^(?:efface|supprime|oublie|vide)(?: moi)? (?:mes |les |tous les |toutes les )?' + MW + '(?: lus?)?$').test(t)) return R('msgs', { act: 'clear' });
     if (new RegExp('^(?:marque|mets?) (?:mes |les |tous les )?' + MW + ' (?:comme )?lus?$').test(t)) return R('msgs', { act: 'markread' });
     // --- carnet des phrases non comprises ---
+    // Bourse : « comment va Anthropic ? », « le cours de l'action Airbus », « mon portefeuille »
+    if (/^(?:(?:comment va|comment se porte|ou en est|combien vaut|combien valent|donne moi|dis moi|montre moi) )?(?:mon portefeuille|mes actions|la bourse|ma bourse)(?: en bourse| aujourd hui| ce matin| ce soir)*$/.test(t)) return R('bourse', { q: '' });
+    var bm = /^(?:comment va|comment se porte|comment vont|ou en est|ou en sont|combien vaut|combien coute|combien valent|quel est le cours de|quel est le cours|donne moi le cours de|dis moi le cours de|le cours de|cours de|cours)(?: l action| les actions| le titre| l entreprise)?(?: de la| de l| des| de| d| du)? (.+?)(?: en bourse| aujourd hui| ce matin| ce soir| actuellement| maintenant)*$/.exec(t);
+    if (bm) {
+      var bq = bm[1].replace(/^(?:l |la |le |les )/, '').trim(), bnames = (root.MJNLU && root.MJNLU.bourse) || [];
+      var kw = /^(?:combien vaut|combien coute|quel est le cours|donne moi le cours|dis moi le cours|le cours|cours)/.test(t) || /\b(?:action|actions|titre|bourse)\b/.test(t);
+      if (bq && bq.length <= 40 && !/^(?:tu|vous|ca|ta|ton|la meteo|le temps|ma journee|l agenda)$/.test(bq) && (kw || bnames.indexOf(bq) >= 0 || /^anthropic$/.test(bq))) return R('bourse', { q: bq });
+    }
     if (/^(?:montre|affiche|ouvre|lis|voir|montre moi)? ?(?:le |mon )?carnet(?: des phrases)?(?: non comprises| incomprises)?$|^(?:quelles|qu est ce que tu n as pas compris|quelles phrases n as tu pas comprises|phrases non comprises)$/.test(t)) return R('carnet', { act: 'show' });
     if (/^(?:envoie|envoyer|envoi|partage|partager|exporte|exporter) (?:le |mon )?carnet(?: des phrases)?(?: non comprises| incomprises)?(?: a claude)?$/.test(t)) return R('carnet', { act: 'send' });
     if (/^(?:vide|vider|efface|effacer) (?:le |mon )?carnet(?: des phrases)?(?: non comprises| incomprises)?$/.test(t)) return R('carnet', { act: 'clear' });

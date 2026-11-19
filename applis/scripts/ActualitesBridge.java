@@ -77,6 +77,7 @@ import java.util.regex.Pattern;
 public class ActualitesBridge {
     // Serveurs des flux publics (médias) et des données publiques (vigilance, découpage administratif)
     static final String[] HOSTS = {
+        "query1.finance.yahoo.com", "query2.finance.yahoo.com",   // cours de bourse (Socle, Majordome)
         "www.francetvinfo.fr", "www.franceinfo.fr", "www.lemonde.fr", "www.lefigaro.fr", "www.liberation.fr",
         "www.rfi.fr", "www.france24.com", "www.20minutes.fr", "www.ouest-france.fr", "feeds.leparisien.fr",
         "www.la-croix.com", "fr.euronews.com", "www.euronews.com", "feeds.bbci.co.uk", "www.theguardian.com",
@@ -156,7 +157,7 @@ public class ActualitesBridge {
                     h.setConnectTimeout(10000); h.setReadTimeout(20000);
                     h.setUseCaches(false);
                     h.setInstanceFollowRedirects(false);
-                    h.setRequestProperty("User-Agent", "Actualites/1.0 (Android; lecteur de flux RSS)");
+                    h.setRequestProperty("User-Agent", cur.contains(".finance.yahoo.com/") ? "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36" : "Actualites/1.0 (Android; lecteur de flux RSS)");
                     h.setRequestProperty("Accept", "application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.9, application/json;q=0.8, */*;q=0.5");
                     h.setRequestProperty("Accept-Language", "fr-FR,fr;q=0.9,en;q=0.6");
                     int code = h.getResponseCode();

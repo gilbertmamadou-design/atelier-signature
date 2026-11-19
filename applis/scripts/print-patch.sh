@@ -442,7 +442,7 @@ public class MainActivity extends BridgeActivity {
     private final java.util.List<Object> extraBridges = new java.util.ArrayList<Object>();
     private void loadExtraBridges(WebView wv) {
         String pkg = MainActivity.class.getPackage().getName();
-        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge", "ReseauBridge", "LecteurBridge", "PdfBridge", "SolaireBridge", "SocleBridge", "FichiersBridge", "ActualitesBridge", "ToileBridge", "OfficeBridge", "MajordomeBridge", "VoyageBridge", "TraducteurBridge", "SereniteBridge", "LanguesBridge", "CorrecteurBridge", "CamerasBridge", "BtBridge", "MelodieBridge", "WifiBridge" }) {
+        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge", "ReseauBridge", "LecteurBridge", "PdfBridge", "SolaireBridge", "SocleBridge", "FichiersBridge", "ActualitesBridge", "ToileBridge", "OfficeBridge", "MajordomeBridge", "VoyageBridge", "TraducteurBridge", "SereniteBridge", "LanguesBridge", "CorrecteurBridge", "CamerasBridge", "BtBridge", "MelodieBridge", "WifiBridge", "BourseBridge" }) {
             try {
                 Class<?> k = Class.forName(pkg + "." + n);
                 Object o = k.getConstructor(android.app.Activity.class, WebView.class).newInstance(this, wv);
@@ -1697,7 +1697,7 @@ FSV="$(dirname "$F")/FileService.java"
 cp scripts/FileService.java "$FSV"
 sed -i "s/__PKG__/$PKG/" "$FSV"
 # Réveil, lever de soleil et endormissement (application Aube)
-for J in $(ls scripts/*Bridge.java 2>/dev/null | xargs -n1 basename 2>/dev/null | sed 's/\.java$//' | grep -vxE 'PdfBridge|MajordomeBridge|TraducteurBridge|SereniteBridge|LanguesBridge|CamerasBridge|BtBridge|MelodieBridge|WifiBridge'); do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
+for J in $(ls scripts/*Bridge.java 2>/dev/null | xargs -n1 basename 2>/dev/null | sed 's/\.java$//' | grep -vxE 'PdfBridge|MajordomeBridge|TraducteurBridge|SereniteBridge|LanguesBridge|CamerasBridge|BtBridge|MelodieBridge|WifiBridge|BourseBridge'); do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
 for J in AlarmService AlarmReceiver WallpaperJob WallpaperTile LauncherService LauncherA11y LauncherMedia WidgetProvider SauvegardeJob PhotoCamera EcranPlayer EcranMedia DictaService MeteoPersoJob MelodieVolume MelodieEq; do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
 # Bibliothèque des tâches de fond
 G=android/app/build.gradle
@@ -2019,6 +2019,11 @@ if [ "$APP" = "wifi" ]; then
   cp scripts/WifiBridge.java "$(dirname "$F")/WifiBridge.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/WifiBridge.java"
   addperm INTERNET
   addraw '<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" /><uses-permission android:name="android.permission.CHANGE_WIFI_STATE" /><uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /><uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" /><uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" /><uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" />'
+fi
+# Bourse : cours (Yahoo Finance), graphique, portefeuille, alertes appli fermée (BourseBridge.java, copié ici seulement)
+if [ "$APP" = "bourse" ]; then
+  cp scripts/BourseBridge.java "$(dirname "$F")/BourseBridge.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/BourseBridge.java"
+  addperm INTERNET ACCESS_NETWORK_STATE POST_NOTIFICATIONS RECEIVE_BOOT_COMPLETED
 fi
 # Bluetooth : appareils jumelés, recherche (classique et basse consommation), jumelage, connexion audio, oubli.
 # BtBridge.java copié ici seulement. Android 12+ : « Appareils à proximité » (BLUETOOTH_SCAN sans localisation, BLUETOOTH_CONNECT).

@@ -19,6 +19,8 @@
    ===================================================================== */
 const ORIGINS = ['https://gilbertmamadou-design.github.io'];
 const HOSTS = [
+  // Bourse : cours (Yahoo Finance)
+  'finance.yahoo.com',
   // Actualités : médias sans CORS
   'lemonde.fr', 'lefigaro.fr', 'liberation.fr', 'rfi.fr', 'france24.com', '20minutes.fr', 'ouest-france.fr', 'leparisien.fr',
   'la-croix.com', 'euronews.com', 'bbci.co.uk', 'theguardian.com', 'brut.media', 'sudouest.fr', 'nicematin.com', 'actu.fr', 'meteoalarm.org',

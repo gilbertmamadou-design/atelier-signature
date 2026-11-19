@@ -124,7 +124,7 @@
      lui ; pour les autres sites (flux de podcasts…), le relais n'est essayé qu'après un échec direct.
      Sans relais : rien ne change, la page affiche son message d'erreur habituel. */
   M.net = {
-    HOSTS: ['lemonde.fr', 'lefigaro.fr', 'liberation.fr', 'rfi.fr', 'france24.com', '20minutes.fr', 'ouest-france.fr', 'leparisien.fr',
+    HOSTS: ['finance.yahoo.com', 'lemonde.fr', 'lefigaro.fr', 'liberation.fr', 'rfi.fr', 'france24.com', '20minutes.fr', 'ouest-france.fr', 'leparisien.fr',
       'la-croix.com', 'euronews.com', 'bbci.co.uk', 'theguardian.com', 'brut.media', 'sudouest.fr', 'nicematin.com', 'actu.fr', 'meteoalarm.org',
       'ccmixter.org', 'youtube.com', 'legifrss.org', 'service-public.gouv.fr', 're.jrc.ec.europa.eu', 'gutenberg.org', 'gutendex.com', 'ws-export.wmcloud.org'],
     proxy: function () { var p = M.store.get('mag-pc-relais', ''); return /^(https:\/\/|http:\/\/localhost[:/])[^\s]+$/.test(p || '') ? p : ''; },
