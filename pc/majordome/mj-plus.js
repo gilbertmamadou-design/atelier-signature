@@ -128,6 +128,31 @@
     });
   };
 
+  /* ---------- Appels entrants à la voix (Android) ----------
+     Pendant l'appel, Majordome ne parle pas (sa voix passerait dans la communication) : réponses écrites seulement. */
+  function callMsg(r, what) {
+    var t = r === 'ok' ? what
+      : r === 'perm' ? 'Autorisez Majordome à répondre aux appels (fenêtre d\'Android), puis redites la commande.'
+      : r === 'pasappel' ? 'Aucun appel en cours.'
+      : r === 'ancien' ? 'Cette version d\'Android ne permet pas à une appli de répondre aux appels.'
+      : 'Le téléphone a refusé l\'action.';
+    return X.answer({ say: r === 'ok' ? '' : t, show: t, k: 'Téléphone' }).done;
+  }
+  function needAndroid() { return X.answer('Décrocher et raccrocher se font depuis Majordome sur le téléphone.').done; }
+  H.phone_answer = function (p) {
+    if (!X.ANDROID || !X.B.callAnswer) return needAndroid();
+    var r = X.B.callAnswer(!!p.speaker);
+    return callMsg(r, p.speaker ? 'Appel décroché, haut-parleur activé.' : 'Appel décroché.');
+  };
+  H.phone_speaker = function (p) {
+    if (!X.ANDROID || !X.B.callSpeaker) return needAndroid();
+    return callMsg(X.B.callSpeaker(!!p.on), p.on ? 'Haut-parleur activé.' : 'Haut-parleur désactivé.');
+  };
+  H.phone_end = function () {
+    if (!X.ANDROID || !X.B.callEnd) return needAndroid();
+    return callMsg(X.B.callEnd(), 'Appel terminé.');
+  };
+
   /* ---------- Au revoir : ce qu'il reste à faire avant de partir ----------
      Rendez-vous restants de la journée, pluie ou vent à prévoir, puis lumières et volets à fermer (avec accord). */
   H.depart = function () {

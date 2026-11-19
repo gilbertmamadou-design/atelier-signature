@@ -339,6 +339,7 @@ public class MajordomeBridge {
         JSONObject o; try { o = new JSONObject(json == null ? "{}" : json); } catch (Exception e) { o = new JSONObject(); }
         if (!hasMic()) { ui.post(new Runnable() { public void run() { a.requestPermissions(new String[]{ Manifest.permission.RECORD_AUDIO }, REQ_MIC); } }); emit("error", obj("msg", "Autorisez le micro, puis touchez à nouveau le micro.")); return; }
         ambientRelease();
+        if (ringing()) ringQuiet(true);   // un appel sonne : la sonnerie se tait le temps d'écouter « décroche » ou « raccroche »
         final int max = Math.max(3000, o.optInt("maxMs", 9000));
         if ("android".equals(o.optString("engine"))) { ui.post(new Runnable() { public void run() { androidListen(max); } }); return; }
         if (!modelReady(a)) { emit("error", obj("msg", "Le modèle vocal n'est pas installé.")); return; }
@@ -1039,6 +1040,66 @@ public class MajordomeBridge {
             } catch (Throwable t) { toast("Appel impossible : " + t.getMessage()); }
         } });
     }
+    /* ---- Appels entrants à la voix : « décroche », « décroche et mets le haut-parleur », « haut-parleur », « raccroche ».
+       Android : TelecomManager (autorisation « Répondre aux appels », demandée la première fois). Le haut-parleur passe par
+       AudioManager ; certains téléphones laissent seul le composeur choisir la sortie du son pendant un appel. ---- */
+    private boolean ringMuted = false;
+    private android.telecom.TelecomManager telecom() { return (android.telecom.TelecomManager) a.getSystemService(Context.TELECOM_SERVICE); }
+    private boolean ringing() { try { return has(Manifest.permission.READ_PHONE_STATE) && telecom().isRinging(); } catch (Throwable t) { return false; } }
+    private boolean inCall() { try { return has(Manifest.permission.READ_PHONE_STATE) && telecom().isInCall(); } catch (Throwable t) { return false; } }
+    private boolean callPerms() {
+        if (Build.VERSION.SDK_INT < 26) return false;
+        if (has(Manifest.permission.ANSWER_PHONE_CALLS) && has(Manifest.permission.READ_PHONE_STATE)) return true;
+        ui.post(new Runnable() { public void run() { a.requestPermissions(new String[]{ Manifest.permission.ANSWER_PHONE_CALLS, Manifest.permission.READ_PHONE_STATE }, REQ_PERM); } });
+        return false;
+    }
+    /** sonnerie coupée le temps de dire la commande (rétablie après l'appel ou au bout de 20 s) */
+    void ringQuiet(boolean on) {
+        try {
+            AudioManager am = (AudioManager) a.getSystemService(Context.AUDIO_SERVICE);
+            if (on && !ringMuted) { am.adjustStreamVolume(AudioManager.STREAM_RING, AudioManager.ADJUST_MUTE, 0); ringMuted = true; ui.postDelayed(new Runnable() { public void run() { ringQuiet(false); } }, 20000); }
+            else if (!on && ringMuted) { am.adjustStreamVolume(AudioManager.STREAM_RING, AudioManager.ADJUST_UNMUTE, 0); ringMuted = false; }
+        } catch (Throwable t) { }
+    }
+    void speaker(boolean on) {
+        try {
+            AudioManager am = (AudioManager) a.getSystemService(Context.AUDIO_SERVICE);
+            if (Build.VERSION.SDK_INT >= 31) {
+                if (on) { for (android.media.AudioDeviceInfo d : am.getAvailableCommunicationDevices()) if (d.getType() == android.media.AudioDeviceInfo.TYPE_BUILTIN_SPEAKER) { am.setCommunicationDevice(d); break; } }
+                else am.clearCommunicationDevice();
+            }
+            am.setSpeakerphoneOn(on);
+        } catch (Throwable t) { }
+    }
+    /** répondre à l'appel qui sonne ; speaker : haut-parleur ensuite. Retour : ok | perm | pasappel | ancien | erreur */
+    @JavascriptInterface public String callAnswer(final boolean spk) {
+        if (Build.VERSION.SDK_INT < 26) return "ancien";
+        if (!callPerms()) return "perm";
+        if (!ringing()) { if (spk && inCall()) { speakerSoon(true); return "ok"; } return "pasappel"; }
+        try { telecom().acceptRingingCall(); } catch (Throwable t) { return "erreur"; }
+        ringQuiet(false);
+        if (spk) speakerSoon(true);
+        return "ok";
+    }
+    private void speakerSoon(final boolean on) {   // la communication s'établit : on insiste deux fois
+        ui.postDelayed(new Runnable() { public void run() { speaker(on); } }, 700);
+        ui.postDelayed(new Runnable() { public void run() { speaker(on); } }, 2000);
+    }
+    @JavascriptInterface public String callSpeaker(boolean on) {
+        if (!callPerms()) return "perm";
+        if (!inCall()) return "pasappel";
+        speakerSoon(on); return "ok";
+    }
+    /** raccrocher (ou refuser l'appel qui sonne) */
+    @JavascriptInterface public String callEnd() {
+        if (Build.VERSION.SDK_INT < 28) return "ancien";
+        if (!callPerms()) return "perm";
+        if (!ringing() && !inCall()) return "pasappel";
+        try { boolean ok = telecom().endCall(); ringQuiet(false); return ok ? "ok" : "erreur"; } catch (Throwable t) { return "erreur"; }
+    }
+    /** état du téléphone pour la page : sonne, en appel */
+    @JavascriptInterface public String callState() { return "{\"ringing\":" + ringing() + ",\"inCall\":" + inCall() + "}"; }
+
     /** SMS : envoyé seulement après confirmation dans la page */
     @JavascriptInterface public void sms(final String num, final String text) {
         ui.post(new Runnable() { public void run() {

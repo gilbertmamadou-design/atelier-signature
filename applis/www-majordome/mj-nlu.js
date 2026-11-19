@@ -1390,6 +1390,13 @@
     if (new RegExp('^(?:est ce que |est ce qu )?(?:j ai|ai je|y a t il|il y a|tu as|on a|j ai recu|j ai eu|des|de|combien de|combien j ai de|combien ai je de)(?: des| de| du| d| un| une| nouveaux?| nouvelles?)*(?: nouveaux?| nouvelles?)? ' + MW + '\\b').test(t) || new RegExp('^(?:nouveaux? |des nouveaux? )?' + MW + '(?: non lus?)?$').test(t) && !/^(?:sms|messages?|textos?)$/.test(t)) return R('msgs', { act: 'count', app: appOf(t) });
     if (new RegExp('^(?:efface|supprime|oublie|vide)(?: moi)? (?:mes |les |tous les |toutes les )?' + MW + '(?: lus?)?$').test(t)) return R('msgs', { act: 'clear' });
     if (new RegExp('^(?:marque|mets?) (?:mes |les |tous les )?' + MW + ' (?:comme )?lus?$').test(t)) return R('msgs', { act: 'markread' });
+    // --- appel entrant : décrocher (avec ou sans haut-parleur), haut-parleur, raccrocher ---
+    var HP = '(?:(?:et )?(?:mets|met|mettre|active|allume|passe)(?: moi| le)?(?: en| sur)? (?:le )?haut parleur|(?:et )?(?:en|sur|avec) (?:le )?haut parleur)';
+    if ((m = new RegExp('^(?:decroche|decrocher|decrochez|reponds|repond|repondre|repondez|reponds moi|prends l appel(?:le)?|prend l appel(?:le)?|prends le|accepte l appel(?:le)?|reponds au telephone|reponds a l appel(?:le)?|decroche le telephone|repond au telephone)( ' + HP + ')?$').exec(t)))
+      return R('phone_answer', { speaker: !!m[1] });
+    if (new RegExp('^' + HP.replace('(?:et )?', '') + '$').test(t) || /^(?:haut parleur|le haut parleur|en haut parleur)$/.test(t)) return R('phone_speaker', { on: true });
+    if (/^(?:enleve|enlever|retire|coupe|desactive|eteins|arrete|stop) (?:le )?haut parleur$|^(?:sans|pas de) haut parleur$/.test(t)) return R('phone_speaker', { on: false });
+    if (/^(?:raccroche|raccrocher|raccrochez|refuse l appel(?:le)?|refuse|rejette l appel(?:le)?|rejette|ne reponds pas|ignore l appel(?:le)?|termine l appel(?:le)?|mets fin a l appel(?:le)?|coupe l appel(?:le)?|fin de l appel(?:le)?)$/.test(t)) return R('phone_end', {});
     if ((m = /^(?:reponds|repond|repondre|reponse|reponds lui|repond lui|reponds leur|repondez|repondez lui)\b ?(.*)$/.exec(t))) {
       var rest = m[1] || '', who = '', body = '', colon2 = P.raw.indexOf(':');
       var lui = /^(?:reponds|repond|repondez) (?:lui|leur)\b/.test(t) || /^(?:reponds|repond|repondez)(?:lui|leur)/.test(t.replace(/ /g, ''));
