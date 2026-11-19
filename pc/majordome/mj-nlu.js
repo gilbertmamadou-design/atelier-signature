@@ -1398,6 +1398,10 @@
     if (new RegExp('^(?:est ce que |est ce qu )?(?:j ai|ai je|y a t il|il y a|tu as|on a|j ai recu|j ai eu|des|de|combien de|combien j ai de|combien ai je de)(?: des| de| du| d| un| une| nouveaux?| nouvelles?)*(?: nouveaux?| nouvelles?)? ' + MW + '\\b').test(t) || new RegExp('^(?:nouveaux? |des nouveaux? )?' + MW + '(?: non lus?)?$').test(t) && !/^(?:sms|messages?|textos?)$/.test(t)) return R('msgs', { act: 'count', app: appOf(t) });
     if (new RegExp('^(?:efface|supprime|oublie|vide)(?: moi)? (?:mes |les |tous les |toutes les )?' + MW + '(?: lus?)?$').test(t)) return R('msgs', { act: 'clear' });
     if (new RegExp('^(?:marque|mets?) (?:mes |les |tous les )?' + MW + ' (?:comme )?lus?$').test(t)) return R('msgs', { act: 'markread' });
+    // --- carnet des phrases non comprises ---
+    if (/^(?:montre|affiche|ouvre|lis|voir|montre moi)? ?(?:le |mon )?carnet(?: des phrases)?(?: non comprises| incomprises)?$|^(?:quelles|qu est ce que tu n as pas compris|quelles phrases n as tu pas comprises|phrases non comprises)$/.test(t)) return R('carnet', { act: 'show' });
+    if (/^(?:envoie|envoyer|envoi|partage|partager|exporte|exporter) (?:le |mon )?carnet(?: des phrases)?(?: non comprises| incomprises)?(?: a claude)?$/.test(t)) return R('carnet', { act: 'send' });
+    if (/^(?:vide|vider|efface|effacer) (?:le |mon )?carnet(?: des phrases)?(?: non comprises| incomprises)?$/.test(t)) return R('carnet', { act: 'clear' });
     // --- appel entrant : décrocher (avec ou sans haut-parleur), haut-parleur, raccrocher ---
     var HP = '(?:(?:et )?(?:mets|met|mettre|active|allume|passe)(?: moi| le)?(?: en| sur)? (?:le )?haut parleur|(?:et )?(?:en|sur|avec) (?:le )?haut parleur)';
     if ((m = new RegExp('^(?:decroche|decrocher|decrochez|reponds|repond|repondre|repondez|reponds moi|prends l appel(?:le)?|prend l appel(?:le)?|prends le|accepte l appel(?:le)?|reponds au telephone|reponds a l appel(?:le)?|decroche le telephone|repond au telephone)( ' + HP + ')?$').exec(t)))

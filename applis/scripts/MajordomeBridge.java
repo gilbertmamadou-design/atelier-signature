@@ -1100,6 +1100,20 @@ public class MajordomeBridge {
     /** état du téléphone pour la page : sonne, en appel */
     @JavascriptInterface public String callState() { return "{\"ringing\":" + ringing() + ",\"inCall\":" + inCall() + "}"; }
 
+    /** Partager un texte (feuille de partage d'Android) : carnet des phrases non comprises, etc. */
+    @JavascriptInterface public void shareText(final String title, final String text) {
+        ui.post(new Runnable() { public void run() {
+            try {
+                Intent i = new Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_SUBJECT, title).putExtra(Intent.EXTRA_TEXT, text);
+                a.startActivity(Intent.createChooser(i, title).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            } catch (Throwable t) { toast("Partage impossible : " + t.getMessage()); }
+        } });
+    }
+    @JavascriptInterface public void copyText(final String label, final String text) {
+        ui.post(new Runnable() { public void run() {
+            try { ((android.content.ClipboardManager) a.getSystemService(Context.CLIPBOARD_SERVICE)).setPrimaryClip(android.content.ClipData.newPlainText(label, text)); toast("Copié"); } catch (Throwable t) { }
+        } });
+    }
     /** SMS : envoyé seulement après confirmation dans la page */
     @JavascriptInterface public void sms(final String num, final String text) {
         ui.post(new Runnable() { public void run() {
