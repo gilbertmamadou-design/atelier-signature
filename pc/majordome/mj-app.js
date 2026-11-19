@@ -433,7 +433,7 @@
     if (p.kind === 'hello') return answer(withSir('Bonjour') + '. Que puis-je faire pour vous ?');
     if (p.kind === 'howareyou') return answer('Tous mes circuits fonctionnent, merci. Et je reste à votre service.');
     if (p.kind === 'here') return answer(withSir('Je suis là') + '.');
-    return answer('Je suis ' + (S.name || 'Majordome') + ', un assistant à commandes, sans intelligence artificielle de conversation. Je comprends une liste de commandes en français : dites « qu\'est-ce que tu sais faire ? » pour les connaître.');
+    return answer('Je suis ' + (S.name || 'Majordome') + ', un assistant à commandes' + (S.iaOn && S.iaKey ? ', aidé par Claude en ligne pour les phrases difficiles.' : ', sans intelligence artificielle de conversation.') + ' Je comprends une liste de commandes en français : dites « qu\'est-ce que tu sais faire ? » pour les connaître.');
   };
   H.unknown = function (p) {
     var sg = p.suggest;
@@ -1610,7 +1610,7 @@
   }
   MJ.settingsSheet = settingsSheet;
   /* Apparence : sphère ou visage animé ; personnalisation du visage avec aperçu en direct */
-  var MJ_VERSION = '19 novembre 2026 (carnet)';   // affichée dans Réglages › Apparence : pour vérifier que la mise à jour est installée
+  var MJ_VERSION = '19 novembre 2026 (IA en ligne)';   // affichée dans Réglages › Apparence : pour vérifier que la mise à jour est installée
   var FACEOPT = {
     faceStyle: ['Style', [['naturel', 'Naturel'], ['holo', 'Hologramme']]],
     faceCoiffure: ['Coiffure', [['long', 'Longs lisses'], ['ondules', 'Longs ondulés'], ['frange', 'Longs avec frange'], ['carre', 'Carré'], ['court', 'Courts'], ['chignon', 'Chignon'], ['boucles', 'Bouclés']]],

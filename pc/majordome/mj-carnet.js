@@ -87,5 +87,7 @@
     var b = c.querySelector('[data-cn="send"]'); if (b) b.onclick = send;
     return c.done;
   };
-  MJ.carnet = { report: report, send: send, count: function () { return load().length; } };
+  /** note d'une phrase comprise grâce à la compréhension en ligne (mj-ia.js) : utile pour l'ajouter ensuite hors ligne */
+  function note(q, puis, intent) { var l = load(); l.push({ at: Date.now(), q: q, via: MJ.voiceTurn ? 'voix' : 'clavier', eng: MJ.voiceTurn ? (S.engine || '') : '', sg: '', puis: puis, intent: intent + ' (IA)' }); save(l); }
+  MJ.carnet = { report: report, send: send, note: note, count: function () { return load().length; } };
 })();
