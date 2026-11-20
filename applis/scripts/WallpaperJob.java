@@ -923,14 +923,14 @@ public class WallpaperJob extends JobService {
     static SharedPreferences vprefs(Context c) { return c.getSharedPreferences("toile_video", Context.MODE_PRIVATE); }
     static JSONObject videoCfg(Context c) {
         JSONObject o; try { o = new JSONObject(vprefs(c).getString("cfg", "{}")); } catch (Exception e) { o = new JSONObject(); }
-        try { o.put("existe", videoFile(c).exists()); } catch (Exception e) { }
+        try { File f = videoFile(c); o.put("existe", f.exists()); o.put("chemin", f.getAbsolutePath()); o.put("maj", f.lastModified()); } catch (Exception e) { }
         return o;
     }
     static void videoSave(Context c, String json) {
         try {
             JSONObject o = videoCfg(c), n = new JSONObject(json); JSONArray k = n.names();
             for (int i = 0; k != null && i < k.length(); i++) o.put(k.getString(i), n.get(k.getString(i)));
-            o.remove("existe"); vprefs(c).edit().putString("cfg", o.toString()).apply();
+            o.remove("existe"); o.remove("chemin"); o.remove("maj"); vprefs(c).edit().putString("cfg", o.toString()).apply();
         } catch (Exception e) { }
         Live.refresh();
     }
@@ -964,7 +964,7 @@ public class WallpaperJob extends JobService {
         if (credit != null) o.put("credit", credit);
         vprefs(c).edit().putString("cfg", o.toString()).apply();
         Live.refresh();
-        o.put("existe", true); return o.toString();
+        o.put("existe", true); o.put("chemin", f.getAbsolutePath()); o.put("maj", f.lastModified()); return o.toString();
     }
     /** image de la vidéo à l'instant ms (aperçu du découpage dans la page) */
     static String videoFrame(Context c, long ms) throws Exception {

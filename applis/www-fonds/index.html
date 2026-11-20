@@ -85,9 +85,19 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
 .vpv{position:relative;margin:4px auto 10px;max-width:220px;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#000}
 .vpv img{display:block;width:100%}
 .vpv i{position:absolute;background:rgba(0,0,0,.62);pointer-events:none}
-.vrow{display:flex;gap:12px;justify-content:center;align-items:center;margin:4px 0 10px}
-.vrow .vpv{margin:0;flex:1;min-width:0}
-.vres{width:88px;flex:none;position:relative;overflow:hidden;border-radius:12px;border:2px solid #8fb4ff;background:#000}
+.vstick{position:sticky;top:0;z-index:5;background:var(--bg2);margin:0 -16px 6px;padding:8px 16px 8px;border-bottom:1px solid var(--line);box-shadow:0 8px 14px -10px #000c}
+.vrow{display:flex;gap:12px;justify-content:center;align-items:flex-start}
+.vrow .vpv{margin:0;flex:none}
+.vpv video{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;display:block}
+.vmask{position:absolute;inset:0;pointer-events:none}
+.vres canvas{display:block;width:100%;height:100%}
+.vplay{display:flex;align-items:center;gap:10px;margin-top:8px}
+.vplay .btn{flex:none;padding:8px 14px}
+.vplay .tl{flex:1;height:6px;border-radius:9px;background:var(--bg4);position:relative;overflow:hidden}
+.vplay .tl b{position:absolute;top:0;bottom:0;background:#8fb4ff40}
+.vplay .tl i{position:absolute;top:0;bottom:0;width:3px;margin-left:-1px;background:var(--acc)}
+.vplay .tm{font-size:12px;color:var(--tx2);min-width:44px;text-align:right;font-variant-numeric:tabular-nums}
+.vres{flex:none;position:relative;overflow:hidden;border-radius:12px;border:2px solid #8fb4ff;background:#000}
 .vres img{position:absolute;max-width:none}
 .vcap{font-size:11px;color:var(--tx3);text-align:center;margin-top:4px}
 .vpv .gard{position:absolute;border:2px solid #8fb4ff;pointer-events:none;box-shadow:0 0 0 1px #0008}
@@ -391,6 +401,19 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
   // et ce qui reste est étiré sur l'écran. Par défaut : proportions gardées si la vidéo n'a pas à peu près le format de l'écran.
   function vRs(){ return (screen.width||9)/(screen.height||16); }
   function vProp(){ return V.prop !== undefined ? !!V.prop : Math.abs(((V.w||9)/(V.h||16))/vRs() - 1) > .15; }
+  var VID = null, VIMG = new Image(), vRaf = 0, VZ = [0, 1, 0, 1];
+  VIMG.onload = function(){ vresPaint(); };
+  function vSrc(){ var C = window.Capacitor; return V.chemin && C && C.convertFileSrc ? C.convertFileSrc(V.chemin) + '?m=' + (V.maj||0) : ''; }
+  // tailles des deux aperçus : assez petits pour rester visibles pendant les réglages
+  function vSize(){
+    var b = $('vpv'), e = $('vres'), box = $('vidBox'); if(!b || !e || !box) return;
+    var W = V.w||9, H = V.h||16, sr = (screen.width||9)/(screen.height||16), avail = box.clientWidth - 12;
+    var h = Math.min(Math.round(innerHeight * .3), 260), wv = h*W/H, wr = h*sr;
+    if(wv + wr > avail){ var k = avail/(wv + wr); h *= k; wv *= k; wr *= k; }
+    b.style.width = wv+'px'; b.style.height = h+'px'; e.style.width = wr+'px'; e.style.height = h+'px';
+    var c = $('vresC'); if(c){ var d = devicePixelRatio||1; c.width = Math.round(wr*d); c.height = Math.round(h*d); }
+    vresPaint();
+  }
   function vidDraw(){
     var b = $('vpv'); if(!b) return;
     var t=+V.haut||0, d=+V.bas||0, g=+V.gauche||0, r=+V.droite||0;
@@ -398,29 +421,77 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
     if(x1-x0 < .1){ x0=0; x1=1; } if(y1-y0 < .1){ y0=0; y1=1; }
     if(vProp()){ var ra=(x1-x0)*W/((y1-y0)*H);
       if(ra>rs){ var nw=(y1-y0)*H*rs/W, cx=(x0+x1)/2; x0=cx-nw/2; x1=cx+nw/2; } else { var nh=(x1-x0)*W/rs/H, cy=(y0+y1)/2; y0=cy-nh/2; y1=cy+nh/2; } }
-    b.innerHTML = (VF?'<img alt="" src="'+VF+'">':'<div style="aspect-ratio:'+W+'/'+H+'"></div>')+
-      '<i style="left:0;top:0;right:0;height:'+(y0*100)+'%"></i><i style="left:0;bottom:0;right:0;height:'+((1-y1)*100)+'%"></i>'+
+    VZ = [x0, x1, y0, y1];
+    var im = $('vimg'); if(im && VF && im.getAttribute('src') !== VF) im.src = VF;
+    if(VF && VIMG.src !== VF) VIMG.src = VF;
+    $('vmask').innerHTML = '<i style="left:0;top:0;right:0;height:'+(y0*100)+'%"></i><i style="left:0;bottom:0;right:0;height:'+((1-y1)*100)+'%"></i>'+
       '<i style="left:0;top:'+(y0*100)+'%;width:'+(x0*100)+'%;height:'+((y1-y0)*100)+'%"></i><i style="right:0;top:'+(y0*100)+'%;width:'+((1-x1)*100)+'%;height:'+((y1-y0)*100)+'%"></i>'+
       '<div class="gard" style="left:'+(x0*100)+'%;top:'+(y0*100)+'%;width:'+((x1-x0)*100)+'%;height:'+((y1-y0)*100)+'%"></div>';
-    var e = $('vres'); if(!e) return;
-    e.style.aspectRatio = (screen.width||9)+'/'+(screen.height||16);
-    e.innerHTML = VF ? '<img alt="" src="'+VF+'" style="width:'+(100/(x1-x0))+'%;height:'+(100/(y1-y0))+'%;left:'+(-x0/(x1-x0)*100)+'%;top:'+(-y0/(y1-y0)*100)+'%">' : '';
+    vresPaint(); vTl();
   }
+  // « Sur l'écran » : la zone gardée étirée sur un écran de téléphone, image fixe ou vidéo en lecture
+  function vresPaint(){
+    var c = $('vresC'); if(!c) return; var x = c.getContext('2d');
+    var s = VID && VID.readyState >= 2 ? VID : (VIMG.complete && VIMG.naturalWidth ? VIMG : null);
+    x.fillStyle = '#000'; x.fillRect(0, 0, c.width, c.height); if(!s) return;
+    var sw = s.videoWidth || s.naturalWidth, sh = s.videoHeight || s.naturalHeight;
+    try { x.drawImage(s, VZ[0]*sw, VZ[2]*sh, (VZ[1]-VZ[0])*sw, (VZ[3]-VZ[2])*sh, 0, 0, c.width, c.height); } catch(e){}
+  }
+  function vTl(){
+    var tl = $('vtl'); if(!tl) return; var D = V.duree||1;
+    tl.firstChild.style.left = ((V.debut|0)/D*100)+'%'; tl.firstChild.style.width = (((V.fin||D)-(V.debut|0))/D*100)+'%';
+    var t = VID ? VID.currentTime*1000 : (V.debut|0); tl.lastChild.style.left = (t/D*100)+'%'; $('vtm').textContent = sec(t);
+  }
+  function vPlaying(){ return !!(VID && !VID.paused); }
+  function vBtn(){ var b = $('vpb'); if(b) b.innerHTML = vPlaying() ? '<svg class="ic" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg>Pause' : '<svg class="ic" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></svg>Lire la boucle'; }
+  function vLoop(){
+    cancelAnimationFrame(vRaf);
+    if(!vPlaying()) { vBtn(); return; }
+    var D = V.duree||0, f = V.fin||D;
+    if(VID.currentTime*1000 >= f - 40 || VID.ended) { VID.currentTime = (V.debut|0)/1000; if(VID.paused) VID.play().catch(function(){}); }
+    vresPaint(); vTl();
+    vRaf = requestAnimationFrame(vLoop);
+  }
+  function vPlay(){
+    var src = vSrc(); if(!src){ toast('La lecture fonctionne dans l\'application Toile', true); return; }
+    if(vPlaying()){ VID.pause(); vBtn(); return; }
+    if(!VID){
+      VID = document.createElement('video'); VID.muted = true; VID.playsInline = true; VID.preload = 'auto'; VID.setAttribute('playsinline', '');
+      VID.src = src; VID.currentTime = (V.debut|0)/1000;
+      VID.onerror = function(){ toast('Lecture impossible ici, mais le fond d\'écran fonctionne', true); vStop(); };
+      VID.onpause = vBtn;
+      $('vpv').insertBefore(VID, $('vmask'));
+    }
+    var t = VID.currentTime*1000; if(t < (V.debut|0) || t >= (V.fin||V.duree) - 100) VID.currentTime = (V.debut|0)/1000;
+    VID.play().then(function(){ vBtn(); vLoop(); }, function(){ toast('Lecture impossible ici', true); });
+  }
+  function vStop(){ cancelAnimationFrame(vRaf); if(VID){ try{ VID.pause(); VID.removeAttribute('src'); VID.load(); }catch(e){} if(VID.parentNode) VID.remove(); VID = null; } vBtn(); }
+  // un curseur bouge : la vidéo saute au bon endroit (début → début, fin → 2 s avant la fin pour voir le raccord)
+  function vSeek(k){
+    if(!VID) return;
+    if(k === 'debut') VID.currentTime = (V.debut|0)/1000;
+    else if(k === 'fin') VID.currentTime = Math.max(V.debut|0, (V.fin||V.duree) - 2000)/1000;
+  }
+  addEventListener('resize', function(){ vSize(); });
+  document.addEventListener('visibilitychange', function(){ if(document.hidden && VID) VID.pause(); });
   function vidUi(){
     var box = $('vidBox'); if(!box) return;
     if(!A || !A.wpPickVideo){ $('vidCard').hidden = true; return; }
+    vStop();
     if(!V.existe){ box.innerHTML = ''; return; }
     var D = V.duree||1000, sl = function(k, lab, max, step, val, txt){ return '<div class="block"><div class="lab">'+lab+' <span id="vv-'+k+'">'+txt+'</span></div><input type="range" data-v="'+k+'" min="0" max="'+max+'" step="'+step+'" value="'+val+'"></div>'; };
     box.innerHTML = '<div class="set" style="border:0;padding-top:0"><div class="t"><div>'+String(V.nom||'Vidéo').replace(/[<>&]/g,'')+'</div><div>'+sec(D)+' · '+V.w+'×'+V.h+'</div></div><label class="sw"><input type="checkbox" id="vOn"'+(V.on?' checked':'')+'><span></span></label></div>'+
       (V.credit ? '<div class="vcred">'+escA(V.credit.source)+' · '+escA(V.credit.auteur)+' · '+escA(V.credit.licence)+(V.credit.page ? ' · <a href="#" data-vpage>voir la page</a>' : '')+'</div>' : '')+
-      '<div class="vrow"><div><div class="vpv" id="vpv"></div><div class="vcap">Vidéo</div></div><div><div class="vres" id="vres"></div><div class="vcap">Sur l\'écran</div></div></div>'+
+      '<div class="vstick"><div class="vrow"><div><div class="vpv" id="vpv"><img id="vimg" alt="" style="width:100%;height:100%;display:block"><div class="vmask" id="vmask"></div></div><div class="vcap">Vidéo</div></div><div><div class="vres" id="vres"><canvas id="vresC"></canvas></div><div class="vcap">Sur l\'écran</div></div></div>'+
+      '<div class="vplay"><button class="btn" id="vpb"></button><div class="tl" id="vtl"><b></b><i></i></div><span class="tm" id="vtm"></span></div></div>'+
       '<div class="set"><div class="t"><div>Garder les proportions</div><div id="vPropTx"></div></div><label class="sw"><input type="checkbox" id="vProp"'+(vProp()?' checked':'')+'><span></span></label></div>'+
       sl('debut','Début de la boucle', D, 100, V.debut|0, sec(V.debut|0)) + sl('fin','Fin de la boucle', D, 100, V.fin||D, sec(V.fin||D)) +
       sl('haut','Rogner en haut', 45, 1, +V.haut||0, (+V.haut||0)+' %') + sl('bas','Rogner en bas', 45, 1, +V.bas||0, (+V.bas||0)+' %') +
       sl('gauche','Rogner à gauche', 45, 1, +V.gauche||0, (+V.gauche||0)+' %') + sl('droite','Rogner à droite', 45, 1, +V.droite||0, (+V.droite||0)+' %') +
       '<div class="hint" style="font-size:12.5px;color:var(--tx3);margin-top:6px">Enregistrement d\'écran : rogne en haut et en bas pour enlever les barres du téléphone. Le cadre bleu montre la partie gardée, l\'aperçu de droite ce qui s\'affiche sur l\'écran.</div>'+
       '<div class="hint" id="vLiveHint" style="font-size:12.5px;margin-top:6px"></div>';
-    vidDraw(); vidLive();
+    vidDraw(); vidLive(); vSize(); vBtn(); $('vpb').onclick = vPlay;
+    if(!vSrc()) $('vpb').hidden = true;
     var vp = box.querySelector('[data-vpage]'); if(vp) vp.onclick = function(e){ e.preventDefault(); var T0 = window.MAGToile; if(T0 && T0.openUrl) T0.openUrl(V.credit.page); };
     var pt = function(){ $('vPropTx').textContent = vProp() ? 'L\'image n\'est jamais déformée : les bords sont ajustés au format de l\'écran' : 'Chaque réglage ne coupe que son côté ; le reste remplit l\'écran'; };
     pt(); $('vProp').onchange = function(){ V.prop = this.checked; pt(); vidDraw(); vidSave(); };
@@ -430,7 +501,8 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
       if(k==='debut' && v >= (V.fin||D) - 500) v = Math.max(0, (V.fin||D) - 500);
       if(k==='fin' && v <= (V.debut|0) + 500) v = Math.min(D, (V.debut|0) + 500);
       V[k] = v; e.target.value = v; $('vv-'+k).textContent = (k==='debut'||k==='fin') ? sec(v) : v+' %';
-      if(k==='debut') vidFrame(); vidDraw(); vidSave();
+      if(VID && (k==='debut'||k==='fin')) vSeek(k); else if(k==='debut') vidFrame();
+      vidDraw(); vidSave();
     };
   }
   function vidLive(){
