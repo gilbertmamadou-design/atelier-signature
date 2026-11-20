@@ -1310,7 +1310,7 @@ public class WallpaperJob extends JobService {
             st = new android.graphics.SurfaceTexture(tex); st.setOnFrameAvailableListener(this, gh); sf = new android.view.Surface(st);
             mp = new android.media.MediaPlayer();
             mp.setDataSource(f.getAbsolutePath()); mp.setSurface(sf); mp.setVolume(0f, 0f);
-            try { mp.setAudioAttributes(new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_MEDIA).setContentType(android.media.AudioAttributes.CONTENT_TYPE_MOVIE).build()); } catch (Throwable t) { } mp.setLooping(fin <= 0 || fin >= cfg.optLong("duree", 0) - 50 && debut <= 0);
+            try { mp.setAudioAttributes(new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_MEDIA).setContentType(android.media.AudioAttributes.CONTENT_TYPE_MOVIE).build()); } catch (Throwable ea) { } mp.setLooping(fin <= 0 || fin >= cfg.optLong("duree", 0) - 50 && debut <= 0);
             mp.setOnCompletionListener(new android.media.MediaPlayer.OnCompletionListener() { public void onCompletion(android.media.MediaPlayer m) { if (mort) return; aller(debut); if (vis) m.start(); } });
             mp.prepare();
             if (debut > 0) aller(debut);
