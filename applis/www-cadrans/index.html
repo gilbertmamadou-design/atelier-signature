@@ -38,7 +38,8 @@ nav button[aria-current="page"]{color:var(--acc)}
 .face canvas{width:100%;max-width:200px;aspect-ratio:1;border-radius:50%;box-shadow:0 6px 24px #0008}
 .face b{font-size:14px}
 .face.mini{cursor:pointer;color:inherit;font:inherit;width:100%}.face.mini:active{transform:scale(.98)}
-.fiche{display:flex;flex-direction:column;align-items:center;gap:12px}.fiche canvas{width:min(72vw,300px);aspect-ratio:1;border-radius:50%;box-shadow:0 8px 30px #000a}.fiche .acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.fiche{display:flex;flex-direction:column;align-items:center;gap:12px}.fiche canvas{width:min(72vw,300px);aspect-ratio:1;border-radius:50%;box-shadow:0 8px 30px #000a}.fiche:focus-within canvas{width:min(34vw,150px)}
+.fiche .acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 .face .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 14px;border-radius:12px;background:var(--bg3);border:1px solid var(--line2);font-weight:700;font-size:13.5px}
 .btn.pri{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#081018;border-color:transparent}
@@ -85,7 +86,7 @@ input[type=range]{width:100%;accent-color:var(--acc)}
 .pad{display:grid;grid-template-columns:repeat(3,40px);gap:4px}.pad .btn{padding:7px 0}
 /* feuille */
 .sheet{position:fixed;inset:0;z-index:30;background:#000b;display:flex;align-items:flex-end;justify-content:center}
-.sheet>div{background:var(--bg2);border:1px solid var(--line2);border-radius:22px 22px 0 0;width:min(620px,100%);max-height:92vh;overflow:auto;padding:16px 16px calc(16px + var(--safeB))}
+.sheet>div{background:var(--bg2);border:1px solid var(--line2);border-radius:22px 22px 0 0;width:min(620px,100%);max-height:92vh;max-height:92dvh;overflow:auto;padding:16px 16px calc(16px + var(--safeB))}
 @media (min-width:700px){.sheet{align-items:center}.sheet>div{border-radius:22px}}
 .sheet h2{margin:0 0 6px;font-size:18px}
 .qr{display:block;width:min(70vw,280px);aspect-ratio:1;margin:10px auto;background:#fff;border-radius:14px;padding:8px}
@@ -250,8 +251,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
       '<div class="lbl">Superpositions (plusieurs possibles)</div><div class="chips" id="calques">' + Object.keys(C.CHOIX.CALQUES).map(function (k) { return '<button class="chip" data-calque="' + k + '" aria-pressed="' + (c.calques.indexOf(k) >= 0) + '">' + esc(C.CHOIX.CALQUES[k]) + '</button>'; }).join('') + '</div>' +
       '<div class="lbl">Effet sur tous les éléments</div><div class="chips">' + Object.keys(C.CHOIX.EFFETS).map(function (k) { return '<button class="chip" data-fxall="' + k + '">' + esc(C.CHOIX.EFFETS[k]) + '</button>'; }).join('') + '</div>' +
       '<div class="line"><div class="t"><b>Météo en couleur</b><small>Soleil, nuages, pluie, orage… en couleurs avec ombre</small></div><input type="checkbox" class="sw" id="meteoCoul"' + (c.blocs.some(function (b) { return b.icone === 'couleur'; }) ? ' checked' : '') + '></div></div>' +
-      '<div class="card"><div class="lbl" style="margin-top:0">Nom</div><input class="in" id="nom" maxlength="24" value="' + esc(c.nom) + '">' +
-      '<div class="lbl">Écran toujours allumé</div>' + chips('aod', C.CHOIX.AOD, c.aod) + '<p class="note">Heure (et date) atténuées sur fond noir ; les infos sont masquées pour économiser la batterie.</p></div>' +
+      '<div class="card"><div class="lbl" style="margin-top:0">Écran toujours allumé</div>' + chips('aod', C.CHOIX.AOD, c.aod) + '<p class="note">Heure (et date) atténuées sur fond noir ; les infos sont masquées pour économiser la batterie.</p></div>' +
       '<div class="row"><button class="btn pri" id="edSave">' + (EDI >= 0 ? 'Enregistrer' : 'Enregistrer dans Mes cadrans') + '</button>' + (EDI >= 0 ? '<button class="btn" id="edSaveNew">Enregistrer comme nouveau</button>' : '') + '<button class="btn" id="edFab">Fabriquer pour la montre</button><button class="btn" id="edNew">Nouveau cadran</button></div>' +
       '</div></div>';
   }
@@ -485,7 +485,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     if (SEL >= ED.blocs.length) SEL = -1;
     CROP = null;
     paintList(); paintProps(); paintPhoto(); preview(); bindCanvas($('pv'));
-    $('nom').oninput = function () { ED.nom = this.value; dirty = 1; };
+
     $('aodT').onclick = function () { AOD = !AOD; this.setAttribute('aria-pressed', AOD); preview(); };
     document.querySelectorAll('[data-set] .chip').forEach(function (b) {
       b.onclick = function () {
@@ -545,7 +545,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     $('photoIn').onchange = function () { chargerPhoto(this.files && this.files[0]); this.value = ''; };
     $('edSave').onclick = function () { nommer(false); };
     if ($('edSaveNew')) $('edSaveNew').onclick = function () { nommer(true); };
-    $('edFab').onclick = function () { var i = saveEd(); if (i >= 0) fabriquer(i); };
+    $('edFab').onclick = function () { nommer(false, function (i) { fabriquer(i); }); };
     $('edNew').onclick = nouveau;
   }
   /** Repartir d'un cadran vierge (le cadran en cours reste tel qu'il a été enregistré) */
@@ -570,7 +570,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
   }
 
   /* Enregistrer : on donne (ou confirme) le nom, puis on retrouve le cadran seul, sans les réglages, dans Mes cadrans */
-  function nommer(asNew) {
+  function nommer(asNew, puis) {
     var nom = (ED.nom || '').trim(), defaut = !nom || /^Mon cadran( \d+)?$/.test(nom);
     sheet('<div class="fiche"><h2 style="margin:0">' + (asNew ? 'Enregistrer comme nouveau' : 'Enregistrer le cadran') + '</h2><canvas id="nmPv" width="480" height="480"></canvas>' +
       '<label style="width:100%;max-width:340px"><div class="lbl" style="margin-top:0">Nom du cadran</div><input class="in" id="nmIn" maxlength="24" value="' + esc(defaut ? '' : nom) + '" placeholder="Ex. : Tourbillon doré" autocomplete="off"></label>' +
@@ -581,7 +581,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     var ok = function () {
       var v = i.value.trim(); if (!v) { toast('Donnez un nom à votre cadran'); i.focus(); return; }
       ED.nom = v.slice(0, 24); var r = saveEd(asNew); if (r < 0) return;
-      closeSheet(); toast(saveMsg); SEL = -1; TAB = 'mes'; render(); try { $('main').scrollTop = 0; } catch (e) { } fiche(r);
+      closeSheet(); toast(saveMsg); SEL = -1; TAB = 'mes'; render(); try { $('main').scrollTop = 0; } catch (e) { } if (puis) puis(r); else fiche(r);
     };
     $('nmOk').onclick = ok; i.onkeydown = function (e) { if (e.key === 'Enter') ok(); };
   }
@@ -731,6 +731,11 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
   }
 
   /* ---------------- gestes ---------------- */
+  /* clavier : le champ touché remonte au milieu de l'écran pour rester visible au-dessus du clavier */
+  document.addEventListener('focusin', function (e) {
+    var t = e.target; if (!t || !/^(INPUT|TEXTAREA)$/.test(t.tagName) || /^(color|range|checkbox|file)$/.test(t.type)) return;
+    [250, 600].forEach(function (d) { setTimeout(function () { try { t.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (x) { } }, d); });
+  });
   document.addEventListener('click', function (e) {
     var b0;
     if ((b0 = e.target.closest('[data-fiche]'))) { fiche(+b0.dataset.fiche); return; }
