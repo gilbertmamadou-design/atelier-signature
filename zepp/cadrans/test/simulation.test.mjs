@@ -31,7 +31,8 @@ test('fond, heure et AOD présents', () => {
   const heures = de('IMG_TIME').concat(de('TIME_POINTER'))
   // heure écran allumé (sauf heure en lettres, faite d'images) et heure en AOD
   assert.ok(heures.some((w) => w.o.show_level === 2), 'heure en AOD')
-  assert.ok(heures.some((w) => w.o.show_level === 1) || de('IMG').length > 30, 'heure écran allumé')
+  // (aiguilles animées : images qui tournent, champ « angle »)
+  assert.ok(heures.some((w) => w.o.show_level === 1) || de('IMG').some((w) => 'angle' in w.o) || de('IMG').length > 30, 'heure écran allumé')
   assert.ok(J.widgets.every((w) => !('aod' in w.o)), 'la clé interne « aod » ne doit pas partir vers la montre')
 })
 test('aiguilles : centre et pivots dans l\'image', () => {
