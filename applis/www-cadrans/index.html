@@ -269,7 +269,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     var c = C.norm(ED); ED.blocs = c.blocs;
     var M = C.MODELES;
     var orig = EDI >= 0 && ST.mes[EDI];
-    return '<div class="card" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px"><div style="flex:1;min-width:180px"><b>' + (orig ? 'Modification de « ' + esc(orig.nom) + ' »' : 'Nouveau cadran') + '</b><div class="note" style="margin:2px 0 0">' + (orig ? 'Pour en faire un autre sans toucher à celui-ci : « Enregistrer comme nouveau », ou changez le nom.' : 'Il sera ajouté à Mes cadrans à l\'enregistrement.') + '</div></div><button class="btn sm pri" data-nouveau>+ Nouveau cadran</button></div>' +
+    return '<div class="card" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px"><div style="flex:1;min-width:180px"><b>' + (orig ? 'Modification de « ' + esc(orig.nom) + ' »' : 'Nouveau cadran') + '</b><div class="note" style="margin:2px 0 0">' + (orig ? 'Pour en faire un autre sans toucher à celui-ci : « Enregistrer comme nouveau », ou changez le nom.' : 'Il sera ajouté à Mes cadrans à l\'enregistrement.') + '</div></div><button class="btn sm" data-hasard>🎲 Surprends-moi</button><button class="btn sm pri" data-nouveau>+ Nouveau cadran</button></div>' +
       '<div class="ed"><div class="pv"><canvas id="pv" width="480" height="480"></canvas><div class="row"><button class="chip" id="unB" title="Annuler (Ctrl+Z)"' + (HPOS <= 0 ? ' disabled' : '') + '>↶ Annuler</button><button class="chip" id="reB" title="Rétablir (Ctrl+Y)"' + (HPOS >= HIST.length - 1 ? ' disabled' : '') + '>↷ Rétablir</button><button class="chip" id="aodT" aria-pressed="' + AOD + '">Écran toujours allumé</button><span class="note" style="margin:0">Glissez un élément pour le placer</span></div></div><div class="v" style="gap:14px">' +
       '<div class="card"><div class="lbl" style="margin-top:0">Montre</div><div class="chips">' + Object.keys(C.MONTRES).map(function (k) { return '<button class="chip" data-montre="' + k + '" aria-pressed="' + (c.montre === k) + '">' + esc(C.MONTRES[k].n) + '</button>'; }).join('') + '</div>' +
       (c.montre !== 'trex3' ? '<p class="note">Écran Garmin : 64 couleurs, toujours allumé. L\'aperçu montre le rendu réel (dégradés et photos tramés). Trotteuse et secondes visibles quelques secondes après un geste du poignet.</p>' : '') + '</div>' +
@@ -296,7 +296,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     if (b.t === 'texte') return '« ' + b.txt + ' »';
     if (b.t === 'heure') return C2.POLICES[b.police].nom + (b.secondes ? ' · secondes' : '');
     if (b.t === 'aiguilles') return C2.AIGUILLES[b.style] + (b.secondes ? ' · trotteuse' : '');
-    if (b.t === 'image') return C.CHOIX.MOTIFS[b.motif];
+    if (b.t === 'image') return b.motif === 'perso' ? 'Mon image' : C.CHOIX.MOTIFS[b.motif];
     if (b.t === 'anim') return C.CHOIX.ANIMS[b.motif];
     if (b.t === 'mots') return 'Il est dix heures…';
     if (b.t === 'compte') return 'J- · ' + b.txt;
@@ -329,6 +329,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     if (b.t === 'info') {
       h += '<div class="lbl">Donnée</div><select class="in" data-psel="d">' + Object.keys(C.INFOS).filter(function (k) { return C.INFOS[k].type; }).map(function (k) { return '<option value="' + k + '"' + (k === b.d ? ' selected' : '') + '>' + esc(C.INFOS[k].n) + '</option>'; }).join('') + '</select>' +
         '<div class="lbl">Style</div>' + chips('style', K.STYLES, b.style, 'data-p') + '<div class="lbl">Taille</div>' + chips('taille', K.TAILLES, b.taille, 'data-p');
+      if (C.CHOIX.CHOIX_INFOS[b.d]) h += pSw('choix', 'Modifiable sur la montre', b.choix, 'Appui long sur le cadran › Modifier › touchez cette info pour choisir : pas, cœur, batterie, calories, distance, météo…');
       if (C.INFOS[b.d].prog && (b.style === 'case' || b.style === 'jauge')) h += pSw('barre', 'Barre de progression', b.barre, b.d === 'batterie' ? 'Niveau de la batterie' : 'Avancée vers l\'objectif du jour');
       h += '<div class="lbl">Couleur (icône, case, barre)</div>' + swatches('couleur', b.couleur) + '<div class="lbl">Couleur du chiffre</div>' + swatches('valeur', b.valeur) + '<div class="lbl">Police</div>' + chips('police', K.POLICES, b.police, 'data-p');
     } else if (b.t === 'heure') {
@@ -345,7 +346,9 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     } else if (b.t === 'texte') {
       h += '<div class="lbl">Texte</div><input class="in" data-pt="txt" maxlength="24" value="' + esc(b.txt) + '">' + pRange('taille', 'Taille', 10, 80, 1, b.taille) + pRange('esp', 'Espacement', 0, 10, .5, b.esp) + '<div class="lbl">Couleur</div>' + swatches('couleur', b.couleur) + '<div class="lbl">Police</div>' + chips('police', K.POLICES, b.police, 'data-p');
     } else if (b.t === 'image') {
-      h += '<div class="lbl">Image</div>' + chips('motif', K.MOTIFS, b.motif, 'data-p') + pRange('taille', 'Taille', 16, 240, 2, b.taille) + pRange('rot', 'Rotation', -180, 180, 5, b.rot) +
+      h += '<div class="lbl">Image</div>' + chips('motif', K.MOTIFS, b.motif, 'data-p') +
+        '<div class="row" style="gap:6px;margin:6px 0"><button class="btn sm" id="imgPerso">' + (b.img ? 'Changer mon image' : 'Importer mon image') + '</button>' + (b.img ? '<button class="chip" data-p1m="perso" aria-pressed="' + (b.motif === 'perso') + '"><img src="' + b.img + '" style="height:28px;vertical-align:middle"> Mon image</button>' : '') + '</div><input type="file" id="imgIn" accept="image/*" hidden>' +
+        '<p class="note">Logo, dessin, photo d\'un objet… Les images PNG gardent leur transparence.</p>' + pRange('taille', 'Taille', 16, 240, 2, b.taille) + pRange('rot', 'Rotation', -180, 180, 5, b.rot) +
         '<div class="lbl">Couleur</div><div class="row" style="gap:6px;margin-bottom:6px"><button class="chip" data-p1="auto" aria-pressed="' + (b.couleur === 'auto') + '">Couleurs d\'origine</button></div>' + swatches('couleur', b.couleur === 'auto' ? '' : b.couleur) +
         '<p class="note">Astuce : plusieurs images (fleurs, feuilles, flocons…) font une jolie bordure. Les fonds Fleurs, Printemps, Été, Automne, Hiver et Noël sont dans « Fond ».</p>';
     } else if (b.t === 'panneau') {
@@ -444,6 +447,39 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     return null;
   }
   /* photo du diaporama : recadrée au centre, plus légère que la principale pour que le cadran tienne dans l'envoi à la fabrication */
+  /* image personnelle (élément Image) : réduite, transparence gardée, assez légère pour l'envoi à la fabrication */
+  function imagePerso(f, b) {
+    if (!f) return;
+    var u = URL.createObjectURL(f), im = new Image();
+    im.onload = function () {
+      URL.revokeObjectURL(u);
+      var png = /png|webp|gif|svg/.test(f.type), d = '';
+      for (var t = 200; t >= 60; t -= 20) {
+        var k = Math.min(1, t / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.max(1, Math.round(im.width * k)); c.height = Math.max(1, Math.round(im.height * k));
+        c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+        d = png ? c.toDataURL('image/png') : c.toDataURL('image/jpeg', .8);
+        if (d.length < 26000) break;
+      }
+      if (d.length >= 26000) return toast('Image trop lourde, essayez-en une plus simple');
+      b.img = d; b.motif = 'perso'; if (b.taille < 80) b.taille = 100; changed(true); toast('Image ajoutée');
+    };
+    im.onerror = function () { toast('Image illisible'); };
+    im.src = u;
+  }
+  /* « Surprends-moi » : un cadran au hasard, couleurs harmonieuses (palettes toutes prêtes) ; « Annuler » revient au précédent */
+  function surprise() {
+    var r = function (l) { return l[Math.floor(Math.random() * l.length)]; };
+    var p = r(PALETTES), fonds = ['radial', 'degrade', 'carbone', 'soleil', 'guilloche', 'damas', 'hexa', 'vagues', 'topo', 'aurore', 'espace', 'marbre', 'mouvement', 'grille', 'hud'];
+    var mods = Object.keys(C.MODELES).filter(function (k) { return k !== 'vide'; });
+    var base = C.norm({ nom: ED && ED.nom, c1: p[1], c2: p[2], accent: p[3], texte: p[4], doux: p[5], fond: r(fonds), anneau: r(['graduations', 'chiffres', 'romains', 'plongee', 'chemin', 'tachy', 'h24', 'boussole', 'batterie', 'pas', 'aucun']),
+      calques: Math.random() < .5 ? ['vignette'] : ['verre'], montre: ED ? ED.montre : 'trex3' });
+    base.blocs = C.modele(r(mods), base);
+    if (Math.random() < .45) base.blocs.push(C.normBloc({ t: 'anim', motif: r(Object.keys(C.CHOIX.ANIMS)), x: 240, y: 380, taille: 80, couleur: 'accent' }));
+    base.blocs.forEach(function (b) { if (b.t === 'aiguilles' && Math.random() < .5) { b.lume = true; b.reveil = true; } });
+    ED = base; EDI = -1; SEL = -1; dirty = 1; PV.variante = 0; PV.nuit = null; PV.photo = 0;
+    var y = 0; try { y = $('main').scrollTop; } catch (e) { } TAB = 'creer'; render(); try { $('main').scrollTop = y; } catch (e) { }
+    toast('Cadran surprise ! « ↶ Annuler » pour revenir au précédent');
+  }
   function ajoutDiapo(f) {
     if (!f) return;
     var u = URL.createObjectURL(f), im = new Image();
@@ -589,6 +625,8 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
       if ((x = e.target.closest('[data-p] .chip'))) { var k = x.parentNode.dataset.p; b[k] = x.dataset.v; return changed(true); }
       if ((x = e.target.closest('[data-p1]'))) { b.couleur = 'auto'; return changed(true); }
       if ((x = e.target.closest('[data-pc] button'))) { b[x.parentNode.dataset.pc] = x.dataset.v; return changed(true); }
+      if (e.target.id === 'imgPerso') { $('imgIn').onchange = function () { imagePerso(this.files && this.files[0], b); this.value = ''; }; $('imgIn').click(); return; }
+      if ((x = e.target.closest('[data-p1m]'))) { b.motif = 'perso'; return changed(true); }
       if ((x = e.target.closest('[data-voy]'))) { var lv = (b.liste || []).slice(), iv = lv.indexOf(x.dataset.voy); if (iv >= 0) lv.splice(iv, 1); else lv.push(x.dataset.voy); b.liste = lv; return changed(true); }
       if ((x = e.target.closest('[data-nudge]'))) { var d = x.dataset.nudge.split(','); if (d[0] === '0' && d[1] === '0') { b.x = 240; b.y = 240; } else { b.x += +d[0]; b.y += +d[1]; } return changed(true); }
       if ((x = e.target.closest('[data-ctr]'))) { b[x.dataset.ctr] = 240; return changed(true); }
@@ -829,6 +867,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     var b0;
     if ((b0 = e.target.closest('[data-fiche]'))) { fiche(+b0.dataset.fiche); return; }
     if (e.target.closest('#sheet') && e.target.closest('[data-edit],[data-dup],[data-del]')) closeSheet();
+    if (e.target.closest('[data-hasard]')) { surprise(); return; }
     if (e.target.closest('#unB')) { histGo(-1); return; }
     if (e.target.closest('#reB')) { histGo(1); return; }
     var b;

@@ -10,7 +10,8 @@ function createWidget(type, o) { const w = { type, o: Object.assign({}, o), setP
 const prop = natif({ ANIM_STATUS: 'anim_status', VISIBLE: 'visible', SRC: 'src', CURRENT_TYPE: 'current_type', ANGLE: 'angle' })
 const anim_status = natif({ START: 1, STOP: 0 })
 const system_status = natif({ DISCONNECT: 1, DISTURB: 2, CLOCK: 3, LOCK: 4 })
-const ui = natif({ widget, show_level, data_type, align, prop, anim_status, system_status, createWidget })
+const edit_type = natif(Object.fromEntries(['STEP', 'HEART', 'BATTERY', 'CAL', 'DISTANCE', 'WEATHER', 'SPO2', 'STRESS', 'PAI', 'HUMIDITY', 'UVI', 'STAND'].map((n, i) => [n, 10 + i])))
+const ui = natif({ widget, show_level, data_type, align, prop, anim_status, system_status, edit_type, createWidget })
 globalThis.hmUI = ui
 // minuteurs du cadran (mise à jour chaque minute) : ils ne doivent pas empêcher l'essai de se terminer
 const siOrig = globalThis.setInterval

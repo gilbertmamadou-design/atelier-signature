@@ -45,6 +45,7 @@ for (const f of fichiers) {
   const r = await page.evaluate(async (cfg) => {
     await CADRAN.chargerPhoto(cfg.photo)
     for (const ph of cfg.photos || []) await CADRAN.chargerPhoto(ph)
+    for (const b of cfg.blocs || []) if (b && b.img) await CADRAN.chargerPhoto(b.img)
     const p = CADRAN.paquet(cfg), images = {}
     for (const k of Object.keys(p.images)) images[k] = p.images[k].toDataURL('image/png')
     const shot = (aod, taille) => { const c = document.createElement('canvas'); c.width = c.height = taille; CADRAN.apercu(c, cfg, { aod, date: new Date(2026, 9, 30, 10, 9, 30) }); return c.toDataURL('image/png') }
@@ -63,7 +64,7 @@ for (const f of fichiers) {
   app.app.appId = appId; app.app.appName = r.cfg.nom; app.app.description = 'Cadran « ' + r.cfg.nom + ' » fabriqué avec l\'Atelier de cadrans'
   app.i18n['fr-FR'].appName = app.i18n['en-US'].appName = r.cfg.nom
   // fonds au choix : le cadran devient modifiable sur la montre (appui long › Modifier)
-  if (r.spec.edit) for (const t of Object.values(app.targets)) t.module.watchface.editable = 1
+  if (r.spec.edit || r.spec.edit2) for (const t of Object.values(app.targets)) t.module.watchface.editable = 1
   writeFileSync(join(dos, 'app.json'), JSON.stringify(app, null, 2))
   writeFileSync(join(SORTIE, id + '.png'), Buffer.from(r.apercu.split(',')[1], 'base64'))
   writeFileSync(join(SORTIE, id + '-aod.png'), Buffer.from(r.aod.split(',')[1], 'base64'))

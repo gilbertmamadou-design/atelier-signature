@@ -61,6 +61,8 @@
   };
   // voyants système (IMG_STATUS) : affichés seulement quand l'état est actif
   var VOYANTS = { DISCONNECT: { n: 'Bluetooth coupé', ic: 'bluex' }, DISTURB: { n: 'Ne pas déranger', ic: 'dnd' }, CLOCK: { n: 'Alarme réglée', ic: 'cloche' }, LOCK: { n: 'Écran verrouillé', ic: 'cadenas' } };
+  // infos qu'on peut choisir sur la montre (appui long › Modifier) et leur nom dans Zepp OS (edit_type)
+  var CHOIX_INFOS = { pas: 'STEP', coeur: 'HEART', batterie: 'BATTERY', calories: 'CAL', distance: 'DISTANCE', meteo: 'WEATHER', spo2: 'SPO2', stress: 'STRESS', pai: 'PAI', humidite: 'HUMIDITY', uv: 'UVI', debout: 'STAND' };
   var FONDS = { uni: 'Uni', degrade: 'Dégradé', radial: 'Halo', carbone: 'Carbone', grille: 'Grille', hud: 'HUD', camo: 'Camouflage', fleurs: 'Fleurs', printemps: 'Printemps', ete: 'Été', automne: 'Automne', hiver: 'Hiver', noel: 'Noël', espace: 'Espace', soleil: 'Soleillé', guilloche: 'Guilloché', damas: 'Damas', nacre: 'Nacre', mouvement: 'Mouvement mécanique', marbre: 'Marbre', bois: 'Bois', cuir: 'Cuir surpiqué', topo: 'Carte topographique', aurore: 'Aurore boréale', hexa: 'Nid d\'abeille', vagues: 'Vagues', photo: 'Ma photo' };
   var MOTIFS = { fleur: 'Fleur', marguerite: 'Marguerite', tulipe: 'Tulipe', feuille: 'Feuille', erable: 'Feuille d\'érable', flocon: 'Flocon', soleil: 'Soleil', lune: 'Lune', sapin: 'Sapin',
     etoile: 'Étoile', coeur: 'Cœur', papillon: 'Papillon', champignon: 'Champignon', citrouille: 'Citrouille', cadeau: 'Cadeau', montagne: 'Montagne',
@@ -92,7 +94,7 @@
   /* animations : une image par étape (f_0.png…), jouées par la montre (IMG_ANIM) quand l'écran est allumé */
   var ANIMS = { engrenages: 'Engrenages', balancier: 'Balancier', radar: 'Radar', coeur: 'Cœur qui bat', etoiles: 'Étoiles scintillantes', flamme: 'Flamme', onde: 'Onde lumineuse', cage: 'Cage de tourbillon', pendule: 'Pendule', neige: 'Neige', bulles: 'Bulles', eclair: 'Éclair', sablier: 'Sablier', soleil: 'Soleil qui rayonne', vague: 'Vague', disco: 'Lumières disco' };
   var ANIM_N = { engrenages: 24, balancier: 24, radar: 30, coeur: 20, etoiles: 24, flamme: 16, onde: 24, cage: 24, pendule: 24, neige: 24, bulles: 24, eclair: 20, sablier: 24, soleil: 24, vague: 24, disco: 16 };
-  var CHOIX = { VOYANTS: VOYANTS, ANIMS: ANIMS, PANNEAUX: PANNEAUX, MOTIFS: MOTIFS, TROTS: TROTS, CALQUES: CALQUES, EFFETS: EFFETS, ICONES: { trait: 'Dessin', couleur: 'En couleur' }, POLICES: POLICES, INFOS: INFOS, FONDS: FONDS, ANNEAUX: ANNEAUX, AIGUILLES: AIGUILLES, STYLES: STYLES, TAILLES: TAILLES, DATES: DATES, TYPES: TYPES, VIFS: VIFS,
+  var CHOIX = { CHOIX_INFOS: CHOIX_INFOS, VOYANTS: VOYANTS, ANIMS: ANIMS, PANNEAUX: PANNEAUX, MOTIFS: MOTIFS, TROTS: TROTS, CALQUES: CALQUES, EFFETS: EFFETS, ICONES: { trait: 'Dessin', couleur: 'En couleur' }, POLICES: POLICES, INFOS: INFOS, FONDS: FONDS, ANNEAUX: ANNEAUX, AIGUILLES: AIGUILLES, STYLES: STYLES, TAILLES: TAILLES, DATES: DATES, TYPES: TYPES, VIFS: VIFS,
     HEURE: { numerique: 'Numérique', analogique: 'À aiguilles', mixte: 'Aiguilles + heure' }, TAILLE: { grande: 'Grande', moyenne: 'Moyenne' },
     AOD: { heure_date: 'Heure et date', heure: 'Heure seule' } };
 
@@ -109,10 +111,10 @@
     if (b.t === 'heure') { o.taille = Math.round(num(b.taille, 30, 150, 110)); o.secondes = !!b.secondes; o.dp = col(b.dp, 'accent'); }
     if (b.t === 'aiguilles') { o.style = AIGUILLES[b.style] ? b.style : 'epees'; o.secondes = !!b.secondes; o.echelle = num(b.echelle, .2, 1, 1); o.trot = col(b.trot, 'accent'); o.trotStyle = TROTS[b.trotStyle] ? b.trotStyle : 'fine'; o.ombre = !!b.ombre; o.lume = !!b.lume; o.fluide = !!b.fluide; o.reveil = !!b.reveil; }
     if (b.t === 'date') { o.format = DATES[b.format] ? b.format : 'long'; o.taille = Math.round(num(b.taille, 12, 40, 21)); o.jour = col(b.jour, 'accent'); o.cadre = !!b.cadre; }
-    if (b.t === 'info') { o.d = INFOS[b.d] && INFOS[b.d].type ? b.d : 'pas'; o.style = STYLES[b.style] ? b.style : 'simple'; o.taille = TAILLES[b.taille] ? b.taille : 'm'; o.barre = !!b.barre && !!INFOS[o.d].prog; o.valeur = col(b.valeur, 'texte'); if (o.style === 'aiguille' && !INFOS[o.d].prog) o.style = 'jauge'; }
+    if (b.t === 'info') { o.d = INFOS[b.d] && INFOS[b.d].type ? b.d : 'pas'; o.style = STYLES[b.style] ? b.style : 'simple'; o.taille = TAILLES[b.taille] ? b.taille : 'm'; o.choix = !!b.choix; o.barre = !!b.barre && !!INFOS[o.d].prog; o.valeur = col(b.valeur, 'texte'); if (o.style === 'aiguille' && !INFOS[o.d].prog) o.style = 'jauge'; }
     if (b.t === 'meteo') { o.taille = TAILLES[b.taille] ? b.taille : 'm'; o.minmax = b.minmax !== false; o.valeur = col(b.valeur, 'texte'); }
     if (b.t === 'texte') { o.txt = String(b.txt == null ? 'TEXTE' : b.txt).replace(/[\u0000-\u001f]/g, '').slice(0, 24); o.taille = Math.round(num(b.taille, 10, 80, 18)); o.esp = num(b.esp, 0, 10, 2); }
-    if (b.t === 'image') { o.motif = MOTIFS[b.motif] ? b.motif : 'fleur'; o.taille = Math.round(num(b.taille, 16, 240, 60)); o.rot = Math.round(num(b.rot, -180, 180, 0)); o.couleur = b.couleur === 'auto' ? 'auto' : col(b.couleur, 'auto'); }
+    if (b.t === 'image') { o.img = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(b.img || '') && b.img.length < 30000 ? b.img : ''; o.motif = b.motif === 'perso' && o.img ? 'perso' : MOTIFS[b.motif] ? b.motif : 'fleur'; o.taille = Math.round(num(b.taille, 16, 240, 60)); o.rot = Math.round(num(b.rot, -180, 180, 0)); o.couleur = b.couleur === 'auto' ? 'auto' : col(b.couleur, 'auto'); }
     if (b.t === 'anim') { o.motif = ANIMS[b.motif] ? b.motif : 'engrenages'; o.taille = Math.round(num(b.taille, 40, 240, 110)); o.couleur = col(b.couleur, 'accent'); }
     if (b.t === 'mots') { o.taille = Math.round(num(b.taille, 14, 34, 22)); o.couleur = col(b.couleur, 'accent'); o.eteinte = num(b.eteinte, .05, .6, .2); o.police = POLICES[b.police] ? b.police : 'nette'; o.points = b.points !== false; }
     if (b.t === 'compte') { o.date = /^\d{4}-\d{2}-\d{2}$/.test(b.date || '') ? b.date : '2026-12-25'; o.txt = String(b.txt == null ? 'Noël' : b.txt).replace(/[\u0000-\u001f]/g, '').slice(0, 20); o.annuel = b.annuel !== false;
@@ -538,13 +540,16 @@
     var aodDim = mix(cfg.doux, '#000000', .25);
     var ana = cfg.blocs.some(function (b) { return b.t === 'aiguilles' && Math.abs(b.x - CX) < 30 && Math.abs(b.y - CY) < 30; });
 
-    put('fond.png', fond(cfg, false, ana));
-    put('fond_aod.png', fond(cfg, true, ana));
+    // infos modifiables sur la montre : dessinées à part (une version par choix), pas dans le fond
+    var cfgF = cfg;
+    if (cfg.blocs.some(function (b) { return b.choix; })) { cfgF = {}; for (var kf in cfg) cfgF[kf] = cfg[kf]; cfgF.blocs = cfg.blocs.filter(function (b) { return !b.choix; }); }
+    put('fond.png', fond(cfgF, false, ana));
+    put('fond_aod.png', fond(cfgF, true, ana));
     add({ k: 'img', x: 0, y: 0, w: W, h: W, src: 'images/fond.png', role: 'fond' });
     if (cfg.variantes.length) {   // fonds au choix : appui long sur le cadran › Modifier › toucher le centre
       var vars = [{ fond: cfg.fond, c1: cfg.c1, c2: cfg.c2 }].concat(cfg.variantes), types = [];
       vars.forEach(function (v, i) {
-        var cv = {}; for (var kk in cfg) cv[kk] = cfg[kk]; cv.fond = v.fond; cv.c1 = v.c1; cv.c2 = v.c2;
+        var cv = {}; for (var kk in cfgF) cv[kk] = cfgF[kk]; cv.fond = v.fond; cv.c1 = v.c1; cv.c2 = v.c2;
         var f0 = i ? fond(cv, false, ana) : IM['fond.png']; if (i) put('fond_v' + i + '.png', f0);
         var pv = toile(150, 150), pg = pv.getContext('2d'); pg.beginPath(); pg.arc(75, 75, 75, 0, 7); pg.clip(); pg.drawImage(f0, 0, 0, 150, 150);
         put('edit/v' + i + '.png', pv); types.push({ type: 100001 + i, preview: 'images/edit/v' + i + '.png', src: i ? 'images/fond_v' + i + '.png' : 'images/fond.png' });
@@ -556,10 +561,10 @@
     }
     if (cfg.fond === 'photo' && cfg.photos.length) {   // diaporama : une autre photo à chaque réveil de l'écran
       spec.diapo = ['images/fond.png'];
-      cfg.photos.forEach(function (ph, i) { var cp = {}; for (var kp in cfg) cp[kp] = cfg[kp]; cp.photo = ph; spec.diapo.push(put('fond_p' + (i + 1) + '.png', fond(cp, false, ana))); });
+      cfg.photos.forEach(function (ph, i) { var cp = {}; for (var kp in cfgF) cp[kp] = cfgF[kp]; cp.photo = ph; spec.diapo.push(put('fond_p' + (i + 1) + '.png', fond(cp, false, ana))); });
     }
     if (cfg.nuit) {
-      var cn = {}; for (var kn in cfg) cn[kn] = cfg[kn]; cn.fond = cfg.nuit.fond; cn.c1 = cfg.nuit.c1; cn.c2 = cfg.nuit.c2;
+      var cn = {}; for (var kn in cfgF) cn[kn] = cfgF[kn]; cn.fond = cfg.nuit.fond; cn.c1 = cfg.nuit.c1; cn.c2 = cfg.nuit.c2;
       put('fond_nuit.png', fond(cn, false, ana));
       add({ k: 'img', x: 0, y: 0, w: W, h: W, src: 'images/fond_nuit.png', role: 'nuit', de: cfg.nuit.de, a: cfg.nuit.a });
     }
@@ -611,7 +616,42 @@
     // heure en lettres seule : l'écran toujours allumé garde une heure en chiffres
     var sansHeure = !cfg.blocs.some(function (b) { return b.t === 'heure' || b.t === 'aiguilles'; }) && cfg.blocs.some(function (b) { return b.t === 'mots'; });
     var blocsP = sansHeure ? cfg.blocs.concat([normBloc({ t: 'heure', x: CX, y: CY, taille: 96, police: 'legere' })]) : cfg.blocs;
+    /* une info modifiable : pour chaque choix possible, son dessin fixe (icône, nom) et ses widgets, fabriqués à part */
+    var choixInfo = function (b, bi, n) {
+      var opts = [], box = null, pre = 'c' + bi + '/';
+      Object.keys(CHOIX_INFOS).forEach(function (d) {
+        var bb = {}; for (var kb in b) bb[kb] = b[kb]; bb.d = d; bb.choix = false;
+        var sc = {}; for (var ks in cfg) sc[ks] = cfg[ks];
+        sc.fond = 'transparent'; sc.anneau = 'aucun'; sc.calques = []; sc.variantes = []; sc.nuit = null; sc.photos = []; sc.blocs = [bb];
+        var sub = paquet(sc), Gd = geo(normBloc(bb), cfg), pad = 14;
+        var x0 = Math.max(0, Math.round(Gd.x - pad)), y0 = Math.max(0, Math.round(Gd.y - pad)), x1 = Math.min(W, Math.round(Gd.x + Gd.w + pad)), y1 = Math.min(W, Math.round(Gd.y + Gd.h + pad));
+        var st = toile(x1 - x0, y1 - y0); st.getContext('2d').drawImage(sub.images['fond.png'], -x0, -y0);
+        box = box ? { x0: Math.min(box.x0, x0), y0: Math.min(box.y0, y0), x1: Math.max(box.x1, x1), y1: Math.max(box.y1, y1) } : { x0: x0, y0: y0, x1: x1, y1: y1 };
+        var partage = function (k) { return /^n[0-9a-z]+\//.test(k); };   // jeux de chiffres : mêmes images pour tous les choix
+        Object.keys(sub.images).forEach(function (k) { if (/^fond|^zone/.test(k)) return; if (partage(k)) { if (!IM[k]) IM[k] = sub.images[k]; } else IM[pre + d + '/' + k] = sub.images[k]; });
+        var pv = toile(x1 - x0, y1 - y0), pvg = pv.getContext('2d'); pvg.fillStyle = 'rgba(0,0,0,.55)'; rond(pvg, 0, 0, x1 - x0, y1 - y0, 14); pvg.fill(); pvg.drawImage(st, 0, 0);
+        var ws = sub.spec.w.filter(function (w) { return !w.aod && w.role !== 'fond' && w.k !== 'click' && !(w.k === 'img' && /fond/.test(w.src)); }).map(function (w) {
+          var o = JSON.parse(JSON.stringify(w)); delete o.g;
+          if (o.src) o.src = 'images/' + pre + d + '/' + o.src.replace(/^images\//, '');
+          if (o.dossier && !partage(o.dossier + '/')) o.dossier = pre + d + '/' + o.dossier;
+          return o;
+        });
+        opts.push({ d: d, edit: CHOIX_INFOS[d], img: { src: put(pre + d + '/fixe.png', st), x: x0, y: y0 }, prev: put(pre + d + '/apercu.png', pv), w: ws });
+      });
+      var bw = box.x1 - box.x0, bh = box.y1 - box.y0;
+      var sel = toile(bw, bh), sg = sel.getContext('2d'); sg.strokeStyle = cfg.accent; sg.lineWidth = 4; rond(sg, 2, 2, bw - 4, bh - 4, 14); sg.stroke(); put(pre + 'sel.png', sel);
+      var uns = toile(bw, bh), ug = uns.getContext('2d'); ug.strokeStyle = 'rgba(255,255,255,.5)'; ug.lineWidth = 2; ug.setLineDash([8, 6]); rond(ug, 2, 2, bw - 4, bh - 4, 14); ug.stroke(); put(pre + 'unsel.png', uns);
+      if (!IM['edit/tip.png']) { var tip = toile(110, 44), tg = tip.getContext('2d'); tg.fillStyle = 'rgba(0,0,0,.75)'; rond(tg, 0, 0, 110, 44, 14); tg.fill(); put('edit/tip.png', tip); }
+      var def = opts.filter(function (o) { return o.d === b.d; })[0] || opts[0];
+      add({ k: 'choix', id: 101 + n, x: box.x0, y: box.y0, w: bw, h: bh, sel: 'images/' + pre + 'sel.png', unsel: 'images/' + pre + 'unsel.png', defaut: def.d, options: opts });
+      spec.edit2 = true;
+      // pour l'aperçu de l'Atelier seulement : le choix par défaut (la montre, elle, ignore ces widgets)
+      add({ k: 'img', ap: 1, x: def.img.x, y: def.img.y, src: def.img.src });
+      def.w.forEach(function (w) { var o = JSON.parse(JSON.stringify(w)); o.ap = 1; add(o); });
+    };
+    var nChoix = 0;
     blocsP.forEach(function (b, bi) {
+      if (b.t === 'info' && b.choix && nChoix < 6) { choixInfo(b, bi, ++nChoix); return; }
       var G = geo(b, cfg), P = POLICES[b.police] || PETITE; FX = b.effet || 'aucun'; ICN = b.icone || 'trait';
       if (b.t === 'heure') {
         ['', '_aod'].forEach(function (suf, k) {
@@ -840,7 +880,13 @@
       if (b.t === 'fuseau') { if (!aod) texte(g, b.txt.toUpperCase(), b.x, Math.round(b.y + b.taille * .62 + 12), PETITE.fam, Math.max(11, Math.round(b.taille * .4)), coul(cfg, b.libelle), 'center', 2); return; }
       if (b.t === 'compte') { if (!aod) texte(g, b.txt.toUpperCase(), b.x, Math.round(b.y + b.taille * .62 + 12), PETITE.fam, Math.max(11, Math.round(b.taille * .34)), coul(cfg, b.libelle), 'center', 2); return; }
       if (b.t === 'texte') { var P = POLICES[b.police] || PETITE; texte(g, b.txt, b.x, Math.round(b.y + b.taille * .36), P.fam, Math.round(b.taille * P.echelle), aod ? aodDimDe(cfg) : cc, 'center', b.esp, aod ? null : b.effet); return; }
-      if (b.t === 'image') { if (!aod) { g.save(); g.translate(b.x, b.y); g.rotate(b.rot * Math.PI / 180); motif(g, b.motif, 0, 0, b.taille, b.couleur === 'auto' ? null : coul(cfg, b.couleur)); g.restore(); } return; }
+      if (b.t === 'image') {
+        if (!aod) { g.save(); g.translate(b.x, b.y); g.rotate(b.rot * Math.PI / 180);
+          if (b.motif === 'perso') { var ip = photoImg(b.img); if (ip) { var kq = b.taille / Math.max(ip.width, ip.height); g.drawImage(ip, -ip.width * kq / 2, -ip.height * kq / 2, ip.width * kq, ip.height * kq); } }
+          else motif(g, b.motif, 0, 0, b.taille, b.couleur === 'auto' ? null : coul(cfg, b.couleur));
+          g.restore(); }
+        return;
+      }
       if (b.t === 'panneau') { if (!aod) panneau(g, b, G, cfg); return; }
       if (b.t === 'trait') { g.strokeStyle = aod ? mix(cfg.doux, '#000', .6) : cc; g.lineWidth = b.ep; g.lineCap = 'round'; g.beginPath(); if (b.vertical) { g.moveTo(b.x, G.y); g.lineTo(b.x, G.y + G.h); } else { g.moveTo(G.x, b.y); g.lineTo(G.x + G.w, b.y); } g.stroke(); return; }
       if (aod) return;
@@ -1566,7 +1612,7 @@
   var CACHE = { cle: '', p: null };
   function apercu(cv, c, opt) {
     opt = opt || {};
-    var n0 = norm(c), cle = JSON.stringify(n0) + (photoImg(n0.photo) ? 'p' : '');
+    var n0 = norm(c), cle = JSON.stringify(n0) + (photoImg(n0.photo) ? 'p' : '') + n0.blocs.map(function (b) { return b.img ? (photoImg(b.img) ? 'i' : 'o') : ''; }).join('') + n0.photos.map(function (p) { return photoImg(p) ? 'q' : 'r'; }).join('');
     if (CACHE.cle !== cle) { CACHE.cle = cle; CACHE.p = paquet(n0); }
     var pk = CACHE.p, IM = pk.images, sp = pk.spec, cfg = sp.cfg, aod = !!opt.aod;
     var g = cv.getContext('2d'), sc = cv.width / W, d = opt.date || new Date();

@@ -25,6 +25,7 @@ const niveau = table('show_level', ['ONLY_NORMAL', 'ONAL_AOD'])
 const donnee = table('data_type', ['WEATHER', 'WEATHER_CURRENT', 'WEATHER_LOW', 'WEATHER_HIGH', 'WIND', 'HEART', 'STEP', 'BATTERY', 'CAL', 'DISTANCE',
   'SUN_RISE', 'SUN_SET', 'ALTITUDE', 'ALTIMETER', 'SPO2', 'STRESS', 'PAI_WEEKLY', 'UVI', 'HUMIDITY', 'STAND', 'ALARM_CLOCK'])
 const etat = table('system_status', ['DISCONNECT', 'DISTURB', 'CLOCK', 'LOCK'])
+const choixType = table('edit_type', ['STEP', 'HEART', 'BATTERY', 'CAL', 'DISTANCE', 'WEATHER', 'SPO2', 'STRESS', 'PAI', 'HUMIDITY', 'UVI', 'STAND'])
 const align = table('align', ['LEFT', 'RIGHT', 'CENTER_H'])
 const UI = ui && typeof ui.createWidget === 'function' ? ui : H
 
@@ -94,6 +95,24 @@ const FAIRE = {
       voir(jj, j === 0); voir(pre, j !== 0)
       ch.forEach((c, k) => { if (j !== 0 && k < t.length) { image(c, 'images/' + w.dossier + '/' + t[k] + '.png'); voir(c, true) } else voir(c, false) })
     })
+  },
+  // info modifiable sur la montre : le choix enregistré dans le mode Modifier décide de ce qui est créé
+  choix(w) {
+    const opts = w.options.filter((o) => choixType[o.edit] !== undefined); if (!opts.length) return null
+    const def = opts.filter((o) => o.d === w.defaut)[0] || opts[0]
+    let cur = def
+    if (widget.WATCHFACE_EDIT_GROUP !== undefined) {
+      const g = creer(widget.WATCHFACE_EDIT_GROUP, {
+        edit_id: w.id, x: w.x, y: w.y, w: w.w, h: w.h, select_image: w.sel, un_select_image: w.unsel,
+        default_type: choixType[def.edit], optional_types: opts.map((o) => ({ type: choixType[o.edit], preview: o.prev })), count: opts.length,
+        tips_BG: 'images/edit/tip.png', tips_x: 10, tips_y: -50, tips_width: 110, tips_margin: 6,
+      })
+      let t; try { t = g ? g.getProperty(prop.CURRENT_TYPE) : undefined } catch (e) {}
+      cur = opts.filter((o) => choixType[o.edit] === t)[0] || def
+    }
+    creer(widget.IMG, { x: cur.img.x, y: cur.img.y, src: cur.img.src, show_level: NORMAL })
+    cur.w.forEach((x) => bloc(() => { const f = FAIRE[x.k]; if (f) f(x, NORMAL) }))
+    return null
   },
   statut(w) {
     const t = etat[w.type]; if (t === undefined) return null
@@ -188,7 +207,7 @@ WatchFace({
     // base noire d'abord, toujours
     bloc(() => creer(widget.FILL_RECT, { x: 0, y: 0, w: 480, h: 480, color: 0x000000, show_level: NORMAL }))
     ;(S.w || []).forEach((w) => bloc(() => {
-      if (w.aod && AOD === undefined) return
+      if (w.ap || (w.aod && AOD === undefined)) return
       const f = FAIRE[w.k]; if (f) f(w, w.aod ? AOD : NORMAL)
     }))
     // fonds au choix (appui long sur le cadran › Modifier) : le fond choisi remplace le fond principal
