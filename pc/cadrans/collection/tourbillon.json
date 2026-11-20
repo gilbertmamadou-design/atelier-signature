@@ -53,7 +53,9 @@
    "lume": true,
    "couleur": "#d9a441",
    "trot": "#e8c26a",
-   "echelle": 1
+   "echelle": 1,
+   "fluide": true,
+   "reveil": true
   }
  ]
 }

@@ -65,7 +65,8 @@
    "lume": true,
    "couleur": "#e9eef7",
    "trot": "#ff7a1a",
-   "echelle": 1
+   "echelle": 1,
+   "reveil": true
   }
  ]
 }

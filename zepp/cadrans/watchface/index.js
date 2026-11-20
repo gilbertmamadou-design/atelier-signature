@@ -19,7 +19,7 @@ const pris = (groupe, cle) => {
 }
 const table = (groupe, cles) => { const o = {}; cles.forEach((k) => { const v = pris(groupe, k); if (v !== undefined) o[k] = v }); return o }
 const widget = table('widget', ['IMG', 'FILL_RECT', 'IMG_TIME', 'IMG_WEEK', 'IMG_DATE', 'IMG_LEVEL', 'TEXT_IMG', 'IMG_CLICK', 'TIME_POINTER', 'IMG_ANIM', 'WIDGET_DELEGATE', 'WATCHFACE_EDIT_GROUP', 'IMG_STATUS'])
-const prop = table('prop', ['ANIM_STATUS', 'VISIBLE', 'SRC', 'CURRENT_TYPE'])
+const prop = table('prop', ['ANIM_STATUS', 'VISIBLE', 'SRC', 'CURRENT_TYPE', 'ANGLE'])
 const animSt = table('anim_status', ['START', 'STOP'])
 const niveau = table('show_level', ['ONLY_NORMAL', 'ONAL_AOD'])
 const donnee = table('data_type', ['WEATHER', 'WEATHER_CURRENT', 'WEATHER_LOW', 'WEATHER_HIGH', 'WIND', 'HEART', 'STEP', 'BATTERY', 'CAL', 'DISTANCE',
@@ -67,6 +67,12 @@ const joursAvant = (w, d) => {
   return Math.round((c - auj) / 864e5)
 }
 let FOND = null
+/* aiguilles animées (option) : trotteuse fluide et/ou aiguilles qui tournent jusqu'à l'heure au réveil de l'écran */
+const ANIMEES = []
+const angles = (d) => {
+  const s = d.getSeconds() + d.getMilliseconds() / 1000, m = d.getMinutes() + s / 60, h = (d.getHours() % 12) + m / 60
+  return { h: h * 30, m: m * 6, s: s * 6, sj: d.getSeconds() * 6 }
+}
 const FAIRE = {
   img(w, show) {
     const i = creer(widget.IMG, { x: w.x, y: w.y, w: w.w, h: w.h, src: w.src, show_level: show, aod: w.aod })
@@ -162,6 +168,11 @@ const FAIRE = {
   },
   pointer(w, show) {
     const cx = w.cx == null ? 240 : w.cx, cy = w.cy == null ? 240 : w.cy
+    if ((w.fluide || w.reveil) && !w.aod && prop.ANGLE !== undefined) {
+      const main = (r) => r ? creer(widget.IMG, { x: 0, y: 0, w: 480, h: 480, pos_x: cx - r.px, pos_y: cy - r.py, center_x: cx, center_y: cy, angle: 0, src: r.src, show_level: NORMAL }) : null
+      const a = { w, h: main(w.h), m: main(w.m), s: main(w.s) }
+      if (a.h && a.m) { ANIMEES.push(a); return a.h }
+    }
     const o = {
       hour_centerX: cx, hour_centerY: cy, hour_posX: w.h.px, hour_posY: w.h.py, hour_path: w.h.src,
       minute_centerX: cx, minute_centerY: cy, minute_posX: w.m.px, minute_posY: w.m.py, minute_path: w.m.src,
@@ -191,6 +202,24 @@ WatchFace({
       const cur = g ? g.getProperty(prop.CURRENT_TYPE) : t[0].type, o = t.filter((x) => x.type === cur)[0]
       if (o && o.src !== 'images/fond.png') image(FOND, o.src)
     })
+    // aiguilles animées : 15 images/s pour la trotteuse fluide ou pendant le tour du réveil, sinon une fois par seconde
+    let tAig = null, t0 = 0
+    const tourne = (a, k, deg) => { if (a[k]) try { a[k].setProperty(prop.ANGLE, Math.round(deg * 10) / 10) } catch (e) {} }
+    const pose = () => {
+      const d = maintenant(), A = angles(d), e = t0 ? Math.min(1, (Date.now() - t0) / 900) : 1, k = 1 - Math.pow(1 - e, 3)
+      ANIMEES.forEach((a) => {
+        const r = a.w.reveil && e < 1 ? k : 1
+        tourne(a, 'h', A.h * r); tourne(a, 'm', (A.m + (r < 1 ? 360 : 0)) * r); tourne(a, 's', (a.w.fluide ? A.s : A.sj) * r)
+      })
+      const fluide = ANIMEES.some((a) => a.w.fluide), periode = fluide || e < 1 ? 66 : 1000
+      if (tAig === null || tAig.p !== periode) { if (tAig) try { clearInterval(tAig.id) } catch (x) {} try { tAig = { id: setInterval(pose, periode), p: periode } } catch (x) { tAig = null } }
+    }
+    const aigStart = () => { if (!ANIMEES.length) return; t0 = ANIMEES.some((a) => a.w.reveil) ? Date.now() : 0; pose() }
+    const aigStop = () => { if (tAig) { try { clearInterval(tAig.id) } catch (e) {} tAig = null } }
+    aigStart()
+    // diaporama : une autre photo à chaque réveil de l'écran
+    let nDiapo = 0
+    const diapo = () => { if (S.diapo && S.diapo.length > 1 && FOND) { nDiapo = (nDiapo + 1) % S.diapo.length; image(FOND, S.diapo[nDiapo]) } }
     // heure en lettres, compte à rebours, lune, fond de nuit : calculés maintenant, au réveil de l'écran et chaque minute
     const maj = () => { const d = maintenant(); MAJ.forEach((f) => bloc(() => f(d))) }
     let tic = null
@@ -199,10 +228,10 @@ WatchFace({
     if (MAJ.length) demarre()
     // animations : relancées quand le cadran revient à l'écran, arrêtées écran éteint ou en AOD (autonomie)
     const pour = (st) => ANIMS.forEach((a) => { try { a.setProperty(prop.ANIM_STATUS, st) } catch (e) {} })
-    if ((ANIMS.length || MAJ.length) && widget.WIDGET_DELEGATE !== undefined) {
+    if ((ANIMS.length || MAJ.length || ANIMEES.length || S.diapo) && widget.WIDGET_DELEGATE !== undefined) {
       bloc(() => creer(widget.WIDGET_DELEGATE, {
-        resume_call: () => { if (ANIMS.length) { pour(animSt.STOP); pour(animSt.START) } if (MAJ.length) demarre() },
-        pause_call: () => { if (ANIMS.length) pour(animSt.STOP); arrete() },
+        resume_call: () => { if (ANIMS.length) { pour(animSt.STOP); pour(animSt.START) } if (MAJ.length) demarre(); aigStart(); diapo() },
+        pause_call: () => { if (ANIMS.length) pour(animSt.STOP); arrete(); aigStop() },
       }))
     }
   },

@@ -86,7 +86,7 @@
     heure: 'numerique', police: 'legere', taille: 'grande', secondes: false, aiguilles: 'epees',
     date: true, anneau: 'graduations', infos: ['meteo', 'coeur', 'pas', 'batterie'], aod: 'heure_date',
     photo: '', voile: .35, calques: [], montre: 'trex3', blocs: null,
-    variantes: [], nuit: null
+    variantes: [], nuit: null, photos: []
   };
   /* animations : une image par étape (f_0.png…), jouées par la montre (IMG_ANIM) quand l'écran est allumé */
   var ANIMS = { engrenages: 'Engrenages', balancier: 'Balancier', radar: 'Radar', coeur: 'Cœur qui bat', etoiles: 'Étoiles scintillantes', flamme: 'Flamme', onde: 'Onde lumineuse', cage: 'Cage de tourbillon', pendule: 'Pendule', neige: 'Neige', bulles: 'Bulles', eclair: 'Éclair', sablier: 'Sablier', soleil: 'Soleil qui rayonne', vague: 'Vague', disco: 'Lumières disco' };
@@ -106,7 +106,7 @@
     if (b.t !== 'aiguilles' && b.t !== 'trait' && b.t !== 'panneau') o.effet = EFFETS[b.effet] ? b.effet : 'aucun';
     if (b.t === 'info' || b.t === 'meteo') o.icone = b.icone === 'couleur' ? 'couleur' : 'trait';
     if (b.t === 'heure') { o.taille = Math.round(num(b.taille, 30, 150, 110)); o.secondes = !!b.secondes; o.dp = col(b.dp, 'accent'); }
-    if (b.t === 'aiguilles') { o.style = AIGUILLES[b.style] ? b.style : 'epees'; o.secondes = !!b.secondes; o.echelle = num(b.echelle, .2, 1, 1); o.trot = col(b.trot, 'accent'); o.trotStyle = TROTS[b.trotStyle] ? b.trotStyle : 'fine'; o.ombre = !!b.ombre; o.lume = !!b.lume; }
+    if (b.t === 'aiguilles') { o.style = AIGUILLES[b.style] ? b.style : 'epees'; o.secondes = !!b.secondes; o.echelle = num(b.echelle, .2, 1, 1); o.trot = col(b.trot, 'accent'); o.trotStyle = TROTS[b.trotStyle] ? b.trotStyle : 'fine'; o.ombre = !!b.ombre; o.lume = !!b.lume; o.fluide = !!b.fluide; o.reveil = !!b.reveil; }
     if (b.t === 'date') { o.format = DATES[b.format] ? b.format : 'long'; o.taille = Math.round(num(b.taille, 12, 40, 21)); o.jour = col(b.jour, 'accent'); o.cadre = !!b.cadre; }
     if (b.t === 'info') { o.d = INFOS[b.d] && INFOS[b.d].type ? b.d : 'pas'; o.style = STYLES[b.style] ? b.style : 'simple'; o.taille = TAILLES[b.taille] ? b.taille : 'm'; o.barre = !!b.barre && !!INFOS[o.d].prog; o.valeur = col(b.valeur, 'texte'); if (o.style === 'aiguille' && !INFOS[o.d].prog) o.style = 'jauge'; }
     if (b.t === 'meteo') { o.taille = TAILLES[b.taille] ? b.taille : 'm'; o.minmax = b.minmax !== false; o.valeur = col(b.valeur, 'texte'); }
@@ -139,6 +139,7 @@
     o.nom = String(o.nom || 'Mon cadran').slice(0, 24);
     o.photo = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(o.photo || '') ? o.photo : '';
     if (o.fond === 'photo' && !o.photo) o.fond = 'radial';
+    o.photos = (Array.isArray(o.photos) ? o.photos : []).filter(function (x) { return /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(x || ''); }).slice(0, 2);
     o.voile = num(o.voile, 0, .9, .35);
     if (!MONTRES[o.montre]) o.montre = 'trex3';
     o.calques = (Array.isArray(o.calques) ? o.calques : []).filter(function (k, i, l) { return CALQUES[k] && l.indexOf(k) === i; });
@@ -552,6 +553,10 @@
       var tip = toile(110, 44), tg = tip.getContext('2d'); tg.fillStyle = 'rgba(0,0,0,.75)'; rond(tg, 0, 0, 110, 44, 14); tg.fill(); put('edit/tip.png', tip);
       spec.edit = { x: 155, y: 155, w: 170, h: 170, types: types };
     }
+    if (cfg.fond === 'photo' && cfg.photos.length) {   // diaporama : une autre photo à chaque réveil de l'écran
+      spec.diapo = ['images/fond.png'];
+      cfg.photos.forEach(function (ph, i) { var cp = {}; for (var kp in cfg) cp[kp] = cfg[kp]; cp.photo = ph; spec.diapo.push(put('fond_p' + (i + 1) + '.png', fond(cp, false, ana))); });
+    }
     if (cfg.nuit) {
       var cn = {}; for (var kn in cfg) cn[kn] = cfg[kn]; cn.fond = cfg.nuit.fond; cn.c1 = cfg.nuit.c1; cn.c2 = cfg.nuit.c2;
       put('fond_nuit.png', fond(cn, false, ana));
@@ -729,7 +734,7 @@
       put(d + '/h.png', H.c); put(d + '/m.png', M.c); if (S) put(d + '/s.png', S.c); put(d + '/h_aod.png', Ha.c); put(d + '/m_aod.png', Ma.c);
       var cs = Math.round(24 * Math.max(.6, b.echelle));
       put(d + '/centre.png', centre(cfg, false, cs)); put(d + '/centre_aod.png', centre(cfg, true, cs));
-      add({ k: 'pointer', g: { b: b, cs: cs }, cx: b.x, cy: b.y, h: { src: 'images/' + d + '/h.png', px: H.px, py: H.py }, m: { src: 'images/' + d + '/m.png', px: M.px, py: M.py }, s: S ? { src: 'images/' + d + '/s.png', px: S.px, py: S.py } : null });
+      add({ k: 'pointer', g: { b: b, cs: cs }, fluide: b.fluide || undefined, reveil: b.reveil || undefined, cx: b.x, cy: b.y, h: { src: 'images/' + d + '/h.png', px: H.px, py: H.py }, m: { src: 'images/' + d + '/m.png', px: M.px, py: M.py }, s: S ? { src: 'images/' + d + '/s.png', px: S.px, py: S.py } : null });
       add({ k: 'img', x: b.x - cs / 2, y: b.y - cs / 2, w: cs, h: cs, src: 'images/' + d + '/centre.png' });
       add({ k: 'pointer', aod: 1, cx: b.x, cy: b.y, h: { src: 'images/' + d + '/h_aod.png', px: Ha.px, py: Ha.py }, m: { src: 'images/' + d + '/m_aod.png', px: Ma.px, py: Ma.py }, s: null });
       add({ k: 'img', x: b.x - cs / 2, y: b.y - cs / 2, w: cs, h: cs, src: 'images/' + d + '/centre_aod.png', aod: 1 });
@@ -1471,7 +1476,10 @@
     var c = toile(W, W), g = c.getContext('2d');
     g.lineCap = 'round'; g.lineWidth = 9;
     g.strokeStyle = rgba(cfg.accent, .16); g.beginPath(); g.arc(CX, CY, 228, 0, 7); g.stroke();
-    if (f > 0) { g.strokeStyle = cfg.accent; g.beginPath(); g.arc(CX, CY, 228, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2 - (f >= 1 ? 0 : .02)); g.stroke(); }
+    // couleur selon l'effort : objectif de pas atteint → or ; batterie faible → rouge
+    var cA = cfg.anneau === 'pas' && f >= 1 ? '#ffcf3f' : cfg.anneau === 'batterie' && f <= .2 ? '#ff4d4d' : cfg.accent;
+    if (cA !== cfg.accent) { g.shadowColor = cA; g.shadowBlur = 12; }
+    if (f > 0) { g.strokeStyle = cA; g.beginPath(); g.arc(CX, CY, 228, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2 - (f >= 1 ? 0 : .02)); g.stroke(); }
     return c;
   }
   function barre(w, h, cc, f) {
@@ -1570,6 +1578,7 @@
       if (w.k === 'img') {
         var src0 = w.src;
         if (w.role === 'fond' && opt.variante && sp.edit && sp.edit.types[opt.variante]) src0 = sp.edit.types[opt.variante].src;
+        if (w.role === 'fond' && opt.photo && sp.diapo && sp.diapo[opt.photo]) src0 = sp.diapo[opt.photo];
         if (w.role === 'nuit' && !(opt.nuit != null ? opt.nuit : estNuit(w, d.getHours()))) return;
         var i0 = im(src0); if (i0) g.drawImage(i0, w.x, w.y);
       }
