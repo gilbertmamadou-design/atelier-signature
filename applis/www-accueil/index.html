@@ -263,6 +263,9 @@ body.station.stnight .jvtime{font-size:clamp(64px,24vw,120px);color:rgba(190,240
 body.station.stnight .jvdate,body.station.stnight .jvbat{opacity:.5}
 body.station.stnight .tile.full{background:#000}
 body.jvcur #dock{display:none}
+#dock{transition:opacity .2s,transform .2s}
+body.dockoff #dock{opacity:0;transform:translateY(16px);pointer-events:none}
+body.dockoff:not(.edit) #dots{bottom:calc(var(--nb) + 10px)}
 body.jvcur:not(.edit) #dots{bottom:calc(var(--nb) + 10px)}
 .jvopt .sect{margin-left:0}
 
@@ -1492,6 +1495,8 @@ var jvBarHidden=false;
 function jvChrome(){
   var on=isJvPage(CP) && !!C.jv.nodock;
   document.body.classList.toggle('jvcur', on);
+  /* barre de recherche seulement sur la page principale (sauf réglage « sur toutes les pages ») */
+  document.body.classList.toggle('dockoff', !C.dockAll && CP!==(INT?1:0));
   /* Barre d'état (où Android affiche l'heure) : masquée sur la page Jarvis si elle ne l'est pas déjà partout */
   var bar=on && !C.hideBar;
   if(bar!==jvBarHidden && A && A.homeStatusBar){ jvBarHidden=bar; A.homeStatusBar(bar || !!C.hideBar); }
@@ -2378,6 +2383,7 @@ function settingsSheet(){
   var h=(INT?'<h2>Réglages de l\'accueil</h2><div class="row"><div class="t"><div>Accueil complet de '+esc(mjName())+'</div><div>Page principale : '+esc(mjName())+' ; les autres pages comme dans Socle</div></div><button class="sbtn ghost" data-s="mjsimple">Accueil simple</button></div>'+
      '<div class="row"><div class="t"><div>Disposition de Socle</div><div>Reprendre les pages et tuiles de Socle (Socle à jour, ouvert une fois)</div></div><button class="sbtn ghost" data-s="mjimport">Reprendre</button></div>':'<h2>Réglages de Socle</h2>')+
    '<div class="row"><div class="t"><div>Écran d\'accueil par défaut</div><div>'+(p.home?'Socle est ton écran d\'accueil':'Choisis Socle dans « Appli d\'accueil »')+'</div></div>'+(p.home?'<span class="ok">Actif</span>':'<button class="sbtn" data-s="home">Choisir</button>')+'</div>'+
+   '<div class="row"><div class="t"><div>Barre de recherche sur toutes les pages</div><div>Sinon, elle n\'apparaît que sur la page principale (glisser vers le haut ouvre toujours la liste des applis)</div></div><label class="sw"><input type="checkbox" id="sDockAll"'+(C.dockAll?' checked':'')+'><span></span></label></div>'+
    '<div class="row"><div class="t"><div>Masquer la barre du haut</div><div>Heure, wifi, réseau et batterie cachés sur l\'accueil (glisser depuis le haut les montre un instant)</div></div><label class="sw"><input type="checkbox" id="sBar"'+(C.hideBar?' checked':'')+'><span></span></label></div>'+
    '<div class="row"><div class="t"><div>Gestes</div><div>Double appui : verrouiller · glisser vers le bas : notifications</div></div><label class="sw"><input type="checkbox" id="sGest"'+(C.gestures?' checked':'')+'><span></span></label></div>'+
    '<div class="row"><div class="t"><div>Bouton Majordome</div><div>Micro dans la barre de recherche : parler à Majordome en un geste'+(app(MJ)?'':' (appli non installée)')+'</div></div><label class="sw"><input type="checkbox" id="sMjB"'+(C.mjBtn!==false?' checked':'')+'><span></span></label></div>'+
@@ -2394,6 +2400,7 @@ function settingsSheet(){
   openSheet(h,'settings');
   $('sGest').onchange=function(){ C.gestures=this.checked; save(); };
   $('sMjB').onchange=function(){ C.mjBtn=this.checked; save(); mjBtn(); };
+  $('sDockAll').onchange=function(){ C.dockAll=this.checked; save(); jvChrome(); };
   $('sBar').onchange=function(){ C.hideBar=this.checked; save(); applyBar(); if(A && A.homeStatusBar) A.homeStatusBar(C.hideBar); };
   $('sMag').onchange=function(){ C.preferMag=this.checked; save(); if(C.preferMag){ C.magSeen=[]; magMigrate(); render(); } };
   $('sRep').onchange=function(){ C.hideReplaced=this.checked; save(); };
