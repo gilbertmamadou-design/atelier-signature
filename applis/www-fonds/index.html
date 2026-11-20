@@ -401,6 +401,7 @@ body.vzhide .vzs{display:none}
     if(kind==='scan'){ state(); if(ok && +data>0) preview(''); else if(!ok) toast(data,true); return; }
     if(kind==='image'){ preview(data); return; }
     if(kind==='seq'){ seqDone(ok, data); return; }
+    if(kind==='vexp'){ vexp(ok, data); return; }
     if(kind==='vlist'){ vsList(ok, data); return; }
     if(kind==='vthumb'){ vsThumb(ok, data); return; }
     if(kind==='vprog'){ vsProg(data); return; }
@@ -550,7 +551,7 @@ body.vzhide .vzs{display:none}
   function vidUi(){
     var box = $('vidBox'); if(!box) return;
     if(!A || !A.wpPickVideo){ $('vidCard').hidden = true; return; }
-    vStop(); seqUi();
+    vStop(); if(VX.vid !== (V.maj||0)+':'+(V.nom||'')){ VX.vid = (V.maj||0)+':'+(V.nom||''); VX.uri = ''; } seqUi();
     if(!V.existe){ box.innerHTML = ''; return; }
     var D = V.duree||1000, sl = function(k, lab, max, step, val, txt){ return '<div class="block"><div class="lab">'+lab+' <span id="vv-'+k+'">'+txt+'</span></div><input type="range" data-v="'+k+'" min="0" max="'+max+'" step="'+step+'" value="'+val+'"></div>'; };
     box.innerHTML = '<div class="set" style="border:0;padding-top:0"><div class="t"><div>'+String(V.nom||'Vidéo').replace(/[<>&]/g,'')+'</div><div>'+sec(D)+' · '+V.w+'×'+V.h+'</div></div><label class="sw"><input type="checkbox" id="vOn"'+(V.on?' checked':'')+'><span></span></label></div>'+
@@ -597,12 +598,16 @@ body.vzhide .vzs{display:none}
     box.style.display = '';
     var nom = V.nomSeq || String(V.nom||'').replace(/\.[a-z0-9]{2,4}$/i, '');
     box.innerHTML = '<h4>Mes séquences</h4>'+
-      (V.existe ? '<div class="sqsave"><input id="sqN" maxlength="60" placeholder="Nom de la séquence" value="'+escA(nom)+'"><button class="btn" id="sqS" style="flex:none"><span class="spin"></span>'+(V.seq ? 'Mettre à jour' : 'Enregistrer')+'</button></div>' : '')+
+      (V.existe ? '<div class="sqsave"><input id="sqN" maxlength="60" placeholder="Nom de la séquence" value="'+escA(nom)+'"><button class="btn" id="sqS" style="flex:none"><span class="spin"></span>'+(V.seq ? 'Mettre à jour' : 'Enregistrer')+'</button></div>'+
+        (T0.videoExport ? '<div class="sqsave"><button class="btn" id="sqX" style="flex:1"><span class="spin"></span>'+(VX.uri ? 'Copier à nouveau dans la galerie' : 'Copier dans la galerie (vidéo modifiée)')+'</button></div><div class="bar" id="sqXb" hidden style="height:6px;border-radius:9px;background:var(--bg4);overflow:hidden;margin:-4px 0 10px"><i style="display:block;height:100%;width:0;background:var(--acc)"></i></div>'+
+          (VX.uri ? '<div class="sqsave"><button class="btn main" id="sqSh" style="flex:1">Envoyer à la tablette…</button></div><div style="font-size:12px;color:var(--tx3);margin:-4px 0 10px">Dans Galerie › Films › Toile. « Envoyer » ouvre le Partage rapide (Quick Share), Bluetooth ou ta messagerie ; sur la tablette, choisis-la ensuite avec « Ma galerie ».</div>' : '') : '') : '')+
       (SQ.length ? '<div class="sqs">'+SQ.map(function(x){ var on = x.id === V.seq;
         return '<button class="sq'+(on?' on':'')+'" data-sq="'+escA(x.id)+'" aria-label="'+escA(x.nom)+'"><span class="im" style="'+(x.img?"background-image:url('"+x.img+"')":'')+'"></span><span class="nm">'+escA(x.nom)+'</span><span class="sb">'+(on ? 'en cours · ' : '')+sec(x.duree)+' · '+moTxt(x.taille)+'</span>'+
           '<span class="del'+(sqAsk===x.id?' ask':'')+'" data-sqdel="'+escA(x.id)+'" role="button" aria-label="Supprimer">'+(sqAsk===x.id ? 'Supprimer ?' : '<svg class="ic" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>')+'</span></button>'; }).join('')+'</div>'
         : '<div style="font-size:12.5px;color:var(--tx3)">Enregistre ta vidéo avec ses réglages (boucle, rognage) pour pouvoir y revenir plus tard, même après avoir choisi une autre vidéo.</div>');
     var b = $('sqS'); if(b) b.onclick = function(){ setBusy('sqS', true); T0.seqSave(($('sqN').value||'').trim()); };
+    var bx = $('sqX'); if(bx){ bx.onclick = function(){ if(VX.on) return; VX.on = true; VX.uri = ''; setBusy('sqX', true); $('sqXb').hidden = false; bx.lastChild.textContent = 'Préparation…'; T0.videoExport(''); }; if(VX.on){ bx.classList.add('busy'); $('sqXb').hidden = false; } }
+    var bs = $('sqSh'); if(bs) bs.onclick = function(){ T0.videoShare(VX.uri); };
   }
   $('seqBox').addEventListener('click', function(e){
     var T0 = window.MAGToile, d = e.target.closest('[data-sqdel]');
@@ -611,6 +616,13 @@ body.vzhide .vzs{display:none}
     if(q.dataset.sq === V.seq){ toast('Cette séquence est déjà ton fond animé'); return; }
     sqAsk = ''; toast('Mise en place…'); T0.seqUse(q.dataset.sq);
   });
+  var VX = { on: false, uri: '' };
+  function vexp(ok, data){
+    if(!ok){ VX.on = false; toast(data, true); seqUi(); return; }
+    var d = {}; try{ d = JSON.parse(data); }catch(e){}
+    if(d.uri){ VX.on = false; VX.uri = d.uri; toast('Vidéo copiée dans ta galerie (Films › Toile) ✓'); seqUi(); return; }
+    var b = $('sqX'), bar = $('sqXb'); if(b) b.lastChild.textContent = 'Création de la vidéo… '+d.pc+' %'; if(bar){ bar.hidden = false; bar.firstChild.style.width = d.pc+'%'; }
+  }
   function seqDone(ok, data){
     if(!ok){ setBusy('sqS', false); toast(data, true); return; }
     var was = !!V.seq;

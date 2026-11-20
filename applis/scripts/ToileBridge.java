@@ -1191,4 +1191,45 @@ public class ToileBridge {
         if (!ok()) return;
         CROP.execute(new Runnable() { public void run() { emit("seq", true, WallpaperJob.seqDel(a.getApplicationContext(), id).toString()); } });
     }
+
+    // ---------------------------------------------------------------- export vers la galerie et partage (tablette…)
+    static final AtomicBoolean VEXP = new AtomicBoolean(false);
+    /** id vide : la séquence en cours ; sinon une séquence de « Mes séquences ». toileEvent('vexp', ok, {pc} puis {uri, nom}) */
+    @JavascriptInterface public void videoExport(final String id) {
+        if (!ok()) return;
+        if (!VEXP.compareAndSet(false, true)) { emit("vexp", false, "Un export est déjà en cours"); return; }
+        new Thread(new Runnable() { public void run() {
+            Context c = a.getApplicationContext(); File tmp = new File(c.getCacheDir(), "toile-export.mp4");
+            try {
+                File src; JSONObject cfg;
+                if (id == null || id.isEmpty()) { src = WallpaperJob.videoFile(c); cfg = WallpaperJob.videoCfg(c); }
+                else {
+                    if (!id.matches("^[0-9a-z]{6,20}$")) throw new Exception("Séquence inconnue");
+                    src = new File(WallpaperJob.seqDir(c), id + ".mp4");
+                    cfg = new JSONObject(new String(readFile(new File(WallpaperJob.seqDir(c), id + ".json")), "UTF-8"));
+                }
+                if (!src.exists()) throw new Exception("Aucune vidéo à exporter");
+                tmp.delete();
+                new WallpaperJob.VideoExport().faire(c, src, cfg, tmp, new WallpaperJob.VideoExport.Avance() { public void pc(int pc) {
+                    try { emit("vexp", true, new JSONObject().put("pc", pc).toString()); } catch (Exception e) { }
+                } });
+                String nom = cfg.optString("nomSeq", cfg.optString("nom", "Séquence"));
+                Uri u = WallpaperJob.versGalerie(c, tmp, nom);
+                emit("vexp", true, new JSONObject().put("uri", u.toString()).put("nom", nom).put("taille", tmp.length()).toString());
+            } catch (Throwable t) { emit("vexp", false, "Export impossible : " + WallpaperJob.msg(t)); }
+            finally { tmp.delete(); VEXP.set(false); }
+        } }).start();
+    }
+    /** envoie une vidéo de la galerie (Partage rapide vers la tablette, Bluetooth, messagerie…) */
+    @JavascriptInterface public void videoShare(final String uri) {
+        if (!ok() || uri == null || !uri.startsWith("content://media/")) return;
+        ui.post(new Runnable() { public void run() {
+            try {
+                android.content.Intent i = new android.content.Intent(android.content.Intent.ACTION_SEND);
+                i.setType("video/mp4"); i.putExtra(android.content.Intent.EXTRA_STREAM, Uri.parse(uri));
+                i.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                a.startActivity(android.content.Intent.createChooser(i, "Envoyer la vidéo"));
+            } catch (Throwable t) { emit("vexp", false, "Partage impossible"); }
+        } });
+    }
 }

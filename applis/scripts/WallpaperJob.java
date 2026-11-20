@@ -1053,40 +1053,167 @@ public class WallpaperJob extends JobService {
     static boolean videoActive(Context c) { JSONObject o = videoCfg(c); return o.optBoolean("on") && o.optBoolean("existe"); }
 
     /** Lecture de la vidéo sur la surface du fond, dans son propre fil (OpenGL ES 2, texture externe) */
-    static final class VideoGl implements android.graphics.SurfaceTexture.OnFrameAvailableListener {
-        final android.os.HandlerThread th = new android.os.HandlerThread("toile-video");
-        final android.os.Handler gh;
-        android.opengl.EGLDisplay dpy; android.opengl.EGLContext ctx; android.opengl.EGLSurface surf;
-        android.graphics.SurfaceTexture st; android.view.Surface sf; android.media.MediaPlayer mp;
-        int prog, tex, aPos, aTex, uM, uZ, uN, uPx; final float[] mtx = new float[16];
-        volatile int sw, sh; volatile boolean vis, mort; JSONObject cfg; long debut, fin;
+    /** Export de la séquence telle qu'elle s'affiche en fond : boucle (début → fin), rognage, proportions, zones masquées,
+     *  au format de l'écran, sans le son. Décodage → texture GL (Peintre) → encodeur H.264 → MP4. */
+    static final class VideoExport implements android.graphics.SurfaceTexture.OnFrameAvailableListener {
+        interface Avance { void pc(int pc); }
+        private final Object lock = new Object(); private boolean dispo;
+        @Override public void onFrameAvailable(android.graphics.SurfaceTexture s) { synchronized (lock) { dispo = true; lock.notifyAll(); } }
+        private boolean attendre() throws InterruptedException {
+            synchronized (lock) { long t = System.currentTimeMillis() + 2500; while (!dispo) { long r = t - System.currentTimeMillis(); if (r <= 0) return false; lock.wait(r); } dispo = false; return true; }
+        }
 
-        VideoGl(final android.view.SurfaceHolder holder, final File f, final JSONObject cfg, int w, int h, boolean visible) {
-            this.cfg = cfg; sw = w; sh = h; vis = visible; debut = cfg.optLong("debut", 0); fin = cfg.optLong("fin", 0);
-            th.start(); gh = new android.os.Handler(th.getLooper());
-            gh.post(new Runnable() { public void run() { try { init(holder, f); } catch (Throwable t) { liberer(); } } });
+        File faire(Context c, File src, JSONObject cfg, File out, Avance av) throws Exception {
+            int[] scr = screen(c);
+            float H = Math.max(1, cfg.optInt("h", 1)), y0 = (float) cfg.optDouble("haut", 0) / 100f, y1 = 1f - (float) cfg.optDouble("bas", 0) / 100f;
+            int oh = (int) Math.min(1920, Math.max(720, (y1 - y0) * H)); int ow = Math.round(oh * scr[0] / (float) scr[1]);
+            ow = Math.max(144, ow / 16 * 16); oh = Math.max(256, oh / 16 * 16);
+            long debut = cfg.optLong("debut", 0) * 1000L, fin = cfg.optLong("fin", 0) * 1000L; if (fin <= debut) fin = Long.MAX_VALUE;
+            android.media.MediaExtractor ex = new android.media.MediaExtractor();
+            android.media.MediaCodec dec = null, enc = null; android.media.MediaMuxer mux = null;
+            android.opengl.EGLDisplay dpy = null; android.opengl.EGLContext ctx = null; android.opengl.EGLSurface surf = null;
+            android.graphics.SurfaceTexture st = null; android.view.Surface decOut = null, encIn = null;
+            android.os.HandlerThread ht = new android.os.HandlerThread("toile-export"); ht.start();
+            try {
+                ex.setDataSource(src.getAbsolutePath());
+                int tr = -1; android.media.MediaFormat inF = null;
+                for (int i = 0; i < ex.getTrackCount(); i++) { android.media.MediaFormat f = ex.getTrackFormat(i); String m = f.getString(android.media.MediaFormat.KEY_MIME); if (m != null && m.startsWith("video/")) { tr = i; inF = f; break; } }
+                if (tr < 0) throw new Exception("Pas d'image dans cette vidéo");
+                ex.selectTrack(tr);
+                int fps = 30; try { if (inF.containsKey(android.media.MediaFormat.KEY_FRAME_RATE)) fps = Math.max(10, Math.min(60, inF.getInteger(android.media.MediaFormat.KEY_FRAME_RATE))); } catch (Exception e) { }
+                android.media.MediaFormat of = android.media.MediaFormat.createVideoFormat("video/avc", ow, oh);
+                of.setInteger(android.media.MediaFormat.KEY_COLOR_FORMAT, android.media.MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
+                of.setInteger(android.media.MediaFormat.KEY_BIT_RATE, Math.max(2_000_000, Math.min(16_000_000, ow * oh * 6)));
+                of.setInteger(android.media.MediaFormat.KEY_FRAME_RATE, fps);
+                of.setInteger(android.media.MediaFormat.KEY_I_FRAME_INTERVAL, 1);
+                enc = android.media.MediaCodec.createEncoderByType("video/avc");
+                enc.configure(of, null, null, android.media.MediaCodec.CONFIGURE_FLAG_ENCODE);
+                encIn = enc.createInputSurface(); enc.start();
+                // EGL sur la surface de l'encodeur
+                dpy = android.opengl.EGL14.eglGetDisplay(android.opengl.EGL14.EGL_DEFAULT_DISPLAY);
+                int[] v = new int[2]; android.opengl.EGL14.eglInitialize(dpy, v, 0, v, 1);
+                int[] at = { android.opengl.EGL14.EGL_RED_SIZE, 8, android.opengl.EGL14.EGL_GREEN_SIZE, 8, android.opengl.EGL14.EGL_BLUE_SIZE, 8,
+                    android.opengl.EGL14.EGL_RENDERABLE_TYPE, android.opengl.EGL14.EGL_OPENGL_ES2_BIT, 0x3142 /* EGL_RECORDABLE_ANDROID */, 1, android.opengl.EGL14.EGL_NONE };
+                android.opengl.EGLConfig[] cf = new android.opengl.EGLConfig[1]; int[] nc = new int[1];
+                android.opengl.EGL14.eglChooseConfig(dpy, at, 0, cf, 0, 1, nc, 0); if (nc[0] < 1) throw new Exception("Export impossible sur ce téléphone (EGL)");
+                ctx = android.opengl.EGL14.eglCreateContext(dpy, cf[0], android.opengl.EGL14.EGL_NO_CONTEXT, new int[]{ android.opengl.EGL14.EGL_CONTEXT_CLIENT_VERSION, 2, android.opengl.EGL14.EGL_NONE }, 0);
+                surf = android.opengl.EGL14.eglCreateWindowSurface(dpy, cf[0], encIn, new int[]{ android.opengl.EGL14.EGL_NONE }, 0);
+                android.opengl.EGL14.eglMakeCurrent(dpy, surf, surf, ctx);
+                Peintre pt = new Peintre();
+                int[] t = new int[1]; android.opengl.GLES20.glGenTextures(1, t, 0); int tex = t[0];
+                android.opengl.GLES20.glBindTexture(android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES, tex);
+                android.opengl.GLES20.glTexParameteri(android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES, android.opengl.GLES20.GL_TEXTURE_MIN_FILTER, android.opengl.GLES20.GL_LINEAR);
+                android.opengl.GLES20.glTexParameteri(android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES, android.opengl.GLES20.GL_TEXTURE_MAG_FILTER, android.opengl.GLES20.GL_LINEAR);
+                android.opengl.GLES20.glTexParameteri(android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES, android.opengl.GLES20.GL_TEXTURE_WRAP_S, android.opengl.GLES20.GL_CLAMP_TO_EDGE);
+                android.opengl.GLES20.glTexParameteri(android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES, android.opengl.GLES20.GL_TEXTURE_WRAP_T, android.opengl.GLES20.GL_CLAMP_TO_EDGE);
+                st = new android.graphics.SurfaceTexture(tex); st.setOnFrameAvailableListener(this, new android.os.Handler(ht.getLooper()));
+                decOut = new android.view.Surface(st);
+                dec = android.media.MediaCodec.createDecoderByType(inF.getString(android.media.MediaFormat.KEY_MIME));
+                dec.configure(inF, decOut, null, 0); dec.start();
+                if (debut > 0) ex.seekTo(debut, android.media.MediaExtractor.SEEK_TO_PREVIOUS_SYNC);
+                mux = new android.media.MediaMuxer(out.getAbsolutePath(), android.media.MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
+                int[] mt = { -1 }; boolean inFin = false, decFin = false; float[] mtx = new float[16];
+                android.media.MediaCodec.BufferInfo bi = new android.media.MediaCodec.BufferInfo();
+                long tot = Math.max(1, Math.min(fin, cfg.optLong("duree", 1) * 1000L) - debut); int lastPc = -1;
+                while (!decFin) {
+                    if (!inFin) {
+                        int ii = dec.dequeueInputBuffer(10000);
+                        if (ii >= 0) {
+                            java.nio.ByteBuffer b = dec.getInputBuffer(ii); int n = ex.readSampleData(b, 0);
+                            if (n < 0 || ex.getSampleTime() > fin + 100_000) { dec.queueInputBuffer(ii, 0, 0, 0, android.media.MediaCodec.BUFFER_FLAG_END_OF_STREAM); inFin = true; }
+                            else { dec.queueInputBuffer(ii, 0, n, ex.getSampleTime(), 0); ex.advance(); }
+                        }
+                    }
+                    int oi = dec.dequeueOutputBuffer(bi, 10000);
+                    if (oi >= 0) {
+                        boolean eos = (bi.flags & android.media.MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0;
+                        long pts = bi.presentationTimeUs; boolean garder = bi.size > 0 && pts >= debut && pts <= fin;
+                        dec.releaseOutputBuffer(oi, garder);
+                        if (garder) {
+                            if (attendre()) {
+                                st.updateTexImage(); st.getTransformMatrix(mtx);
+                                pt.peindre(tex, mtx, cfg, ow, oh);
+                                android.opengl.EGLExt.eglPresentationTimeANDROID(dpy, surf, (pts - debut) * 1000L);
+                                android.opengl.EGL14.eglSwapBuffers(dpy, surf);
+                            }
+                            vider(enc, mux, mt, bi, false);
+                            int pc = (int) Math.min(99, (pts - debut) * 100 / tot); if (pc != lastPc && av != null) { lastPc = pc; av.pc(pc); }
+                        }
+                        if (eos || pts > fin) decFin = true;
+                    }
+                }
+                enc.signalEndOfInputStream();
+                vider(enc, mux, mt, new android.media.MediaCodec.BufferInfo(), true);
+                if (mt[0] < 0) throw new Exception("Aucune image exportée");
+                return out;
+            } finally {
+                try { if (dec != null) { dec.stop(); dec.release(); } } catch (Throwable e) { }
+                try { if (enc != null) { enc.stop(); enc.release(); } } catch (Throwable e) { }
+                try { if (mux != null) { mux.stop(); mux.release(); } } catch (Throwable e) { }
+                try { ex.release(); } catch (Throwable e) { }
+                try { if (decOut != null) decOut.release(); if (st != null) st.release(); } catch (Throwable e) { }
+                try {
+                    if (dpy != null) {
+                        android.opengl.EGL14.eglMakeCurrent(dpy, android.opengl.EGL14.EGL_NO_SURFACE, android.opengl.EGL14.EGL_NO_SURFACE, android.opengl.EGL14.EGL_NO_CONTEXT);
+                        if (surf != null) android.opengl.EGL14.eglDestroySurface(dpy, surf);
+                        if (ctx != null) android.opengl.EGL14.eglDestroyContext(dpy, ctx);
+                        android.opengl.EGL14.eglReleaseThread(); android.opengl.EGL14.eglTerminate(dpy);
+                    }
+                } catch (Throwable e) { }
+                try { if (encIn != null) encIn.release(); } catch (Throwable e) { }
+                ht.quitSafely();
+            }
         }
-        static int shader(int type, String src) { int s = android.opengl.GLES20.glCreateShader(type); android.opengl.GLES20.glShaderSource(s, src); android.opengl.GLES20.glCompileShader(s); return s; }
-        static int programme(String vs, String fs) {
-            int p = android.opengl.GLES20.glCreateProgram();
-            android.opengl.GLES20.glAttachShader(p, shader(android.opengl.GLES20.GL_VERTEX_SHADER, vs));
-            android.opengl.GLES20.glAttachShader(p, shader(android.opengl.GLES20.GL_FRAGMENT_SHADER, fs));
-            android.opengl.GLES20.glLinkProgram(p);
-            int[] ok = new int[1]; android.opengl.GLES20.glGetProgramiv(p, android.opengl.GLES20.GL_LINK_STATUS, ok, 0);
-            if (ok[0] == 0) { android.opengl.GLES20.glDeleteProgram(p); return 0; }
-            return p;
+        private static void vider(android.media.MediaCodec enc, android.media.MediaMuxer mux, int[] mt, android.media.MediaCodec.BufferInfo bi, boolean fin) {
+            long limite = System.currentTimeMillis() + 10000;
+            while (true) {
+                int i = enc.dequeueOutputBuffer(bi, fin ? 10000 : 0);
+                if (i == android.media.MediaCodec.INFO_TRY_AGAIN_LATER) { if (!fin || System.currentTimeMillis() > limite) return; continue; }
+                if (i == android.media.MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) { if (mt[0] < 0) { mt[0] = mux.addTrack(enc.getOutputFormat()); mux.start(); } continue; }
+                if (i < 0) continue;
+                java.nio.ByteBuffer b = enc.getOutputBuffer(i);
+                if ((bi.flags & android.media.MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) bi.size = 0;
+                if (bi.size > 0 && mt[0] >= 0 && b != null) { b.position(bi.offset); b.limit(bi.offset + bi.size); mux.writeSampleData(mt[0], b, bi); }
+                enc.releaseOutputBuffer(i, false);
+                if ((bi.flags & android.media.MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) return;
+            }
         }
-        void init(android.view.SurfaceHolder holder, File f) throws Exception {
-            dpy = android.opengl.EGL14.eglGetDisplay(android.opengl.EGL14.EGL_DEFAULT_DISPLAY);
-            int[] v = new int[2]; android.opengl.EGL14.eglInitialize(dpy, v, 0, v, 1);
-            int[] at = { android.opengl.EGL14.EGL_RED_SIZE, 8, android.opengl.EGL14.EGL_GREEN_SIZE, 8, android.opengl.EGL14.EGL_BLUE_SIZE, 8,
-                android.opengl.EGL14.EGL_RENDERABLE_TYPE, android.opengl.EGL14.EGL_OPENGL_ES2_BIT, android.opengl.EGL14.EGL_SURFACE_TYPE, android.opengl.EGL14.EGL_WINDOW_BIT, android.opengl.EGL14.EGL_NONE };
-            android.opengl.EGLConfig[] cf = new android.opengl.EGLConfig[1]; int[] nc = new int[1];
-            android.opengl.EGL14.eglChooseConfig(dpy, at, 0, cf, 0, 1, nc, 0);
-            if (nc[0] < 1) throw new Exception("EGL");
-            ctx = android.opengl.EGL14.eglCreateContext(dpy, cf[0], android.opengl.EGL14.EGL_NO_CONTEXT, new int[]{ android.opengl.EGL14.EGL_CONTEXT_CLIENT_VERSION, 2, android.opengl.EGL14.EGL_NONE }, 0);
-            surf = android.opengl.EGL14.eglCreateWindowSurface(dpy, cf[0], holder.getSurface(), new int[]{ android.opengl.EGL14.EGL_NONE }, 0);
-            android.opengl.EGL14.eglMakeCurrent(dpy, surf, surf, ctx);
+    }
+
+    /** copie un MP4 dans la galerie (Films › Toile) ; renvoie son adresse content:// */
+    static Uri versGalerie(Context c, File f, String nom) throws Exception {
+        if (android.os.Build.VERSION.SDK_INT < 29) throw new Exception("Il faut Android 10 ou plus récent pour enregistrer dans la galerie");
+        nom = (nom == null ? "" : nom).replaceAll("\\.[A-Za-z0-9]{2,4}$", "").replaceAll("[\\\\/:*?\"<>|\\n\\r]", " ").trim();
+        if (nom.isEmpty()) nom = "Séquence"; if (nom.length() > 50) nom = nom.substring(0, 50);
+        android.content.ContentValues v = new android.content.ContentValues();
+        v.put(android.provider.MediaStore.Video.Media.DISPLAY_NAME, "Toile - " + nom + " " + new java.text.SimpleDateFormat("yyyy-MM-dd HH'h'mm", java.util.Locale.FRANCE).format(new java.util.Date()) + ".mp4");
+        v.put(android.provider.MediaStore.Video.Media.MIME_TYPE, "video/mp4");
+        v.put(android.provider.MediaStore.Video.Media.RELATIVE_PATH, "Movies/Toile");
+        v.put(android.provider.MediaStore.Video.Media.IS_PENDING, 1);
+        ContentResolver cr = c.getContentResolver();
+        Uri u = cr.insert(android.provider.MediaStore.Video.Media.getContentUri(android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY), v);
+        if (u == null) throw new Exception("La galerie refuse l'enregistrement");
+        try (java.io.FileInputStream in = new java.io.FileInputStream(f); java.io.OutputStream o = cr.openOutputStream(u)) {
+            byte[] b = new byte[1 << 16]; int r; while ((r = in.read(b)) > 0) o.write(b, 0, r);
+        } catch (Exception e) { try { cr.delete(u, null, null); } catch (Throwable t) { } throw e; }
+        v.clear(); v.put(android.provider.MediaStore.Video.Media.IS_PENDING, 0); cr.update(u, v, null, null);
+        return u;
+    }
+
+    /** programme GL du fond vidéo : rognage, proportions, zones à masquer (partagé par le fond animé et l'export) */
+    static final class Peintre {
+        int prog, aPos, aTex, uM, uZ, uN, uPx;
+            static int shader(int type, String src) { int s = android.opengl.GLES20.glCreateShader(type); android.opengl.GLES20.glShaderSource(s, src); android.opengl.GLES20.glCompileShader(s); return s; }
+            static int programme(String vs, String fs) {
+                int p = android.opengl.GLES20.glCreateProgram();
+                android.opengl.GLES20.glAttachShader(p, shader(android.opengl.GLES20.GL_VERTEX_SHADER, vs));
+                android.opengl.GLES20.glAttachShader(p, shader(android.opengl.GLES20.GL_FRAGMENT_SHADER, fs));
+                android.opengl.GLES20.glLinkProgram(p);
+                int[] ok = new int[1]; android.opengl.GLES20.glGetProgramiv(p, android.opengl.GLES20.GL_LINK_STATUS, ok, 0);
+                if (ok[0] == 0) { android.opengl.GLES20.glDeleteProgram(p); return 0; }
+                return p;
+            }
+        Peintre() {
             // vU : coordonnées dans l'image vidéo (0..1, y vers le haut). Zones à masquer (uZ : x0, y0, x1, y1) : chaque point est
             // rempli par un mélange des bords de la zone (gauche, droite, bas, haut), pondéré par la distance, légèrement flouté.
             String vs = "attribute vec4 aPos; attribute vec4 aTex; varying vec2 vU; void main(){ gl_Position = aPos; vU = aTex.xy; }";
@@ -1107,30 +1234,8 @@ public class WallpaperJob extends JobService {
             if (prog == 0) prog = programme(vs, "#extension GL_OES_EGL_image_external : require\nprecision mediump float; uniform samplerExternalOES sT; uniform mat4 uM; varying vec2 vU; void main(){ gl_FragColor = texture2D(sT, (uM * vec4(vU, 0.0, 1.0)).xy); }");
             aPos = android.opengl.GLES20.glGetAttribLocation(prog, "aPos"); aTex = android.opengl.GLES20.glGetAttribLocation(prog, "aTex"); uM = android.opengl.GLES20.glGetUniformLocation(prog, "uM");
             uZ = android.opengl.GLES20.glGetUniformLocation(prog, "uZ"); uN = android.opengl.GLES20.glGetUniformLocation(prog, "uN"); uPx = android.opengl.GLES20.glGetUniformLocation(prog, "uPx");
-            int[] t = new int[1]; android.opengl.GLES20.glGenTextures(1, t, 0); tex = t[0];
-            android.opengl.GLES20.glBindTexture(android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES, tex);
-            android.opengl.GLES20.glTexParameteri(android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES, android.opengl.GLES20.GL_TEXTURE_MIN_FILTER, android.opengl.GLES20.GL_LINEAR);
-            android.opengl.GLES20.glTexParameteri(android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES, android.opengl.GLES20.GL_TEXTURE_MAG_FILTER, android.opengl.GLES20.GL_LINEAR);
-            android.opengl.GLES20.glTexParameteri(android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES, android.opengl.GLES20.GL_TEXTURE_WRAP_S, android.opengl.GLES20.GL_CLAMP_TO_EDGE);
-            android.opengl.GLES20.glTexParameteri(android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES, android.opengl.GLES20.GL_TEXTURE_WRAP_T, android.opengl.GLES20.GL_CLAMP_TO_EDGE);
-            st = new android.graphics.SurfaceTexture(tex); st.setOnFrameAvailableListener(this, gh); sf = new android.view.Surface(st);
-            mp = new android.media.MediaPlayer();
-            mp.setDataSource(f.getAbsolutePath()); mp.setSurface(sf); mp.setVolume(0f, 0f); mp.setLooping(fin <= 0 || fin >= cfg.optLong("duree", 0) - 50 && debut <= 0);
-            mp.setOnCompletionListener(new android.media.MediaPlayer.OnCompletionListener() { public void onCompletion(android.media.MediaPlayer m) { if (mort) return; aller(debut); if (vis) m.start(); } });
-            mp.prepare();
-            if (debut > 0) aller(debut);
-            if (vis) mp.start();
-            boucle();
         }
-        void aller(long ms) { try { if (android.os.Build.VERSION.SDK_INT >= 26) mp.seekTo(ms, android.media.MediaPlayer.SEEK_CLOSEST); else mp.seekTo((int) ms); } catch (Throwable t) { } }
-        void boucle() {
-            if (mort) return;
-            try { if (mp != null && mp.isPlaying() && fin > debut && fin < cfg.optLong("duree", 0) - 50 && mp.getCurrentPosition() >= fin) aller(debut); } catch (Throwable t) { }
-            gh.postDelayed(new Runnable() { public void run() { boucle(); } }, 120);
-        }
-        @Override public void onFrameAvailable(android.graphics.SurfaceTexture s) { if (!mort) try { dessiner(); } catch (Throwable t) { } }
-        void dessiner() {
-            st.updateTexImage(); st.getTransformMatrix(mtx);
+        void peindre(int tex, float[] mtx, JSONObject cfg, int sw, int sh) {
             float W = Math.max(1, cfg.optInt("w", 1)), H = Math.max(1, cfg.optInt("h", 1));
             float x0 = (float) cfg.optDouble("gauche", 0) / 100f, x1 = 1f - (float) cfg.optDouble("droite", 0) / 100f, y0 = (float) cfg.optDouble("haut", 0) / 100f, y1 = 1f - (float) cfg.optDouble("bas", 0) / 100f;
             if (x1 - x0 < .1f) { x0 = 0; x1 = 1; } if (y1 - y0 < .1f) { y0 = 0; y1 = 1; }
@@ -1164,6 +1269,59 @@ public class WallpaperJob extends JobService {
             android.opengl.GLES20.glEnableVertexAttribArray(aPos); android.opengl.GLES20.glVertexAttribPointer(aPos, 2, android.opengl.GLES20.GL_FLOAT, false, 0, pb);
             android.opengl.GLES20.glEnableVertexAttribArray(aTex); android.opengl.GLES20.glVertexAttribPointer(aTex, 4, android.opengl.GLES20.GL_FLOAT, false, 0, tb);
             android.opengl.GLES20.glDrawArrays(android.opengl.GLES20.GL_TRIANGLE_STRIP, 0, 4);
+        }
+    }
+
+    static final class VideoGl implements android.graphics.SurfaceTexture.OnFrameAvailableListener {
+        final android.os.HandlerThread th = new android.os.HandlerThread("toile-video");
+        final android.os.Handler gh;
+        android.opengl.EGLDisplay dpy; android.opengl.EGLContext ctx; android.opengl.EGLSurface surf;
+        android.graphics.SurfaceTexture st; android.view.Surface sf; android.media.MediaPlayer mp;
+        Peintre pt; int tex; final float[] mtx = new float[16];
+        volatile int sw, sh; volatile boolean vis, mort; JSONObject cfg; long debut, fin;
+
+        VideoGl(final android.view.SurfaceHolder holder, final File f, final JSONObject cfg, int w, int h, boolean visible) {
+            this.cfg = cfg; sw = w; sh = h; vis = visible; debut = cfg.optLong("debut", 0); fin = cfg.optLong("fin", 0);
+            th.start(); gh = new android.os.Handler(th.getLooper());
+            gh.post(new Runnable() { public void run() { try { init(holder, f); } catch (Throwable t) { liberer(); } } });
+        }
+        void init(android.view.SurfaceHolder holder, File f) throws Exception {
+            dpy = android.opengl.EGL14.eglGetDisplay(android.opengl.EGL14.EGL_DEFAULT_DISPLAY);
+            int[] v = new int[2]; android.opengl.EGL14.eglInitialize(dpy, v, 0, v, 1);
+            int[] at = { android.opengl.EGL14.EGL_RED_SIZE, 8, android.opengl.EGL14.EGL_GREEN_SIZE, 8, android.opengl.EGL14.EGL_BLUE_SIZE, 8,
+                android.opengl.EGL14.EGL_RENDERABLE_TYPE, android.opengl.EGL14.EGL_OPENGL_ES2_BIT, android.opengl.EGL14.EGL_SURFACE_TYPE, android.opengl.EGL14.EGL_WINDOW_BIT, android.opengl.EGL14.EGL_NONE };
+            android.opengl.EGLConfig[] cf = new android.opengl.EGLConfig[1]; int[] nc = new int[1];
+            android.opengl.EGL14.eglChooseConfig(dpy, at, 0, cf, 0, 1, nc, 0);
+            if (nc[0] < 1) throw new Exception("EGL");
+            ctx = android.opengl.EGL14.eglCreateContext(dpy, cf[0], android.opengl.EGL14.EGL_NO_CONTEXT, new int[]{ android.opengl.EGL14.EGL_CONTEXT_CLIENT_VERSION, 2, android.opengl.EGL14.EGL_NONE }, 0);
+            surf = android.opengl.EGL14.eglCreateWindowSurface(dpy, cf[0], holder.getSurface(), new int[]{ android.opengl.EGL14.EGL_NONE }, 0);
+            android.opengl.EGL14.eglMakeCurrent(dpy, surf, surf, ctx);
+            pt = new Peintre();
+            int[] t = new int[1]; android.opengl.GLES20.glGenTextures(1, t, 0); tex = t[0];
+            android.opengl.GLES20.glBindTexture(android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES, tex);
+            android.opengl.GLES20.glTexParameteri(android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES, android.opengl.GLES20.GL_TEXTURE_MIN_FILTER, android.opengl.GLES20.GL_LINEAR);
+            android.opengl.GLES20.glTexParameteri(android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES, android.opengl.GLES20.GL_TEXTURE_MAG_FILTER, android.opengl.GLES20.GL_LINEAR);
+            android.opengl.GLES20.glTexParameteri(android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES, android.opengl.GLES20.GL_TEXTURE_WRAP_S, android.opengl.GLES20.GL_CLAMP_TO_EDGE);
+            android.opengl.GLES20.glTexParameteri(android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES, android.opengl.GLES20.GL_TEXTURE_WRAP_T, android.opengl.GLES20.GL_CLAMP_TO_EDGE);
+            st = new android.graphics.SurfaceTexture(tex); st.setOnFrameAvailableListener(this, gh); sf = new android.view.Surface(st);
+            mp = new android.media.MediaPlayer();
+            mp.setDataSource(f.getAbsolutePath()); mp.setSurface(sf); mp.setVolume(0f, 0f); mp.setLooping(fin <= 0 || fin >= cfg.optLong("duree", 0) - 50 && debut <= 0);
+            mp.setOnCompletionListener(new android.media.MediaPlayer.OnCompletionListener() { public void onCompletion(android.media.MediaPlayer m) { if (mort) return; aller(debut); if (vis) m.start(); } });
+            mp.prepare();
+            if (debut > 0) aller(debut);
+            if (vis) mp.start();
+            boucle();
+        }
+        void aller(long ms) { try { if (android.os.Build.VERSION.SDK_INT >= 26) mp.seekTo(ms, android.media.MediaPlayer.SEEK_CLOSEST); else mp.seekTo((int) ms); } catch (Throwable t) { } }
+        void boucle() {
+            if (mort) return;
+            try { if (mp != null && mp.isPlaying() && fin > debut && fin < cfg.optLong("duree", 0) - 50 && mp.getCurrentPosition() >= fin) aller(debut); } catch (Throwable t) { }
+            gh.postDelayed(new Runnable() { public void run() { boucle(); } }, 120);
+        }
+        @Override public void onFrameAvailable(android.graphics.SurfaceTexture s) { if (!mort) try { dessiner(); } catch (Throwable t) { } }
+        void dessiner() {
+            st.updateTexImage(); st.getTransformMatrix(mtx);
+            pt.peindre(tex, mtx, cfg, sw, sh);
             android.opengl.EGL14.eglSwapBuffers(dpy, surf);
         }
         void taille(int w, int h) { sw = w; sh = h; }
