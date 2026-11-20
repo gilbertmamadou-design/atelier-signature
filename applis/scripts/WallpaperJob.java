@@ -960,7 +960,7 @@ public class WallpaperJob extends JobService {
         f.delete(); if (!tmp.renameTo(f)) throw new Exception("Copie de la vidéo impossible");
         JSONObject o = new JSONObject();
         o.put("on", true); o.put("debut", 0); o.put("fin", duree); o.put("duree", duree); o.put("w", w); o.put("h", h); o.put("nom", nom);
-        o.put("haut", 0); o.put("bas", 0); o.put("gauche", 0); o.put("droite", 0);
+        o.put("haut", 0); o.put("bas", 0); o.put("gauche", 0); o.put("droite", 0); o.remove("prop");
         if (credit != null) o.put("credit", credit);
         vprefs(c).edit().putString("cfg", o.toString()).apply();
         Live.refresh();
@@ -1042,7 +1042,11 @@ public class WallpaperJob extends JobService {
             float x0 = (float) cfg.optDouble("gauche", 0) / 100f, x1 = 1f - (float) cfg.optDouble("droite", 0) / 100f, y0 = (float) cfg.optDouble("haut", 0) / 100f, y1 = 1f - (float) cfg.optDouble("bas", 0) / 100f;
             if (x1 - x0 < .1f) { x0 = 0; x1 = 1; } if (y1 - y0 < .1f) { y0 = 0; y1 = 1; }
             float ra = (x1 - x0) * W / ((y1 - y0) * H), rs = sw / (float) Math.max(1, sh);
-            if (ra > rs) { float nw = (y1 - y0) * H * rs / W, cx = (x0 + x1) / 2; x0 = cx - nw / 2; x1 = cx + nw / 2; }
+            // « prop » : garder les proportions (recadrage au format de l'écran) ; sinon chaque bord rogné ne touche que son
+            // côté et le reste est étiré. Sans réglage : proportions gardées si la vidéo n'a pas à peu près le format de l'écran.
+            boolean prop = cfg.has("prop") ? cfg.optBoolean("prop") : Math.abs((W / H) / rs - 1f) > .15f;
+            if (!prop) { }
+            else if (ra > rs) { float nw = (y1 - y0) * H * rs / W, cx = (x0 + x1) / 2; x0 = cx - nw / 2; x1 = cx + nw / 2; }
             else { float nh = (x1 - x0) * W / rs / H, cy = (y0 + y1) / 2; y0 = cy - nh / 2; y1 = cy + nh / 2; }
             float[] pos = { -1, -1, 1, -1, -1, 1, 1, 1 };
             float[] tc = { x0, 1 - y1, 0, 1, x1, 1 - y1, 0, 1, x0, 1 - y0, 0, 1, x1, 1 - y0, 0, 1 };

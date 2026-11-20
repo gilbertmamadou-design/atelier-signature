@@ -85,6 +85,11 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
 .vpv{position:relative;margin:4px auto 10px;max-width:220px;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#000}
 .vpv img{display:block;width:100%}
 .vpv i{position:absolute;background:rgba(0,0,0,.62);pointer-events:none}
+.vrow{display:flex;gap:12px;justify-content:center;align-items:center;margin:4px 0 10px}
+.vrow .vpv{margin:0;flex:1;min-width:0}
+.vres{width:88px;flex:none;position:relative;overflow:hidden;border-radius:12px;border:2px solid #8fb4ff;background:#000}
+.vres img{position:absolute;max-width:none}
+.vcap{font-size:11px;color:var(--tx3);text-align:center;margin-top:4px}
 .vpv .gard{position:absolute;border:2px solid #8fb4ff;pointer-events:none;box-shadow:0 0 0 1px #0008}
 .foot{font-size:12.5px;color:var(--tx3);text-align:center;margin:14px 8px 0;line-height:1.5}
 #toast{position:fixed;left:16px;right:16px;bottom:calc(18px + var(--safe-b));background:#2b3042;border:1px solid #ffffff1f;color:var(--tx);padding:12px 14px;border-radius:14px;font-size:14px;box-shadow:0 10px 30px #0008;transform:translateY(calc(100% + 40px + var(--safe-b)));transition:transform .25s;z-index:300}
@@ -380,18 +385,26 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
   var V = {}, VF = '', vT = 0, fT = 0;
   try { V = A && A.wpVideo ? JSON.parse(A.wpVideo()) : {}; } catch(e){ V = {}; }
   function sec(ms){ return (Math.round(ms/100)/10).toString().replace('.', ',')+' s'; }
-  function vidSave(){ clearTimeout(vT); vT = setTimeout(function(){ if(A&&A.wpVideoSave) A.wpVideoSave(JSON.stringify({ on:!!V.on, debut:V.debut|0, fin:V.fin|0, haut:+V.haut||0, bas:+V.bas||0, gauche:+V.gauche||0, droite:+V.droite||0 })); }, 350); }
+  function vidSave(){ clearTimeout(vT); vT = setTimeout(function(){ if(A&&A.wpVideoSave) A.wpVideoSave(JSON.stringify({ on:!!V.on, debut:V.debut|0, fin:V.fin|0, haut:+V.haut||0, bas:+V.bas||0, gauche:+V.gauche||0, droite:+V.droite||0, prop:vProp() })); }, 350); }
   function vidFrame(){ clearTimeout(fT); fT = setTimeout(function(){ if(A&&A.wpVideoFrame&&V.existe) A.wpVideoFrame(String(V.debut|0)); }, 250); }
+  // garder les proportions : le cadre gardé est recadré au format de l'écran ; sinon chaque bord rogné ne touche que son côté
+  // et ce qui reste est étiré sur l'écran. Par défaut : proportions gardées si la vidéo n'a pas à peu près le format de l'écran.
+  function vRs(){ return (screen.width||9)/(screen.height||16); }
+  function vProp(){ return V.prop !== undefined ? !!V.prop : Math.abs(((V.w||9)/(V.h||16))/vRs() - 1) > .15; }
   function vidDraw(){
     var b = $('vpv'); if(!b) return;
     var t=+V.haut||0, d=+V.bas||0, g=+V.gauche||0, r=+V.droite||0;
-    // zone gardée après rognage, puis recadrée au format de l'écran (comme sur le téléphone)
-    var W=V.w||9, H=V.h||16, rs=(screen.width||9)/(screen.height||16), x0=g/100, x1=1-r/100, y0=t/100, y1=1-d/100, ra=(x1-x0)*W/((y1-y0)*H);
-    if(ra>rs){ var nw=(y1-y0)*H*rs/W, cx=(x0+x1)/2; x0=cx-nw/2; x1=cx+nw/2; } else { var nh=(x1-x0)*W/rs/H, cy=(y0+y1)/2; y0=cy-nh/2; y1=cy+nh/2; }
+    var W=V.w||9, H=V.h||16, rs=vRs(), x0=g/100, x1=1-r/100, y0=t/100, y1=1-d/100;
+    if(x1-x0 < .1){ x0=0; x1=1; } if(y1-y0 < .1){ y0=0; y1=1; }
+    if(vProp()){ var ra=(x1-x0)*W/((y1-y0)*H);
+      if(ra>rs){ var nw=(y1-y0)*H*rs/W, cx=(x0+x1)/2; x0=cx-nw/2; x1=cx+nw/2; } else { var nh=(x1-x0)*W/rs/H, cy=(y0+y1)/2; y0=cy-nh/2; y1=cy+nh/2; } }
     b.innerHTML = (VF?'<img alt="" src="'+VF+'">':'<div style="aspect-ratio:'+W+'/'+H+'"></div>')+
       '<i style="left:0;top:0;right:0;height:'+(y0*100)+'%"></i><i style="left:0;bottom:0;right:0;height:'+((1-y1)*100)+'%"></i>'+
       '<i style="left:0;top:'+(y0*100)+'%;width:'+(x0*100)+'%;height:'+((y1-y0)*100)+'%"></i><i style="right:0;top:'+(y0*100)+'%;width:'+((1-x1)*100)+'%;height:'+((y1-y0)*100)+'%"></i>'+
       '<div class="gard" style="left:'+(x0*100)+'%;top:'+(y0*100)+'%;width:'+((x1-x0)*100)+'%;height:'+((y1-y0)*100)+'%"></div>';
+    var e = $('vres'); if(!e) return;
+    e.style.aspectRatio = (screen.width||9)+'/'+(screen.height||16);
+    e.innerHTML = VF ? '<img alt="" src="'+VF+'" style="width:'+(100/(x1-x0))+'%;height:'+(100/(y1-y0))+'%;left:'+(-x0/(x1-x0)*100)+'%;top:'+(-y0/(y1-y0)*100)+'%">' : '';
   }
   function vidUi(){
     var box = $('vidBox'); if(!box) return;
@@ -400,14 +413,17 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
     var D = V.duree||1000, sl = function(k, lab, max, step, val, txt){ return '<div class="block"><div class="lab">'+lab+' <span id="vv-'+k+'">'+txt+'</span></div><input type="range" data-v="'+k+'" min="0" max="'+max+'" step="'+step+'" value="'+val+'"></div>'; };
     box.innerHTML = '<div class="set" style="border:0;padding-top:0"><div class="t"><div>'+String(V.nom||'Vidéo').replace(/[<>&]/g,'')+'</div><div>'+sec(D)+' · '+V.w+'×'+V.h+'</div></div><label class="sw"><input type="checkbox" id="vOn"'+(V.on?' checked':'')+'><span></span></label></div>'+
       (V.credit ? '<div class="vcred">'+escA(V.credit.source)+' · '+escA(V.credit.auteur)+' · '+escA(V.credit.licence)+(V.credit.page ? ' · <a href="#" data-vpage>voir la page</a>' : '')+'</div>' : '')+
-      '<div class="vpv" id="vpv"></div>'+
+      '<div class="vrow"><div><div class="vpv" id="vpv"></div><div class="vcap">Vidéo</div></div><div><div class="vres" id="vres"></div><div class="vcap">Sur l\'écran</div></div></div>'+
+      '<div class="set"><div class="t"><div>Garder les proportions</div><div id="vPropTx"></div></div><label class="sw"><input type="checkbox" id="vProp"'+(vProp()?' checked':'')+'><span></span></label></div>'+
       sl('debut','Début de la boucle', D, 100, V.debut|0, sec(V.debut|0)) + sl('fin','Fin de la boucle', D, 100, V.fin||D, sec(V.fin||D)) +
-      sl('haut','Rogner en haut', 30, 1, +V.haut||0, (+V.haut||0)+' %') + sl('bas','Rogner en bas', 30, 1, +V.bas||0, (+V.bas||0)+' %') +
-      sl('gauche','Rogner à gauche', 30, 1, +V.gauche||0, (+V.gauche||0)+' %') + sl('droite','Rogner à droite', 30, 1, +V.droite||0, (+V.droite||0)+' %') +
-      '<div class="hint" style="font-size:12.5px;color:var(--tx3);margin-top:6px">Enregistrement d\'écran : rogne en haut et en bas pour enlever les barres du téléphone. Le cadre bleu montre ce qui s\'affiche sur l\'écran.</div>'+
+      sl('haut','Rogner en haut', 45, 1, +V.haut||0, (+V.haut||0)+' %') + sl('bas','Rogner en bas', 45, 1, +V.bas||0, (+V.bas||0)+' %') +
+      sl('gauche','Rogner à gauche', 45, 1, +V.gauche||0, (+V.gauche||0)+' %') + sl('droite','Rogner à droite', 45, 1, +V.droite||0, (+V.droite||0)+' %') +
+      '<div class="hint" style="font-size:12.5px;color:var(--tx3);margin-top:6px">Enregistrement d\'écran : rogne en haut et en bas pour enlever les barres du téléphone. Le cadre bleu montre la partie gardée, l\'aperçu de droite ce qui s\'affiche sur l\'écran.</div>'+
       '<div class="hint" id="vLiveHint" style="font-size:12.5px;margin-top:6px"></div>';
     vidDraw(); vidLive();
     var vp = box.querySelector('[data-vpage]'); if(vp) vp.onclick = function(e){ e.preventDefault(); var T0 = window.MAGToile; if(T0 && T0.openUrl) T0.openUrl(V.credit.page); };
+    var pt = function(){ $('vPropTx').textContent = vProp() ? 'L\'image n\'est jamais déformée : les bords sont ajustés au format de l\'écran' : 'Chaque réglage ne coupe que son côté ; le reste remplit l\'écran'; };
+    pt(); $('vProp').onchange = function(){ V.prop = this.checked; pt(); vidDraw(); vidSave(); };
     $('vOn').onchange = function(){ V.on = this.checked; vidSave(); vidLive(); };
     box.oninput = function(e){
       var k = e.target.dataset.v; if(!k) return; var v = +e.target.value;
