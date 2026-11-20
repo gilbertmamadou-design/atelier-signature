@@ -442,7 +442,7 @@ public class MainActivity extends BridgeActivity {
     private final java.util.List<Object> extraBridges = new java.util.ArrayList<Object>();
     private void loadExtraBridges(WebView wv) {
         String pkg = MainActivity.class.getPackage().getName();
-        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge", "ReseauBridge", "LecteurBridge", "PdfBridge", "SolaireBridge", "SocleBridge", "FichiersBridge", "ActualitesBridge", "ToileBridge", "OfficeBridge", "MajordomeBridge", "VoyageBridge", "TraducteurBridge", "SereniteBridge", "LanguesBridge", "CorrecteurBridge", "CamerasBridge", "BtBridge", "MelodieBridge", "WifiBridge", "BourseBridge" }) {
+        for (String n : new String[]{ "GalerieBridge", "AgendaBridge", "ContactsBridge", "OndesBridge", "PhotoBridge", "ScanBridge", "MesureBridge", "SauvegardeBridge", "EcranBridge", "UrgenceBridge", "CoffreBridge", "QrBridge", "LiseuseBridge", "BudgetBridge", "DictaBridge", "MeteoBridge", "ReseauBridge", "LecteurBridge", "PdfBridge", "SolaireBridge", "SocleBridge", "FichiersBridge", "ActualitesBridge", "ToileBridge", "OfficeBridge", "MajordomeBridge", "VoyageBridge", "TraducteurBridge", "SereniteBridge", "LanguesBridge", "CorrecteurBridge", "CamerasBridge", "BtBridge", "MelodieBridge", "WifiBridge", "BourseBridge", "TransfertBridge" }) {
             try {
                 Class<?> k = Class.forName(pkg + "." + n);
                 Object o = k.getConstructor(android.app.Activity.class, WebView.class).newInstance(this, wv);
@@ -546,9 +546,16 @@ public class MainActivity extends BridgeActivity {
         extraCall("onPermissions", new Class<?>[]{ int.class }, requestCode);
         if (isSocle()) socleJs("window.accueilPerms&&accueilPerms()");
     }
+    // Transfert vers un autre appareil : copie de la page en partant, reprise de données déposées par Socle en revenant
+    @Override
+    public void onPause() {
+        super.onPause();
+        try { SuiteTransfert.photo(this, getBridge().getWebView()); } catch (Throwable t) { }
+    }
     @Override
     public void onResume() {
         super.onResume();
+        try { SuiteTransfert.appliquer(this, getBridge().getWebView()); } catch (Throwable t) { }
         extraCall("onResume", new Class<?>[]{});
         if (pendingApk != null && (Build.VERSION.SDK_INT < 26 || getPackageManager().canRequestPackageInstalls())) { final String ap = pendingApk; getWindow().getDecorView().postDelayed(new Runnable() { public void run() { installApk(ap); } }, 400); }
         if (isSocle()) { socleBars(); socleJs("window.accueilResume&&accueilResume()"); }
@@ -1698,7 +1705,7 @@ cp scripts/FileService.java "$FSV"
 sed -i "s/__PKG__/$PKG/" "$FSV"
 # Réveil, lever de soleil et endormissement (application Aube)
 for J in $(ls scripts/*Bridge.java 2>/dev/null | xargs -n1 basename 2>/dev/null | sed 's/\.java$//' | grep -vxE 'PdfBridge|MajordomeBridge|TraducteurBridge|SereniteBridge|LanguesBridge|CamerasBridge|BtBridge|MelodieBridge|WifiBridge|BourseBridge'); do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
-for J in AlarmService AlarmReceiver WallpaperJob WallpaperTile LauncherService LauncherA11y LauncherMedia WidgetProvider SauvegardeJob PhotoCamera EcranPlayer EcranMedia DictaService MeteoPersoJob MelodieVolume MelodieEq; do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
+for J in AlarmService AlarmReceiver WallpaperJob WallpaperTile LauncherService LauncherA11y LauncherMedia WidgetProvider SuiteTransfert SauvegardeJob PhotoCamera EcranPlayer EcranMedia DictaService MeteoPersoJob MelodieVolume MelodieEq; do cp scripts/$J.java "$(dirname "$F")/$J.java"; sed -i "s/__PKG__/$PKG/" "$(dirname "$F")/$J.java"; done
 # Bibliothèque des tâches de fond
 G=android/app/build.gradle
 grep -q "androidx.work:work-runtime" "$G" || sed -i '0,/^dependencies {/s//dependencies {\n    implementation "androidx.work:work-runtime:2.9.1"/' "$G"
@@ -1828,7 +1835,7 @@ if x not in s:
 PYM
 }
 # Socle : statistiques d'utilisation (tuile « Ma Suite récente »), accordées par l'utilisateur dans les réglages d'Android
-if [ "$APP" = "accueil" ]; then addperm PACKAGE_USAGE_STATS; fi
+if [ "$APP" = "accueil" ]; then addperm PACKAGE_USAGE_STATS REQUEST_INSTALL_PACKAGES; fi
 if [ "$APP" = "agenda" ]; then
   addperm READ_CALENDAR WRITE_CALENDAR
   addfilters '<intent-filter><action android:name="android.intent.action.VIEW"/><action android:name="android.intent.action.EDIT"/><category android:name="android.intent.category.DEFAULT"/><data android:mimeType="vnd.android.cursor.item/event"/></intent-filter><intent-filter><action android:name="android.intent.action.INSERT"/><action android:name="android.intent.action.EDIT"/><category android:name="android.intent.category.DEFAULT"/><data android:mimeType="vnd.android.cursor.dir/event"/></intent-filter><intent-filter><action android:name="android.intent.action.VIEW"/><category android:name="android.intent.category.DEFAULT"/><data android:scheme="content" android:host="com.android.calendar" android:pathPrefix="/time"/></intent-filter><intent-filter><action android:name="android.intent.action.VIEW"/><category android:name="android.intent.category.DEFAULT"/><data android:mimeType="text/calendar"/></intent-filter>'

@@ -114,6 +114,20 @@ public class WidgetProvider extends ContentProvider {
     }
 
     @Override public String getType(Uri uri) { return "application/json"; }
+    // Transfert vers un autre appareil (SuiteTransfert) : lecture de la copie de la page, dépôt de données à reprendre
+    @Override
+    public android.os.ParcelFileDescriptor openFile(Uri uri, String mode) throws java.io.FileNotFoundException {
+        Context c = getContext(); String p = uri.getLastPathSegment();
+        if ("transfert".equals(p)) {
+            java.io.File f = SuiteTransfert.export(c);
+            if (!f.exists()) throw new java.io.FileNotFoundException("pas encore de copie : ouvrir l'appli une fois");
+            return android.os.ParcelFileDescriptor.open(f, android.os.ParcelFileDescriptor.MODE_READ_ONLY);
+        }
+        if ("import".equals(p)) {
+            return android.os.ParcelFileDescriptor.open(SuiteTransfert.depot(c), android.os.ParcelFileDescriptor.MODE_WRITE_ONLY | android.os.ParcelFileDescriptor.MODE_CREATE | android.os.ParcelFileDescriptor.MODE_TRUNCATE);
+        }
+        throw new java.io.FileNotFoundException(p);
+    }
     @Override public Uri insert(Uri uri, ContentValues values) { return null; }
     @Override public int delete(Uri uri, String selection, String[] selectionArgs) { return 0; }
     @Override public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) { return 0; }

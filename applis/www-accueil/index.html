@@ -314,6 +314,8 @@ body.edit #dock{display:none}
 #sheet .grab{width:40px;height:4px;border-radius:4px;background:rgba(255,255,255,.25);margin:0 auto 12px}
 #sheet h2{font-size:18px;margin:2px 0 12px}
 .row{display:flex;align-items:center;gap:12px;padding:12px 2px;border-top:1px solid rgba(255,255,255,.08)}
+#sbody p.sub{font-size:13.5px;color:var(--tx2);margin:6px 2px;line-height:1.45}
+#sbody .inp{display:block;width:100%;margin:6px 0}
 .row:first-of-type{border-top:0}
 .row .t{flex:1;min-width:0}
 .row .t div+div{font-size:12.5px;color:var(--tx3);margin-top:2px}
@@ -474,6 +476,7 @@ var IC = {
   web:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
   calc:'<rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8 7h8M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01"/>',
   info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+  share:'<path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/>',
   trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
   eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
@@ -2309,6 +2312,67 @@ function stopLevel(){ window.removeEventListener('deviceorientation', levH); }
 
 /* Réglages */
 var PAL=['auto','#8fb4ff','#b79bff','#7fe0c4','#ffc46b','#ff9a8a','#f59fd0','#e6e6e6'];
+/* Transfert vers un autre appareil (toutes les applis de la Suite) et installation / mise à jour de la Suite (MAGTransfert) */
+var TR=window.MAGTransfert||null, trPoll=null;
+function trSuivre(job, fn){ clearInterval(trPoll); trPoll=setInterval(function(){ var e=J(TR.etat(),{}); if(e.job!==job) return; if(!e.fini){ var p=$('trProg'); if(p) p.textContent=(e.txt||'')+(e.total?' ('+e.n+'/'+e.total+')':''); return; } clearInterval(trPoll); fn(e); },400); }
+function trListe(l){ return l&&l.length?l.map(esc).join(', '):'aucune'; }
+function transfertSheet(){
+  if(!TR){ openSheet('<h2>Transfert</h2><p class="sub">Mets Socle à jour pour utiliser le transfert.</p>','tr'); return; }
+  var apps=J(TR.apps(),[]);
+  openSheet('<h2>Transférer vers un autre appareil</h2>'+
+    '<p class="sub">Copie les réglages et données de toutes tes applis de la Suite ('+apps.length+' installées) : routines de '+esc(mjName())+', cadrans, portefeuille Bourse, disposition de Socle… Le fichier est chiffré avec un code que tu choisis.</p>'+
+    '<div class="sect" style="margin-left:0">1 · Sur l\'ancien appareil : créer le fichier</div>'+
+    '<p class="sub">Chaque appli doit être à jour et avoir été ouverte une fois depuis (elle prépare sa copie en se fermant).</p>'+
+    '<input class="inp" id="trC1" type="password" placeholder="Code (4 caractères ou plus)" autocomplete="new-password"><input class="inp" id="trC2" type="password" placeholder="Retaper le code" autocomplete="new-password">'+
+    '<div class="row" style="border:0"><button class="sbtn" id="trExp">Créer et envoyer le fichier</button></div>'+
+    '<div class="sect" style="margin-left:0">2 · Sur le nouvel appareil : installer la Suite</div>'+
+    '<p class="sub">Installe ou mets à jour toutes les applis d\'un coup (Android demande de confirmer chacune).</p>'+
+    '<div class="row" style="border:0"><button class="sbtn ghost" id="trLis">Voir les applis à installer</button></div><div id="trApps"></div>'+
+    '<div class="sect" style="margin-left:0">3 · Sur le nouvel appareil : reprendre les données</div>'+
+    '<input type="file" id="trF" accept=".magsuite,application/octet-stream,*/*" class="inp"><input class="inp" id="trC3" type="password" placeholder="Code du fichier" autocomplete="off">'+
+    '<div class="row" style="border:0"><button class="sbtn" id="trImp">Reprendre les données</button></div>'+
+    '<p class="sub" id="trProg" style="min-height:1.4em"></p><div id="trRes"></div>'+
+    '<p class="sub">Les mots de passe des autres applis, la double authentification et les connexions bancaires ne passent pas : Android les protège sur chaque appareil (utilise ton compte Google pour eux).</p>','tr');
+  $('trExp').onclick=function(){
+    var c=$('trC1').value; if(c.length<4){ toast('Code trop court'); return; } if(c!==$('trC2').value){ toast('Les deux codes sont différents'); return; }
+    $('trRes').innerHTML=''; TR.exporter(c);
+    trSuivre('export',function(e){
+      if(e.err){ $('trProg').textContent='Échec : '+e.err; return; }
+      $('trProg').textContent='Fichier créé : '+e.res.nom+' (dans Téléchargements › MAG-Suite)';
+      $('trRes').innerHTML='<p class="sub"><b>Copiées :</b> '+trListe(e.res.pris)+'</p>'+(e.res.manque.length?'<p class="sub"><b>Pas encore prêtes</b> (ouvre-les une fois, puis recommence) : '+trListe(e.res.manque)+'</p>':'')+'<p class="sub">Envoie le fichier vers l\'autre appareil (Quick Share, e-mail, Drive, câble…), puis fais l\'étape 3 là-bas avec le même code.</p>';
+    });
+  };
+  $('trImp').onclick=function(){
+    var f=$('trF').files&&$('trF').files[0], c=$('trC3').value; if(!f){ toast('Choisis le fichier de transfert'); return; } if(!c){ toast('Tape le code'); return; }
+    var r=new FileReader(); r.onload=function(){ $('trRes').innerHTML=''; TR.importer(String(r.result),c);
+      trSuivre('import',function(e){
+        if(e.err){ $('trProg').textContent=e.err; return; }
+        $('trProg').textContent='Données reprises depuis '+(e.res.de||'l\'autre appareil');
+        $('trRes').innerHTML='<p class="sub"><b>Prêtes :</b> '+trListe(e.res.ok)+' — chacune reprend ses données à sa prochaine ouverture.</p>'+(e.res.absent.length?'<p class="sub"><b>À installer d\'abord</b> (étape 2), puis recommence : '+trListe(e.res.absent)+'</p>':'')+(e.res.socle?'<p class="sub">Socle redémarre dans un instant avec sa disposition.</p>':'');
+        if(e.res.socle) setTimeout(function(){ TR.reprendreSocle(); },4000);
+      }); };
+    r.readAsText(f);
+  };
+  $('trLis').onclick=function(){ $('trApps').innerHTML=''; TR.liste(); trSuivre('liste',function(e){ if(e.err){ $('trProg').textContent='Liste indisponible : '+e.err; return; } $('trProg').textContent=''; trApps(e.res.apps); }); };
+}
+var trFile=[];
+function trApps(l){
+  var etat=function(a){ return a.installe<0?'À installer':a.installe<a.dispo?'Mise à jour':'À jour'; };
+  var faire=l.filter(function(a){ return a.installe<a.dispo; });
+  $('trApps').innerHTML=(faire.length?'<div class="row" style="border:0"><button class="sbtn" id="trTout">Tout installer ('+faire.length+')</button></div>':'<p class="sub">Toutes les applis sont à jour.</p>')+
+    l.map(function(a,i){ var e=etat(a); return '<div class="row"><div class="t"><div>'+esc(a.nom)+'</div><div>'+e+' · '+Math.round(a.taille/1048576*10)/10+' Mo</div></div>'+(e==='À jour'?'<span class="ok">OK</span>':'<button class="sbtn ghost" data-tri="'+i+'">'+(e==='À installer'?'Installer':'Mettre à jour')+'</button>')+'</div>'; }).join('');
+  $('trApps').onclick=function(ev){ var b=ev.target.closest('[data-tri]'); if(b){ trFile=[l[+b.dataset.tri]]; trSuite(); } if(ev.target.id==='trTout'){ trFile=faire.slice(); trSuite(); } };
+}
+function trSuite(){
+  var a=trFile.shift(); if(!a){ $('trProg').textContent='Terminé. Rouvre « Voir les applis » pour vérifier.'; return; }
+  $('trProg').textContent='Téléchargement : '+a.nom+'…'; TR.telecharger(a.url,a.fichier);
+  trSuivre('apk',function(e){
+    if(e.err){ $('trProg').textContent=a.nom+' : '+e.err; return; }
+    $('trProg').textContent='Confirme l\'installation de '+a.nom+(trFile.length?' (encore '+trFile.length+' ensuite)':'');
+    try{ (window.MAGPrint||A).fsOpen(e.res.chemin); }catch(x){ toast('Installation impossible'); return; }
+    if(trFile.length){ var vu=false, h=function(){ if(document.hidden){ vu=true; return; } if(vu){ document.removeEventListener('visibilitychange',h); setTimeout(trSuite,800); } }; document.addEventListener('visibilitychange',h); }
+  });
+}
 function settingsSheet(){
   var p=A?J(A.homePerms(),{}):{};
   var h=(INT?'<h2>Réglages de l\'accueil</h2><div class="row"><div class="t"><div>Accueil complet de '+esc(mjName())+'</div><div>Page principale : '+esc(mjName())+' ; les autres pages comme dans Socle</div></div><button class="sbtn ghost" data-s="mjsimple">Accueil simple</button></div>'+
@@ -2326,7 +2390,7 @@ function settingsSheet(){
    '<div class="sect" style="margin-left:0">Opacité des tuiles <span id="opV">'+C.opacity+' %</span></div><input type="range" min="20" max="90" step="5" id="sOp" value="'+C.opacity+'">'+
    '<div class="sect" style="margin-left:0">Colonnes dans la liste des applis</div><div class="seg" id="sCols">'+[4,5].map(function(n){ return '<button data-n="'+n+'" class="'+(C.cols===n?'on':'')+'">'+n+'</button>'; }).join('')+'</div>'+
    (C.hidden.length?'<div class="sect" style="margin-left:0">Applis masquées</div>'+C.hidden.map(byKey).filter(Boolean).map(function(a){ return '<div class="row"><div class="t"><div>'+esc(a.label)+'</div></div><button class="sbtn ghost" data-unhide="'+esc(a.key)+'">Afficher</button></div>'; }).join(''):'')+
-   '<div class="menu" style="margin-top:14px"><button data-s="edit">'+ic('grid')+'Modifier l\'écran (pages, tuiles, panneaux)</button><button data-s="log">'+ic('list')+'Journal et démarrage</button><button data-s="wall">'+ic('star')+'Changer de fond d\'écran</button><button data-s="sys">'+ic('tool')+'Paramètres du téléphone</button><button data-s="reset" class="bad">'+ic('trash')+'Remettre la disposition d\'origine</button></div>';
+   '<div class="menu" style="margin-top:14px"><button data-s="edit">'+ic('grid')+'Modifier l\'écran (pages, tuiles, panneaux)</button><button data-s="transfert">'+ic('share')+'Transférer vers un autre appareil</button><button data-s="log">'+ic('list')+'Journal et démarrage</button><button data-s="wall">'+ic('star')+'Changer de fond d\'écran</button><button data-s="sys">'+ic('tool')+'Paramètres du téléphone</button><button data-s="reset" class="bad">'+ic('trash')+'Remettre la disposition d\'origine</button></div>';
   openSheet(h,'settings');
   $('sGest').onchange=function(){ C.gestures=this.checked; save(); };
   $('sMjB').onchange=function(){ C.mjBtn=this.checked; save(); mjBtn(); };
@@ -2345,6 +2409,7 @@ function settingsSheet(){
     if(k==='a11y') gestureHelp();
     if(k==='calendar'||k==='contacts') A.homeAsk(k);
     if(k==='edit'){ closeSheet(); startEdit(); }
+    if(k==='transfert'){ transfertSheet(); return; }
     if(k==='log'){ logSheet(); return; }
     if(k==='wall'){ var t=findApp(function(a){ return a.pkg==='fr.magformation13.toile'; }); closeSheet(); if(t) launch(t); else A.homeOpen('wallpaper',''); }
     if(k==='sys') A.homeOpen('settings','');
