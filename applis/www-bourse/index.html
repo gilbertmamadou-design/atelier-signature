@@ -76,7 +76,7 @@ main{padding:4px 16px calc(40px + var(--safe-b));max-width:760px;margin:0 auto}
     </div>
     <div class="card"><h2>Mes actions <span id="dPfSum"></span></h2>
       <div id="lots"></div>
-      <details id="addLot" style="margin-top:8px"><summary class="btn sm" style="list-style:none">+ Ajouter un achat</summary>
+      <details id="addLot" style="margin-top:8px"><summary class="btn pri sm" style="list-style:none">+ Ajouter un achat</summary>
         <div class="grid2 f"><div><label>Nombre d'actions</label><input id="lQ" inputmode="decimal" placeholder="10"></div>
           <div><label id="lPL">Prix d'achat par action</label><input id="lP" inputmode="decimal" placeholder="83"></div></div>
         <div class="grid2 f"><div><label>Montant payé en € (facultatif, frais compris)</label><input id="lE" inputmode="decimal" placeholder="Débité sur le compte"></div>
@@ -190,7 +190,16 @@ main{padding:4px 16px calc(40px + var(--safe-b));max-width:760px;margin:0 auto}
     LIST.forEach(function (s) { var q = CACHE[s.sym], p = position(s.sym, q, RATES[q && q.cur]); if (p && p.valE != null) { any = true; tot += p.valE; paid += p.paidE; if (p.dayE != null) day += p.dayE; else dayOk = false; } });
     $('cPf').innerHTML = any ? '<h2>Mon portefeuille <span>en euros</span></h2><div class="tot"><b>' + money(tot, 'EUR') + '</b><span class="pill ' + cls(tot - paid) + '">' + sgn(tot - paid, 'EUR') + ' · ' + pct(paid ? (tot - paid) / paid * 100 : 0) + '</span></div>' +
       (dayOk ? '<p class="note">Aujourd\'hui : <b class="' + cls(day) + '">' + sgn(day, 'EUR') + '</b> · investi : ' + money(paid, 'EUR') + '</p>' : '')
-      : '<h2>Mon portefeuille</h2><p class="note" style="margin:0">Touchez une action, puis « Ajouter un achat » pour suivre vos gains et pertes.</p>';
+      : '<h2>Mon portefeuille</h2><p class="note" style="margin:0">Notez vos achats d\'actions pour suivre vos gains et pertes. Chaque nouvel achat s\'ajoute aux précédents.</p>'
+    $('cPf').innerHTML += '<div class="row" style="margin-top:10px"><button class="btn pri" id="bBuy">+ Noter un achat</button></div><div id="buyPick"></div>';
+    $('bBuy').onclick = function () {
+      if (!LIST.length) { $('bAdd').onclick(); BUY = true; toast('Cherchez d\'abord l\'action achetée'); return; }
+      if (LIST.length === 1) { buyFor(LIST[0].sym); return; }
+      var bp = $('buyPick');
+      if (bp.innerHTML) { bp.innerHTML = ''; return; }
+      bp.innerHTML = '<p class="note" style="margin:10px 0 6px">Quelle action avez-vous achetée ?</p>' + LIST.map(function (x, i) { return '<button class="btn sm" data-b="' + i + '" style="margin:0 6px 6px 0">' + esc(x.nom || x.sym) + '</button>'; }).join('') + '<button class="btn sm" data-b="new" style="margin:0 6px 6px 0">Une autre action…</button>';
+      bp.onclick = function (e) { var b = e.target.closest('[data-b]'); if (!b) return; if (b.dataset.b === 'new') { $('bAdd').onclick(); BUY = true; return; } buyFor(LIST[+b.dataset.b].sym); };
+    };
     $('list').innerHTML = LIST.length ? LIST.map(function (s, i) {
       var q = CACHE[s.sym] || {}, ch = q.price != null && q.prev ? (q.price - q.prev) / q.prev * 100 : null, p = position(s.sym, q, RATES[q.cur]);
       return '<button class="stock" data-i="' + i + '"><div class="t"><b>' + esc(s.nom || q.nom || s.sym) + '</b><small>' + esc(s.sym) + (p ? ' · ' + fr(p.n, p.n % 1 ? 2 : 0) + ' action' + (p.n > 1 ? 's' : '') + (p.gainE != null ? ' · <span class="' + cls(p.gainE) + '">' + sgn(p.gainE, 'EUR', 0) + '</span>' : '') : '') + '</small></div><canvas></canvas>' +
@@ -232,8 +241,15 @@ main{padding:4px 16px calc(40px + var(--safe-b));max-width:760px;margin:0 auto}
     if (v === 'home' && history.state && history.state.bourse) try { history.back(); } catch (e) { }
     VIEW = v; ['Home', 'Add', 'Detail'].forEach(function (k) { $('v' + k).hidden = v !== k.toLowerCase(); });
     $('bBack').hidden = v === 'home'; $('bRefresh').hidden = v === 'add';
-    if (v === 'home') { $('title').textContent = 'Bourse'; renderHome(); }
+    if (v === 'home') { BUY = false; $('title').textContent = 'Bourse'; renderHome(); }
     window.scrollTo(0, 0);
+  }
+  var BUY = false;
+  // ouvre la fiche de l'action avec le formulaire d'achat prêt (prix du moment proposé, date du jour)
+  function buyFor(sym) {
+    BUY = false; openDetail(sym); $('addLot').open = true;
+    var q = CACHE[sym]; $('lP').value = q && q.price != null ? String(Math.round(q.price * 100) / 100).replace('.', ',') : '';
+    setTimeout(function () { $('addLot').scrollIntoView({ behavior: 'smooth', block: 'center' }); $('lQ').focus(); }, 250);
   }
   function openDetail(sym) {
     CUR = sym; RANGE = '1d'; DATA = null; var s = LIST.filter(function (x) { return x.sym === sym; })[0] || { sym: sym };
@@ -359,6 +375,7 @@ main{padding:4px 16px calc(40px + var(--safe-b));max-width:760px;margin:0 auto}
         Array.prototype.forEach.call($('results').querySelectorAll('[data-i]'), function (b) {
           b.onclick = function () {
             var x = l[+b.dataset.i]; if (!LIST.some(function (s) { return s.sym === x.symbol; })) { LIST.push({ sym: x.symbol, nom: /^Ajouter le symbole/.test(x.shortname || '') ? '' : (x.shortname || x.longname || '') }); save(); }
+            if (BUY) { refreshAll(true); buyFor(x.symbol); return; }
             show('home'); refreshAll(true); toast((x.shortname || x.symbol) + ' ajouté');
           };
         });
