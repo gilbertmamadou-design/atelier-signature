@@ -229,7 +229,41 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
 
   /* ---------------- éditeur : assemblage libre ---------------- */
   var SEL = -1, DRAG = null;
-  var ICO = { heure: '🕘', aiguilles: '🕑', date: '📅', info: '▦', meteo: '⛅', texte: 'T', trait: '—', image: '❀', panneau: '▭', anim: '✺' };
+  var ICO = { heure: '🕘', aiguilles: '🕑', date: '📅', info: '▦', meteo: '⛅', texte: 'T', trait: '—', image: '❀', panneau: '▭', anim: '✺', mots: '🔤', compte: '⏳', lune: '🌙' };
+  /* fonds au choix sur la montre, fond de nuit */
+  var PV = { variante: 0, nuit: null };
+  function selFond(attr, val) { return '<select class="in" ' + attr + '>' + Object.keys(C.CHOIX.FONDS).filter(function (k) { return k !== 'photo'; }).map(function (k) { return '<option value="' + k + '"' + (k === val ? ' selected' : '') + '>' + esc(C.CHOIX.FONDS[k]) + '</option>'; }).join('') + '</select>'; }
+  function cartesFonds(c) {
+    var v = c.variantes || [], n = c.nuit, hrs = function (attr, val) { var o = ''; for (var h = 0; h < 24; h++) o += '<option value="' + h + '"' + (h === val ? ' selected' : '') + '>' + h + ' h</option>'; return '<select class="in" ' + attr + '>' + o + '</select>'; };
+    return '<div class="card"><div class="lbl" style="margin-top:0">Fonds au choix sur la montre</div><p class="note" style="margin-top:0">Jusqu\'à 3 fonds en plus du principal. Sur la montre : appui long sur le cadran › Modifier › touchez le centre pour changer de fond.</p>' +
+      '<div class="row" style="gap:6px;margin-bottom:6px"><button class="chip" data-vv="0" aria-pressed="' + (PV.variante === 0 && !PV.nuit) + '">Voir le principal</button></div>' +
+      v.map(function (x, i) {
+        return '<div class="row" style="gap:6px;align-items:center;margin:6px 0;flex-wrap:wrap"><b style="min-width:52px">Fond ' + (i + 2) + '</b><div style="flex:1;min-width:140px">' + selFond('data-vf="' + i + '"', x.fond) + '</div>' +
+          '<input type="color" data-vc1="' + i + '" value="' + x.c1 + '" title="Couleur 1"><input type="color" data-vc2="' + i + '" value="' + x.c2 + '" title="Couleur 2">' +
+          '<button class="chip" data-vv="' + (i + 1) + '" aria-pressed="' + (PV.variante === i + 1) + '">Voir</button><button class="chip" data-vx="' + i + '" aria-label="Retirer">✕</button></div>';
+      }).join('') + (v.length < 3 ? '<button class="btn sm" id="vAdd">+ Ajouter un fond au choix</button>' : '') + '</div>' +
+      '<div class="card"><div class="line"><div class="t"><b>Fond de nuit</b><small>Change tout seul le soir, revient le matin</small></div><input type="checkbox" class="sw" id="nOn"' + (n ? ' checked' : '') + '></div>' +
+      (n ? '<div class="row" style="gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px"><div style="flex:1;min-width:140px">' + selFond('id="nF"', n.fond) + '</div><input type="color" id="nC1" value="' + n.c1 + '"><input type="color" id="nC2" value="' + n.c2 + '"></div>' +
+        '<div class="row" style="gap:6px;align-items:center;margin-top:8px"><span>De</span><div style="width:96px">' + hrs('id="nDe"', n.de) + '</div><span>à</span><div style="width:96px">' + hrs('id="nA"', n.a) + '</div><button class="chip" id="nVoir" aria-pressed="' + !!PV.nuit + '">Voir la nuit</button></div>' : '') + '</div>';
+  }
+  function bindFonds() {
+    var maj = function (re) { dirty = 1; if (re) { var y = $('main').scrollTop; render(); $('main').scrollTop = y; } else preview(); };
+    ED.variantes = ED.variantes || [];
+    document.querySelectorAll('[data-vf]').forEach(function (e) { e.onchange = function () { ED.variantes[+e.dataset.vf].fond = e.value; PV.variante = +e.dataset.vf + 1; PV.nuit = null; maj(true); }; });
+    document.querySelectorAll('[data-vc1],[data-vc2]').forEach(function (e) { e.oninput = function () { var i = +(e.dataset.vc1 || e.dataset.vc2); ED.variantes[i][e.dataset.vc1 != null ? 'c1' : 'c2'] = e.value; PV.variante = i + 1; PV.nuit = null; maj(false); }; });
+    document.querySelectorAll('[data-vv]').forEach(function (e) { e.onclick = function () { PV.variante = +e.dataset.vv; PV.nuit = null; maj(true); }; });
+    document.querySelectorAll('[data-vx]').forEach(function (e) { e.onclick = function () { ED.variantes.splice(+e.dataset.vx, 1); PV.variante = 0; maj(true); }; });
+    if ($('vAdd')) $('vAdd').onclick = function () { ED.variantes.push({ fond: 'soleil', c1: ED.c1, c2: ED.c2 }); PV.variante = ED.variantes.length; PV.nuit = null; maj(true); };
+    $('nOn').onchange = function () { ED.nuit = this.checked ? { fond: 'espace', c1: '#000000', c2: '#0b1530', de: 20, a: 7 } : null; PV.nuit = this.checked ? true : null; PV.variante = 0; maj(true); };
+    if ($('nF')) {
+      $('nF').onchange = function () { ED.nuit.fond = this.value; PV.nuit = true; maj(true); };
+      $('nC1').oninput = function () { ED.nuit.c1 = this.value; PV.nuit = true; maj(false); };
+      $('nC2').oninput = function () { ED.nuit.c2 = this.value; PV.nuit = true; maj(false); };
+      $('nDe').onchange = function () { ED.nuit.de = +this.value; maj(false); };
+      $('nA').onchange = function () { ED.nuit.a = +this.value; maj(false); };
+      $('nVoir').onclick = function () { PV.nuit = PV.nuit ? null : true; PV.variante = 0; maj(true); };
+    }
+  }
   function chips(name, map, val, attr) { return '<div class="chips" ' + (attr || 'data-set') + '="' + name + '">' + Object.keys(map).map(function (k) { return '<button class="chip" data-v="' + k + '" aria-pressed="' + (String(val) === k) + '"' + (name === 'police' ? ' style="font-family:\'' + C.CHOIX.POLICES[k].fam + '\';font-size:15px"' : '') + '>' + esc(map[k].nom || map[k].n || map[k]) + '</button>'; }).join('') + '</div>'; }
   function editor() {
     var c = C.norm(ED); ED.blocs = c.blocs;
@@ -251,7 +285,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
       '<div class="lbl">Superpositions (plusieurs possibles)</div><div class="chips" id="calques">' + Object.keys(C.CHOIX.CALQUES).map(function (k) { return '<button class="chip" data-calque="' + k + '" aria-pressed="' + (c.calques.indexOf(k) >= 0) + '">' + esc(C.CHOIX.CALQUES[k]) + '</button>'; }).join('') + '</div>' +
       '<div class="lbl">Effet sur tous les éléments</div><div class="chips">' + Object.keys(C.CHOIX.EFFETS).map(function (k) { return '<button class="chip" data-fxall="' + k + '">' + esc(C.CHOIX.EFFETS[k]) + '</button>'; }).join('') + '</div>' +
       '<div class="line"><div class="t"><b>Météo en couleur</b><small>Soleil, nuages, pluie, orage… en couleurs avec ombre</small></div><input type="checkbox" class="sw" id="meteoCoul"' + (c.blocs.some(function (b) { return b.icone === 'couleur'; }) ? ' checked' : '') + '></div></div>' +
-      '<div class="card"><div class="lbl" style="margin-top:0">Écran toujours allumé</div>' + chips('aod', C.CHOIX.AOD, c.aod) + '<p class="note">Heure (et date) atténuées sur fond noir ; les infos sont masquées pour économiser la batterie.</p></div>' +
+      cartesFonds(c) + '<div class="card"><div class="lbl" style="margin-top:0">Écran toujours allumé</div>' + chips('aod', C.CHOIX.AOD, c.aod) + '<p class="note">Heure (et date) atténuées sur fond noir ; les infos sont masquées pour économiser la batterie.</p></div>' +
       '<div class="row"><button class="btn pri" id="edSave">' + (EDI >= 0 ? 'Enregistrer' : 'Enregistrer dans Mes cadrans') + '</button>' + (EDI >= 0 ? '<button class="btn" id="edSaveNew">Enregistrer comme nouveau</button>' : '') + '<button class="btn" id="edFab">Fabriquer pour la montre</button><button class="btn" id="edNew">Nouveau cadran</button></div>' +
       '</div></div>';
   }
@@ -264,6 +298,9 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     if (b.t === 'aiguilles') return C2.AIGUILLES[b.style] + (b.secondes ? ' · trotteuse' : '');
     if (b.t === 'image') return C.CHOIX.MOTIFS[b.motif];
     if (b.t === 'anim') return C.CHOIX.ANIMS[b.motif];
+    if (b.t === 'mots') return 'Il est dix heures…';
+    if (b.t === 'compte') return 'J- · ' + b.txt;
+    if (b.t === 'lune') return 'Phase du jour';
     if (b.t === 'panneau') return C2.PANNEAUX[b.style] + ' · ' + b.l + ' × ' + b.h;
     if (b.t === 'meteo') return 'Icône + température' + (b.minmax ? ' · mini/maxi' : '');
     return '';
@@ -313,6 +350,20 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
       h += '<div class="lbl">Aspect</div>' + chips('style', K.PANNEAUX, b.style, 'data-p') + pRange('l', 'Largeur', 20, 460, 2, b.l) + pRange('h', 'Hauteur', 10, 460, 2, b.h) + pRange('r', 'Arrondi des coins', 0, 80, 1, b.r) +
         '<div class="lbl">Couleur du bord</div>' + swatches('couleur', b.couleur) +
         '<p class="note">Un écran se place derrière l\'heure, la date ou des infos : mettez-le avant eux dans la liste (bouton ↓ pour le passer derrière). Pour l\'effet LCD : police « Écran LCD » et effet « Segments LCD » sur l\'heure.</p>';
+    } else if (b.t === 'mots') {
+      h += '<p class="note" style="margin-top:0">L\'heure s\'écrit en lettres qui s\'allument, par 5 minutes ; les petits points comptent les minutes en plus. Mettez-la seule, sans autre heure : l\'écran toujours allumé gardera une heure en chiffres.</p>' +
+        pRange('taille', 'Taille des lettres', 14, 34, 1, b.taille) + pRange('eteinte', 'Lettres éteintes (visibilité)', .05, .6, .01, b.eteinte) +
+        '<div class="lbl">Couleur des mots allumés</div>' + swatches('couleur', b.couleur) + '<div class="lbl">Police</div>' + chips('police', K.POLICES, b.police, 'data-p') +
+        pSw('points', 'Points des minutes', b.points, 'De 0 à 4 points sous la grille');
+    } else if (b.t === 'compte') {
+      h += '<div class="lbl">Événement</div><input class="in" data-pt="txt" maxlength="20" value="' + esc(b.txt) + '" placeholder="Vacances, anniversaire…">' +
+        '<div class="lbl">Date</div><input class="in" type="date" data-pt="date" value="' + esc(b.date) + '">' +
+        pSw('annuel', 'Tous les ans', b.annuel, 'Pour un anniversaire ou une fête : repart pour l\'année suivante') +
+        pRange('taille', 'Taille', 18, 80, 1, b.taille) + '<div class="lbl">Couleur des chiffres</div>' + swatches('couleur', b.couleur) +
+        '<div class="lbl">Couleur du nom</div>' + swatches('libelle', b.libelle) + '<div class="lbl">Police</div>' + chips('police', K.POLICES, b.police, 'data-p') +
+        '<p class="note">Affiche « J-12 », puis « JOUR J » le jour même.</p>';
+    } else if (b.t === 'lune') {
+      h += pRange('taille', 'Taille', 40, 220, 2, b.taille) + pSw('halo', 'Halo lumineux', b.halo, 'Plus fort à la pleine lune') + '<p class="note">La lune suit son vrai cycle de 29,5 jours (vue de l\'hémisphère nord), calculé par la montre.</p>';
     } else if (b.t === 'anim') {
       h += '<div class="lbl">Animation</div>' + chips('motif', K.ANIMS, b.motif, 'data-p') + pRange('taille', 'Taille', 40, 240, 2, b.taille) + '<div class="lbl">Couleur</div>' + swatches('couleur', b.couleur) +
         '<p class="note">Elle bouge quand l\'écran est allumé et s\'arrête en veille (autonomie). Sur Garmin, l\'animation n\'est pas reprise.</p>';
@@ -339,13 +390,13 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
   var RAF = 0;
   // aperçu animé : redessiné 12 fois par seconde tant qu'une animation est dans le cadran ouvert
   setInterval(function () { if (!document.hidden && $('pv') && ED && ED.blocs && ED.blocs.some(function (b) { return b.t === 'anim'; })) preview(); }, 83);
-  function preview() { cancelAnimationFrame(RAF); RAF = requestAnimationFrame(function () { var cv = $('pv'); if (cv && !DRAG && !CROP) { try { dessiner(cv, ED, { aod: AOD, sel: AOD ? null : SEL }); } catch (e) { console.warn(e); } } }); }
+  function preview() { cancelAnimationFrame(RAF); RAF = requestAnimationFrame(function () { var cv = $('pv'); if (cv && !DRAG && !CROP) { try { dessiner(cv, ED, { aod: AOD, sel: AOD ? null : SEL, variante: PV.variante, nuit: PV.nuit }); } catch (e) { console.warn(e); } } }); }
   function changed(full) { dirty = 1; ED.blocs[SEL] = C.normBloc(ED.blocs[SEL]); preview(); paintList(); if (full) paintProps(); }
   function selectionne(i) { SEL = i; paintList(); paintProps(); preview(); }
   function ajouter(t) {
     var d = { heure: { t: 'heure', x: 240, y: 240, taille: 90 }, aiguilles: { t: 'aiguilles', x: 240, y: 240, echelle: 1 }, date: { t: 'date', x: 240, y: 330, format: 'court', taille: 18 },
       info: { t: 'info', d: 'pas', x: 240, y: 360, style: 'simple', taille: 's' }, meteo: { t: 'meteo', x: 240, y: 110, taille: 's' }, texte: { t: 'texte', x: 240, y: 400, txt: 'MAG', taille: 18 },
-      trait: { t: 'trait', x: 240, y: 300, l: 200, ep: 2, couleur: 'doux' }, panneau: { t: 'panneau', x: 240, y: 240, l: 320, h: 120, r: 14, style: 'lcd', couleur: 'accent' }, image: { t: 'image', motif: 'fleur', x: 360, y: 330, taille: 60 }, anim: { t: 'anim', motif: 'balancier', x: 240, y: 340, taille: 110, couleur: 'accent' } }[t];
+      trait: { t: 'trait', x: 240, y: 300, l: 200, ep: 2, couleur: 'doux' }, panneau: { t: 'panneau', x: 240, y: 240, l: 320, h: 120, r: 14, style: 'lcd', couleur: 'accent' }, image: { t: 'image', motif: 'fleur', x: 360, y: 330, taille: 60 }, anim: { t: 'anim', motif: 'balancier', x: 240, y: 340, taille: 110, couleur: 'accent' }, mots: { t: 'mots', x: 240, y: 240, taille: 22, couleur: 'accent' }, compte: { t: 'compte', x: 170, y: 360, taille: 40, txt: 'Noël', date: new Date().getFullYear() + '-12-25', annuel: true, couleur: 'texte' }, lune: { t: 'lune', x: 312, y: 360, taille: 90 } }[t];
     if (t === 'panneau') { ED.blocs.unshift(C.normBloc(d)); dirty = 1; selectionne(0); return; }   // un écran va derrière les autres éléments
     ED.blocs.push(C.normBloc(d)); dirty = 1; selectionne(ED.blocs.length - 1);
   }
@@ -482,6 +533,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     if (b.y === 240) { g.beginPath(); g.moveTo(0, 240 * s); g.lineTo(cv.width, 240 * s); g.stroke(); }
   }
   function bindEditor() {
+    bindFonds();
     if (SEL >= ED.blocs.length) SEL = -1;
     CROP = null;
     paintList(); paintProps(); paintPhoto(); preview(); bindCanvas($('pv'));

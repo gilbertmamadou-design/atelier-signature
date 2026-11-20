@@ -28,8 +28,10 @@ test('chaque image citée existe', () => {
 test('fond, heure et AOD présents', () => {
   assert.ok(de('IMG').some((w) => w.o.src === 'images/fond.png' && w.o.show_level === 1))
   assert.ok(de('IMG').some((w) => w.o.src === 'images/fond_aod.png' && w.o.show_level === 2))
-  const heures = de('IMG_TIME').length + de('TIME_POINTER').length
-  assert.ok(heures >= 2, 'heure écran allumé + AOD')
+  const heures = de('IMG_TIME').concat(de('TIME_POINTER'))
+  // heure écran allumé (sauf heure en lettres, faite d'images) et heure en AOD
+  assert.ok(heures.some((w) => w.o.show_level === 2), 'heure en AOD')
+  assert.ok(heures.some((w) => w.o.show_level === 1) || de('IMG').length > 30, 'heure écran allumé')
   assert.ok(J.widgets.every((w) => !('aod' in w.o)), 'la clé interne « aod » ne doit pas partir vers la montre')
 })
 test('aiguilles : centre et pivots dans l\'image', () => {

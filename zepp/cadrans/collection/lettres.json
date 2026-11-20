@@ -1,0 +1,44 @@
+{
+ "id": "lettres",
+ "appId": 1093231,
+ "nom": "Lettres",
+ "fond": "radial",
+ "c1": "#03050a",
+ "c2": "#16202e",
+ "accent": "#ffb000",
+ "texte": "#ffffff",
+ "doux": "#8892a0",
+ "anneau": "aucun",
+ "aod": "heure",
+ "calques": [
+  "vignette"
+ ],
+ "variantes": [
+  {
+   "fond": "bois",
+   "c1": "#3a2210",
+   "c2": "#1a0d04"
+  },
+  {
+   "fond": "marbre",
+   "c1": "#16181c",
+   "c2": "#5a5f68"
+  },
+  {
+   "fond": "hexa",
+   "c1": "#05070b",
+   "c2": "#1d2633"
+  }
+ ],
+ "blocs": [
+  {
+   "t": "mots",
+   "x": 240,
+   "y": 226,
+   "taille": 22,
+   "couleur": "accent",
+   "eteinte": 0.18,
+   "police": "nette"
+  }
+ ]
+}

@@ -1,0 +1,59 @@
+{
+ "id": "clair-de-lune",
+ "appId": 1093232,
+ "nom": "Clair de lune",
+ "fond": "aurore",
+ "c1": "#020610",
+ "c2": "#46ffb0",
+ "accent": "#ffd27a",
+ "texte": "#f2f6ff",
+ "doux": "#9fb3cc",
+ "anneau": "chemin",
+ "aod": "heure_date",
+ "nuit": {
+  "fond": "espace",
+  "c1": "#000000",
+  "c2": "#0b1530",
+  "de": 20,
+  "a": 7
+ },
+ "blocs": [
+  {
+   "t": "lune",
+   "x": 240,
+   "y": 150,
+   "taille": 120,
+   "halo": true
+  },
+  {
+   "t": "heure",
+   "x": 240,
+   "y": 268,
+   "taille": 76,
+   "police": "legere",
+   "couleur": "texte",
+   "dp": "accent"
+  },
+  {
+   "t": "date",
+   "format": "court",
+   "x": 240,
+   "y": 318,
+   "taille": 16,
+   "couleur": "doux",
+   "jour": "accent"
+  },
+  {
+   "t": "compte",
+   "x": 240,
+   "y": 370,
+   "date": "2026-12-25",
+   "txt": "Noël",
+   "annuel": true,
+   "taille": 30,
+   "police": "sport",
+   "couleur": "accent",
+   "libelle": "doux"
+  }
+ ]
+}

@@ -18,8 +18,8 @@ const pris = (groupe, cle) => {
   return undefined
 }
 const table = (groupe, cles) => { const o = {}; cles.forEach((k) => { const v = pris(groupe, k); if (v !== undefined) o[k] = v }); return o }
-const widget = table('widget', ['IMG', 'FILL_RECT', 'IMG_TIME', 'IMG_WEEK', 'IMG_DATE', 'IMG_LEVEL', 'TEXT_IMG', 'IMG_CLICK', 'TIME_POINTER', 'IMG_ANIM', 'WIDGET_DELEGATE'])
-const prop = table('prop', ['ANIM_STATUS'])
+const widget = table('widget', ['IMG', 'FILL_RECT', 'IMG_TIME', 'IMG_WEEK', 'IMG_DATE', 'IMG_LEVEL', 'TEXT_IMG', 'IMG_CLICK', 'TIME_POINTER', 'IMG_ANIM', 'WIDGET_DELEGATE', 'WATCHFACE_EDIT_GROUP'])
+const prop = table('prop', ['ANIM_STATUS', 'VISIBLE', 'SRC', 'CURRENT_TYPE'])
 const animSt = table('anim_status', ['START', 'STOP'])
 const niveau = table('show_level', ['ONLY_NORMAL', 'ONAL_AOD'])
 const donnee = table('data_type', ['WEATHER', 'WEATHER_CURRENT', 'WEATHER_LOW', 'WEATHER_HIGH', 'WIND', 'HEART', 'STEP', 'BATTERY', 'CAL', 'DISTANCE',
@@ -43,8 +43,55 @@ const serie = (dossier, n, depart) => Array.from({ length: n }, (_, i) => 'image
 const typeDe = (t) => (t === 'WEATHER' ? (donnee.WEATHER !== undefined ? donnee.WEATHER : donnee.WEATHER_CURRENT) : donnee[t])
 
 const ANIMS = []
+/* ---------- éléments qui changent selon l'heure ou la date (calculés ici, mis à jour au réveil de l'écran et chaque minute) ---------- */
+const MAJ = []
+const voir = (w, v) => { if (!w) return; try { w.setProperty(prop.VISIBLE, !!v) } catch (e) {} }
+const image = (w, src) => { if (!w) return; try { w.setProperty(prop.SRC, src) } catch (e) {} }
+const maintenant = () => new Date()
+// heure en lettres : même calcul que l'Atelier (cadran.js, motsActifs)
+const motsActifs = (h, m) => {
+  const r = ['il', 'est'], m5 = Math.floor(m / 5) * 5; if (m5 >= 35) h = (h + 1) % 24
+  const HH = ['minuit', 'une', 'deux', 'trois', 'quatre', 'cinqh', 'six', 'sept', 'huit', 'neuf', 'dixh', 'onze']
+  if (h === 0) r.push('minuit'); else if (h === 12) r.push('midi'); else { r.push(HH[h % 12]); r.push('heure'); if (h % 12 !== 1) r.push('s') }
+  const plein = h !== 0 && h !== 12
+  const M = { 5: ['cinqm'], 10: ['dixm'], 15: ['et1', 'quart'], 20: ['vingt'], 25: ['vingt', 'tiret', 'cinqm'], 30: plein ? ['et2', 'demi', 'e'] : ['et2', 'demi'],
+    35: ['moins', 'vingt', 'tiret', 'cinqm'], 40: ['moins', 'vingt'], 45: ['moins', 'le', 'quart'], 50: ['moins', 'dixm'], 55: ['moins', 'cinqm'] }[m5] || []
+  return r.concat(M)
+}
+const lunePhase = (d) => { let a = ((d.getTime() - Date.UTC(2000, 0, 6, 18, 14)) / 864e5) % 29.530588853; if (a < 0) a += 29.530588853; return Math.floor(a / 29.530588853 * 30) % 30 }
+const joursAvant = (w, d) => {
+  const q = w.date.split('-').map(Number), auj = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  let c = new Date(q[0], q[1] - 1, q[2])
+  if (w.annuel) { c = new Date(d.getFullYear(), q[1] - 1, q[2]); if (c < auj) c = new Date(d.getFullYear() + 1, q[1] - 1, q[2]) }
+  return Math.round((c - auj) / 864e5)
+}
+let FOND = null
 const FAIRE = {
-  img(w, show) { return creer(widget.IMG, { x: w.x, y: w.y, w: w.w, h: w.h, src: w.src, show_level: show, aod: w.aod }) },
+  img(w, show) {
+    const i = creer(widget.IMG, { x: w.x, y: w.y, w: w.w, h: w.h, src: w.src, show_level: show, aod: w.aod })
+    if (w.role === 'fond') FOND = i
+    if (w.role === 'nuit' && i) MAJ.push((d) => { const h = d.getHours(); voir(i, w.de > w.a ? (h >= w.de || h < w.a) : (h >= w.de && h < w.a)) })
+    return i
+  },
+  mots(w) {
+    const L = w.items.map((it) => ({ id: it.id, i: creer(widget.IMG, { x: it.x, y: it.y, src: 'images/' + w.dossier + '/' + it.id + '.png', show_level: NORMAL }) }))
+    const P = (w.points || []).map((p) => creer(widget.IMG, { x: p.x, y: p.y, src: 'images/' + w.dossier + '/point.png', show_level: NORMAL }))
+    MAJ.push((d) => { const on = motsActifs(d.getHours(), d.getMinutes()); L.forEach((o) => voir(o.i, on.indexOf(o.id) >= 0)); const n = d.getMinutes() % 5; P.forEach((p, k) => voir(p, k < n)) })
+  },
+  compte(w) {
+    const pre = creer(widget.IMG, { x: w.x, y: w.y, src: w.pre.src, show_level: NORMAL })
+    const ch = [0, 1, 2].map((k) => creer(widget.IMG, { x: w.x + w.pre.w + k * w.cw, y: w.y, src: 'images/' + w.dossier + '/0.png', show_level: NORMAL }))
+    const jj = creer(widget.IMG, { x: w.jj.x, y: w.jj.y, src: w.jj.src, show_level: NORMAL })
+    MAJ.push((d) => {
+      const j = joursAvant(w, d), t = String(Math.max(0, Math.min(999, j)))
+      voir(jj, j === 0); voir(pre, j !== 0)
+      ch.forEach((c, k) => { if (j !== 0 && k < t.length) { image(c, 'images/' + w.dossier + '/' + t[k] + '.png'); voir(c, true) } else voir(c, false) })
+    })
+  },
+  lune(w) {
+    const i = creer(widget.IMG, { x: w.x, y: w.y, w: w.w, h: w.h, src: 'images/' + w.dossier + '/0.png', show_level: NORMAL })
+    MAJ.push((d) => image(i, 'images/' + w.dossier + '/' + lunePhase(d) + '.png'))
+  },
   level(w, show) {
     const t = typeDe(w.type); if (t === undefined) return null
     return creer(widget.IMG_LEVEL, { x: w.x, y: w.y, w: w.w, h: w.h, image_array: serie(w.dossier, w.n), image_length: w.n, type: t, show_level: show, aod: w.aod })
@@ -122,12 +169,29 @@ WatchFace({
       if (w.aod && AOD === undefined) return
       const f = FAIRE[w.k]; if (f) f(w, w.aod ? AOD : NORMAL)
     }))
+    // fonds au choix (appui long sur le cadran › Modifier) : le fond choisi remplace le fond principal
+    if (S.edit && widget.WATCHFACE_EDIT_GROUP !== undefined) bloc(() => {
+      const t = S.edit.types, g = creer(widget.WATCHFACE_EDIT_GROUP, {
+        edit_id: 101, x: S.edit.x, y: S.edit.y, w: S.edit.w, h: S.edit.h,
+        select_image: 'images/edit/sel.png', un_select_image: 'images/edit/unsel.png',
+        default_type: t[0].type, optional_types: t.map((o) => ({ type: o.type, preview: o.preview })), count: t.length,
+        tips_BG: 'images/edit/tip.png', tips_x: 30, tips_y: -50, tips_width: 110, tips_margin: 6,
+      })
+      const cur = g ? g.getProperty(prop.CURRENT_TYPE) : t[0].type, o = t.filter((x) => x.type === cur)[0]
+      if (o && o.src !== 'images/fond.png') image(FOND, o.src)
+    })
+    // heure en lettres, compte à rebours, lune, fond de nuit : calculés maintenant, au réveil de l'écran et chaque minute
+    const maj = () => { const d = maintenant(); MAJ.forEach((f) => bloc(() => f(d))) }
+    let tic = null
+    const demarre = () => { maj(); if (MAJ.length && tic === null) { try { tic = setInterval(maj, 20000) } catch (e) {} } }
+    const arrete = () => { if (tic !== null) { try { clearInterval(tic) } catch (e) {} tic = null } }
+    if (MAJ.length) demarre()
     // animations : relancées quand le cadran revient à l'écran, arrêtées écran éteint ou en AOD (autonomie)
-    if (ANIMS.length && widget.WIDGET_DELEGATE !== undefined) {
-      const pour = (st) => ANIMS.forEach((a) => { try { a.setProperty(prop.ANIM_STATUS, st) } catch (e) {} })
+    const pour = (st) => ANIMS.forEach((a) => { try { a.setProperty(prop.ANIM_STATUS, st) } catch (e) {} })
+    if ((ANIMS.length || MAJ.length) && widget.WIDGET_DELEGATE !== undefined) {
       bloc(() => creer(widget.WIDGET_DELEGATE, {
-        resume_call: () => { pour(animSt.STOP); pour(animSt.START) },
-        pause_call: () => { pour(animSt.STOP) },
+        resume_call: () => { if (ANIMS.length) { pour(animSt.STOP); pour(animSt.START) } if (MAJ.length) demarre() },
+        pause_call: () => { if (ANIMS.length) pour(animSt.STOP); arrete() },
       }))
     }
   },

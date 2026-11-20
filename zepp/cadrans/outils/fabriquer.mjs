@@ -61,6 +61,8 @@ for (const f of fichiers) {
   const app = JSON.parse(readFileSync(join(RACINE, 'modele-app.json'), 'utf8'))
   app.app.appId = appId; app.app.appName = r.cfg.nom; app.app.description = 'Cadran « ' + r.cfg.nom + ' » fabriqué avec l\'Atelier de cadrans'
   app.i18n['fr-FR'].appName = app.i18n['en-US'].appName = r.cfg.nom
+  // fonds au choix : le cadran devient modifiable sur la montre (appui long › Modifier)
+  if (r.spec.edit) for (const t of Object.values(app.targets)) t.module.watchface.editable = 1
   writeFileSync(join(dos, 'app.json'), JSON.stringify(app, null, 2))
   writeFileSync(join(SORTIE, id + '.png'), Buffer.from(r.apercu.split(',')[1], 'base64'))
   writeFileSync(join(SORTIE, id + '-aod.png'), Buffer.from(r.aod.split(',')[1], 'base64'))
