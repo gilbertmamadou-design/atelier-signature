@@ -418,7 +418,7 @@ body.vzhide .vzs{display:none}
   var V = {}, VF = '', vT = 0, fT = 0;
   try { V = A && A.wpVideo ? JSON.parse(A.wpVideo()) : {}; } catch(e){ V = {}; }
   function sec(ms){ return (Math.round(ms/100)/10).toString().replace('.', ',')+' s'; }
-  function vidSave(){ clearTimeout(vT); vT = setTimeout(function(){ if(A&&A.wpVideoSave) A.wpVideoSave(JSON.stringify({ on:!!V.on, debut:V.debut|0, fin:V.fin|0, haut:+V.haut||0, bas:+V.bas||0, gauche:+V.gauche||0, droite:+V.droite||0, prop:vProp(), zones:(V.zones||[]).slice(0,6) })); }, 350); }
+  function vidSave(){ clearTimeout(vT); vT = setTimeout(function(){ if(A&&A.wpVideoSave) A.wpVideoSave(JSON.stringify({ on:!!V.on, debut:V.debut|0, fin:V.fin|0, haut:+V.haut||0, bas:+V.bas||0, gauche:+V.gauche||0, droite:+V.droite||0, prop:vProp(), son:!!V.son, volume:V.volume != null ? V.volume|0 : 60, zones:(V.zones||[]).slice(0,6) })); }, 350); }
   function vidFrame(){ clearTimeout(fT); fT = setTimeout(function(){ if(A&&A.wpVideoFrame&&V.existe) A.wpVideoFrame(String(V.debut|0)); }, 250); }
   // garder les proportions : le cadre gardé est recadré au format de l'écran ; sinon chaque bord rogné ne touche que son côté
   // et ce qui reste est étiré sur l'écran. Par défaut : proportions gardées si la vidéo n'a pas à peu près le format de l'écran.
@@ -516,6 +516,7 @@ body.vzhide .vzs{display:none}
     tl.firstChild.style.left = ((V.debut|0)/D*100)+'%'; tl.firstChild.style.width = (((V.fin||D)-(V.debut|0))/D*100)+'%';
     var t = VID ? VID.currentTime*1000 : (V.debut|0); tl.lastChild.style.left = (t/D*100)+'%'; $('vtm').textContent = sec(t);
   }
+  function vSonPv(){ if(!VID) return; var v = (V.volume != null ? V.volume : 60)/100; VID.volume = v*v; VID.muted = !V.son; }
   function vPlaying(){ return !!(VID && !VID.paused); }
   function vBtn(){ var b = $('vpb'); if(b) b.innerHTML = vPlaying() ? '<svg class="ic" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg>Pause' : '<svg class="ic" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></svg>Lire la boucle'; }
   function vLoop(){
@@ -530,7 +531,7 @@ body.vzhide .vzs{display:none}
     var src = vSrc(); if(!src){ toast('La lecture fonctionne dans l\'application Toile', true); return; }
     if(vPlaying()){ VID.pause(); vBtn(); return; }
     if(!VID){
-      VID = document.createElement('video'); VID.muted = true; VID.playsInline = true; VID.preload = 'auto'; VID.setAttribute('playsinline', '');
+      VID = document.createElement('video'); VID.muted = true; setTimeout(vSonPv, 0); VID.playsInline = true; VID.preload = 'auto'; VID.setAttribute('playsinline', '');
       VID.src = src; VID.currentTime = (V.debut|0)/1000;
       VID.onerror = function(){ toast('Lecture impossible ici, mais le fond d\'écran fonctionne', true); vStop(); };
       VID.onpause = vBtn;
@@ -560,6 +561,8 @@ body.vzhide .vzs{display:none}
       '<div class="vplay"><button class="btn" id="vpb"></button><div class="tl" id="vtl"><b></b><i></i></div><span class="tm" id="vtm"></span></div>'+
       '<div class="vzbar"><button class="btn" id="vzAdd">+ Zone à masquer</button><button class="btn" id="vzIg">Instagram</button><button class="btn" id="vzClr"'+((V.zones||[]).length?'':' hidden')+'>Effacer</button></div></div>'+
       '<div class="set"><div class="t"><div>Garder les proportions</div><div id="vPropTx"></div></div><label class="sw"><input type="checkbox" id="vProp"'+(vProp()?' checked':'')+'><span></span></label></div>'+
+      '<div class="set"><div class="t"><div>Son</div><div>Seulement sur l\'accueil déverrouillé, en mode sonnerie, et coupé si une autre appli joue du son ou pendant un appel</div></div><label class="sw"><input type="checkbox" id="vSon"'+(V.son?' checked':'')+'><span></span></label></div>'+
+      '<div id="vVolB"'+(V.son?'':' hidden')+'>'+sl('volume','Volume', 100, 5, V.volume != null ? V.volume : 60, (V.volume != null ? V.volume : 60)+' %')+'</div>'+
       sl('debut','Début de la boucle', D, 100, V.debut|0, sec(V.debut|0)) + sl('fin','Fin de la boucle', D, 100, V.fin||D, sec(V.fin||D)) +
       sl('haut','Rogner en haut', 45, 1, +V.haut||0, (+V.haut||0)+' %') + sl('bas','Rogner en bas', 45, 1, +V.bas||0, (+V.bas||0)+' %') +
       sl('gauche','Rogner à gauche', 45, 1, +V.gauche||0, (+V.gauche||0)+' %') + sl('droite','Rogner à droite', 45, 1, +V.droite||0, (+V.droite||0)+' %') +
@@ -570,12 +573,13 @@ body.vzhide .vzs{display:none}
     var vp = box.querySelector('[data-vpage]'); if(vp) vp.onclick = function(e){ e.preventDefault(); var T0 = window.MAGToile; if(T0 && T0.openUrl) T0.openUrl(V.credit.page); };
     var pt = function(){ $('vPropTx').textContent = vProp() ? 'L\'image n\'est jamais déformée : les bords sont ajustés au format de l\'écran' : 'Chaque réglage ne coupe que son côté ; le reste remplit l\'écran'; };
     pt(); $('vProp').onchange = function(){ V.prop = this.checked; pt(); vidDraw(); vidSave(); };
+    $('vSon').onchange = function(){ V.son = this.checked; $('vVolB').hidden = !V.son; vSonPv(); vidSave(); toast(V.son ? 'Son activé : il joue quand tu reviens sur l\'accueil' : 'Son coupé'); };
     $('vOn').onchange = function(){ V.on = this.checked; vidSave(); vidLive(); };
     box.oninput = function(e){
       var k = e.target.dataset.v; if(!k) return; var v = +e.target.value;
       if(k==='debut' && v >= (V.fin||D) - 500) v = Math.max(0, (V.fin||D) - 500);
       if(k==='fin' && v <= (V.debut|0) + 500) v = Math.min(D, (V.debut|0) + 500);
-      V[k] = v; e.target.value = v; $('vv-'+k).textContent = (k==='debut'||k==='fin') ? sec(v) : v+' %';
+      V[k] = v; e.target.value = v; if(k==='volume') vSonPv(); $('vv-'+k).textContent = (k==='debut'||k==='fin') ? sec(v) : v+' %';
       if(VID && (k==='debut'||k==='fin')) vSeek(k); else if(k==='debut') vidFrame();
       vidDraw(); vidSave();
     };

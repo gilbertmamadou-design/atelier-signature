@@ -1279,8 +1279,12 @@ public class WallpaperJob extends JobService {
         android.graphics.SurfaceTexture st; android.view.Surface sf; android.media.MediaPlayer mp;
         Peintre pt; int tex; final float[] mtx = new float[16];
         volatile int sw, sh; volatile boolean vis, mort; JSONObject cfg; long debut, fin;
+        // son (réglage « son », volume 0..100) : seulement écran d'accueil visible et déverrouillé, téléphone en mode sonnerie,
+        // aucun appel, aucune autre appli qui joue du son ; coupé dès qu'une autre appli prend la main sur l'audio
+        Context app; android.media.AudioManager am; Object focus; volatile boolean perdu;
 
-        VideoGl(final android.view.SurfaceHolder holder, final File f, final JSONObject cfg, int w, int h, boolean visible) {
+        VideoGl(Context c, final android.view.SurfaceHolder holder, final File f, final JSONObject cfg, int w, int h, boolean visible) {
+            app = c.getApplicationContext(); am = (android.media.AudioManager) app.getSystemService(Context.AUDIO_SERVICE);
             this.cfg = cfg; sw = w; sh = h; vis = visible; debut = cfg.optLong("debut", 0); fin = cfg.optLong("fin", 0);
             th.start(); gh = new android.os.Handler(th.getLooper());
             gh.post(new Runnable() { public void run() { try { init(holder, f); } catch (Throwable t) { liberer(); } } });
@@ -1305,11 +1309,12 @@ public class WallpaperJob extends JobService {
             android.opengl.GLES20.glTexParameteri(android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES, android.opengl.GLES20.GL_TEXTURE_WRAP_T, android.opengl.GLES20.GL_CLAMP_TO_EDGE);
             st = new android.graphics.SurfaceTexture(tex); st.setOnFrameAvailableListener(this, gh); sf = new android.view.Surface(st);
             mp = new android.media.MediaPlayer();
-            mp.setDataSource(f.getAbsolutePath()); mp.setSurface(sf); mp.setVolume(0f, 0f); mp.setLooping(fin <= 0 || fin >= cfg.optLong("duree", 0) - 50 && debut <= 0);
+            mp.setDataSource(f.getAbsolutePath()); mp.setSurface(sf); mp.setVolume(0f, 0f);
+            try { mp.setAudioAttributes(new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_MEDIA).setContentType(android.media.AudioAttributes.CONTENT_TYPE_MOVIE).build()); } catch (Throwable t) { } mp.setLooping(fin <= 0 || fin >= cfg.optLong("duree", 0) - 50 && debut <= 0);
             mp.setOnCompletionListener(new android.media.MediaPlayer.OnCompletionListener() { public void onCompletion(android.media.MediaPlayer m) { if (mort) return; aller(debut); if (vis) m.start(); } });
             mp.prepare();
             if (debut > 0) aller(debut);
-            if (vis) mp.start();
+            if (vis) { son(); mp.start(); }
             boucle();
         }
         void aller(long ms) { try { if (android.os.Build.VERSION.SDK_INT >= 26) mp.seekTo(ms, android.media.MediaPlayer.SEEK_CLOSEST); else mp.seekTo((int) ms); } catch (Throwable t) { } }
@@ -1325,9 +1330,43 @@ public class WallpaperJob extends JobService {
             android.opengl.EGL14.eglSwapBuffers(dpy, surf);
         }
         void taille(int w, int h) { sw = w; sh = h; }
-        void visible(final boolean v) { vis = v; gh.post(new Runnable() { public void run() { try { if (mp == null) return; if (v) mp.start(); else if (mp.isPlaying()) mp.pause(); } catch (Throwable t) { } } }); }
+        void visible(final boolean v) { vis = v; gh.post(new Runnable() { public void run() { try { if (mp == null) return; if (v) { son(); mp.start(); } else { if (mp.isPlaying()) mp.pause(); silence(); } } catch (Throwable t) { } } }); }
+        boolean sonPermis() {
+            if (!cfg.optBoolean("son") || am == null || perdu) return false;
+            try {
+                if (am.getRingerMode() != android.media.AudioManager.RINGER_MODE_NORMAL) return false;
+                if (am.getMode() != android.media.AudioManager.MODE_NORMAL) return false;
+                if (am.isMusicActive()) return false;
+                android.app.KeyguardManager km = (android.app.KeyguardManager) app.getSystemService(Context.KEYGUARD_SERVICE);
+                if (km != null && km.isKeyguardLocked()) return false;
+            } catch (Throwable t) { return false; }
+            return true;
+        }
+        /** au retour sur l'accueil : le son si tout le permet (avec la main sur l'audio, sans couper les autres) */
+        void son() {
+            perdu = false;
+            if (mp == null) return;
+            if (!sonPermis()) { mp.setVolume(0f, 0f); return; }
+            if (android.os.Build.VERSION.SDK_INT >= 26) {
+                android.media.AudioFocusRequest r = new android.media.AudioFocusRequest.Builder(android.media.AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+                    .setAudioAttributes(new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_MEDIA).setContentType(android.media.AudioAttributes.CONTENT_TYPE_MOVIE).build())
+                    .setOnAudioFocusChangeListener(new android.media.AudioManager.OnAudioFocusChangeListener() { public void onAudioFocusChange(int ch) {
+                        if (ch < 0) { perdu = true; gh.post(new Runnable() { public void run() { try { if (mp != null) mp.setVolume(0f, 0f); } catch (Throwable t) { } } }); }
+                    } }, gh).build();
+                if (am.requestAudioFocus(r) != android.media.AudioManager.AUDIOFOCUS_REQUEST_GRANTED) { mp.setVolume(0f, 0f); return; }
+                focus = r;
+            }
+            float v = Math.max(0, Math.min(100, cfg.optInt("volume", 60))) / 100f; v = v * v;   // courbe plus douce aux faibles volumes
+            mp.setVolume(v, v);
+        }
+        void silence() {
+            try { if (mp != null) mp.setVolume(0f, 0f); } catch (Throwable t) { }
+            try { if (focus != null && android.os.Build.VERSION.SDK_INT >= 26) am.abandonAudioFocusRequest((android.media.AudioFocusRequest) focus); } catch (Throwable t) { }
+            focus = null;
+        }
         void liberer() {
             mort = true;
+            silence();
             try { if (mp != null) { mp.setSurface(null); mp.release(); } } catch (Throwable t) { } mp = null;
             try { if (sf != null) sf.release(); } catch (Throwable t) { }
             try { if (st != null) st.release(); } catch (Throwable t) { }
@@ -1377,7 +1416,7 @@ public class WallpaperJob extends JobService {
             private boolean videoCheck() {
                 Context c = getApplicationContext();
                 if (videoActive(c)) {
-                    if (vgl == null && surface && w > 0) { try { vcle = videoCfg(c).toString(); vgl = new VideoGl(getSurfaceHolder(), videoFile(c), videoCfg(c), w, hh, visible); } catch (Throwable t) { vgl = null; } }
+                    if (vgl == null && surface && w > 0) { try { vcle = videoCfg(c).toString(); vgl = new VideoGl(c, getSurfaceHolder(), videoFile(c), videoCfg(c), w, hh, visible); } catch (Throwable t) { vgl = null; } }
                     return vgl != null;
                 }
                 if (vgl != null) { videoStop(); draw(); }
