@@ -90,6 +90,7 @@ main{padding:4px 16px calc(40px + var(--safe-b));max-width:760px;margin:0 auto}
           <div><label id="lPL">Prix d'achat par action</label><input id="lP" inputmode="decimal" placeholder="83"></div></div>
         <div class="grid2 f"><div><label>Montant payé en € (facultatif, frais compris)</label><input id="lE" inputmode="decimal" placeholder="Débité sur le compte"></div>
           <div><label>Date</label><input id="lD" type="date"></div></div>
+        <p class="note" id="lCalc" style="margin:8px 0 0">Vous ne connaissez que la somme investie ? Laissez « Nombre d'actions » vide et remplissez le montant payé en € : le nombre est calculé.</p>
         <div class="row f"><button class="btn pri sm" id="bLot">Enregistrer</button></div>
         <p class="note">Avec le montant payé en euros, le gain en euros tient compte du taux de change du jour d'achat.</p>
       </details>
@@ -340,11 +341,21 @@ main{padding:4px 16px calc(40px + var(--safe-b));max-width:760px;margin:0 auto}
     }).join('') : '<p class="note" style="margin:0">Aucun achat noté.</p>');
     Array.prototype.forEach.call($('lots').querySelectorAll('[data-x]'), function (b) { b.onclick = function () { if (!confirm('Supprimer cet achat ?')) return; LOTS[CUR] = lotsOf(CUR).filter(function (l) { return l.id !== b.dataset.x; }); if (!LOTS[CUR].length) delete LOTS[CUR]; save(); publish(); renderPf(); draw(-1); }; });
   }
+  // nombre d'actions déduit du montant en euros : montant ÷ (prix × taux de change du moment), approché (frais, taux du jour d'achat)
+  function lotRate() { var cur = (CACHE[CUR] || DATA || {}).cur || 'EUR'; return cur === 'EUR' ? 1 : RATES[cur]; }
+  function lotGuess() { var p = num($('lP').value), e = num($('lE').value), r = lotRate(); return p > 0 && e > 0 && r ? e / (p * r) : null; }
+  function lotHint() {
+    var n = num($('lQ').value), g = lotGuess();
+    $('lCalc').innerHTML = n ? '' : g ? 'Cela fait environ <b>' + fr(g, g < 10 ? 3 : 2) + ' action' + (g >= 2 ? 's' : '') + '</b>. Le chiffre exact est sur l\'avis d\'opéré de votre banque ou courtier (les frais le réduisent un peu).'
+      : 'Vous ne connaissez que la somme investie ? Laissez « Nombre d\'actions » vide et remplissez le montant payé en € : le nombre est calculé.';
+  }
+  ['lQ', 'lP', 'lE'].forEach(function (k) { $(k).addEventListener('input', lotHint); });
   $('bLot').onclick = function () {
     var q = num($('lQ').value), p = num($('lP').value), e = num($('lE').value);
-    if (!q || q <= 0 || !p || p <= 0) { toast('Indiquez le nombre d\'actions et le prix d\'achat.'); return; }
+    if (!q && p > 0 && e > 0) { if (!lotRate()) { toast('Taux de change pas encore chargé, réessayez dans un instant.'); return; } q = Math.round(lotGuess() * 10000) / 10000; }
+    if (!q || q <= 0 || !p || p <= 0) { toast('Indiquez le prix d\'achat, et le nombre d\'actions ou le montant payé en €.'); return; }
     (LOTS[CUR] = lotsOf(CUR)).push({ id: uid(), q: q, p: p, eur: e != null && e > 0 ? e : null, d: $('lD').value || '' });
-    save(); publish(); $('lQ').value = $('lP').value = $('lE').value = ''; $('addLot').open = false; toast('Achat enregistré'); renderPf(); draw(-1);
+    save(); publish(); $('lQ').value = $('lP').value = $('lE').value = ''; lotHint(); $('addLot').open = false; toast('Achat enregistré : ' + (q % 1 ? fr(q, 4).replace(/0+$/, '') : fr(q, 0)) + ' action' + (q >= 2 ? 's' : '')); renderPf(); draw(-1);
     var cur = (CACHE[CUR] || DATA || {}).cur; if (cur && RATES[cur] == null) fx(cur).then(function (v) { RATES[cur] = v; renderPf(); });
   };
 
