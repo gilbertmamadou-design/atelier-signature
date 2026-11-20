@@ -1172,4 +1172,23 @@ public class ToileBridge {
             finally { VDL.set(false); }
         } }).start();
     }
+
+    // ---------------------------------------------------------------- Mes séquences (WallpaperJob.seq…)
+    @JavascriptInterface public String seqList() { return ok() ? WallpaperJob.seqList(a).toString() : "[]"; }
+    @JavascriptInterface public void seqSave(final String nom) {
+        if (!ok()) return;
+        CROP.execute(new Runnable() { public void run() {
+            try { emit("seq", true, WallpaperJob.seqSave(a.getApplicationContext(), nom).toString()); } catch (Throwable t) { emit("seq", false, WallpaperJob.msg(t)); }
+        } });
+    }
+    @JavascriptInterface public void seqUse(final String id) {
+        if (!ok()) return;
+        CROP.execute(new Runnable() { public void run() {
+            try { emit("video", true, WallpaperJob.seqUse(a.getApplicationContext(), id)); } catch (Throwable t) { emit("video", false, WallpaperJob.msg(t)); }
+        } });
+    }
+    @JavascriptInterface public void seqDel(final String id) {
+        if (!ok()) return;
+        CROP.execute(new Runnable() { public void run() { emit("seq", true, WallpaperJob.seqDel(a.getApplicationContext(), id).toString()); } });
+    }
 }

@@ -979,6 +979,77 @@ public class WallpaperJob extends JobService {
             return "data:image/jpeg;base64," + Base64.encodeToString(bo.toByteArray(), Base64.NO_WRAP);
         } finally { try { mr.release(); } catch (Throwable t) { } }
     }
+    // ---- Mes séquences : vidéos gardées avec leurs réglages (files/toile-sequences/<id>.mp4 / .json / .jpg)
+    static File seqDir(Context c) { File d = new File(c.getFilesDir(), "toile-sequences"); if (!d.exists()) d.mkdirs(); return d; }
+    static void copier(File a, File b) throws Exception {
+        File t = new File(b.getPath() + ".tmp");
+        try (java.io.FileInputStream in = new java.io.FileInputStream(a); FileOutputStream o = new FileOutputStream(t)) { byte[] x = new byte[1 << 16]; int r; while ((r = in.read(x)) > 0) o.write(x, 0, r); }
+        b.delete(); if (!t.renameTo(b)) { t.delete(); throw new Exception("Copie impossible"); }
+    }
+    static JSONArray seqList(Context c) {
+        JSONArray out = new JSONArray(); File[] fs = seqDir(c).listFiles(); if (fs == null) return out;
+        List<JSONObject> l = new ArrayList<JSONObject>();
+        for (File f : fs) {
+            if (!f.getName().endsWith(".json")) continue;
+            String id = f.getName().substring(0, f.getName().length() - 5); File v = new File(seqDir(c), id + ".mp4");
+            if (!v.exists()) continue;
+            try {
+                JSONObject o = new JSONObject(new String(ToileBridge.readFile(f), "UTF-8")), r = new JSONObject();
+                r.put("id", id).put("nom", o.optString("nomSeq", o.optString("nom"))).put("duree", Math.max(0, o.optLong("fin") - o.optLong("debut"))).put("taille", v.length()).put("at", o.optLong("at"));
+                File j = new File(seqDir(c), id + ".jpg");
+                if (j.exists()) r.put("img", "data:image/jpeg;base64," + Base64.encodeToString(ToileBridge.readFile(j), Base64.NO_WRAP));
+                l.add(r);
+            } catch (Exception e) { }
+        }
+        Collections.sort(l, new java.util.Comparator<JSONObject>() { public int compare(JSONObject a, JSONObject b) { return Long.compare(b.optLong("at"), a.optLong("at")); } });
+        for (JSONObject o : l) out.put(o);
+        return out;
+    }
+    /** garde la vidéo en cours et ses réglages ; si elle vient déjà de Mes séquences, met seulement à jour ses réglages */
+    static JSONArray seqSave(Context c, String nom) throws Exception {
+        File v = videoFile(c); if (!v.exists()) throw new Exception("Aucune vidéo à enregistrer");
+        JSONObject cfg = videoCfg(c); cfg.remove("existe"); cfg.remove("chemin"); cfg.remove("maj");
+        String id = cfg.optString("seq");
+        if (id.isEmpty() || !id.matches("^[0-9a-z]{6,20}$") || !new File(seqDir(c), id + ".mp4").exists()) {
+            id = Long.toString(System.currentTimeMillis(), 36);
+            copier(v, new File(seqDir(c), id + ".mp4"));
+        }
+        nom = nom == null ? "" : nom.trim(); if (nom.length() > 60) nom = nom.substring(0, 60);
+        cfg.put("seq", id).put("nomSeq", nom.isEmpty() ? cfg.optString("nom", "Séquence") : nom).put("at", System.currentTimeMillis());
+        try (FileOutputStream o = new FileOutputStream(new File(seqDir(c), id + ".json"))) { o.write(cfg.toString().getBytes("UTF-8")); }
+        try {
+            android.media.MediaMetadataRetriever mr = new android.media.MediaMetadataRetriever();
+            try {
+                mr.setDataSource(v.getAbsolutePath());
+                Bitmap b = mr.getFrameAtTime(cfg.optLong("debut") * 1000L, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
+                if (b != null) {
+                    float k = Math.min(1f, 260f / Math.max(b.getWidth(), b.getHeight()));
+                    Bitmap s = Bitmap.createScaledBitmap(b, Math.max(1, Math.round(b.getWidth() * k)), Math.max(1, Math.round(b.getHeight() * k)), true);
+                    try (FileOutputStream o = new FileOutputStream(new File(seqDir(c), id + ".jpg"))) { s.compress(Bitmap.CompressFormat.JPEG, 78, o); }
+                }
+            } finally { try { mr.release(); } catch (Throwable t) { } }
+        } catch (Throwable t) { }
+        JSONObject cur = new JSONObject(vprefs(c).getString("cfg", "{}")); cur.put("seq", id).put("nomSeq", cfg.optString("nomSeq"));
+        vprefs(c).edit().putString("cfg", cur.toString()).apply();
+        return seqList(c);
+    }
+    /** remet une séquence gardée comme fond animé, avec ses réglages */
+    static String seqUse(Context c, String id) throws Exception {
+        if (id == null || !id.matches("^[0-9a-z]{6,20}$")) throw new Exception("Séquence inconnue");
+        File v = new File(seqDir(c), id + ".mp4"), j = new File(seqDir(c), id + ".json");
+        if (!v.exists() || !j.exists()) throw new Exception("Cette séquence n'existe plus");
+        JSONObject cfg = new JSONObject(new String(ToileBridge.readFile(j), "UTF-8"));
+        copier(v, videoFile(c));
+        cfg.put("on", true); cfg.remove("at");
+        vprefs(c).edit().putString("cfg", cfg.toString()).apply();
+        Live.refresh();
+        return videoCfg(c).toString();
+    }
+    static JSONArray seqDel(Context c, String id) {
+        if (id != null && id.matches("^[0-9a-z]{6,20}$")) for (String x : new String[]{ ".mp4", ".json", ".jpg" }) new File(seqDir(c), id + x).delete();
+        try { JSONObject cur = new JSONObject(vprefs(c).getString("cfg", "{}")); if (id != null && id.equals(cur.optString("seq"))) { cur.remove("seq"); cur.remove("nomSeq"); vprefs(c).edit().putString("cfg", cur.toString()).apply(); } } catch (Exception e) { }
+        return seqList(c);
+    }
     static boolean videoActive(Context c) { JSONObject o = videoCfg(c); return o.optBoolean("on") && o.optBoolean("existe"); }
 
     /** Lecture de la vidéo sur la surface du fond, dans son propre fil (OpenGL ES 2, texture externe) */
