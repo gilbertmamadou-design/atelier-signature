@@ -65,7 +65,7 @@ public class MainActivity extends BridgeActivity {
     private byte[] pendingData;
     private boolean bridgeReloaded = false;
     private static final int REQ_SAVE = 4242;
-    private static final int REQ_WP_FOLDER = 4250, REQ_WP_IMAGE = 4251;
+    private static final int REQ_WP_FOLDER = 4250, REQ_WP_IMAGE = 4251, REQ_WP_VIDEO = 4252;
 
     public class MagPrint {
         @JavascriptInterface
@@ -394,6 +394,18 @@ public class MainActivity extends BridgeActivity {
             try { Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT); i.addCategory(Intent.CATEGORY_OPENABLE); i.setType("image/*"); startActivityForResult(i, REQ_WP_IMAGE); }
             catch (Exception e) { toast("Sélecteur d'images indisponible"); }
         } }); }
+        // Toile : séquence animée (vidéo en boucle comme fond « Toile (double tap) »)
+        @JavascriptInterface
+        public void wpPickVideo() { runOnUiThread(new Runnable() { public void run() {
+            try { Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT); i.addCategory(Intent.CATEGORY_OPENABLE); i.setType("video/*"); startActivityForResult(i, REQ_WP_VIDEO); }
+            catch (Exception e) { toast("Sélecteur de vidéos indisponible"); }
+        } }); }
+        @JavascriptInterface
+        public String wpVideo() { return WallpaperJob.videoCfg(getApplicationContext()).toString(); }
+        @JavascriptInterface
+        public void wpVideoSave(String json) { WallpaperJob.videoSave(getApplicationContext(), json); }
+        @JavascriptInterface
+        public void wpVideoFrame(final String ms) { final Context c = getApplicationContext(); wpRun("frame", new java.util.concurrent.Callable<String>() { public String call() throws Exception { return WallpaperJob.videoFrame(c, Long.parseLong(ms)); } }); }
         @JavascriptInterface
         public void wpScan() { final Context c = getApplicationContext(); wpRun("scan", new java.util.concurrent.Callable<String>() { public String call() throws Exception { return String.valueOf(WallpaperJob.list(c).size()); } }); }
         @JavascriptInterface
@@ -811,6 +823,10 @@ public class MainActivity extends BridgeActivity {
             pendingData = null;
         }
         extraCall("onResult", new Class<?>[]{ int.class, int.class, Intent.class }, requestCode, resultCode, data);
+        if (requestCode == REQ_WP_VIDEO && resultCode == RESULT_OK && data != null && data.getData() != null) {
+            final Uri vu = data.getData(); final Context vc = getApplicationContext();
+            wpRun("video", new java.util.concurrent.Callable<String>() { public String call() throws Exception { return WallpaperJob.videoSet(vc, vu); } });
+        }
         if ((requestCode == REQ_WP_FOLDER || requestCode == REQ_WP_IMAGE) && resultCode == RESULT_OK && data != null && data.getData() != null) {
             Uri u = data.getData();
             try { getContentResolver().takePersistableUriPermission(u, Intent.FLAG_GRANT_READ_URI_PERMISSION); } catch (Exception e) { }

@@ -914,6 +914,171 @@ public class WallpaperJob extends JobService {
         }
     }
 
+    // ================= Séquence animée (vidéo en boucle comme fond « Toile (double tap) ») =================
+    // La vidéo choisie est copiée dans le dossier privé de Toile (files/toile-video.mp4). Réglages (préférence
+    // « toile_video ») : on, debut / fin (ms, boucle entre les deux), haut / bas / gauche / droite (% rognés : barres d'un
+    // enregistrement d'écran…). Lecture sans son par MediaPlayer, dessinée en OpenGL ES (texture externe) pour pouvoir
+    // rogner puis remplir l'écran ; en pause dès que le fond n'est plus visible (écran éteint, appli par-dessus).
+    static File videoFile(Context c) { return new File(c.getFilesDir(), "toile-video.mp4"); }
+    static SharedPreferences vprefs(Context c) { return c.getSharedPreferences("toile_video", Context.MODE_PRIVATE); }
+    static JSONObject videoCfg(Context c) {
+        JSONObject o; try { o = new JSONObject(vprefs(c).getString("cfg", "{}")); } catch (Exception e) { o = new JSONObject(); }
+        try { o.put("existe", videoFile(c).exists()); } catch (Exception e) { }
+        return o;
+    }
+    static void videoSave(Context c, String json) {
+        try {
+            JSONObject o = videoCfg(c), n = new JSONObject(json); JSONArray k = n.names();
+            for (int i = 0; k != null && i < k.length(); i++) o.put(k.getString(i), n.get(k.getString(i)));
+            o.remove("existe"); vprefs(c).edit().putString("cfg", o.toString()).apply();
+        } catch (Exception e) { }
+        Live.refresh();
+    }
+    static String videoSet(Context c, Uri u) throws Exception {
+        File f = videoFile(c), tmp = new File(c.getFilesDir(), "toile-video.tmp"); long n = 0;
+        try (InputStream in = c.getContentResolver().openInputStream(u); FileOutputStream o = new FileOutputStream(tmp)) {
+            byte[] b = new byte[1 << 16]; int r; while ((r = in.read(b)) > 0) { o.write(b, 0, r); n += r; if (n > 400L * 1024 * 1024) throw new Exception("Vidéo trop lourde (400 Mo au plus)"); }
+        }
+        android.media.MediaMetadataRetriever mr = new android.media.MediaMetadataRetriever();
+        long duree; int w, h;
+        try {
+            mr.setDataSource(tmp.getAbsolutePath());
+            duree = Long.parseLong(mr.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION));
+            w = Integer.parseInt(mr.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH));
+            h = Integer.parseInt(mr.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT));
+            String rot = mr.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION);
+            if ("90".equals(rot) || "270".equals(rot)) { int t = w; w = h; h = t; }
+        } catch (Exception e) { tmp.delete(); throw new Exception("Ce fichier n'est pas une vidéo lisible"); }
+        finally { try { mr.release(); } catch (Throwable t) { } }
+        f.delete(); if (!tmp.renameTo(f)) throw new Exception("Copie de la vidéo impossible");
+        String nom = "vidéo"; try (Cursor cu = c.getContentResolver().query(u, new String[]{ OpenableColumns.DISPLAY_NAME }, null, null, null)) { if (cu != null && cu.moveToFirst()) nom = cu.getString(0); } catch (Exception e) { }
+        JSONObject o = new JSONObject();
+        o.put("on", true); o.put("debut", 0); o.put("fin", duree); o.put("duree", duree); o.put("w", w); o.put("h", h); o.put("nom", nom);
+        o.put("haut", 0); o.put("bas", 0); o.put("gauche", 0); o.put("droite", 0);
+        vprefs(c).edit().putString("cfg", o.toString()).apply();
+        Live.refresh();
+        o.put("existe", true); return o.toString();
+    }
+    /** image de la vidéo à l'instant ms (aperçu du découpage dans la page) */
+    static String videoFrame(Context c, long ms) throws Exception {
+        android.media.MediaMetadataRetriever mr = new android.media.MediaMetadataRetriever();
+        try {
+            mr.setDataSource(videoFile(c).getAbsolutePath());
+            Bitmap b = mr.getFrameAtTime(ms * 1000L, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
+            if (b == null) throw new Exception("Image introuvable");
+            float k = Math.min(1f, 480f / Math.max(b.getWidth(), b.getHeight()));
+            Bitmap s = Bitmap.createScaledBitmap(b, Math.max(1, Math.round(b.getWidth() * k)), Math.max(1, Math.round(b.getHeight() * k)), true);
+            ByteArrayOutputStream bo = new ByteArrayOutputStream(); s.compress(Bitmap.CompressFormat.JPEG, 80, bo);
+            return "data:image/jpeg;base64," + Base64.encodeToString(bo.toByteArray(), Base64.NO_WRAP);
+        } finally { try { mr.release(); } catch (Throwable t) { } }
+    }
+    static boolean videoActive(Context c) { JSONObject o = videoCfg(c); return o.optBoolean("on") && o.optBoolean("existe"); }
+
+    /** Lecture de la vidéo sur la surface du fond, dans son propre fil (OpenGL ES 2, texture externe) */
+    static final class VideoGl implements android.graphics.SurfaceTexture.OnFrameAvailableListener {
+        final android.os.HandlerThread th = new android.os.HandlerThread("toile-video");
+        final android.os.Handler gh;
+        android.opengl.EGLDisplay dpy; android.opengl.EGLContext ctx; android.opengl.EGLSurface surf;
+        android.graphics.SurfaceTexture st; android.view.Surface sf; android.media.MediaPlayer mp;
+        int prog, tex, aPos, aTex, uM; final float[] mtx = new float[16];
+        volatile int sw, sh; volatile boolean vis, mort; JSONObject cfg; long debut, fin;
+
+        VideoGl(final android.view.SurfaceHolder holder, final File f, final JSONObject cfg, int w, int h, boolean visible) {
+            this.cfg = cfg; sw = w; sh = h; vis = visible; debut = cfg.optLong("debut", 0); fin = cfg.optLong("fin", 0);
+            th.start(); gh = new android.os.Handler(th.getLooper());
+            gh.post(new Runnable() { public void run() { try { init(holder, f); } catch (Throwable t) { liberer(); } } });
+        }
+        static int shader(int type, String src) { int s = android.opengl.GLES20.glCreateShader(type); android.opengl.GLES20.glShaderSource(s, src); android.opengl.GLES20.glCompileShader(s); return s; }
+        void init(android.view.SurfaceHolder holder, File f) throws Exception {
+            dpy = android.opengl.EGL14.eglGetDisplay(android.opengl.EGL14.EGL_DEFAULT_DISPLAY);
+            int[] v = new int[2]; android.opengl.EGL14.eglInitialize(dpy, v, 0, v, 1);
+            int[] at = { android.opengl.EGL14.EGL_RED_SIZE, 8, android.opengl.EGL14.EGL_GREEN_SIZE, 8, android.opengl.EGL14.EGL_BLUE_SIZE, 8,
+                android.opengl.EGL14.EGL_RENDERABLE_TYPE, android.opengl.EGL14.EGL_OPENGL_ES2_BIT, android.opengl.EGL14.EGL_SURFACE_TYPE, android.opengl.EGL14.EGL_WINDOW_BIT, android.opengl.EGL14.EGL_NONE };
+            android.opengl.EGLConfig[] cf = new android.opengl.EGLConfig[1]; int[] nc = new int[1];
+            android.opengl.EGL14.eglChooseConfig(dpy, at, 0, cf, 0, 1, nc, 0);
+            if (nc[0] < 1) throw new Exception("EGL");
+            ctx = android.opengl.EGL14.eglCreateContext(dpy, cf[0], android.opengl.EGL14.EGL_NO_CONTEXT, new int[]{ android.opengl.EGL14.EGL_CONTEXT_CLIENT_VERSION, 2, android.opengl.EGL14.EGL_NONE }, 0);
+            surf = android.opengl.EGL14.eglCreateWindowSurface(dpy, cf[0], holder.getSurface(), new int[]{ android.opengl.EGL14.EGL_NONE }, 0);
+            android.opengl.EGL14.eglMakeCurrent(dpy, surf, surf, ctx);
+            String vs = "attribute vec4 aPos; attribute vec4 aTex; uniform mat4 uM; varying vec2 vT; void main(){ gl_Position = aPos; vT = (uM * aTex).xy; }";
+            String fs = "#extension GL_OES_EGL_image_external : require\nprecision mediump float; uniform samplerExternalOES sT; varying vec2 vT; void main(){ gl_FragColor = texture2D(sT, vT); }";
+            prog = android.opengl.GLES20.glCreateProgram();
+            android.opengl.GLES20.glAttachShader(prog, shader(android.opengl.GLES20.GL_VERTEX_SHADER, vs));
+            android.opengl.GLES20.glAttachShader(prog, shader(android.opengl.GLES20.GL_FRAGMENT_SHADER, fs));
+            android.opengl.GLES20.glLinkProgram(prog);
+            aPos = android.opengl.GLES20.glGetAttribLocation(prog, "aPos"); aTex = android.opengl.GLES20.glGetAttribLocation(prog, "aTex"); uM = android.opengl.GLES20.glGetUniformLocation(prog, "uM");
+            int[] t = new int[1]; android.opengl.GLES20.glGenTextures(1, t, 0); tex = t[0];
+            android.opengl.GLES20.glBindTexture(android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES, tex);
+            android.opengl.GLES20.glTexParameteri(android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES, android.opengl.GLES20.GL_TEXTURE_MIN_FILTER, android.opengl.GLES20.GL_LINEAR);
+            android.opengl.GLES20.glTexParameteri(android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES, android.opengl.GLES20.GL_TEXTURE_MAG_FILTER, android.opengl.GLES20.GL_LINEAR);
+            android.opengl.GLES20.glTexParameteri(android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES, android.opengl.GLES20.GL_TEXTURE_WRAP_S, android.opengl.GLES20.GL_CLAMP_TO_EDGE);
+            android.opengl.GLES20.glTexParameteri(android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES, android.opengl.GLES20.GL_TEXTURE_WRAP_T, android.opengl.GLES20.GL_CLAMP_TO_EDGE);
+            st = new android.graphics.SurfaceTexture(tex); st.setOnFrameAvailableListener(this, gh); sf = new android.view.Surface(st);
+            mp = new android.media.MediaPlayer();
+            mp.setDataSource(f.getAbsolutePath()); mp.setSurface(sf); mp.setVolume(0f, 0f); mp.setLooping(fin <= 0 || fin >= cfg.optLong("duree", 0) - 50 && debut <= 0);
+            mp.setOnCompletionListener(new android.media.MediaPlayer.OnCompletionListener() { public void onCompletion(android.media.MediaPlayer m) { if (mort) return; aller(debut); if (vis) m.start(); } });
+            mp.prepare();
+            if (debut > 0) aller(debut);
+            if (vis) mp.start();
+            boucle();
+        }
+        void aller(long ms) { try { if (android.os.Build.VERSION.SDK_INT >= 26) mp.seekTo(ms, android.media.MediaPlayer.SEEK_CLOSEST); else mp.seekTo((int) ms); } catch (Throwable t) { } }
+        void boucle() {
+            if (mort) return;
+            try { if (mp != null && mp.isPlaying() && fin > debut && fin < cfg.optLong("duree", 0) - 50 && mp.getCurrentPosition() >= fin) aller(debut); } catch (Throwable t) { }
+            gh.postDelayed(new Runnable() { public void run() { boucle(); } }, 120);
+        }
+        @Override public void onFrameAvailable(android.graphics.SurfaceTexture s) { if (!mort) try { dessiner(); } catch (Throwable t) { } }
+        void dessiner() {
+            st.updateTexImage(); st.getTransformMatrix(mtx);
+            float W = Math.max(1, cfg.optInt("w", 1)), H = Math.max(1, cfg.optInt("h", 1));
+            float x0 = (float) cfg.optDouble("gauche", 0) / 100f, x1 = 1f - (float) cfg.optDouble("droite", 0) / 100f, y0 = (float) cfg.optDouble("haut", 0) / 100f, y1 = 1f - (float) cfg.optDouble("bas", 0) / 100f;
+            if (x1 - x0 < .1f) { x0 = 0; x1 = 1; } if (y1 - y0 < .1f) { y0 = 0; y1 = 1; }
+            float ra = (x1 - x0) * W / ((y1 - y0) * H), rs = sw / (float) Math.max(1, sh);
+            if (ra > rs) { float nw = (y1 - y0) * H * rs / W, cx = (x0 + x1) / 2; x0 = cx - nw / 2; x1 = cx + nw / 2; }
+            else { float nh = (x1 - x0) * W / rs / H, cy = (y0 + y1) / 2; y0 = cy - nh / 2; y1 = cy + nh / 2; }
+            float[] pos = { -1, -1, 1, -1, -1, 1, 1, 1 };
+            float[] tc = { x0, 1 - y1, 0, 1, x1, 1 - y1, 0, 1, x0, 1 - y0, 0, 1, x1, 1 - y0, 0, 1 };
+            java.nio.FloatBuffer pb = java.nio.ByteBuffer.allocateDirect(pos.length * 4).order(java.nio.ByteOrder.nativeOrder()).asFloatBuffer(); pb.put(pos).position(0);
+            java.nio.FloatBuffer tb = java.nio.ByteBuffer.allocateDirect(tc.length * 4).order(java.nio.ByteOrder.nativeOrder()).asFloatBuffer(); tb.put(tc).position(0);
+            android.opengl.GLES20.glViewport(0, 0, sw, sh);
+            android.opengl.GLES20.glClearColor(0, 0, 0, 1); android.opengl.GLES20.glClear(android.opengl.GLES20.GL_COLOR_BUFFER_BIT);
+            android.opengl.GLES20.glUseProgram(prog);
+            android.opengl.GLES20.glActiveTexture(android.opengl.GLES20.GL_TEXTURE0);
+            android.opengl.GLES20.glBindTexture(android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES, tex);
+            android.opengl.GLES20.glUniformMatrix4fv(uM, 1, false, mtx, 0);
+            android.opengl.GLES20.glEnableVertexAttribArray(aPos); android.opengl.GLES20.glVertexAttribPointer(aPos, 2, android.opengl.GLES20.GL_FLOAT, false, 0, pb);
+            android.opengl.GLES20.glEnableVertexAttribArray(aTex); android.opengl.GLES20.glVertexAttribPointer(aTex, 4, android.opengl.GLES20.GL_FLOAT, false, 0, tb);
+            android.opengl.GLES20.glDrawArrays(android.opengl.GLES20.GL_TRIANGLE_STRIP, 0, 4);
+            android.opengl.EGL14.eglSwapBuffers(dpy, surf);
+        }
+        void taille(int w, int h) { sw = w; sh = h; }
+        void visible(final boolean v) { vis = v; gh.post(new Runnable() { public void run() { try { if (mp == null) return; if (v) mp.start(); else if (mp.isPlaying()) mp.pause(); } catch (Throwable t) { } } }); }
+        void liberer() {
+            mort = true;
+            try { if (mp != null) { mp.setSurface(null); mp.release(); } } catch (Throwable t) { } mp = null;
+            try { if (sf != null) sf.release(); } catch (Throwable t) { }
+            try { if (st != null) st.release(); } catch (Throwable t) { }
+            try {
+                if (dpy != null) {
+                    android.opengl.EGL14.eglMakeCurrent(dpy, android.opengl.EGL14.EGL_NO_SURFACE, android.opengl.EGL14.EGL_NO_SURFACE, android.opengl.EGL14.EGL_NO_CONTEXT);
+                    if (surf != null) android.opengl.EGL14.eglDestroySurface(dpy, surf);
+                    if (ctx != null) android.opengl.EGL14.eglDestroyContext(dpy, ctx);
+                    android.opengl.EGL14.eglReleaseThread(); android.opengl.EGL14.eglTerminate(dpy);
+                }
+            } catch (Throwable t) { }
+            dpy = null;
+        }
+        /** arrêt : attend que le fil ait tout libéré (la surface redevient utilisable pour le dessin des images) */
+        void arreter() {
+            final java.util.concurrent.CountDownLatch l = new java.util.concurrent.CountDownLatch(1);
+            gh.removeCallbacksAndMessages(null);
+            gh.post(new Runnable() { public void run() { liberer(); l.countDown(); } });
+            try { l.await(1500, java.util.concurrent.TimeUnit.MILLISECONDS); } catch (Throwable t) { }
+            th.quitSafely();
+        }
+    }
+
     public static class Live extends android.service.wallpaper.WallpaperService {
         static final Set<Live.Eng> engines = Collections.synchronizedSet(new HashSet<Live.Eng>());
         static volatile boolean gotCommand = false;   // le lanceur envoie « tap » : on ignore alors le toucher brut
@@ -927,19 +1092,39 @@ public class WallpaperJob extends JobService {
             private long lastTap; private float lx, ly, dx0, dy0; private int w, hh;
             private final Paint p = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.ANTI_ALIAS_FLAG);
 
+            private VideoGl vgl; private boolean surface; private String vcle = "";
             @Override public void onCreate(android.view.SurfaceHolder s) { super.onCreate(s); setTouchEventsEnabled(true); engines.add(this); load(); }
-            @Override public void onDestroy() { engines.remove(this); h.removeCallbacksAndMessages(null); super.onDestroy(); }
-            @Override public void onVisibilityChanged(boolean v) { visible = v; if (v) draw(); }
-            @Override public void onSurfaceChanged(android.view.SurfaceHolder s, int f, int width, int height) { w = width; hh = height; draw(); }
-            @Override public void onSurfaceRedrawNeeded(android.view.SurfaceHolder s) { draw(); }
+            @Override public void onDestroy() { engines.remove(this); h.removeCallbacksAndMessages(null); videoStop(); super.onDestroy(); }
+            @Override public void onVisibilityChanged(boolean v) { visible = v; if (vgl != null) vgl.visible(v); else if (v) draw(); }
+            @Override public void onSurfaceCreated(android.view.SurfaceHolder s) { super.onSurfaceCreated(s); surface = true; }
+            @Override public void onSurfaceDestroyed(android.view.SurfaceHolder s) { surface = false; videoStop(); super.onSurfaceDestroyed(s); }
+            @Override public void onSurfaceChanged(android.view.SurfaceHolder s, int f, int width, int height) { w = width; hh = height; surface = true; if (vgl != null) vgl.taille(w, hh); else if (!videoCheck()) draw(); }
+            @Override public void onSurfaceRedrawNeeded(android.view.SurfaceHolder s) { if (vgl == null) draw(); }
 
-            void reload() { h.post(new Runnable() { public void run() { old = bm; load(); fadeAt = android.os.SystemClock.uptimeMillis(); frame(); } }); }
+            /** séquence animée : démarre ou arrête la vidéo selon les réglages ; vrai si la vidéo tourne */
+            private boolean videoCheck() {
+                Context c = getApplicationContext();
+                if (videoActive(c)) {
+                    if (vgl == null && surface && w > 0) { try { vcle = videoCfg(c).toString(); vgl = new VideoGl(getSurfaceHolder(), videoFile(c), videoCfg(c), w, hh, visible); } catch (Throwable t) { vgl = null; } }
+                    return vgl != null;
+                }
+                if (vgl != null) { videoStop(); draw(); }
+                return false;
+            }
+            private void videoStop() { if (vgl != null) { VideoGl v = vgl; vgl = null; v.arreter(); } }
+
+            void reload() { h.post(new Runnable() { public void run() {
+                if (vgl != null && videoActive(getApplicationContext()) && videoCfg(getApplicationContext()).toString().equals(vcle)) return;   // rien n'a changé pour la vidéo
+                if (vgl != null) videoStop();   // réglages changés : la vidéo repart avec les nouveaux
+                if (videoCheck()) return;
+                old = bm; load(); fadeAt = android.os.SystemClock.uptimeMillis(); frame();
+            } }); }
 
             private void load() {
                 try {
                     File f = liveFile(getApplicationContext());
                     bm = f.exists() ? BitmapFactory.decodeFile(f.getAbsolutePath()) : null;
-                    if (bm == null && !changing) next();   // première fois : on prend une image
+                    if (bm == null && !changing && !videoActive(getApplicationContext())) next();   // première fois : on prend une image
                 } catch (Throwable t) { bm = null; }
             }
 
@@ -961,6 +1146,7 @@ public class WallpaperJob extends JobService {
             }
 
             private void draw() {
+                if (vgl != null) return;
                 android.view.SurfaceHolder s = getSurfaceHolder();
                 Canvas c = null;
                 try {

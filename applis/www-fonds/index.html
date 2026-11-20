@@ -82,6 +82,10 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
 .folder .t div:first-child{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .folder .t div+div{font-size:12.5px;color:var(--tx3)}
 .folder .btn{flex:none}
+.vpv{position:relative;margin:4px auto 10px;max-width:220px;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#000}
+.vpv img{display:block;width:100%}
+.vpv i{position:absolute;background:rgba(0,0,0,.62);pointer-events:none}
+.vpv .gard{position:absolute;border:2px solid #8fb4ff;pointer-events:none;box-shadow:0 0 0 1px #0008}
 .foot{font-size:12.5px;color:var(--tx3);text-align:center;margin:14px 8px 0;line-height:1.5}
 #toast{position:fixed;left:16px;right:16px;bottom:calc(18px + var(--safe-b));background:#2b3042;border:1px solid #ffffff1f;color:var(--tx);padding:12px 14px;border-radius:14px;font-size:14px;box-shadow:0 10px 30px #0008;transform:translateY(calc(100% + 40px + var(--safe-b)));transition:transform .25s;z-index:300}
 #toast.on{transform:none}
@@ -144,6 +148,13 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
       <button class="btn" id="bCrop" disabled><svg class="ic" viewBox="0 0 24 24"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg><span class="spin"></span>Recadrer</button>
       <button class="btn" id="bApply" disabled><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span class="spin"></span>Mettre cette image</button>
     </div>
+  </section>
+
+  <section class="card" id="vidCard">
+    <h3>Séquence animée</h3>
+    <div class="hint" style="font-size:12.5px;color:var(--tx3);margin:-2px 0 8px">Une vidéo en boucle comme fond, sans son : un enregistrement de l'écran, une vidéo de ta galerie… Elle se met en pause quand l'écran est éteint ou qu'une appli passe par-dessus.</div>
+    <div id="vidBox"></div>
+    <div class="row"><button class="btn" id="bVid"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="5" width="14" height="14" rx="3"/><path d="M17 10l4-2.5v9L17 14"/></svg><span class="spin"></span>Choisir une vidéo</button></div>
   </section>
 
   <div class="row" style="margin:0 0 12px">
@@ -338,11 +349,63 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
     if(kind==='folder'){ toast('Dossier choisi : '+data); state(); A.wpScan(); return; }
     if(kind==='scan'){ state(); if(ok && +data>0) preview(''); else if(!ok) toast(data,true); return; }
     if(kind==='image'){ preview(data); return; }
+    if(kind==='video'){ setBusy('bVid', false); if(!ok){ toast(data, true); return; } V = JSON.parse(data); toast('Vidéo prête : '+V.nom); vidUi(); vidFrame(); liveUi(); return; }
+    if(kind==='frame'){ if(ok){ VF = data; vidDraw(); } return; }
     if(kind==='change'||kind==='previous'||kind==='apply'){
       setBusy(kind==='change'?'bNext':kind==='previous'?'bPrev':'bApply', false);
       toast(ok ? data+' ✓' : data, !ok); state();
     }
   };
+
+  /* ---------- Séquence animée : vidéo, début / fin de la boucle, bords rognés ---------- */
+  var V = {}, VF = '', vT = 0, fT = 0;
+  try { V = A && A.wpVideo ? JSON.parse(A.wpVideo()) : {}; } catch(e){ V = {}; }
+  function sec(ms){ return (Math.round(ms/100)/10).toString().replace('.', ',')+' s'; }
+  function vidSave(){ clearTimeout(vT); vT = setTimeout(function(){ if(A&&A.wpVideoSave) A.wpVideoSave(JSON.stringify({ on:!!V.on, debut:V.debut|0, fin:V.fin|0, haut:+V.haut||0, bas:+V.bas||0, gauche:+V.gauche||0, droite:+V.droite||0 })); }, 350); }
+  function vidFrame(){ clearTimeout(fT); fT = setTimeout(function(){ if(A&&A.wpVideoFrame&&V.existe) A.wpVideoFrame(String(V.debut|0)); }, 250); }
+  function vidDraw(){
+    var b = $('vpv'); if(!b) return;
+    var t=+V.haut||0, d=+V.bas||0, g=+V.gauche||0, r=+V.droite||0;
+    // zone gardée après rognage, puis recadrée au format de l'écran (comme sur le téléphone)
+    var W=V.w||9, H=V.h||16, rs=(screen.width||9)/(screen.height||16), x0=g/100, x1=1-r/100, y0=t/100, y1=1-d/100, ra=(x1-x0)*W/((y1-y0)*H);
+    if(ra>rs){ var nw=(y1-y0)*H*rs/W, cx=(x0+x1)/2; x0=cx-nw/2; x1=cx+nw/2; } else { var nh=(x1-x0)*W/rs/H, cy=(y0+y1)/2; y0=cy-nh/2; y1=cy+nh/2; }
+    b.innerHTML = (VF?'<img alt="" src="'+VF+'">':'<div style="aspect-ratio:'+W+'/'+H+'"></div>')+
+      '<i style="left:0;top:0;right:0;height:'+(y0*100)+'%"></i><i style="left:0;bottom:0;right:0;height:'+((1-y1)*100)+'%"></i>'+
+      '<i style="left:0;top:'+(y0*100)+'%;width:'+(x0*100)+'%;height:'+((y1-y0)*100)+'%"></i><i style="right:0;top:'+(y0*100)+'%;width:'+((1-x1)*100)+'%;height:'+((y1-y0)*100)+'%"></i>'+
+      '<div class="gard" style="left:'+(x0*100)+'%;top:'+(y0*100)+'%;width:'+((x1-x0)*100)+'%;height:'+((y1-y0)*100)+'%"></div>';
+  }
+  function vidUi(){
+    var box = $('vidBox'); if(!box) return;
+    if(!A || !A.wpPickVideo){ $('vidCard').hidden = true; return; }
+    if(!V.existe){ box.innerHTML = ''; $('bVid').lastChild.textContent = 'Choisir une vidéo'; return; }
+    var D = V.duree||1000, sl = function(k, lab, max, step, val, txt){ return '<div class="block"><div class="lab">'+lab+' <span id="vv-'+k+'">'+txt+'</span></div><input type="range" data-v="'+k+'" min="0" max="'+max+'" step="'+step+'" value="'+val+'"></div>'; };
+    box.innerHTML = '<div class="set" style="border:0;padding-top:0"><div class="t"><div>'+String(V.nom||'Vidéo').replace(/[<>&]/g,'')+'</div><div>'+sec(D)+' · '+V.w+'×'+V.h+'</div></div><label class="sw"><input type="checkbox" id="vOn"'+(V.on?' checked':'')+'><span></span></label></div>'+
+      '<div class="vpv" id="vpv"></div>'+
+      sl('debut','Début de la boucle', D, 100, V.debut|0, sec(V.debut|0)) + sl('fin','Fin de la boucle', D, 100, V.fin||D, sec(V.fin||D)) +
+      sl('haut','Rogner en haut', 30, 1, +V.haut||0, (+V.haut||0)+' %') + sl('bas','Rogner en bas', 30, 1, +V.bas||0, (+V.bas||0)+' %') +
+      sl('gauche','Rogner à gauche', 30, 1, +V.gauche||0, (+V.gauche||0)+' %') + sl('droite','Rogner à droite', 30, 1, +V.droite||0, (+V.droite||0)+' %') +
+      '<div class="hint" style="font-size:12.5px;color:var(--tx3);margin-top:6px">Enregistrement d\'écran : rogne en haut et en bas pour enlever les barres du téléphone. Le cadre bleu montre ce qui s\'affiche sur l\'écran.</div>'+
+      '<div class="hint" id="vLiveHint" style="font-size:12.5px;margin-top:6px"></div>';
+    $('bVid').lastChild.textContent = 'Changer de vidéo';
+    vidDraw(); vidLive();
+    $('vOn').onchange = function(){ V.on = this.checked; vidSave(); vidLive(); };
+    box.oninput = function(e){
+      var k = e.target.dataset.v; if(!k) return; var v = +e.target.value;
+      if(k==='debut' && v >= (V.fin||D) - 500) v = Math.max(0, (V.fin||D) - 500);
+      if(k==='fin' && v <= (V.debut|0) + 500) v = Math.min(D, (V.debut|0) + 500);
+      V[k] = v; e.target.value = v; $('vv-'+k).textContent = (k==='debut'||k==='fin') ? sec(v) : v+' %';
+      if(k==='debut') vidFrame(); vidDraw(); vidSave();
+    };
+  }
+  function vidLive(){
+    var h = $('vLiveHint'), L = window.MAGToile, on = false; if(!h) return;
+    try{ on = L && L.liveOn(); }catch(e){}
+    h.innerHTML = !V.on ? 'Désactivée : tes images reprennent leur place.' : on ? '<span style="color:var(--ok,#6fd6a4)">La séquence est ton fond d\'écran.</span>' : 'Pour la voir, active le fond animé de Toile : <a href="#" id="vLive">Activer</a>';
+    var a = $('vLive'); if(a) a.onclick = function(ev){ ev.preventDefault(); toast("Android va afficher l'aperçu : appuie sur « Appliquer » (ou « Définir le fond d'écran »)"); if(L && L.liveOpen) L.liveOpen(); };
+  }
+  $('bVid').onclick = function(){ if(A&&A.wpPickVideo){ setBusy('bVid', true); A.wpPickVideo(); setTimeout(function(){ setBusy('bVid', false); }, 4000); } };
+  vidUi(); if(V.existe) vidFrame();
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) vidLive(); });
 
   $('bFolder').onclick = function(){ if(A&&A.wpPickFolder) A.wpPickFolder(); };
   $('bPick').onclick = function(){ if(A&&A.wpPickImage) A.wpPickImage(); };
