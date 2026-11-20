@@ -1058,7 +1058,7 @@ public class WallpaperJob extends JobService {
         final android.os.Handler gh;
         android.opengl.EGLDisplay dpy; android.opengl.EGLContext ctx; android.opengl.EGLSurface surf;
         android.graphics.SurfaceTexture st; android.view.Surface sf; android.media.MediaPlayer mp;
-        int prog, tex, aPos, aTex, uM; final float[] mtx = new float[16];
+        int prog, tex, aPos, aTex, uM, uZ, uN, uPx; final float[] mtx = new float[16];
         volatile int sw, sh; volatile boolean vis, mort; JSONObject cfg; long debut, fin;
 
         VideoGl(final android.view.SurfaceHolder holder, final File f, final JSONObject cfg, int w, int h, boolean visible) {
@@ -1067,6 +1067,15 @@ public class WallpaperJob extends JobService {
             gh.post(new Runnable() { public void run() { try { init(holder, f); } catch (Throwable t) { liberer(); } } });
         }
         static int shader(int type, String src) { int s = android.opengl.GLES20.glCreateShader(type); android.opengl.GLES20.glShaderSource(s, src); android.opengl.GLES20.glCompileShader(s); return s; }
+        static int programme(String vs, String fs) {
+            int p = android.opengl.GLES20.glCreateProgram();
+            android.opengl.GLES20.glAttachShader(p, shader(android.opengl.GLES20.GL_VERTEX_SHADER, vs));
+            android.opengl.GLES20.glAttachShader(p, shader(android.opengl.GLES20.GL_FRAGMENT_SHADER, fs));
+            android.opengl.GLES20.glLinkProgram(p);
+            int[] ok = new int[1]; android.opengl.GLES20.glGetProgramiv(p, android.opengl.GLES20.GL_LINK_STATUS, ok, 0);
+            if (ok[0] == 0) { android.opengl.GLES20.glDeleteProgram(p); return 0; }
+            return p;
+        }
         void init(android.view.SurfaceHolder holder, File f) throws Exception {
             dpy = android.opengl.EGL14.eglGetDisplay(android.opengl.EGL14.EGL_DEFAULT_DISPLAY);
             int[] v = new int[2]; android.opengl.EGL14.eglInitialize(dpy, v, 0, v, 1);
@@ -1078,13 +1087,26 @@ public class WallpaperJob extends JobService {
             ctx = android.opengl.EGL14.eglCreateContext(dpy, cf[0], android.opengl.EGL14.EGL_NO_CONTEXT, new int[]{ android.opengl.EGL14.EGL_CONTEXT_CLIENT_VERSION, 2, android.opengl.EGL14.EGL_NONE }, 0);
             surf = android.opengl.EGL14.eglCreateWindowSurface(dpy, cf[0], holder.getSurface(), new int[]{ android.opengl.EGL14.EGL_NONE }, 0);
             android.opengl.EGL14.eglMakeCurrent(dpy, surf, surf, ctx);
-            String vs = "attribute vec4 aPos; attribute vec4 aTex; uniform mat4 uM; varying vec2 vT; void main(){ gl_Position = aPos; vT = (uM * aTex).xy; }";
-            String fs = "#extension GL_OES_EGL_image_external : require\nprecision mediump float; uniform samplerExternalOES sT; varying vec2 vT; void main(){ gl_FragColor = texture2D(sT, vT); }";
-            prog = android.opengl.GLES20.glCreateProgram();
-            android.opengl.GLES20.glAttachShader(prog, shader(android.opengl.GLES20.GL_VERTEX_SHADER, vs));
-            android.opengl.GLES20.glAttachShader(prog, shader(android.opengl.GLES20.GL_FRAGMENT_SHADER, fs));
-            android.opengl.GLES20.glLinkProgram(prog);
+            // vU : coordonnées dans l'image vidéo (0..1, y vers le haut). Zones à masquer (uZ : x0, y0, x1, y1) : chaque point est
+            // rempli par un mélange des bords de la zone (gauche, droite, bas, haut), pondéré par la distance, légèrement flouté.
+            String vs = "attribute vec4 aPos; attribute vec4 aTex; varying vec2 vU; void main(){ gl_Position = aPos; vU = aTex.xy; }";
+            String fs = "#extension GL_OES_EGL_image_external : require\n#ifdef GL_FRAGMENT_PRECISION_HIGH\nprecision highp float;\n#else\nprecision mediump float;\n#endif\nuniform samplerExternalOES sT; uniform mat4 uM; uniform vec4 uZ[6]; uniform int uN; uniform vec2 uPx; varying vec2 vU;\n"
+                + "vec4 smp(vec2 p){ return texture2D(sT, (uM * vec4(clamp(p, 0.0, 1.0), 0.0, 1.0)).xy); }\n"
+                + "vec4 bord(vec2 p, vec2 d){ return (smp(p - d) + smp(p - d * 0.5) + smp(p) + smp(p + d * 0.5) + smp(p + d)) / 5.0; }\n"
+                + "void main(){ vec2 p = vU; vec4 c = smp(p);\n"
+                + " for (int i = 0; i < 6; i++) { if (i >= uN) break; vec4 z = uZ[i];\n"
+                + "  if (p.x > z.x && p.x < z.z && p.y > z.y && p.y < z.w) {\n"
+                + "   vec2 m = uPx * 3.0; float sx = (z.z - z.x) * 0.06, sy = (z.w - z.y) * 0.06; vec4 a = vec4(0.0); float ws = 0.0, w;\n"
+                + "   if (z.x > m.x) { w = 1.0 / ((p.x - z.x) / uPx.x + 1.0); a += w * bord(vec2(z.x - m.x, p.y), vec2(0.0, sy)); ws += w; }\n"
+                + "   if (z.z < 1.0 - m.x) { w = 1.0 / ((z.z - p.x) / uPx.x + 1.0); a += w * bord(vec2(z.z + m.x, p.y), vec2(0.0, sy)); ws += w; }\n"
+                + "   if (z.y > m.y) { w = 1.0 / ((p.y - z.y) / uPx.y + 1.0); a += w * bord(vec2(p.x, z.y - m.y), vec2(sx, 0.0)); ws += w; }\n"
+                + "   if (z.w < 1.0 - m.y) { w = 1.0 / ((z.w - p.y) / uPx.y + 1.0); a += w * bord(vec2(p.x, z.w + m.y), vec2(sx, 0.0)); ws += w; }\n"
+                + "   if (ws > 0.0) c = a / ws; } }\n"
+                + " gl_FragColor = c; }";
+            prog = programme(vs, fs);
+            if (prog == 0) prog = programme(vs, "#extension GL_OES_EGL_image_external : require\nprecision mediump float; uniform samplerExternalOES sT; uniform mat4 uM; varying vec2 vU; void main(){ gl_FragColor = texture2D(sT, (uM * vec4(vU, 0.0, 1.0)).xy); }");
             aPos = android.opengl.GLES20.glGetAttribLocation(prog, "aPos"); aTex = android.opengl.GLES20.glGetAttribLocation(prog, "aTex"); uM = android.opengl.GLES20.glGetUniformLocation(prog, "uM");
+            uZ = android.opengl.GLES20.glGetUniformLocation(prog, "uZ"); uN = android.opengl.GLES20.glGetUniformLocation(prog, "uN"); uPx = android.opengl.GLES20.glGetUniformLocation(prog, "uPx");
             int[] t = new int[1]; android.opengl.GLES20.glGenTextures(1, t, 0); tex = t[0];
             android.opengl.GLES20.glBindTexture(android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES, tex);
             android.opengl.GLES20.glTexParameteri(android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES, android.opengl.GLES20.GL_TEXTURE_MIN_FILTER, android.opengl.GLES20.GL_LINEAR);
@@ -1129,6 +1151,16 @@ public class WallpaperJob extends JobService {
             android.opengl.GLES20.glActiveTexture(android.opengl.GLES20.GL_TEXTURE0);
             android.opengl.GLES20.glBindTexture(android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES, tex);
             android.opengl.GLES20.glUniformMatrix4fv(uM, 1, false, mtx, 0);
+            // zones à masquer, données en fractions de l'image (x, y vers le bas, w, h)
+            JSONArray zs = cfg.optJSONArray("zones"); float[] zz = new float[24]; int nz = 0;
+            for (int i = 0; zs != null && i < zs.length() && nz < 6; i++) {
+                JSONObject z = zs.optJSONObject(i); if (z == null) continue;
+                float zx = (float) z.optDouble("x"), zy = (float) z.optDouble("y"), zw = (float) z.optDouble("w"), zh = (float) z.optDouble("h");
+                if (!(zw > .005f && zh > .005f)) continue;
+                zz[nz * 4] = zx; zz[nz * 4 + 1] = 1f - (zy + zh); zz[nz * 4 + 2] = zx + zw; zz[nz * 4 + 3] = 1f - zy; nz++;
+            }
+            android.opengl.GLES20.glUniform4fv(uZ, 6, zz, 0); android.opengl.GLES20.glUniform1i(uN, nz);
+            android.opengl.GLES20.glUniform2f(uPx, 1f / W, 1f / H);
             android.opengl.GLES20.glEnableVertexAttribArray(aPos); android.opengl.GLES20.glVertexAttribPointer(aPos, 2, android.opengl.GLES20.GL_FLOAT, false, 0, pb);
             android.opengl.GLES20.glEnableVertexAttribArray(aTex); android.opengl.GLES20.glVertexAttribPointer(aTex, 4, android.opengl.GLES20.GL_FLOAT, false, 0, tb);
             android.opengl.GLES20.glDrawArrays(android.opengl.GLES20.GL_TRIANGLE_STRIP, 0, 4);

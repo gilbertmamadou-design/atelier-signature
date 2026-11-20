@@ -85,6 +85,13 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
 .vpv{position:relative;margin:4px auto 10px;max-width:220px;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#000}
 .vpv img{display:block;width:100%}
 .vpv i{position:absolute;background:rgba(0,0,0,.62);pointer-events:none}
+.vzs{position:absolute;inset:0;z-index:3}
+.vz{position:absolute;border:2px dashed #ffb35c;background:#ffb35c33;touch-action:none;cursor:move}
+.vz .rs{position:absolute;right:-2px;bottom:-2px;width:18px;height:18px;border-radius:9px 0 9px 0;background:#ffb35c;cursor:nwse-resize}
+.vz .zx{position:absolute;right:-2px;top:-2px;width:18px;height:18px;border-radius:0 0 0 8px;background:#000c;color:#fff;font-size:13px;line-height:18px;text-align:center;padding:0;border:0}
+.vzbar{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.vzbar .btn{padding:6px 12px;min-height:34px;font-size:13px}
+body.vzhide .vzs{display:none}
 .vstick{position:sticky;top:0;z-index:5;background:var(--bg2);margin:0 -16px 6px;padding:8px 16px 8px;border-bottom:1px solid var(--line);box-shadow:0 8px 14px -10px #000c}
 .vrow{display:flex;gap:12px;justify-content:center;align-items:flex-start}
 .vrow .vpv{margin:0;flex:none}
@@ -410,7 +417,7 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
   var V = {}, VF = '', vT = 0, fT = 0;
   try { V = A && A.wpVideo ? JSON.parse(A.wpVideo()) : {}; } catch(e){ V = {}; }
   function sec(ms){ return (Math.round(ms/100)/10).toString().replace('.', ',')+' s'; }
-  function vidSave(){ clearTimeout(vT); vT = setTimeout(function(){ if(A&&A.wpVideoSave) A.wpVideoSave(JSON.stringify({ on:!!V.on, debut:V.debut|0, fin:V.fin|0, haut:+V.haut||0, bas:+V.bas||0, gauche:+V.gauche||0, droite:+V.droite||0, prop:vProp() })); }, 350); }
+  function vidSave(){ clearTimeout(vT); vT = setTimeout(function(){ if(A&&A.wpVideoSave) A.wpVideoSave(JSON.stringify({ on:!!V.on, debut:V.debut|0, fin:V.fin|0, haut:+V.haut||0, bas:+V.bas||0, gauche:+V.gauche||0, droite:+V.droite||0, prop:vProp(), zones:(V.zones||[]).slice(0,6) })); }, 350); }
   function vidFrame(){ clearTimeout(fT); fT = setTimeout(function(){ if(A&&A.wpVideoFrame&&V.existe) A.wpVideoFrame(String(V.debut|0)); }, 250); }
   // garder les proportions : le cadre gardé est recadré au format de l'écran ; sinon chaque bord rogné ne touche que son côté
   // et ce qui reste est étiré sur l'écran. Par défaut : proportions gardées si la vidéo n'a pas à peu près le format de l'écran.
@@ -444,12 +451,63 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
       '<div class="gard" style="left:'+(x0*100)+'%;top:'+(y0*100)+'%;width:'+((x1-x0)*100)+'%;height:'+((y1-y0)*100)+'%"></div>';
     vresPaint(); vTl();
   }
+  /* ---------- Zones à masquer : boutons, likes, bulles d'un enregistrement d'écran. Même calcul que le fond d'écran :
+     chaque point de la zone est rempli par un mélange des bords (gauche, droite, haut, bas) pondéré par la distance. ---------- */
+  var VZO = document.createElement('canvas');
+  function vzFill(src, sw, sh){
+    var ow = 200, oh = Math.min(460, Math.round(200*sh/sw)); VZO.width = ow; VZO.height = oh;
+    var x = VZO.getContext('2d', { willReadFrequently: true }); x.drawImage(src, 0, 0, ow, oh);
+    var im = x.getImageData(0, 0, ow, oh), a = im.data, o = new Uint8ClampedArray(a);
+    function px(i, j, k){ i = i < 0 ? 0 : i >= ow ? ow-1 : i; j = j < 0 ? 0 : j >= oh ? oh-1 : j; return a[(j*ow+i)*4+k]; }
+    (V.zones||[]).forEach(function(z){
+      var x0 = Math.max(0, Math.floor(z.x*ow)), x1 = Math.min(ow, Math.ceil((z.x+z.w)*ow)), y0 = Math.max(0, Math.floor(z.y*oh)), y1 = Math.min(oh, Math.ceil((z.y+z.h)*oh));
+      var L = x0 >= 3, R = x1 <= ow-3, T = y0 >= 3, B = y1 <= oh-3, sx = Math.max(1, Math.round((x1-x0)*.06)), sy = Math.max(1, Math.round((y1-y0)*.06));
+      for(var j = y0; j < y1; j++) for(var i = x0; i < x1; i++){
+        var r = 0, g = 0, b = 0, ws = 0, w, t, k, q = [];
+        if(L) q.push([1/(i-x0+1), x0-3, j, 0, sy]); if(R) q.push([1/(x1-i), x1+2, j, 0, sy]);
+        if(T) q.push([1/(j-y0+1), i, y0-3, sx, 0]); if(B) q.push([1/(y1-j), i, y1+2, sx, 0]);
+        if(!q.length) continue;
+        for(k = 0; k < q.length; k++){ w = q[k][0]; for(t = -2; t <= 2; t++){ var ii = q[k][1]+Math.round(q[k][3]*t/2), jj = q[k][2]+Math.round(q[k][4]*t/2); r += w*px(ii,jj,0); g += w*px(ii,jj,1); b += w*px(ii,jj,2); } ws += 5*w; }
+        var n = (j*ow+i)*4; o[n] = r/ws; o[n+1] = g/ws; o[n+2] = b/ws; o[n+3] = 255;
+      }
+    });
+    im.data.set(o); x.putImageData(im, 0, 0); return VZO;
+  }
+  function vzDraw(){
+    var e = $('vzs'); if(!e) return;
+    e.innerHTML = (V.zones||[]).map(function(z, i){ return '<div class="vz" data-z="'+i+'" style="left:'+(z.x*100)+'%;top:'+(z.y*100)+'%;width:'+(z.w*100)+'%;height:'+(z.h*100)+'%"><button class="zx" data-zx="'+i+'" aria-label="Supprimer la zone">×</button><b class="rs"></b></div>'; }).join('');
+    var c = $('vzClr'); if(c) c.hidden = !(V.zones||[]).length;
+  }
+  function vzSet(l){ V.zones = l; vzDraw(); vresPaint(); vidSave(); }
+  function vzBind(){
+    var e = $('vzs'); if(!e) return; var drag = null;
+    $('vzAdd').onclick = function(){ var l = (V.zones||[]).slice(); if(l.length >= 6){ toast('6 zones au plus', true); return; } l.push({ x:.35, y:.4, w:.3, h:.15 }); vzSet(l); toast('Fais glisser la zone sur l\'élément à cacher, le coin orange la redimensionne'); };
+    $('vzIg').onclick = function(){ var l = (V.zones||[]).slice(); l.push({ x:.83, y:.5, w:.17, h:.4 }, { x:0, y:.76, w:.83, h:.15 }); vzSet(l.slice(-6)); toast('Ajuste les deux zones sur les likes et le texte'); };
+    $('vzClr').onclick = function(){ vzSet([]); };
+    e.addEventListener('click', function(ev){ var x = ev.target.closest('[data-zx]'); if(!x) return; ev.stopPropagation(); var l = (V.zones||[]).slice(); l.splice(+x.dataset.zx, 1); vzSet(l); });
+    e.addEventListener('pointerdown', function(ev){
+      var el = ev.target.closest('.vz'); if(!el || ev.target.closest('[data-zx]')) return;
+      ev.preventDefault(); var i = +el.dataset.z, r = $('vpv').getBoundingClientRect(), z = V.zones[i];
+      drag = { i: i, el: el, rs: !!ev.target.closest('.rs'), x: ev.clientX, y: ev.clientY, w: r.width, h: r.height, z: { x: z.x, y: z.y, w: z.w, h: z.h } };
+      try{ el.setPointerCapture(ev.pointerId); }catch(e2){}
+    });
+    e.addEventListener('pointermove', function(ev){
+      if(!drag) return; var dx = (ev.clientX-drag.x)/drag.w, dy = (ev.clientY-drag.y)/drag.h, z0 = drag.z, z = V.zones[drag.i];
+      if(drag.rs){ z.w = Math.max(.03, Math.min(1-z0.x, z0.w+dx)); z.h = Math.max(.02, Math.min(1-z0.y, z0.h+dy)); }
+      else { z.x = Math.max(0, Math.min(1-z0.w, z0.x+dx)); z.y = Math.max(0, Math.min(1-z0.h, z0.y+dy)); }
+      var st = drag.el.style; st.left = (z.x*100)+'%'; st.top = (z.y*100)+'%'; st.width = (z.w*100)+'%'; st.height = (z.h*100)+'%';
+      vresPaint();
+    });
+    var fin = function(){ if(!drag) return; drag = null; vidSave(); };
+    e.addEventListener('pointerup', fin); e.addEventListener('pointercancel', fin);
+  }
   // « Sur l'écran » : la zone gardée étirée sur un écran de téléphone, image fixe ou vidéo en lecture
   function vresPaint(){
     var c = $('vresC'); if(!c) return; var x = c.getContext('2d');
     var s = VID && VID.readyState >= 2 ? VID : (VIMG.complete && VIMG.naturalWidth ? VIMG : null);
     x.fillStyle = '#000'; x.fillRect(0, 0, c.width, c.height); if(!s) return;
     var sw = s.videoWidth || s.naturalWidth, sh = s.videoHeight || s.naturalHeight;
+    if((V.zones||[]).length){ try { s = vzFill(s, sw, sh); sw = s.width; sh = s.height; } catch(e){} }
     try { x.drawImage(s, VZ[0]*sw, VZ[2]*sh, (VZ[1]-VZ[0])*sw, (VZ[3]-VZ[2])*sh, 0, 0, c.width, c.height); } catch(e){}
   }
   function vTl(){
@@ -497,15 +555,16 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
     var D = V.duree||1000, sl = function(k, lab, max, step, val, txt){ return '<div class="block"><div class="lab">'+lab+' <span id="vv-'+k+'">'+txt+'</span></div><input type="range" data-v="'+k+'" min="0" max="'+max+'" step="'+step+'" value="'+val+'"></div>'; };
     box.innerHTML = '<div class="set" style="border:0;padding-top:0"><div class="t"><div>'+String(V.nom||'Vidéo').replace(/[<>&]/g,'')+'</div><div>'+sec(D)+' · '+V.w+'×'+V.h+'</div></div><label class="sw"><input type="checkbox" id="vOn"'+(V.on?' checked':'')+'><span></span></label></div>'+
       (V.credit ? '<div class="vcred">'+escA(V.credit.source)+' · '+escA(V.credit.auteur)+' · '+escA(V.credit.licence)+(V.credit.page ? ' · <a href="#" data-vpage>voir la page</a>' : '')+'</div>' : '')+
-      '<div class="vstick"><div class="vrow"><div><div class="vpv" id="vpv"><img id="vimg" alt="" style="width:100%;height:100%;display:block"><div class="vmask" id="vmask"></div></div><div class="vcap">Vidéo</div></div><div><div class="vres" id="vres"><canvas id="vresC"></canvas></div><div class="vcap">Sur l\'écran</div></div></div>'+
-      '<div class="vplay"><button class="btn" id="vpb"></button><div class="tl" id="vtl"><b></b><i></i></div><span class="tm" id="vtm"></span></div></div>'+
+      '<div class="vstick"><div class="vrow"><div><div class="vpv" id="vpv"><img id="vimg" alt="" style="width:100%;height:100%;display:block"><div class="vmask" id="vmask"></div><div class="vzs" id="vzs"></div></div><div class="vcap">Vidéo</div></div><div><div class="vres" id="vres"><canvas id="vresC"></canvas></div><div class="vcap">Sur l\'écran</div></div></div>'+
+      '<div class="vplay"><button class="btn" id="vpb"></button><div class="tl" id="vtl"><b></b><i></i></div><span class="tm" id="vtm"></span></div>'+
+      '<div class="vzbar"><button class="btn" id="vzAdd">+ Zone à masquer</button><button class="btn" id="vzIg">Instagram</button><button class="btn" id="vzClr"'+((V.zones||[]).length?'':' hidden')+'>Effacer</button></div></div>'+
       '<div class="set"><div class="t"><div>Garder les proportions</div><div id="vPropTx"></div></div><label class="sw"><input type="checkbox" id="vProp"'+(vProp()?' checked':'')+'><span></span></label></div>'+
       sl('debut','Début de la boucle', D, 100, V.debut|0, sec(V.debut|0)) + sl('fin','Fin de la boucle', D, 100, V.fin||D, sec(V.fin||D)) +
       sl('haut','Rogner en haut', 45, 1, +V.haut||0, (+V.haut||0)+' %') + sl('bas','Rogner en bas', 45, 1, +V.bas||0, (+V.bas||0)+' %') +
       sl('gauche','Rogner à gauche', 45, 1, +V.gauche||0, (+V.gauche||0)+' %') + sl('droite','Rogner à droite', 45, 1, +V.droite||0, (+V.droite||0)+' %') +
       '<div class="hint" style="font-size:12.5px;color:var(--tx3);margin-top:6px">Enregistrement d\'écran : rogne en haut et en bas pour enlever les barres du téléphone. Le cadre bleu montre la partie gardée, l\'aperçu de droite ce qui s\'affiche sur l\'écran.</div>'+
       '<div class="hint" id="vLiveHint" style="font-size:12.5px;margin-top:6px"></div>';
-    vidDraw(); vidLive(); vSize(); vBtn(); $('vpb').onclick = vPlay;
+    vidDraw(); vidLive(); vSize(); vBtn(); $('vpb').onclick = vPlay; vzDraw(); vzBind();
     if(!vSrc()) $('vpb').hidden = true;
     var vp = box.querySelector('[data-vpage]'); if(vp) vp.onclick = function(e){ e.preventDefault(); var T0 = window.MAGToile; if(T0 && T0.openUrl) T0.openUrl(V.credit.page); };
     var pt = function(){ $('vPropTx').textContent = vProp() ? 'L\'image n\'est jamais déformée : les bords sont ajustés au format de l\'écran' : 'Chaque réglage ne coupe que son côté ; le reste remplit l\'écran'; };
