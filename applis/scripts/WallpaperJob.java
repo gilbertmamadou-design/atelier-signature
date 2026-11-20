@@ -939,6 +939,13 @@ public class WallpaperJob extends JobService {
         try (InputStream in = c.getContentResolver().openInputStream(u); FileOutputStream o = new FileOutputStream(tmp)) {
             byte[] b = new byte[1 << 16]; int r; while ((r = in.read(b)) > 0) { o.write(b, 0, r); n += r; if (n > 400L * 1024 * 1024) throw new Exception("Vidéo trop lourde (400 Mo au plus)"); }
         }
+        String nom = "vidéo"; try (Cursor cu = c.getContentResolver().query(u, new String[]{ OpenableColumns.DISPLAY_NAME }, null, null, null)) { if (cu != null && cu.moveToFirst()) nom = cu.getString(0); } catch (Exception e) { }
+        return videoInstall(c, tmp, nom, null);
+    }
+    /** vidéo déjà copiée dans toile-video.tmp (galerie ou téléchargement) : vérifiée, mise en place, réglages remis à zéro ;
+     *  credit = auteur / licence / page pour une vidéo en ligne */
+    static String videoInstall(Context c, File tmp, String nom, JSONObject credit) throws Exception {
+        File f = videoFile(c);
         android.media.MediaMetadataRetriever mr = new android.media.MediaMetadataRetriever();
         long duree; int w, h;
         try {
@@ -951,10 +958,10 @@ public class WallpaperJob extends JobService {
         } catch (Exception e) { tmp.delete(); throw new Exception("Ce fichier n'est pas une vidéo lisible"); }
         finally { try { mr.release(); } catch (Throwable t) { } }
         f.delete(); if (!tmp.renameTo(f)) throw new Exception("Copie de la vidéo impossible");
-        String nom = "vidéo"; try (Cursor cu = c.getContentResolver().query(u, new String[]{ OpenableColumns.DISPLAY_NAME }, null, null, null)) { if (cu != null && cu.moveToFirst()) nom = cu.getString(0); } catch (Exception e) { }
         JSONObject o = new JSONObject();
         o.put("on", true); o.put("debut", 0); o.put("fin", duree); o.put("duree", duree); o.put("w", w); o.put("h", h); o.put("nom", nom);
         o.put("haut", 0); o.put("bas", 0); o.put("gauche", 0); o.put("droite", 0);
+        if (credit != null) o.put("credit", credit);
         vprefs(c).edit().putString("cfg", o.toString()).apply();
         Live.refresh();
         o.put("existe", true); return o.toString();

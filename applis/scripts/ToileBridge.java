@@ -988,4 +988,188 @@ public class ToileBridge {
             }
         } });
     }
+
+    // ---------------------------------------------------------------- vidéos en ligne (fond animé)
+    // Sources sous licence : Pixabay (licence Pixabay, clé gratuite de l'utilisateur) et Wikimedia Commons (licences libres,
+    // sans NC / ND). La vidéo choisie est téléchargée puis installée comme la « Séquence animée » (WallpaperJob.videoInstall).
+    static final long MAX_VID = 200L * 1024 * 1024;
+    static final Map<String, JSONObject> VLAST = Collections.synchronizedMap(new java.util.HashMap<String, JSONObject>());
+    static final AtomicBoolean VDL = new AtomicBoolean(false);
+    private static final java.util.concurrent.ExecutorService VNET = java.util.concurrent.Executors.newFixedThreadPool(3);
+
+    static JSONObject vCand(String id, String src, String title, String author, String lic, String licUrl, String page, String url, int w, int h, long size, double dur, String thumb) throws Exception {
+        return new JSONObject().put("id", id).put("src", src).put("titre", title).put("auteur", author).put("licence", lic).put("licenceUrl", licUrl)
+            .put("page", page).put("url", url).put("w", w).put("h", h).put("taille", size).put("duree", dur).put("vignette", thumb);
+    }
+
+    static List<JSONObject> vPixabay(Context c, String q, String lang, int page) throws Exception {
+        String key = keys(c).optString("pixabay");
+        if (key.isEmpty()) throw new Exception("CLE");
+        String u = "https://pixabay.com/api/videos/?key=" + enc(key) + "&q=" + enc(q) + "&lang=" + ("fr".equals(lang) ? "fr" : "en") + "&safesearch=true&video_type=film&per_page=30&page=" + (page + 1);
+        int[] st = new int[1]; String body = api(c, u, true, st);
+        if (st[0] == 400 || st[0] == 401 || st[0] == 403) throw new Exception("Clé Pixabay refusée");
+        if (st[0] != 200) throw new Exception("Pixabay ne répond pas (" + st[0] + ")");
+        List<JSONObject> out = new ArrayList<JSONObject>();
+        JSONArray hits = new JSONObject(body).optJSONArray("hits");
+        for (int i = 0; hits != null && i < hits.length(); i++) {
+            JSONObject x = hits.optJSONObject(i); if (x == null) continue;
+            if (MATURE.matcher(x.optString("tags")).find()) continue;
+            JSONObject v = x.optJSONObject("videos"); if (v == null) continue;
+            JSONObject pick = null;
+            for (String k : new String[]{ "large", "medium", "small" }) {
+                JSONObject y = v.optJSONObject(k);
+                if (y == null || !allowed(y.optString("url"))) continue;
+                int mx = Math.max(y.optInt("width"), y.optInt("height"));
+                if (mx > 0 && mx <= 1920 && y.optLong("size") <= MAX_VID) { pick = y; break; }
+            }
+            if (pick == null) continue;
+            JSONObject m = v.optJSONObject("medium"); String th = m != null ? m.optString("thumbnail") : pick.optString("thumbnail");
+            if (!allowed(th)) th = pick.optString("thumbnail");
+            String tags = x.optString("tags"); String t = tags.isEmpty() ? "Vidéo Pixabay" : tags.split(",")[0].trim();
+            out.add(vCand("pixabay:" + x.optLong("id"), "Pixabay", t.isEmpty() ? "Vidéo" : Character.toUpperCase(t.charAt(0)) + t.substring(1), cut(x.optString("user"), 60),
+                "Licence Pixabay", "https://pixabay.com/service/license-summary/", x.optString("pageURL"), pick.optString("url"),
+                pick.optInt("width"), pick.optInt("height"), pick.optLong("size"), x.optDouble("duration", 0), th));
+        }
+        return out;
+    }
+
+    static List<JSONObject> vCommons(Context c, String q, int page) throws Exception {
+        String u = "https://commons.wikimedia.org/w/api.php?action=query&format=json&formatversion=2&generator=search&gsrnamespace=6&gsrlimit=40&gsroffset=" + (page * 40)
+            + "&gsrsearch=" + enc(q + " filetype:video")
+            + "&prop=videoinfo&viprop=" + enc("url|size|mime|extmetadata|derivatives") + "&viurlwidth=360"
+            + "&viextmetadatafilter=" + enc("License|LicenseShortName|LicenseUrl|Artist|UsageTerms|NonFree|ObjectName|Categories|ImageDescription") + "&viextmetadatalanguage=fr";
+        int[] st = new int[1]; String body = api(c, u, true, st);
+        if (st[0] != 200) throw new Exception("Wikimedia Commons ne répond pas (" + st[0] + ")");
+        List<JSONObject> out = new ArrayList<JSONObject>();
+        JSONObject qq = new JSONObject(body).optJSONObject("query");
+        JSONArray pages = qq == null ? null : qq.optJSONArray("pages");
+        for (int i = 0; pages != null && i < pages.length(); i++) {
+            JSONObject p = pages.optJSONObject(i); if (p == null) continue;
+            JSONArray via = p.optJSONArray("videoinfo"); JSONObject vi = via == null ? null : via.optJSONObject(0); if (vi == null) continue;
+            JSONObject em = vi.optJSONObject("extmetadata"); if (em == null) em = new JSONObject();
+            String[] L = commonsLicense(em); if (L == null) continue;
+            String title0 = p.optString("title");
+            if (MATURE.matcher(title0 + " " + emv(em, "ObjectName") + " " + emv(em, "Categories") + " " + strip(emv(em, "ImageDescription"))).find()) continue;
+            double dur = vi.optDouble("duration", 0);
+            if (dur > 0 && dur < 3) continue;
+            // la meilleure version lisible par Android (WebM VP8/VP9 ou MP4) : la plus grande jusqu'à 1080 lignes
+            JSONArray ds = vi.optJSONArray("derivatives"); JSONObject best = null; int bestH = 0;
+            for (int k = 0; ds != null && k < ds.length(); k++) {
+                JSONObject d = ds.optJSONObject(k); if (d == null) continue;
+                String ty = d.optString("type").toLowerCase(Locale.ROOT), src = d.optString("src");
+                if (src.startsWith("//")) src = "https:" + src;
+                if (!(ty.startsWith("video/webm") || ty.startsWith("video/mp4")) || ty.contains("theora") || !allowed(src)) continue;
+                int hh = Math.min(d.optInt("width"), d.optInt("height")); if (hh <= 0 || hh > 1080) continue;
+                if (hh > bestH || (hh == bestH && ty.contains("vp9"))) { best = new JSONObject(d.toString()).put("src", src); bestH = hh; }
+            }
+            if (best == null || bestH < 360) continue;
+            long size = best.optLong("bandwidth") > 0 && dur > 0 ? (long) (best.optLong("bandwidth") * dur / 8) : 0;
+            if (size > MAX_VID) continue;
+            String t = cut(emv(em, "ObjectName"), 80);
+            if (t.isEmpty()) t = cut(title0.replaceFirst("^File:", "").replaceFirst("\\.[A-Za-z0-9]+$", "").replace('_', ' '), 80);
+            String au = cut(emv(em, "Artist"), 60);
+            String th = vi.optString("thumburl"); if (th.startsWith("//")) th = "https:" + th;
+            out.add(vCand("commons:" + p.optLong("pageid"), "Wikimedia Commons", t, au.isEmpty() ? "Auteur inconnu" : au, L[1], L[2],
+                vi.optString("descriptionurl", "https://commons.wikimedia.org/wiki/" + enc(title0.replace(' ', '_'))), best.optString("src"),
+                best.optInt("width"), best.optInt("height"), size, dur, allowed(th) ? th : ""));
+        }
+        return out;
+    }
+
+    /** Recherche de vidéos : toileEvent('vlist', ok, {items:[…], pixabay:bool, msg}) — sans l'adresse du fichier. */
+    @JavascriptInterface public void videoSearch(final String q0, final String lang, final int page) {
+        if (!ok()) return;
+        VNET.execute(new Runnable() { public void run() {
+            Context c = a.getApplicationContext();
+            String q = q0 == null ? "" : q0.trim(); if (q.length() > 80) q = q.substring(0, 80);
+            if (q.isEmpty()) q = "nature";
+            List<JSONObject> px = new ArrayList<JSONObject>(), cm = new ArrayList<JSONObject>();
+            String msg = ""; boolean hasKey = !keys(c).optString("pixabay").isEmpty();
+            try { if (hasKey) px = vPixabay(c, q, lang, page); } catch (Throwable t) { msg = WallpaperJob.msg(t); }
+            try { cm = vCommons(c, q, page); } catch (Throwable t) { if (px.isEmpty()) msg = (msg.isEmpty() ? "" : msg + " · ") + WallpaperJob.msg(t); }
+            JSONArray items = new JSONArray();
+            int n = Math.max(px.size(), cm.size());
+            for (int i = 0; i < n; i++) {   // les deux sources alternées
+                for (JSONObject o : new JSONObject[]{ i < px.size() ? px.get(i) : null, i < cm.size() ? cm.get(i) : null }) {
+                    if (o == null) continue;
+                    VLAST.put(o.optString("id"), o);
+                    try { JSONObject v = new JSONObject(o.toString()); v.remove("url"); items.put(v); } catch (Exception e) { }
+                }
+            }
+            try { emit("vlist", items.length() > 0 || msg.isEmpty(), new JSONObject().put("items", items).put("pixabay", hasKey).put("msg", msg).put("q", q).put("page", page).toString()); } catch (Exception e) { }
+        } });
+    }
+
+    /** Vignettes des résultats : toileEvent('vthumb', ok, {id, src}) par vidéo. */
+    @JavascriptInterface public void videoThumbs(final String json) {
+        if (!ok()) return;
+        JSONArray l; try { l = new JSONArray(json); } catch (Exception e) { return; }
+        for (int i = 0; i < l.length(); i++) {
+            final String id = l.optString(i);
+            VNET.execute(new Runnable() { public void run() {
+                JSONObject o = VLAST.get(id); String d = "";
+                try {
+                    if (o != null && !o.optString("vignette").isEmpty()) {
+                        Resp r = get(o.optString("vignette"), 2 * 1024 * 1024, true);
+                        if (r.code == 200 && r.body.length > 0) {
+                            String ty = r.type.contains("png") ? "image/png" : r.type.contains("webp") ? "image/webp" : "image/jpeg";
+                            d = "data:" + ty + ";base64," + Base64.encodeToString(r.body, Base64.NO_WRAP);
+                        }
+                    }
+                } catch (Throwable t) { }
+                try { emit("vthumb", !d.isEmpty(), new JSONObject().put("id", id).put("src", d).toString()); } catch (Exception e) { }
+            } });
+        }
+    }
+
+    /** Téléchargement direct dans un fichier, adresses autorisées uniquement (redirections comprises). */
+    void download(String u, File f, long max, String id) throws Exception {
+        noCookies(); OURS.set(true);
+        try {
+            String cur = u;
+            for (int hops = 0; hops < 5; hops++) {
+                if (!allowed(cur)) throw new Exception("Adresse non autorisée");
+                HttpURLConnection h = null;
+                try {
+                    h = (HttpURLConnection) new URL(cur).openConnection();
+                    h.setConnectTimeout(15000); h.setReadTimeout(60000); h.setUseCaches(false); h.setInstanceFollowRedirects(false);
+                    h.setRequestProperty("User-Agent", UA); h.setRequestProperty("Accept", "video/webm, video/mp4, video/*;q=0.8");
+                    int code = h.getResponseCode();
+                    if (code >= 300 && code < 400) { String loc = h.getHeaderField("Location"); if (loc == null) throw new Exception("Redirection sans adresse"); cur = new URL(new URL(cur), loc).toString(); continue; }
+                    if (code != 200) throw new Exception("Téléchargement refusé (HTTP " + code + ")");
+                    long len = h.getContentLengthLong(); if (len > max) throw new Exception("Vidéo trop lourde");
+                    long n = 0; int last = -1;
+                    try (InputStream in = h.getInputStream(); FileOutputStream o = new FileOutputStream(f)) {
+                        byte[] b = new byte[1 << 16]; int r;
+                        while ((r = in.read(b)) > 0) {
+                            o.write(b, 0, r); n += r; if (n > max) throw new Exception("Vidéo trop lourde");
+                            int pc = len > 0 ? (int) (n * 100 / len) : -1;
+                            if (pc != last && (pc < 0 ? n % (1 << 20) < r : true)) { last = pc; emit("vprog", true, new JSONObject().put("id", id).put("pc", pc).put("mo", n / 1048576.0).toString()); }
+                        }
+                    }
+                    return;
+                } finally { if (h != null) try { h.disconnect(); } catch (Throwable t) { } }
+            }
+            throw new Exception("Trop de redirections");
+        } finally { OURS.remove(); }
+    }
+
+    /** Télécharge la vidéo choisie et en fait la séquence animée : toileEvent('video', ok, réglages) comme « Choisir une vidéo ». */
+    @JavascriptInterface public void videoGet(final String id) {
+        if (!ok()) return;
+        final JSONObject o = VLAST.get(id);
+        if (o == null) { emit("video", false, "Relance la recherche, cette vidéo n'est plus en mémoire"); return; }
+        if (!VDL.compareAndSet(false, true)) { emit("video", false, "Un téléchargement est déjà en cours"); return; }
+        new Thread(new Runnable() { public void run() {
+            Context c = a.getApplicationContext();
+            File tmp = new File(c.getFilesDir(), "toile-video.tmp");
+            try {
+                download(o.optString("url"), tmp, MAX_VID, id);
+                JSONObject credit = new JSONObject().put("source", o.optString("src")).put("auteur", o.optString("auteur")).put("licence", o.optString("licence"))
+                    .put("licenceUrl", o.optString("licenceUrl")).put("page", o.optString("page"));
+                emit("video", true, WallpaperJob.videoInstall(c, tmp, o.optString("titre", "Vidéo en ligne"), credit));
+            } catch (Throwable t) { tmp.delete(); emit("video", false, WallpaperJob.msg(t)); }
+            finally { VDL.set(false); }
+        } }).start();
+    }
 }

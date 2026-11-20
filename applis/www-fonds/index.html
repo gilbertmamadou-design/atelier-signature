@@ -115,6 +115,21 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
 .sgrid .im{aspect-ratio:3/4;width:100%;border-radius:11px;background:var(--bg3) center/cover no-repeat;position:relative;border:1px solid var(--line)}
 .sgrid .im .cmark{position:absolute;left:5px;bottom:5px;font-size:10px;padding:2px 6px 2px 5px}
 .sgrid .nm{font-size:11.5px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%}
+.sheet .chips.wrap{flex-wrap:wrap}
+.vq{display:flex;gap:8px;margin-bottom:10px}
+.vq input{flex:1;min-width:0;background:var(--bg2);border:1px solid var(--line);border-radius:12px;color:var(--tx);font:inherit;padding:9px 12px}
+.vgrid .im{aspect-ratio:9/12}
+.vgrid .du{position:absolute;right:5px;bottom:5px;font-size:10.5px;font-weight:700;background:#000a;color:#fff;border-radius:6px;padding:1px 5px}
+#vsD{position:sticky;bottom:calc(-20px - var(--safe-b));margin:12px -12px calc(-20px - var(--safe-b))}
+.vdet{padding:12px 14px calc(14px + var(--safe-b));box-shadow:0 -10px 24px #0008;background:var(--bg2);border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.vdet .top{display:flex;gap:10px;align-items:center}
+.vdet .im{width:74px;height:74px;border-radius:12px;background:var(--bg3) center/cover no-repeat;flex:none}
+.vdet .tx{min-width:0;font-size:12.5px;color:var(--tx2)}
+.vdet .tx b{display:block;color:var(--tx);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vdet .bar{height:6px;border-radius:9px;background:var(--bg4);overflow:hidden}
+.vdet .bar i{display:block;height:100%;width:0;background:var(--acc);transition:width .3s}
+.vcred{font-size:12px;color:var(--tx3);margin-top:6px}
+.vcred a{color:var(--acc)}
 .sheet .more{display:block;margin:14px auto 0}
 </style>
 </head>
@@ -152,9 +167,9 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
 
   <section class="card" id="vidCard">
     <h3>Séquence animée</h3>
-    <div class="hint" style="font-size:12.5px;color:var(--tx3);margin:-2px 0 8px">Une vidéo en boucle comme fond, sans son : un enregistrement de l'écran, une vidéo de ta galerie… Elle se met en pause quand l'écran est éteint ou qu'une appli passe par-dessus.</div>
+    <div class="hint" style="font-size:12.5px;color:var(--tx3);margin:-2px 0 8px">Une vidéo en boucle comme fond, sans son : un enregistrement de l'écran, une vidéo de ta galerie ou une vidéo libre trouvée en ligne… Elle se met en pause quand l'écran est éteint ou qu'une appli passe par-dessus.</div>
     <div id="vidBox"></div>
-    <div class="row"><button class="btn" id="bVid"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="5" width="14" height="14" rx="3"/><path d="M17 10l4-2.5v9L17 14"/></svg><span class="spin"></span>Choisir une vidéo</button></div>
+    <div class="row"><button class="btn" id="bVid"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="5" width="14" height="14" rx="3"/><path d="M17 10l4-2.5v9L17 14"/></svg><span class="spin"></span>Ma galerie</button><button class="btn" id="bVidWeb"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></svg>Vidéos en ligne</button></div>
   </section>
 
   <div class="row" style="margin:0 0 12px">
@@ -349,6 +364,10 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
     if(kind==='folder'){ toast('Dossier choisi : '+data); state(); A.wpScan(); return; }
     if(kind==='scan'){ state(); if(ok && +data>0) preview(''); else if(!ok) toast(data,true); return; }
     if(kind==='image'){ preview(data); return; }
+    if(kind==='vlist'){ vsList(ok, data); return; }
+    if(kind==='vthumb'){ vsThumb(ok, data); return; }
+    if(kind==='vprog'){ vsProg(data); return; }
+    if(kind==='video' && VS){ vsDone(ok, data); }
     if(kind==='video'){ setBusy('bVid', false); if(!ok){ toast(data, true); return; } V = JSON.parse(data); toast('Vidéo prête : '+V.nom); vidUi(); vidFrame(); liveUi(); return; }
     if(kind==='frame'){ if(ok){ VF = data; vidDraw(); } return; }
     if(kind==='change'||kind==='previous'||kind==='apply'){
@@ -377,17 +396,18 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
   function vidUi(){
     var box = $('vidBox'); if(!box) return;
     if(!A || !A.wpPickVideo){ $('vidCard').hidden = true; return; }
-    if(!V.existe){ box.innerHTML = ''; $('bVid').lastChild.textContent = 'Choisir une vidéo'; return; }
+    if(!V.existe){ box.innerHTML = ''; return; }
     var D = V.duree||1000, sl = function(k, lab, max, step, val, txt){ return '<div class="block"><div class="lab">'+lab+' <span id="vv-'+k+'">'+txt+'</span></div><input type="range" data-v="'+k+'" min="0" max="'+max+'" step="'+step+'" value="'+val+'"></div>'; };
     box.innerHTML = '<div class="set" style="border:0;padding-top:0"><div class="t"><div>'+String(V.nom||'Vidéo').replace(/[<>&]/g,'')+'</div><div>'+sec(D)+' · '+V.w+'×'+V.h+'</div></div><label class="sw"><input type="checkbox" id="vOn"'+(V.on?' checked':'')+'><span></span></label></div>'+
+      (V.credit ? '<div class="vcred">'+escA(V.credit.source)+' · '+escA(V.credit.auteur)+' · '+escA(V.credit.licence)+(V.credit.page ? ' · <a href="#" data-vpage>voir la page</a>' : '')+'</div>' : '')+
       '<div class="vpv" id="vpv"></div>'+
       sl('debut','Début de la boucle', D, 100, V.debut|0, sec(V.debut|0)) + sl('fin','Fin de la boucle', D, 100, V.fin||D, sec(V.fin||D)) +
       sl('haut','Rogner en haut', 30, 1, +V.haut||0, (+V.haut||0)+' %') + sl('bas','Rogner en bas', 30, 1, +V.bas||0, (+V.bas||0)+' %') +
       sl('gauche','Rogner à gauche', 30, 1, +V.gauche||0, (+V.gauche||0)+' %') + sl('droite','Rogner à droite', 30, 1, +V.droite||0, (+V.droite||0)+' %') +
       '<div class="hint" style="font-size:12.5px;color:var(--tx3);margin-top:6px">Enregistrement d\'écran : rogne en haut et en bas pour enlever les barres du téléphone. Le cadre bleu montre ce qui s\'affiche sur l\'écran.</div>'+
       '<div class="hint" id="vLiveHint" style="font-size:12.5px;margin-top:6px"></div>';
-    $('bVid').lastChild.textContent = 'Changer de vidéo';
     vidDraw(); vidLive();
+    var vp = box.querySelector('[data-vpage]'); if(vp) vp.onclick = function(e){ e.preventDefault(); var T0 = window.MAGToile; if(T0 && T0.openUrl) T0.openUrl(V.credit.page); };
     $('vOn').onchange = function(){ V.on = this.checked; vidSave(); vidLive(); };
     box.oninput = function(e){
       var k = e.target.dataset.v; if(!k) return; var v = +e.target.value;
@@ -404,6 +424,98 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
     var a = $('vLive'); if(a) a.onclick = function(ev){ ev.preventDefault(); toast("Android va afficher l'aperçu : appuie sur « Appliquer » (ou « Définir le fond d'écran »)"); if(L && L.liveOpen) L.liveOpen(); };
   }
   $('bVid').onclick = function(){ if(A&&A.wpPickVideo){ setBusy('bVid', true); A.wpPickVideo(); setTimeout(function(){ setBusy('bVid', false); }, 4000); } };
+  /* ---------- Vidéos en ligne : Pixabay (clé de l'utilisateur) et Wikimedia Commons, licences libres ---------- */
+  var VS = null;
+  var VTH = [['Nature','nature landscape'],['Mer','ocean waves'],['Espace','space galaxy'],['Pluie','rain drops'],['Feu','fire flames'],['Ville la nuit','city night'],['Nuages','clouds timelapse'],['Forêt','forest'],['Neige','snow falling'],['Sous l\'eau','underwater fish'],['Aurores','aurora borealis'],['Abstrait','abstract background'],['Fleurs','flowers'],['Cascade','waterfall'],['Bokeh','bokeh lights']];
+  function dureeTxt(s){ s = Math.round(s||0); return s >= 60 ? Math.floor(s/60)+' min '+(s%60 ? s%60+' s' : '') : s+' s'; }
+  function moTxt(b){ return b ? (b/1048576 < 10 ? (b/1048576).toFixed(1).replace('.', ',') : Math.round(b/1048576))+' Mo' : ''; }
+  $('bVidWeb').onclick = function(){
+    var T0 = window.MAGToile;
+    if(!T0 || !T0.videoSearch){ toast("Les vidéos en ligne fonctionnent dans l'application Android Toile", true); return; }
+    if(VS) VS.el.remove();
+    var el = document.createElement('div'); el.className = 'sheet'; el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true'); el.setAttribute('aria-label','Vidéos en ligne');
+    el.innerHTML = '<div class="hd"><b>Vidéos en ligne<small id="vsN">Pixabay et Wikimedia Commons · vidéos sous licence libre</small></b><button class="x" data-x aria-label="Fermer"><svg class="ic" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>'+
+      '<div class="bd" id="vsB"><form class="vq" id="vsF"><input id="vsQ" type="search" enterkeyhint="search" placeholder="Chercher : coucher de soleil, chat…" autocomplete="off"><button class="btn" style="flex:none">Chercher</button></form>'+
+      '<div class="chips wrap">'+VTH.map(function(t, i){ return '<button class="chip" data-th="'+i+'">'+escA(t[0])+'</button>'; }).join('')+'</div>'+
+      '<div id="vsKey"></div><div class="sgrid vgrid" id="vsG"></div><div id="vsMore"></div><div id="vsD"></div></div>';
+    document.body.appendChild(el);
+    VS = { el: el, items: [], th: {}, q: '', lang: 'en', page: 0, sel: null, dl: false, io: null };
+    el.addEventListener('click', function(e){
+      if(e.target.closest('[data-x]')){ vsClose(); return; }
+      var c = e.target.closest('[data-th]'); if(c){ var t = VTH[+c.dataset.th]; el.querySelectorAll('[data-th]').forEach(function(b){ b.classList.toggle('on', b === c); }); $('vsQ').value = ''; vsSearch(t[1], 'en', 0); return; }
+      if(e.target.closest('[data-vmore]')){ vsSearch(VS.q, VS.lang, VS.page + 1); return; }
+      var v = e.target.closest('[data-vid]'); if(v){ vsSel(v.dataset.vid); return; }
+      if(e.target.closest('[data-vget]')){ vsGet(); return; }
+      if(e.target.closest('[data-vpg]')){ e.preventDefault(); if(VS.sel && T0.openUrl) T0.openUrl(VS.sel.page); return; }
+      if(e.target.closest('[data-kpix]')){ e.preventDefault(); if(T0.openUrl) T0.openUrl('https://pixabay.com/api/docs/'); return; }
+      if(e.target.closest('[data-ksave]')){ var k = ($('vsK').value||'').trim(); if(k && !/^[A-Za-z0-9_-]{8,80}$/.test(k)){ toast('Cette clé ne semble pas valide', true); return; } T0.setKey('pixabay', k); toast(k ? 'Clé Pixabay enregistrée ✓' : 'Clé effacée'); vsSearch(VS.q || 'nature landscape', VS.lang, 0); return; }
+    });
+    $('vsF').onsubmit = function(e){ e.preventDefault(); var q = $('vsQ').value.trim(); if(!q) return; el.querySelectorAll('[data-th]').forEach(function(b){ b.classList.remove('on'); }); $('vsQ').blur(); vsSearch(q, 'fr', 0); };
+    el.querySelector('[data-th="0"]').classList.add('on');
+    vsSearch(VTH[0][1], 'en', 0);
+  };
+  function vsClose(){ if(!VS) return; if(VS.dl){ toast('Le téléchargement continue, la vidéo sera mise en place à la fin'); } if(VS.io) VS.io.disconnect(); VS.el.remove(); VS = null; }
+  function vsSearch(q, lang, page){
+    if(!VS) return;
+    VS.q = q; VS.lang = lang; VS.page = page;
+    if(!page){ VS.items = []; VS.sel = null; $('vsD').innerHTML = ''; $('vsG').innerHTML = '<div class="empty" style="grid-column:1/-1">Recherche…</div>'; $('vsB').scrollTop = 0; }
+    $('vsMore').innerHTML = page ? '<div class="empty">Recherche…</div>' : '';
+    MAGToile.videoSearch(q, lang, page);
+  }
+  function vsList(ok, data){
+    if(!VS) return; var d = {}; try{ d = JSON.parse(data); }catch(e){ d = { items: [], msg: data }; }
+    if(d.q !== undefined && (d.q !== VS.q || d.page !== VS.page)) return;
+    var ids = {}; VS.items.forEach(function(x){ ids[x.id] = 1; });
+    (d.items||[]).forEach(function(x){ if(!ids[x.id]) VS.items.push(x); });
+    $('vsKey').innerHTML = d.pixabay ? '' : '<div class="card" style="padding:12px;margin:0 0 10px;font-size:12.5px;color:var(--tx2)">Avec ta clé <b>Pixabay</b> gratuite, tu auras beaucoup plus de vidéos (en plus de Wikimedia Commons). <a href="#" data-kpix style="color:var(--acc)">Obtenir une clé</a> (compte gratuit, la clé est en haut de la page)'+
+      '<div class="vq" style="margin:8px 0 0"><input id="vsK" type="password" placeholder="Colle ta clé Pixabay ici" autocomplete="off"><button class="btn" data-ksave style="flex:none">Enregistrer</button></div></div>';
+    if(!ok && !VS.items.length){ $('vsG').innerHTML = '<div class="empty" style="grid-column:1/-1">'+escA(d.msg || 'Pas de réponse, vérifie la connexion')+'</div>'; $('vsMore').innerHTML = ''; return; }
+    if(d.msg && ok) toast(d.msg, true);
+    $('vsN').textContent = VS.items.length ? VS.items.length+' vidéo'+(VS.items.length>1?'s':'')+' · touche une vidéo pour la voir' : 'Aucune vidéo';
+    vsPaint();
+    $('vsMore').innerHTML = (d.items||[]).length ? '<button class="btn more" data-vmore>Plus de vidéos</button>' : (VS.items.length ? '' : '<div class="empty">Aucune vidéo pour cette recherche. Essaie un autre mot (en anglais, il y a souvent plus de résultats).</div>');
+  }
+  function vsPaint(){
+    var g = $('vsG');
+    g.innerHTML = VS.items.map(function(x){ var t = VS.th[x.id];
+      return '<button data-vid="'+escA(x.id)+'" aria-label="'+escA(x.titre)+'"><span class="im" style="'+(t?"background-image:url('"+t+"')":'')+'"><span class="du">'+dureeTxt(x.duree)+'</span></span><span class="nm">'+escA(x.titre)+'</span><span class="nm" style="color:var(--tx3);font-size:10.5px">'+escA(x.src === 'Pixabay' ? 'Pixabay' : 'Commons')+(x.taille ? ' · '+moTxt(x.taille) : '')+'</span></button>'; }).join('');
+    if(VS.io) VS.io.disconnect();
+    var want = [], tm = 0;
+    VS.io = new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(!e.isIntersecting) return; VS.io.unobserve(e.target); var id = e.target.closest('[data-vid]').dataset.vid; if(VS.th[id] === undefined){ VS.th[id] = null; want.push(id); } });
+      clearTimeout(tm); tm = setTimeout(function(){ if(want.length){ MAGToile.videoThumbs(JSON.stringify(want)); want = []; } }, 60);
+    }, { root: $('vsB'), rootMargin: '300px' });
+    g.querySelectorAll('[data-vid] .im').forEach(function(i){ if(VS.th[i.parentNode.dataset.vid] === undefined) VS.io.observe(i); });
+  }
+  function vsThumb(ok, data){
+    if(!VS) return; var d; try{ d = JSON.parse(data); }catch(e){ return; }
+    VS.th[d.id] = ok ? d.src : '';
+    if(ok){ VS.el.querySelectorAll('[data-vid]').forEach(function(b){ if(b.dataset.vid === d.id) b.querySelector('.im').style.backgroundImage = "url('"+d.src+"')"; }); var di = $('vsDi'); if(di && VS.sel && VS.sel.id === d.id) di.style.backgroundImage = "url('"+d.src+"')"; }
+  }
+  function vsSel(id){
+    if(VS.dl){ toast('Un téléchargement est en cours'); return; }
+    var x = VS.items.filter(function(y){ return y.id === id; })[0]; if(!x) return; VS.sel = x;
+    var t = VS.th[id];
+    $('vsD').innerHTML = '<div class="vdet"><div class="top"><span class="im" id="vsDi" style="'+(t?"background-image:url('"+t+"')":'')+'"></span><div class="tx"><b>'+escA(x.titre)+'</b>'+escA(x.auteur)+' · '+escA(x.src)+'<br>'+escA(x.licence)+' · '+dureeTxt(x.duree)+' · '+x.w+'×'+x.h+(x.taille ? ' · '+moTxt(x.taille) : '')+' · <a href="#" data-vpg style="color:var(--acc)">voir la page</a></div></div>'+
+      '<div class="bar" id="vsBar" hidden><i></i></div><button class="btn main" data-vget id="vsGo"><svg class="ic" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Mettre en fond animé</button>'+
+      (x.taille > 60*1048576 ? '<div style="font-size:12px;color:var(--tx3)">Vidéo assez lourde : en Wi-Fi c\'est mieux.</div>' : '')+'</div>';
+  }
+  function vsGet(){
+    if(!VS || !VS.sel || VS.dl) return;
+    VS.dl = true; $('vsBar').hidden = false; var b = $('vsGo'); b.disabled = true; b.lastChild.textContent = 'Téléchargement…';
+    MAGToile.videoGet(VS.sel.id);
+  }
+  function vsProg(data){
+    if(!VS) return; var d; try{ d = JSON.parse(data); }catch(e){ return; }
+    var bar = $('vsBar'), b = $('vsGo'); if(!bar || !b) return;
+    bar.firstChild.style.width = (d.pc >= 0 ? d.pc : 50)+'%';
+    b.lastChild.textContent = d.pc >= 100 ? 'Mise en place…' : 'Téléchargement… '+(d.pc >= 0 ? d.pc+' %' : moTxt(d.mo*1048576));
+  }
+  function vsDone(ok, data){
+    VS.dl = false;
+    if(!ok){ var b = $('vsGo'); if(b){ b.disabled = false; b.lastChild.textContent = 'Réessayer'; } var bar = $('vsBar'); if(bar) bar.hidden = true; return; }
+    vsClose(); setTimeout(function(){ var c = $('vidCard'); if(c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 150);
+  }
   vidUi(); if(V.existe) vidFrame();
   document.addEventListener('visibilitychange', function(){ if(!document.hidden) vidLive(); });
 
@@ -522,7 +634,7 @@ input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
   }
   function sheetMark(uri){ if(SH) sheetPaint(); }
   function escA(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
-  document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && SH && !document.querySelector('.tcr')) sheetClose(); });
+  document.addEventListener('keydown', function(e){ if(e.key !== 'Escape') return; if(VS){ vsClose(); return; } if(SH && !document.querySelector('.tcr')) sheetClose(); });
 
   /* ---------- Onglet « Images en ligne » (en-ligne.js, pont MAGToile) ---------- */
   var T = window.MAGToile, WEB = null, TAB = 'fonds';
