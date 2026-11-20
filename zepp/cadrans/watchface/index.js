@@ -18,12 +18,13 @@ const pris = (groupe, cle) => {
   return undefined
 }
 const table = (groupe, cles) => { const o = {}; cles.forEach((k) => { const v = pris(groupe, k); if (v !== undefined) o[k] = v }); return o }
-const widget = table('widget', ['IMG', 'FILL_RECT', 'IMG_TIME', 'IMG_WEEK', 'IMG_DATE', 'IMG_LEVEL', 'TEXT_IMG', 'IMG_CLICK', 'TIME_POINTER', 'IMG_ANIM', 'WIDGET_DELEGATE', 'WATCHFACE_EDIT_GROUP'])
+const widget = table('widget', ['IMG', 'FILL_RECT', 'IMG_TIME', 'IMG_WEEK', 'IMG_DATE', 'IMG_LEVEL', 'TEXT_IMG', 'IMG_CLICK', 'TIME_POINTER', 'IMG_ANIM', 'WIDGET_DELEGATE', 'WATCHFACE_EDIT_GROUP', 'IMG_STATUS'])
 const prop = table('prop', ['ANIM_STATUS', 'VISIBLE', 'SRC', 'CURRENT_TYPE'])
 const animSt = table('anim_status', ['START', 'STOP'])
 const niveau = table('show_level', ['ONLY_NORMAL', 'ONAL_AOD'])
 const donnee = table('data_type', ['WEATHER', 'WEATHER_CURRENT', 'WEATHER_LOW', 'WEATHER_HIGH', 'WIND', 'HEART', 'STEP', 'BATTERY', 'CAL', 'DISTANCE',
-  'SUN_RISE', 'SUN_SET', 'ALTITUDE', 'ALTIMETER', 'SPO2', 'STRESS', 'PAI_WEEKLY', 'UVI', 'HUMIDITY', 'STAND'])
+  'SUN_RISE', 'SUN_SET', 'ALTITUDE', 'ALTIMETER', 'SPO2', 'STRESS', 'PAI_WEEKLY', 'UVI', 'HUMIDITY', 'STAND', 'ALARM_CLOCK'])
+const etat = table('system_status', ['DISCONNECT', 'DISTURB', 'CLOCK', 'LOCK'])
 const align = table('align', ['LEFT', 'RIGHT', 'CENTER_H'])
 const UI = ui && typeof ui.createWidget === 'function' ? ui : H
 
@@ -87,6 +88,16 @@ const FAIRE = {
       voir(jj, j === 0); voir(pre, j !== 0)
       ch.forEach((c, k) => { if (j !== 0 && k < t.length) { image(c, 'images/' + w.dossier + '/' + t[k] + '.png'); voir(c, true) } else voir(c, false) })
     })
+  },
+  statut(w) {
+    const t = etat[w.type]; if (t === undefined) return null
+    return creer(widget.IMG_STATUS, { x: w.x, y: w.y, w: w.w, h: w.h, type: t, src: w.src, show_level: NORMAL })
+  },
+  fuseau(w) {
+    const xs = [0, 1, 'dp', 2, 3], I = [], dp = 'images/' + w.dossier + '/dp.png'
+    let x = w.x
+    xs.forEach((k) => { I.push(k === 'dp' ? null : creer(widget.IMG, { x, y: w.y, src: 'images/' + w.dossier + '/0.png', show_level: NORMAL })); if (k === 'dp') creer(widget.IMG, { x, y: w.y, src: dp, show_level: NORMAL }); x += k === 'dp' ? w.dpw : w.cw })
+    MAJ.push((d) => { const d2 = new Date(d.getTime() + w.ecart * 36e5), t = ('0' + d2.getHours()).slice(-2) + ('0' + d2.getMinutes()).slice(-2); [0, 1, 3, 4].forEach((k, i) => image(I[k], 'images/' + w.dossier + '/' + t[i] + '.png')) })
   },
   lune(w) {
     const i = creer(widget.IMG, { x: w.x, y: w.y, w: w.w, h: w.h, src: 'images/' + w.dossier + '/0.png', show_level: NORMAL })

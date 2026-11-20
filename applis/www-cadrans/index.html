@@ -229,7 +229,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
 
   /* ---------------- éditeur : assemblage libre ---------------- */
   var SEL = -1, DRAG = null;
-  var ICO = { heure: '🕘', aiguilles: '🕑', date: '📅', info: '▦', meteo: '⛅', texte: 'T', trait: '—', image: '❀', panneau: '▭', anim: '✺', mots: '🔤', compte: '⏳', lune: '🌙' };
+  var ICO = { heure: '🕘', aiguilles: '🕑', date: '📅', info: '▦', meteo: '⛅', texte: 'T', trait: '—', image: '❀', panneau: '▭', anim: '✺', mots: '🔤', compte: '⏳', lune: '🌙', fuseau: '🌍', voyants: '💡' };
   /* fonds au choix sur la montre, fond de nuit */
   var PV = { variante: 0, nuit: null };
   function selFond(attr, val) { return '<select class="in" ' + attr + '>' + Object.keys(C.CHOIX.FONDS).filter(function (k) { return k !== 'photo'; }).map(function (k) { return '<option value="' + k + '"' + (k === val ? ' selected' : '') + '>' + esc(C.CHOIX.FONDS[k]) + '</option>'; }).join('') + '</select>'; }
@@ -301,6 +301,8 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
     if (b.t === 'mots') return 'Il est dix heures…';
     if (b.t === 'compte') return 'J- · ' + b.txt;
     if (b.t === 'lune') return 'Phase du jour';
+    if (b.t === 'fuseau') return b.txt + ' (' + (b.ecart > 0 ? '+' : '') + String(b.ecart).replace('.', ',') + ' h)';
+    if (b.t === 'voyants') return b.liste.map(function (k) { return C.CHOIX.VOYANTS[k].n; }).join(', ') || 'Aucun';
     if (b.t === 'panneau') return C2.PANNEAUX[b.style] + ' · ' + b.l + ' × ' + b.h;
     if (b.t === 'meteo') return 'Icône + température' + (b.minmax ? ' · mini/maxi' : '');
     return '';
@@ -362,6 +364,16 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
         pRange('taille', 'Taille', 18, 80, 1, b.taille) + '<div class="lbl">Couleur des chiffres</div>' + swatches('couleur', b.couleur) +
         '<div class="lbl">Couleur du nom</div>' + swatches('libelle', b.libelle) + '<div class="lbl">Police</div>' + chips('police', K.POLICES, b.police, 'data-p') +
         '<p class="note">Affiche « J-12 », puis « JOUR J » le jour même.</p>';
+    } else if (b.t === 'fuseau') {
+      h += '<div class="lbl">Ville ou pays</div><input class="in" data-pt="txt" maxlength="16" value="' + esc(b.txt) + '" placeholder="New York, Tokyo, Martinique…">' +
+        pRange('ecart', 'Décalage avec la France (heures)', -14, 14, .5, b.ecart) +
+        '<p class="note">Exemples l\'hiver : New York −6, Montréal −6, Martinique −5, La Réunion +3, Dubaï +3, Tokyo +8. Quand la France change d\'heure et pas l\'autre pays, ajustez d\'une heure.</p>' +
+        pRange('taille', 'Taille', 16, 60, 1, b.taille) + '<div class="lbl">Couleur des chiffres</div>' + swatches('couleur', b.couleur) +
+        '<div class="lbl">Couleur du nom</div>' + swatches('libelle', b.libelle) + '<div class="lbl">Police</div>' + chips('police', K.POLICES, b.police, 'data-p');
+    } else if (b.t === 'voyants') {
+      h += '<div class="lbl">Voyants (allumés seulement quand c\'est le cas)</div><div class="chips">' + Object.keys(K.VOYANTS).map(function (k) { return '<button class="chip" data-voy="' + k + '" aria-pressed="' + (b.liste.indexOf(k) >= 0) + '">' + esc(K.VOYANTS[k].n) + '</button>'; }).join('') + '</div>' +
+        pRange('taille', 'Taille', 16, 48, 1, b.taille) + '<div class="lbl">Couleur</div>' + swatches('couleur', b.couleur) +
+        '<p class="note">Dans l\'aperçu, on voit « Bluetooth coupé » et « Alarme réglée » pour se rendre compte.</p>';
     } else if (b.t === 'lune') {
       h += pRange('taille', 'Taille', 40, 220, 2, b.taille) + pSw('halo', 'Halo lumineux', b.halo, 'Plus fort à la pleine lune') + '<p class="note">La lune suit son vrai cycle de 29,5 jours (vue de l\'hémisphère nord), calculé par la montre.</p>';
     } else if (b.t === 'anim') {
@@ -396,7 +408,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
   function ajouter(t) {
     var d = { heure: { t: 'heure', x: 240, y: 240, taille: 90 }, aiguilles: { t: 'aiguilles', x: 240, y: 240, echelle: 1 }, date: { t: 'date', x: 240, y: 330, format: 'court', taille: 18 },
       info: { t: 'info', d: 'pas', x: 240, y: 360, style: 'simple', taille: 's' }, meteo: { t: 'meteo', x: 240, y: 110, taille: 's' }, texte: { t: 'texte', x: 240, y: 400, txt: 'MAG', taille: 18 },
-      trait: { t: 'trait', x: 240, y: 300, l: 200, ep: 2, couleur: 'doux' }, panneau: { t: 'panneau', x: 240, y: 240, l: 320, h: 120, r: 14, style: 'lcd', couleur: 'accent' }, image: { t: 'image', motif: 'fleur', x: 360, y: 330, taille: 60 }, anim: { t: 'anim', motif: 'balancier', x: 240, y: 340, taille: 110, couleur: 'accent' }, mots: { t: 'mots', x: 240, y: 240, taille: 22, couleur: 'accent' }, compte: { t: 'compte', x: 170, y: 360, taille: 40, txt: 'Noël', date: new Date().getFullYear() + '-12-25', annuel: true, couleur: 'texte' }, lune: { t: 'lune', x: 312, y: 360, taille: 90 } }[t];
+      trait: { t: 'trait', x: 240, y: 300, l: 200, ep: 2, couleur: 'doux' }, panneau: { t: 'panneau', x: 240, y: 240, l: 320, h: 120, r: 14, style: 'lcd', couleur: 'accent' }, image: { t: 'image', motif: 'fleur', x: 360, y: 330, taille: 60 }, anim: { t: 'anim', motif: 'balancier', x: 240, y: 340, taille: 110, couleur: 'accent' }, mots: { t: 'mots', x: 240, y: 240, taille: 22, couleur: 'accent' }, compte: { t: 'compte', x: 170, y: 360, taille: 40, txt: 'Noël', date: new Date().getFullYear() + '-12-25', annuel: true, couleur: 'texte' }, lune: { t: 'lune', x: 312, y: 360, taille: 90 }, fuseau: { t: 'fuseau', x: 240, y: 360, txt: 'NEW YORK', ecart: -6, taille: 28 }, voyants: { t: 'voyants', x: 240, y: 92, taille: 24, liste: ['DISCONNECT', 'DISTURB', 'CLOCK'] } }[t];
     if (t === 'panneau') { ED.blocs.unshift(C.normBloc(d)); dirty = 1; selectionne(0); return; }   // un écran va derrière les autres éléments
     ED.blocs.push(C.normBloc(d)); dirty = 1; selectionne(ED.blocs.length - 1);
   }
@@ -561,6 +573,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:6px;font-size:12.5px;wo
       if ((x = e.target.closest('[data-p] .chip'))) { var k = x.parentNode.dataset.p; b[k] = x.dataset.v; return changed(true); }
       if ((x = e.target.closest('[data-p1]'))) { b.couleur = 'auto'; return changed(true); }
       if ((x = e.target.closest('[data-pc] button'))) { b[x.parentNode.dataset.pc] = x.dataset.v; return changed(true); }
+      if ((x = e.target.closest('[data-voy]'))) { var lv = (b.liste || []).slice(), iv = lv.indexOf(x.dataset.voy); if (iv >= 0) lv.splice(iv, 1); else lv.push(x.dataset.voy); b.liste = lv; return changed(true); }
       if ((x = e.target.closest('[data-nudge]'))) { var d = x.dataset.nudge.split(','); if (d[0] === '0' && d[1] === '0') { b.x = 240; b.y = 240; } else { b.x += +d[0]; b.y += +d[1]; } return changed(true); }
       if ((x = e.target.closest('[data-ctr]'))) { b[x.dataset.ctr] = 240; return changed(true); }
       if ((x = e.target.closest('[data-act]'))) {

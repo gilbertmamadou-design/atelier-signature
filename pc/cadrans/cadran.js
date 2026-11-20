@@ -56,8 +56,11 @@
     coucher: { n: 'Coucher du soleil', type: 'SUN_SET', lab: 'COUCHER', ic: 'coucher', ex: '17:28', point: 'dp' },
     altitude: { n: 'Altitude', type: 'ALTITUDE', lab: 'ALT. M', ic: 'montagne', ex: 412 },
     pression: { n: 'Pression', type: 'ALTIMETER', lab: 'HPA', ic: 'jauge', ex: 1013 },
-    vent: { n: 'Vent', type: 'WIND', lab: 'VENT', ic: 'vent', ex: 3 }
+    vent: { n: 'Vent', type: 'WIND', lab: 'VENT', ic: 'vent', ex: 3 },
+    alarme: { n: 'Prochaine alarme', type: 'ALARM_CLOCK', lab: 'RÉVEIL', ic: 'reveil', ex: '07:30', point: 'dp' }
   };
+  // voyants système (IMG_STATUS) : affichés seulement quand l'état est actif
+  var VOYANTS = { DISCONNECT: { n: 'Bluetooth coupé', ic: 'bluex' }, DISTURB: { n: 'Ne pas déranger', ic: 'dnd' }, CLOCK: { n: 'Alarme réglée', ic: 'cloche' }, LOCK: { n: 'Écran verrouillé', ic: 'cadenas' } };
   var FONDS = { uni: 'Uni', degrade: 'Dégradé', radial: 'Halo', carbone: 'Carbone', grille: 'Grille', hud: 'HUD', camo: 'Camouflage', fleurs: 'Fleurs', printemps: 'Printemps', ete: 'Été', automne: 'Automne', hiver: 'Hiver', noel: 'Noël', espace: 'Espace', soleil: 'Soleillé', guilloche: 'Guilloché', damas: 'Damas', nacre: 'Nacre', mouvement: 'Mouvement mécanique', marbre: 'Marbre', bois: 'Bois', cuir: 'Cuir surpiqué', topo: 'Carte topographique', aurore: 'Aurore boréale', hexa: 'Nid d\'abeille', vagues: 'Vagues', photo: 'Ma photo' };
   var MOTIFS = { fleur: 'Fleur', marguerite: 'Marguerite', tulipe: 'Tulipe', feuille: 'Feuille', erable: 'Feuille d\'érable', flocon: 'Flocon', soleil: 'Soleil', lune: 'Lune', sapin: 'Sapin',
     etoile: 'Étoile', coeur: 'Cœur', papillon: 'Papillon', champignon: 'Champignon', citrouille: 'Citrouille', cadeau: 'Cadeau', montagne: 'Montagne',
@@ -70,7 +73,7 @@
   var TAILLES = { s: 'Petite', m: 'Moyenne', l: 'Grande' };
   var DATES = { long: 'MERCREDI 30 OCTOBRE', court: 'MER 30 OCT', jourNum: 'MER 30', numMois: '30 OCT', jour: 'MERCREDI', jour3: 'MER', numero: '30', chiffres: '30/10' };
   var EFFETS = { aucun: 'Aucun', ombre: 'Ombre', relief: 'Relief 3D', biseau: 'Biseau', contour: 'Contour', creux: 'Creux', lueur: 'Néon', degrade: 'Dégradé', metal: 'Métal', lcd: 'Segments LCD' };
-  var TYPES = { heure: 'Heure', aiguilles: 'Aiguilles', date: 'Date', info: 'Info', meteo: 'Météo', texte: 'Texte', trait: 'Trait', image: 'Image', panneau: 'Écran / cadre', anim: 'Animation', mots: 'Heure en lettres', compte: 'Compte à rebours', lune: 'Phase de lune' };
+  var TYPES = { heure: 'Heure', aiguilles: 'Aiguilles', date: 'Date', info: 'Info', meteo: 'Météo', texte: 'Texte', trait: 'Trait', image: 'Image', panneau: 'Écran / cadre', anim: 'Animation', mots: 'Heure en lettres', compte: 'Compte à rebours', lune: 'Phase de lune', fuseau: '2e fuseau horaire', voyants: 'Voyants' };
   var PANNEAUX = { lcd: 'LCD clair', lcdvert: 'LCD vert', ambre: 'LCD ambre', sombre: 'Sombre', verre: 'Verre', cadre: 'Cadre seul' };
   var JOURS = ['LUNDI', 'MARDI', 'MERCREDI', 'JEUDI', 'VENDREDI', 'SAMEDI', 'DIMANCHE'];
   var JOURS3 = ['LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM', 'DIM'];
@@ -89,7 +92,7 @@
   /* animations : une image par étape (f_0.png…), jouées par la montre (IMG_ANIM) quand l'écran est allumé */
   var ANIMS = { engrenages: 'Engrenages', balancier: 'Balancier', radar: 'Radar', coeur: 'Cœur qui bat', etoiles: 'Étoiles scintillantes', flamme: 'Flamme', onde: 'Onde lumineuse', cage: 'Cage de tourbillon', pendule: 'Pendule', neige: 'Neige', bulles: 'Bulles', eclair: 'Éclair', sablier: 'Sablier', soleil: 'Soleil qui rayonne', vague: 'Vague', disco: 'Lumières disco' };
   var ANIM_N = { engrenages: 24, balancier: 24, radar: 30, coeur: 20, etoiles: 24, flamme: 16, onde: 24, cage: 24, pendule: 24, neige: 24, bulles: 24, eclair: 20, sablier: 24, soleil: 24, vague: 24, disco: 16 };
-  var CHOIX = { ANIMS: ANIMS, PANNEAUX: PANNEAUX, MOTIFS: MOTIFS, TROTS: TROTS, CALQUES: CALQUES, EFFETS: EFFETS, ICONES: { trait: 'Dessin', couleur: 'En couleur' }, POLICES: POLICES, INFOS: INFOS, FONDS: FONDS, ANNEAUX: ANNEAUX, AIGUILLES: AIGUILLES, STYLES: STYLES, TAILLES: TAILLES, DATES: DATES, TYPES: TYPES, VIFS: VIFS,
+  var CHOIX = { VOYANTS: VOYANTS, ANIMS: ANIMS, PANNEAUX: PANNEAUX, MOTIFS: MOTIFS, TROTS: TROTS, CALQUES: CALQUES, EFFETS: EFFETS, ICONES: { trait: 'Dessin', couleur: 'En couleur' }, POLICES: POLICES, INFOS: INFOS, FONDS: FONDS, ANNEAUX: ANNEAUX, AIGUILLES: AIGUILLES, STYLES: STYLES, TAILLES: TAILLES, DATES: DATES, TYPES: TYPES, VIFS: VIFS,
     HEURE: { numerique: 'Numérique', analogique: 'À aiguilles', mixte: 'Aiguilles + heure' }, TAILLE: { grande: 'Grande', moyenne: 'Moyenne' },
     AOD: { heure_date: 'Heure et date', heure: 'Heure seule' } };
 
@@ -114,6 +117,9 @@
     if (b.t === 'mots') { o.taille = Math.round(num(b.taille, 14, 34, 22)); o.couleur = col(b.couleur, 'accent'); o.eteinte = num(b.eteinte, .05, .6, .2); o.police = POLICES[b.police] ? b.police : 'nette'; o.points = b.points !== false; }
     if (b.t === 'compte') { o.date = /^\d{4}-\d{2}-\d{2}$/.test(b.date || '') ? b.date : '2026-12-25'; o.txt = String(b.txt == null ? 'Noël' : b.txt).replace(/[\u0000-\u001f]/g, '').slice(0, 20); o.annuel = b.annuel !== false;
       o.taille = Math.round(num(b.taille, 18, 80, 40)); o.police = POLICES[b.police] ? b.police : 'sport'; o.libelle = col(b.libelle, 'doux'); }
+    if (b.t === 'fuseau') { o.txt = String(b.txt == null ? 'NEW YORK' : b.txt).replace(/[\u0000-\u001f]/g, '').slice(0, 16); o.ecart = Math.round(num(b.ecart, -14, 14, -6) * 2) / 2;
+      o.taille = Math.round(num(b.taille, 16, 60, 28)); o.libelle = col(b.libelle, 'doux'); }
+    if (b.t === 'voyants') { o.liste = (Array.isArray(b.liste) ? b.liste : ['DISCONNECT', 'DISTURB', 'CLOCK']).filter(function (k, i, l) { return VOYANTS[k] && l.indexOf(k) === i; }); o.taille = Math.round(num(b.taille, 16, 48, 24)); o.couleur = col(b.couleur, 'accent'); }
     if (b.t === 'lune') { o.taille = Math.round(num(b.taille, 40, 220, 90)); o.halo = b.halo !== false; }
     if (b.t === 'trait') { o.l = Math.round(num(b.l, 10, 440, 200)); o.ep = num(b.ep, 1, 12, 2); o.vertical = !!b.vertical; }
     if (b.t === 'panneau') { o.l = Math.round(num(b.l, 20, 460, 300)); o.h = Math.round(num(b.h, 10, 460, 110)); o.r = Math.round(num(b.r, 0, 80, 14)); o.style = PANNEAUX[b.style] ? b.style : 'lcd'; o.couleur = col(b.couleur, 'accent'); }
@@ -244,6 +250,12 @@
     var P = function (d) { g.stroke(new Path2D(d)); }, F = function (d) { g.fill(new Path2D(d)); };
     switch (nom) {
       case 'pas': F('M8.5 3.5c1.6 0 2.6 1.9 2.4 4.3-.2 2.2-1 3.4-2.6 3.4-1.4 0-2.3-1.3-2.4-3.2C5.8 5.5 6.9 3.5 8.5 3.5zM6.6 12.6h3.8l-.3 2.3c-.2 1.2-1 1.9-1.9 1.9-1 0-1.7-.8-1.7-2zM15.5 7.5c1.6 0 2.7 2 2.5 4.4-.1 1.9-1 3.2-2.4 3.2-1.6 0-2.4-1.2-2.6-3.4-.2-2.4.9-4.2 2.5-4.2zM13.6 16.6h3.8l.1 1.3c0 1.2-.7 2-1.7 2-.9 0-1.7-.7-1.9-1.9z'); break;
+      case 'reveil': P('M12 21a7.5 7.5 0 1 0 0-15 7.5 7.5 0 0 0 0 15zM12 10v3.6l2.4 1.6M5 4.5 2.8 6.6M19 4.5l2.2 2.1M7 20l-1.5 1.8M17 20l1.5 1.8'); break;
+      case 'bluetooth': P('M7 7.5l10 9-5 4.5V3l5 4.5-10 9'); break;
+      case 'bluex': P('M7 7.5l10 9-5 4.5V3l5 4.5-10 9'); g.strokeStyle = '#ff4d4d'; g.lineWidth = 2.4; P('M3 3l18 18'); break;
+      case 'dnd': F('M14.5 3.2a8.8 8.8 0 1 0 6.3 12.7A7.2 7.2 0 0 1 14.5 3.2z'); break;
+      case 'cloche': P('M6 17V11a6 6 0 0 1 12 0v6l1.6 2H4.4zM10 21h4'); break;
+      case 'cadenas': P('M6.5 11h11v9h-11zM8.5 11V8a3.5 3.5 0 0 1 7 0v3'); F('M12 14.2a1.3 1.3 0 1 1 0 2.6 1.3 1.3 0 0 1 0-2.6z'); break;
       case 'coeur': F('M12 20.5s-7.5-4.4-8.6-9.6C2.7 7.5 4.8 4.5 7.8 4.5c1.8 0 3.2 1 4.2 2.4 1-1.4 2.4-2.4 4.2-2.4 3 0 5.1 3 4.4 6.4-1.1 5.2-8.6 9.6-8.6 9.6z'); break;
       case 'batterie': P('M3.5 8h15a1.5 1.5 0 0 1 1.5 1.5v5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 2 14.5v-5A1.5 1.5 0 0 1 3.5 8zM22 10.5v3'); F('M4.5 10h9v4h-9z'); break;
       case 'meteo': P('M7 18h10a4 4 0 0 0 .5-8 6 6 0 0 0-11.4 1.6A3.3 3.3 0 0 0 7 18z'); break;
@@ -507,6 +519,8 @@
     if (b.t === 'texte') { var pt = padFx(b.effet, b.taille), wt = Math.ceil(mesure(P.fam, Math.round(b.taille * P.echelle), b.txt, b.esp)) + 4 + pt, ht = Math.round(b.taille * 1.3) + pt; return { x: Math.round(b.x - wt / 2), y: Math.round(b.y - ht / 2), w: wt, h: ht }; }
     if (b.t === 'mots') { var gm = grilleMots(b); return { x: Math.round(gm.x0 - 8), y: Math.round(gm.y0 - 8), w: Math.round(gm.w + 16), h: Math.round(gm.h + 16), gm: gm }; }
     if (b.t === 'compte') { var hc = Math.round(b.taille * 1.1), wc2 = Math.round(b.taille * 3.2); return { x: Math.round(b.x - wc2 / 2), y: Math.round(b.y - hc / 2), w: wc2, h: Math.round(hc + b.taille * .7) }; }
+    if (b.t === 'fuseau') { var hf = Math.round(b.taille * 1.1), wf = Math.round(b.taille * 3.1); return { x: Math.round(b.x - wf / 2), y: Math.round(b.y - hf / 2), w: wf, h: Math.round(hf + b.taille * .62) }; }
+    if (b.t === 'voyants') { var nv = Math.max(1, b.liste.length), sv = b.taille + 10; return { x: Math.round(b.x - nv * sv / 2), y: Math.round(b.y - sv / 2), w: nv * sv, h: sv }; }
     if (b.t === 'lune') { var tl = b.taille; return { x: Math.round(b.x - tl / 2), y: Math.round(b.y - tl / 2), w: tl, h: tl }; }
     if (b.t === 'anim') { var ta = b.taille; return { x: Math.round(b.x - ta / 2), y: Math.round(b.y - ta / 2), w: ta, h: ta }; }
     if (b.t === 'image') { var ti = b.taille; return { x: Math.round(b.x - ti / 2), y: Math.round(b.y - ti / 2), w: ti, h: ti }; }
@@ -686,6 +700,17 @@
         var jjw = Math.ceil(mesure(Pc.fam, Math.round(fvc * .8), 'JOUR J')) + 8, jj = put('cpt' + bi + '/jj.png', boiteTxt(jjw, chc.h, 'JOUR J', Pc.fam, Math.round(fvc * .8), coul(cfg, b.couleur), 'center', 0, b.effet));
         add({ k: 'compte', x: x0c, y: y0c, dossier: chc.dos, cw: chc.cw, h: chc.h, pre: { src: pre, w: prew }, jj: { src: jj, x: Math.round(b.x - jjw / 2), y: y0c }, date: b.date, annuel: b.annuel });
       }
+      else if (b.t === 'fuseau') {
+        var chf = chiffres(b.police, b.taille, b.couleur), wdp = IM[chf.dos + '/dp.png'].width, tot = chf.cw * 4 + wdp;
+        add({ k: 'fuseau', x: Math.round(b.x - tot / 2), y: Math.round(b.y - chf.h / 2), dossier: chf.dos, cw: chf.cw, dpw: wdp, ecart: b.ecart });
+      }
+      else if (b.t === 'voyants') {
+        var sv = b.taille + 10;
+        b.liste.forEach(function (k, vi) {
+          var cvv = toile(sv, sv), gv = cvv.getContext('2d'); gv.shadowColor = coul(cfg, b.couleur); gv.shadowBlur = 4; icone(gv, VOYANTS[k].ic, sv / 2, sv / 2, b.taille, coul(cfg, b.couleur));
+          add({ k: 'statut', type: k, x: G.x + vi * sv, y: G.y, w: sv, h: sv, src: put('voy' + bi + '/' + k + '.png', cvv) });
+        });
+      }
       else if (b.t === 'lune') {
         var dl = 'lune' + bi + hash(String(b.taille) + b.halo);
         for (var li = 0; li < 30; li++) put(dl + '/' + li + '.png', imageLune(b, li / 30));
@@ -807,6 +832,7 @@
     cfg.blocs.forEach(function (b) {
       var G = geo(b, cfg), cc = coul(cfg, b.couleur);
       if (b.t === 'mots') { if (aod) return; var gq = grilleMots(b); GRILLE.forEach(function (row, ri) { lettres(g, b, row, gq.x0, gq.y0 + ri * gq.rh, gq.cw, gq.rh, rgba(aod ? cfg.doux : cfg.texte, aod ? b.eteinte * .6 : b.eteinte), false); }); return; }
+      if (b.t === 'fuseau') { if (!aod) texte(g, b.txt.toUpperCase(), b.x, Math.round(b.y + b.taille * .62 + 12), PETITE.fam, Math.max(11, Math.round(b.taille * .4)), coul(cfg, b.libelle), 'center', 2); return; }
       if (b.t === 'compte') { if (!aod) texte(g, b.txt.toUpperCase(), b.x, Math.round(b.y + b.taille * .62 + 12), PETITE.fam, Math.max(11, Math.round(b.taille * .34)), coul(cfg, b.libelle), 'center', 2); return; }
       if (b.t === 'texte') { var P = POLICES[b.police] || PETITE; texte(g, b.txt, b.x, Math.round(b.y + b.taille * .36), P.fam, Math.round(b.taille * P.echelle), aod ? aodDimDe(cfg) : cc, 'center', b.esp, aod ? null : b.effet); return; }
       if (b.t === 'image') { if (!aod) { g.save(); g.translate(b.x, b.y); g.rotate(b.rot * Math.PI / 180); motif(g, b.motif, 0, 0, b.taille, b.couleur === 'auto' ? null : coul(cfg, b.couleur)); g.restore(); } return; }
@@ -1558,6 +1584,11 @@
         if (jr === 0) { var i8 = im(w.jj.src); if (i8) g.drawImage(i8, w.jj.x, w.jj.y); }
         else { var i9 = im(w.pre.src), xx = w.x; if (i9) { g.drawImage(i9, xx, w.y); xx += w.pre.w; } String(Math.max(0, Math.min(999, jr))).split('').forEach(function (ch) { var ia2 = IM[w.dossier + '/' + ch + '.png']; if (ia2) g.drawImage(ia2, xx, w.y); xx += w.cw; }); }
       }
+      else if (w.k === 'fuseau') {
+        var d2 = new Date(d.getTime() + w.ecart * 36e5), hs = ('0' + d2.getHours()).slice(-2) + ('0' + d2.getMinutes()).slice(-2), xf = w.x;
+        [hs[0], hs[1], 'dp', hs[2], hs[3]].forEach(function (ch) { var ifu = IM[w.dossier + '/' + ch + '.png']; if (ifu) g.drawImage(ifu, xf, w.y); xf += ch === 'dp' ? w.dpw : w.cw; });
+      }
+      else if (w.k === 'statut') { if (opt.voyants !== false && (opt.voyants || ['DISCONNECT', 'CLOCK']).indexOf(w.type) >= 0) { var ist = im(w.src); if (ist) g.drawImage(ist, w.x, w.y); } }
       else if (w.k === 'lune') { var il = IM[w.dossier + '/' + lunePhase(d) + '.png']; if (il) g.drawImage(il, w.x, w.y); }
       else if (w.k === 'anim') { var fi = opt.frame != null ? opt.frame % w.n : Math.floor(Date.now() / (1000 / w.fps)) % w.n, ia = IM[w.dossier + '/f_' + fi + '.png']; if (ia) g.drawImage(ia, w.x, w.y); }
       else if (w.k === 'level') {

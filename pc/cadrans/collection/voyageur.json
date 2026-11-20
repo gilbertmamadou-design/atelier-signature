@@ -1,0 +1,61 @@
+{
+ "id": "voyageur",
+ "appId": 1093233,
+ "nom": "Voyageur",
+ "fond": "soleil",
+ "c1": "#03142e",
+ "c2": "#1d5fa8",
+ "accent": "#ff7a1a",
+ "texte": "#f2f6ff",
+ "doux": "#9db4d6",
+ "anneau": "h24",
+ "aod": "heure_date",
+ "calques": [
+  "verre"
+ ],
+ "blocs": [
+  {
+   "t": "voyants",
+   "x": 240,
+   "y": 96,
+   "taille": 24,
+   "liste": [
+    "DISCONNECT",
+    "DISTURB",
+    "CLOCK",
+    "LOCK"
+   ]
+  },
+  {
+   "t": "heure",
+   "x": 240,
+   "y": 196,
+   "taille": 90
+  },
+  {
+   "t": "date",
+   "format": "court",
+   "x": 240,
+   "y": 250,
+   "taille": 16,
+   "couleur": "doux",
+   "jour": "accent"
+  },
+  {
+   "t": "fuseau",
+   "x": 160,
+   "y": 328,
+   "txt": "New York",
+   "ecart": -6,
+   "taille": 28
+  },
+  {
+   "t": "info",
+   "d": "alarme",
+   "x": 320,
+   "y": 328,
+   "style": "simple",
+   "taille": "m"
+  }
+ ]
+}
