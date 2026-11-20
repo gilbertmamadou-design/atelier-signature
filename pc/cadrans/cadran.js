@@ -1079,7 +1079,8 @@
       var bumps = [[150, 170, 1], [330, 300, 1.2], [360, 120, .8], [120, 360, .9]];
       var hgt = function (x, y) { var h = 0; bumps.forEach(function (b) { h += b[2] * Math.exp(-((x - b[0]) * (x - b[0]) + (y - b[1]) * (y - b[1])) / 9000); }); return h + .15 * Math.sin(x / 50) * Math.cos(y / 60); };
       var step = 6, cols2 = W / step;
-      for (var lvl = 1; lvl < 14; lvl++) { var th2 = lvl * .09; g.strokeStyle = rgba(lvl % 5 ? B : mix(B, '#ffffff', .4), lvl % 5 ? .45 : .8); g.lineWidth = lvl % 5 ? 1 : 1.8; g.beginPath();
+      g.lineCap = 'round'; g.lineJoin = 'round';
+      for (var lvl = 1; lvl < 14; lvl++) { var th2 = lvl * .09; g.strokeStyle = lvl % 5 ? mix(B, A, .2) : mix(B, '#ffffff', .35); g.lineWidth = lvl % 5 ? 2.2 : 3.4; g.beginPath();
         for (var gy = 0; gy < cols2; gy++) for (var gx = 0; gx < cols2; gx++) {   // carrés qui avancent (marching squares simplifié)
           var x0 = gx * step, y0 = gy * step, a1 = hgt(x0, y0) > th2, b1 = hgt(x0 + step, y0) > th2, c1 = hgt(x0 + step, y0 + step) > th2, d1 = hgt(x0, y0 + step) > th2;
           var pts = []; if (a1 !== b1) pts.push([x0 + step / 2, y0]); if (b1 !== c1) pts.push([x0 + step, y0 + step / 2]); if (c1 !== d1) pts.push([x0 + step / 2, y0 + step]); if (d1 !== a1) pts.push([x0, y0 + step / 2]);
