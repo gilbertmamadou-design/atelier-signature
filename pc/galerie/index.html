@@ -239,6 +239,14 @@ svg{display:block}
 .adj .lab{display:flex;justify-content:space-between;font-weight:600;font-size:13.5px}
 .adj .lab span{color:var(--acc);font-variant-numeric:tabular-nums}
 input[type=range]{width:100%;margin:6px 0 8px;accent-color:var(--acc)}
+.fxs{display:flex;gap:10px;overflow-x:auto;padding:4px 12px 6px;scrollbar-width:none}
+.fxs::-webkit-scrollbar{display:none}
+.fxs button{flex:none;width:64px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:var(--tx2)}
+.fxs canvas{width:60px;height:60px;border-radius:12px;border:2px solid transparent;background:var(--bg3);display:block}
+.fxs button.on{color:var(--tx)}
+.fxs button.on canvas{border-color:var(--acc)}
+.fxsl{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}
+.fxsl .adj{padding:0 10px}
 .ebusy{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--tx2);font-size:14px;background:#08090ccc;z-index:5}
 
 /* ---------- Accueil autorisation ---------- */
@@ -281,6 +289,7 @@ input[type=range]{width:100%;margin:6px 0 8px;accent-color:var(--acc)}
   <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
   <symbol id="i-rotate" viewBox="0 0 24 24"><path d="M3.5 9V4.5M3.5 9H8"/><path d="M4 9a8.5 8.5 0 1 1-.5 6"/><rect x="9" y="10" width="7" height="7" rx="1"/></symbol>
   <symbol id="i-flip" viewBox="0 0 24 24"><path d="M12 3v18M9 6 4 18h5zM15 6l5 12h-5z"/></symbol>
+  <symbol id="i-fx" viewBox="0 0 24 24"><circle cx="9" cy="9" r="5.5"/><circle cx="15" cy="9" r="5.5"/><circle cx="12" cy="15" r="5.5"/></symbol>
   <symbol id="i-crop" viewBox="0 0 24 24"><path d="M6 2v14a2 2 0 0 0 2 2h14M2 6h14a2 2 0 0 1 2 2v14"/></symbol>
   <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2m0 15v2M4.6 4.6 6 6m12 12 1.4 1.4M2.5 12h2m15 0h2M4.6 19.4 6 18M18 6l1.4-1.4"/></symbol>
   <symbol id="i-wall" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="m6.5 16 3.5-3.5 3 3 1.5-1.5 3 3"/></symbol>
@@ -394,7 +403,15 @@ input[type=range]{width:100%;margin:6px 0 8px;accent-color:var(--acc)}
       <div class="adj"><div class="lab">Contraste <span id="vC">0</span></div><input type="range" min="-100" max="100" value="0" id="rC"></div>
       <div class="adj"><div class="lab">Saturation <span id="vS2">0</span></div><input type="range" min="-100" max="100" value="0" id="rS"></div>
     </div>
-    <div class="etabs"><button data-p="pCrop" class="on"><svg class="ic s"><use href="#i-crop"/></svg>Recadrer</button><button data-p="pAdj"><svg class="ic s"><use href="#i-sun"/></svg>Réglages</button></div>
+    <div class="epanel" id="pFx" hidden>
+      <div class="fxs" id="fxs"></div>
+      <div class="fxsl">
+        <div class="adj"><div class="lab">Intensité <span id="vFk">100</span></div><input type="range" min="0" max="100" value="100" id="rFk"></div>
+        <div class="adj"><div class="lab">Vignette <span id="vFv">0</span></div><input type="range" min="0" max="100" value="0" id="rFv"></div>
+        <div class="adj"><div class="lab">Grain <span id="vFg">0</span></div><input type="range" min="0" max="100" value="0" id="rFg"></div>
+      </div>
+    </div>
+    <div class="etabs"><button data-p="pCrop" class="on"><svg class="ic s"><use href="#i-crop"/></svg>Recadrer</button><button data-p="pFx"><svg class="ic s"><use href="#i-fx"/></svg>Filtres</button><button data-p="pAdj"><svg class="ic s"><use href="#i-sun"/></svg>Réglages</button></div>
   </div>
 </section>
 
@@ -1774,12 +1791,12 @@ var ED = { on: false, img: null, small: null, rot: 0, flip: false, crop: { x: 0,
 var FMTS = [["free", "Libre"], ["orig", "Original"], ["1:1", "Carré"], ["4:3", "4:3"], ["3:4", "3:4"], ["16:9", "16:9"], ["9:16", "9:16"], ["screen", "Écran"]];
 $("fmts").innerHTML = FMTS.map(function(f){ return '<button class="chip" data-f="' + f[0] + '">' + f[1] + "</button>"; }).join("");
 function openEditor(it){
-  ED.on = true; ED.it = it; ED.img = null; ED.rot = 0; ED.flip = false; ED.crop = { x: 0, y: 0, w: 1, h: 1 }; ED.fmt = "free"; ED.ratio = 0; ED.adj = { b: 0, c: 0, s: 0 };
+  ED.on = true; ED.it = it; ED.img = null; ED.rot = 0; ED.flip = false; ED.crop = { x: 0, y: 0, w: 1, h: 1 }; ED.fmt = "free"; ED.ratio = 0; ED.adj = { b: 0, c: 0, s: 0 }; ED.fx = { p: 0, k: 100, v: 0, g: 0 };
   var el = $("editor"); el.hidden = false;
   requestAnimationFrame(function(){ el.classList.add("on"); });
   $("ebusy").hidden = false; $("ebusyT").textContent = "Préparation de la photo…";
   $("ewrap").style.visibility = "hidden";
-  ["rB", "rC", "rS"].forEach(function(id){ $(id).value = 0; });
+  ["rB", "rC", "rS", "rFv", "rFg"].forEach(function(id){ $(id).value = 0; }); $("rFk").value = 100; fxLabels();
   edLabels(); edFmtChips(); edTab("pCrop");
   pushLayer(function(){ closeEditor(); });
   var req = "e" + Date.now(); ED.req = req;
@@ -1816,7 +1833,79 @@ H.preview = function(d){
 };
 function edDims(){ var w = ED.img.naturalWidth, h = ED.img.naturalHeight; return ED.rot % 180 ? { w: h, h: w } : { w: w, h: h }; }
 var CANVAS_FILTER = (function(){ try { var x = document.createElement("canvas").getContext("2d"); x.filter = "brightness(1.5)"; return x.filter === "brightness(1.5)"; } catch (e) { return false; } })();
-function edFilter(){ var a = ED.adj; return "brightness(" + (1 + a.b / 200).toFixed(3) + ") contrast(" + (1 + a.c / 150).toFixed(3) + ") saturate(" + (1 + a.s / 100).toFixed(3) + ")"; }
+function edFilter(){ var a = ED.adj; return "brightness(" + (1 + a.b / 200).toFixed(3) + ") contrast(" + (1 + a.c / 150).toFixed(3) + ") saturate(" + (1 + a.s / 100).toFixed(3) + ")" + fxFilter(ED.fx.p, ED.fx.k / 100); }
+/* ---------- Filtres : un style (couleurs + teinte) dosé par « Intensité », plus vignette et grain ---------- */
+var FX = [
+  { n: "Original" },
+  { n: "Vif", g: { saturate: 1.4, contrast: 1.12 } },
+  { n: "Chaud", g: { sepia: .2, saturate: 1.15, brightness: 1.03 }, t: ["#ff9a3c", "soft-light", .3] },
+  { n: "Froid", g: { saturate: .9, hue: -6 }, t: ["#3c8cff", "soft-light", .3] },
+  { n: "Noir et blanc", g: { grayscale: 1, contrast: 1.12 } },
+  { n: "N&B intense", g: { grayscale: 1, contrast: 1.55, brightness: .95 }, v: .45 },
+  { n: "Sépia", g: { sepia: .85, contrast: 1.05 } },
+  { n: "Vintage", g: { sepia: .35, contrast: .9, saturate: .8, brightness: 1.05 }, t: ["#f3d9a0", "multiply", .22], v: .35, gr: .25 },
+  { n: "Polaroïd", g: { contrast: .88, brightness: 1.08, saturate: .85 }, t: ["#ffe2b8", "soft-light", .4], fade: .12 },
+  { n: "Cinéma", g: { contrast: 1.2, saturate: .85 }, t: ["#00a0a8", "soft-light", .2], v: .4 },
+  { n: "Rêve", g: { brightness: 1.08, contrast: .85, saturate: .95 }, t: ["#ffc6ec", "soft-light", .35], fade: .08 },
+  { n: "Bleu nuit", g: { saturate: .75, brightness: .92, contrast: 1.1 }, t: ["#1b2a6b", "multiply", .35], v: .5 },
+  { n: "Années 70", g: { sepia: .4, saturate: 1.3, hue: -12 }, t: ["#ff7a59", "soft-light", .22], gr: .2, fade: .06 },
+  { n: "Pop", g: { saturate: 1.85, contrast: 1.25 } },
+  { n: "Mat", g: { contrast: .8, brightness: 1.08, saturate: .75 }, fade: .15 },
+  { n: "Doré", g: { sepia: .3, saturate: 1.25, brightness: 1.05 }, t: ["#ffc35a", "overlay", .25], v: .2 },
+  { n: "Forêt", g: { saturate: 1.1, hue: -10, contrast: 1.05 }, t: ["#2f7a3a", "soft-light", .25] },
+  { n: "Noir", g: { grayscale: 1, contrast: 1.3, brightness: .85 }, t: ["#0b1430", "screen", .15], v: .6, gr: .3 }
+];
+function fxFilter(i, k){
+  var f = FX[i] && FX[i].g; if (!f || !k) return "";
+  var r = "", m = function(v, n){ return 1 + (v - 1) * k; };
+  if (f.grayscale) r += " grayscale(" + (f.grayscale * k).toFixed(3) + ")";
+  if (f.sepia) r += " sepia(" + (f.sepia * k).toFixed(3) + ")";
+  if (f.saturate) r += " saturate(" + m(f.saturate).toFixed(3) + ")";
+  if (f.contrast) r += " contrast(" + m(f.contrast).toFixed(3) + ")";
+  if (f.brightness) r += " brightness(" + m(f.brightness).toFixed(3) + ")";
+  if (f.hue) r += " hue-rotate(" + (f.hue * k).toFixed(1) + "deg)";
+  return r;
+}
+var GRAIN = null;
+function grainPat(x){
+  if (!GRAIN){ GRAIN = document.createElement("canvas"); GRAIN.width = GRAIN.height = 160; var g = GRAIN.getContext("2d"), im = g.createImageData(160, 160), d = im.data;
+    for (var i = 0; i < d.length; i += 4){ var v = 128 + (Math.random() - .5) * 255; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; } g.putImageData(im, 0, 0); }
+  return x.createPattern(GRAIN, "repeat");
+}
+// teinte, voile, vignette et grain sur le rectangle (rx, ry, rw, rh) déjà dessiné
+function fxOverlay(x, rx, ry, rw, rh, fx, sc){
+  var f = FX[fx.p] || {}, k = fx.k / 100;
+  x.save(); x.filter = "none"; x.beginPath(); x.rect(rx, ry, rw, rh); x.clip();
+  if (f.t && k){ x.globalCompositeOperation = f.t[1]; x.globalAlpha = f.t[2] * k; x.fillStyle = f.t[0]; x.fillRect(rx, ry, rw, rh); }
+  if (f.fade && k){ x.globalCompositeOperation = "screen"; x.globalAlpha = f.fade * k; x.fillStyle = "#808080"; x.fillRect(rx, ry, rw, rh); }
+  var v = Math.min(1, (f.v || 0) * k + fx.v / 100);
+  if (v > 0){
+    var cx = rx + rw / 2, cy = ry + rh / 2, R = Math.sqrt(rw * rw + rh * rh) / 2, gr = x.createRadialGradient(cx, cy, R * (.75 - v * .4), cx, cy, R);
+    gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(1, "rgba(0,0,0," + (.25 + v * .6).toFixed(3) + ")");
+    x.globalCompositeOperation = "source-over"; x.globalAlpha = 1; x.fillStyle = gr; x.fillRect(rx, ry, rw, rh);
+  }
+  var g = Math.min(1, (f.gr || 0) * k + fx.g / 100);
+  if (g > 0){
+    var pat = grainPat(x); if (pat && pat.setTransform && sc && sc !== 1) pat.setTransform(new DOMMatrix().scale(sc, sc));
+    x.globalCompositeOperation = "overlay"; x.globalAlpha = g * .3; x.fillStyle = pat; x.fillRect(rx, ry, rw, rh);
+  }
+  x.restore();
+}
+function fxLabels(){ $("vFk").textContent = ED.fx.k; $("vFv").textContent = ED.fx.v; $("vFg").textContent = ED.fx.g; }
+// vignettes d'aperçu de chaque filtre, à partir de la photo réduite
+function fxThumbs(){
+  var box = $("fxs"); if (!box || !ED.small) return;
+  if (!box.children.length) box.innerHTML = FX.map(function(f, i){ return '<button data-fx="' + i + '"><canvas width="120" height="120"></canvas>' + f.n + '</button>'; }).join("");
+  var src = ED.small, sw = src.width || src.naturalWidth, sh = src.height || src.naturalHeight, m = Math.min(sw, sh);
+  box.querySelectorAll("button").forEach(function(b, i){
+    b.classList.toggle("on", i === ED.fx.p);
+    if (b._src === src) return; b._src = src;
+    var c = b.firstChild, x = c.getContext("2d"); x.clearRect(0, 0, 120, 120);
+    if ("filter" in x) x.filter = fxFilter(i, 1) || "none";
+    x.drawImage(src, (sw - m) / 2, (sh - m) / 2, m, m, 0, 0, 120, 120);
+    fxOverlay(x, 0, 0, 120, 120, { p: i, k: 100, v: 0, g: 0 }, .5);
+  });
+}
 function edDraw(){
   if (!ED.img) return;
   var area = $("estage"), aw = area.clientWidth - 40, ah = area.clientHeight - 40;
@@ -1834,6 +1923,7 @@ function edDraw(){
   edPaint(x, ED.small, c.width, c.height);
   x.restore();
   if (!CANVAS_FILTER) manualAdjust(x, c.width, c.height);
+  var cr = ED.crop; fxOverlay(x, cr.x * c.width, cr.y * c.height, cr.w * c.width, cr.h * c.height, ED.fx, DPR);
   edCropBox();
 }
 // Dessine la source tournée/retournée pour remplir (W,H)
@@ -1897,9 +1987,9 @@ $("eRot").onclick = function(){
 $("eFlip").onclick = function(){ if (!ED.img) return; var c = ED.crop; ED.crop = { x: 1 - (c.x + c.w), y: c.y, w: c.w, h: c.h }; ED.flip = !ED.flip; edDraw(); };
 $("eReset").onclick = function(){
   if (!ED.img) return;
-  ED.rot = 0; ED.flip = false; ED.crop = { x: 0, y: 0, w: 1, h: 1 }; ED.fmt = "free"; ED.ratio = 0; ED.adj = { b: 0, c: 0, s: 0 };
-  ["rB", "rC", "rS"].forEach(function(id){ $(id).value = 0; });
-  edLabels(); edFmtChips(); edDraw();
+  ED.rot = 0; ED.flip = false; ED.crop = { x: 0, y: 0, w: 1, h: 1 }; ED.fmt = "free"; ED.ratio = 0; ED.adj = { b: 0, c: 0, s: 0 }; ED.fx = { p: 0, k: 100, v: 0, g: 0 };
+  ["rB", "rC", "rS", "rFv", "rFg"].forEach(function(id){ $(id).value = 0; }); $("rFk").value = 100;
+  edLabels(); edFmtChips(); fxLabels(); fxThumbs(); edDraw();
 };
 function edLabels(){ $("vB").textContent = ED.adj.b; $("vC").textContent = ED.adj.c; $("vS2").textContent = ED.adj.s; }
 var adjRaf = 0;
@@ -1908,8 +1998,14 @@ var adjRaf = 0;
   r.addEventListener("input", function(){ ED.adj[p[1]] = +r.value; edLabels(); if (!adjRaf) adjRaf = requestAnimationFrame(function(){ adjRaf = 0; edDraw(); }); });
   r.addEventListener("dblclick", function(){ r.value = 0; ED.adj[p[1]] = 0; edLabels(); edDraw(); });
 });
+$("fxs").onclick = function(e){ var b = e.target.closest("[data-fx]"); if (!b) return; ED.fx.p = +b.dataset.fx; if (!ED.fx.k) { ED.fx.k = 100; $("rFk").value = 100; } fxLabels(); fxThumbs(); edDraw(); };
+[["rFk", "k"], ["rFv", "v"], ["rFg", "g"]].forEach(function(p){
+  var r = $(p[0]);
+  r.addEventListener("input", function(){ ED.fx[p[1]] = +r.value; fxLabels(); if (!adjRaf) adjRaf = requestAnimationFrame(function(){ adjRaf = 0; edDraw(); }); });
+});
 function edTab(id){
-  ["pCrop", "pAdj"].forEach(function(x){ $(x).hidden = x !== id; });
+  ["pCrop", "pFx", "pAdj"].forEach(function(x){ $(x).hidden = x !== id; });
+  if (id === "pFx") fxThumbs();
   document.querySelectorAll(".etabs button").forEach(function(b){ b.classList.toggle("on", b.dataset.p === id); });
   $("crop").style.display = id === "pCrop" ? "" : "none";
 }
@@ -1967,6 +2063,7 @@ $("eSave").onclick = function(){
       edPaint(x, ED.img, d.w, d.h);
       x.setTransform(1, 0, 0, 1, 0, 0);
       if (!CANVAS_FILTER) manualAdjust(x, cw, ch);
+      fxOverlay(x, 0, 0, cw, ch, ED.fx, Math.max(1, Math.min(cw, ch) / 900));
       var data = out.toDataURL("image/jpeg", 0.92);
       out.width = out.height = 1;
       var base = (ED.it.n || "photo").replace(/\.[^.]+$/, "");
