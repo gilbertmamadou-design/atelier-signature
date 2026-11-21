@@ -74,6 +74,10 @@ main{padding:4px 16px calc(28px + var(--safe-b))}
 .block{padding:11px 0;border-top:1px solid var(--line)}
 .block .lab{display:flex;justify-content:space-between;font-weight:600}
 .block .lab span{color:var(--acc);font-variant-numeric:tabular-nums}
+.pm{display:flex;align-items:center;gap:10px;margin-top:6px}
+.pm input{flex:1;min-width:0;margin:0}
+.pmb{flex:none;width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--bg3);color:var(--tx);font-size:22px;font-weight:600;line-height:1;display:grid;place-items:center;padding:0;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.pmb:active{background:var(--bg4);color:var(--acc)}
 .block .hint{font-size:12.5px;color:var(--tx3);margin-top:2px}
 input[type=range]{width:100%;margin:12px 0 2px;accent-color:var(--acc)}
 .folder{display:flex;align-items:center;gap:12px}
@@ -554,7 +558,7 @@ body.vzhide .vzs{display:none}
     if(!A || !A.wpPickVideo){ $('vidCard').hidden = true; return; }
     vStop(); if(VX.vid !== (V.maj||0)+':'+(V.nom||'')){ VX.vid = (V.maj||0)+':'+(V.nom||''); VX.uri = ''; } seqUi();
     if(!V.existe){ box.innerHTML = ''; return; }
-    var D = V.duree||1000, sl = function(k, lab, max, step, val, txt){ return '<div class="block"><div class="lab">'+lab+' <span id="vv-'+k+'">'+txt+'</span></div><input type="range" data-v="'+k+'" min="0" max="'+max+'" step="'+step+'" value="'+val+'"></div>'; };
+    var D = V.duree||1000, sl = function(k, lab, max, step, val, txt){ return '<div class="block"><div class="lab">'+lab+' <span id="vv-'+k+'">'+txt+'</span></div><div class="pm"><button class="pmb" data-pm="'+k+'" data-d="-1" aria-label="Moins">−</button><input type="range" data-v="'+k+'" min="0" max="'+max+'" step="'+step+'" value="'+val+'"><button class="pmb" data-pm="'+k+'" data-d="1" aria-label="Plus">+</button></div></div>'; };
     box.innerHTML = '<div class="set" style="border:0;padding-top:0"><div class="t"><div>'+String(V.nom||'Vidéo').replace(/[<>&]/g,'')+'</div><div>'+sec(D)+' · '+V.w+'×'+V.h+'</div></div><label class="sw"><input type="checkbox" id="vOn"'+(V.on?' checked':'')+'><span></span></label></div>'+
       (V.credit ? '<div class="vcred">'+escA(V.credit.source)+' · '+escA(V.credit.auteur)+' · '+escA(V.credit.licence)+(V.credit.page ? ' · <a href="#" data-vpage>voir la page</a>' : '')+'</div>' : '')+
       '<div class="vstick"><div class="vrow"><div><div class="vpv" id="vpv"><img id="vimg" alt="" style="width:100%;height:100%;display:block"><div class="vmask" id="vmask"></div><div class="vzs" id="vzs"></div></div><div class="vcap">Vidéo</div></div><div><div class="vres" id="vres"><canvas id="vresC"></canvas></div><div class="vcap">Sur l\'écran</div></div></div>'+
@@ -575,6 +579,13 @@ body.vzhide .vzs{display:none}
     pt(); $('vProp').onchange = function(){ V.prop = this.checked; pt(); vidDraw(); vidSave(); };
     $('vSon').onchange = function(){ V.son = this.checked; $('vVolB').hidden = !V.son; vSonPv(); vidSave(); toast(V.son ? 'Son activé : il joue quand tu reviens sur l\'accueil' : 'Son coupé'); };
     $('vOn').onchange = function(){ V.on = this.checked; vidSave(); vidLive(); };
+    // boutons − / + : un cran par appui (1 %, 0,1 s, 5 % de volume) ; appui long = ça défile
+    var pmT = 0, pmI = 0;
+    var pmStep = function(b){ var r = box.querySelector('input[data-v="'+b.dataset.pm+'"]'); if(!r) return; var st = +r.step||1, n = Math.max(+r.min||0, Math.min(+r.max, Math.round((+r.value + st * +b.dataset.d)/st)*st)); if(n === +r.value) return; r.value = n; box.oninput({ target: r }); };
+    var pmStop = function(){ clearTimeout(pmT); clearInterval(pmI); pmT = pmI = 0; };
+    box.onpointerdown = function(e){ var b = e.target.closest('[data-pm]'); if(!b) return; e.preventDefault(); pmStop(); pmStep(b); pmT = setTimeout(function(){ pmI = setInterval(function(){ pmStep(b); }, 90); }, 450); };
+    if(!box._pm){ box._pm = 1; ['pointerup','pointercancel','blur'].forEach(function(ev){ addEventListener(ev, function(){ if(box._pmStop) box._pmStop(); }); }); }
+    box._pmStop = pmStop;
     box.oninput = function(e){
       var k = e.target.dataset.v; if(!k) return; var v = +e.target.value;
       if(k==='debut' && v >= (V.fin||D) - 500) v = Math.max(0, (V.fin||D) - 500);
