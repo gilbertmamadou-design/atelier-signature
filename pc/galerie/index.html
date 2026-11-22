@@ -245,7 +245,7 @@ input[type=range]{width:100%;margin:6px 0 8px;accent-color:var(--acc)}
 .fxs canvas{width:60px;height:60px;border-radius:12px;border:2px solid transparent;background:var(--bg3);display:block}
 .fxs button.on{color:var(--tx)}
 .fxs button.on canvas{border-color:var(--acc)}
-.fxsl{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}
+.fxsl{display:grid;grid-template-columns:1fr 1fr;gap:0 4px}
 .fxsl .adj{padding:0 10px}
 .ebusy{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--tx2);font-size:14px;background:#08090ccc;z-index:5}
 
@@ -409,6 +409,7 @@ input[type=range]{width:100%;margin:6px 0 8px;accent-color:var(--acc)}
         <div class="adj"><div class="lab">Intensité <span id="vFk">100</span></div><input type="range" min="0" max="100" value="100" id="rFk"></div>
         <div class="adj"><div class="lab">Vignette <span id="vFv">0</span></div><input type="range" min="0" max="100" value="0" id="rFv"></div>
         <div class="adj"><div class="lab">Grain <span id="vFg">0</span></div><input type="range" min="0" max="100" value="0" id="rFg"></div>
+        <div class="adj"><div class="lab">Usure <span id="vFu">0</span></div><input type="range" min="0" max="100" value="0" id="rFu"></div>
       </div>
     </div>
     <div class="etabs"><button data-p="pCrop" class="on"><svg class="ic s"><use href="#i-crop"/></svg>Recadrer</button><button data-p="pFx"><svg class="ic s"><use href="#i-fx"/></svg>Filtres</button><button data-p="pAdj"><svg class="ic s"><use href="#i-sun"/></svg>Réglages</button></div>
@@ -1791,12 +1792,12 @@ var ED = { on: false, img: null, small: null, rot: 0, flip: false, crop: { x: 0,
 var FMTS = [["free", "Libre"], ["orig", "Original"], ["1:1", "Carré"], ["4:3", "4:3"], ["3:4", "3:4"], ["16:9", "16:9"], ["9:16", "9:16"], ["screen", "Écran"]];
 $("fmts").innerHTML = FMTS.map(function(f){ return '<button class="chip" data-f="' + f[0] + '">' + f[1] + "</button>"; }).join("");
 function openEditor(it){
-  ED.on = true; ED.it = it; ED.img = null; ED.rot = 0; ED.flip = false; ED.crop = { x: 0, y: 0, w: 1, h: 1 }; ED.fmt = "free"; ED.ratio = 0; ED.adj = { b: 0, c: 0, s: 0 }; ED.fx = { p: 0, k: 100, v: 0, g: 0 };
+  ED.on = true; ED.it = it; ED.img = null; ED.rot = 0; ED.flip = false; ED.crop = { x: 0, y: 0, w: 1, h: 1 }; ED.fmt = "free"; ED.ratio = 0; ED.adj = { b: 0, c: 0, s: 0 }; ED.fx = { p: 0, k: 100, v: 0, g: 0, u: 0 };
   var el = $("editor"); el.hidden = false;
   requestAnimationFrame(function(){ el.classList.add("on"); });
   $("ebusy").hidden = false; $("ebusyT").textContent = "Préparation de la photo…";
   $("ewrap").style.visibility = "hidden";
-  ["rB", "rC", "rS", "rFv", "rFg"].forEach(function(id){ $(id).value = 0; }); $("rFk").value = 100; fxLabels();
+  ["rB", "rC", "rS", "rFv", "rFg", "rFu"].forEach(function(id){ $(id).value = 0; }); $("rFk").value = 100; fxLabels();
   edLabels(); edFmtChips(); edTab("pCrop");
   pushLayer(function(){ closeEditor(); });
   var req = "e" + Date.now(); ED.req = req;
@@ -1837,6 +1838,18 @@ function edFilter(){ var a = ED.adj; return "brightness(" + (1 + a.b / 200).toFi
 /* ---------- Filtres : un style (couleurs + teinte) dosé par « Intensité », plus vignette et grain ---------- */
 var FX = [
   { n: "Original" },
+  { n: "Tirage 1900", g: { sepia: 1, contrast: .82, brightness: 1.04, saturate: .9 }, t: ["#e8c890", "multiply", .25], fade: .14, v: .7, gr: .45, us: .6, bd: ["#efe3c8", .045] },
+  { n: "Daguerréotype", g: { grayscale: 1, contrast: .78, brightness: 1.08 }, t: ["#9fb0b8", "color", .35], fade: .1, v: .85, gr: .35, us: .45 },
+  { n: "Ferrotype", g: { grayscale: 1, contrast: 1.15, brightness: .82 }, t: ["#4a4430", "color", .55], v: .75, gr: .4, us: .35 },
+  { n: "Cyanotype", g: { grayscale: 1, contrast: 1.1, brightness: 1.05 }, t: ["#1f5aa6", "color", .9], v: .3, gr: .15, us: .2 },
+  { n: "Autochrome", g: { saturate: .7, contrast: .85, brightness: 1.06 }, t: ["#d8b070", "soft-light", .35], fade: .1, v: .45, gr: .8 },
+  { n: "Photo de famille", g: { sepia: .3, saturate: .85, contrast: .9, brightness: 1.06 }, t: ["#ffd9a0", "soft-light", .35], fade: .12, v: .25, gr: .2, us: .15, bd: ["#f7f3ea", .055] },
+  { n: "Kodachrome", g: { saturate: 1.35, contrast: 1.12, sepia: .12 }, t: ["#ff5a3c", "soft-light", .15], v: .2, gr: .15 },
+  { n: "Photo jaunie", g: { sepia: .5, saturate: .9, contrast: .88, brightness: 1.05 }, t: ["#f0d040", "multiply", .22], fade: .1, v: .3, gr: .2, us: .2 },
+  { n: "Super 8", g: { saturate: 1.15, contrast: 1.1, sepia: .2, hue: -6 }, t: ["#ff8a3c", "soft-light", .25], v: .55, gr: .6, us: .3 },
+  { n: "Lomo", g: { saturate: 1.6, contrast: 1.35 }, t: ["#2a1a60", "soft-light", .15], v: .9 },
+  { n: "Infrarouge", g: { hue: 180, saturate: 1.3, contrast: 1.1 }, t: ["#ff70c0", "soft-light", .25] },
+  { n: "Négatif", g: { invert: 1 } },
   { n: "Vif", g: { saturate: 1.4, contrast: 1.12 } },
   { n: "Chaud", g: { sepia: .2, saturate: 1.15, brightness: 1.03 }, t: ["#ff9a3c", "soft-light", .3] },
   { n: "Froid", g: { saturate: .9, hue: -6 }, t: ["#3c8cff", "soft-light", .3] },
@@ -1864,6 +1877,7 @@ function fxFilter(i, k){
   if (f.contrast) r += " contrast(" + m(f.contrast).toFixed(3) + ")";
   if (f.brightness) r += " brightness(" + m(f.brightness).toFixed(3) + ")";
   if (f.hue) r += " hue-rotate(" + (f.hue * k).toFixed(1) + "deg)";
+  if (f.invert) r += " invert(" + (f.invert * k).toFixed(3) + ")";
   return r;
 }
 var GRAIN = null;
@@ -1889,9 +1903,31 @@ function fxOverlay(x, rx, ry, rw, rh, fx, sc){
     var pat = grainPat(x); if (pat && pat.setTransform && sc && sc !== 1) pat.setTransform(new DOMMatrix().scale(sc, sc));
     x.globalCompositeOperation = "overlay"; x.globalAlpha = g * .3; x.fillStyle = pat; x.fillRect(rx, ry, rw, rh);
   }
+  // usure : poussières et rayures, toujours au même endroit (tirage aléatoire à graine fixe)
+  var u = Math.min(1, (f.us || 0) * k + (fx.u || 0) / 100);
+  if (u > 0){
+    var sd = 7, rnd = function(){ sd = (sd * 16807) % 2147483647; return (sd - 1) / 2147483646; }, m = Math.min(rw, rh);
+    x.globalCompositeOperation = "source-over";
+    for (var a = 0, na = Math.round(260 * u); a < na; a++){
+      var px = rx + rnd() * rw, py = ry + rnd() * rh, rr = (rnd() * rnd() * .004 + .0006) * m, cl = rnd() < .6;
+      x.globalAlpha = (.25 + rnd() * .5) * u; x.fillStyle = cl ? "#fff8e8" : "#1a140c"; x.beginPath(); x.arc(px, py, rr, 0, 6.2832); x.fill();
+    }
+    for (var b = 0, nb = Math.round(9 * u); b < nb; b++){
+      var sx = rx + rnd() * rw, y0 = ry + rnd() * rh * .5, y1 = y0 + (.2 + rnd() * .8) * rh, dx = (rnd() - .5) * .02 * rw;
+      x.globalAlpha = (.12 + rnd() * .25) * u; x.strokeStyle = rnd() < .7 ? "#fffaf0" : "#20180e"; x.lineWidth = Math.max(.6, m * .0012);
+      x.beginPath(); x.moveTo(sx, y0); x.quadraticCurveTo(sx + dx * 2, (y0 + y1) / 2, sx + dx, y1); x.stroke();
+    }
+  }
+  // bordure de tirage papier
+  if (f.bd && k){
+    var e = Math.round(Math.min(rw, rh) * f.bd[1] * k);
+    x.globalCompositeOperation = "source-over"; x.globalAlpha = 1; x.fillStyle = f.bd[0];
+    x.fillRect(rx, ry, rw, e); x.fillRect(rx, ry + rh - e * 1.15, rw, e * 1.15); x.fillRect(rx, ry, e, rh); x.fillRect(rx + rw - e, ry, e, rh);
+    x.globalAlpha = .18; x.strokeStyle = "#000"; x.lineWidth = Math.max(1, e * .04); x.strokeRect(rx + e, ry + e, rw - 2 * e, rh - e * 2.15);
+  }
   x.restore();
 }
-function fxLabels(){ $("vFk").textContent = ED.fx.k; $("vFv").textContent = ED.fx.v; $("vFg").textContent = ED.fx.g; }
+function fxLabels(){ $("vFk").textContent = ED.fx.k; $("vFv").textContent = ED.fx.v; $("vFg").textContent = ED.fx.g; $("vFu").textContent = ED.fx.u || 0; }
 // vignettes d'aperçu de chaque filtre, à partir de la photo réduite
 function fxThumbs(){
   var box = $("fxs"); if (!box || !ED.small) return;
@@ -1903,7 +1939,7 @@ function fxThumbs(){
     var c = b.firstChild, x = c.getContext("2d"); x.clearRect(0, 0, 120, 120);
     if ("filter" in x) x.filter = fxFilter(i, 1) || "none";
     x.drawImage(src, (sw - m) / 2, (sh - m) / 2, m, m, 0, 0, 120, 120);
-    fxOverlay(x, 0, 0, 120, 120, { p: i, k: 100, v: 0, g: 0 }, .5);
+    fxOverlay(x, 0, 0, 120, 120, { p: i, k: 100, v: 0, g: 0, u: 0 }, .5);
   });
 }
 function edDraw(){
@@ -1987,8 +2023,8 @@ $("eRot").onclick = function(){
 $("eFlip").onclick = function(){ if (!ED.img) return; var c = ED.crop; ED.crop = { x: 1 - (c.x + c.w), y: c.y, w: c.w, h: c.h }; ED.flip = !ED.flip; edDraw(); };
 $("eReset").onclick = function(){
   if (!ED.img) return;
-  ED.rot = 0; ED.flip = false; ED.crop = { x: 0, y: 0, w: 1, h: 1 }; ED.fmt = "free"; ED.ratio = 0; ED.adj = { b: 0, c: 0, s: 0 }; ED.fx = { p: 0, k: 100, v: 0, g: 0 };
-  ["rB", "rC", "rS", "rFv", "rFg"].forEach(function(id){ $(id).value = 0; }); $("rFk").value = 100;
+  ED.rot = 0; ED.flip = false; ED.crop = { x: 0, y: 0, w: 1, h: 1 }; ED.fmt = "free"; ED.ratio = 0; ED.adj = { b: 0, c: 0, s: 0 }; ED.fx = { p: 0, k: 100, v: 0, g: 0, u: 0 };
+  ["rB", "rC", "rS", "rFv", "rFg", "rFu"].forEach(function(id){ $(id).value = 0; }); $("rFk").value = 100;
   edLabels(); edFmtChips(); fxLabels(); fxThumbs(); edDraw();
 };
 function edLabels(){ $("vB").textContent = ED.adj.b; $("vC").textContent = ED.adj.c; $("vS2").textContent = ED.adj.s; }
@@ -1999,7 +2035,7 @@ var adjRaf = 0;
   r.addEventListener("dblclick", function(){ r.value = 0; ED.adj[p[1]] = 0; edLabels(); edDraw(); });
 });
 $("fxs").onclick = function(e){ var b = e.target.closest("[data-fx]"); if (!b) return; ED.fx.p = +b.dataset.fx; if (!ED.fx.k) { ED.fx.k = 100; $("rFk").value = 100; } fxLabels(); fxThumbs(); edDraw(); };
-[["rFk", "k"], ["rFv", "v"], ["rFg", "g"]].forEach(function(p){
+[["rFk", "k"], ["rFv", "v"], ["rFg", "g"], ["rFu", "u"]].forEach(function(p){
   var r = $(p[0]);
   r.addEventListener("input", function(){ ED.fx[p[1]] = +r.value; fxLabels(); if (!adjRaf) adjRaf = requestAnimationFrame(function(){ adjRaf = 0; edDraw(); }); });
 });
