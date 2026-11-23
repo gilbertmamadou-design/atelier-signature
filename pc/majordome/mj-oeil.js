@@ -7,7 +7,7 @@
    À la voix :
    - « prends une photo », « fais un selfie », « photo dans 10 secondes »
    - « lis-moi ce document », « qu'est-ce qui est écrit ? » : vous montrez une feuille, il la lit à voix haute
-     (version PC : moteur de lecture hors ligne de la Suite)
+     (PC : moteur de lecture hors ligne de la Suite ; téléphone : ML Kit par MajordomeBridge.oeilOcr)
    - « surveille la pièce » / « arrête la surveillance » / « qu'as-tu vu ? » : mouvement repéré → photo + alerte
    - « est-ce que tu me vois ? », « combien de personnes vois-tu ? »
    - « montre-moi ce que tu vois » : aperçu de la caméra
@@ -17,6 +17,8 @@
      après un long moment devant l'écran ;
    - Gestes : agiter la main devant la caméra = il vous écoute ; cacher la caméra avec la main = silence.
    Visages : pico.js (licence MIT, dossier vision/), images en 160 × 120 niveaux de gris.
+   Téléphone : autorisation CAMERA demandée au premier usage ; photos enregistrées dans Images › Majordome
+   (MajordomeBridge.oeilSave) ; écran gardé allumé pendant la surveillance (Wake Lock).
    ===================================================================== */
 (function () {
   'use strict';
@@ -24,7 +26,37 @@
   var X = MJ._, H = X.H, S = X.S, esc = X.esc;
   var NLU = window.MJNLU;
   var MD = navigator.mediaDevices;
+  var ANDROID = !!X.ANDROID;
   var CAN = !!(MD && MD.getUserMedia);
+  // appli Android : lecture du texte (ML Kit) et rangement des photos dans la galerie par le pont natif (MajordomeBridge)
+  var NB = X.B && typeof X.B.oeilCan === 'function' ? X.B : null;
+  var nbWait = {}, nbN = 0;
+  function nbCall(fn, args) {
+    return new Promise(function (ok, ko) {
+      var id = 'oe' + (++nbN); nbWait[id] = { ok: ok, ko: ko };
+      setTimeout(function () { if (nbWait[id]) { delete nbWait[id]; ko(new Error('pas de réponse')); } }, 60000);
+      try { NB[fn].apply(NB, [id].concat(args)); } catch (e) { delete nbWait[id]; ko(e); }
+    });
+  }
+  var prevEvt = window.majordomeEvent;
+  window.majordomeEvent = function (type, data) {
+    if (type === 'oeil') {
+      var d = {}; try { d = JSON.parse(data) || {}; } catch (e) { }
+      var w = nbWait[d.id]; if (w) { delete nbWait[d.id]; if (d.ok) w.ok(d); else w.ko(new Error(d.err || 'échec')); }
+      return;
+    }
+    return prevEvt ? prevEvt.apply(this, arguments) : undefined;
+  };
+  function b64(blob) { return new Promise(function (ok, ko) { var r = new FileReader(); r.onload = function () { ok(String(r.result).split(',')[1] || ''); }; r.onerror = ko; r.readAsDataURL(blob); }); }
+  // écran gardé allumé pendant la surveillance (sinon le système coupe la caméra en mettant l'écran en veille)
+  var wake = null;
+  function keepAwake(on) {
+    try {
+      if (on && !wake && navigator.wakeLock) navigator.wakeLock.request('screen').then(function (l) { wake = l; l.addEventListener('release', function () { wake = null; }); }).catch(function () { });
+      if (!on && wake) { wake.release(); wake = null; }
+    } catch (e) { }
+  }
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && garde && garde.on) keepAwake(true); });
   var PCAPI = window.MAGPC || null;
 
   var D = { presence: false, gestes: false, pause: 60, absent: 10, veille: true, alarme: true };
@@ -69,6 +101,8 @@
   function when(t) { var d = new Date(t); return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); }
   function savePhoto(p) {
     var name = (p.kind === 'alerte' ? 'Majordome alerte ' : 'Majordome photo ') + stamp(p.at) + '.jpg';
+    if (NB) return b64(p.blob).then(function (d) { return nbCall('oeilSave', [d, name]); })
+      .then(function () { X.toast('Photo rangée dans la galerie (Images › Majordome)'); }, function (e) { X.toast('Enregistrement impossible : ' + (e && e.message || e)); });
     if (PCAPI && PCAPI.fs && PCAPI.fs.saveAs) {
       return PCAPI.fs.saveAs(p.blob, name, { types: [{ description: 'Photo JPEG', accept: { 'image/jpeg': ['.jpg'] } }], startIn: 'pictures' })
         .then(function (r) { if (r && r.ok) X.toast(r.downloaded ? 'Photo téléchargée' : 'Photo enregistrée'); }, function () { X.toast('Enregistrement annulé'); });
@@ -181,7 +215,7 @@
         if (!wantLoop()) { stopLoop(); return; }
         if (S.oeil.presence) picoLoad().catch(function () { });
         prev = null;
-        if (!loop) loop = setInterval(step, 150);
+        if (!loop) loop = setInterval(step, ANDROID ? 220 : 150);   // téléphone : un peu moins d'images, moins de batterie
       }).catch(function () { failAt = Date.now(); use('loop', false); paintState(); });
     } else stopLoop();
   }
@@ -351,8 +385,8 @@
     }).catch(function (e) { closeOverlay(); return X.errorReply('Je ne peux pas prendre de photo : ' + camErr(e) + '.').done; });
   }
   function doLire() {
-    var ocr = PCAPI && PCAPI.ocr && PCAPI.ocr.supported && PCAPI.ocr.supported();
-    if (!ocr) return X.answer('La lecture de documents par la caméra marche dans la version PC de Majordome, avec Edge ou Chrome récents.').done;
+    var ocr = NB || (PCAPI && PCAPI.ocr && PCAPI.ocr.supported && PCAPI.ocr.supported());
+    if (!ocr) return X.answer('La lecture de documents a besoin de l\'appli Majordome à jour sur le téléphone, ou de la version PC avec Edge ou Chrome récents.').done;
     use('apercu', true);
     return camOpen().then(function () {
       X.answer({ say: 'Tenez la feuille bien à plat devant la caméra.', k: 'Lecture' });
@@ -362,6 +396,7 @@
       return grab(2200, 0.95).then(function (b) {
         flash(); setTimeout(closeOverlay, 500);
         X.answer({ say: 'Je lis…', k: 'Lecture' });
+        if (NB) return b64(b).then(function (d) { return nbCall('oeilOcr', [d]); });
         return PCAPI.ocr.recognize(b, { lang: 'fra' });
       }).then(function (r) {
         var txt = String(r && r.text || '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
@@ -381,12 +416,12 @@
       return camOpen().then(function () {
         garde.on = true; garde.startAt = Date.now(); garde.armedAt = Date.now() + 15000; garde.last = 0; garde.events = 0; garde.hits = 0;
         try { if (window.Notification && Notification.permission === 'default') Notification.requestPermission(); } catch (e) { }
-        refresh(true); paintState();
-        return X.answer({ say: 'Surveillance activée dans 15 secondes. Au moindre mouvement, je prends une photo' + (S.oeil.alarme ? ' et je donne l\'alerte' : '') + '. Laissez cette fenêtre ouverte.', k: 'Surveillance' }).done;
+        refresh(true); paintState(); keepAwake(true);
+        return X.answer({ say: 'Surveillance activée dans 15 secondes. Au moindre mouvement, je prends une photo' + (S.oeil.alarme ? ' et je donne l\'alerte' : '') + '. ' + (ANDROID ? 'Laissez Majordome ouvert, téléphone posé face à la pièce et branché.' : 'Laissez cette fenêtre ouverte.'), k: 'Surveillance' }).done;
       }).catch(function (e) { return X.errorReply('Je ne peux pas surveiller : ' + camErr(e) + '.').done; });
     }
     if (!garde.on) return X.answer('La surveillance n\'était pas en route.').done;
-    garde.on = false; refresh(); paintState();
+    garde.on = false; refresh(); paintState(); keepAwake(false);
     var n = garde.events, d = Math.round((Date.now() - garde.startAt) / 60000);
     return X.answer({ say: 'Surveillance arrêtée' + (d ? ' après ' + X.dur(d * 60000) : '') + '. ' + (n ? n + ' alerte' + (n > 1 ? 's' : '') + ' : dites « qu\'as-tu vu ? » pour les photos.' : 'Rien à signaler.'), k: 'Surveillance' }).done;
   }
