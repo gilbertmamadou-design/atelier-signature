@@ -106,7 +106,7 @@
 
   /* ---------------- Micro ---------------- */
   var mic = null;   // {stream, ctx, node}
-  var mode = null, cmdId = null, wakeId = null, hold = false, holdUntil = 0, wakeCfg = { on: false, words: ['majordome'] }, cmdTimer = 0, cmdGot = false;
+  var mode = null, cmdId = null, wakeId = null, hold = false, holdUntil = 0, barge = false, wakeCfg = { on: false, words: ['majordome'] }, cmdTimer = 0, cmdGot = false;
   function openMic() {
     if (mic) return Promise.resolve(mic);
     return navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 }, video: false }).then(function (stream) {
@@ -132,7 +132,8 @@
     var id = mode === 'cmd' ? cmdId : mode === 'wake' ? wakeId : null;
     if (mode === 'cmd' && Date.now() - lvlT > 60) { lvlT = Date.now(); emit('level', { v: v }); }
     if (!id || !worker) return;
-    if (mode === 'wake' && (hold || Date.now() < holdUntil)) return;
+    // pendant que Majordome parle : micro ignoré, sauf pour l'interrompre par son nom (option, mj-jarvis.js)
+    if (mode === 'wake' && (hold || Date.now() < holdUntil) && !barge) return;
     var f = new Float32Array(data.length); for (var j = 0; j < data.length; j++) f[j] = data[j] * 32768;
     worker.postMessage({ action: 'audioChunk', data: f, recognizerId: id, sampleRate: rate }, [f.buffer]);
   }
@@ -175,6 +176,7 @@
     if (!txt) return;
     var w = wakeHit(txt);
     if (!w) return;
+    if (hold || Date.now() < holdUntil) { resetWake(); emit('barge', { word: w }); resumeWake(); return; }
     if (d.event === 'result') {
       // « Majordome, quelle heure est-il » d'une traite : la commande suit le mot
       var t = deacc(txt), k = t.indexOf(w), rest = k >= 0 ? t.slice(k + w.length).trim() : '';
@@ -248,6 +250,7 @@
       if (mode !== 'cmd') { resetWake(); resumeWake(); }
     },
     hold: function (on) { hold = !!on; if (!on) holdUntil = Date.now() + 700; },
+    barge: function (on) { barge = !!on; },
     loadAgenda: function () {
       if (window.MAGAgenda) return Promise.resolve(window.MAGAgenda);
       return M.loadScript('../shared/apps/agenda.js').then(function () { return window.MAGAgenda; });
