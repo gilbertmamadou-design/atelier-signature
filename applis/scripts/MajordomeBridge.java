@@ -425,6 +425,8 @@ public class MajordomeBridge {
         } catch (Throwable t) { emit("error", obj("msg", "Reconnaissance d'Android indisponible : " + t.getMessage())); }
     }
     @JavascriptInterface public void hold(boolean on) { Ear.hold(on); }
+    /** Interrompre Majordome en disant son nom pendant qu'il parle (mj-jarvis.js) : le mot de réveil reste écouté pendant la voix */
+    @JavascriptInterface public void barge(boolean on) { Ear.barge = on; }
     @JavascriptInterface public boolean takeAssist() { boolean b = pendingAssist; pendingAssist = false; return b; }
     @JavascriptInterface public String takeCommand() { String c = pendingCmd; pendingCmd = ""; return c == null ? "" : c; }
 
@@ -432,7 +434,7 @@ public class MajordomeBridge {
     static class Ear implements Runnable {
         static final Object LOCK = new Object();
         static Model model; static Ear I; static Thread th;
-        static volatile boolean wakeOn = false, holding = false, wakePaused = false;
+        static volatile boolean wakeOn = false, holding = false, wakePaused = false, barge = false;
         static volatile long holdUntil = 0;
         static volatile String[] words = { "majordome" };
         static volatile Recognizer cmdRec = null; static volatile long cmdEnd = 0; static volatile boolean cmdFromWake = false;
@@ -516,7 +518,8 @@ public class MajordomeBridge {
                         if (end) { MajordomeWallpaper.Voix.end("listen"); deliver(done == null ? "" : done, cmdFromWake); }
                         continue;
                     }
-                    if (holding || now < holdUntil) continue;
+                    boolean talking = holding || now < holdUntil;
+                    if (talking && !(barge && live != null && resumed)) continue;
                     String got = null, full = null;
                     synchronized (LOCK) {
                         if (wakeRec == w) {
@@ -526,6 +529,7 @@ public class MajordomeBridge {
                         }
                     }
                     if (got == null || got.isEmpty()) continue;
+                    if (talking) { send("barge", obj("word", got)); continue; }   // la page se tait et écoute
                     String rest = "";
                     if (full != null) { String t = norm(full); int k = t.indexOf(got); rest = k >= 0 ? t.substring(k + got.length()).trim() : ""; }
                     if (rest.split(" ").length >= 2) deliver(full, true);

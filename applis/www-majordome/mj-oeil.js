@@ -277,13 +277,13 @@
     X.toast('Main sur la caméra : silence');
   }
   function bonjour(ms) {
-    if (busy()) return;
+    if (busy() || MJ.nuit) return;   // mode nuit (mj-jarvis.js) : pas d'annonce spontanée
     var h = new Date().getHours(), w = h < 5 || h >= 18 ? 'Bonsoir' : 'Bonjour';
     var min = Math.round(ms / 60000), retour = min >= 120 ? '' : ' Content de vous revoir.';
     X.answer({ say: X.withSir(w) + '.' + retour, k: 'Présence' });
   }
   function pause(ms) {
-    if (busy()) return;
+    if (busy() || MJ.nuit) return;   // mode nuit (mj-jarvis.js) : pas d'annonce spontanée
     var min = Math.round(ms / 60000), dur = min >= 90 ? Math.round(min / 60 * 2) / 2 + ' heures' : min + ' minutes';
     X.answer({ say: 'Cela fait ' + dur.replace('.5', ' et demie') + ' que vous êtes devant l\'écran. Une petite pause, pour les yeux et le dos ?', k: 'Présence' });
   }
