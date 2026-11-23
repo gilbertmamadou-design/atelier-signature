@@ -63,7 +63,7 @@
   var VOYANTS = { DISCONNECT: { n: 'Bluetooth coupé', ic: 'bluex' }, DISTURB: { n: 'Ne pas déranger', ic: 'dnd' }, CLOCK: { n: 'Alarme réglée', ic: 'cloche' }, LOCK: { n: 'Écran verrouillé', ic: 'cadenas' } };
   // infos qu'on peut choisir sur la montre (appui long › Modifier) et leur nom dans Zepp OS (edit_type)
   var CHOIX_INFOS = { pas: 'STEP', coeur: 'HEART', batterie: 'BATTERY', calories: 'CAL', distance: 'DISTANCE', meteo: 'WEATHER', spo2: 'SPO2', stress: 'STRESS', pai: 'PAI', humidite: 'HUMIDITY', uv: 'UVI', debout: 'STAND' };
-  var FONDS = { uni: 'Uni', degrade: 'Dégradé', radial: 'Halo', carbone: 'Carbone', grille: 'Grille', hud: 'HUD', camo: 'Camouflage', fleurs: 'Fleurs', printemps: 'Printemps', ete: 'Été', automne: 'Automne', hiver: 'Hiver', noel: 'Noël', espace: 'Espace', soleil: 'Soleillé', guilloche: 'Guilloché', damas: 'Damas', nacre: 'Nacre', mouvement: 'Mouvement mécanique', marbre: 'Marbre', bois: 'Bois', cuir: 'Cuir surpiqué', topo: 'Carte topographique', aurore: 'Aurore boréale', hexa: 'Nid d\'abeille', vagues: 'Vagues', photo: 'Ma photo' };
+  var FONDS = { uni: 'Uni', degrade: 'Dégradé', radial: 'Halo', carbone: 'Carbone', grille: 'Grille', hud: 'HUD', camo: 'Camouflage', fleurs: 'Fleurs', printemps: 'Printemps', ete: 'Été', automne: 'Automne', hiver: 'Hiver', noel: 'Noël', espace: 'Espace', soleil: 'Soleillé', guilloche: 'Guilloché', damas: 'Damas', nacre: 'Nacre', mouvement: 'Mouvement mécanique', marbre: 'Marbre', bois: 'Bois', cuir: 'Cuir surpiqué', topo: 'Carte topographique', aurore: 'Aurore boréale', hexa: 'Nid d\'abeille', vagues: 'Vagues', j_sphere: 'Jarvis · Sphère', j_reacteur: 'Jarvis · Réacteur', j_onde: 'Jarvis · Onde sonore', j_atome: 'Jarvis · Atome', j_cristal: 'Jarvis · Cristal', photo: 'Ma photo' };
   var MOTIFS = { fleur: 'Fleur', marguerite: 'Marguerite', tulipe: 'Tulipe', feuille: 'Feuille', erable: 'Feuille d\'érable', flocon: 'Flocon', soleil: 'Soleil', lune: 'Lune', sapin: 'Sapin',
     etoile: 'Étoile', coeur: 'Cœur', papillon: 'Papillon', champignon: 'Champignon', citrouille: 'Citrouille', cadeau: 'Cadeau', montagne: 'Montagne',
     planete: 'Planète', saturne: 'Planète à anneau', terre: 'Terre', fusee: 'Fusée', atome: 'Atome', comete: 'Comète', ovni: 'Soucoupe' };
@@ -92,8 +92,8 @@
     variantes: [], nuit: null, photos: []
   };
   /* animations : une image par étape (f_0.png…), jouées par la montre (IMG_ANIM) quand l'écran est allumé */
-  var ANIMS = { engrenages: 'Engrenages', balancier: 'Balancier', radar: 'Radar', coeur: 'Cœur qui bat', etoiles: 'Étoiles scintillantes', flamme: 'Flamme', onde: 'Onde lumineuse', cage: 'Cage de tourbillon', pendule: 'Pendule', neige: 'Neige', bulles: 'Bulles', eclair: 'Éclair', sablier: 'Sablier', soleil: 'Soleil qui rayonne', vague: 'Vague', disco: 'Lumières disco' };
-  var ANIM_N = { engrenages: 24, balancier: 24, radar: 30, coeur: 20, etoiles: 24, flamme: 16, onde: 24, cage: 24, pendule: 24, neige: 24, bulles: 24, eclair: 20, sablier: 24, soleil: 24, vague: 24, disco: 16 };
+  var ANIMS = { engrenages: 'Engrenages', balancier: 'Balancier', radar: 'Radar', coeur: 'Cœur qui bat', etoiles: 'Étoiles scintillantes', flamme: 'Flamme', onde: 'Onde lumineuse', cage: 'Cage de tourbillon', pendule: 'Pendule', neige: 'Neige', bulles: 'Bulles', eclair: 'Éclair', sablier: 'Sablier', soleil: 'Soleil qui rayonne', vague: 'Vague', disco: 'Lumières disco', j_sphere: 'Jarvis · Sphère', j_reacteur: 'Jarvis · Réacteur', j_onde: 'Jarvis · Onde sonore', j_atome: 'Jarvis · Atome', j_cristal: 'Jarvis · Cristal' };
+  var ANIM_N = { engrenages: 24, balancier: 24, radar: 30, coeur: 20, etoiles: 24, flamme: 16, onde: 24, cage: 24, pendule: 24, neige: 24, bulles: 24, eclair: 20, sablier: 24, soleil: 24, vague: 24, disco: 16, j_sphere: 36, j_reacteur: 24, j_onde: 24, j_atome: 36, j_cristal: 36 };
   var CHOIX = { CHOIX_INFOS: CHOIX_INFOS, VOYANTS: VOYANTS, ANIMS: ANIMS, PANNEAUX: PANNEAUX, MOTIFS: MOTIFS, TROTS: TROTS, CALQUES: CALQUES, EFFETS: EFFETS, ICONES: { trait: 'Dessin', couleur: 'En couleur' }, POLICES: POLICES, INFOS: INFOS, FONDS: FONDS, ANNEAUX: ANNEAUX, AIGUILLES: AIGUILLES, STYLES: STYLES, TAILLES: TAILLES, DATES: DATES, TYPES: TYPES, VIFS: VIFS,
     HEURE: { numerique: 'Numérique', analogique: 'À aiguilles', mixte: 'Aiguilles + heure' }, TAILLE: { grande: 'Grande', moyenne: 'Moyenne' },
     AOD: { heure_date: 'Heure et date', heure: 'Heure seule' } };
@@ -803,6 +803,88 @@
     if (!src) return Promise.resolve();
     return new Promise(function (ok) { var i = 0, t = setInterval(function () { if (photoImg(src) || ++i > 100) { clearInterval(t); ok(); } }, 30); photoImg(src); });
   }
+  /* ---------------- Modèles de Majordome / Jarvis ----------------
+     Mêmes formes que l'assistant (applis/www-majordome/mj-orb.js) : sphère de particules, réacteur, onde sonore, atome,
+     cristal. jarvis(g, forme, cx, cy, R, couleur, t, force) : t de 0 à 1 = une boucle d'animation sans saut ;
+     force = intensité (fond discret : .6). */
+  var JFORMES = { j_sphere: 1, j_reacteur: 1, j_onde: 1, j_atome: 1, j_cristal: 1 };
+  var JICO = (function () {
+    var f = (1 + Math.sqrt(5)) / 2, n = Math.sqrt(1 + f * f), v = [[-1, f, 0], [1, f, 0], [-1, -f, 0], [1, -f, 0], [0, -1, f], [0, 1, f], [0, -1, -f], [0, 1, -f], [f, 0, -1], [f, 0, 1], [-f, 0, -1], [-f, 0, 1]].map(function (p) { return [p[0] / n, p[1] / n, p[2] / n]; });
+    var e = []; for (var a = 0; a < 12; a++) for (var b = a + 1; b < 12; b++) { var dx = v[a][0] - v[b][0], dy = v[a][1] - v[b][1], dz = v[a][2] - v[b][2]; if (Math.abs(Math.sqrt(dx * dx + dy * dy + dz * dz) - 2 / n) < .01) e.push([a, b]); }
+    return { v: v, e: e };
+  })();
+  function jpoint(g, x, y, r, col, a) {
+    var gr = g.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, 'rgba(255,255,255,' + Math.min(1, a) + ')'); gr.addColorStop(.35, rgba(col, Math.min(1, a * .85))); gr.addColorStop(1, rgba(col, 0));
+    g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+  }
+  function jarvis(g, forme, cx, cy, R, col, t, force) {
+    var TAU = Math.PI * 2, k = force == null ? 1 : force, i;
+    g.save(); g.lineCap = 'round';
+    var halo = g.createRadialGradient(cx, cy, R * .1, cx, cy, R * 1.05);
+    halo.addColorStop(0, rgba(col, .22 * k)); halo.addColorStop(.6, rgba(col, .07 * k)); halo.addColorStop(1, rgba(col, 0));
+    g.fillStyle = halo; g.fillRect(cx - R * 1.1, cy - R * 1.1, R * 2.2, R * 2.2);
+    if (forme === 'sphere') {
+      var N = R > 120 ? 520 : 300, GA = Math.PI * (3 - Math.sqrt(5)), rot = t * TAU, tilt = .35, cr = Math.cos(rot), sr = Math.sin(rot), ct = Math.cos(tilt), st = Math.sin(tilt);
+      for (i = 0; i < N; i++) {
+        var y = 1 - i / (N - 1) * 2, rr = Math.sqrt(1 - y * y), th = GA * i, x = Math.cos(th) * rr, z = Math.sin(th) * rr;
+        var w = 1 + .035 * Math.sin(t * TAU * 2 + i);
+        var x1 = x * cr + z * sr, z1 = -x * sr + z * cr, y1 = y * ct - z1 * st, z2 = y * st + z1 * ct, p = 1.9 / (2.6 - z2);
+        var d = (z2 + 1) / 2, sz = (.8 + d * 1.6) * R / 160;
+        g.fillStyle = rgba(col, Math.min(1, (.18 + d * .8) * k)); g.fillRect(cx + x1 * R * .82 * p * w - sz / 2, cy + y1 * R * .82 * p * w - sz / 2, sz, sz);
+      }
+    } else if (forme === 'reacteur') {
+      var pul = .5 + .5 * Math.sin(t * TAU);
+      jpoint(g, cx, cy, R * (.3 + .05 * pul), col, (.7 + .3 * pul) * k);
+      g.strokeStyle = rgba(col, .9 * k); g.lineWidth = R * .025; g.beginPath(); g.arc(cx, cy, R * .27, 0, TAU); g.stroke();
+      var nb = 10, r1 = R * .38, r2 = R * .62, s0 = -t * TAU / nb;
+      for (i = 0; i < nb; i++) {
+        var a0 = s0 + i / nb * TAU, w1 = .2, w2 = .24;
+        g.beginPath(); g.moveTo(cx + Math.cos(a0 - w1) * r1, cy + Math.sin(a0 - w1) * r1); g.lineTo(cx + Math.cos(a0 + w1) * r1, cy + Math.sin(a0 + w1) * r1);
+        g.lineTo(cx + Math.cos(a0 + w2) * r2, cy + Math.sin(a0 + w2) * r2); g.lineTo(cx + Math.cos(a0 - w2) * r2, cy + Math.sin(a0 - w2) * r2); g.closePath();
+        g.fillStyle = rgba(col, .16 * k); g.fill(); g.strokeStyle = rgba(col, .7 * k); g.lineWidth = Math.max(1, R * .012); g.stroke();
+      }
+      var ns = 24, ro = R * .78;
+      for (i = 0; i < ns; i++) { var b0 = t * TAU / ns + i / ns * TAU; g.strokeStyle = rgba(col, (i % 6 ? .75 : .25) * k); g.lineWidth = R * .035; g.beginPath(); g.arc(cx, cy, ro, b0, b0 + TAU / ns * .72); g.stroke(); }
+      g.strokeStyle = rgba(col, .35 * k); g.lineWidth = Math.max(1, R * .008); g.beginPath(); g.arc(cx, cy, R * .93, 0, TAU); g.stroke();
+      for (i = 0; i < 72; i++) { var am = i / 72 * TAU, l1 = R * .93, l2 = l1 + (i % 6 ? R * .025 : R * .055); g.beginPath(); g.moveTo(cx + Math.cos(am) * l1, cy + Math.sin(am) * l1); g.lineTo(cx + Math.cos(am) * l2, cy + Math.sin(am) * l2); g.stroke(); }
+    } else if (forme === 'onde') {
+      var nbar = R > 120 ? 96 : 60, rin = R * .52;
+      for (i = 0; i < nbar; i++) {
+        var ang = i / nbar * TAU - Math.PI / 2;
+        var v = .12 + .88 * Math.abs(Math.sin(i * .37 + t * TAU) * Math.sin(i * .11 - t * TAU * 2));
+        var len = R * .42 * v, x0 = cx + Math.cos(ang) * rin, y0 = cy + Math.sin(ang) * rin;
+        g.strokeStyle = rgba(col, (.45 + v * .55) * k); g.lineWidth = Math.max(1.5, TAU * rin / nbar * .55);
+        g.beginPath(); g.moveTo(x0, y0); g.lineTo(cx + Math.cos(ang) * (rin + len), cy + Math.sin(ang) * (rin + len)); g.stroke();
+        g.strokeStyle = rgba(col, (.2 + v * .3) * k); g.lineWidth = Math.max(1, R * .008);
+        g.beginPath(); g.moveTo(x0, y0); g.lineTo(cx + Math.cos(ang) * (rin - len * .35), cy + Math.sin(ang) * (rin - len * .35)); g.stroke();
+      }
+      g.strokeStyle = rgba(col, .6 * k); g.lineWidth = Math.max(1, R * .012); g.beginPath(); g.arc(cx, cy, rin * .98, 0, TAU); g.stroke();
+      jpoint(g, cx, cy, rin * .6, col, .35 * k);
+    } else if (forme === 'atome') {
+      jpoint(g, cx, cy, R * .24, col, .9 * k);
+      for (var o = 0; o < 3; o++) {
+        var rz = o * TAU / 3 + .3, Ro = R * .85, ti = .33;
+        g.save(); g.translate(cx, cy); g.rotate(rz);
+        g.strokeStyle = rgba(col, .55 * k); g.lineWidth = Math.max(1.2, R * .014); g.beginPath(); g.ellipse(0, 0, Ro, Ro * ti, 0, 0, TAU); g.stroke();
+        for (var el = 0; el < 2; el++) {
+          var pa = t * TAU * (o + 1) + el * Math.PI + o, ex = Math.cos(pa) * Ro, ey = Math.sin(pa) * Ro * ti, front = Math.sin(pa) > 0;
+          jpoint(g, ex, ey, R * (front ? .085 : .06), col, (front ? 1 : .55) * k);
+        }
+        g.restore();
+      }
+    } else if (forme === 'cristal') {
+      var rx = .5, ry = t * TAU, cxr = Math.cos(rx), sxr = Math.sin(rx), cyr = Math.cos(ry), syr = Math.sin(ry), P = [];
+      for (i = 0; i < 12; i++) {
+        var q = JICO.v[i], yy = q[1] * cxr - q[2] * sxr, zz = q[1] * sxr + q[2] * cxr, xx = q[0] * cyr + zz * syr, z3 = -q[0] * syr + zz * cyr, pp = 1.9 / (2.6 - z3);
+        P.push([cx + xx * R * .78 * pp, cy + yy * R * .78 * pp, z3]);
+      }
+      JICO.e.forEach(function (e) { var A = P[e[0]], B = P[e[1]], d = ((A[2] + B[2]) / 2 + 1) / 2; g.strokeStyle = rgba(col, (.15 + d * .7) * k); g.lineWidth = Math.max(1, R * (.006 + d * .012)); g.beginPath(); g.moveTo(A[0], A[1]); g.lineTo(B[0], B[1]); g.stroke(); });
+      P.forEach(function (p) { var d = (p[2] + 1) / 2; jpoint(g, p[0], p[1], R * (.04 + d * .05), col, (.35 + d * .65) * k); });
+      jpoint(g, cx, cy, R * .28, col, .35 * k);
+    }
+    g.restore();
+  }
   function fond(cfg, aod, ana, kk) {
     kk = kk || 1;
     var c = toile(W * kk, W * kk), g = c.getContext('2d'); g.scale(kk, kk);
@@ -811,7 +893,7 @@
     else if (cfg.fond !== 'transparent') {
       var A = cfg.c1, B = cfg.c2, gr;
       if (cfg.fond === 'degrade') { gr = g.createLinearGradient(0, 0, 0, W); gr.addColorStop(0, B); gr.addColorStop(1, A); g.fillStyle = gr; }
-      else if (cfg.fond === 'radial' || cfg.fond === 'hud') { gr = g.createRadialGradient(CX, CY * .9, 10, CX, CY, CX); gr.addColorStop(0, B); gr.addColorStop(1, A); g.fillStyle = gr; }
+      else if (cfg.fond === 'radial' || cfg.fond === 'hud' || JFORMES[cfg.fond]) { gr = g.createRadialGradient(CX, CY * .9, 10, CX, CY, CX); gr.addColorStop(0, B); gr.addColorStop(1, A); g.fillStyle = gr; }
       else g.fillStyle = A;
       g.fillRect(0, 0, W, W);
       if (cfg.fond === 'photo') {
@@ -836,6 +918,8 @@
         g.setLineDash([]);
         for (var q = 0; q < 4; q++) { g.beginPath(); g.arc(CX, CY, 212, q * Math.PI / 2 + .25, q * Math.PI / 2 + 1.3); g.strokeStyle = rgba(cfg.accent, .4); g.lineWidth = 2; g.stroke(); }
       }
+      // modèles de Majordome / Jarvis (mêmes formes que l'appli), en fond, plus discrets que l'heure
+      if (JFORMES[cfg.fond]) jarvis(g, cfg.fond.slice(2), CX, CY, 206, cfg.accent, .1, .6);
       if (SCENES[cfg.fond]) { PLAT = cfg.montre !== 'trex3'; SCENES[cfg.fond](g); PLAT = false; }
       if (cfg.fond === 'camo') {
         var seed = 7; var rnd = function () { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
@@ -1351,6 +1435,7 @@
   /* animations : une image par étape (f_0.png…), jouées par la montre (IMG_ANIM) quand l'écran est allumé */
   function imageAnim(b, cfg, f, n) {
     var s = b.taille, c = toile(s, s), g = c.getContext('2d'), cc = coul(cfg, b.couleur), t = f / n, R = s / 2, i;
+    if (JFORMES[b.motif]) { jarvis(g, b.motif.slice(2), R, R, R * .96, cc, t, 1); return c; }
     g.lineCap = 'round'; g.lineJoin = 'round';
     if (b.motif === 'engrenages') {
       var dent = 2 * Math.PI / 24;   // la grande roue (24 dents) avance d'une dent par tour d'animation : boucle sans saut

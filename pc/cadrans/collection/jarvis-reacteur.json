@@ -1,0 +1,56 @@
+{
+ "id": "jarvis-reacteur",
+ "appId": 1093234,
+ "nom": "Jarvis Réacteur",
+ "fond": "j_reacteur",
+ "c1": "#000000",
+ "c2": "#06161c",
+ "accent": "#46d9c2",
+ "texte": "#eef8ff",
+ "doux": "#8fa6b6",
+ "anneau": "aucun",
+ "aod": "heure_date",
+ "calques": [
+  "vignette"
+ ],
+ "blocs": [
+  {
+   "t": "heure",
+   "x": 240,
+   "y": 232,
+   "taille": 92,
+   "police": "legere",
+   "effet": "lueur",
+   "couleur": "texte",
+   "dp": "#46d9c2"
+  },
+  {
+   "t": "date",
+   "format": "court",
+   "x": 240,
+   "y": 300,
+   "taille": 17,
+   "effet": "ombre",
+   "couleur": "doux",
+   "jour": "#46d9c2"
+  },
+  {
+   "t": "info",
+   "d": "coeur",
+   "x": 160,
+   "y": 378,
+   "style": "simple",
+   "taille": "s",
+   "couleur": "#46d9c2"
+  },
+  {
+   "t": "info",
+   "d": "batterie",
+   "x": 320,
+   "y": 378,
+   "style": "simple",
+   "taille": "s",
+   "couleur": "#46d9c2"
+  }
+ ]
+}
