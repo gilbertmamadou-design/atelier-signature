@@ -1,6 +1,9 @@
 /* =====================================================================
    Majordome : sphère de particules animée (canvas 2D, code propre au projet).
-   MJOrb.create(canvas, {pad}) → { state(nom), level(0..1, bandes), speak(on, texte, débit), word(texte, début, fin), voice(0..1),
+   Autres modèles (opt.forme), mêmes réactions au son et mêmes couleurs d'état :
+     « reacteur » (anneaux de réacteur qui tournent, cœur lumineux), « onde » (spectre circulaire de barres),
+     « atome » (trois orbites en 3D et leurs électrons), « cristal » (icosaèdre en fil de fer, sommets brillants).
+   MJOrb.create(canvas, {pad, forme}) → { state(nom), level(0..1, bandes), speak(on, texte, débit), word(texte, début, fin), voice(0..1),
                                     pulse(), metrics(), stop() }
    États : idle (respire), listen (réagit au micro), think (tourne, violet),
    speak (pulse au rythme de la voix), error (rouge, frissonne), sleep (veille).
@@ -81,6 +84,95 @@
       }
       return 0.16;                                             // entre deux mots
     }
+    /* ---------------- Autres modèles ---------------- */
+    var FORME = /^(reacteur|onde|atome|cristal)$/.test(opt.forme || '') ? opt.forme : 'sphere';
+    var spin2 = 0, spec = [];
+    var ICO = (function () {   // icosaèdre : 12 sommets, 30 arêtes
+      var f = (1 + Math.sqrt(5)) / 2, v = [[-1, f, 0], [1, f, 0], [-1, -f, 0], [1, -f, 0], [0, -1, f], [0, 1, f], [0, -1, -f], [0, 1, -f], [f, 0, -1], [f, 0, 1], [-f, 0, -1], [-f, 0, 1]];
+      var n = Math.sqrt(1 + f * f); v = v.map(function (p) { return [p[0] / n, p[1] / n, p[2] / n]; });
+      var e = []; for (var a = 0; a < 12; a++) for (var b = a + 1; b < 12; b++) { var dx = v[a][0] - v[b][0], dy = v[a][1] - v[b][1], dz = v[a][2] - v[b][2]; if (Math.abs(Math.sqrt(dx * dx + dy * dy + dz * dz) - 2 / n) < 0.01) e.push([a, b]); }
+      return { v: v, e: e };
+    })();
+    function stroke(a, w) { ctx.strokeStyle = 'rgba(' + this_rgb + ',' + clamp(a, 0, 1).toFixed(3) + ')'; ctx.lineWidth = w; }
+    var this_rgb = '';
+    function glowDot(x, y, r, a) {
+      var g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, 'rgba(255,255,255,' + clamp(a, 0, 1).toFixed(3) + ')'); g.addColorStop(0.35, 'rgba(' + this_rgb + ',' + clamp(a * 0.8, 0, 1).toFixed(3) + ')'); g.addColorStop(1, 'rgba(' + this_rgb + ',0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.2832); ctx.fill();
+    }
+    function drawForme(t, dt, cx, cy, base, base0, lv, rgb) {
+      this_rgb = rgb;
+      var spd = st === 'think' ? 2.2 : st === 'sleep' ? 0.1 : 0.5 + lv * 1.6;
+      if (!reduce) spin2 += dt * spd;
+      var err = st === 'error' && !reduce ? (Math.random() - 0.5) * base * 0.03 : 0;
+      cx += err; cy += err * 0.6;
+      if (FORME === 'reacteur') {
+        // cœur
+        glowDot(cx, cy, base * (0.34 + lv * 0.22), 0.55 + lv * 0.45);
+        stroke(0.85, 2 + lv * 2); ctx.beginPath(); ctx.arc(cx, cy, base * 0.30, 0, 6.2832); ctx.stroke();
+        // pales trapézoïdales (10), sens inverse
+        var nb = 10, r1 = base * 0.42, r2 = base * (0.66 + lv * 0.06);
+        for (var i = 0; i < nb; i++) {
+          var a0 = -spin2 * 0.6 + i / nb * 6.2832, w1 = 0.20, w2 = 0.24;
+          ctx.beginPath();
+          ctx.moveTo(cx + Math.cos(a0 - w1) * r1, cy + Math.sin(a0 - w1) * r1); ctx.lineTo(cx + Math.cos(a0 + w1) * r1, cy + Math.sin(a0 + w1) * r1);
+          ctx.lineTo(cx + Math.cos(a0 + w2) * r2, cy + Math.sin(a0 + w2) * r2); ctx.lineTo(cx + Math.cos(a0 - w2) * r2, cy + Math.sin(a0 - w2) * r2); ctx.closePath();
+          ctx.fillStyle = 'rgba(' + rgb + ',' + (0.10 + lv * 0.25).toFixed(3) + ')'; ctx.fill(); stroke(0.55 + lv * 0.4, 1.2); ctx.stroke();
+        }
+        // anneau segmenté extérieur (24 segments), qui tourne
+        var ns = 24, ro2 = base * (0.80 + lv * 0.08);
+        for (var k = 0; k < ns; k++) {
+          var s0 = spin2 * 0.35 + k / ns * 6.2832, on2 = (k + Math.floor(t * (1 + lv * 6))) % 6 !== 0;
+          stroke(on2 ? 0.75 : 0.25, 3 + lv * 3); ctx.beginPath(); ctx.arc(cx, cy, ro2, s0, s0 + 6.2832 / ns * 0.72); ctx.stroke();
+        }
+        // fin anneau extérieur gradué
+        stroke(0.35, 1); ctx.beginPath(); ctx.arc(cx, cy, base * 0.93, 0, 6.2832); ctx.stroke();
+        for (var m = 0; m < 72; m++) { var am = m / 72 * 6.2832 - spin2 * 0.1, l1 = base * 0.93, l2 = l1 + (m % 6 ? 4 : 9) * (1 + lv); stroke(0.4, 1); ctx.beginPath(); ctx.moveTo(cx + Math.cos(am) * l1, cy + Math.sin(am) * l1); ctx.lineTo(cx + Math.cos(am) * l2, cy + Math.sin(am) * l2); ctx.stroke(); }
+      } else if (FORME === 'onde') {
+        var nbar = small ? 64 : 96, rin = base * 0.55;
+        if (spec.length !== nbar) { spec = []; for (var q = 0; q < nbar; q++) spec.push(0); }
+        for (var b2 = 0; b2 < nbar; b2++) {
+          var ang = b2 / nbar * 6.2832 - 1.5708, sym = Math.abs(Math.sin(ang * 0.5 + 0.785));
+          var tgt = reduce ? lv * 0.5 : (0.06 + lv * (0.45 + 0.55 * Math.abs(Math.sin(b2 * 0.37 + t * 6.3) * Math.sin(b2 * 0.11 - t * 2.7))) + lo * 0.25 * sym + hi * 0.3 * Math.abs(Math.sin(b2 * 1.7 + t * 17)));
+          if (st === 'idle' || st === 'sleep') tgt = 0.05 + 0.04 * Math.sin(t * 1.3 + b2 * 0.3);
+          if (st === 'think') tgt = 0.12 + 0.25 * Math.max(0, Math.sin(b2 / nbar * 6.2832 * 3 - t * 6));
+          spec[b2] += (tgt - spec[b2]) * (tgt > spec[b2] ? 0.5 : 0.12);
+          var len = base * 0.45 * spec[b2], x1 = cx + Math.cos(ang) * rin, y1 = cy + Math.sin(ang) * rin;
+          stroke(0.45 + spec[b2] * 0.55, Math.max(1.5, base * 6.2832 * 0.55 / nbar * 0.55));
+          ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(cx + Math.cos(ang) * (rin + len), cy + Math.sin(ang) * (rin + len)); ctx.stroke();
+          var len2 = len * 0.35; stroke(0.25 + spec[b2] * 0.3, 1.2);
+          ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(cx + Math.cos(ang) * (rin - len2), cy + Math.sin(ang) * (rin - len2)); ctx.stroke();
+        }
+        stroke(0.6, 1.5); ctx.beginPath(); ctx.arc(cx, cy, rin * 0.98, 0, 6.2832); ctx.stroke();
+        glowDot(cx, cy, rin * (0.55 + lv * 0.3), 0.18 + lv * 0.5);
+      } else if (FORME === 'atome') {
+        glowDot(cx, cy, base * (0.22 + lv * 0.18), 0.7 + lv * 0.3);
+        var orb3 = [[0.0, 1.15], [1.05, 1.15], [2.1, 1.15]];
+        for (var o = 0; o < 3; o++) {
+          var rotZ = orb3[o][0] + spin2 * 0.08, R = base * (0.82 + lv * 0.1), tiltK = 0.32 + 0.04 * Math.sin(t * 0.7 + o);
+          ctx.save(); ctx.translate(cx, cy); ctx.rotate(rotZ);
+          stroke(0.45 + lv * 0.3, 1.4 + lv * 1.5); ctx.beginPath(); ctx.ellipse(0, 0, R, R * tiltK, 0, 0, 6.2832); ctx.stroke();
+          for (var el = 0; el < 2; el++) {
+            var pa = spin2 * (1.6 + o * 0.35) * orb3[o][1] + el * 3.1416 + o;
+            var exx = Math.cos(pa) * R, eyy = Math.sin(pa) * R * tiltK, front = Math.sin(pa) > 0;
+            glowDot(exx, eyy, base * (front ? 0.07 : 0.05) * (1 + lv * 0.8), front ? 0.95 : 0.5);
+          }
+          ctx.restore();
+        }
+      } else {   // cristal
+        var rx = spin2 * 0.55, ry = spin2 * 0.8 + 0.4, R2 = base * 0.78, pts2 = [];
+        var cxr = Math.cos(rx), sxr = Math.sin(rx), cyr = Math.cos(ry), syr = Math.sin(ry);
+        for (var vi = 0; vi < 12; vi++) {
+          var v = ICO.v[vi], d = 1 + (reduce ? 0 : lv * 0.18 * Math.sin(t * 9 + vi * 1.7)) + (st === 'error' && !reduce ? (Math.random() - 0.5) * 0.06 : 0);
+          var x = v[0] * d, y = v[1] * d, z = v[2] * d;
+          var y1 = y * cxr - z * sxr, z1 = y * sxr + z * cxr, x2 = x * cyr + z1 * syr, z2 = -x * syr + z1 * cyr;
+          var pp = 1.9 / (2.6 - z2); pts2.push([cx + x2 * R2 * pp, cy + y1 * R2 * pp, z2]);
+        }
+        ICO.e.forEach(function (e) { var A = pts2[e[0]], B2 = pts2[e[1]], dep = clamp(((A[2] + B2[2]) / 2 + 1) / 2, 0, 1); stroke(0.15 + dep * 0.65 + lv * 0.2, 0.8 + dep * 1.6 + lv * 1.2); ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B2[0], B2[1]); ctx.stroke(); });
+        pts2.forEach(function (P) { var dep = clamp((P[2] + 1) / 2, 0, 1); glowDot(P[0], P[1], base * (0.03 + dep * 0.05) * (1 + lv), 0.35 + dep * 0.65); });
+        glowDot(cx, cy, base * (0.25 + lv * 0.25), 0.25 + lv * 0.5);
+      }
+    }
     function frame(now) {
       raf = 0; tmo = 0;
       var t = (now - t0) / 1000, dt = last ? clamp((now - last) / 1000, 0.001, 0.1) : 0.016; last = now;
@@ -123,6 +215,7 @@
         ctx.beginPath(); ctx.arc(cx, cy, base0 * (1.02 + age * 0.55), 0, 6.2832); ctx.stroke();
       }
       ctx.globalCompositeOperation = 'lighter';
+      if (FORME !== 'sphere') { drawForme(t, dt, cx, cy, base, base0, lv, rgb); ctx.globalCompositeOperation = 'source-over'; M.scale = scale; M.glow = a0; M.level = lvlS; M.frames++; if (opt.onLevel) try { opt.onLevel(lv); } catch (e) { } schedule(); return; }
       var jitter = st === 'error' ? 0.06 : 0, amp = reduce ? 0 : 0.045 + lv * 0.22, disp = reduce ? 0 : lv * 0.16;
       var wl = reduce ? 0 : lo * 0.10 * kr, wh = reduce ? 0 : hi * 0.06 * kr, szk = (small ? 1.1 : 1) * (1 + lv * 0.35), alk = 0.18 + lv * 0.12;
       for (var j = 0; j < N; j++) {
@@ -189,7 +282,7 @@
       voice: function (v) { vReal = clamp(+v || 0, 0, 1); vRealAt = performance.now(); if (!spk) api.speak(true); kick(); },
       metrics: function () { return { scale: M.scale, glow: M.glow, level: M.level, frames: M.frames, state: st, running: !!(raf || tmo) }; },
       stop: function () { running = false; if (raf) cancelAnimationFrame(raf); if (tmo) clearTimeout(tmo); raf = tmo = 0; if (ro) ro.disconnect(); },
-      reduced: reduce, count: N
+      reduced: reduce, count: N, forme: FORME
     };
     return api;
   }
