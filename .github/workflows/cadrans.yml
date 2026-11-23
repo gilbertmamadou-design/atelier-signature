@@ -121,19 +121,25 @@ jobs:
           cp "$OUT/projets/liste.json" "$OUT/cadrans.json"
           ls -la "$OUT"
       - name: Publier (collection)
+        # un fichier après l'autre, avec reprise : envoyer les ~230 fichiers d'un coup déclenchait la « secondary rate limit »
+        # de GitHub (échecs de la fabrication de nuit depuis le 20/11/2026)
         if: steps.reglages.outputs.mode == 'collection'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: cadrans-collection
-          name: Cadrans T-Rex 3 – collection
-          overwrite_files: true
-          body: |
-            Collection de cadrans pour Amazfit T-Rex 3 (Zepp OS), fabriqués à partir de zepp/cadrans/collection.
-            Installation : ouvrez l'appli « Atelier de cadrans » › Collection, ou scannez <id>-qr.png avec Zepp › Profil › T-Rex 3 › Mode développeur › scan.
-          files: |
-            zepp/out-cadrans/*.zab
-            zepp/out-cadrans/*.png
-            zepp/out-cadrans/*.json
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release view cadrans-collection > /dev/null 2>&1 || gh release create cadrans-collection --title "Cadrans T-Rex 3 – collection" \
+            --notes "Collection de cadrans pour Amazfit T-Rex 3 (Zepp OS), fabriqués à partir de zepp/cadrans/collection. Installation : ouvrez l'appli « Atelier de cadrans » › Collection, ou scannez <id>-qr.png avec Zepp › Profil › T-Rex 3 › Mode développeur › scan."
+          cd "$GITHUB_WORKSPACE/zepp/out-cadrans"
+          for f in *.zab *.png *.json; do
+            ok=0
+            for essai in 1 2 3 4 5 6; do
+              if gh release upload cadrans-collection "$f" --clobber; then ok=1; break; fi
+              echo "::warning::$f : nouvel essai dans $((essai * 30)) s"; sleep $((essai * 30))
+            done
+            [ $ok = 1 ] || { echo "::error::$f non publié"; exit 1; }
+            sleep 1
+          done
       - name: Publier (cadran perso)
         if: steps.reglages.outputs.mode == 'perso'
         uses: softprops/action-gh-release@v2

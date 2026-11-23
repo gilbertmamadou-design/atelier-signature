@@ -1,0 +1,56 @@
+{
+ "id": "jarvis-onde",
+ "appId": 1093238,
+ "nom": "Jarvis Onde",
+ "fond": "j_onde",
+ "c1": "#000000",
+ "c2": "#1e1406",
+ "accent": "#ffb547",
+ "texte": "#eef8ff",
+ "doux": "#8fa6b6",
+ "anneau": "aucun",
+ "aod": "heure_date",
+ "calques": [
+  "vignette"
+ ],
+ "blocs": [
+  {
+   "t": "heure",
+   "x": 240,
+   "y": 232,
+   "taille": 92,
+   "police": "legere",
+   "effet": "lueur",
+   "couleur": "texte",
+   "dp": "#ffb547"
+  },
+  {
+   "t": "date",
+   "format": "court",
+   "x": 240,
+   "y": 300,
+   "taille": 17,
+   "effet": "ombre",
+   "couleur": "doux",
+   "jour": "#ffb547"
+  },
+  {
+   "t": "info",
+   "d": "coeur",
+   "x": 160,
+   "y": 378,
+   "style": "simple",
+   "taille": "s",
+   "couleur": "#ffb547"
+  },
+  {
+   "t": "info",
+   "d": "batterie",
+   "x": 320,
+   "y": 378,
+   "style": "simple",
+   "taille": "s",
+   "couleur": "#ffb547"
+  }
+ ]
+}
