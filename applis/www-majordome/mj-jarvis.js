@@ -61,7 +61,7 @@
     if (/^(?:qu est ce que tu as retenu|que sais tu de moi|qu est ce que tu sais de moi|ta memoire|montre(?: moi)? ta memoire|qu est ce que tu te rappelles|de quoi tu te souviens|liste (?:de )?(?:ta |la )?memoire)$/.test(t)) return { act: 'list' };
     if ((m = /^(?:oublie|oublier|efface|effacer|supprime|supprimer)(?: de ta memoire)?(?: ce que je t ai dit sur| ce que tu sais sur)? (.+?)(?: de ta memoire)?$/.exec(t)) && !/^(?:tout|la liste|le minuteur|les minuteurs|le reveil|les reveils|le rappel|les rappels|le carnet|les notes?)\b/.test(m[1])) return { act: 'del', q: m[1] };
     if (/^(?:vide|efface|oublie) (?:toute )?ta memoire$|^oublie tout ce que (?:je t ai dit|tu sais)$/.test(t)) return { act: 'clear' };
-    if ((m = /^(?:ou (?:est|sont|se trouve|se trouvent|ai je (?:mis|range|laisse|pose)|j ai (?:mis|range|laisse|pose)|est ce que j ai (?:mis|range))|tu te souviens (?:de|du|des|d)|tu te rappelles (?:de|du|des|d)|qu est ce que tu sais (?:sur|de|du|des|d)|que sais tu (?:sur|de|du|des|d)|rappelle moi|c est quoi deja|quel(?:le)?s? (?:est|sont|etait|etaient) deja) (.+)$/.exec(t))) return { act: 'ask', q: m[1], strong: true };
+    if ((m = /^(?:ou (?:est|sont|se trouve|se trouvent|ai je (?:mis|range|laisse|pose)|j ai (?:mis|range|laisse|pose)|est ce que j ai (?:mis|range))|tu te souviens (?:de|du|des|d)|tu te rappelles (?:de|du|des|d)|qu est ce que tu sais (?:sur|de|du|des|d)|que sais tu (?:sur|de|du|des|d)|rappelle moi(?= (?:le|la|les|l|mon|ma|mes|ou|quel|quelle|qui) )|c est quoi deja|quel(?:le)?s? (?:est|sont|etait|etaient) deja) (.+)$/.exec(t))) return { act: 'ask', q: m[1], strong: true };
     if ((m = /^(?:quel(?:le)?s? (?:est|sont)|c est quoi|qui a|a qui (?:j ai|ai je) prete|combien|quand (?:est|a lieu))(.+)$/.exec(t))) return { act: 'ask', q: m[1] || t, strong: false };
     return null;
   }
@@ -71,6 +71,7 @@
       var f = mAdd(txt);
       return X.answer({ say: f ? 'C\'est noté : ' + sayFirst(f.t) + '.' : 'Je n\'ai pas compris quoi retenir.', k: 'Mémoire' }).done;
     }
+    if (p.act === 'export') { var okx = mExport(); return X.answer(okx ? (X.ANDROID ? 'Choisissez où envoyer ma mémoire, par exemple vers votre PC.' : 'Voici ma mémoire dans un fichier : ouvrez-le dans Majordome sur l\'autre appareil, Réglages, Mémoire, Recevoir.') : 'Ma mémoire est vide.').done; }
     if (p.act === 'list') {
       var l = mLoad().slice(-8).reverse();
       if (!l.length) return X.answer({ say: 'Je n\'ai encore rien retenu. Dites par exemple : retiens que le code du portail est 1234.', k: 'Mémoire' }).done;
@@ -86,7 +87,9 @@
       var gone = hit[0].f; mSave(mLoad().filter(function (f) { return f.id !== gone.id; }));
       return X.answer({ say: 'J\'ai oublié : ' + sayFirst(gone.t) + '.', k: 'Mémoire' }).done;
     }
-    var h = mFind(p.q, p.strong ? 0.5 : 0.75);
+    var h = mFind(p.q, p.strong ? 0.5 : 0.75), rl = rappelsLies(p.q);
+    if (!h.length && rl.length) return X.answer({ say: 'Je n\'ai rien retenu là-dessus, mais un rappel est prévu ' + quand(rl[0].at) + ' : ' + rl[0].text + '.', k: 'Mémoire' }).done;
+    if (h.length && rl.length) { var b0 = h[0].f; return X.answer({ say: 'Vous m\'avez dit : ' + sayFirst(b0.t) + '. Et un rappel est prévu ' + quand(rl[0].at) + ' : ' + rl[0].text + '.', k: 'Mémoire' }).done; }
     if (!h.length) return X.answer({ say: 'Je ne m\'en souviens pas : vous ne me l\'avez pas dit. Dites par exemple : retiens que ' + p.q + ' est…', k: 'Mémoire' }).done;
     var best = h.slice(0, 3).map(function (x) { return x.f; });
     return X.answer({ say: 'Vous m\'avez dit : ' + sayFirst(best[0].t) + '.', k: 'Mémoire', html: best.length > 1 ? '<ul>' + best.map(function (f) { return '<li>' + esc(f.t) + ' <small>(' + new Date(f.at).toLocaleDateString('fr-FR') + ')</small></li>'; }).join('') + '</ul>' : null }).done;
@@ -119,7 +122,7 @@
   setInterval(function () {
     if (!S.nuit.on || !S.nuit.auto) return;
     var d = new Date(), since = S.nuit.since || 0;
-    if (d.getHours() === +S.nuit.fin && Date.now() - since > 3600000) nuit(false, true);
+    if (d.getHours() === +S.nuit.fin && Date.now() - since > 3600000) { nuit(false, true); S.nuit.brief = true; X.saveS(); }   // résumé du matin au premier passage
   }, 60000);
   if (S.nuit.on) setTimeout(function () { nuitOverlay(true); }, 800);
   H.nuit = function (p) { nuit(!!p.on); return Promise.resolve(); };
@@ -137,12 +140,14 @@
     if (S.oeil) { S.oeil.presence = !!v.presence; S.oeil.gestes = !!v.gestes; }
     X.saveS(); if (MJ.oeil && MJ.oeil.refresh) MJ.oeil.refresh(true);
   }
-  function profil(id) {
+  function profil(id, auto) {
     var P = PROFILS[id]; if (!P) return X.answer('Je ne connais que les profils Maison, Travail et Chantier.').done;
+    if (!auto) S.pauto.manualAt = Date.now();   // choisi à la main : le profil automatique attend 3 h
     if (S.nuit.on) nuit(false, true);
     if (S.profils.cur) S.profils.saved[S.profils.cur] = snap();
     var v = S.profils.saved[id] || P.d;
     S.profils.cur = id; applyP(v);
+    if (auto) { X.saveS(); return Promise.resolve(); }
     var det = { maison: 'Voix normale.', travail: 'Voix plus douce et un peu plus rapide, sans bips.', chantier: 'Voix forte, et commande par gestes devant la caméra pour les mains occupées.' }[id];
     return X.answer({ say: 'Profil ' + P.name + '. ' + det, k: 'Profil' }).done;
   }
@@ -296,6 +301,142 @@
     }, function (e) { return X.errorReply('Home Assistant : ' + e.message + '.').done; });
   };
 
+  /* =========================== 7. Couleur =========================== */
+  var COULEURS = { cyan: ['Cyan', '#46d9c2', '#2bb8a3'], bleu: ['Bleu', '#4a9bff', '#2f7be0'], violet: ['Violet', '#a084ff', '#7f62e6'], vert: ['Vert', '#55e07f', '#35b85f'],
+    ambre: ['Ambre', '#ffb547', '#e0952a'], rouge: ['Rouge', '#ff6464', '#e04646'], blanc: ['Blanc', '#dfe9f5', '#b8c8db'] };
+  S.couleur = COULEURS[S.couleur] ? S.couleur : 'cyan';
+  function couleur(c) {
+    if (!COULEURS[c]) c = 'cyan';
+    S.couleur = c;
+    try { if (window.MJOrb && window.MJOrb.theme) window.MJOrb.theme(c); } catch (e) { }
+    var r = document.documentElement.style, k = COULEURS[c];
+    if (c === 'cyan') ['--acc', '--acc2', '--line', '--line2'].forEach(function (v) { r.removeProperty(v); });
+    else { r.setProperty('--acc', k[1]); r.setProperty('--acc2', k[2]); r.setProperty('--line', k[1] + '1f'); r.setProperty('--line2', k[1] + '3d'); }
+    try { if (MJ.fx && MJ.fx.couleur) MJ.fx.couleur(); } catch (e) { }
+  }
+  couleur(S.couleur);
+  H.couleur = function (p) {
+    if (!COULEURS[p.c]) return X.answer('Couleurs possibles : cyan, bleu, violet, vert, ambre, rouge ou blanc.').done;
+    couleur(p.c); X.saveS();
+    return X.answer({ say: 'Voilà, je suis en ' + COULEURS[p.c][0].toLowerCase() + '.', k: 'Apparence' }).done;
+  };
+
+  /* =========================== 8. Mémoire partagée entre appareils =========================== */
+  function mExport() {
+    var l = mLoad(); if (!l.length) { X.toast('Mémoire vide : rien à envoyer'); return false; }
+    var txt = JSON.stringify({ majordome: 'memoire', v: 1, at: Date.now(), faits: l });
+    var name = 'Majordome mémoire ' + new Date().toLocaleDateString('fr-FR').replace(/\//g, '-') + '.json';
+    if (X.B && X.B.shareText && X.ANDROID) { X.B.shareText('Mémoire de Majordome', txt); return true; }
+    var blob = new Blob([txt], { type: 'application/json' });
+    if (PCAPI && PCAPI.fs && PCAPI.fs.saveAs) { PCAPI.fs.saveAs(blob, name, { types: [{ description: 'Mémoire Majordome', accept: { 'application/json': ['.json'] } }] }).then(function (r) { if (r && r.ok) X.toast('Mémoire enregistrée'); }, function () { }); return true; }
+    var a = document.createElement('a'), u = URL.createObjectURL(blob); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(u); }, 30000);
+    return true;
+  }
+  /** fusionne une mémoire reçue : les faits les plus récents gagnent sur le même sujet */
+  function mImport(txt) {
+    var o; try { o = JSON.parse(String(txt || '').trim()); } catch (e) { return -1; }
+    var l = o && o.majordome === 'memoire' && Array.isArray(o.faits) ? o.faits : null; if (!l) return -1;
+    var mine = mLoad(), seen = {}; mine.forEach(function (f) { seen[norm(f.t)] = 1; });
+    var n = 0;
+    l.concat(mine).sort(function (a, b) { return (a.at || 0) - (b.at || 0); }).forEach(function (f) {
+      if (!f || !f.t) return;
+      var cur = mLoad(), had = cur.some(function (x) { return norm(x.t) === norm(f.t); });
+      if (had) return;
+      var g = mAdd(f.t); if (g) { var c2 = mLoad(); c2[c2.length - 1].at = f.at || Date.now(); mSave(c2); if (!seen[norm(f.t)]) n++; }
+    });
+    return n;
+  }
+  function mImportUi() {
+    var inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json,application/json,text/plain';
+    inp.onchange = function () { var f = inp.files && inp.files[0]; if (!f) return; f.text().then(function (t) { var n = mImport(t); X.toast(n < 0 ? 'Fichier de mémoire illisible' : n + ' nouvelle(s) chose(s) retenue(s)'); X.settingsSheet('jarvis'); }); };
+    inp.click();
+  }
+
+  /* =========================== 9. Profil automatique =========================== */
+  S.pauto = Object.assign({ on: false, manualAt: 0, regles: { travail: { jours: 'aucun', de: 8, a: 17, lieu: null }, chantier: { jours: 'aucun', de: 7, a: 16, lieu: null } } }, S.pauto || {});
+  var JOURS = { aucun: [], semaine: [1, 2, 3, 4, 5], tous: [0, 1, 2, 3, 4, 5, 6], weekend: [0, 6] };
+  var pos = null, posAt = 0;
+  function dist(a, b) { var R = 6371000, r = Math.PI / 180, dl = (b.lat - a.lat) * r, dn = (b.lon - a.lon) * r, x = Math.sin(dl / 2) * Math.sin(dl / 2) + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dn / 2) * Math.sin(dn / 2); return 2 * R * Math.asin(Math.sqrt(x)); }
+  function here(force) {
+    if (!force && pos && Date.now() - posAt < 10 * 60000) return Promise.resolve(pos);
+    return new Promise(function (ok, ko) {
+      if (!navigator.geolocation) return ko(new Error('position indisponible'));
+      navigator.geolocation.getCurrentPosition(function (p) { pos = { lat: p.coords.latitude, lon: p.coords.longitude }; posAt = Date.now(); ok(pos); }, ko, { maximumAge: 300000, timeout: 15000, enableHighAccuracy: false });
+    });
+  }
+  function voulu(p) {
+    var R = S.pauto.regles, d = new Date(), j = d.getDay(), h = d.getHours() + d.getMinutes() / 60;
+    var ids = Object.keys(R);
+    for (var i = 0; i < ids.length; i++) { var r = R[ids[i]]; if (r.lieu && p && dist(p, r.lieu) < 400) return ids[i]; }
+    for (var k = 0; k < ids.length; k++) { var q = R[ids[k]]; if ((JOURS[q.jours] || []).indexOf(j) >= 0 && h >= q.de && h < q.a) return ids[k]; }
+    return 'maison';
+  }
+  function autoTick() {
+    if (!S.pauto.on || S.nuit.on || Date.now() - (S.pauto.manualAt || 0) < 3 * 3600000) return;
+    var needPos = Object.keys(S.pauto.regles).some(function (k) { return !!S.pauto.regles[k].lieu; });
+    (needPos ? here().catch(function () { return null; }) : Promise.resolve(null)).then(function (p) {
+      var w = voulu(p);
+      if (w && w !== S.profils.cur) { profil(w, true); X.toast('Profil ' + PROFILS[w].name + ' (automatique)'); }
+    });
+  }
+  setInterval(autoTick, 5 * 60000); setTimeout(autoTick, 4000);
+
+  /* =========================== 10. Résumé du matin après la nuit =========================== */
+  function brief() {
+    if (!S.nuit.brief) return false;
+    var h = new Date().getHours(); if (h >= 12) { S.nuit.brief = false; X.saveS(); return false; }
+    if ((X.speaking && X.speaking()) || MJ.listening || MJ.wait) return false;
+    S.nuit.brief = false; X.saveS();
+    try { X.exec({ intent: 'routine', p: { id: 'matin' } }); } catch (e) { }
+    return true;
+  }
+  MJ.onPresence = function () { return brief(); };
+  ['pointerdown', 'keydown'].forEach(function (ev) { document.addEventListener(ev, function () { if (S.nuit.brief) setTimeout(brief, 300); }, true); });
+
+  /* =========================== 11. Plaques et étiquettes du chantier =========================== */
+  function plaque() {
+    if (!MJ.oeil || !MJ.oeil.lireTexte) return X.answer('La caméra n\'est pas disponible ici.').done;
+    X.answer({ say: 'Montrez la plaque ou l\'étiquette, bien en face.', k: 'Plaque' });
+    return MJ.oeil.lireTexte('Plaque ou étiquette en face de la caméra, bien éclairée', 4).then(function (txt) {
+      if (txt.replace(/\W/g, '').length < 4) return X.answer('Je ne lis rien sur cette plaque. Rapprochez-la, avec plus de lumière.').done;
+      var t1 = txt.replace(/\s+/g, ' '), f = [], m;
+      if ((m = /\b(?:CMU|CMR|WLL|SWL|charge (?:maxi(?:male)?|max\.?)(?: d'utilisation)?)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*(kg|t|tonnes?|daN|kN)\b/i.exec(t1))) f.push('CMU ' + m[1] + ' ' + m[2]);
+      else if ((m = /\b(\d+(?:[.,]\d+)?)\s*(kg|t)\b/i.exec(t1))) f.push('Charge lue ' + m[1] + ' ' + m[2]);
+      if ((m = /\b(?:r[ée]f(?:[ée]rence)?|type|mod[eè]le|n[°o]\s*(?:de\s*)?s[ée]rie|s\/n|sn|lot)\s*[.:°]?\s*([A-Z0-9][A-Z0-9\-\/.]{2,})/i.exec(t1))) f.push('Réf. ' + m[1]);
+      var dates = t1.match(/\b(?:\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4}|\d{1,2}[\/.\-]\d{4})\b/g) || ((m = /\b(?:ann[ée]e|fabrication|fab\.?|construit en|mise en service)\s*[:.]?\s*((?:19|20)\d{2})\b/i.exec(t1)) ? [m[1]] : null);
+      if (dates) f.push('Date(s) ' + dates.slice(0, 3).join(', '));
+      if ((m = /\b(?:CE|EN\s?\d{3,5}(?:-\d+)?|NF\s?[A-Z]?\s?\d{2,5})\b/.exec(t1))) f.push('Marquage ' + m[0]);
+      var note = 'Plaque relevée le ' + new Date().toLocaleDateString('fr-FR') + (f.length ? ' : ' + f.join(' ; ') : '') + '. Texte : ' + t1.slice(0, 400);
+      return X.exec({ intent: 'note_add', p: { text: note } }).then(function () {
+        return X.answer({ say: f.length ? 'J\'ai noté dans le Carnet : ' + f.join(', ') + '.' : 'J\'ai noté le texte de la plaque dans le Carnet.', k: 'Plaque', html: '<p>' + esc(f.join(' · ') || 'Texte noté') + '</p>' }).done;
+      });
+    }).catch(function (e) { if (e && e.cancel) return X.answer('Lecture annulée.').done; return X.errorReply('Lecture de la plaque impossible : ' + (e && e.message || e) + '.').done; });
+  }
+  H.plaque = function () { return plaque(); };
+
+  /* =========================== 12. Économie de batterie =========================== */
+  S.ecoBat = S.ecoBat !== false;
+  function batSet(level, charging) {
+    var low = S.ecoBat && level >= 0 && level < 0.2 && !charging;
+    if (low !== !!MJ.batterieBasse) {
+      MJ.batterieBasse = low;
+      if (MJ.oeil && MJ.oeil.refresh) MJ.oeil.refresh();
+      if (low && S.oeil && (S.oeil.presence || S.oeil.gestes)) X.toast('Batterie faible : présence et gestes en pause');
+    }
+  }
+  function batPoll() {
+    if (X.P && X.P.homeBattery && !X.PC) { try { var b = JSON.parse(X.P.homeBattery() || '{}'); if (b.level >= 0) batSet(b.level / 100, !!b.plugged); } catch (e) { } return; }
+    if (navigator.getBattery) navigator.getBattery().then(function (b) { batSet(b.level, b.charging); if (!batPoll.on) { batPoll.on = 1; b.addEventListener('levelchange', function () { batSet(b.level, b.charging); }); b.addEventListener('chargingchange', function () { batSet(b.level, b.charging); }); } }).catch(function () { });
+  }
+  batPoll(); setInterval(batPoll, 2 * 60000);
+
+  /* =========================== 13. Rappels liés à la mémoire =========================== */
+  function rappelsLies(q) {
+    var qk = keys(q); if (!qk.length || !MJ.AL) return [];
+    return (MJ.AL() || []).filter(function (o) { return o.kind === 'reminder' && o.at > Date.now() && keys(o.text).some(function (k) { return qk.indexOf(k) >= 0; }); });
+  }
+  function quand(t) { var d = new Date(t); return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) + ' à ' + d.getHours() + ' h' + (d.getMinutes() ? (d.getMinutes() < 10 ? '0' : '') + d.getMinutes() : ''); }
+
   /* =========================== Compréhension des phrases =========================== */
   var PRO = { maison: 'maison', domicile: 'maison', perso: 'maison', personnel: 'maison', travail: 'travail', bureau: 'travail', boulot: 'travail', chantier: 'chantier', terrain: 'chantier', atelier: 'chantier' };
   function parse(t, r) {
@@ -310,6 +451,10 @@
     if (/^(?:fin du mode nuit|arrete (?:le )?mode nuit|desactive (?:le )?mode nuit|quitte (?:le )?mode nuit|sors du mode nuit|mode jour)$/.test(t)) return { intent: 'nuit', p: { on: false } };
     if ((m = /^(?:passe|passer|bascule|mets toi|mets|active|activer|lance)?(?: en| le)? ?(?:mode|profil) (maison|domicile|perso|personnel|travail|bureau|boulot|chantier|terrain|atelier)$/.exec(t)) || (m = /^(?:je suis|je suis au|je suis en|je suis sur|je suis a|je suis sur le|je pars au|je pars sur le) (?:la |le )?(travail|bureau|chantier|boulot|maison)$/.exec(t)))
       if (PRO[m[1]]) return { intent: 'profil', p: { id: PRO[m[1]] } };
+    if ((m = /^(?:(?:mets|passe|change|changer|habille)(?: toi)?(?: de couleur)?(?: en| au)?|couleur|deviens|sois|prends la couleur|en couleur|change ta couleur(?: en| pour)?|ta couleur(?: en)?) ?(cyan|turquoise|bleu|bleue|violet|violette|mauve|vert|verte|ambre|orange|jaune|dore|rouge|blanc|blanche)$/.exec(t)))
+      return { intent: 'couleur', p: { c: { turquoise: 'cyan', bleue: 'bleu', violette: 'violet', mauve: 'violet', verte: 'vert', orange: 'ambre', jaune: 'ambre', dore: 'ambre', blanche: 'blanc' }[m[1]] || m[1] } };
+    if (/^(?:envoie|envoyer|exporte|exporter|partage|partager|sauvegarde|sauvegarder|copie|transfere)(?: moi)? (?:ma |ta |la )?memoire(?: (?:vers|sur|au|a) (?:l autre appareil|le telephone|le pc|l ordinateur|mon telephone|mon pc))?$/.test(t)) return { intent: 'memoire', p: { act: 'export' } };
+    if (/^(?:lis|lit|scanne|scanner|releve|relever|note|noter|photographie|lire)(?: moi)? (?:la |cette |l |une |le )?(?:plaque(?: de charge| signaletique| constructeur)?|etiquette|marquage|plaque de l (?:elingue|appareil|echafaudage|engin|palan))$/.test(t)) return { intent: 'plaque', p: {} };
     if (/^(?:quel (?:est le |est ton )?profil|quel mode|dans quel mode es tu|quel profil est actif)$/.test(t)) return { intent: 'profil', p: { act: 'which' } };
     if (/^(?:lis|lit|lire|lis moi|peux tu lire|tu peux lire)(?: moi)? (?:l ecran|mon ecran|ce qu il y a (?:a|sur) l ecran|ce qui est (?:a|sur) l ecran|ce qui est affiche|la fenetre|cette fenetre|ce qui s affiche)$|^(?:qu est ce qu il y a (?:a|sur) l ecran|qu est ce qui est (?:ecrit|affiche) (?:a|sur) l ecran|que dit l ecran)$/.test(t)) return { intent: 'ecran_lire', p: {} };
     if (haOn()) {
@@ -339,6 +484,11 @@
   var prevAfter = MJ.afterCmd;
   MJ.afterCmd = function (text, r) {
     try {
+      if (r && r.intent === 'reminder' && r.p && r.p.text) {
+        var lie = mFind(r.p.text, 0.3)[0];
+        if (lie) X.answer({ say: 'Je me souviens aussi : ' + sayFirst(lie.f.t) + '.', k: 'Mémoire' });
+      }
+      if (r && r.intent === 'routine' && r.p && r.p.id === 'matin') { S.nuit.brief = false; }
       if (r && r.intent === 'routine' && r.p) {
         if (r.p.id === 'nuit' && S.nuit.auto) nuit(true, true);
         if (r.p.id === 'matin' && S.nuit.on) nuit(false, true);
@@ -346,7 +496,7 @@
     } catch (e) { }
     return prevAfter ? prevAfter(text, r) : undefined;
   };
-  if (X.HELP && X.HELP.push) X.HELP.push(['Mémoire, nuit et profils', ['Retiens que le code du portail est 1234', 'Où est la perceuse ?', 'Qu\'est-ce que tu as retenu ?', 'Oublie le code du portail', 'Mode nuit', 'Fin du mode nuit', 'Passe en mode chantier', 'Quel profil ?', 'Lis l\'écran', 'Allume la lampe du salon dans Home Assistant']]);
+  if (X.HELP && X.HELP.push) X.HELP.push(['Mémoire, nuit et profils', ['Retiens que le code du portail est 1234', 'Où est la perceuse ?', 'Qu\'est-ce que tu as retenu ?', 'Oublie le code du portail', 'Mode nuit', 'Fin du mode nuit', 'Passe en mode chantier', 'Quel profil ?', 'Lis l\'écran', 'Allume la lampe du salon dans Home Assistant', 'Mets-toi en bleu', 'Lis la plaque', 'Envoie ma mémoire']]);
 
   /* =========================== Styles et réglages =========================== */
   var css = document.createElement('style');
@@ -360,6 +510,8 @@
     return '<div class="sect" id="f-jarvis">Mémoire</div>' +
       '<p class="note">' + (mem.length ? mem.length + ' chose(s) retenue(s), gardées sur cet appareil seulement.' : 'Rien pour l\'instant. Dites « retiens que… ».') + '</p>' +
       (mem.length ? '<div class="list">' + mem.slice(-20).reverse().map(function (f) { return '<div class="set"><div class="t">' + esc(f.t) + '<small>' + new Date(f.at).toLocaleDateString('fr-FR') + '</small></div><button class="btn sm" data-jvdel="' + esc(f.id) + '">Oublier</button></div>'; }).join('') + '</div>' : '') +
+      '<div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0"><button class="btn sm" id="jvMemOut">Envoyer vers un autre appareil</button><button class="btn sm" id="jvMemIn">Recevoir une mémoire</button></div>' +
+      '<div class="sect">Couleur</div><div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0">' + Object.keys(COULEURS).map(function (c) { return '<button class="btn sm' + (S.couleur === c ? ' pri' : '') + '" data-jvc="' + c + '"><span style="display:inline-block;width:.8em;height:.8em;border-radius:50%;background:' + COULEURS[c][1] + ';margin-right:.4em;vertical-align:-.05em"></span>' + COULEURS[c][0] + '</button>'; }).join('') + '</div>' +
       '<div class="sect">Mode nuit</div>' +
       sw('jvNuitAuto', S.nuit.auto, 'Après « Bonne nuit »', 'Voix douce, écran noir avec l\'heure, pas d\'annonce spontanée, jusqu\'à l\'heure de fin') +
       sw('jvNuitEcran', S.nuit.ecran, 'Écran noir la nuit', 'Touchez l\'écran pour revoir Majordome 30 s') +
@@ -367,6 +519,14 @@
       '<div class="set"><div class="t">Mode nuit maintenant<small>' + (S.nuit.on ? 'Actif' : 'Inactif') + '</small></div><button class="btn sm" id="jvNuitBtn">' + (S.nuit.on ? 'Arrêter' : 'Activer') + '</button></div>' +
       '<div class="sect">Profils</div><p class="note">« Passe en mode chantier » : chaque profil garde son volume, sa vitesse de voix, ses bips et ses réglages de caméra.</p>' +
       '<div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0">' + Object.keys(PROFILS).map(function (k) { return '<button class="btn sm' + (S.profils.cur === k ? ' pri' : '') + '" data-jvp="' + k + '">' + PROFILS[k].name + '</button>'; }).join('') + '</div>' +
+      sw('jvPauto', S.pauto.on, 'Profil automatique', 'Selon le jour, l\'heure ou le lieu ci-dessous ; un choix à la main est gardé 3 h') +
+      ['travail', 'chantier'].map(function (k) { var r = S.pauto.regles[k]; return '<div class="set"><div class="t">' + PROFILS[k].name + '<small>' + (r.lieu ? 'Lieu enregistré (400 m)' : 'Pas de lieu') + '</small></div>' +
+        '<select class="btn sm" data-jvj="' + k + '">' + [['aucun', 'Jamais par l\'heure'], ['semaine', 'Lun–ven'], ['tous', 'Tous les jours'], ['weekend', 'Week-end']].map(function (o) { return '<option value="' + o[0] + '"' + (r.jours === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' +
+        '<select class="btn sm" data-jvde="' + k + '">' + [5, 6, 7, 8, 9, 10, 12, 13, 14].map(function (h) { return '<option' + (+r.de === h ? ' selected' : '') + '>' + h + '</option>'; }).join('') + '</select>' +
+        '<select class="btn sm" data-jva="' + k + '">' + [12, 14, 15, 16, 17, 18, 19, 20, 22].map(function (h) { return '<option' + (+r.a === h ? ' selected' : '') + '>' + h + '</option>'; }).join('') + '</select>' +
+        '<button class="btn sm" data-jvl="' + k + '">' + (r.lieu ? 'Oublier le lieu' : 'Ici = ' + PROFILS[k].name) + '</button></div>'; }).join('') +
+      '<div class="sect">Batterie</div>' +
+      sw('jvEco', S.ecoBat, 'Économie de batterie', 'Sous 20 % et hors charge : présence et gestes de la caméra en pause (la surveillance continue)') +
       '<div class="sect">Interruption</div>' +
       sw('jvBarge', S.barge, 'M\'arrêter en disant mon nom', 'Pendant que je parle, dites « ' + esc(S.name || 'Majordome') + ' » : je me tais et je vous écoute (écoute continue activée)') +
       '<div class="sect">Home Assistant</div>' +
@@ -383,6 +543,19 @@
     if (g('jvNuitFin')) g('jvNuitFin').onchange = function () { S.nuit.fin = +this.value; X.saveS(); };
     if (g('jvNuitBtn')) g('jvNuitBtn').onclick = function () { X.closeSheet(); nuit(!S.nuit.on); };
     document.querySelectorAll('[data-jvp]').forEach(function (b) { b.onclick = function () { X.closeSheet(); profil(b.dataset.jvp); }; });
+    if (g('jvMemOut')) g('jvMemOut').onclick = function () { mExport(); };
+    if (g('jvMemIn')) g('jvMemIn').onclick = function () { mImportUi(); };
+    document.querySelectorAll('[data-jvc]').forEach(function (b) { b.onclick = function () { couleur(b.dataset.jvc); X.saveS(); X.settingsSheet('jarvis'); }; });
+    if (g('jvPauto')) g('jvPauto').onchange = function () { S.pauto.on = this.checked; S.pauto.manualAt = 0; X.saveS(); autoTick(); };
+    var rset = function (attr, key, num) { document.querySelectorAll('[' + attr + ']').forEach(function (el) { el.onchange = function () { S.pauto.regles[el.getAttribute(attr)][key] = num ? +el.value : el.value; X.saveS(); }; }); };
+    rset('data-jvj', 'jours'); rset('data-jvde', 'de', 1); rset('data-jva', 'a', 1);
+    document.querySelectorAll('[data-jvl]').forEach(function (b) { b.onclick = function () {
+      var k = b.dataset.jvl, r = S.pauto.regles[k];
+      if (r.lieu) { r.lieu = null; X.saveS(); X.settingsSheet('jarvis'); return; }
+      X.toast('Recherche de la position…');
+      here(true).then(function (p) { r.lieu = { lat: +p.lat.toFixed(5), lon: +p.lon.toFixed(5) }; X.saveS(); X.toast('Lieu enregistré pour ' + PROFILS[k].name); X.settingsSheet('jarvis'); }, function () { X.toast('Position indisponible : autorisez la localisation'); });
+    }; });
+    if (g('jvEco')) g('jvEco').onchange = function () { S.ecoBat = this.checked; X.saveS(); batPoll(); if (!S.ecoBat) batSet(1, true); };
     if (g('jvBarge')) g('jvBarge').onchange = function () { S.barge = this.checked; X.saveS(); bargeApply(); };
     if (g('jvHaSave')) g('jvHaSave').onclick = function () {
       var c = haCfg(), url = g('jvHaUrl').value.trim(), tok = g('jvHaTok').value.trim(), msg = g('jvHaMsg');
@@ -398,5 +571,5 @@
   MJ.settingsBind = function (b) { if (prevBind) prevBind(b); bind(b); };
   if (haOn()) haLoad().catch(function () { });
 
-  MJ.jarvis = { parse: function (q) { return parse(norm(q), { intent: 'unknown' }); }, memoire: { load: mLoad, add: mAdd, find: mFind }, nuit: nuit, profil: profil, haMatch: function (q) { return haMatch(q); }, _haSet: function (l) { haStates = l; haAt = Date.now(); } };
+  MJ.jarvis = { couleur: couleur, mImport: mImport, voulu: voulu, brief: brief, batSet: batSet, parse: function (q) { return parse(norm(q), { intent: 'unknown' }); }, memoire: { load: mLoad, add: mAdd, find: mFind }, nuit: nuit, profil: profil, haMatch: function (q) { return haMatch(q); }, _haSet: function (l) { haStates = l; haAt = Date.now(); } };
 })();

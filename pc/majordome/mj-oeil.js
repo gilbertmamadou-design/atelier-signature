@@ -202,7 +202,8 @@
   var loop = 0, tick = 0;
   var st = { seen: 0, since: 0, gone: 0, greeted: true, paused: false, dark: 0, waves: [], lastGesture: 0, veille: false };
   var garde = { on: false, armedAt: 0, last: 0, hits: 0, events: 0, startAt: 0 };
-  function wantLoop() { return garde.on || (!document.hidden && (S.oeil.presence || S.oeil.gestes)); }
+  // batterie basse (mj-jarvis.js, MJ.batterieBasse) : présence et gestes en pause ; la surveillance continue
+  function wantLoop() { return garde.on || (!document.hidden && !MJ.batterieBasse && (S.oeil.presence || S.oeil.gestes)); }
   function regardBusy() { try { return MJ.suivi && MJ.suivi.state && MJ.suivi.state().on; } catch (e) { return false; } }
   var failAt = 0;
   function refresh(force) {
@@ -278,6 +279,7 @@
     X.toast('Main sur la caméra : silence');
   }
   function bonjour(ms) {
+    if (MJ.onPresence) try { if (MJ.onPresence(ms)) return; } catch (e) { }   // résumé du matin en attente (mj-jarvis.js)
     if (busy() || MJ.nuit) return;   // mode nuit (mj-jarvis.js) : pas d'annonce spontanée
     var h = new Date().getHours(), w = h < 5 || h >= 18 ? 'Bonsoir' : 'Bonjour';
     var min = Math.round(ms / 60000), retour = min >= 120 ? '' : ' Content de vous revoir.';
@@ -383,6 +385,21 @@
         return photoCard(p, 'Photo', 'Voilà, la photo est prise.').done;
       });
     }).catch(function (e) { closeOverlay(); return X.errorReply('Je ne peux pas prendre de photo : ' + camErr(e) + '.').done; });
+  }
+  /** Montre la caméra, compte à rebours, photo nette puis lecture du texte → Promise<texte> (vide : rien de lisible) */
+  function lireTexte(consigne, sec) {
+    var ocr = NB || (PCAPI && PCAPI.ocr && PCAPI.ocr.supported && PCAPI.ocr.supported());
+    if (!ocr) return Promise.reject(new Error('lecture indisponible ici'));
+    use('apercu', true);
+    return camOpen().then(function () { return countdown(sec || 4, consigne || 'Tenez le texte devant la caméra'); }).then(function (go) {
+      if (!go) { use('apercu', false); var e = new Error('annulé'); e.cancel = true; throw e; }
+      return grab(2200, 0.95);
+    }).then(function (b) {
+      flash(); setTimeout(closeOverlay, 500);
+      if (NB) return b64(b).then(function (d) { return nbCall('oeilOcr', [d]); });
+      return PCAPI.ocr.recognize(b, { lang: 'fra' });
+    }).then(function (r) { return String(r && r.text || '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim(); },
+      function (e) { closeOverlay(); throw e; });
   }
   function doLire() {
     var ocr = NB || (PCAPI && PCAPI.ocr && PCAPI.ocr.supported && PCAPI.ocr.supported());
@@ -578,6 +595,6 @@
     MJ.settingsBind = function (b) { if (prevBind) prevBind(b); bind(b); };
   }
 
-  MJ.oeil = { parse: oeilParse, state: function () { return { cam: !!cam.stream, loop: !!loop, garde: garde.on, err: cam.err, users: Object.keys(cam.users) }; }, photos: photos, refresh: refresh };
+  MJ.oeil = { lireTexte: lireTexte, parse: oeilParse, state: function () { return { cam: !!cam.stream, loop: !!loop, garde: garde.on, err: cam.err, users: Object.keys(cam.users) }; }, photos: photos, refresh: refresh };
   refresh();
 })();
