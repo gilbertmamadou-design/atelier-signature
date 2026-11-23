@@ -180,6 +180,8 @@
   // la sphère de Majordome a ses propres couleurs (sarcelle au repos) : rotation de teinte vers celle du thème
   var orbHue = { cyan: 'hue-rotate(18deg) saturate(1.25) brightness(1.75)', bleu: 'hue-rotate(50deg) saturate(1.3) brightness(1.75)', vert: 'hue-rotate(-28deg) saturate(1.25) brightness(1.65)', ambre: 'hue-rotate(-135deg) saturate(1.7) brightness(1.75)', rouge: 'hue-rotate(178deg) saturate(1.7) brightness(1.65)' };
   FJ.apply = function (what) {
+    // couleurs du modèle central accordées au thème (mj-orb.js : mêmes noms de palettes)
+    try { if (root.MJOrb && root.MJOrb.theme) root.MJOrb.theme(S.theme || 'cyan'); } catch (e) { }
     var R = doc.documentElement;
     if (THEMES.indexOf(S.theme) < 0) S.theme = 'cyan';
     if (LAYOUTS.indexOf(S.layout) < 0) S.layout = 'complet';

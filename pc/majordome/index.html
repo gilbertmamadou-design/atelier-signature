@@ -49,8 +49,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 /* fond : grille HUD discrète */
 #bgfx{position:fixed;inset:0;pointer-events:none;background:
   radial-gradient(ellipse at 50% 38%,#12324044 0,transparent 60%),
-  linear-gradient(#7ff3d608 1px,transparent 1px) 0 0/34px 34px,
-  linear-gradient(90deg,#7ff3d608 1px,transparent 1px) 0 0/34px 34px}
+  linear-gradient(color-mix(in srgb,var(--acc) 3%,transparent) 1px,transparent 1px) 0 0/34px 34px,
+  linear-gradient(90deg,color-mix(in srgb,var(--acc) 3%,transparent) 1px,transparent 1px) 0 0/34px 34px}
 #app{position:fixed;inset:0;display:grid;grid-template-rows:auto minmax(0,1fr) auto;grid-template-columns:minmax(0,1fr);padding:var(--safe-t) var(--safe-r) 0 var(--safe-l)}
 #app>*{min-width:0}
 /* barre du haut */
@@ -144,7 +144,7 @@ footer{padding:6px 12px calc(8px + var(--safe-b));display:flex;align-items:cente
 #ask{flex:1;display:flex;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--line2);border-radius:26px;padding:3px 4px 3px 16px;min-width:0}
 #ask:focus-within{border-color:var(--acc)}
 #q{flex:1;min-width:0;background:none;border:0;outline:0;height:44px;font-size:16px}
-#mic{width:64px;height:64px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 35%,#1d3b45,#0d1b26);border:1px solid var(--acc);color:var(--acc);box-shadow:0 0 0 0 #46d9c255;transition:box-shadow .2s}
+#mic{width:64px;height:64px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 35%,#1d3b45,#0d1b26);border:1px solid var(--acc);color:var(--acc);box-shadow:0 0 0 0 color-mix(in srgb,var(--acc) 33%,transparent);transition:box-shadow .2s}
 #mic .ic{width:28px;height:28px}
 #mic.on{background:var(--ok);color:#032213;border-color:var(--ok);box-shadow:0 0 0 8px #62f0a033}
 #hint{font-size:12px;color:var(--tx3);text-align:center;padding:0 14px 2px}

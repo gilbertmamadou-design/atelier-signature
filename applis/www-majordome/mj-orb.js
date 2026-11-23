@@ -28,6 +28,22 @@
     idle: [70, 217, 194], listen: [96, 255, 160], think: [150, 128, 255],
     speak: [125, 200, 255], error: [255, 92, 115], sleep: [90, 110, 130]
   };
+  // couleurs au choix (Réglages › Apparence › Couleur) : repos, écoute, parole ; réflexion et erreur gardent leur sens
+  var DEF = JSON.parse(JSON.stringify(COLORS));
+  var PALETTES = {
+    cyan: null,
+    bleu: { idle: [70, 150, 255], listen: [110, 205, 255], speak: [150, 185, 255] },
+    violet: { idle: [160, 120, 255], listen: [205, 150, 255], speak: [190, 170, 255], think: [255, 140, 220] },
+    vert: { idle: [80, 230, 120], listen: [160, 255, 150], speak: [120, 230, 200] },
+    ambre: { idle: [255, 180, 70], listen: [255, 215, 110], speak: [255, 200, 140] },
+    rouge: { idle: [255, 95, 95], listen: [255, 150, 120], speak: [255, 130, 150], error: [255, 225, 120] },
+    blanc: { idle: [215, 228, 245], listen: [255, 255, 255], speak: [195, 215, 255] }
+  };
+  function theme(name) {
+    var p = PALETTES[name] || null;
+    Object.keys(DEF).forEach(function (k) { COLORS[k] = (p && p[k] ? p[k] : DEF[k]).slice(); });
+    return !!PALETTES.hasOwnProperty(name);
+  }
   function lerp(a, b, k) { return a + (b - a) * k; }
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
   /* Syllabes estimées d'un mot français : groupes de voyelles, « e » muet final retiré */
@@ -286,5 +302,5 @@
     };
     return api;
   }
-  root.MJOrb = { create: create, syllables: syllables };
+  root.MJOrb = { create: create, syllables: syllables, theme: theme, palettes: Object.keys(PALETTES) };
 })(window);

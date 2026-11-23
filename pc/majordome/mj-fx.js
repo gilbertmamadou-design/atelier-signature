@@ -272,5 +272,5 @@
     var fi = $('sFxI'); if (fi) fi.oninput = function () { S.fxInt = +this.value; save(); kick(); };
     document.querySelectorAll('[data-fxg]').forEach(function (i) { i.onchange = function () { S.fxG[i.dataset.fxg] = i.checked; save(); if (i.dataset.fxg === 'hyper' && i.checked) hyper(); kick(); }; });
   };
-  MJ.fx = { pulse: pulse, burst: burst, hyper: hyper };
+  MJ.fx = { pulse: pulse, burst: burst, hyper: hyper, couleur: lireAcc };   // couleur : relire --acc (Réglages › Couleur, mj-jarvis.js)
 })();
