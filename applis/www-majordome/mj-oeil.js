@@ -23,7 +23,10 @@
   var X = MJ._, H = X.H, S = X.S, esc = X.esc;
   var NLU = window.MJNLU;
   var MD = navigator.mediaDevices;
-  var CAN = !!(MD && MD.getUserMedia);
+  // appli Android : la caméra n'est pas encore autorisée dans l'APK (permission CAMERA + accord WebView à ajouter) ;
+  // on n'affiche donc rien plutôt qu'une fonction qui échoue
+  var ANDROID = !!X.ANDROID;
+  var CAN = !ANDROID && !!(MD && MD.getUserMedia);
   var PCAPI = window.MAGPC || null;
 
   var D = { presence: false, gestes: false, pause: 60, absent: 10, veille: true, alarme: true };
@@ -436,6 +439,7 @@
     return X.answer({ say: lbl + (on ? ' activée.' : ' désactivée.') + more, k: 'Caméra' }).done;
   }
   H.oeil = function (p) {
+    if (ANDROID) return X.answer('Les fonctions caméra (photo, lecture, surveillance) sont pour l\'instant dans la version PC de Majordome.').done;
     switch (p.act) {
       case 'photo': return doPhoto(Math.max(3, Math.min(30, p.sec || 3)));
       case 'lire': return doLire();
