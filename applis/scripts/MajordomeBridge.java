@@ -531,7 +531,8 @@ public class MajordomeBridge {
                     if (got == null || got.isEmpty()) continue;
                     if (talking) { send("barge", obj("word", got)); continue; }   // la page se tait et écoute
                     String rest = "";
-                    if (full != null) { String t = norm(full); int k = t.indexOf(got); rest = k >= 0 ? t.substring(k + got.length()).trim() : ""; }
+                    // le nom peut être n'importe où dans la phrase : le reste (avant et après) est la commande
+                    if (full != null) { String t = norm(full); int k = t.indexOf(got); rest = k >= 0 ? (t.substring(0, k) + " " + t.substring(k + got.length())).replaceAll("\\s+", " ").trim() : ""; }
                     if (rest.split(" ").length >= 2) deliver(full, true);
                     else { beep(); onWake(); }
                 }

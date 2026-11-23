@@ -271,7 +271,15 @@
     var prev = H[intent];
     H[intent] = function (p, r) {
       if (!haOn()) return prev ? prev(p, r) : X.answer('Je ne sais pas encore faire ça.').done;
-      return haLoad().then(function () { var res = fn(p || {}, r); return res || (prev ? prev(p, r) : X.answer('Je ne trouve pas cet appareil.').done); },
+      return haLoad().then(function () {
+        var res = fn(p || {}, r); if (res) return res;
+        // aucun appareil de ce nom : la phrase entière est confiée à l'assistant de Home Assistant, puis aux commandes habituelles
+        var q = String(r && r.raw || '').trim();
+        return (q ? haConv(q).catch(function () { return null; }) : Promise.resolve(null)).then(function (said) {
+          if (said) return X.answer({ say: said, k: 'Home Assistant' }).done;
+          return prev ? prev(p, r) : X.answer('Je ne trouve pas cet appareil.').done;
+        });
+      },
         function () { return prev ? prev(p, r) : X.errorReply('Home Assistant injoignable.').done; });
     };
   }
@@ -437,6 +445,96 @@
   }
   function quand(t) { var d = new Date(t); return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) + ' à ' + d.getHours() + ' h' + (d.getMinutes() ? (d.getMinutes() < 10 ? '0' : '') + d.getMinutes() : ''); }
 
+  /* =========================== 14. Cerveau local (IA de Chrome, hors ligne) =========================== */
+  // Gemini Nano dans Chrome (Prompt API, « LanguageModel ») : sur PC récent, sans internet une fois le modèle installé.
+  // Seulement quand je ne comprends pas une phrase : il la réécrit en commande(s) connue(s), ou répond en une ou deux phrases.
+  S.cerveau = !!S.cerveau;
+  var LM = window.LanguageModel || null, lmBase = null, lmBusy = false, lmEtat = LM ? '…' : 'absent';
+  var LMOPT = { expectedInputs: [{ type: 'text', languages: ['fr'] }], expectedOutputs: [{ type: 'text', languages: ['fr'] }] };
+  function lmDispo() {
+    if (!LM || !LM.availability) return Promise.resolve('absent');
+    return LM.availability(LMOPT).then(function (a) { lmEtat = a; return a; }, function () { lmEtat = 'absent'; return 'absent'; });
+  }
+  lmDispo();
+  function exemples() { var o = []; (X.HELP || []).forEach(function (g) { (g[1] || []).forEach(function (e) { o.push(e); }); }); return o.slice(0, 160); }
+  function lmSession(progress) {
+    if (lmBase) return Promise.resolve(lmBase);
+    var sys = 'Tu es le cerveau local de « ' + (S.name || 'Majordome') + ' », assistant vocal français. Il ne comprend que des commandes proches de ces exemples. ' +
+      'On te donne une phrase qu\'il n\'a pas comprise (souvent mal transcrite). Réponds en JSON : {"commandes": [...], "reponse": "..."}. ' +
+      '« commandes » : 0 à 3 commandes simples proches des exemples, avec les noms, pièces, heures et nombres de la phrase. ' +
+      '« reponse » : si ce n\'est pas une commande, une réponse courte et chaleureuse en une ou deux phrases à l\'oral, sinon vide. Jamais de conseil dangereux ; urgence : le 112.\nExemples :\n- ' + exemples().join('\n- ');
+    return LM.create(Object.assign({ initialPrompts: [{ role: 'system', content: sys }], monitor: function (m) { m.addEventListener('downloadprogress', function (e) { if (progress) progress(e.loaded); }); } }, LMOPT))
+      .then(function (s2) { lmBase = s2; return s2; });
+  }
+  var LMSCHEMA = { type: 'object', properties: { commandes: { type: 'array', items: { type: 'string' }, maxItems: 3 }, reponse: { type: 'string' } }, required: ['commandes', 'reponse'] };
+  function lmAsk(q) {
+    return lmSession().then(function (base) { return base.clone ? base.clone() : base; }).then(function (sess) {
+      var d = new Date();
+      return sess.prompt('Nous sommes le ' + d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) + ', il est ' + d.getHours() + ' h ' + d.getMinutes() + '. Phrase : « ' + q + ' »', { responseConstraint: LMSCHEMA })
+        .then(function (t) { try { if (sess !== lmBase && sess.destroy) sess.destroy(); } catch (e) { } var o = JSON.parse(t); return { commandes: (o.commandes || []).filter(function (c) { return typeof c === 'string' && c.trim(); }).slice(0, 3), reponse: String(o.reponse || '').trim() }; });
+    });
+  }
+
+  /* =========================== 15. Home Assistant : conversation =========================== */
+  // phrase non comprise et Home Assistant configuré : elle est confiée à l'assistant de Home Assistant (Assist), qui connaît
+  // tous vos appareils, pièces et scénarios ; sa réponse est dite telle quelle
+  function haConv(q) {
+    return haReq('conversation/process', { text: q, language: 'fr', conversation_id: haConv.id || undefined }).then(function (r) {
+      var res = r && r.response || {}; haConv.id = r && r.conversation_id || haConv.id;
+      var said = res.speech && res.speech.plain && res.speech.plain.speech || '';
+      if (res.response_type === 'error' || !said) return null;
+      return said;
+    });
+  }
+
+  var prevUnknown2 = H.unknown;
+  H.unknown = function (p, r) {
+    var q = String((r && r.raw) || (MJ.cur && MJ.cur.q) || '').trim();
+    if (!q) return prevUnknown2(p, r);
+    var step = Promise.resolve(null);
+    if (haOn()) step = haConv(q).then(function (said) { return said ? X.answer({ say: said, k: 'Home Assistant' }).done.then(function () { return true; }) : null; }, function () { return null; });
+    return step.then(function (done) {
+      if (done) return;
+      if (!S.cerveau || !LM || lmBusy || lmEtat !== 'available') return prevUnknown2(p, r);
+      lmBusy = true; try { if (MJ.avatar) MJ.avatar.state('think'); } catch (e) { }
+      return lmAsk(q).then(function (res) {
+        lmBusy = false;
+        var ok = res.commandes.map(function (c) { return { c: c, r: NLU.parse(c, X.ctx()) }; }).filter(function (x) { return x.r && x.r.intent && x.r.intent !== 'unknown'; });
+        if (ok.length) {
+          if (MJ.carnet && MJ.carnet.note) MJ.carnet.note(q, ok.map(function (x) { return x.c; }).join(' ; '), ok.map(function (x) { return x.r.intent; }).join(', ') + ' local');
+          X.card('<p class="note">Compris (cerveau local) : « ' + esc(ok.map(function (x) { return x.c; }).join(' », puis « ')) + ' »</p>');
+          return ok.reduce(function (pr, x) { return pr.then(function () { return X.exec(x.r); }); }, Promise.resolve());
+        }
+        if (res.reponse) return X.answer({ say: res.reponse, k: S.name || 'Majordome' }).done;
+        return prevUnknown2(p, r);
+      }, function () { lmBusy = false; return prevUnknown2(p, r); });
+    });
+  };
+
+  /* =========================== 16. Personnalités =========================== */
+  // nom, voix et couleur enregistrés ensemble : « passe à Jarvis », « je veux parler à Majordome »
+  var PKEYS = ['name', 'couleur', 'tts', 'voice', 'piperVoice', 'rate', 'pitch', 'fx', 'fxo', 'avatar'];
+  S.personas = Array.isArray(S.personas) ? S.personas : [];
+  function persoSave() {
+    var o = {}; PKEYS.forEach(function (k) { if (S[k] !== undefined) o[k] = S[k]; });
+    var i = S.personas.findIndex(function (x) { return norm(x.name) === norm(o.name); });
+    if (i >= 0) S.personas[i] = o; else S.personas.push(o);
+    X.saveS(); return o;
+  }
+  function persoApply(name) {
+    var o = S.personas.filter(function (x) { return norm(x.name) === norm(name); })[0]; if (!o) return false;
+    PKEYS.forEach(function (k) { if (o[k] !== undefined) S[k] = o[k]; });
+    X.saveS(); couleur(S.couleur);
+    try { X.applyName(); X.applyWake(); } catch (e) { }
+    try { if (MJ.avatar && MJ.avatar.apply) MJ.avatar.apply(); } catch (e) { }
+    return true;
+  }
+  H.persona = function (p) {
+    if (p.act === 'save') { var o = persoSave(); return X.answer('Personnalité « ' + o.name + ' » enregistrée : nom, voix, couleur et apparence.').done; }
+    if (!persoApply(p.name)) return X.answer(S.personas.length ? 'Je connais ces personnalités : ' + S.personas.map(function (x) { return x.name; }).join(', ') + '.' : 'Aucune personnalité enregistrée. Réglez nom, voix et couleur, puis dites : enregistre cette personnalité.').done;
+    return X.answer({ say: 'Ici ' + S.name + '. À votre service.', k: 'Personnalité' }).done;
+  };
+
   /* =========================== Compréhension des phrases =========================== */
   var PRO = { maison: 'maison', domicile: 'maison', perso: 'maison', personnel: 'maison', travail: 'travail', bureau: 'travail', boulot: 'travail', chantier: 'chantier', terrain: 'chantier', atelier: 'chantier' };
   function parse(t, r) {
@@ -453,6 +551,10 @@
       if (PRO[m[1]]) return { intent: 'profil', p: { id: PRO[m[1]] } };
     if ((m = /^(?:(?:mets|passe|change|changer|habille)(?: toi)?(?: de couleur)?(?: en| au)?|couleur|deviens|sois|prends la couleur|en couleur|change ta couleur(?: en| pour)?|ta couleur(?: en)?) ?(cyan|turquoise|bleu|bleue|violet|violette|mauve|vert|verte|ambre|orange|jaune|dore|rouge|blanc|blanche)$/.exec(t)))
       return { intent: 'couleur', p: { c: { turquoise: 'cyan', bleue: 'bleu', violette: 'violet', mauve: 'violet', verte: 'vert', orange: 'ambre', jaune: 'ambre', dore: 'ambre', blanche: 'blanc' }[m[1]] || m[1] } };
+    if (/^(?:enregistre|sauvegarde|garde|retiens|memorise)(?: cette| ta| la)? personnalite$/.test(t)) return { intent: 'persona', p: { act: 'save' } };
+    var traw = norm(r.raw || t);   // le nom d'une personnalité peut être un mot de réveil, retiré de r.t
+    if ((m = /^(?:passe a|passe en|bascule (?:sur|vers|a)|je veux parler a|appelle|reveille|active (?:la )?personnalite|personnalite|mets la personnalite|change de personnalite pour) (.+)$/.exec(traw)) && S.personas.some(function (x) { return norm(x.name) === m[1]; }))
+      return { intent: 'persona', p: { name: m[1] } };
     if (/^(?:envoie|envoyer|exporte|exporter|partage|partager|sauvegarde|sauvegarder|copie|transfere)(?: moi)? (?:ma |ta |la )?memoire(?: (?:vers|sur|au|a) (?:l autre appareil|le telephone|le pc|l ordinateur|mon telephone|mon pc))?$/.test(t)) return { intent: 'memoire', p: { act: 'export' } };
     if (/^(?:lis|lit|scanne|scanner|releve|relever|note|noter|photographie|lire)(?: moi)? (?:la |cette |l |une |le )?(?:plaque(?: de charge| signaletique| constructeur)?|etiquette|marquage|plaque de l (?:elingue|appareil|echafaudage|engin|palan))$/.test(t)) return { intent: 'plaque', p: {} };
     if (/^(?:quel (?:est le |est ton )?profil|quel mode|dans quel mode es tu|quel profil est actif)$/.test(t)) return { intent: 'profil', p: { act: 'which' } };
@@ -512,6 +614,12 @@
       (mem.length ? '<div class="list">' + mem.slice(-20).reverse().map(function (f) { return '<div class="set"><div class="t">' + esc(f.t) + '<small>' + new Date(f.at).toLocaleDateString('fr-FR') + '</small></div><button class="btn sm" data-jvdel="' + esc(f.id) + '">Oublier</button></div>'; }).join('') + '</div>' : '') +
       '<div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0"><button class="btn sm" id="jvMemOut">Envoyer vers un autre appareil</button><button class="btn sm" id="jvMemIn">Recevoir une mémoire</button></div>' +
       '<div class="sect">Couleur</div><div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0">' + Object.keys(COULEURS).map(function (c) { return '<button class="btn sm' + (S.couleur === c ? ' pri' : '') + '" data-jvc="' + c + '"><span style="display:inline-block;width:.8em;height:.8em;border-radius:50%;background:' + COULEURS[c][1] + ';margin-right:.4em;vertical-align:-.05em"></span>' + COULEURS[c][0] + '</button>'; }).join('') + '</div>' +
+      '<div class="sect">Personnalités</div><p class="note">Nom, voix, couleur et apparence enregistrés ensemble. « Passe à Jarvis ».</p>' +
+      (S.personas.length ? '<div class="list">' + S.personas.map(function (o, i) { return '<div class="set"><div class="t">' + esc(o.name) + '<small>' + esc((COULEURS[o.couleur] || ['Cyan'])[0]) + (o.tts === 'piper' ? ' · voix Piper ' + esc(o.piperVoice || '') : '') + '</small></div><button class="btn sm" data-jvpa="' + i + '">Activer</button><button class="btn sm" data-jvpd="' + i + '">Supprimer</button></div>'; }).join('') + '</div>' : '') +
+      '<div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0"><button class="btn sm" id="jvPersoSave">Enregistrer « ' + esc(S.name || 'Majordome') + ' » tel qu\'il est</button></div>' +
+      '<div class="sect">Cerveau local (IA de Chrome)</div>' +
+      '<p class="note">' + ({ absent: 'Indisponible ici : il faut Chrome ou Edge récent sur PC (Chrome 148 ou plus), avec 16 Go de mémoire ou une carte graphique de plus de 4 Go, et 22 Go libres.', unavailable: 'Cet ordinateur ne peut pas le faire tourner.', downloadable: 'Modèle à installer (plusieurs Go, une seule fois, puis hors ligne).', downloading: 'Installation du modèle en cours…', available: 'Prêt, hors ligne.' }[lmEtat] || 'Vérification…') + ' Il ne sert que quand je ne comprends pas une phrase.</p>' +
+      (LM && lmEtat !== 'absent' && lmEtat !== 'unavailable' ? sw('jvCerveau', S.cerveau, 'Utiliser le cerveau local', 'Réécrit les phrases difficiles en commandes, ou répond aux questions simples, sans internet') + (lmEtat !== 'available' ? '<div class="row"><button class="btn sm" id="jvLmGet">Installer le modèle</button></div><p class="note" id="jvLmMsg"></p>' : '') : '') +
       '<div class="sect">Mode nuit</div>' +
       sw('jvNuitAuto', S.nuit.auto, 'Après « Bonne nuit »', 'Voix douce, écran noir avec l\'heure, pas d\'annonce spontanée, jusqu\'à l\'heure de fin') +
       sw('jvNuitEcran', S.nuit.ecran, 'Écran noir la nuit', 'Touchez l\'écran pour revoir Majordome 30 s') +
@@ -543,6 +651,15 @@
     if (g('jvNuitFin')) g('jvNuitFin').onchange = function () { S.nuit.fin = +this.value; X.saveS(); };
     if (g('jvNuitBtn')) g('jvNuitBtn').onclick = function () { X.closeSheet(); nuit(!S.nuit.on); };
     document.querySelectorAll('[data-jvp]').forEach(function (b) { b.onclick = function () { X.closeSheet(); profil(b.dataset.jvp); }; });
+    document.querySelectorAll('[data-jvpa]').forEach(function (b) { b.onclick = function () { var o = S.personas[+b.dataset.jvpa]; if (o) { X.closeSheet(); H.persona({ name: o.name }); } }; });
+    document.querySelectorAll('[data-jvpd]').forEach(function (b) { b.onclick = function () { S.personas.splice(+b.dataset.jvpd, 1); X.saveS(); X.settingsSheet('jarvis'); }; });
+    if (g('jvPersoSave')) g('jvPersoSave').onclick = function () { persoSave(); X.toast('Personnalité enregistrée'); X.settingsSheet('jarvis'); };
+    if (g('jvCerveau')) g('jvCerveau').onchange = function () { S.cerveau = this.checked; X.saveS(); };
+    if (g('jvLmGet')) g('jvLmGet').onclick = function () {
+      var msg = g('jvLmMsg'); msg.textContent = 'Installation… (gardez la page ouverte)';
+      lmSession(function (k) { msg.textContent = 'Installation : ' + Math.round(k * 100) + ' %'; }).then(function () { lmEtat = 'available'; S.cerveau = true; X.saveS(); msg.textContent = 'Cerveau local prêt.'; },
+        function (e) { msg.textContent = 'Échec : ' + (e && e.message || e) + '.'; });
+    };
     if (g('jvMemOut')) g('jvMemOut').onclick = function () { mExport(); };
     if (g('jvMemIn')) g('jvMemIn').onclick = function () { mImportUi(); };
     document.querySelectorAll('[data-jvc]').forEach(function (b) { b.onclick = function () { couleur(b.dataset.jvc); X.saveS(); X.settingsSheet('jarvis'); }; });
@@ -571,5 +688,5 @@
   MJ.settingsBind = function (b) { if (prevBind) prevBind(b); bind(b); };
   if (haOn()) haLoad().catch(function () { });
 
-  MJ.jarvis = { couleur: couleur, mImport: mImport, voulu: voulu, brief: brief, batSet: batSet, parse: function (q) { return parse(norm(q), { intent: 'unknown' }); }, memoire: { load: mLoad, add: mAdd, find: mFind }, nuit: nuit, profil: profil, haMatch: function (q) { return haMatch(q); }, _haSet: function (l) { haStates = l; haAt = Date.now(); } };
+  MJ.jarvis = { haConv: haConv, lmAsk: lmAsk, persoSave: persoSave, persoApply: persoApply, couleur: couleur, mImport: mImport, voulu: voulu, brief: brief, batSet: batSet, parse: function (q) { return parse(norm(q), { intent: 'unknown' }); }, memoire: { load: mLoad, add: mAdd, find: mFind }, nuit: nuit, profil: profil, haMatch: function (q) { return haMatch(q); }, _haSet: function (l) { haStates = l; haAt = Date.now(); } };
 })();
