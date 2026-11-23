@@ -814,8 +814,12 @@
   if ('serviceWorker' in navigator && CONF.sw !== false && (location.protocol === 'https:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname))) {
     swReady = navigator.serviceWorker.register(CONF.sw || 'sw.js').then(function (reg) {
       M.sw.reg = reg;
-      var watch = function (w) { if (!w) return; w.addEventListener('statechange', function () { if (w.state === 'installed' && navigator.serviceWorker.controller) showUpdate(w); }); };
-      if (reg.waiting && navigator.serviceWorker.controller) showUpdate(reg.waiting);
+      // stockage « persistant » : le navigateur ne vide pas les fichiers hors ligne quand le disque se remplit
+      try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () { }); } catch (e) { }
+      // reg.active (et non le contrôleur de la page) : le service worker du lanceur (portée pc/) peut contrôler
+      // la page avant la toute première installation de l'appli, ce n'est pas une mise à jour
+      var watch = function (w) { if (!w) return; w.addEventListener('statechange', function () { if (w.state === 'installed' && reg.active) showUpdate(w); }); };
+      if (reg.waiting && reg.active) showUpdate(reg.waiting);
       if (reg.installing) watch(reg.installing);
       reg.addEventListener('updatefound', function () { watch(reg.installing); });
       var lastCheck = Date.now();

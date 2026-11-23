@@ -526,7 +526,15 @@ def main():
         sw = sw.replace('var PRECACHE = [', 'var PRECACHE = [\n  "./",', 1)
         versions[app['id']] = v
         write(os.path.join(out_dir, 'sw.js'), sw)
-    write(os.path.join(PC, 'index.html'), launcher(conf, versions, apps_android))
+    lanceur = launcher(conf, versions, apps_android)
+    write(os.path.join(PC, 'index.html'), lanceur)
+    # service worker du lanceur (pc/sw.js) : la page du lanceur et les icônes, pour l'ouvrir sans internet
+    lfiles = ['index.html'] + ['%s/icon-192.png' % a['id'] for a in conf['apps']]
+    lh = hashlib.sha256(read(os.path.join(SHARED, 'sw-lanceur-template.js')).encode() + lanceur.encode())
+    for f in lfiles[1:]:
+        lh.update(read(os.path.join(PC, f), 'rb'))
+    write(os.path.join(PC, 'sw.js'), read(os.path.join(SHARED, 'sw-lanceur-template.js'))
+          .replace('__VERSION__', lh.hexdigest()[:12]).replace('__PRECACHE__', json.dumps(['./'] + lfiles, indent=2)))
     keep = set(a['id'] for a in conf['apps']) | {'_lanceur'} | set(a['id'] + ':lively' for a in conf['apps'] if a.get('lively'))
     VERSIONS = {k: v for k, v in sorted(VERSIONS.items()) if k in keep}
     write(VERSIONS_FILE, json.dumps(VERSIONS, ensure_ascii=False, indent=1, sort_keys=True) + '\n')
