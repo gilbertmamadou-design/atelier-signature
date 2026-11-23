@@ -42,7 +42,7 @@
   var DEF = {
     theme: 'cyan', layout: 'complet', name: '', city: '', place: null, windLimit: +MJS.windLimit || 45,
     voiceOn: true, voice: MJS.voice || '', rate: +MJS.rate || 1, tts: MJS.tts || 'system', piperVoice: MJS.piperVoice || 'pierre', vfx: 'ia', vfxo: null, free: 140, scale: 100, fx: 70, reduce: false, fpsMax: 30, saver: true,
-    newsN: 7, panels: { clock: true, wx: true, agenda: true, sys: true, news: true, music: true }, wake: false, wakeOk: false, updates: true, fx2: true, boot: true, bureau: false, say: 'droite'
+    newsN: 7, panels: { clock: true, wx: true, agenda: true, sys: true, news: true, music: true }, wake: false, wakeOk: false, updates: true, fx2: true, boot: true, bureau: false, say: 'droite', forme: 'sphere'
   };
   var S = FJ.S = Object.assign({}, DEF, lsGet(KEY.set, {}));
   S.panels = Object.assign({}, DEF.panels, S.panels || {});
@@ -78,6 +78,8 @@
   FJ.DISK_CACHE_HELP = 'Lively › Paramètres (roue dentée) › Fond d\'écran › Navigateur Internet › « Cache sur disque » : Activé, puis redémarrez Lively.';
   FJ.aiName = function () { return (S.name || MJS.name || 'Majordome').trim() || 'Majordome'; };
   var THEMES = ['cyan', 'bleu', 'vert', 'ambre', 'rouge'], LAYOUTS = ['complet', 'epure', 'sphere'], PIPER = ['pierre', 'gilles', 'siwis', 'jessica'];
+  // modèle du centre (mj-orb.js, commun avec Majordome) : sphère de particules ou autre forme
+  var FORMES = ['sphere', 'reacteur', 'onde', 'atome', 'cristal'], FORME_NOMS = ['Sphère', 'Réacteur', 'Onde sonore', 'Atome', 'Cristal'];
   FJ.THEMES = THEMES; FJ.LAYOUTS = LAYOUTS;
 
   /* ---------------- Petits outils d'interface ---------------- */
@@ -257,7 +259,7 @@
     // le coût suit le nombre de pixels. mj-orb.js (commun avec l'APK) lit devicePixelRatio à la création : on le fixe le temps de l'appel.
     var real = root.devicePixelRatio || 1, k = FJ.orbRes || 0.6, desc = Object.getOwnPropertyDescriptor(root, 'devicePixelRatio');
     try { Object.defineProperty(root, 'devicePixelRatio', { configurable: true, get: function () { return Math.min(real, 1) * k; } }); } catch (e) { }
-    try { FJ.orb = root.MJOrb.create($('orb'), { pad: 1.12, count: n }); }   // toile = 70 % de la scène : sphère = moitié du rayon des anneaux
+    try { FJ.orb = root.MJOrb.create($('orb'), { pad: 1.12, count: n, forme: S.forme && S.forme !== 'sphere' ? S.forme : undefined }); }   // toile = 70 % de la scène : sphère = moitié du rayon des anneaux
     finally { try { if (desc) Object.defineProperty(root, 'devicePixelRatio', desc); else delete root.devicePixelRatio; } catch (e) { } }
     if (st !== 'idle') FJ.orb.state(st);
   }
@@ -670,6 +672,7 @@
       case 'effects': S.fx = clamp(Math.round(+val), 0, 100); break;
       case 'reduceMotion': S.reduce = !!val; break;
       case 'fpsMax': S.fpsMax = clamp(Math.round(+val), 10, 30); break;
+      case 'forme': S.forme = FORMES[+val] || 'sphere'; FJ.save(); makeOrb(FJ.orbCount || 1100); FJ.apply(); return;
       case 'batterySaver': S.saver = !!val; break;
       case 'newsCount': S.newsN = clamp(Math.round(+val), 5, 10); newsRender(); break;
       case 'icsFile':
@@ -693,7 +696,7 @@
      (différente de la valeur du paquet) garde la priorité sur le fichier. */
   var FKEY = 'fond-jarvis:fichier', XKEYS = [KEY.ics, 'fond-jarvis:minuteurs', 'majordome:listes'];
   var LPMAP = { theme: ['theme'], layout: ['layout'], city: ['city', 'place'], windLimit: ['windLimit'], assistantName: ['name'], voiceOn: ['voiceOn'], voiceEngine: ['tts'],
-    voiceFx: ['vfx', 'vfxo'], piperVoice: ['piperVoice'], freeLeft: ['free'], textScale: ['scale'], effects: ['fx'], reduceMotion: ['reduce'], fpsMax: ['fpsMax'],
+    voiceFx: ['vfx', 'vfxo'], piperVoice: ['piperVoice'], freeLeft: ['free'], textScale: ['scale'], effects: ['fx'], reduceMotion: ['reduce'], fpsMax: ['fpsMax'], forme: ['forme'],
     batterySaver: ['saver'], newsCount: ['newsN'] };
   FJ.exportSettings = function () {
     var d = {}; d[KEY.set] = S; d[KEY.keys] = FJ.keys;
@@ -824,6 +827,7 @@
       h += fld('Disposition', sel('sLayout', [['complet', 'Complet'], ['epure', 'Épuré (horloge, sphère, raccourcis)'], ['sphere', 'Sphère seule']], S.layout));
       h += fld('Réponses de l\'assistant', sel('sSay', [['droite', 'À droite (sphère en grand)'], ['gauche', 'À gauche (sphère en grand)'], ['dessous', 'Sous la sphère']], S.say || 'droite'), 'À gauche ou à droite, la réponse s\'affiche par-dessus les panneaux du côté choisi : la sphère garde toute sa taille.');
       h += fld('Thème', sel('sTheme', [['cyan', 'Cyan'], ['bleu', 'Bleu'], ['vert', 'Vert'], ['ambre', 'Ambre'], ['rouge', 'Rouge']], S.theme));
+      h += fld('Modèle', sel('sForme', FORMES.map(function (f, i) { return [f, FORME_NOMS[i]]; }), S.forme || 'sphere'), 'Au centre : sphère de particules, réacteur, onde sonore, atome ou cristal. Tous réagissent à la voix.');
       h += '<h3>Panneaux affichés (disposition Complet)</h3>';
       [['clock', 'Horloge'], ['wx', 'Météo'], ['agenda', 'Agenda (s\'il y a des rendez-vous)'], ['sys', 'Système et batterie (si disponibles)'], ['news', 'Actualités'], ['music', 'Musique en cours (Lively)']].forEach(function (p) { h += chk('sP_' + p[0], p[1], S.panels[p[0]]); });
       B.innerHTML = h;
@@ -831,6 +835,7 @@
       bind('sLayout', function (v) { setS('layout', v); });
       bind('sSay', function (v) { setS('say', v); FJ.relayout(); });
       bind('sTheme', function (v) { setS('theme', v); FJ.hud.redrawStatic(); });
+      bind('sForme', function (v) { S.forme = v; FJ.save(); makeOrb(FJ.orbCount || 1100); FJ.apply(); });
       ['clock', 'wx', 'agenda', 'sys', 'news', 'music'].forEach(function (k) { bind('sP_' + k, function (v) { S.panels[k] = v; FJ.save(); FJ.apply(); if (k === 'news') newsRender(); }); });
     } else if (tab === 'affichage') {
       h += fld('Zone libre à gauche', rng('sFree', 0, 600, 10, S.free, ' px'), 'Pour ne pas cacher les icônes du bureau (0 = aucune).');
