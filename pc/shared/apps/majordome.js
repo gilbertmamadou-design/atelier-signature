@@ -179,7 +179,8 @@
     if (hold || Date.now() < holdUntil) { resetWake(); emit('barge', { word: w }); resumeWake(); return; }
     if (d.event === 'result') {
       // « Majordome, quelle heure est-il » d'une traite : la commande suit le mot
-      var t = deacc(txt), k = t.indexOf(w), rest = k >= 0 ? t.slice(k + w.length).trim() : '';
+      // le nom peut être n'importe où : « allume le salon, Majordome » = commande (le reste de la phrase, avant et après le nom)
+      var t = deacc(txt), k = t.indexOf(w), rest = k >= 0 ? (t.slice(0, k) + ' ' + t.slice(k + w.length)).replace(/\s+/g, ' ').trim() : '';
       resetWake();
       if (rest.split(' ').length >= 2) emit('result', { text: txt, wake: true }); else emit('wake', { word: w });
     } else if (deacc(txt).split(' ').length <= 2) {

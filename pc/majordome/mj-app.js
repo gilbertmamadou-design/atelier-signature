@@ -1946,6 +1946,6 @@
   MJ.S = S; MJ.VX = VX; MJ.AL = function () { return AL; };
   MJ._ = { H: H, MJ_VERSION: MJ_VERSION, ctx: ctx, exec: exec, alexaSay: alexaSay, httpText: httpText, online: online, dayName: dayName, isDay: isDay, answer: answer, ask: ask, errorReply: errorReply, openSheet: openSheet, closeSheet: closeSheet, curSheet: function () { return curSheet; }, esc: esc, J: J, lsGet: lsGet, lsSet: lsSet, uid: uid, now: now, cap: cap, deacc: deacc,
     S: S, saveS: saveS, toast: toast, card: card, withSir: withSir, sir: sir, ack: ack, dur: dur, hm: hm, hmSay: hmSay, addAlarm: addAlarm, removeAlarm: removeAlarm, setAL: function (l) { AL = l; saveAL(); renderTimers(); },
-    HELP: HELP, openLink: openLink, settingsSheet: settingsSheet, handle: handle, ANDROID: ANDROID, PC: PC, B: B, P: P, KEY: KEY, WMO: WMO, weatherData: weatherData, vigilanceData: vigilanceData, speaking: speaking };
+    HELP: HELP, openLink: openLink, settingsSheet: settingsSheet, applyName: applyName, applyWake: applyWake, handle: handle, ANDROID: ANDROID, PC: PC, B: B, P: P, KEY: KEY, WMO: WMO, weatherData: weatherData, vigilanceData: vigilanceData, speaking: speaking };
   if (MJ.onReady) try { MJ.onReady(); } catch (e) { console.warn(e); } MJ.LS = function () { return LS; }; MJ.orb = orb; MJ.moment = function () { try { moment(); } catch (e) { } }; MJ.momentCells = function () { try { return momentCells(); } catch (e) { return []; } }; MJ.ask = ask; MJ.speakText = speechText; MJ.refresh = refreshInfo;
 })();
