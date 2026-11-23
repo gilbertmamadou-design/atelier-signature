@@ -13,6 +13,7 @@ pc/
   pc-apps.json           liste des applis PC, bibliothèques, adaptations de libellés
   package.json           versions des bibliothèques (npm), pour --vendor
   index.html             lanceur « Suite MAG sur PC »          (généré)
+  sw.js                  service worker du lanceur : page et icônes hors ligne (généré)
   versions.json          empreinte et date de chaque appli (« Version du JJ/MM »)   (généré, publié)
   <appli>/               une appli par dossier                  (généré, ne pas modifier)
     index.html             copie de applis/www-<appli>/index.html + injections PC
@@ -26,8 +27,10 @@ pc/
     pc.css               toasts, dialogues, bandeau de mise à jour, dépôt, impression
     apps/<appli>.js      pont simulé propre à l'appli (MAGLecteur, MAGPdf…), raccourcis
     apps/<appli>.css     mise en page grand écran de l'appli
-    sw-template.js       modèle du service worker
-    launcher.html        modèle du lanceur
+    sw-template.js       modèle du service worker (téléchargements réessayés 3 fois à l'installation)
+    sw-lanceur-template.js  modèle du service worker du lanceur (ne répond que pour ses propres fichiers)
+    launcher.html        modèle du lanceur ; bouton « Tout préparer pour le hors ligne » : installe le service worker
+                         de chaque appli sans l'ouvrir, demande un stockage persistant, « ✓ Prête hors ligne » par tuile
     ocr-worker.js        OCR Tesseract (français) hors ligne
     toile.html           page de Toile sur PC (propre au PC, champ « page » de pc-apps.json)
     toile-worker.js      moteur de recadrage de Toile (portage JS de applis/scripts/WallpaperJob.java)

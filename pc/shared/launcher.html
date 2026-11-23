@@ -34,6 +34,9 @@ h2{font-size:15px;text-transform:uppercase;letter-spacing:1.2px;color:var(--tx2)
 .majbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 14px;margin:0 0 6px}
 .majbar span{color:var(--tx2);font-size:14.5px}
 .majbar b{color:var(--tx)}
+.tile .off{display:block;font-style:normal;font-size:12.5px;margin-top:2px;color:var(--tx2)}
+.tile .off.ok{color:#1f8a4c;font-weight:650}
+@media (prefers-color-scheme:dark){.tile .off.ok{color:#5fd08f}}
 .cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 @media (max-width:720px){.cols{grid-template-columns:1fr}}
 .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px 20px}
@@ -80,6 +83,7 @@ footer a,.card a{color:var(--acc)}
 
   <h2>Applis (<!--NB-->)</h2>
   <div class="majbar"><span>Suite MAG sur PC · <b>Version du <!--DATE--></b> · <span id="majMsg">chaque appli indique sa version ; une nouvelle version s'installe toute seule et l'appli propose « Mettre à jour ».</span></span><button class="btn" id="majBtn" type="button">Rechercher les mises à jour</button></div>
+  <div class="majbar"><span>📴 <b>Hors ligne</b> · <span id="offMsg">avec internet, préparez une fois toutes les applis : elles s'ouvriront ensuite sans connexion.</span></span><button class="btn" id="offBtn" type="button">Tout préparer pour le hors ligne</button></div>
   <div class="grid">
 <!--TUILES-->
   </div>
@@ -366,6 +370,62 @@ footer a,.card a{color:var(--acc)}
     } catch (e) { msg($('rMsg'), 'Pas de réponse du relais (adresse fausse, ou le relais n\'autorise pas ce site).', 'bad'); }
   };
   show();
+})();
+</script>
+<script>
+/* Hors ligne : le lanceur installe le service worker de chaque appli (sans devoir les ouvrir une à une),
+   demande un stockage persistant (le navigateur ne vide pas les fichiers hors ligne) et indique sur chaque
+   tuile si l'appli est prête sans internet. Le lanceur lui-même est gardé par pc/sw.js. */
+(function () {
+  'use strict';
+  if (!('serviceWorker' in navigator)) return;
+  var ok = location.protocol === 'https:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  if (!ok) return;
+  navigator.serviceWorker.register('sw.js', { scope: './' }).catch(function () { });
+  var ids = Array.prototype.map.call(document.querySelectorAll('.tw[data-app]'), function (e) { return e.getAttribute('data-app'); });
+  function mark(id, txt, good) {
+    var t = document.querySelector('.tw[data-app="' + id + '"] .tx'); if (!t) return;
+    var el = t.querySelector('.off'); if (!el) { el = document.createElement('i'); el.className = 'off'; t.appendChild(el); }
+    el.textContent = txt; el.className = 'off' + (good ? ' ok' : '');
+  }
+  function base(id) { return new URL(id + '/', location.href).href; }
+  async function status() {
+    var regs = await navigator.serviceWorker.getRegistrations(), act = {}, n = 0;
+    regs.forEach(function (r) { if (r.active) act[r.scope] = 1; });
+    ids.forEach(function (id) { if (act[base(id)]) { n++; mark(id, '✓ Prête hors ligne', true); } else mark(id, 'Pas encore prête hors ligne', false); });
+    return n;
+  }
+  function waitActive(reg, ms) {
+    return new Promise(function (res) {
+      var t0 = Date.now();
+      (function loop() {
+        if (reg.active) return res(true);
+        if (!reg.installing && !reg.waiting && Date.now() - t0 > 3000) return res(false);
+        if (Date.now() - t0 > ms) return res(false);
+        setTimeout(loop, 400);
+      })();
+    });
+  }
+  var btn = document.getElementById('offBtn'), msg = document.getElementById('offMsg');
+  status().then(function (n) { if (n === ids.length) msg.textContent = 'les ' + n + ' applis sont prêtes : elles s\'ouvrent sans internet.'; else if (n) msg.textContent = n + ' appli(s) sur ' + ids.length + ' prêtes sans internet. Cliquez pour préparer les autres.'; }).catch(function () { });
+  if (btn) btn.addEventListener('click', async function () {
+    if (!navigator.onLine) { msg.textContent = 'Connectez d\'abord l\'ordinateur à internet, puis recommencez.'; return; }
+    btn.disabled = true;
+    try { if (navigator.storage && navigator.storage.persist) await navigator.storage.persist(); } catch (e) { }
+    var done = 0, bad = [];
+    for (var i = 0; i < ids.length; i++) {
+      var id = ids[i];
+      msg.textContent = 'Préparation ' + (i + 1) + ' / ' + ids.length + ' : ' + (document.querySelector('.tw[data-app="' + id + '"] b') || {}).textContent + '… (ne fermez pas cette fenêtre)';
+      mark(id, 'Préparation…', false);
+      try {
+        var reg = await navigator.serviceWorker.register(id + '/sw.js', { scope: id + '/' });
+        if (await waitActive(reg, 180000)) { done++; mark(id, '✓ Prête hors ligne', true); }
+        else { bad.push(id); mark(id, 'Échec : réessayez avec une meilleure connexion', false); }
+      } catch (e) { bad.push(id); mark(id, 'Échec : réessayez avec une meilleure connexion', false); }
+    }
+    msg.textContent = bad.length ? done + ' applis prêtes, ' + bad.length + ' en échec : cliquez à nouveau pour réessayer.' : 'Terminé : les ' + done + ' applis s\'ouvrent maintenant sans internet.';
+    btn.disabled = false;
+  });
 })();
 </script>
 </body>
