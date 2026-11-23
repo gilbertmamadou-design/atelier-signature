@@ -102,6 +102,8 @@
   // modèles 3D : celui par défaut est livré avec l'appli Android, les autres sont téléchargés une fois (GitHub Pages, mis en cache)
   var PAGES3D = 'https://gilbertmamadou-design.github.io/atelier-signature/pc/majordome/3d/';
   function url3d(m) { return (ANDROID && m !== 'Female_Adult_08' ? PAGES3D : '3d/') + m + '.glb'; }
+  // modèles dessinés par mj-orb.js en plus de la sphère
+  var FORMES = { reacteur: 'Réacteur', onde: 'Onde sonore', atome: 'Atome', cristal: 'Cristal' };
   var orb = (function () {
     var cur = null, kind = '', px = {};
     ['state', 'get', 'level', 'speak', 'word', 'voice', 'pulse', 'metrics'].forEach(function (m) { px[m] = function () { return cur[m].apply(cur, arguments); }; });
@@ -113,8 +115,9 @@
       var old = $('orb'), cv = document.createElement('canvas'); cv.id = 'orb'; cv.className = old.className; old.parentNode.replaceChild(cv, old); return cv;
     }
     px.apply = function () {
-      var want = S.avatar === 'visage3d' && window.MJFace3D ? 'visage3d' : S.avatar === 'androide' && window.MJFace ? 'androide' : S.avatar === 'visage' && window.MJFace ? 'visage' : 'sphere', was = cur ? cur.get() : 'idle';
-      document.documentElement.classList.toggle('mj-visage-seul', want !== 'sphere' && !S.faceDeco);
+      var want = S.avatar === 'visage3d' && window.MJFace3D ? 'visage3d' : S.avatar === 'androide' && window.MJFace ? 'androide' : S.avatar === 'visage' && window.MJFace ? 'visage' : FORMES[S.avatar] ? S.avatar : 'sphere', was = cur ? cur.get() : 'idle';
+      var orbLike = want === 'sphere' || !!FORMES[want];   // sphère et autres modèles de mj-orb.js : même cadre
+      document.documentElement.classList.toggle('mj-visage-seul', !orbLike && !S.faceDeco);
       orbBox.classList.toggle('corps', (want === 'androide' || want === 'visage3d') && S.faceFrame === 'corps');
       if (cur && want === kind) { if (cur.look) cur.look(want === 'androide' ? { style: 'androide', frame: S.faceFrame, expr: S.faceExpr } : want === 'visage3d' ? { model: S.face3dModel, frame: S.faceFrame, expr: S.faceExpr, style: S.face3dStyle } : faceLook()); return; }
       if (cur) cur.stop();
@@ -128,9 +131,10 @@
           S.avatar = 'visage'; saveS(); px.apply();
         };
       }
+      if (FORMES[want]) o.forme = want;
       cur = want === 'visage3d' ? window.MJFace3D.create(cv, o) : want === 'visage' || want === 'androide' ? window.MJFace.create(cv, o) : window.MJOrb.create(cv, o);
       kind = want; cur.state(was);
-      orbBox.classList.toggle('visage', kind !== 'sphere');
+      orbBox.classList.toggle('visage', !orbLike);
     };
     return px;
   })();
@@ -1633,7 +1637,7 @@
     var sw = function (id) { return '<div class="set"' + (id === 'faceDeco' ? '' : ' data-nat') + '><div class="t">' + FACEBOOL[id] + '</div><label class="sw"><input type="checkbox" id="s_' + id + '"' + (S[id] ? ' checked' : '') + '><span></span></label></div>'; };
     return '<p class="note" style="text-align:right;margin:0 0 4px">Version de Majordome : ' + MJ_VERSION + '</p>' +
       '<div class="set" id="f-apparence"><div class="t">Apparence<small>La sphère de particules, ou un visage qui cligne des yeux, vous regarde et parle avec la voix</small></div>' +
-      '<select class="in" id="sAvatar">' + [['sphere', 'Sphère'], ['visage', 'Visage dessiné'], ['visage3d', 'Visage 3D'], ['androide', 'Androïde (hologramme)']].filter(function (o) { return o[0] === 'sphere' || (o[0] === 'visage3d' ? window.MJFace3D : window.MJFace); }).map(function (o) { return '<option value="' + o[0] + '"' + (S.avatar === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
+      '<select class="in" id="sAvatar">' + [['sphere', 'Sphère'], ['reacteur', 'Réacteur'], ['onde', 'Onde sonore'], ['atome', 'Atome'], ['cristal', 'Cristal'], ['visage', 'Visage dessiné'], ['visage3d', 'Visage 3D'], ['androide', 'Androïde (hologramme)']].filter(function (o) { return o[0] === 'sphere' || FORMES[o[0]] || (o[0] === 'visage3d' ? window.MJFace3D : window.MJFace); }).map(function (o) { return '<option value="' + o[0] + '"' + (S.avatar === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
       '<div class="set"><div class="t">Pleine page<small>L\'apparence en grand au milieu de l\'écran, rien d\'écrit (touchez l\'écran pour les menus)</small></div><label class="sw"><input type="checkbox" id="sZenA"' + (S.zen ? ' checked' : '') + '><span></span></label></div>' +
       '<div class="set"><div class="t">Réagir à l\'ambiance<small>Hoche la tête en rythme avec la musique, sursaute à un bruit soudain. Micro ouvert seulement quand Majordome est à l\'écran, rien n\'est enregistré' + (ANDROID ? ' ; en pause pendant l\'écoute continue (mot de réveil)' : '') + '</small></div><label class="sw"><input type="checkbox" id="sAmbiance"' + (S.ambiance ? ' checked' : '') + '><span></span></label></div>' +
       (window.MJFace ? '<div class="set"><div class="t">Me suivre du regard<small>Avec un visage : la caméra frontale repère votre visage, ses yeux vous suivent et sa tête tourne légèrement vers vous. Images analysées sur l\'appareil, jamais enregistrées</small></div><label class="sw"><input type="checkbox" id="sSuivi"' + (S.suivi ? ' checked' : '') + '><span></span></label></div>' : '') +
