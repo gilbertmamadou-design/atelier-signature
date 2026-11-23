@@ -152,6 +152,53 @@ public class MajordomeBridge {
         try { ((NotificationManager) a.getSystemService(Context.NOTIFICATION_SERVICE)).cancel(N_CMD); } catch (Throwable t) { }
     }
 
+    // ---------- L'œil de Majordome (mj-oeil.js) ----------
+    // La caméra elle-même passe par la page (getUserMedia ; Capacitor demande l'autorisation CAMERA au premier usage).
+    // Ici : lecture du texte d'une photo (ML Kit, sur l'appareil, sans internet) et enregistrement d'une photo dans
+    // la galerie (Images/Pictures/Majordome, MediaStore : aucune autorisation sur Android 10 et plus).
+    // Réponse par l'événement « oeil » : {id, kind:"ocr"|"save", ok, text|err}.
+    private com.google.mlkit.vision.text.TextRecognizer oeilRec = null;
+    @JavascriptInterface public boolean oeilCan() { return true; }
+    @JavascriptInterface public void oeilOcr(final String id, final String b64) {
+        new Thread(new Runnable() { public void run() {
+            android.graphics.Bitmap bmp = null;
+            try {
+                byte[] b = android.util.Base64.decode(b64, android.util.Base64.DEFAULT);
+                bmp = android.graphics.BitmapFactory.decodeByteArray(b, 0, b.length);
+                if (bmp == null) throw new Exception("image illisible");
+                synchronized (MajordomeBridge.this) {
+                    if (oeilRec == null) oeilRec = com.google.mlkit.vision.text.TextRecognition.getClient(com.google.mlkit.vision.text.latin.TextRecognizerOptions.DEFAULT_OPTIONS);
+                }
+                com.google.mlkit.vision.text.Text t = com.google.android.gms.tasks.Tasks.await(oeilRec.process(com.google.mlkit.vision.common.InputImage.fromBitmap(bmp, 0)));
+                emit("oeil", new JSONObject().put("id", id).put("kind", "ocr").put("ok", true).put("text", t == null ? "" : t.getText()).toString());
+            } catch (Throwable e) {
+                try { emit("oeil", new JSONObject().put("id", id).put("kind", "ocr").put("ok", false).put("err", String.valueOf(e.getMessage())).toString()); } catch (Exception x) { }
+            } finally { if (bmp != null) bmp.recycle(); }
+        } }).start();
+    }
+    @JavascriptInterface public void oeilSave(final String id, final String b64, final String name) {
+        new Thread(new Runnable() { public void run() {
+            try {
+                if (Build.VERSION.SDK_INT < 29) throw new Exception("Android 10 ou plus requis");
+                byte[] b = android.util.Base64.decode(b64, android.util.Base64.DEFAULT);
+                android.content.ContentResolver cr = a.getContentResolver();
+                android.content.ContentValues v = new android.content.ContentValues();
+                v.put(MediaStore.Images.Media.DISPLAY_NAME, name);
+                v.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+                v.put(MediaStore.Images.Media.RELATIVE_PATH, android.os.Environment.DIRECTORY_PICTURES + "/Majordome");
+                v.put(MediaStore.Images.Media.IS_PENDING, 1);
+                Uri u = cr.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, v);
+                if (u == null) throw new Exception("galerie indisponible");
+                java.io.OutputStream os = cr.openOutputStream(u);
+                try { os.write(b); } finally { os.close(); }
+                v.clear(); v.put(MediaStore.Images.Media.IS_PENDING, 0); cr.update(u, v, null, null);
+                emit("oeil", new JSONObject().put("id", id).put("kind", "save").put("ok", true).toString());
+            } catch (Throwable e) {
+                try { emit("oeil", new JSONObject().put("id", id).put("kind", "save").put("ok", false).put("err", String.valueOf(e.getMessage())).toString()); } catch (Exception x) { }
+            }
+        } }).start();
+    }
+
     // ---------- Événements vers la page ----------
     static String obj(String k, Object v) { try { return new JSONObject().put(k, v).toString(); } catch (Exception e) { return "{}"; } }
     void emit(final String type, final String json) {
