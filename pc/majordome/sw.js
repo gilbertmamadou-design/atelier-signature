@@ -6,7 +6,7 @@
    - message VERSION : répond {app, version, date} (« Version du JJ/MM » de l'appli et du lanceur) ;
    - réponses : cache d'abord pour les fichiers précachés, réseau puis cache pour le reste (polices…). */
 'use strict';
-var VERSION = 'd0711b2aa867';
+var VERSION = 'f85ad6dfdef8';
 var DATE = '2026-11-23';          // jour de publication de cette version (« Version du JJ/MM » dans l'appli et le lanceur)
 var APP = 'majordome';
 var CACHE = 'mag-pc-' + APP + '-' + VERSION, RUNTIME = 'mag-pc-' + APP + '-rt';
@@ -21,6 +21,10 @@ var PRECACHE = [
   "../shared/pc.css",
   "../shared/apps/majordome.js",
   "../shared/vendor/vosk/vosk-worker.js",
+  "../shared/vendor/tesseract/tesseract-core-simd-lstm.js",
+  "../shared/vendor/tesseract/tesseract-core-simd-lstm.wasm",
+  "../shared/vendor/tesseract/fra.traineddata",
+  "ocr-worker.js",
   "mj-ambiance.js",
   "mj-app.js",
   "mj-applis.js",
@@ -35,6 +39,7 @@ var PRECACHE = [
   "mj-messages.js",
   "mj-montre.js",
   "mj-nlu.js",
+  "mj-oeil.js",
   "mj-orb.js",
   "mj-phon.js",
   "mj-plus.js",
@@ -42,7 +47,9 @@ var PRECACHE = [
   "mj-somfy.js",
   "mj-voix-worker.js",
   "mj-voix.js",
-  "../shared/apps/agenda.js"
+  "vision/pico.js",
+  "../shared/apps/agenda.js",
+  "vision/facefinder.bin"
 ];
 // gros fichiers communs à plusieurs applis (moteur du correcteur, 16 Mo) : un seul cache partagé, pas une copie par appli
 var COMMUN = 'mag-pc-commun-31f1edb1c086';
