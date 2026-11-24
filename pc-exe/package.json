@@ -1,0 +1,35 @@
+{
+  "name": "suite-mag",
+  "productName": "Suite MAG",
+  "version": "1.0.0",
+  "description": "Suite MAG sur PC : toutes les applis dans un programme Windows qui marche sans internet",
+  "author": "MAG Formation 13",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "verifier": "electron . --smoke",
+    "dist": "electron-builder --win portable --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "^38.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "fr.magformation13.suite",
+    "productName": "Suite MAG",
+    "artifactName": "Suite-MAG.exe",
+    "directories": { "output": "dist" },
+    "files": ["main.js", "preload.js", "package.json"],
+    "extraResources": [
+      {
+        "from": "../pc",
+        "to": "pc",
+        "filter": ["**/*", "!node_modules/**", "!**/__pycache__/**", "!build-pc.py", "!hls-build.mjs", "!package.json", "!package-lock.json", "!README.md", "!**/sw.js"]
+      }
+    ],
+    "win": { "target": [{ "target": "portable", "arch": ["x64"] }], "icon": "icone.png" },
+    "portable": { "unpackDirName": "SuiteMAG" },
+    "compression": "normal"
+  }
+}
