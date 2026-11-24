@@ -9,7 +9,7 @@
   "scripts": {
     "start": "electron .",
     "verifier": "electron . --smoke",
-    "dist": "electron-builder --win portable --x64 --publish never"
+    "dist": "electron-builder --win nsis portable --x64 --publish never"
   },
   "devDependencies": {
     "electron": "^38.0.0",
@@ -18,18 +18,70 @@
   "build": {
     "appId": "fr.magformation13.suite",
     "productName": "Suite MAG",
-    "artifactName": "Suite-MAG.exe",
-    "directories": { "output": "dist" },
-    "files": ["main.js", "preload.js", "package.json"],
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "package.json"
+    ],
     "extraResources": [
       {
         "from": "../pc",
         "to": "pc",
-        "filter": ["**/*", "!node_modules/**", "!**/__pycache__/**", "!build-pc.py", "!hls-build.mjs", "!package.json", "!package-lock.json", "!README.md", "!**/sw.js"]
+        "filter": [
+          "**/*",
+          "!node_modules/**",
+          "!**/__pycache__/**",
+          "!build-pc.py",
+          "!hls-build.mjs",
+          "!package.json",
+          "!package-lock.json",
+          "!README.md",
+          "!**/sw.js"
+        ]
+      },
+      {
+        "from": "build/icones",
+        "to": "icones"
       }
     ],
-    "win": { "target": [{ "target": "portable", "arch": ["x64"] }], "icon": "icone.png" },
-    "portable": { "unpackDirName": "SuiteMAG" },
-    "compression": "normal"
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icone.ico"
+    },
+    "portable": {
+      "unpackDirName": "SuiteMAG",
+      "artifactName": "Suite-MAG.exe"
+    },
+    "compression": "normal",
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Suite MAG",
+      "menuCategory": false,
+      "runAfterFinish": true,
+      "language": "1036",
+      "artifactName": "Suite-MAG-Installation.exe",
+      "uninstallDisplayName": "Suite MAG"
+    }
   }
 }

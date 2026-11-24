@@ -51,11 +51,15 @@ jobs:
         with:
           node-version: 22
       - run: npm install --no-audit --no-fund
+      - name: Icônes et raccourcis du menu Démarrer
+        run: |
+          python -m pip install --quiet pillow
+          python prep.py
       - name: Version du programme (date du jour)
         shell: bash
         run: npm pkg set version="1.$(date +%Y%m%d).${{ github.run_number }}"
-      - name: Fabriquer Suite-MAG.exe
-        run: npx electron-builder --win portable --x64 --publish never
+      - name: Fabriquer l'installateur et la version portable
+        run: npx electron-builder --win nsis portable --x64 --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
       - shell: bash
@@ -63,7 +67,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: Suite-MAG
-          path: pc-exe/dist/Suite-MAG.exe
+          path: |
+            pc-exe/dist/Suite-MAG.exe
+            pc-exe/dist/Suite-MAG-Installation.exe
           retention-days: 14
       - name: Publier (release « suite-mag-exe »)
         shell: bash
@@ -76,4 +82,6 @@ jobs:
           else
             gh release create suite-mag-exe --target "$GITHUB_SHA" --title "Suite MAG.exe" --notes "$NOTES"
           fi
-          for i in 1 2 3; do gh release upload suite-mag-exe dist/Suite-MAG.exe --clobber && break; sleep 10; done
+          for f in dist/Suite-MAG-Installation.exe dist/Suite-MAG.exe; do
+            for i in 1 2 3; do gh release upload suite-mag-exe "$f" --clobber && break; sleep 10; done
+          done

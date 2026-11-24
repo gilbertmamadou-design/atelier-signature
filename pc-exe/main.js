@@ -2,13 +2,19 @@
    Les fichiers sont servis depuis le disque par le protocole « mag://suite/… » (origine fixe : les données
    localStorage / IndexedDB restent dans %APPDATA%\Suite MAG et ne sont jamais effacées par le navigateur). */
 'use strict';
-const { app, BrowserWindow, protocol, session, shell, Menu, desktopCapturer, dialog } = require('electron');
+const { app, BrowserWindow, protocol, session, shell, Menu, desktopCapturer, dialog, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
 const SMOKE = process.argv.includes('--smoke');
 const ROOT = app.isPackaged ? path.join(process.resourcesPath, 'pc') : path.join(__dirname, '..', 'pc');
 const ORIGIN = 'mag://suite';
+const ICONES = app.isPackaged ? path.join(process.resourcesPath, 'icones') : path.join(__dirname, 'build', 'icones');
+// chemin du programme lui-même (la version portable se décompresse ailleurs : on garde l'original)
+const EXE = process.env.PORTABLE_EXECUTABLE_FILE || process.execPath;
+let NOMS = {};
+try { NOMS = JSON.parse(fs.readFileSync(path.join(ICONES, 'noms.json'), 'utf8')); } catch (e) { }
+function ico(id) { const f = path.join(ICONES, (id || 'lecteur') + '.ico'); return fs.existsSync(f) ? f : null; }
 
 protocol.registerSchemesAsPrivileged([{
   scheme: 'mag',
@@ -123,6 +129,10 @@ function ouvrir(id, url) {
   if (w && !w.isDestroyed()) { if (w.isMinimized()) w.restore(); w.focus(); return w; }
   const win = creer(url || ORIGIN + '/' + id + '/', id);
   fenetres.set(id, win);
+  if (process.platform === 'win32' && ico(id)) {
+    // chaque appli a sa propre icône dans la barre des tâches (et peut y être épinglée)
+    try { win.setAppDetails({ appId: 'fr.magformation13.suite.' + id, appIconPath: ico(id), appIconIndex: 0, relaunchCommand: '"' + EXE + '" --app=' + id, relaunchDisplayName: NOMS[id] || id }); } catch (e) { }
+  }
   win.on('closed', () => fenetres.delete(id));
   return win;
 }
@@ -184,6 +194,16 @@ else {
   app.whenReady().then(() => {
     Menu.setApplicationMenu(null);
     protocol.handle('mag', servir);
+    // raccourci d'une appli sur le Bureau (bouton « 📌 Bureau » du lanceur)
+    ipcMain.handle('raccourci', (e, id) => {
+      if (!/^[a-z0-9-]+$/.test(id || '') || !fs.existsSync(path.join(ROOT, id, 'index.html'))) return { ok: false, msg: 'Appli inconnue' };
+      if (process.platform !== 'win32') return { ok: false, msg: 'Seulement sous Windows' };
+      const nom = (NOMS[id] || id).replace(/[\\/:*?"<>|]/g, '');
+      const lnk = path.join(app.getPath('desktop'), nom + '.lnk');
+      const ok = shell.writeShortcutLink(lnk, { target: EXE, args: '--app=' + id, icon: ico(id) || EXE, iconIndex: 0, description: nom + ' (Suite MAG)', appUserModelId: 'fr.magformation13.suite.' + id });
+      return { ok, msg: ok ? 'Raccourci « ' + nom + ' » créé sur le Bureau' : 'Création impossible' };
+    });
+    ipcMain.handle('portable', () => !!process.env.PORTABLE_EXECUTABLE_FILE);
     autorisations(session.defaultSession);
     if (SMOKE) return verifier();
     demarrer(process.argv);
