@@ -249,6 +249,14 @@
     return c.done;
   };
   ['call', 'sms', 'torch', 'silent', 'address', 'domo', 'shutter', 'cameras', 'echo_bt', 'light', 'clim', 'alarm_list', 'alarm_cancel', 'routine_edit', 'budget_add'].forEach(function (k) { H[k] = H.notHere; });
+  // programme Suite MAG.exe : la mosaïque des caméras s'ouvre (appli Caméras du programme)
+  if (root.MAGEXE && root.MAGEXE.cameras) H.cameras = function (p) {
+    var r = root.MAGEXE.cameras(p.name || '', p.move || '');
+    if (r === 'absent') return answer('Réglez d\'abord vos caméras dans l\'appli Caméras de la Suite MAG.').done;
+    if (r === 'noptz') return answer('Cette caméra n\'est pas motorisée.').done;
+    if (p.move) return answer(ack({ left: 'Je tourne à gauche', right: 'Je tourne à droite', up: 'Je lève la caméra', down: 'Je baisse la caméra', 'in': 'Je zoome', out: 'Je dézoome' }[p.move] || 'C\'est fait')).done;
+    return answer(ack(r === 'nom' ? 'Je n\'ai pas trouvé cette caméra : voici toutes les caméras' : p.name ? 'Voici la caméra ' + p.name : 'Voici les caméras')).done;
+  };
   H.call = H.sms = H.torch = function () { return answer('C\'est une commande du téléphone : je ne peux pas la faire depuis l\'ordinateur.').done; };
   H.budget_balance = function () { return answer('Par discrétion, je ne lis jamais de solde ni de total de comptes. Ouvrez Budget pour les consulter.').done; };
   H.history_clear = function () { say.innerHTML = ''; return answer(ack('Conversation effacée.')).done; };

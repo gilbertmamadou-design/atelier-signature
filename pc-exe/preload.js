@@ -10,7 +10,8 @@ var ipc = null; try { ipc = require('electron').ipcRenderer; } catch (e) { }
 window.MAGEXE = {
   demarrage: function (on) { return ipc ? ipc.invoke('demarrage', on) : Promise.resolve({ ok: false }); },
   veille: function (on, min) { return ipc ? ipc.invoke('veille', on, min) : Promise.resolve({ ok: false }); },
-  essaiVeille: function () { if (ipc) ipc.send('veille-essai'); }
+  essaiVeille: function () { if (ipc) ipc.send('veille-essai'); },
+  cameras: function (name, move) { try { return ipc ? ipc.sendSync('cam-voice', String(name || ''), String(move || '')) : 'absent'; } catch (e) { return 'absent'; } }
 };
 // Caméras : pont MAGCameras (comme CamerasBridge.java sur Android) et mosaïque
 if (ipc && /^\/cameras\//.test(location.pathname)) {

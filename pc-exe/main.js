@@ -243,17 +243,36 @@ else {
     ipcMain.handle('portable', () => !!process.env.PORTABLE_EXECUTABLE_FILE);
     // Caméras : recherche ONVIF, test, mosaïque (cameras.js)
     const CAM = require('./cameras');
+    // liste des caméras prêtes gardée sur le disque : Majordome et Jarvis ouvrent la mosaïque à la voix
+    const CAMF = path.join(app.getPath('userData'), 'cameras.json');
     let camRaw = [], camView = null, camStart = -1;
-    ipcMain.handle('cam-discover', () => CAM.discover());
-    ipcMain.handle('cam-probe', (e, id, ip, user, pwd, xaddr) => CAM.probe(id, ip, user, pwd, xaddr));
-    ipcMain.on('cam-store', (e, json) => { try { camRaw = JSON.parse(json) || []; } catch (x) { } });
-    ipcMain.on('cam-show', (e, json, k) => {
-      try { camRaw = JSON.parse(json) || []; } catch (x) { }
-      camStart = typeof k === 'number' ? k : -1;
+    try { camRaw = JSON.parse(fs.readFileSync(CAMF, 'utf8')) || []; } catch (x) { camRaw = []; }
+    const camSave = () => { try { fs.writeFileSync(CAMF, JSON.stringify(camRaw)); } catch (x) { } };
+    const camOpen = () => {
       if (camView && !camView.isDestroyed()) { camView.reload(); camView.focus(); return; }
       camView = creer(ORIGIN + '/shared/cameras/viewer.html', 'cameras');
       camView.setBackgroundColor('#07090d');
       camView.on('closed', () => { camView = null; CAM.stopAll(); });
+    };
+    const sans = (x) => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    ipcMain.on('cam-voice', (e, name, move) => {
+      if (!camRaw.length) { e.returnValue = 'absent'; return; }
+      let i = -1; const n = sans(name);
+      if (n) { i = camRaw.findIndex((c) => sans(c.name) === n); if (i < 0) i = camRaw.findIndex((c) => sans(c.name).includes(n) || n.includes(sans(c.name))); }
+      if (move) {
+        if (i < 0) { const m = camRaw.filter((c) => c.ptz && c.token); i = m.length === 1 ? camRaw.indexOf(m[0]) : -1; }
+        if (i < 0 || !camRaw[i].ptz) { e.returnValue = 'noptz'; return; }
+        CAM.ptz(camRaw[i], move); e.returnValue = 'ok'; return;
+      }
+      camStart = i; camOpen(); e.returnValue = n && i < 0 ? 'nom' : 'ok';
+    });
+    ipcMain.handle('cam-discover', () => CAM.discover());
+    ipcMain.handle('cam-probe', (e, id, ip, user, pwd, xaddr) => CAM.probe(id, ip, user, pwd, xaddr));
+    ipcMain.on('cam-store', (e, json) => { try { camRaw = JSON.parse(json) || []; camSave(); } catch (x) { } });
+    ipcMain.on('cam-show', (e, json, k) => {
+      try { camRaw = JSON.parse(json) || []; camSave(); } catch (x) { }
+      camStart = typeof k === 'number' ? k : -1;
+      camOpen();
     });
     ipcMain.handle('cam-data', async () => ({ cams: await CAM.prepare(camRaw), start: camStart, ffmpeg: CAM.hasFfmpeg() }));
     ipcMain.handle('cam-ptz', (e, i, dir) => (camRaw[i] ? CAM.ptz(camRaw[i], dir) : false));
