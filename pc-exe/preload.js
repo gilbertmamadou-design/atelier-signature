@@ -11,6 +11,7 @@ window.MAGEXE = {
   demarrage: function (on) { return ipc ? ipc.invoke('demarrage', on) : Promise.resolve({ ok: false }); },
   veille: function (on, min) { return ipc ? ipc.invoke('veille', on, min) : Promise.resolve({ ok: false }); },
   essaiVeille: function () { if (ipc) ipc.send('veille-essai'); },
+  cerveau: function () { if (ipc) ipc.send('cerveau'); },
   cameras: function (name, move) { try { return ipc ? ipc.sendSync('cam-voice', String(name || ''), String(move || '')) : 'absent'; } catch (e) { return 'absent'; } }
 };
 // Caméras : pont MAGCameras (comme CamerasBridge.java sur Android) et mosaïque

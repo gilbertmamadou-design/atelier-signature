@@ -126,7 +126,11 @@ function creer(url, id, show) {
 
 function ouvrir(id, url) {
   const w = fenetres.get(id);
-  if (w && !w.isDestroyed()) { if (w.isMinimized()) w.restore(); w.focus(); return w; }
+  if (w && !w.isDestroyed()) {
+    // Majordome ouvert en cachée comme « cerveau » de Jarvis : on le montre (rechargé sans le mode caché)
+    if (!w.isVisible()) { if (/cerveau=1/.test(w.webContents.getURL())) w.loadURL(ORIGIN + '/' + id + '/'); w.__cerveau = false; w.show(); }
+    if (w.isMinimized()) w.restore(); w.focus(); return w;
+  }
   const win = creer(url || ORIGIN + '/' + id + '/', id);
   fenetres.set(id, win);
   if (process.platform === 'win32' && ico(id)) {
@@ -139,6 +143,7 @@ function ouvrir(id, url) {
 
 /* ---------- écran de veille : Fond Jarvis plein écran sur l'écran principal, noir sur les autres ---------- */
 let veilles = [];
+let quitting = false;
 function finVeille() { const l = veilles; veilles = []; l.forEach((w) => { try { if (!w.isDestroyed()) w.destroy(); } catch (e) { } }); }
 function veille() {
   if (veilles.length) { veilles[0].focus(); return; }
@@ -276,6 +281,17 @@ else {
     });
     ipcMain.handle('cam-data', async () => ({ cams: await CAM.prepare(camRaw), start: camStart, ffmpeg: CAM.hasFfmpeg() }));
     ipcMain.handle('cam-ptz', (e, i, dir) => (camRaw[i] ? CAM.ptz(camRaw[i], dir) : false));
+    // Jarvis demande son « cerveau » : Majordome ouvert sans fenêtre visible
+    ipcMain.on('cerveau', () => {
+      const w = fenetres.get('majordome');
+      if (w && !w.isDestroyed()) return;
+      const win = creer(ORIGIN + '/majordome/?cerveau=1', 'majordome', false);
+      win.__cerveau = true;
+      fenetres.set('majordome', win);
+      win.on('closed', () => { if (fenetres.get('majordome') === win) fenetres.delete('majordome'); });
+      // fermer Majordome visible : il redevient caché tant que Jarvis s'en sert
+      win.on('close', (e) => { if (!quitting && [...fenetres.values()].some((x) => x !== win && !x.isDestroyed() && x.isVisible())) { e.preventDefault(); win.hide(); win.__cerveau = true; } });
+    });
     ipcMain.on('veille-fin', () => finVeille());
     ipcMain.on('veille-essai', () => veille());
     // devenir l'écran de veille de Windows (version installée seulement : le .scr doit rester au même endroit)
@@ -305,5 +321,11 @@ else {
     demarrer(process.argv);
   });
   app.on('window-all-closed', () => app.quit());
+  app.on('before-quit', () => { quitting = true; });
+  // plus aucune fenêtre visible (Majordome caché seulement) : le programme se ferme
+  app.on('browser-window-created', (e, w) => w.on('closed', () => setTimeout(() => {
+    const l = BrowserWindow.getAllWindows().filter((x) => !x.isDestroyed());
+    if (l.length && l.every((x) => x.__cerveau && !x.isVisible())) { quitting = true; app.quit(); }
+  }, 300)));
   process.on('uncaughtException', (e) => { try { dialog.showErrorBox('Suite MAG', String(e && e.stack || e)); } catch (x) { } });
 }

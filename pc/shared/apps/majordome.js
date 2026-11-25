@@ -266,3 +266,47 @@
   // modèle déjà installé : chargé en avance (quelques secondes) pour que la première écoute soit immédiate
   if (model.state === 'ready') setTimeout(function () { loadModel().catch(function (e) { M.store.del(FLAG); setModel({ state: 'error', msg: 'Le modèle vocal enregistré est illisible (' + (e && e.message || e) + ') : réinstallez-le.' }); }); }, 1200);
 })();
+
+/* =====================================================================
+   Majordome « cerveau » de Jarvis (fusion Jarvis + Majordome) :
+   le Fond Jarvis envoie ici, par un canal du navigateur (même origine), les demandes qu'il ne sait pas traiter ;
+   Majordome les exécute sans parler et renvoie ses réponses, que Jarvis affiche et dit avec sa propre voix.
+   ?cerveau=1 : fenêtre cachée ouverte par le programme Suite MAG.exe (pas d'écoute du micro ici).
+   ===================================================================== */
+(function () {
+  'use strict';
+  if (!window.BroadcastChannel) return;
+  var CACHE = /[?&]cerveau=1/.test(location.search);
+  if (CACHE && window.MAGMajordome) { window.MAGMajordome.wake = function () { }; }
+  var bc = new BroadcastChannel('mag-cerveau'), pending = 0, installed = false, cur = '';
+  function install() {
+    var MJ = window.Majordome; if (!MJ || !MJ.handle) return false;
+    if (installed) return true; installed = true;
+    var prev = MJ.onAnswer;
+    MJ.onAnswer = function (o) {
+      if (pending > 0) {
+        var html = String(o.html || '').replace(/<button[\s\S]*?<\/button>/gi, '').replace(/<div class="row">\s*<\/div>/gi, '');
+        bc.postMessage({ t: 'say', id: cur, item: { say: o.say || '', show: o.show || '', html: html, k: o.k || '', cls: o.cls || '', ask: o.ask || '', choices: o.choices || null } });
+      }
+      if (prev) try { prev(o); } catch (e) { }
+    };
+    return true;
+  }
+  bc.onmessage = function (e) {
+    var m = e.data || {};
+    if (m.t === 'ping') { if (install()) bc.postMessage({ t: 'pong', cache: CACHE }); return; }
+    if (m.t !== 'ask' || !install()) return;
+    var MJ = window.Majordome;
+    bc.postMessage({ t: 'ack', id: m.id });
+    pending++; cur = m.id; MJ.quiet = true;
+    var fin = function () {
+      pending = Math.max(0, pending - 1); if (!pending) MJ.quiet = false;
+      bc.postMessage({ t: 'done', id: m.id, wait: !!MJ.wait });
+    };
+    try { Promise.resolve(MJ.handle(String(m.text || ''), 'cerveau')).then(fin, fin); } catch (x) { fin(); }
+    // une question en attente (confirmation, précision) : Jarvis le sait tout de suite
+    setTimeout(function () { if (MJ.wait) bc.postMessage({ t: 'wait', id: m.id }); }, 400);
+  };
+  // annonce : prêt (Jarvis attend parfois l'ouverture de la fenêtre cachée)
+  var tries = 0; (function hello() { if (install()) bc.postMessage({ t: 'pong', cache: CACHE }); else if (tries++ < 40) setTimeout(hello, 250); })();
+})();

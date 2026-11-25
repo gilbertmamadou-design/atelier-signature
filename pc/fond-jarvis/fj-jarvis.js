@@ -185,15 +185,68 @@
     return null;
   }
 
+  /* ---------------- Cerveau : Majordome (fusion Jarvis + Majordome) ----------------
+     Ce que Jarvis ne sait pas faire ici part vers Majordome (même origine : programme Suite MAG.exe, ou Suite du navigateur
+     avec Majordome ouvert) ; Majordome l'exécute sans parler et Jarvis affiche et dit ses réponses. */
+  var CV = { bc: null, ok: false, waiting: false, seen: 0, pend: {} };
+  function cvInit() {
+    if (CV.bc || !root.BroadcastChannel || FJ.lively) return !!CV.bc;
+    CV.bc = new BroadcastChannel('mag-cerveau');
+    CV.bc.onmessage = function (e) {
+      var m = e.data || {};
+      if (m.t === 'pong') { CV.ok = true; CV.seen = Date.now(); return; }
+      var pd = CV.pend[m.id];
+      if (m.t === 'ack' && pd) { pd.ack = true; return; }
+      if (m.t === 'say' && m.item) {
+        var it = m.item, o = { say: it.say, show: it.show, k: it.k, cls: it.cls };
+        if (it.html) o.html = it.html;
+        if (it.ask) { CV.waiting = true; if (it.choices && it.choices.length) o.html = (it.html || '<p style="margin:0">' + esc(it.show || it.say) + '</p>') + '<p class="hint" style="margin:.4em 0 0">' + it.choices.map(function (c, i) { return (i + 1) + '. ' + esc(c); }).join(' · ') + '</p>'; }
+        if (pd) pd.n++;
+        var d = answer(o); if (it.ask && pd && pd.via === 'voice') d.done.then(function () { if (CV.waiting) try { listen(); } catch (x) { } });
+        return;
+      }
+      if (m.t === 'wait') { CV.waiting = true; return; }
+      if (m.t === 'done') { if (!m.wait) CV.waiting = false; if (pd) { delete CV.pend[m.id]; pd.res(pd.n); } }
+    };
+    CV.bc.postMessage({ t: 'ping' });
+    return true;
+  }
+  /** Demande à Majordome ; résout le nombre de réponses reçues, ou -1 si Majordome est absent */
+  function cerveau(text, via) {
+    if (!cvInit()) return Promise.resolve(-1);
+    var exe = root.MAGEXE && root.MAGEXE.cerveau;
+    if (exe) try { root.MAGEXE.cerveau(); } catch (e) { }
+    return new Promise(function (res) {
+      var id = 'j' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), pd = { res: res, n: 0, ack: false, via: via };
+      CV.pend[id] = pd;
+      var sent = 0, t0 = Date.now();
+      (function send() {
+        if (!CV.pend[id] || pd.ack) return;
+        // Majordome pas encore là : le programme ouvre sa fenêtre cachée (quelques secondes au premier appel)
+        if (Date.now() - t0 > (exe ? 15000 : 1500)) { delete CV.pend[id]; return res(-1); }
+        if (sent++ % 4 === 0) CV.bc.postMessage({ t: 'ask', id: id, text: text, via: via });
+        CV.bc.postMessage({ t: 'ping' });
+        setTimeout(send, CV.ok ? 250 : 400);
+      })();
+      setTimeout(function () { if (CV.pend[id]) { delete CV.pend[id]; res(pd.n); } }, 90000);
+    });
+  }
+  FJ.cerveau = cerveau;
+  setTimeout(cvInit, 1500);
+
   /* ---------------- Exécution ---------------- */
   var H = {};
   var busy = false;
-  function handle(text, via) {
+  function handle(text, via, noCv) {
     text = String(text || '').trim(); if (!text) return Promise.resolve();
     via = via || 'text';
     shush();
-    youLine(text);
+    if (!noCv) youLine(text);
     var t = deacc(text).replace(new RegExp('^(?:' + names().join('|') + ')\\s+'), '');
+    // Majordome attend une réponse (confirmation, précision) : on la lui passe
+    if (CV.waiting && !wait) { CV.waiting = false; return viaCerveau(text, via, null); }
+    // la mémoire est celle de Majordome (« souviens-toi que… », « qu'est-ce que tu sais sur moi ») : une seule mémoire pour les deux
+    if (!noCv && !wait && S.cerveau !== false && !FJ.lively && root.BroadcastChannel && MEMO.test(t)) return viaCerveau(text, via, function () { return handle(text, via, true); });
     var r0 = !wait ? (local(t) || (FJ.plusCmd ? FJ.plusCmd(t, text) : null)) : null;
     if (r0) return r0;
     var r = NLU.parse(text, ctx());
@@ -208,10 +261,27 @@
     if (FJ.orb) FJ.orb.state('think');
     setState('Analyse');
     var f = H[r.intent] || H.notHere;
+    // ce que Jarvis ne fait pas ici (ou pas en entier) : Majordome, le cerveau
+    if ((f === H.notHere || f === H.unknown || CERVEAU[r.intent]) && S.cerveau !== false && !FJ.lively) return viaCerveau(text, via, function () { return f(r.p || {}, r, via); });
     var p;
     try { p = Promise.resolve(f(r.p || {}, r, via)); } catch (e) { console.error(e); p = Promise.resolve(answer({ say: 'Une erreur est survenue.', cls: 'err' }).done); }
     return p.then(function () { if (FJ.orb && FJ.orb.get() === 'think') FJ.orb.state('idle'); if ($('aiState').textContent === 'Analyse') setState('En ligne'); });
   }
+
+  // intentions que Majordome fait mieux que le fond d'écran (mémoire, maison, rappels, listes, IA…)
+  var CERVEAU = { teach: 1, teach_list: 1, teach_forget: 1, memory: 1, memoire: 1, remember: 1, recall: 1, forget: 1, profile: 1, domo: 1, light: 1, clim: 1, shutter: 1, routine: 1, routine_edit: 1, routine_run: 1, alarm_list: 1, alarm_cancel: 1, budget_add: 1, chat: 1, ask_ai: 1, ia: 1, photo: 1, oeil: 1, read_screen: 1, ha: 1, scene: 1 };
+  var MEMO = /^(?:souviens toi|rappelle toi|retiens|memorise|enregistre dans ta memoire|n oublie pas) (?:que|de|bien)\b|^oublie (?:que|ce que)\b|^(?:qu est ce que|que) (?:tu sais|sais tu) (?:sur|de) moi\b|^(?:ou|quand|quel|quelle|quels|quelles|qui|comment|combien)\b.*\b(?:je t ai dit|t ai je dit|tu te souviens)\b/;
+  function viaCerveau(text, via, repli) {
+    setState('Majordome…');
+    return cerveau(text, via).then(function (n) {
+      if (FJ.orb && FJ.orb.get() === 'think') FJ.orb.state('idle'); setState('En ligne');
+      if (n > 0) return;
+      if (n === 0 && !repli) return;
+      if (repli) return repli();
+      return answer('Majordome ne répond pas pour le moment.').done;
+    });
+  }
+  FJ.viaCerveau = viaCerveau;
 
   H.empty = function () { };
   H.wake = function () { return answer(withSir('Oui') + ' ?').done; };
