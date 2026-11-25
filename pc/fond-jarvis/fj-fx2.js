@@ -19,6 +19,8 @@
   function K() { return Math.max(0, Math.min(1, (S.fx || 0) / 100)); }
   function col(a) { var c = getComputedStyle(doc.documentElement).getPropertyValue('--c').trim().split(/\s+/).map(Number); if (c.length < 3 || isNaN(c[0])) c = [63, 224, 255]; return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a.toFixed(3) + ')'; }
   var C1 = col(1), cT = 0;
+  // colA garde l'opacité pleine (aspect d'origine des gadgets) ; colB applique vraiment l'opacité demandée (globe)
+  function colB(a) { colA(1); return C1.replace(/,[0-9.]+\)$/, ',' + Math.max(0, Math.min(1, a)).toFixed(3) + ')'); }
   function colA(a) { var n = Date.now(); if (n - cT > 2000) { C1 = col(1); cT = n; } return C1.replace(/,1\)$/, ',' + Math.max(0, Math.min(1, a)).toFixed(3) + ')'); }
 
   /* ---------------- toile ---------------- */
@@ -219,14 +221,33 @@
     }
     // globe holographique
     if (gad('globe')) {
-      var gx = c.x + c.r * 2.9, gy = c.y + c.r * 1.25, gr2 = c.r * .42, rot = now / 4000;
-      if (gx + gr2 < W && gy + gr2 + 20 * DPR < H) {
-        g.strokeStyle = colA(.55 * k); g.lineWidth = DPR;
+      // coin libre de la scène, en bas à gauche (hors des anneaux, à l'écart du QR code du mode Formation, en bas à droite)
+      var stg = doc.getElementById('stage'), sr = stg ? stg.getBoundingClientRect() : null;
+      var gr2 = Math.max(30 * DPR, Math.min(c.r * .22, 72 * DPR)), rot = now / 4000;
+      var gx = sr ? (sr.left * DPR + gr2 + 18 * DPR) : c.x - c.r * 2.2, gy = sr ? (sr.bottom * DPR - gr2 - 30 * DPR) : c.y + c.r * 1.1;
+      var dd = Math.hypot(gx - c.x, gy - c.y);
+      if (sr && dd < c.r * 1.42 + gr2) { var ang = Math.atan2(gy - c.y, gx - c.x), need = c.r * 1.42 + gr2; gx = c.x + Math.cos(ang) * need; gy = c.y + Math.sin(ang) * need; }
+      var cl = doc.getElementById('colL');
+      if (cl && cl.offsetParent) {   // sous le dernier panneau de gauche s'il déborde au-dessus du globe
+        var cr = cl.getBoundingClientRect(), lb = 0;
+        cl.querySelectorAll('.pan').forEach(function (p) { if (p.offsetParent) { var r = p.getBoundingClientRect(); if (r.height) lb = Math.max(lb, r.bottom); } });
+        if ((gx - gr2 * 1.4) < cr.right * DPR && (gy - gr2 - 10 * DPR) < lb * DPR) gy = lb * DPR + gr2 + 16 * DPR;
+      }
+      if (gx - gr2 > 0 && gx + gr2 < W && gy - gr2 > 0 && gy + gr2 + 20 * DPR < H) {
+        var hal = g.createRadialGradient(gx, gy, gr2 * .2, gx, gy, gr2 * 1.5); hal.addColorStop(0, colB(.16 * k)); hal.addColorStop(1, colB(0));
+        g.fillStyle = hal; g.beginPath(); g.arc(gx, gy, gr2 * 1.5, 0, TAU); g.fill();
+        g.save(); g.shadowColor = C1; g.shadowBlur = 8 * DPR;
+        g.strokeStyle = colB(.55 * k); g.lineWidth = DPR;
         g.beginPath(); g.arc(gx, gy, gr2, 0, TAU); g.stroke();
-        for (var m = 0; m < 8; m++) { var lo = rot + m * Math.PI / 8, rx = Math.abs(Math.cos(lo)) * gr2; g.strokeStyle = colA((Math.sin(lo) > 0 ? .5 : .18) * k); g.beginPath(); g.ellipse(gx, gy, Math.max(.5, rx), gr2, 0, 0, TAU); g.stroke(); }
-        for (var la = -2; la <= 2; la++) { var yy = gy + gr2 * la / 3, rl = Math.sqrt(Math.max(0, gr2 * gr2 - Math.pow(gr2 * la / 3, 2))); g.strokeStyle = colA(.35 * k); g.beginPath(); g.ellipse(gx, yy, rl, rl * .18, 0, 0, TAU); g.stroke(); }
-        var bl = (now / 1800) % 1; g.fillStyle = colA((1 - bl) * k); g.beginPath(); g.arc(gx + Math.cos(rot * 3) * gr2 * .5, gy - gr2 * .2, 2.5 * DPR + bl * 6 * DPR, 0, TAU); g.fill();
-        g.font = (10 * DPR) + 'px ui-monospace, Consolas, monospace'; g.fillStyle = colA(.6 * k); g.textAlign = 'center'; g.fillText('GÉO · ' + (FJ.S.city || 'LOCAL').toUpperCase().slice(0, 14), gx, gy + gr2 + 14 * DPR);
+        for (var m = 0; m < 8; m++) { var lo = rot + m * Math.PI / 8, rx = Math.abs(Math.cos(lo)) * gr2; g.strokeStyle = colB((Math.sin(lo) > 0 ? .5 : .18) * k); g.beginPath(); g.ellipse(gx, gy, Math.max(.5, rx), gr2, 0, 0, TAU); g.stroke(); }
+        for (var la = -2; la <= 2; la++) { var yy = gy + gr2 * la / 3, rl = Math.sqrt(Math.max(0, gr2 * gr2 - Math.pow(gr2 * la / 3, 2))); g.strokeStyle = colB(.35 * k); g.beginPath(); g.ellipse(gx, yy, rl, rl * .18, 0, 0, TAU); g.stroke(); }
+        var bl = (now / 1800) % 1; g.fillStyle = colB((1 - bl) * k); g.beginPath(); g.arc(gx + Math.cos(rot * 3) * gr2 * .5, gy - gr2 * .2, 2.5 * DPR + bl * 6 * DPR, 0, TAU); g.fill();
+        g.restore();
+        // anneau en orbite incliné et point qui le parcourt
+        g.strokeStyle = colB(.45 * k); g.lineWidth = DPR; g.setLineDash([3 * DPR, 4 * DPR]); g.beginPath(); g.ellipse(gx, gy, gr2 * 1.32, gr2 * .38, -.35, 0, TAU); g.stroke(); g.setLineDash([]);
+        var oa = now / 1500, ox = gx + Math.cos(oa) * gr2 * 1.32 * Math.cos(-.35) - Math.sin(oa) * gr2 * .38 * Math.sin(-.35), oy = gy + Math.cos(oa) * gr2 * 1.32 * Math.sin(-.35) + Math.sin(oa) * gr2 * .38 * Math.cos(-.35);
+        g.fillStyle = colB(.95 * k); g.shadowColor = C1; g.shadowBlur = 10 * DPR; g.beginPath(); g.arc(ox, oy, 2.6 * DPR, 0, TAU); g.fill(); g.shadowBlur = 0;
+        g.font = (10 * DPR) + 'px ui-monospace, Consolas, monospace'; g.fillStyle = colB(.7 * k); g.textAlign = 'center'; g.fillText('GÉO · ' + (FJ.S.city || 'LOCAL').toUpperCase().slice(0, 14), gx, gy + gr2 + 16 * DPR);
       }
     }
   }
