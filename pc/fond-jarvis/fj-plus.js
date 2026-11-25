@@ -441,6 +441,7 @@
       if (root.MAGEXE && root.MAGEXE.veille) h += '<h3>Écran de veille</h3>' + U.chk('xVeille', 'Jarvis comme écran de veille de Windows', false, 'Programme Suite MAG installé : le Fond Jarvis s\'affiche en plein écran quand le PC est inactif') +
         U.fld('Après', U.sel('xVMin', [[1, '1 min'], [3, '3 min'], [5, '5 min'], [10, '10 min'], [15, '15 min'], [20, '20 min'], [30, '30 min'], [45, '45 min'], [60, '1 h']], 10) + ' <button type="button" class="btn" id="xVTest">Essayer</button>');
       if (root.MAGEXE && root.MAGEXE.demarrage) h += '<h3>Démarrage</h3>' + U.chk('xBoot', 'Ouvrir Jarvis en plein écran au démarrage de Windows', false, 'Programme Suite MAG : Jarvis s\'ouvre tout seul à l\'ouverture de la session (F11 pour quitter le plein écran)');
+      h += '<h3>Majordome, le cerveau de Jarvis</h3>' + U.chk('xCerv', 'Majordome répond pour ce que Jarvis ne sait pas faire', S.cerveau !== false, 'Mémoire, lumières, routines, rappels, questions libres… Jarvis passe la demande à Majordome et répond avec sa propre voix. Programme Suite MAG : automatique ; Suite du navigateur : Majordome ouvert dans un onglet.');
       h += '<h3>Ambiance</h3>' + U.chk('aMus', 'La sphère et les panneaux suivent la musique', p.amb.musique, 'Dans Lively : le son joué sur le PC fait vibrer la sphère') +
         U.chk('aAuto', 'Couleurs selon l\'heure', p.amb.auto, 'Bleu la nuit, ambre à l\'aube, cyan le jour, rouge au crépuscule (d\'après le soleil de votre ville)');
       var b = p.bien;
@@ -462,6 +463,7 @@
         $('xVTest').onclick = function () { FJ.closeSettings(); if (root.MAGEXE.essaiVeille) root.MAGEXE.essaiVeille(); };
       }
       if (root.MAGEXE && root.MAGEXE.demarrage) { root.MAGEXE.demarrage().then(function (r) { var c = $('xBoot'); if (c) c.checked = !!r.on; }); U.bind('xBoot', function (v) { root.MAGEXE.demarrage(!!v).then(function (r) { FJ.toast(r.on ? 'Jarvis s\'ouvrira au démarrage de Windows' : 'Jarvis ne s\'ouvrira plus au démarrage'); }); }); }
+      U.bind('xCerv', function (v) { S.cerveau = !!v; FJ.save(); });
       U.bind('aMus', function (v) { p.amb.musique = v; save(); });
       U.bind('aAuto', function (v) { setAuto(v); });
       U.bind('bOn', function (v) { b.on = v; next = {}; save(); });
