@@ -801,8 +801,12 @@ public class MainActivity extends BridgeActivity {
             .setNegativeButton("Annuler", null).show();
     }
 
+    // Fichier en attente gardé aussi sur le disque : si Android recrée l'activité pendant le choix du dossier,
+    // les données ne sont pas perdues (sinon le fichier créé restait vide, 0 octet)
+    private java.io.File pendingFile() { return new java.io.File(getCacheDir(), "enregistrer-en-attente.bin"); }
     private void saveAs(byte[] data, String n, String m) {
         pendingData = data;
+        try (java.io.FileOutputStream f = new java.io.FileOutputStream(pendingFile())) { f.write(data); } catch (Exception e) { }
         Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         i.addCategory(Intent.CATEGORY_OPENABLE);
         i.setType(m);
@@ -814,13 +818,30 @@ public class MainActivity extends BridgeActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQ_SAVE) {
-            if (resultCode == RESULT_OK && data != null && data.getData() != null && pendingData != null) {
-                try (java.io.OutputStream o = getContentResolver().openOutputStream(data.getData())) {
-                    o.write(pendingData);
-                    toast("Fichier enregistré");
-                } catch (Exception e) { toast("Enregistrement impossible"); }
+            byte[] bytes = pendingData;
+            java.io.File pf = pendingFile();
+            if (bytes == null && pf.exists()) {
+                try (java.io.FileInputStream in = new java.io.FileInputStream(pf)) {
+                    java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream(); byte[] buf = new byte[65536]; int k;
+                    while ((k = in.read(buf)) > 0) bo.write(buf, 0, k);
+                    bytes = bo.toByteArray();
+                } catch (Exception e) { }
+            }
+            if (resultCode == RESULT_OK && data != null && data.getData() != null) {
+                if (bytes == null || bytes.length == 0) toast("Enregistrement interrompu : recommencez l'export");
+                else {
+                    java.io.OutputStream o = null;
+                    try {
+                        try { o = getContentResolver().openOutputStream(data.getData(), "wt"); } catch (Exception e) { o = null; }
+                        if (o == null) o = getContentResolver().openOutputStream(data.getData());
+                        o.write(bytes); o.flush();
+                        toast("Fichier enregistré (" + (bytes.length >= 1024 ? (bytes.length / 1024) + " Ko" : bytes.length + " octets") + ")");
+                    } catch (Exception e) { toast("Enregistrement impossible : " + e.getMessage()); }
+                    finally { try { if (o != null) o.close(); } catch (Exception e) { } }
+                }
             }
             pendingData = null;
+            try { pf.delete(); } catch (Exception e) { }
         }
         extraCall("onResult", new Class<?>[]{ int.class, int.class, Intent.class }, requestCode, resultCode, data);
         if (requestCode == REQ_WP_VIDEO && resultCode == RESULT_OK && data != null && data.getData() != null) {
