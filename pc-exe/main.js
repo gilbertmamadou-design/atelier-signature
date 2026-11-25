@@ -162,6 +162,12 @@ function veille() {
 
 function demarrer(argv) {
   if ((argv || []).includes('--veille')) { veille(); return; }
+  // lien suitemag://app/<appli> (Fond Jarvis dans Lively ou le navigateur, raccourcis…)
+  const lien = (argv || []).map(String).find((x) => /^suitemag:/i.test(x));
+  if (lien) {
+    const m = /^suitemag:\/*(?:app\/)?([a-z0-9-]+)/i.exec(lien), id = m && m[1].toLowerCase();
+    if (id && fs.existsSync(path.join(ROOT, id, 'index.html'))) { ouvrir(id); return; }
+  }
   // « Suite MAG.exe --app=texte » ouvre directement une appli (raccourcis sur le bureau)
   const a = (argv || []).find((x) => /^--app=/.test(x));
   const id = a && a.slice(6);
@@ -220,6 +226,8 @@ if (!SMOKE && !app.requestSingleInstanceLock()) { app.quit(); }
 else {
   app.on('second-instance', (e, argv) => demarrer(argv));
   app.setAppUserModelId('fr.magformation13.suite');
+  // la version installée répond aux liens suitemag:// (pas la portable : son chemin change à chaque lancement)
+  if (app.isPackaged && !process.env.PORTABLE_EXECUTABLE_FILE) { try { app.setAsDefaultProtocolClient('suitemag'); } catch (e) { } }
   app.whenReady().then(() => {
     Menu.setApplicationMenu(null);
     protocol.handle('mag', servir);

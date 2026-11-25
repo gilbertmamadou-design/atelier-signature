@@ -32,7 +32,7 @@
   var host = location.hostname || '';
   FJ.mode = /\.localhost$/i.test(host) || location.protocol === 'file:' ? 'lively' : root.MAGPC ? 'suite' : 'web';
   FJ.lively = FJ.mode === 'lively';     // devient vrai aussi dès qu'une fonction de Lively est appelée
-  FJ.inSuite = /\/atelier-signature\/pc\/fond-jarvis\/?/.test(location.pathname);
+  FJ.inSuite = /\/atelier-signature\/pc\/fond-jarvis\/?/.test(location.pathname) || (location.protocol === 'mag:' && /^\/fond-jarvis\//.test(location.pathname));   // site de la Suite, ou programme Suite MAG.exe
   FJ.suiteUrl = function (id) { return (FJ.inSuite ? '../' : SITE) + id + '/'; };
   doc.documentElement.dataset.mode = FJ.mode;
 
@@ -107,8 +107,11 @@
     var url = FJ.resolve(u);
     if (!url) return false;
     // appli de la Suite : on ouvre l'appli installée sur le PC (son lien web+mag…), pas une page du navigateur
-    var sid = S.appsInst !== false && FJ.suiteIdOf(url);
-    if (sid) url = 'web+mag' + sid.replace(/[^a-z]/g, '') + ':ouvrir';
+    // dans le programme Suite MAG.exe : le programme ouvre lui-même l'appli dans sa fenêtre
+    var sid = !root.MAG_EXE && FJ.suiteIdOf(url);
+    // Caméras n'existe que dans le programme : on le lui demande (lien suitemag://, ouvre Suite MAG.exe)
+    if (sid === 'cameras') url = 'suitemag://app/cameras';
+    else if (sid && S.appsInst !== false) url = 'web+mag' + sid.replace(/[^a-z]/g, '') + ':ouvrir';
     if (FJ.lively || !FJ.isProto(url)) {
       var w = null;
       try { w = (root.MAGPC && root.MAGPC.nativeOpen) ? root.MAGPC.nativeOpen(url, '_blank') : root.open(url, '_blank', 'noopener'); } catch (e) { }
