@@ -141,7 +141,12 @@ function demarrer(argv) {
   // « Suite MAG.exe --app=texte » ouvre directement une appli (raccourcis sur le bureau)
   const a = (argv || []).find((x) => /^--app=/.test(x));
   const id = a && a.slice(6);
-  if (id && fs.existsSync(path.join(ROOT, id, 'index.html'))) { ouvrir(id); return; }
+  const plein = (argv || []).includes('--plein-ecran');
+  if (id && fs.existsSync(path.join(ROOT, id, 'index.html'))) {
+    const w = ouvrir(id);
+    if (plein && w) { const go = () => { w.setFullScreen(true); w.focus(); }; if (w.isVisible()) go(); else w.once('show', go); }
+    return;
+  }
   if (lanceur && !lanceur.isDestroyed()) { if (lanceur.isMinimized()) lanceur.restore(); lanceur.focus(); return; }
   lanceur = creer(ORIGIN + '/index.html', null);
   lanceur.on('closed', () => { lanceur = null; });
@@ -204,6 +209,14 @@ else {
       return { ok, msg: ok ? 'Raccourci « ' + nom + ' » créé sur le Bureau' : 'Création impossible' };
     });
     ipcMain.handle('portable', () => !!process.env.PORTABLE_EXECUTABLE_FILE);
+    // Jarvis en plein écran à l'ouverture de la session Windows
+    const DEMARRAGE = { path: EXE, args: ['--app=fond-jarvis', '--plein-ecran'] };
+    ipcMain.handle('demarrage', (e, on) => {
+      if (process.platform !== 'win32') return { ok: false, on: false };
+      if (typeof on === 'boolean') app.setLoginItemSettings(Object.assign({ openAtLogin: on, name: 'Jarvis (Suite MAG)' }, DEMARRAGE));
+      const st = app.getLoginItemSettings(DEMARRAGE);
+      return { ok: true, on: !!st.openAtLogin, portable: !!process.env.PORTABLE_EXECUTABLE_FILE };
+    });
     autorisations(session.defaultSession);
     if (SMOKE) return verifier();
     demarrer(process.argv);

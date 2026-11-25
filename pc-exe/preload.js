@@ -6,6 +6,8 @@ try { delete window.webkitSpeechRecognition; delete window.SpeechRecognition; } 
 try { Object.defineProperty(window, 'webkitSpeechRecognition', { value: undefined, configurable: true }); Object.defineProperty(window, 'SpeechRecognition', { value: undefined, configurable: true }); } catch (e) { }
 window.MAG_EXE = true;
 var ipc = null; try { ipc = require('electron').ipcRenderer; } catch (e) { }
+// pour les pages (Fond Jarvis, lanceur) : démarrage avec Windows
+window.MAGEXE = { demarrage: function (on) { return ipc ? ipc.invoke('demarrage', on) : Promise.resolve({ ok: false }); } };
 document.addEventListener('DOMContentLoaded', function () {
   document.documentElement.classList.add('mag-exe');
   var st = document.createElement('style');
@@ -34,6 +36,18 @@ document.addEventListener('DOMContentLoaded', function () {
   Array.prototype.forEach.call(document.querySelectorAll('header p, .hd p, p'), function (p) {
     if (/installer depuis Edge ou Chrome/.test(p.textContent) && !p.children.length) p.textContent = 'Les applis du téléphone, version ordinateur : installées sur ce PC, utilisables partout sans internet.';
   });
+  // lanceur : case « Jarvis au démarrage de Windows »
+  var foot = document.querySelector('footer');
+  if (ipc && foot && document.querySelector('.tw[data-app]')) {
+    var box = document.createElement('label');
+    box.className = 'mag-boot';
+    box.innerHTML = '<input type="checkbox"> <span><b>Ouvrir Jarvis en plein écran au démarrage de Windows</b><small>Le Fond Jarvis s\'ouvre tout seul à l\'ouverture de votre session. F11 pour quitter le plein écran.</small></span>';
+    st.textContent += '.mag-boot{display:flex;gap:.7em;align-items:flex-start;margin:1.2em auto .4em;max-width:60em;padding:.8em 1em;border:1px solid var(--line,#ccc);border-radius:12px;background:var(--card,#fff);cursor:pointer}.mag-boot input{width:1.2em;height:1.2em;margin-top:.15em}.mag-boot small{display:block;opacity:.7;margin-top:.2em}';
+    foot.parentNode.insertBefore(box, foot);
+    var cb = box.querySelector('input');
+    window.MAGEXE.demarrage().then(function (r) { cb.checked = !!r.on; if (!r.ok) box.style.display = 'none'; });
+    cb.addEventListener('change', function () { window.MAGEXE.demarrage(cb.checked).then(function (r) { cb.checked = !!r.on; }); });
+  }
   var maj = document.getElementById('majMsg');
   if (maj) maj.textContent = 'version programme (Suite MAG.exe). Pour une nouvelle version, téléchargez de nouveau le programme.';
 });
