@@ -55,6 +55,13 @@ jobs:
         run: |
           python -m pip install --quiet pillow
           python prep.py
+      - name: Écran de veille Jarvis (Jarvis.scr)
+        shell: pwsh
+        run: |
+          $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+          & $csc /nologo /target:winexe /codepage:65001 /out:build\Jarvis.scr /win32icon:build\icones\fond-jarvis.ico /r:System.Windows.Forms.dll veille\JarvisVeille.cs
+          if (!(Test-Path build\Jarvis.scr)) { throw "Jarvis.scr non fabriqué" }
+          Copy-Item build\Jarvis.scr dist-scr.scr
       - name: Version du programme (date du jour)
         shell: bash
         run: npm pkg set version="1.$(date +%Y%m%d).${{ github.run_number }}"
@@ -82,6 +89,7 @@ jobs:
           else
             gh release create suite-mag-exe --target "$GITHUB_SHA" --title "Suite MAG.exe" --notes "$NOTES"
           fi
-          for f in dist/Suite-MAG-Installation.exe dist/Suite-MAG.exe; do
+          cp dist-scr.scr dist/Jarvis.scr
+          for f in dist/Suite-MAG-Installation.exe dist/Suite-MAG.exe dist/Jarvis.scr; do
             for i in 1 2 3; do gh release upload suite-mag-exe "$f" --clobber && break; sleep 10; done
           done

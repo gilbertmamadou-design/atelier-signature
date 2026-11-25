@@ -45,6 +45,10 @@
       {
         "from": "build/icones",
         "to": "icones"
+      },
+      {
+        "from": "build/Jarvis.scr",
+        "to": "Jarvis.scr"
       }
     ],
     "win": {

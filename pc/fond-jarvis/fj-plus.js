@@ -438,6 +438,8 @@
       h += '<h3>Heures du monde</h3><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5em">';
       for (var i = 0; i < 4; i++) h += U.sel('pV' + i, [['', '—']].concat(VILLES), p.villes[i] || '');
       h += '</div>';
+      if (root.MAGEXE && root.MAGEXE.veille) h += '<h3>Écran de veille</h3>' + U.chk('xVeille', 'Jarvis comme écran de veille de Windows', false, 'Programme Suite MAG installé : le Fond Jarvis s\'affiche en plein écran quand le PC est inactif') +
+        U.fld('Après', U.sel('xVMin', [[1, '1 min'], [3, '3 min'], [5, '5 min'], [10, '10 min'], [15, '15 min'], [20, '20 min'], [30, '30 min'], [45, '45 min'], [60, '1 h']], 10) + ' <button type="button" class="btn" id="xVTest">Essayer</button>');
       if (root.MAGEXE && root.MAGEXE.demarrage) h += '<h3>Démarrage</h3>' + U.chk('xBoot', 'Ouvrir Jarvis en plein écran au démarrage de Windows', false, 'Programme Suite MAG : Jarvis s\'ouvre tout seul à l\'ouverture de la session (F11 pour quitter le plein écran)');
       h += '<h3>Ambiance</h3>' + U.chk('aMus', 'La sphère et les panneaux suivent la musique', p.amb.musique, 'Dans Lively : le son joué sur le PC fait vibrer la sphère') +
         U.chk('aAuto', 'Couleurs selon l\'heure', p.amb.auto, 'Bleu la nuit, ambre à l\'aube, cyan le jour, rouge au crépuscule (d\'après le soleil de votre ville)');
@@ -453,6 +455,12 @@
       B.innerHTML = h;
       ['mois', 'taches', 'monde', 'air'].forEach(function (k) { U.bind('pP_' + k, function (v) { p.panels[k] = v; save(); FJ.apply(); if (k === 'air' && v) loadAir(true); }); });
       for (i = 0; i < 4; i++) (function (i) { U.bind('pV' + i, function (v) { p.villes[i] = v; save(); renderMonde(); }); })(i);
+      if (root.MAGEXE && root.MAGEXE.veille && $('xVeille')) {
+        root.MAGEXE.veille().then(function (r) { var c = $('xVeille'); if (!c) return; c.checked = !!r.on; $('xVMin').value = String(r.min || 10); if (!r.ok) { c.disabled = true; c.parentNode.querySelector('small').textContent = r.portable ? 'Disponible avec la version installée (Suite-MAG-Installation.exe)' : 'Non disponible ici'; } });
+        var setV = function () { root.MAGEXE.veille($('xVeille').checked, +$('xVMin').value).then(function (r) { $('xVeille').checked = !!r.on; FJ.toast(r.ok ? (r.on ? 'Jarvis est votre écran de veille (après ' + r.min + ' min)' : 'Écran de veille Jarvis retiré') : 'Impossible de changer l\'écran de veille'); }); };
+        U.bind('xVeille', setV); U.bind('xVMin', function () { if ($('xVeille').checked) setV(); });
+        $('xVTest').onclick = function () { FJ.closeSettings(); if (root.MAGEXE.essaiVeille) root.MAGEXE.essaiVeille(); };
+      }
       if (root.MAGEXE && root.MAGEXE.demarrage) { root.MAGEXE.demarrage().then(function (r) { var c = $('xBoot'); if (c) c.checked = !!r.on; }); U.bind('xBoot', function (v) { root.MAGEXE.demarrage(!!v).then(function (r) { FJ.toast(r.on ? 'Jarvis s\'ouvrira au démarrage de Windows' : 'Jarvis ne s\'ouvrira plus au démarrage'); }); }); }
       U.bind('aMus', function (v) { p.amb.musique = v; save(); });
       U.bind('aAuto', function (v) { setAuto(v); });

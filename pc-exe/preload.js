@@ -7,7 +7,24 @@ try { Object.defineProperty(window, 'webkitSpeechRecognition', { value: undefine
 window.MAG_EXE = true;
 var ipc = null; try { ipc = require('electron').ipcRenderer; } catch (e) { }
 // pour les pages (Fond Jarvis, lanceur) : démarrage avec Windows
-window.MAGEXE = { demarrage: function (on) { return ipc ? ipc.invoke('demarrage', on) : Promise.resolve({ ok: false }); } };
+window.MAGEXE = {
+  demarrage: function (on) { return ipc ? ipc.invoke('demarrage', on) : Promise.resolve({ ok: false }); },
+  veille: function (on, min) { return ipc ? ipc.invoke('veille', on, min) : Promise.resolve({ ok: false }); },
+  essaiVeille: function () { if (ipc) ipc.send('veille-essai'); }
+};
+// Fond Jarvis lancé en écran de veille : plein écran sans barre ni curseur ; la souris qui bouge le referme
+if (/[?&]veille=1/.test(location.search)) {
+  window.MAG_VEILLE = true;
+  document.addEventListener('DOMContentLoaded', function () {
+    var s = document.createElement('style');
+    s.textContent = '#dock,#bar,#keys,#timers,#sheet,#bien,#gear{display:none!important}*{cursor:none!important}';
+    document.head.appendChild(s);
+  });
+  var x0 = null, y0 = null, t0 = Date.now();
+  function fin() { if (Date.now() - t0 > 1500 && ipc) ipc.send('veille-fin'); }
+  window.addEventListener('mousemove', function (e) { if (x0 == null) { x0 = e.screenX; y0 = e.screenY; return; } if (Math.abs(e.screenX - x0) + Math.abs(e.screenY - y0) > 14) fin(); }, true);
+  ['mousedown', 'wheel', 'touchstart', 'keydown'].forEach(function (ev) { window.addEventListener(ev, fin, true); });
+}
 document.addEventListener('DOMContentLoaded', function () {
   document.documentElement.classList.add('mag-exe');
   var st = document.createElement('style');
@@ -47,6 +64,15 @@ document.addEventListener('DOMContentLoaded', function () {
     var cb = box.querySelector('input');
     window.MAGEXE.demarrage().then(function (r) { cb.checked = !!r.on; if (!r.ok) box.style.display = 'none'; });
     cb.addEventListener('change', function () { window.MAGEXE.demarrage(cb.checked).then(function (r) { cb.checked = !!r.on; }); });
+    var vb = document.createElement('label');
+    vb.className = 'mag-boot';
+    vb.innerHTML = '<input type="checkbox"> <span><b>Jarvis comme écran de veille</b><small>Après <select aria-label="Minutes d\'inactivité">' + [1, 3, 5, 10, 15, 20, 30, 45, 60].map(function (m) { return '<option value="' + m + '">' + m + ' min</option>'; }).join('') + '</select> sans toucher le PC, le Fond Jarvis s\'affiche en plein écran. Bougez la souris pour revenir.</small></span>';
+    foot.parentNode.insertBefore(vb, foot);
+    var vc = vb.querySelector('input'), vm = vb.querySelector('select');
+    window.MAGEXE.veille().then(function (r) { if (!r.ok) { vb.querySelector('small').textContent = r.portable ? 'Disponible avec la version installée (Suite-MAG-Installation.exe).' : 'Non disponible sur ce PC.'; vc.disabled = true; return; } vc.checked = !!r.on; vm.value = String(r.min || 10); });
+    function setV() { window.MAGEXE.veille(vc.checked, +vm.value).then(function (r) { vc.checked = !!r.on; }); }
+    vc.addEventListener('change', setV);
+    vm.addEventListener('change', function () { if (vc.checked) setV(); });
   }
   var maj = document.getElementById('majMsg');
   if (maj) maj.textContent = 'version programme (Suite MAG.exe). Pour une nouvelle version, téléchargez de nouveau le programme.';

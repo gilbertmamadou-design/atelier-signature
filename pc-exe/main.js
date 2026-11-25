@@ -137,7 +137,31 @@ function ouvrir(id, url) {
   return win;
 }
 
+/* ---------- écran de veille : Fond Jarvis plein écran sur l'écran principal, noir sur les autres ---------- */
+let veilles = [];
+function finVeille() { const l = veilles; veilles = []; l.forEach((w) => { try { if (!w.isDestroyed()) w.destroy(); } catch (e) { } }); }
+function veille() {
+  if (veilles.length) { veilles[0].focus(); return; }
+  const { screen } = require('electron');
+  const prim = screen.getPrimaryDisplay();
+  screen.getAllDisplays().forEach((d) => {
+    const main = d.id === prim.id, b = d.bounds;
+    const w = new BrowserWindow({
+      x: b.x, y: b.y, width: b.width, height: b.height, frame: false, fullscreen: true, kiosk: main, alwaysOnTop: true, skipTaskbar: true,
+      backgroundColor: '#000000', show: false, title: 'Jarvis veille', icon: icone('fond-jarvis'), webPreferences: main ? prefs() : { sandbox: true }
+    });
+    w.setAlwaysOnTop(true, 'screen-saver');
+    w.on('page-title-updated', (e) => e.preventDefault());
+    w.webContents.on('before-input-event', (e, i) => { if (i.type === 'keyDown' || i.type === 'mouseDown') { e.preventDefault(); finVeille(); } });
+    w.on('closed', () => { if (veilles.indexOf(w) >= 0) finVeille(); });
+    w.once('ready-to-show', () => { w.show(); w.setFullScreen(true); if (main) w.focus(); });
+    if (main) w.loadURL(ORIGIN + '/fond-jarvis/?veille=1'); else w.loadURL('data:text/html,<body style="background:%23000;cursor:none;margin:0">');
+    veilles.push(w);
+  });
+}
+
 function demarrer(argv) {
+  if ((argv || []).includes('--veille')) { veille(); return; }
   // « Suite MAG.exe --app=texte » ouvre directement une appli (raccourcis sur le bureau)
   const a = (argv || []).find((x) => /^--app=/.test(x));
   const id = a && a.slice(6);
@@ -209,6 +233,22 @@ else {
       return { ok, msg: ok ? 'Raccourci « ' + nom + ' » créé sur le Bureau' : 'Création impossible' };
     });
     ipcMain.handle('portable', () => !!process.env.PORTABLE_EXECUTABLE_FILE);
+    ipcMain.on('veille-fin', () => finVeille());
+    ipcMain.on('veille-essai', () => veille());
+    // devenir l'écran de veille de Windows (version installée seulement : le .scr doit rester au même endroit)
+    const SCR = path.join(process.resourcesPath || '', 'Jarvis.scr');
+    const ETAT = path.join(app.getPath('userData'), 'veille.json');
+    ipcMain.handle('veille', (e, on, min) => new Promise((res) => {
+      const dispo = process.platform === 'win32' && app.isPackaged && !process.env.PORTABLE_EXECUTABLE_FILE && fs.existsSync(SCR);
+      let st = { on: false, min: 10 }; try { st = Object.assign(st, JSON.parse(fs.readFileSync(ETAT, 'utf8'))); } catch (x) { }
+      if (!dispo) return res({ ok: false, on: false, min: st.min, portable: !!process.env.PORTABLE_EXECUTABLE_FILE });
+      if (typeof on !== 'boolean') return res({ ok: true, on: st.on, min: st.min });
+      st = { on, min: Math.max(1, Math.min(120, +min || st.min || 10)) };
+      require('child_process').execFile(SCR, on ? ['/installer', String(st.min)] : ['/desinstaller'], { windowsHide: true }, (err) => {
+        if (!err) { try { fs.writeFileSync(ETAT, JSON.stringify(st)); } catch (x) { } }
+        res({ ok: !err, on: err ? !on : on, min: st.min, msg: err ? String(err.message || err) : '' });
+      });
+    }));
     // Jarvis en plein écran à l'ouverture de la session Windows
     const DEMARRAGE = { path: EXE, args: ['--app=fond-jarvis', '--plein-ecran'] };
     ipcMain.handle('demarrage', (e, on) => {
