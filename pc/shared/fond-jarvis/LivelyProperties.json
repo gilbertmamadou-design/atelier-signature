@@ -19,6 +19,12 @@
   "batterySaver": { "type": "checkbox", "text": "Économie sur batterie (portable)", "value": true },
   "newsCount": { "type": "slider", "text": "Nombre de titres d'actualité", "value": 7, "min": 5, "max": 10, "step": 1 },
   "icsFile": { "type": "folderDropdown", "text": "Agenda (.ics)", "value": "vide.ics", "folder": "agenda", "filter": "*.ics" },
+  "formation": { "type": "checkbox", "text": "Mode formation (message et QR code)", "value": false },
+  "formationMsg": { "type": "textbox", "text": "Message pour les stagiaires", "value": "Bienvenue à la formation" },
+  "formationQr": { "type": "textbox", "text": "Lien du QR code (support, questionnaire…)", "value": "" },
+  "musicReact": { "type": "checkbox", "text": "La sphère suit la musique", "value": true },
+  "autoTheme": { "type": "checkbox", "text": "Couleurs selon l'heure du jour", "value": false },
+  "bienEtre": { "type": "checkbox", "text": "Rappels de pause, d'eau et de posture", "value": false },
   "settingsFile": { "type": "folderDropdown", "text": "Réglages enregistrés (fichier de ⚙ › À propos, gardé par Lively)", "value": "", "folder": "reglages", "filter": "*.json" },
   "openSettings": { "type": "button", "text": "Raccourcis et autres réglages", "value": "Ouvrir sur le fond" }
 }

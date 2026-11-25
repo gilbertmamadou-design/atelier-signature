@@ -9,7 +9,7 @@
   "Contact": "https://gilbertmamadou-design.github.io/atelier-signature/pc/fond-jarvis/guide.html",
   "Type": 1,
   "FileName": "index.html",
-  "Arguments": "--system-information --system-nowplaying --pause-event true",
+  "Arguments": "--system-information --system-nowplaying --pause-event true --audio",
   "IsAbsolutePath": false,
   "Id": null,
   "Tags": ["hud", "horloge", "météo", "assistant", "système"],

@@ -209,6 +209,7 @@
     $('pAgenda').hidden = !(S.panels.agenda && AG.has);
     $('pMusic').hidden = !(S.panels.music && MU.on);
     $('pSys').hidden = !(S.panels.sys && (SYS.on || BAT.on));
+    if (FJ.plusVisible) FJ.plusVisible();
   }
 
   /* ---------------- Mise en page du HUD (circuits vers les panneaux) ---------------- */
@@ -686,7 +687,7 @@
           }).catch(function () { FJ.toast('Fichier agenda illisible'); });
         }
         return;
-      default: return;
+      default: if (FJ.plusProp && FJ.plusProp(name, val)) { FJ.save(); FJ.apply(); } return;
     }
     FJ.save(); FJ.apply();
   };
@@ -769,7 +770,7 @@
     curTab = tab || curTab;
     var sh = $('sheet'); sh.hidden = false;
     sh.innerHTML = '<div class="sh"><header><h2 id="shTitle">Réglages du fond</h2><button type="button" class="ib" data-x aria-label="Fermer">' + FJI.svg('croix') + '</button></header>' +
-      '<div class="tabs" role="tablist">' + TABS.map(function (t) { return '<button type="button" role="tab" data-tab="' + t[0] + '" aria-selected="' + (t[0] === curTab) + '">' + t[1] + '</button>'; }).join('') + '</div>' +
+      '<div class="tabs" role="tablist">' + TABS.slice(0, -1).concat(FJ.plusTabs || [], TABS.slice(-1)).map(function (t) { return '<button type="button" role="tab" data-tab="' + t[0] + '" aria-selected="' + (t[0] === curTab) + '">' + t[1] + '</button>'; }).join('') + '</div>' +
       storeBanner() + '<div class="sh-body" id="shBody"></div><div class="sh-foot"><button type="button" class="btn pri" data-x>Fermer</button></div></div>';
     sh.querySelectorAll('[data-x]').forEach(function (b) { b.onclick = FJ.closeSettings; });
     sh.onclick = function (e) { if (e.target === sh) FJ.closeSettings(); };
@@ -931,7 +932,7 @@
       $('sZip').onclick = function () { FJ.open(SITE + 'fond-jarvis/fond-jarvis-lively.zip'); };
       $('sGuide').onclick = function () { FJ.open(SITE + 'fond-jarvis/guide.html'); };
       if (FJ.mode === 'lively') FJ.checkUpdate().then(function (n) { var m = $('sMaj'); if (m) m.textContent = n ? 'Nouvelle version disponible (' + (FJ.latest.date || '').split('-').reverse().join('/') + ') : téléchargez-la, puis glissez-la dans Lively (elle remplace l\'ancienne après suppression).' : 'Vous avez la dernière version.'; }, function () { var m = $('sMaj'); if (m) m.textContent = 'Recherche impossible (hors ligne ?).'; });
-    }
+    } else if (FJ.plusTab && FJ.plusTab[tab]) FJ.plusTab[tab](B, { fld: fld, sel: sel, chk: chk, rng: rng, bind: bind, rngBind: rngBind });
   }
 
   /* éditeur de raccourcis */

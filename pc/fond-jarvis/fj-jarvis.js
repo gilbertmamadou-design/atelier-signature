@@ -194,7 +194,7 @@
     shush();
     youLine(text);
     var t = deacc(text).replace(new RegExp('^(?:' + names().join('|') + ')\\s+'), '');
-    var r0 = !wait ? local(t) : null;
+    var r0 = !wait ? (local(t) || (FJ.plusCmd ? FJ.plusCmd(t, text) : null)) : null;
     if (r0) return r0;
     var r = NLU.parse(text, ctx());
     FJ.lastIntent = r.intent;
