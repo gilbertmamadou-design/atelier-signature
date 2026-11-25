@@ -2,7 +2,8 @@ name: Fabriquer les APK Android (dossier applis)
 
 on:
   push:
-    branches: [main]
+    # main : les applis modifiées ; branche « apk-<appli>[,<appli>] » : fabrique seulement ces applis (essai avant fusion)
+    branches: [main, 'apk-*']
   workflow_dispatch:
     inputs:
       applis:
@@ -31,12 +32,13 @@ jobs:
         env:
           HAS_KEY: ${{ secrets.KEYSTORE_B64 != '' || vars.KEYSTORE_B64 != '' }}
           BEFORE: ${{ github.event.before }}
-          WANT: ${{ github.event.inputs.applis }}
+          WANT: ${{ github.event.inputs.applis || (startsWith(github.ref_name, 'apk-') && format('{0}', github.ref_name) || '') }}
         run: |
           python3 - <<'PY2'
           import json, os, subprocess
           apps = json.load(open('apps.json', encoding='utf-8'))
           want = (os.environ.get('WANT') or '').strip()
+          if want.startswith('apk-'): want = want[4:]
           before = os.environ.get('BEFORE') or ''
           sel = None
           if want and want != 'toutes':
