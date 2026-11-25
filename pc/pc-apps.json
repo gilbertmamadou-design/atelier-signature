@@ -697,6 +697,21 @@
         { "accept": { "text/tab-separated-values": [".tsv"] } }
       ],
       "data": { "ls": ["tableur:", "office:"], "idb": ["office-tableur"], "note": "Les classeurs (.magcalc, .xlsx, .ods, .csv…) restent dans tes dossiers : seuls les réglages, les classeurs récents et l'enregistrement automatique sont dans le navigateur." }
+    },
+    {
+      "id": "cameras",
+      "android": "cameras",
+      "name": "Caméras",
+      "short_name": "Caméras",
+      "description": "Caméras de la maison en direct (ONVIF / RTSP) : mosaïque, caméras motorisées. Programme Suite MAG.exe",
+      "theme_color": "#0f1218",
+      "background_color": "#0f1218",
+      "vendor": [],
+      "patches": [
+        { "from": "dans l\\'appli Android", "to": "dans le programme Suite MAG.exe", "count": 0 },
+        { "from": "touche « Rechercher » ou « Ajouter une caméra »", "to": "clique sur « Rechercher » ou « Ajouter une caméra »", "count": 0 }
+      ],
+      "data": { "ls": ["cameras:"], "note": "Liste des caméras et identifiants ONVIF (restent sur ce PC)." }
     }
   ],
   "liens": [

@@ -1,0 +1,95 @@
+name: Fabriquer Suite MAG.exe (programme Windows hors ligne)
+# Toutes les applis de pc/ dans un seul programme Windows portable (Electron), qui ne dépend pas du navigateur :
+# rien ne peut être effacé par un nettoyage, tout marche sans internet dès le premier lancement.
+# Résultat : release fixe « suite-mag-exe » → Suite-MAG.exe (adresse stable :
+# https://github.com/gilbertmamadou-design/atelier-signature/releases/download/suite-mag-exe/Suite-MAG.exe)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, suite-exe]
+    paths: ["pc/**", "pc-exe/**", ".github/workflows/suite-exe.yml"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: suite-exe
+  cancel-in-progress: true
+
+jobs:
+  verifier:
+    # chaque appli est ouverte dans le programme (Linux, écran virtuel) : la page se charge-t-elle ?
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: pc-exe
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - name: Ouvrir chaque appli
+        run: xvfb-run -a npx electron . --smoke --no-sandbox --disable-gpu
+        env:
+          SMOKE_OUT: ${{ github.workspace }}/pc-exe/verification.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verification
+          path: pc-exe/verification.json
+
+  fabriquer:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: pc-exe
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - name: Icônes et raccourcis du menu Démarrer
+        run: |
+          python -m pip install --quiet pillow
+          python prep.py
+      - name: Écran de veille Jarvis (Jarvis.scr)
+        shell: pwsh
+        run: |
+          $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+          & $csc /nologo /target:winexe /codepage:65001 /out:build\Jarvis.scr /win32icon:build\icones\fond-jarvis.ico /r:System.Windows.Forms.dll veille\JarvisVeille.cs
+          if (!(Test-Path build\Jarvis.scr)) { throw "Jarvis.scr non fabriqué" }
+          Copy-Item build\Jarvis.scr dist-scr.scr
+      - name: Version du programme (date du jour)
+        shell: bash
+        run: npm pkg set version="1.$(date +%Y%m%d).${{ github.run_number }}"
+      - name: Fabriquer l'installateur et la version portable
+        run: npx electron-builder --win nsis portable --x64 --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - shell: bash
+        run: ls -la dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Suite-MAG
+          path: |
+            pc-exe/dist/Suite-MAG.exe
+            pc-exe/dist/Suite-MAG-Installation.exe
+          retention-days: 14
+      - name: Publier (release « suite-mag-exe »)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES="Suite MAG.exe — toutes les applis de la Suite MAG dans un programme Windows qui marche sans internet. Fabriqué le $(date +%d/%m/%Y) (branche ${GITHUB_REF_NAME}, essai ${{ github.run_number }})."
+          if gh release view suite-mag-exe >/dev/null 2>&1; then
+            gh release edit suite-mag-exe --notes "$NOTES" --title "Suite MAG.exe"
+          else
+            gh release create suite-mag-exe --target "$GITHUB_SHA" --title "Suite MAG.exe" --notes "$NOTES"
+          fi
+          cp dist-scr.scr dist/Jarvis.scr
+          for f in dist/Suite-MAG-Installation.exe dist/Suite-MAG.exe dist/Jarvis.scr; do
+            for i in 1 2 3; do gh release upload suite-mag-exe "$f" --clobber && break; sleep 10; done
+          done

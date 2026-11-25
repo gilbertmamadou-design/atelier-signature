@@ -126,7 +126,7 @@
     ['agenda', 'Agenda', 'agenda'], ['notes', 'Carnet', 'carnet'], ['contacts', 'Contacts', 'contacts'], ['calcul', 'Calcul', 'calcul'], ['meteo', 'Météo', 'meteo'],
     ['ciel', 'Ciel', 'meteo'], ['budget', 'Budget', 'budget'], ['musique', 'Mélodie', 'musique'], ['ondes', 'Ondes', 'musique'], ['galerie', 'Galerie', 'photo'],
     ['scan', 'Scan', 'capture'], ['dicta', 'Dictaphone', 'micro'], ['coffre', 'Coffre', 'coffre'], ['qr', 'QR', 'capture'], ['liseuse', 'Liseuse', 'livre'],
-    ['toile', 'Toile', 'photo'], ['solaire', 'Solaire', 'meteo'], ['sentiers', 'Sentiers', 'maison'], ['petitspas', 'Petits Pas', 'etoile'], ['chasse', 'Carnet de chasse', 'carnet']
+    ['toile', 'Toile', 'photo'], ['solaire', 'Solaire', 'meteo'], ['sentiers', 'Sentiers', 'maison'], ['petitspas', 'Petits Pas', 'etoile'], ['chasse', 'Carnet de chasse', 'carnet'], ['cameras', 'Caméras', 'photo'], ['voyage', 'Carnet de voyage', 'carnet'], ['bourse', 'Bourse', 'budget'], ['langues', 'Langues', 'livre'], ['correcteur', 'Correcteur', 'texte'], ['cadrans', 'Atelier de cadrans', 'horloge']
   ];
   FJ.SUITE = SUITE;
   FJ.suiteName = function (id) { for (var i = 0; i < SUITE.length; i++) if (SUITE[i][0] === id) return SUITE[i][1]; return null; };

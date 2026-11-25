@@ -1,0 +1,99 @@
+{
+  "name": "suite-mag",
+  "productName": "Suite MAG",
+  "version": "1.0.0",
+  "description": "Suite MAG sur PC : toutes les applis dans un programme Windows qui marche sans internet",
+  "author": "MAG Formation 13",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "verifier": "electron . --smoke",
+    "dist": "electron-builder --win nsis portable --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "^38.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "fr.magformation13.suite",
+    "productName": "Suite MAG",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "cameras.js",
+      "package.json",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../pc",
+        "to": "pc",
+        "filter": [
+          "**/*",
+          "!node_modules/**",
+          "!**/__pycache__/**",
+          "!build-pc.py",
+          "!hls-build.mjs",
+          "!package.json",
+          "!package-lock.json",
+          "!README.md",
+          "!**/sw.js"
+        ]
+      },
+      {
+        "from": "build/icones",
+        "to": "icones"
+      },
+      {
+        "from": "build/Jarvis.scr",
+        "to": "Jarvis.scr"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icone.ico"
+    },
+    "portable": {
+      "unpackDirName": "SuiteMAG",
+      "artifactName": "Suite-MAG.exe"
+    },
+    "compression": "normal",
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Suite MAG",
+      "menuCategory": false,
+      "runAfterFinish": true,
+      "language": "1036",
+      "artifactName": "Suite-MAG-Installation.exe",
+      "uninstallDisplayName": "Suite MAG"
+    },
+    "asarUnpack": [
+      "node_modules/ffmpeg-static/**"
+    ]
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.2.0"
+  }
+}
