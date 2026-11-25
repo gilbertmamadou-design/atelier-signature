@@ -233,6 +233,22 @@ else {
       return { ok, msg: ok ? 'Raccourci « ' + nom + ' » créé sur le Bureau' : 'Création impossible' };
     });
     ipcMain.handle('portable', () => !!process.env.PORTABLE_EXECUTABLE_FILE);
+    // Caméras : recherche ONVIF, test, mosaïque (cameras.js)
+    const CAM = require('./cameras');
+    let camRaw = [], camView = null, camStart = -1;
+    ipcMain.handle('cam-discover', () => CAM.discover());
+    ipcMain.handle('cam-probe', (e, id, ip, user, pwd, xaddr) => CAM.probe(id, ip, user, pwd, xaddr));
+    ipcMain.on('cam-store', (e, json) => { try { camRaw = JSON.parse(json) || []; } catch (x) { } });
+    ipcMain.on('cam-show', (e, json, k) => {
+      try { camRaw = JSON.parse(json) || []; } catch (x) { }
+      camStart = typeof k === 'number' ? k : -1;
+      if (camView && !camView.isDestroyed()) { camView.reload(); camView.focus(); return; }
+      camView = creer(ORIGIN + '/shared/cameras/viewer.html', 'cameras');
+      camView.setBackgroundColor('#07090d');
+      camView.on('closed', () => { camView = null; CAM.stopAll(); });
+    });
+    ipcMain.handle('cam-data', async () => ({ cams: await CAM.prepare(camRaw), start: camStart, ffmpeg: CAM.hasFfmpeg() }));
+    ipcMain.handle('cam-ptz', (e, i, dir) => (camRaw[i] ? CAM.ptz(camRaw[i], dir) : false));
     ipcMain.on('veille-fin', () => finVeille());
     ipcMain.on('veille-essai', () => veille());
     // devenir l'écran de veille de Windows (version installée seulement : le .scr doit rester au même endroit)

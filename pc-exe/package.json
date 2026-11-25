@@ -24,7 +24,9 @@
     "files": [
       "main.js",
       "preload.js",
-      "package.json"
+      "cameras.js",
+      "package.json",
+      "node_modules/**/*"
     ],
     "extraResources": [
       {
@@ -86,6 +88,12 @@
       "language": "1036",
       "artifactName": "Suite-MAG-Installation.exe",
       "uninstallDisplayName": "Suite MAG"
-    }
+    },
+    "asarUnpack": [
+      "node_modules/ffmpeg-static/**"
+    ]
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.2.0"
   }
 }

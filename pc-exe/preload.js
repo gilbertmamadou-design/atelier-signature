@@ -12,6 +12,21 @@ window.MAGEXE = {
   veille: function (on, min) { return ipc ? ipc.invoke('veille', on, min) : Promise.resolve({ ok: false }); },
   essaiVeille: function () { if (ipc) ipc.send('veille-essai'); }
 };
+// Caméras : pont MAGCameras (comme CamerasBridge.java sur Android) et mosaïque
+if (ipc && /^\/cameras\//.test(location.pathname)) {
+  var camEmit = function (o) { try { if (window.camerasEvent) window.camerasEvent(JSON.stringify(o)); } catch (e) { } };
+  window.MAGCameras = {
+    discover: function () { ipc.invoke('cam-discover').then(function (l) { camEmit({ op: 'discover', list: l || [] }); }, function (e) { camEmit({ op: 'discover', list: [], err: String(e) }); }); },
+    probe: function (id, ip, user, pwd, xaddr) { ipc.invoke('cam-probe', id, ip, user, pwd, xaddr).then(camEmit, function (e) { camEmit({ op: 'probe', id: id, ok: false, err: 'closed', diag: String(e) }); }); },
+    store: function (json) { ipc.send('cam-store', json); },
+    show: function (json, k) { ipc.send('cam-show', json, k); return true; },
+    ptzMove: function (json, dir) { return true; },
+    quit: function () { window.close(); }
+  };
+}
+if (ipc && /^\/shared\/cameras\/viewer\.html/.test(location.pathname)) {
+  window.MAGCamViewer = { data: function () { return ipc.invoke('cam-data'); }, ptz: function (i, d) { return ipc.invoke('cam-ptz', i, d); } };
+}
 // Fond Jarvis lancé en écran de veille : plein écran sans barre ni curseur ; la souris qui bouge le referme
 if (/[?&]veille=1/.test(location.search)) {
   window.MAG_VEILLE = true;

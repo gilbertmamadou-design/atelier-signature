@@ -4,7 +4,7 @@
    Portée pc/ : chaque appli a son propre service worker (portée pc/<appli>/), prioritaire sur celui-ci ;
    celui-ci ne répond QUE pour ses propres fichiers et laisse passer tout le reste. */
 'use strict';
-var VERSION = 'c18399b2ca96';
+var VERSION = 'effda92e0f6d';
 var CACHE = 'mag-pc-lanceur-' + VERSION;
 var PRECACHE = [
   "./",
@@ -43,7 +43,8 @@ var PRECACHE = [
   "majordome/icon-192.png",
   "fond-jarvis/icon-192.png",
   "correcteur/icon-192.png",
-  "tableur/icon-192.png"
+  "tableur/icon-192.png",
+  "cameras/icon-192.png"
 ];
 var SCOPE = self.registration.scope;
 var OWN = {};
