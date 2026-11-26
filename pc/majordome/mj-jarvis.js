@@ -406,7 +406,7 @@
   function plaque() {
     if (!MJ.oeil || !MJ.oeil.lireTexte) return X.answer('La caméra n\'est pas disponible ici.').done;
     X.answer({ say: 'Montrez la plaque ou l\'étiquette, bien en face.', k: 'Plaque' });
-    return MJ.oeil.lireTexte('Plaque ou étiquette en face de la caméra, bien éclairée', 4).then(function (txt) {
+    return MJ.oeil.lireTexte('Visez la plaque ou l\'étiquette, bien éclairée', 4).then(function (txt) {
       if (txt.replace(/\W/g, '').length < 4) return X.answer('Je ne lis rien sur cette plaque. Rapprochez-la, avec plus de lumière.').done;
       var t1 = txt.replace(/\s+/g, ' '), f = [], m;
       if ((m = /\b(?:CMU|CMR|WLL|SWL|charge (?:maxi(?:male)?|max\.?)(?: d'utilisation)?)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*(kg|t|tonnes?|daN|kN)\b/i.exec(t1))) f.push('CMU ' + m[1] + ' ' + m[2]);
