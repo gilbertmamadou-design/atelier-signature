@@ -87,7 +87,8 @@
     // flux de données
     if (fluxW !== W) { flux(); fluxW = W; }
     g.font = (11 * DPR) + 'px ui-monospace, Consolas, monospace'; g.textAlign = 'center';
-    cols.forEach(function (q) {
+    // téléphone et tablette en hauteur : les panneaux vont jusqu'aux bords, pas de flux par-dessus
+    if (!(FJ.ecranScroll && FJ.ecranScroll())) cols.forEach(function (q) {
       var y0 = (q.o + now / 1000 * q.v) % (H + 400 * DPR) - 200 * DPR;
       for (var j = 0; j < 24; j++) { var y = y0 - j * 13 * DPR; if (y < -10 || y > H + 10) continue; g.fillStyle = colA((j === 0 ? .55 : .22 * (1 - j / 24)) * k); g.fillText(q.s[(j + Math.floor(now / 140)) % q.s.length], q.x, y); }
     });
@@ -136,7 +137,10 @@
   function constellations() {
     etoiles = []; liens = [];
     var rnd = (function (s) { return function () { s = (s * 16807) % 2147483647; return s / 2147483647; }; })(4242);
-    for (var i = 0; i < 90; i++) etoiles.push({ x: rnd() * W, y: rnd() * H, r: (rnd() < .15 ? 1.6 : .9) * DPR, p: rnd() * TAU });
+    // autant d'étoiles au cm² que sur un écran de PC (90 en 1920 × 1080) : un téléphone n'est pas couvert de traits
+    var n = Math.round(90 * Math.min(1, (W * H) / (1920 * 1080 * DPR * DPR)));
+    n = Math.max(24, n);
+    for (var i = 0; i < n; i++) etoiles.push({ x: rnd() * W, y: rnd() * H, r: (rnd() < .15 ? 1.6 : .9) * DPR, p: rnd() * TAU });
     for (var a = 0; a < etoiles.length; a++) for (var b = a + 1; b < etoiles.length; b++) { var dx = etoiles[a].x - etoiles[b].x, dy = etoiles[a].y - etoiles[b].y; if (dx * dx + dy * dy < Math.pow(95 * DPR, 2) && rnd() < .55) liens.push([a, b]); }
   }
   var PLANETES = [
@@ -155,9 +159,9 @@
   function gadgets(now, c, k) {
     // constellations (fond)
     if (gad('constellations')) {
-      if (etW !== W) { constellations(); etW = W; }
+      if (etW !== W + 'x' + H) { constellations(); etW = W + 'x' + H; }
       g.strokeStyle = colA(.08 * k); g.lineWidth = DPR * .8; g.beginPath();
-      liens.forEach(function (l) { g.moveTo(etoiles[l[0]].x, etoiles[l[0]].y); g.lineTo(etoiles[l[1]].x, etoiles[l[1]].y); }); g.stroke();
+      if (!(FJ.ecranScroll && FJ.ecranScroll())) liens.forEach(function (l) { g.moveTo(etoiles[l[0]].x, etoiles[l[0]].y); g.lineTo(etoiles[l[1]].x, etoiles[l[1]].y); }); g.stroke();
       etoiles.forEach(function (e) { var tw = .35 + .65 * Math.abs(Math.sin(now / 900 + e.p)); g.fillStyle = 'rgba(220,240,255,' + (tw * .55 * k).toFixed(3) + ')'; g.beginPath(); g.arc(e.x, e.y, e.r, 0, TAU); g.fill(); });
     }
     // hyperespace

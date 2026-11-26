@@ -53,7 +53,7 @@
   function speechText(t) { return String(t || '').replace(/km\/h/g, 'kilomètres heure').replace(/°C?/g, ' degrés').replace(/\s%/g, ' pour cent').replace(/[«»"]/g, ''); }
   // Lively : voix rangées dans le dossier du paquet (voix/, paquet « avec voix » ou fichiers ajoutés par Lively › Personnaliser ›
   // « Voix Piper (fichiers) ») : lues sur place, sans téléchargement ni stockage du navigateur.
-  var VX = FJ.VX = root.MJVoix ? MJVoix.create({ engine: FJ.mode === 'lively' ? 'piper/' : '../../applis/www-majordome/piper/', worker: 'mj-voix-worker.js', phon: 'mj-phon.js', localDir: FJ.mode === 'lively' ? 'voix/' : null }) : null;
+  var VX = FJ.VX = root.MJVoix ? MJVoix.create({ engine: FJ.mode === 'lively' || FJ.mode === 'app' ? 'piper/' : '../../applis/www-majordome/piper/', worker: 'mj-voix-worker.js', phon: 'mj-phon.js', localDir: FJ.mode === 'lively' ? 'voix/' : null }) : null;
   /** Cherche les voix du dossier voix/ ; si la voix choisie manque mais qu'une voix du paquet existe, la prend. */
   FJ.localVoices = function (prefer) {
     if (!VX || !VX.probeLocal) return Promise.resolve({});
@@ -98,6 +98,16 @@
       }
       system();
       function system() {
+      // appli Android (WebView sans speechSynthesis) : voix française du téléphone par le pont MAGPrint.speak
+      if (S.voiceOn && !root.speechSynthesis && root.MAGPrint && root.MAGPrint.speak) {
+        var tt = speechText(text), fin2 = false;
+        var end2 = function () { if (fin2) return; fin2 = true; if (orb && speakId === id) { orb.speak(false); if (orb.get() === 'speak') orb.state('idle'); setState('En ligne'); } done(); };
+        if (orb) orb.speak(true, tt, 1);
+        setState('Réponse');
+        try { root.MAGPrint.speak(tt); } catch (e) { }
+        setTimeout(end2, Math.min(60000, 1200 + tt.length * 75));
+        return;
+      }
       if (!S.voiceOn || !root.speechSynthesis || !root.SpeechSynthesisUtterance) { if (orb) { orb.pulse(); } return done(); }
       try { speechSynthesis.cancel(); } catch (e) { }
       var t = speechText(text), u = new SpeechSynthesisUtterance(t), v = frVoice(), fin = false;
@@ -189,7 +199,7 @@
      avec Majordome ouvert) ; Majordome l'exécute sans parler et Jarvis affiche et dit ses réponses. */
   var CV = { bc: null, ok: false, waiting: false, seen: 0, pend: {} };
   function cvInit() {
-    if (CV.bc || !root.BroadcastChannel || FJ.lively) return !!CV.bc;
+    if (CV.bc || !root.BroadcastChannel || FJ.lively || FJ.mode === 'app') return !!CV.bc;
     CV.bc = new BroadcastChannel('mag-cerveau');
     CV.bc.onmessage = function (e) {
       var m = e.data || {};
@@ -245,7 +255,7 @@
     // Majordome attend une réponse (confirmation, précision) : on la lui passe
     if (CV.waiting && !wait) { CV.waiting = false; return viaCerveau(text, via, null); }
     // la mémoire est celle de Majordome (« souviens-toi que… », « qu'est-ce que tu sais sur moi ») : une seule mémoire pour les deux
-    if (!noCv && !wait && S.cerveau !== false && !FJ.lively && root.BroadcastChannel && MEMO.test(t)) return viaCerveau(text, via, function () { return handle(text, via, true); });
+    if (!noCv && !wait && S.cerveau !== false && !FJ.lively && FJ.mode !== 'app' && root.BroadcastChannel && MEMO.test(t)) return viaCerveau(text, via, function () { return handle(text, via, true); });
     var r0 = !wait ? (local(t) || (FJ.plusCmd ? FJ.plusCmd(t, text) : null)) : null;
     if (r0) return r0;
     var r = NLU.parse(text, ctx());
@@ -261,7 +271,7 @@
     setState('Analyse');
     var f = H[r.intent] || H.notHere;
     // ce que Jarvis ne fait pas ici (ou pas en entier) : Majordome, le cerveau
-    if ((f === H.notHere || f === H.unknown || CERVEAU[r.intent]) && S.cerveau !== false && !FJ.lively) return viaCerveau(text, via, function () { return f(r.p || {}, r, via); });
+    if ((f === H.notHere || f === H.unknown || CERVEAU[r.intent]) && S.cerveau !== false && !FJ.lively && FJ.mode !== 'app') return viaCerveau(text, via, function () { return f(r.p || {}, r, via); });
     var p;
     try { p = Promise.resolve(f(r.p || {}, r, via)); } catch (e) { console.error(e); p = Promise.resolve(answer({ say: 'Une erreur est survenue.', cls: 'err' }).done); }
     return p.then(function () { if (FJ.orb && FJ.orb.get() === 'think') FJ.orb.state('idle'); if ($('aiState').textContent === 'Analyse') setState('En ligne'); });

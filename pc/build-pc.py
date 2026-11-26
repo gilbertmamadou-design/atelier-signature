@@ -12,7 +12,9 @@ Pour chaque appli de pc/pc-apps.json :
                                   (« office » : chemins office/ → ../shared/office/, pièces communes précachées)
                                   pc/<id>/manifest.webmanifest, icônes 192/512/maskable, sw.js
   « lively » (Fond Jarvis)       →  pc/<id>/<paquet>.zip à glisser dans Lively Wallpaper, fj-version.js / .json
-Rien n'est écrit dans applis/ : les APK Android ne changent pas.
+  « apk » (Fond Jarvis)          →  applis/<web>/ : les fichiers du paquet Lively (sauf « skip »), pour l'appli Android Jarvis
+                                  (apps.json : « jarvis », moteur Piper ajouté à la fabrication par « with »)
+Rien d'autre n'est écrit dans applis/ : les autres APK Android ne changent pas.
 Voir pc/README.md pour les conventions (ponts simulés, CSS, raccourcis…).
 """
 import datetime
@@ -217,6 +219,36 @@ def apps_map(conf, apps_android):
         if a['android'] in apps_android:
             m.setdefault(apps_android[a['android']]['appid'], '../' + a['id'] + '/')
     return m
+
+
+# ---------------------------------------------------------------- appli Android (« apk »)
+def apk_page(app, out_dir):
+    """« apk » : applis/<web>/ reçoit les fichiers du paquet Lively (même page, sans le shim de la Suite), moins « skip »,
+    plus fj-version.js et icon-512.png. La page se reconnaît dans l'appli (FJ.mode = 'app', window.Capacitor)."""
+    A = app['apk']
+    dest_dir = os.path.join(APPLIS, A['web'])
+    skip = A.get('skip', [])
+    keepf = set()
+    head = 'GÉNÉRÉ par pc/build-pc.py depuis %s : ne pas modifier ici (source : pc/shared/fond-jarvis/, voir pc/README.md).'
+    for dest, src_rel in sorted(app['lively']['files'].items()):
+        if any(dest == k or (k.endswith('/') and dest.startswith(k)) for k in skip):
+            continue
+        b = read(os.path.join(REPO, src_rel), 'rb')
+        if dest.endswith('.js') or dest.endswith('.css'):
+            b = ('/* ' + head % src_rel + ' */\n').encode() + b
+        elif dest.endswith('.html'):
+            b = ('<!-- ' + head % src_rel + ' -->\n').encode() + b
+        write(os.path.join(dest_dir, dest), b)
+        keepf.add(dest)
+    for n in (app['lively'].get('versionFile', 'fj-version.js'),):
+        write(os.path.join(dest_dir, n), read(os.path.join(out_dir, n), 'rb')); keepf.add(n)
+    write(os.path.join(dest_dir, 'icon-512.png'), read(os.path.join(out_dir, 'icon-512.png'), 'rb')); keepf.add('icon-512.png')
+    # fichiers qui ne viennent plus de la source : retirés (le moteur piper/ est ajouté à la fabrication, jamais ici)
+    for root_, _, fs in os.walk(dest_dir):
+        for f in fs:
+            rel = os.path.relpath(os.path.join(root_, f), dest_dir).replace(os.sep, '/')
+            if rel not in keepf and not CHECK:
+                os.remove(os.path.join(root_, f)); CHANGED.append('applis/%s/%s (retiré)' % (A['web'], rel))
 
 
 # ---------------------------------------------------------------- paquet Lively Wallpaper
@@ -506,6 +538,8 @@ def main():
         # paquet Lively (zip) et fichiers bruts (guide…) : publiés, pas précachés
         if app.get('lively'):
             lively_package(app, out_dir)
+        if app.get('apk'):
+            apk_page(app, out_dir)
         for dest, src_rel in sorted(app.get('raw', {}).items()):
             write(os.path.join(out_dir, dest), read(os.path.join(REPO, src_rel), 'rb'))
         files = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png',

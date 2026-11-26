@@ -24,6 +24,30 @@
 <main id="hud" data-layout="complet">
   <div id="free" aria-hidden="true"></div>
 
+  <section id="stage" aria-label="Assistant">
+    <div id="orbBox">
+      <canvas id="orb" aria-hidden="true"></canvas>
+      <button type="button" id="orbHit" aria-label="Parler à l'assistant"></button>
+    </div>
+    <div id="name" aria-hidden="true"><b id="aiName">Majordome</b><span id="aiState">En ligne</span></div>
+  </section>
+
+  <section id="dock">
+    <div id="say" role="log" aria-live="polite" hidden></div>
+    <form id="bar" autocomplete="off">
+      <span class="pfx" aria-hidden="true">&gt;</span>
+      <input id="q" type="text" spellcheck="false" enterkeyhint="send" aria-label="Commande pour l'assistant">
+      <button type="button" id="mic" class="ib" title="Parler" aria-label="Parler"></button>
+      <button type="submit" id="go" class="ib" title="Envoyer" aria-label="Envoyer"></button>
+      <button type="button" id="ecr" class="ib" aria-label="Affichage : téléphone, tablette ou PC" title="Affichage"></button>
+      <button type="button" id="gear" class="ib" aria-label="Réglages du fond d'écran" title="Réglages du fond"></button>
+    </form>
+    <div id="timers" aria-live="polite"></div>
+    <nav id="keys" aria-label="Raccourcis"></nav>
+  </section>
+
+  <!-- panneaux : grille du PC (display: contents) ; téléphone et tablette en hauteur : zone qui défile -->
+  <div id="cols">
   <section class="col" id="colL">
     <article class="pan" id="pClock" aria-label="Horloge">
       <header><span class="tag">Horloge</span><span class="meta" id="clkZone"></span></header>
@@ -49,27 +73,6 @@
     </article>
   </section>
 
-  <section id="stage" aria-label="Assistant">
-    <div id="orbBox">
-      <canvas id="orb" aria-hidden="true"></canvas>
-      <button type="button" id="orbHit" aria-label="Parler à l'assistant"></button>
-    </div>
-    <div id="name" aria-hidden="true"><b id="aiName">Majordome</b><span id="aiState">En ligne</span></div>
-  </section>
-
-  <section id="dock">
-    <div id="say" role="log" aria-live="polite" hidden></div>
-    <form id="bar" autocomplete="off">
-      <span class="pfx" aria-hidden="true">&gt;</span>
-      <input id="q" type="text" spellcheck="false" enterkeyhint="send" aria-label="Commande pour l'assistant">
-      <button type="button" id="mic" class="ib" title="Parler" aria-label="Parler"></button>
-      <button type="submit" id="go" class="ib" title="Envoyer" aria-label="Envoyer"></button>
-      <button type="button" id="gear" class="ib" aria-label="Réglages du fond d'écran" title="Réglages du fond"></button>
-    </form>
-    <div id="timers" aria-live="polite"></div>
-    <nav id="keys" aria-label="Raccourcis"></nav>
-  </section>
-
   <section class="col" id="colR">
     <article class="pan" id="pSys" aria-label="Système" hidden>
       <header><span class="tag">Système</span><span class="meta" id="sysName"></span></header>
@@ -91,6 +94,7 @@
       <div class="mu"><img id="muArt" alt="" hidden><div class="mu-tx"><b id="muTitle"></b><span id="muArtist"></span></div><div class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></div></div>
     </article>
   </section>
+  </div>
 </main>
 
 <div id="toast" role="status" aria-live="polite"></div>
