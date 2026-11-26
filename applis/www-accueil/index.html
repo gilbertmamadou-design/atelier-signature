@@ -15,7 +15,7 @@ html,body{margin:0;height:100%;background:transparent;color:var(--tx);font:15px/
 body.nobridge{background:linear-gradient(160deg,#28345a,#121624)}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
 input,textarea{font:inherit;color:inherit;-webkit-user-select:text;user-select:text}
-svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none;display:block}
+svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none;display:block}svg.i.wxc{stroke:none;fill:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}
 .sh{text-shadow:0 1px 3px rgba(0,0,0,.45)}
 [hidden]{display:none!important}
 
@@ -462,6 +462,7 @@ var IC = {
   storm:'<path d="M7 15a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 6.5a4 4 0 0 1-.5 8.5z"/><path d="m13 14-3 4h4l-3 4"/>',
   fog:'<path d="M4 10h16M4 14h16M6 18h12M7 6h10"/>',
   moon:'<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
+  psun:'<path d="M8 2.5v1.3M2.5 8h1.3M4.1 4.1l.9.9M11.9 4.1l-.9.9"/><path d="M5.2 10.6A3 3 0 1 1 10.9 7"/><path d="M9 20a4 4 0 0 1-.5-8A5 5 0 0 1 18 12.5a3.8 3.8 0 0 1-.5 7.5z"/>',
   bat:'<rect x="2" y="7" width="18" height="10" rx="2.5"/><path d="M22 11v2"/>',
   bolt:'<path d="m13 2-8 12h6l-1 8 8-12h-6z"/>',
   shield:'<path d="M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6z"/>',
@@ -511,7 +512,21 @@ var IC = {
   phonedev:'<rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/>', page:'<rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M12 9v6M9 12h6"/>',
   list:'<path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/>'
 };
-function ic(n, extra){ return '<svg class="i" viewBox="0 0 24 24"'+(extra||'')+'>'+(IC[n]||'')+'</svg>'; }
+/* Météo en couleur (Réglages › Météo en couleur) : soleil jaune, nuages gris clair, pluie bleue, éclair jaune */
+var WXC={
+  sun:'<g stroke="#FFB300" stroke-width="2" stroke-linecap="round"><path d="M12 2.2v2.2M12 19.6v2.2M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M2.2 12h2.2M19.6 12h2.2M4.9 19.1l1.5-1.5M17.6 6.4l1.5-1.5"/></g><circle cx="12" cy="12" r="4.6" fill="#FFCC33" stroke="#FFB300" stroke-width="1.2"/>',
+  moon:'<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" fill="#F6E7A6" stroke="#E0C35C" stroke-width="1.3" stroke-linejoin="round"/>',
+  psun:'<g stroke="#FFB300" stroke-width="1.8" stroke-linecap="round"><path d="M8 1.8v1.6M1.8 8h1.6M3.6 3.6l1.1 1.1M12.4 3.6l-1.1 1.1"/></g><circle cx="8" cy="8" r="3.6" fill="#FFCC33" stroke="#FFB300" stroke-width="1"/><path d="M9 20.5a4 4 0 0 1-.5-8A5 5 0 0 1 18 13a3.8 3.8 0 0 1-.5 7.5z" fill="#EEF3F7" stroke="#9AA9B6" stroke-width="1.3" stroke-linejoin="round"/>',
+  cloud:'<path d="M7 18a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 9.5a4 4 0 0 1-.5 8.5z" fill="#E6EDF3" stroke="#9AA9B6" stroke-width="1.3" stroke-linejoin="round"/>',
+  rain:'<path d="M7 15a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 6.5a4 4 0 0 1-.5 8.5z" fill="#CBD7E2" stroke="#8496A8" stroke-width="1.3" stroke-linejoin="round"/><g stroke="#3D9BFF" stroke-width="2" stroke-linecap="round"><path d="M8.5 18.5l-1 2.5M12.5 18.5l-1 2.5M16.5 18.5l-1 2.5"/></g>',
+  snow:'<path d="M7 15a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 6.5a4 4 0 0 1-.5 8.5z" fill="#E6EDF3" stroke="#9AA9B6" stroke-width="1.3" stroke-linejoin="round"/><g fill="#7FCBFF"><circle cx="8" cy="19.5" r="1.3"/><circle cx="12" cy="21" r="1.3"/><circle cx="16" cy="19.5" r="1.3"/></g>',
+  storm:'<path d="M7 15a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 6.5a4 4 0 0 1-.5 8.5z" fill="#A3AFBB" stroke="#6C7986" stroke-width="1.3" stroke-linejoin="round"/><path d="M13.5 13.5 10 18.5h3.6l-2.4 4.3 5.2-6.2h-3.6l1.9-3.1z" fill="#FFCC33" stroke="#E0A800" stroke-width=".8" stroke-linejoin="round"/>',
+  fog:'<g stroke="#B6C3CE" stroke-width="2.2" stroke-linecap="round"><path d="M4 10h16M4 14h16M6 18h12M7 6h10"/></g>'
+};
+function ic(n, extra){
+  if(WXC[n] && (typeof C==='undefined' || !C || C.wxColor!==false)) return '<svg class="i wxc" viewBox="0 0 24 24"'+(extra||'')+'>'+WXC[n]+'</svg>';
+  return '<svg class="i" viewBox="0 0 24 24"'+(extra||'')+'>'+(IC[n]||'')+'</svg>';
+}
 
 var TYPES = {
   clock:{n:'Horloge',i:'clock',w:2}, weather:{n:'Météo',i:'sun',w:1}, battery:{n:'Batterie',i:'bat',w:1},
@@ -536,7 +551,7 @@ var TYPES = {
 var KEY='socle-v1';
 var DEF = {
   tiles:[{t:'clock',w:2},{t:'music',w:2},{t:'weather',w:1},{t:'battery',w:1},{t:'agenda',w:1},{t:'tools',w:1},{t:'favs',w:2}],
-  favs:null, hidden:[], city:null, accent:'auto', opacity:55, cols:4, gestures:true, seconds:false, preferMag:true, hideReplaced:false, magSeen:[]
+  favs:null, hidden:[], city:null, accent:'auto', opacity:55, cols:4, gestures:true, wxColor:true, seconds:false, preferMag:true, hideReplaced:false, magSeen:[]
 };
 function clone(o){ return JSON.parse(JSON.stringify(o)); }
 function cleanTile(t){
@@ -957,8 +972,8 @@ function alarmHtml(){
 }
 
 /* Météo (Open-Meteo, sans clé) */
-var WMO={0:['Ciel dégagé','sun'],1:['Plutôt dégagé','sun'],2:['Partiellement nuageux','cloud'],3:['Couvert','cloud'],45:['Brouillard','fog'],48:['Brouillard givrant','fog'],51:['Bruine légère','rain'],53:['Bruine','rain'],55:['Bruine forte','rain'],56:['Bruine verglaçante','rain'],57:['Bruine verglaçante','rain'],61:['Pluie faible','rain'],63:['Pluie','rain'],65:['Forte pluie','rain'],66:['Pluie verglaçante','rain'],67:['Pluie verglaçante','rain'],71:['Neige faible','snow'],73:['Neige','snow'],75:['Forte neige','snow'],77:['Grains de neige','snow'],80:['Averses','rain'],81:['Averses','rain'],82:['Fortes averses','rain'],85:['Averses de neige','snow'],86:['Averses de neige','snow'],95:['Orage','storm'],96:['Orage et grêle','storm'],99:['Orage et grêle','storm']};
-function wmo(c, day){ var w=WMO[c]||['—','cloud']; if(!day && w[1]==='sun') return [w[0],'moon']; return w; }
+var WMO={0:['Ciel dégagé','sun'],1:['Plutôt dégagé','psun'],2:['Partiellement nuageux','psun'],3:['Couvert','cloud'],45:['Brouillard','fog'],48:['Brouillard givrant','fog'],51:['Bruine légère','rain'],53:['Bruine','rain'],55:['Bruine forte','rain'],56:['Bruine verglaçante','rain'],57:['Bruine verglaçante','rain'],61:['Pluie faible','rain'],63:['Pluie','rain'],65:['Forte pluie','rain'],66:['Pluie verglaçante','rain'],67:['Pluie verglaçante','rain'],71:['Neige faible','snow'],73:['Neige','snow'],75:['Forte neige','snow'],77:['Grains de neige','snow'],80:['Averses','rain'],81:['Averses','rain'],82:['Fortes averses','rain'],85:['Averses de neige','snow'],86:['Averses de neige','snow'],95:['Orage','storm'],96:['Orage et grêle','storm'],99:['Orage et grêle','storm']};
+function wmo(c, day){ var w=WMO[c]||['—','cloud']; if(!day && w[1]==='sun') return [w[0],'moon']; if(!day && w[1]==='psun') return [w[0],'cloud']; return w; }
 function weatherHtml(wide){
   var hd='<div class="hd">'+ic('pin')+esc(C.city?C.city.name:'Météo')+'</div>';
   if(!W || !W.current) return hd+'<div class="empty">'+(C.city?'Chargement…':'Touche pour choisir ta ville')+'</div>';
@@ -2385,6 +2400,7 @@ function settingsSheet(){
    '<div class="row"><div class="t"><div>Écran d\'accueil par défaut</div><div>'+(p.home?'Socle est ton écran d\'accueil':'Choisis Socle dans « Appli d\'accueil »')+'</div></div>'+(p.home?'<span class="ok">Actif</span>':'<button class="sbtn" data-s="home">Choisir</button>')+'</div>'+
    '<div class="row"><div class="t"><div>Barre de recherche sur toutes les pages</div><div>Sinon, elle n\'apparaît que sur la page principale (glisser vers le haut ouvre toujours la liste des applis)</div></div><label class="sw"><input type="checkbox" id="sDockAll"'+(C.dockAll?' checked':'')+'><span></span></label></div>'+
    '<div class="row"><div class="t"><div>Masquer la barre du haut</div><div>Heure, wifi, réseau et batterie cachés sur l\'accueil (glisser depuis le haut les montre un instant)</div></div><label class="sw"><input type="checkbox" id="sBar"'+(C.hideBar?' checked':'')+'><span></span></label></div>'+
+   '<div class="row"><div class="t"><div>Météo en couleur</div><div>Soleil jaune, nuages gris, pluie bleue, orage jaune</div></div><label class="sw"><input type="checkbox" id="sWxc"'+(C.wxColor!==false?' checked':'')+'><span></span></label></div>'+
    '<div class="row"><div class="t"><div>Gestes</div><div>Double appui : verrouiller · glisser vers le bas : notifications</div></div><label class="sw"><input type="checkbox" id="sGest"'+(C.gestures?' checked':'')+'><span></span></label></div>'+
    '<div class="row"><div class="t"><div>Bouton Majordome</div><div>Micro dans la barre de recherche : parler à Majordome en un geste'+(app(MJ)?'':' (appli non installée)')+'</div></div><label class="sw"><input type="checkbox" id="sMjB"'+(C.mjBtn!==false?' checked':'')+'><span></span></label></div>'+
    '<div class="row"><div class="t"><div>Utiliser mes applis</div><div>Agenda, Contacts, Galerie, Carnet, Calcul, Aube à la place de Google</div></div><label class="sw"><input type="checkbox" id="sMag"'+(C.preferMag?' checked':'')+'><span></span></label></div>'+
@@ -2399,6 +2415,7 @@ function settingsSheet(){
    '<div class="menu" style="margin-top:14px"><button data-s="edit">'+ic('grid')+'Modifier l\'écran (pages, tuiles, panneaux)</button><button data-s="transfert">'+ic('share')+'Transférer vers un autre appareil</button><button data-s="log">'+ic('list')+'Journal et démarrage</button><button data-s="wall">'+ic('star')+'Changer de fond d\'écran</button><button data-s="sys">'+ic('tool')+'Paramètres du téléphone</button><button data-s="reset" class="bad">'+ic('trash')+'Remettre la disposition d\'origine</button></div>';
   openSheet(h,'settings');
   $('sGest').onchange=function(){ C.gestures=this.checked; save(); };
+  $('sWxc').onchange=function(){ C.wxColor=this.checked; save(); render(); };
   $('sMjB').onchange=function(){ C.mjBtn=this.checked; save(); mjBtn(); };
   $('sDockAll').onchange=function(){ C.dockAll=this.checked; save(); jvChrome(); };
   $('sBar').onchange=function(){ C.hideBar=this.checked; save(); applyBar(); if(A && A.homeStatusBar) A.homeStatusBar(C.hideBar); };
