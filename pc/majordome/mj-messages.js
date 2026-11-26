@@ -157,7 +157,7 @@
     return h + '<div class="sect" id="f-messages">Messages reçus</div>' +
       '<div class="set"><div class="t">Lire les messages et les mails<small>' + (ok ? 'Autorisé : WhatsApp, SMS, Messenger, Outlook, Gmail… (ce qu\'affichent les notifications)' : 'Pas encore autorisé') + '</small></div><button class="btn sm' + (ok ? '' : ' pri') + '" id="mjnAcc">' + (ok ? 'Réglage' : 'Autoriser') + '</button></div>' +
       (ok ? '' : '<p class="note">Android 13 et plus, si l\'option est grisée : Infos de l\'appli › ⋮ › « Autoriser les paramètres restreints ». <button class="btn sm" id="mjnInfo">Infos de l\'appli</button></p>') +
-      '<div class="set"><div class="t">Annoncer les nouveaux messages<small>Quand Majordome est ouvert</small></div><select class="in" id="mjnAnn" style="width:auto">' +
+      '<div class="set"><div class="t">Annoncer les nouveaux messages<small>Quand Majordome est ouvert ; chaque profil garde son choix (par défaut Chantier : le message, Maison : non)</small></div><select class="in" id="mjnAnn" style="width:auto">' +
       [['off', 'Non'], ['qui', 'Qui écrit'], ['texte', 'Qui écrit et le message']].map(function (o) { return '<option value="' + o[0] + '"' + (S.msgAnnonce === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
       '<div class="set"><div class="t">Oublier les messages reçus<small>Ils restent sur le téléphone seulement, 4 jours au plus</small></div><button class="btn sm" id="mjnClr">Oublier</button></div>' +
       '<p class="note">À dire : « J\'ai des messages ? », « Lis-moi mes messages WhatsApp », « Qu\'est-ce que Marie a dit ? », « La suite », « Réponds à Marie : j\'arrive ». Les mails : expéditeur, objet et début du texte.</p>';
