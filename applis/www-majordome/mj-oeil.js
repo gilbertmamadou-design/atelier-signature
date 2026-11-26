@@ -6,6 +6,7 @@
    À la voix :
    - « prends une photo », « fais un selfie », « photo dans 10 secondes »
    - « lis-moi ce document », « qu'est-ce qui est écrit ? » : vous montrez une feuille, il la lit à voix haute
+     (téléphone : caméra arrière, on vise la feuille ; le reste de l'œil utilise la caméra frontale)
      (PC : moteur de lecture hors ligne de la Suite ; téléphone : ML Kit par MajordomeBridge.oeilOcr)
    - « surveille la pièce » / « arrête la surveillance » / « qu'as-tu vu ? » : mouvement repéré → photo + alerte
    - « est-ce que tu me vois ? », « combien de personnes vois-tu ? »
@@ -115,15 +116,20 @@
 
   /* ---------------- Caméra partagée ---------------- */
   var W = 160, Hh = 120;
-  var cam = { stream: null, video: null, opening: null, err: '', users: {} };
+  var cam = { stream: null, video: null, opening: null, err: '', users: {}, facing: 'user' };
+  // lecture de documents : caméra arrière du téléphone (on vise la feuille) ; tout le reste (présence, gestes, selfie, surveillance) : caméra frontale
+  var DOC = ANDROID ? 'environment' : 'user';
   var small = document.createElement('canvas'); small.width = W; small.height = Hh;
   var sg = small.getContext('2d', { willReadFrequently: true });
-  function camOpen() {
-    if (cam.stream) return Promise.resolve(cam.video);
-    if (cam.opening) return cam.opening;
+  function camOpen(facing) {
+    facing = facing || 'user';
+    if (cam.opening) return cam.opening.then(function (v) { return cam.facing === facing ? v : camOpen(facing); });
+    if (cam.stream && cam.facing === facing) return Promise.resolve(cam.video);
+    if (cam.stream) { cam.stream.getTracks().forEach(function (t) { t.stop(); }); cam.stream = null; if (cam.video) cam.video.srcObject = null; cam.video = null; }
+    cam.facing = facing;
     if (!CAN) return Promise.reject(new Error('pas de caméra accessible ici'));
     // le suivi du regard (mj-regard.js) garde sa propre caméra : on le met en pause pendant qu'on s'en sert
-    cam.opening = MD.getUserMedia({ video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 15 } }, audio: false }).then(function (s) {
+    cam.opening = MD.getUserMedia({ video: facing === 'environment' ? { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 15 } } : { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 15 } }, audio: false }).then(function (s) {
       cam.stream = s; cam.err = '';
       var v = document.createElement('video'); v.muted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.srcObject = s;
       cam.video = v;
@@ -143,6 +149,8 @@
   function use(who, on) {
     if (on) cam.users[who] = 1; else delete cam.users[who];
     if (!Object.keys(cam.users).length) camClose();
+    // fin d'une lecture à la caméra arrière : si la présence ou la surveillance tournent encore, on revient à la frontale
+    else if (!on && cam.facing !== 'user' && !cam.users.apercu) camOpen('user').catch(function () { });
   }
   function grab(maxW, q) {
     var v = cam.video; if (!v || !v.videoWidth) return Promise.reject(new Error('image indisponible'));
@@ -333,6 +341,7 @@
     ov.querySelector('.oeil-t').textContent = text || '';
     var v = document.createElement('video'); v.muted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.autoplay = true;
     if (cam.stream) v.srcObject = cam.stream;
+    if (cam.facing === 'environment') v.style.transform = 'none';
     ov.insertBefore(v, ov.firstChild);
     v.play().catch(function () { });
     ov.querySelector('button').onclick = function () { closeOverlay(); };
@@ -390,7 +399,7 @@
     var ocr = NB || (PCAPI && PCAPI.ocr && PCAPI.ocr.supported && PCAPI.ocr.supported());
     if (!ocr) return Promise.reject(new Error('lecture indisponible ici'));
     use('apercu', true);
-    return camOpen().then(function () { return countdown(sec || 4, consigne || 'Tenez le texte devant la caméra'); }).then(function (go) {
+    return camOpen(DOC).then(function () { return countdown(sec || 4, consigne || (DOC === 'environment' ? 'Visez le texte avec la caméra arrière' : 'Tenez le texte devant la caméra')); }).then(function (go) {
       if (!go) { use('apercu', false); var e = new Error('annulé'); e.cancel = true; throw e; }
       return grab(2200, 0.95);
     }).then(function (b) {
@@ -404,9 +413,10 @@
     var ocr = NB || (PCAPI && PCAPI.ocr && PCAPI.ocr.supported && PCAPI.ocr.supported());
     if (!ocr) return X.answer('La lecture de documents a besoin de l\'appli Majordome à jour sur le téléphone, ou de la version PC avec Edge ou Chrome récents.').done;
     use('apercu', true);
-    return camOpen().then(function () {
-      X.answer({ say: 'Tenez la feuille bien à plat devant la caméra.', k: 'Lecture' });
-      return countdown(4, 'Tenez la feuille devant la caméra, bien éclairée et sans bouger');
+    return camOpen(DOC).then(function () {
+      var back = DOC === 'environment';
+      X.answer({ say: back ? 'Visez la feuille avec la caméra arrière, bien à plat.' : 'Tenez la feuille bien à plat devant la caméra.', k: 'Lecture' });
+      return countdown(4, back ? 'Visez la feuille avec la caméra arrière, bien éclairée et sans bouger' : 'Tenez la feuille devant la caméra, bien éclairée et sans bouger');
     }).then(function (go) {
       if (!go) { use('apercu', false); return X.answer('Lecture annulée.').done; }
       return grab(2200, 0.95).then(function (b) {
