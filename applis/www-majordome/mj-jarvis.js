@@ -10,7 +10,7 @@
    Mode nuit : après « bonne nuit » (ou « mode nuit »), voix plus douce, écran noir avec l'heure, pas d'annonce
      spontanée (présence, pause) ; fin à « bonjour », « fin du mode nuit », ou à l'heure réglée (7 h par défaut).
    Profils : « passe en mode chantier / travail / maison », « quel profil ? » : volume, débit de la voix, bips,
-     présence et gestes de la caméra ; chaque profil garde ses propres réglages.
+     présence et gestes de la caméra, annonce des messages (chantier : lus à voix haute, maison : rien) ; chaque profil garde ses propres réglages.
    Lecture de l'écran (PC) : « lis l'écran », « qu'est-ce qu'il y a à l'écran ? » : vous choisissez l'écran ou la
      fenêtre (le navigateur le demande à chaque fois), une seule image est lue par le moteur hors ligne de la Suite.
    Interruption : pendant qu'il parle, dire son nom l'arrête et il vous écoute (écoute continue activée).
@@ -129,15 +129,17 @@
 
   /* =========================== 3. Profils =========================== */
   var PROFILS = {
-    maison: { name: 'Maison', d: { volume: 0.9, rate: 1, beeps: true, presence: false, gestes: false } },
-    travail: { name: 'Travail', d: { volume: 0.6, rate: 1.05, beeps: false, presence: false, gestes: false } },
-    chantier: { name: 'Chantier', d: { volume: 1, rate: 1, beeps: true, presence: false, gestes: true } }
+    maison: { name: 'Maison', d: { volume: 0.9, rate: 1, beeps: true, presence: false, gestes: false, msg: 'off' } },
+    travail: { name: 'Travail', d: { volume: 0.6, rate: 1.05, beeps: false, presence: false, gestes: false, msg: 'qui' } },
+    chantier: { name: 'Chantier', d: { volume: 1, rate: 1, beeps: true, presence: false, gestes: true, msg: 'texte' } }
   };
   S.profils = Object.assign({ cur: '', saved: {} }, S.profils || {});
-  function snap() { var o = S.oeil || {}; return { volume: S.volume, rate: S.rate, beeps: S.beeps, presence: !!o.presence, gestes: !!o.gestes }; }
+  // msg : annonce des nouveaux messages (mj-messages.js) : off | qui | texte ; chantier : lus à voix haute, maison : silence
+  function snap() { var o = S.oeil || {}; return { volume: S.volume, rate: S.rate, beeps: S.beeps, presence: !!o.presence, gestes: !!o.gestes, msg: S.msgAnnonce || 'off' }; }
   function applyP(v) {
     if (v.volume != null) S.volume = v.volume; if (v.rate != null) S.rate = v.rate; if (v.beeps != null) S.beeps = v.beeps;
     if (S.oeil) { S.oeil.presence = !!v.presence; S.oeil.gestes = !!v.gestes; }
+    if (v.msg) S.msgAnnonce = v.msg;
     X.saveS(); if (MJ.oeil && MJ.oeil.refresh) MJ.oeil.refresh(true);
   }
   function profil(id, auto) {
@@ -145,10 +147,12 @@
     if (!auto) S.pauto.manualAt = Date.now();   // choisi à la main : le profil automatique attend 3 h
     if (S.nuit.on) nuit(false, true);
     if (S.profils.cur) S.profils.saved[S.profils.cur] = snap();
-    var v = S.profils.saved[id] || P.d;
+    var v = Object.assign({}, P.d, S.profils.saved[id] || {});   // un profil enregistré avant l'annonce des messages la reçoit de P.d
     S.profils.cur = id; applyP(v);
     if (auto) { X.saveS(); return Promise.resolve(); }
     var det = { maison: 'Voix normale.', travail: 'Voix plus douce et un peu plus rapide, sans bips.', chantier: 'Voix forte, et commande par gestes devant la caméra pour les mains occupées.' }[id];
+    var ann = { off: 'Je ne lis plus les messages qui arrivent.', qui: 'Je vous dis qui vous écrit.', texte: 'Je vous lis les messages qui arrivent.' }[S.msgAnnonce];
+    if (ann) det += ' ' + ann;
     return X.answer({ say: 'Profil ' + P.name + '. ' + det, k: 'Profil' }).done;
   }
   H.profil = function (p) {
@@ -405,7 +409,7 @@
   function plaque() {
     if (!MJ.oeil || !MJ.oeil.lireTexte) return X.answer('La caméra n\'est pas disponible ici.').done;
     X.answer({ say: 'Montrez la plaque ou l\'étiquette, bien en face.', k: 'Plaque' });
-    return MJ.oeil.lireTexte('Visez la plaque ou l\'étiquette, bien éclairée', 4).then(function (txt) {
+    return MJ.oeil.lireTexte('Plaque ou étiquette en face de la caméra, bien éclairée', 4).then(function (txt) {
       if (txt.replace(/\W/g, '').length < 4) return X.answer('Je ne lis rien sur cette plaque. Rapprochez-la, avec plus de lumière.').done;
       var t1 = txt.replace(/\s+/g, ' '), f = [], m;
       if ((m = /\b(?:CMU|CMR|WLL|SWL|charge (?:maxi(?:male)?|max\.?)(?: d'utilisation)?)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*(kg|t|tonnes?|daN|kN)\b/i.exec(t1))) f.push('CMU ' + m[1] + ' ' + m[2]);
@@ -625,7 +629,7 @@
       sw('jvNuitEcran', S.nuit.ecran, 'Écran noir la nuit', 'Touchez l\'écran pour revoir Majordome 30 s') +
       '<div class="set"><div class="t">Fin du mode nuit<small>Ou en disant « bonjour »</small></div><select id="jvNuitFin" class="btn sm">' + [5, 6, 7, 8, 9].map(function (h) { return '<option value="' + h + '"' + (+S.nuit.fin === h ? ' selected' : '') + '>' + h + ' h</option>'; }).join('') + '</select></div>' +
       '<div class="set"><div class="t">Mode nuit maintenant<small>' + (S.nuit.on ? 'Actif' : 'Inactif') + '</small></div><button class="btn sm" id="jvNuitBtn">' + (S.nuit.on ? 'Arrêter' : 'Activer') + '</button></div>' +
-      '<div class="sect">Profils</div><p class="note">« Passe en mode chantier » : chaque profil garde son volume, sa vitesse de voix, ses bips et ses réglages de caméra.</p>' +
+      '<div class="sect">Profils</div><p class="note">« Passe en mode chantier » : chaque profil garde son volume, sa vitesse de voix, ses bips, ses réglages de caméra et l\'annonce des messages (Chantier : lus à voix haute ; Maison : aucune annonce ; Travail : qui écrit).</p>' +
       '<div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0">' + Object.keys(PROFILS).map(function (k) { return '<button class="btn sm' + (S.profils.cur === k ? ' pri' : '') + '" data-jvp="' + k + '">' + PROFILS[k].name + '</button>'; }).join('') + '</div>' +
       sw('jvPauto', S.pauto.on, 'Profil automatique', 'Selon le jour, l\'heure ou le lieu ci-dessous ; un choix à la main est gardé 3 h') +
       ['travail', 'chantier'].map(function (k) { var r = S.pauto.regles[k]; return '<div class="set"><div class="t">' + PROFILS[k].name + '<small>' + (r.lieu ? 'Lieu enregistré (400 m)' : 'Pas de lieu') + '</small></div>' +
