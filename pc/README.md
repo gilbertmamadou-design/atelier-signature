@@ -379,6 +379,16 @@ Sphère et analyseur : `applis/www-majordome/mj-orb.js` et `mj-nlu.js` (copies, 
 `page`, `icon` (icône propre), `pcconf` (ni bouton ⓘ ni « Installer » sur un fond d'écran), `raw` (fichiers publiés tels quels,
 non précachés : guide, aperçu) et `lively` (paquet).
 
+Affichage (bouton à côté de ⚙, ou ⚙ › Général › Affichage) : Automatique, Téléphone, Tablette, PC (`html[data-ecran]`).
+Téléphone, et tablette en hauteur (`data-ecran-scroll="1"`) : sphère en haut, barre et raccourcis, puis les panneaux dans
+`#cols`, zone qui défile (au PC, `#cols` est en `display: contents` : la grille ne change pas) ; pas de circuits ni de flux
+de données par-dessus les panneaux, constellations proportionnées à la surface. Tablette en largeur : la grille du PC sans
+zone d'icônes. Entrée `apk` de `pc-apps.json` : `applis/www-jarvis/` reçoit les fichiers du paquet Lively (sauf `skip`),
+pour l'**appli Android Jarvis** (`applis/apps.json` : `jarvis`, moteur Piper ajouté par `with`). Dans l'appli
+(`FJ.mode = 'app'`, `window.Capacitor`) : voix du téléphone par `MAGPrint.speak` si la WebView n'a pas `speechSynthesis`,
+titres par `MAGPrint.httpFetch` si la requête web est refusée, écran gardé allumé (`MAGPrint.keepScreen`, réglable),
+liens confiés à Android (tel:, sms:, mailto:, sites), pas de micro ni de cerveau (Majordome n'est pas à côté).
+
 - **Paquet Lively** : `build-pc.py` fabrique `pc/fond-jarvis/fond-jarvis-lively.zip` (entrées à date fixe : même contenu, même
   fichier ; `LivelyInfo.json` à la racine, type 1 = page web locale, `Arguments` = `--system-information --system-nowplaying
   --pause-event true`), `fj-version.js` (empreinte et date, dans le paquet et la page) et `fj-version.json` (le paquet installé le

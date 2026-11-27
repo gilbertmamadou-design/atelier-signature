@@ -335,3 +335,63 @@ code { font-family: Consolas, "DejaVu Sans Mono", monospace; font-size: .92em; c
 #hud[data-layout="sphere"][data-say="droite"] #say, #hud[data-layout="sphere"][data-say="gauche"] #say { width: min(30em, 30vw); }
 @keyframes fjSay { from { opacity: 0; transform: translateX(var(--sx, 18px)); } to { opacity: 1; transform: none; } }
 #hud[data-say="gauche"] #say { --sx: -18px; }
+
+/* =====================================================================
+   Affichage téléphone et tablette (bouton « Affichage » de la barre, html[data-ecran]).
+   PC : #cols n'existe pas pour la grille (display: contents), rien ne change.
+   Téléphone : sphère en haut, barre et raccourcis, puis les panneaux à faire défiler.
+   Tablette : en hauteur, sphère en haut et panneaux en 2 colonnes qui défilent ;
+              en largeur, la grille du PC sans zone d'icônes, texte plus grand.
+   ===================================================================== */
+#cols { display: contents; }
+html[data-ecran="tel"], html[data-ecran="tab"] { --free: 0px !important; }
+html[data-ecran="tel"] { font-size: calc(15px * var(--scale)); --gap: 10px; }
+html[data-ecran="tab"] { font-size: calc(16px * var(--scale)); --gap: 14px; }
+html[data-ecran="tel"] #hud, html[data-ecran="tab"][data-ecran-scroll="1"] #hud {
+  padding: max(8px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 31vh) auto minmax(0, 1fr); grid-template-areas: "s" "d" "p";
+}
+html[data-ecran="tab"][data-ecran-scroll="1"] #hud { grid-template-rows: minmax(0, 34vh) auto minmax(0, 1fr); }
+html[data-ecran="tel"] #cols, html[data-ecran="tab"][data-ecran-scroll="1"] #cols {
+  grid-area: p; display: flex; flex-direction: column; gap: var(--gap); min-height: 0;
+  overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 4px;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 10px, #000 calc(100% - 14px), transparent 100%);
+          mask-image: linear-gradient(180deg, transparent 0, #000 10px, #000 calc(100% - 14px), transparent 100%);
+}
+html[data-ecran="tel"] #cols::-webkit-scrollbar, html[data-ecran="tab"] #cols::-webkit-scrollbar { display: none; }
+html[data-ecran="tel"] .col { display: contents; }
+html[data-ecran="tel"] #colL, html[data-ecran="tel"] #colR, html[data-ecran="tab"][data-ecran-scroll="1"] #colL, html[data-ecran="tab"][data-ecran-scroll="1"] #colR { grid-area: auto; }
+/* ordre de lecture au téléphone : l'heure et la météo d'abord */
+html[data-ecran="tel"] #pClock { order: 1; } html[data-ecran="tel"] #pWx { order: 2; } html[data-ecran="tel"] #pAgenda { order: 3; }
+html[data-ecran="tel"] #pTaches { order: 4; } html[data-ecran="tel"] #pMois { order: 5; } html[data-ecran="tel"] #pNews { order: 6; }
+html[data-ecran="tel"] #pMonde { order: 7; } html[data-ecran="tel"] #pMusic { order: 8; } html[data-ecran="tel"] #pSys { order: 9; }
+/* tablette en hauteur : deux colonnes de panneaux */
+html[data-ecran="tab"][data-ecran-scroll="1"] #cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+/* les panneaux gardent leur hauteur naturelle quand ils défilent ; les panneaux « en plus » ne se cachent plus */
+html[data-ecran="tel"] .pan, html[data-ecran="tab"][data-ecran-scroll="1"] .pan { flex: none; }
+html[data-ecran-scroll="1"] .pan.plus.fit-out:not([hidden]) { display: block !important; }
+/* barre, réponses et raccourcis au doigt */
+html[data-ecran="tel"] #dock, html[data-ecran="tab"][data-ecran-scroll="1"] #dock { gap: 8px; }
+html[data-ecran="tel"] #bar { width: 100%; }
+html[data-ecran="tel"] .ib, html[data-ecran="tab"] .ib { width: 44px; height: 44px; }
+html[data-ecran="tel"] #q, html[data-ecran="tab"] #q { font-size: 16px; }
+html[data-ecran="tel"] #keys { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; max-width: 100% !important; width: 100%; scrollbar-width: none; padding-bottom: 2px; }
+html[data-ecran="tel"] #keys::-webkit-scrollbar { display: none; }
+html[data-ecran="tel"] .key { flex: none; width: 5.2em; min-height: 56px; }
+html[data-ecran="tab"] .key { min-height: 60px; }
+html[data-ecran="tel"] #hud #say, html[data-ecran="tab"][data-ecran-scroll="1"] #hud #say {
+  position: static; width: 100%; max-height: 28vh; left: auto; right: auto; bottom: auto; animation: none;
+  border-left: 3px solid rgb(var(--c)); border-right: 1px solid rgb(var(--c) / .35);
+}
+html[data-ecran="tel"] #name { top: 84%; font-size: .8em; }
+html[data-ecran="tel"] .key:hover { transform: none; }
+/* tablette en largeur : la grille du PC, colonnes un peu plus larges */
+html[data-ecran="tab"]:not([data-ecran-scroll="1"]) { font-size: calc(14px * var(--scale)); }
+html[data-ecran="tab"]:not([data-ecran-scroll="1"]) #hud { --side: clamp(16em, 29vw, 22em); }
+/* réglages ⚙ au doigt */
+html[data-ecran="tel"] #sheet, html[data-ecran="tab"] #sheet { padding-left: var(--gap); }
+html[data-ecran="tel"] .fld { grid-template-columns: minmax(0, 1fr); gap: .3em; }
+html[data-ecran="tel"] .kr { grid-template-columns: auto minmax(0, 1fr) auto; }
+html[data-ecran="tel"] .kr > :nth-child(3) { grid-column: 1 / -1; }
+/* appli Android : pas de micro dans la page (la voix, c'est Majordome) ni de plein écran (l'appli l'est déjà) */
+html[data-mode="app"] #mic, html[data-mode="app"] #fsBtn { display: none; }

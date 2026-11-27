@@ -1,0 +1,1726 @@
+/* GÉNÉRÉ par pc/build-pc.py depuis applis/www-majordome/mj-nlu.js : ne pas modifier ici (source : pc/shared/fond-jarvis/, voir pc/README.md). */
+/* =====================================================================
+   Majordome : analyse des commandes en français (sans IA, sans réseau).
+   MJNLU.parse(texte, ctx) → { intent, p: {paramètres}, t: texte normalisé, raw }
+     ctx : { now (ms), names: ['majordome','jarvis'], expect: {intent, slot} | null,
+             routines: [{id, name, phrase}], lists: ['courses', …] }
+   Tolérant : majuscules, accents, ponctuation, nombres en lettres (« deux cent
+   quarante », « soixante-dix », « quatre-vingt-dix »), formules de politesse,
+   fautes de reconnaissance fréquentes (« quelle heure et il », « met »…).
+   Aucune réponse n'est inventée : une phrase non reconnue donne
+   { intent: 'unknown', p: { suggest } } avec l'exemple le plus proche.
+   Utilisé tel quel par l'APK (applis/www-majordome) et par le PC (copie).
+   ===================================================================== */
+(function (root) {
+  'use strict';
+  var MIN = 60000, HOUR = 3600000, DAY = 86400000;
+
+  /* ---------------- Normalisation ---------------- */
+  function deacc(s) { return String(s).toLowerCase().replace(/œ/g, 'oe').replace(/æ/g, 'ae').normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+  // Fautes de reconnaissance et variantes d'écriture (sur des mots déjà sans accents)
+  var FIX = {
+    'met': 'mets', 'mais': 'mets', 'mai': 'mai', 'rapel': 'rappel', 'rappelles': 'rappelle', 'rapelle': 'rappelle', 'appel': 'appelle',
+    'minuterie': 'minuteur', 'minutteur': 'minuteur', 'timer': 'minuteur', 'chronometre': 'chrono', 'chronos': 'chrono',
+    'wifi': 'wifi', 'wi': 'wi', 'pourcent': '%', 'pourcents': '%', 'euros': '€', 'euro': '€', 'eur': '€', 'balles': '€',
+    'aujourdhui': 'aujourd hui', 'rdv': 'rendez vous', 'rendezvous': 'rendez vous', 'svp': 's il vous plait', 'stp': 's il te plait',
+    'okay': 'ok', 'oké': 'ok', 'ouais': 'oui', 'ouaip': 'oui', 'yes': 'oui', 'nan': 'non', 'meteo': 'meteo', 'temperatures': 'temperature',
+    'kilos': 'kilo', 'kilogrammes': 'kg', 'kilogramme': 'kg', 'grammes': 'g', 'gramme': 'g', 'tonnes': 'tonne', 'litres': 'litre',
+    'metres': 'metre', 'centimetres': 'cm', 'centimetre': 'cm', 'millimetres': 'mm', 'millimetre': 'mm', 'kilometres': 'km', 'kilometre': 'km',
+    'pouces': 'pouce', 'pieds': 'pied', 'bars': 'bar', 'degres': 'degre', 'secondes': 'seconde', 'minutes': 'minute', 'heures': 'heure',
+    'jours': 'jour', 'semaines': 'semaine', 'centimes': 'centime', 'livres': 'livre', 'onces': 'once', 'gallons': 'gallon', 'miles': 'mile',
+    'atmospheres': 'atm', 'atmosphere': 'atm', 'pascals': 'pa', 'pascal': 'pa', 'kilopascals': 'kpa', 'kilopascal': 'kpa', 'megapascals': 'mpa', 'megapascal': 'mpa',
+    'millibars': 'mbar', 'millibar': 'mbar', 'noeuds': 'noeud', 'yards': 'yard', 'kelvins': 'kelvin', 'mn': 'minute', 'min': 'minute', 'mins': 'minute',
+    'sec': 'seconde', 'secs': 'seconde', 'hrs': 'heure', 'fahrenheit': 'fahrenheit', 'farenheit': 'fahrenheit', 'farenheight': 'fahrenheit', 'celcius': 'celsius',
+    'minuteurs': 'minuteur', 'heur': 'heure', 'chui': 'je suis', 'jsuis': 'je suis', 'texto': 'sms', 'textos': 'sms', 'textot': 'sms', 'massage': 'message', 'courses': 'courses'
+  };
+  // Verbes de commande : la dictée écrit souvent « connecter », « connectez », « connectée » pour « connecte » (même son).
+  // Ces formes sont ramenées à la forme de commande ; le texte d'origine (corps d'un SMS, d'un rappel…) n'est pas touché.
+  var VERBS = {}; 'abaisse achete active affiche ajoute allume annule appaire arrete augmente baisse bouge branche change commande commence confirme connecte continue copie couche coupe cree debute deconnecte decroche demande demarre deplace deroule desactive diminue donne ecoute enleve enroule eteigne excuse ferme garde importe interroge lance leve monte montre note oriente ouvre parle passe place positionne programme quitte raccroche rallume range redemarre redige regle rejoue relance releve relie remonte rentre repete replie retourne reveille revise stoppe tamise telephone termine teste tourne valide joue'.split(' ').forEach(function (v) { VERBS[v] = 1; });
+  function verbForm(n) {
+    var m = /^([a-z]{3,})(er|ez|ee|ees|es)$/.exec(n);
+    return m && VERBS[m[1] + 'e'] ? m[1] + 'e' : n;
+  }
+  var NUMW = { zero: 0, un: 1, une: 1, deux: 2, trois: 3, quatre: 4, cinq: 5, six: 6, sept: 7, huit: 8, neuf: 9, dix: 10, onze: 11, douze: 12,
+    treize: 13, quatorze: 14, quinze: 15, seize: 16, vingt: 20, vingts: 20, trente: 30, quarante: 40, cinquante: 50, soixante: 60,
+    septante: 70, huitante: 80, octante: 80, nonante: 90, cent: 100, cents: 100, mille: 1000, mil: 1000, million: 1e6, millions: 1e6,
+    milliard: 1e9, milliards: 1e9, premier: 1, premiere: 1 };
+  // mots après lesquels « un / une » est un nombre (unités, durées, opérations)
+  var UNITW = /^(seconde|minute|heure|h|jour|semaine|mois|an|ans|annee|annees|quart|quarts|demi|demie|€|centime|%|kilo|kg|g|tonne|litre|l|ml|metre|m|cm|mm|km|pouce|pied|mile|yard|degre|°|bar|psi|pa|kpa|mpa|atm|mbar|livre|once|gallon|noeud|plus|moins|fois|x|divise|sur|multiplie|puissance|et|virgule)$/;
+  var OPW = /^(plus|moins|fois|x|divise|par|sur|multiplie|egal|a|de)$/;
+
+  function tokenize(text) {
+    var out = [], re = /\d+(?:[.,]\d+)?|[a-zà-ÿœæç]+|[%€°:\/+*=×÷]/gi, m;
+    while ((m = re.exec(text))) {
+      var raw = m[0], n = deacc(raw);
+      if (/^\d/.test(n)) n = n.replace(',', '.');
+      if (n === '×') n = 'fois'; if (n === '÷') n = 'divise';
+      if (n === '*') n = 'fois';
+      out.push({ n: n, s: m.index, e: m.index + raw.length });
+    }
+    // corrections mot à mot (les remplacements à deux mots sont éclatés en deux jetons)
+    var res = [];
+    out.forEach(function (t) {
+      var f = Object.prototype.hasOwnProperty.call(FIX, t.n) ? FIX[t.n] : verbForm(t.n);
+      f.split(' ').forEach(function (w) { res.push({ n: w, s: t.s, e: t.e }); });
+    });
+    return res;
+  }
+  function isNumW(w) { return Object.prototype.hasOwnProperty.call(NUMW, w); }
+  /** Regroupe les nombres écrits en lettres : [quinze][pour][cent] → 15 % ; « deux cent quarante » → 240 */
+  function numberize(T) {
+    var out = [], i = 0;
+    function val(k) { return NUMW[T[k].n]; }
+    // milliers séparés par une espace : « 1 250 » → 1250
+    for (var q = 0; q < T.length - 1; q++) {
+      while (T[q + 1] && /^\d{1,3}$/.test(T[q].n) && /^\d{3}(\.\d+)?$/.test(T[q + 1].n) && T[q + 1].s - T[q].e === 1 && !(q > 0 && /^\d+$/.test(T[q - 1].n))) {
+        T.splice(q, 2, { n: T[q].n + T[q + 1].n, s: T[q].s, e: T[q + 1].e });
+      }
+    }
+    while (i < T.length) {
+      var w = T[i].n;
+      // « pour cent » → %
+      if (w === 'pour' && T[i + 1] && T[i + 1].n === 'cent' && (i === 0 || /^\d|^%$/.test(out.length ? out[out.length - 1].n : '') || true) && out.length && /^\d/.test(out[out.length - 1].n)) {
+        out.push({ n: '%', s: T[i].s, e: T[i + 1].e }); i += 2; continue;
+      }
+      if (/^\d+(\.\d+)?$/.test(w) && T[i + 1] && T[i + 1].n === 'virgule' && T[i + 2] && (/^\d+$/.test(T[i + 2].n) || isNumW(T[i + 2].n))) {
+        // 12 virgule 5 (chiffres) ou « douze virgule cinq » déjà converti
+        var j0 = i + 2, dec = '', e0 = T[i + 1].e;
+        if (/^\d+$/.test(T[j0].n)) { dec = T[j0].n; e0 = T[j0].e; j0++; }
+        else { var r0 = readNumber(T, j0); if (r0) { dec = String(r0.v); e0 = T[r0.end - 1].e; j0 = r0.end; } }
+        out.push({ n: w + '.' + dec, s: T[i].s, e: e0 }); i = j0; continue;
+      }
+      if ((w === 'dis' || w === 'sis') && T[i + 1] && /^(seconde|minute|heure|h|jour|€|%|kilo|kg|metre|bar)$/.test(T[i + 1].n)) { out.push({ n: w === 'dis' ? '10' : '6', s: T[i].s, e: T[i].e }); i++; continue; }
+      if (isNumW(w) && !(w === 'premier' || w === 'premiere') ) {
+        var r = readNumber(T, i);
+        if (r) {
+          var single = r.end - i === 1 && (w === 'un' || w === 'une');
+          if (single) {
+            var nx = T[r.end] ? T[r.end].n : '', pv = out.length ? out[out.length - 1].n : '';
+            var numeric = UNITW.test(nx) || /^(plus|moins|fois|x|divise|multiplie)$/.test(pv) || /^\d/.test(nx) || (pv === 'a' && /^(heure|h)$/.test(nx));
+            if (!numeric) { out.push(T[i]); i++; continue; }
+          }
+          var v = r.v, end = r.end;
+          // décimales : « deux virgule cinq »
+          if (T[end] && T[end].n === 'virgule' && T[end + 1]) {
+            if (/^\d+$/.test(T[end + 1].n)) { out.push({ n: v + '.' + T[end + 1].n, s: T[i].s, e: T[end + 1].e }); i = end + 2; continue; }
+            var r2 = readNumber(T, end + 1);
+            if (r2) { out.push({ n: v + '.' + r2.v, s: T[i].s, e: T[r2.end - 1].e }); i = r2.end; continue; }
+          }
+          out.push({ n: String(v), s: T[i].s, e: T[end - 1].e }); i = end; continue;
+        }
+      }
+      if ((w === 'premier' || w === 'premiere') && T[i + 1] && /^(janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre)$/.test(T[i + 1].n)) { out.push({ n: '1', s: T[i].s, e: T[i].e }); i++; continue; }
+      if (w === 'er' && out.length && out[out.length - 1].n === '1') { i++; continue; }   // 1er
+      out.push(T[i]); i++;
+    }
+    return out;
+  }
+  /** Lit un nombre en lettres à partir de T[i] → {v, end} (end exclu) ou null */
+  function readNumber(T, i) {
+    var total = 0, cur = 0, k = i, any = false, last = null;
+    while (k < T.length) {
+      var w = T[k].n;
+      if (w === 'et' && any && T[k + 1] && /^(un|une|onze)$/.test(T[k + 1].n) && cur % 10 === 0 && cur % 100 >= 20) { k++; continue; }
+      if (!isNumW(w) || w === 'premier' || w === 'premiere') break;
+      var v = NUMW[w];
+      if (v === 100) { if (cur % 100 === 0 && cur >= 100) break; cur = cur - cur % 100 + (cur % 100 || 1) * 100; }
+      else if (v === 1000) { total += (cur || 1) * 1000; cur = 0; }
+      else if (v >= 1e6) { total += (cur || 1) * v; cur = 0; }
+      else if (v === 20 && last === 4 && cur % 100 === 4) { cur += 76; }             // quatre-vingt(s)
+      else if (v >= 10 && v <= 19 && (cur % 100 === 60 || cur % 100 === 80)) { cur += v; }   // soixante-dix, quatre-vingt-onze
+      else if (v >= 7 && v <= 9 && cur % 100 === 10 && last === 10) { cur += v; }   // dix-sept
+      else if (v < 10 && cur % 100 >= 20 && cur % 10 === 0) { cur += v; }            // vingt-deux
+      else if (v < 100 && v >= 20 && cur % 100 === 0) { cur += v; }
+      else if (v < 20 && cur % 100 === 0) { cur += v; }
+      else break;
+      last = v; any = true; k++;
+    }
+    if (!any) return null;
+    return { v: total + cur, end: k };
+  }
+
+  /** Prépare une phrase : jetons normalisés (avec position dans l'original) et texte de travail */
+  function prep(raw, ctx) {
+    var T = numberize(tokenize(String(raw || '')));
+    // retire le mot de réveil et les formules de politesse en début et en fin de phrase
+    var names = (ctx && ctx.names || []).map(deacc).concat(['majordome', 'jarvis', 'jarvice', 'jarvi', 'djarvis']);
+    var lead = [['ok'], ['hey'], ['he'], ['eh'], ['dis'], ['alors'], ['bon'], ['euh'], ['heu'], ['allo'], ['et']];
+    var polite = [['s', 'il', 'te', 'plait'], ['s', 'il', 'vous', 'plait'], ['merci'], ['est', 'ce', 'que', 'tu', 'peux'], ['est', 'ce', 'que', 'vous', 'pouvez'],
+      ['tu', 'peux'], ['tu', 'pourrais'], ['peux', 'tu'], ['pourrais', 'tu'], ['pouvez', 'vous'], ['pourriez', 'vous'], ['vous', 'pouvez'],
+      ['je', 'voudrais', 'que', 'tu'], ['je', 'veux', 'que', 'tu'], ['je', 'voudrais'], ['j', 'aimerais'], ['je', 'veux'], ['veux', 'tu'], ['voudrais', 'tu']];
+    var nameToks = names.map(function (n) { return n.split(/\s+/); }).concat([['major', 'dome'], ['majors', 'dome'], ['jar', 'vis'], ['jarre', 'vis']]);
+    function startsWith(seq, at) { for (var q = 0; q < seq.length; q++) if (!T[at + q] || T[at + q].n !== seq[q]) return false; return true; }
+    // nom mal reconnu (« Charvis », « Jervis », « Jarvisse ») : proche d'un nom d'au moins 5 lettres, à 2 lettres près
+    var longNames = names.filter(function (n) { return n.length >= 5 && n.indexOf(' ') < 0; });
+    function nameLike(tok) { if (!tok || tok.n.length < 4) return false; for (var q = 0; q < longNames.length; q++) { var n = longNames[q]; if (Math.abs(n.length - tok.n.length) <= 2 && lev(n, tok.n) <= (n.length >= 6 ? 2 : 1) && (tok.n[1] === n[1] || tok.n.slice(-2) === n.slice(-2))) return true; } return false; }
+    var changed = true, guard = 0, wake = false;
+    while (changed && guard++ < 12) {
+      changed = false;
+      if ((startsWith(['dis', 'moi'], 0) || startsWith(['dites', 'moi'], 0) || startsWith(['donne', 'moi'], 0) || startsWith(['donnez', 'moi'], 0)) && T.length > 2) { T = T.slice(2); changed = true; }
+      for (var a = 0; a < lead.length; a++) if (startsWith(lead[a], 0) && T.length > lead[a].length && !(lead[a][0] === 'dis' && T[1] && /^(moi|a|au|lui|leur)$/.test(T[1].n))) { T = T.slice(lead[a].length); changed = true; }
+      for (var b = 0; b < nameToks.length; b++) if (startsWith(nameToks[b], 0)) { T = T.slice(nameToks[b].length); changed = true; wake = true; }
+      if (T.length > 1 && nameLike(T[0])) { T = T.slice(1); changed = true; wake = true; }
+      if (T.length > 1 && nameLike(T[T.length - 1])) { T = T.slice(0, -1); changed = true; wake = true; }
+      for (var c = 0; c < polite.length; c++) if (startsWith(polite[c], 0) && T.length > polite[c].length) { T = T.slice(polite[c].length); changed = true; }
+      for (var d = 0; d < nameToks.length; d++) { var L = nameToks[d].length; if (T.length > L && startsWith(nameToks[d], T.length - L)) { T = T.slice(0, T.length - L); changed = true; wake = true; } }
+      for (var e = 0; e < polite.length; e++) { var L2 = polite[e].length; if (T.length > L2 && startsWith(polite[e], T.length - L2) && polite[e][0] !== 'merci') { T = T.slice(0, T.length - L2); changed = true; } }
+    }
+    var text = '', pos = [];
+    T.forEach(function (t, k) { if (k) text += ' '; pos.push(text.length); text += t.n; });
+    return { T: T, t: text, pos: pos, raw: String(raw || ''), wake: wake };
+  }
+  /** Morceau de la phrase d'origine (accents, majuscules) correspondant à t[i0, i1) */
+  function orig(P, i0, i1) {
+    if (i1 == null) i1 = P.t.length;
+    var a = -1, b = -1;
+    for (var k = 0; k < P.T.length; k++) {
+      var s = P.pos[k], e = s + P.T[k].n.length;
+      if (e > i0 && s < i1) { if (a < 0) a = k; b = k; }
+    }
+    if (a < 0) return '';
+    return P.raw.slice(P.T[a].s, P.T[b].e).replace(/^[\s,;:.!?«»"']+|[\s,;:.!?«»"']+$/g, '');
+  }
+
+  /* ---------------- Dates et heures ---------------- */
+  var MONTHS = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin', 'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre'];
+  var WDAYS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+  var UNIT_MS = { seconde: 1000, s: 1000, minute: MIN, heure: HOUR, h: HOUR, jour: DAY, semaine: 7 * DAY };
+  function startOfDay(ms) { var d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime(); }
+  function addDays(ms, n) { var d = new Date(ms); d.setDate(d.getDate() + n); return d.getTime(); }
+
+  /** Durée à la position de t (chaîne normalisée) : « 1 heure 30 », « 10 minute », « 1 quart d heure »… → {ms, i0, i1} */
+  var DUR_RE = new RegExp('(?:(\\d+(?:\\.\\d+)?) (heure|h|minute|seconde|s|jour|semaine)(?: (?:et )?(\\d+)(?: (minute|seconde))?)?(?: et (demie?|quart))?' +
+    '|(?:(\\d) )?quarts? d heure|(?:1 )?demie? heure|(?:1 )?demie? minute|(?:1 )?demie? journee|(\\d+) h (\\d+))', 'g');
+  function durations(t) {
+    var out = [], m; DUR_RE.lastIndex = 0;
+    while ((m = DUR_RE.exec(t))) {
+      var s = m[0], ms = 0;
+      if (m[2]) {
+        var u = UNIT_MS[m[2]] || MIN, v = parseFloat(m[1]);
+        ms = v * u;
+        if (m[3]) { var sub = m[4] ? UNIT_MS[m[4]] : (u === HOUR ? MIN : u === MIN ? 1000 : 0); ms += parseFloat(m[3]) * sub; }
+        if (m[5]) ms += (/demi/.test(m[5]) ? 0.5 : 0.25) * u;
+      } else if (/quarts? d heure/.test(s)) ms = (m[6] ? +m[6] : 1) * 15 * MIN;
+      else if (/demie? heure/.test(s)) ms = 30 * MIN;
+      else if (/demie? minute/.test(s)) ms = 30000;
+      else if (/demie? journee/.test(s)) ms = 12 * HOUR;
+      else if (m[7]) ms = +m[7] * HOUR + +m[8] * MIN;
+      if (ms > 0) out.push({ ms: Math.round(ms), i0: m.index, i1: m.index + s.length });
+    }
+    return out;
+  }
+
+  /** Repère les expressions de temps dans t → {at, day, hasTime, hasDay, rel, spans, range, allDay} (at en ms) */
+  function findWhen(t, now) {
+    now = now || Date.now();
+    var spans = [], res = { spans: spans, hasTime: false, hasDay: false, rel: false };
+    function mark(i0, i1) { spans.push([i0, i1]); }
+    function masked(i) { return spans.some(function (s) { return i >= s[0] && i < s[1]; }); }
+    var m;
+    // 1. relatif : « dans 10 minute », « dans 1 heure et demie »
+    var dre = /\bdans (\d+(?:\.\d+)? (?:heure|h|minute|seconde|s|jour|semaine)\b(?: (?:et )?\d+(?: (?:minute|seconde))?)?(?: et (?:demie?|quart))?|(?:\d )?quarts? d heure|(?:1 )?demie? heure|(?:1 )?demie? minute|\d+ h \d+)/g;
+    while ((m = dre.exec(t))) {
+      var ds = durations(m[1]);
+      if (ds.length) { res.at = now + ds[0].ms; res.rel = true; res.hasTime = true; res.relMs = ds[0].ms; mark(m.index, m.index + m[0].length); break; }
+    }
+    if (res.rel) return res;
+    // 2. jour
+    var day = null, dayRe;
+    if ((m = /\b(apres demain)\b/.exec(t))) { day = startOfDay(addDays(now, 2)); mark(m.index, m.index + m[0].length); }
+    else if ((m = /\b(avant hier)\b/.exec(t))) { day = startOfDay(addDays(now, -2)); mark(m.index, m.index + m[0].length); }
+    else if ((m = /\b(demain)\b/.exec(t))) { day = startOfDay(addDays(now, 1)); mark(m.index, m.index + m[0].length); }
+    else if ((m = /\b(hier)\b/.exec(t))) { day = startOfDay(addDays(now, -1)); mark(m.index, m.index + m[0].length); }
+    else if ((m = /\b(aujourd hui|ce jour)\b/.exec(t))) { day = startOfDay(now); mark(m.index, m.index + m[0].length); }
+    if (day == null && (m = /\b(?:le |ce |du |au )?(?:(lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche) )?(?:le )?(\d{1,2})(?: (janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre)| \/ (\d{1,2}))(?: (\d{4}))?\b/.exec(t))) {
+      var dd = +m[2], mo = m[3] ? MONTHS.indexOf(m[3]) : +m[4] - 1, yy = m[5] ? +m[5] : new Date(now).getFullYear();
+      if (dd >= 1 && dd <= 31 && mo >= 0 && mo < 12) {
+        var dt = new Date(yy, mo, dd).getTime();
+        if (!m[5] && dt < startOfDay(now)) dt = new Date(yy + 1, mo, dd).getTime();
+        day = dt; mark(m.index, m.index + m[0].length);
+      }
+    }
+    if (day == null && (dayRe = /\b(?:(ce|cette) )?(lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)(?: (prochain|qui vient|en huit))?\b/.exec(t))) {
+      var wd = WDAYS.indexOf(dayRe[2]), cur = new Date(now).getDay(), diff = (wd - cur + 7) % 7;
+      if (dayRe[3] === 'en huit') diff += 7;
+      else if (diff === 0 && !dayRe[1]) diff = 7;
+      day = startOfDay(addDays(now, diff)); mark(dayRe.index, dayRe.index + dayRe[0].length);
+    }
+    if (day == null && (m = /\b(?:le )?(\d{1,2})(?: du mois)?\b(?! ?(?:h|heure|minute|seconde|%|€|jour|semaine|mois))/.exec(t)) && /\ble \d{1,2}\b/.test(t.slice(m.index, m.index + 6))) {
+      var d1 = +m[1];
+      if (d1 >= 1 && d1 <= 31) { var nd = new Date(now); var cand = new Date(nd.getFullYear(), nd.getMonth(), d1).getTime(); if (cand < startOfDay(now)) cand = new Date(nd.getFullYear(), nd.getMonth() + 1, d1).getTime(); day = cand; mark(m.index, m.index + m[0].length); }
+    }
+    // moment de la journée
+    var part = null;
+    if ((m = /\b(ce soir|du soir|le soir|dans la soiree|cette nuit|de la nuit)\b/.exec(t))) { part = 'soir'; mark(m.index, m.index + m[0].length); }
+    else if ((m = /\b(cet apres midi|de l apres midi|l apres midi|apres midi|de l aprem|cet aprem)\b/.exec(t))) { part = 'aprem'; mark(m.index, m.index + m[0].length); }
+    else if ((m = /\b(ce matin|du matin|le matin|dans la matinee)\b/.exec(t))) { part = 'matin'; mark(m.index, m.index + m[0].length); }
+    else if ((m = /\b(a midi|midi)\b/.exec(t)) && !/\bapres midi\b/.test(t)) { /* traité plus bas */ }
+    var explicitDay = day != null;
+    if (part && day == null) day = startOfDay(now);
+    // 3. heure
+    var hh = null, mm = 0, tm;
+    if ((tm = /\b(?:a |vers |pour |des |de |a partir de |jusqu a )?(\d{1,2}) ?(?:h|heure)(?: ?(\d{1,2})(?! ?(?:minute|seconde|%|€|jour))(?: minute)?)?(?: (et demie?|et quart|moins le quart|moins (\d{1,2})))?\b/.exec(t)) && !masked(tm.index)) {
+      hh = +tm[1]; mm = tm[2] ? +tm[2] : 0;
+      if (tm[3] === 'et demi' || tm[3] === 'et demie') mm = 30; else if (tm[3] === 'et quart') mm = 15; else if (tm[3] === 'moins le quart') { hh -= 1; mm = 45; } else if (tm[4]) { hh -= 1; mm = 60 - +tm[4]; }
+      mark(tm.index, tm.index + tm[0].length);
+    } else if ((tm = /\b(?:a |vers |pour )?(\d{1,2}) : (\d{2})\b/.exec(t))) {
+      hh = +tm[1]; mm = +tm[2]; mark(tm.index, tm.index + tm[0].length);
+    } else if ((tm = /\b(?:a |vers |pour )?(midi|minuit)(?: (et demie?|et quart|moins le quart))?\b/.exec(t)) && !/\bapres midi\b/.test(t.slice(Math.max(0, tm.index - 6), tm.index + 5))) {
+      hh = tm[1] === 'midi' ? 12 : 0; mm = 0;
+      if (tm[2] && /demi/.test(tm[2])) mm = 30; else if (tm[2] === 'et quart') mm = 15; else if (tm[2] === 'moins le quart') { hh = (hh + 23) % 24; mm = 45; }
+      mark(tm.index, tm.index + tm[0].length);
+    }
+    if (hh != null && hh >= 0 && hh <= 24 && mm >= 0 && mm < 60) {
+      if (hh === 24) hh = 0;
+      if ((part === 'soir' || part === 'aprem') && hh < 12) hh += 12;
+      if (part === 'soir' && hh === 24) hh = 0;
+      res.hasTime = true;
+      var base = day != null ? day : startOfDay(now);
+      var at = new Date(base); at.setHours(hh, mm, 0, 0);
+      if (!explicitDay && at.getTime() <= now) {
+        // heure passée aujourd'hui : demain (ou ce soir pour « 7 h » quand il est 15 h ? on garde la règle simple : prochaine occurrence)
+        if (!part && hh < 12 && hh + 12 > new Date(now).getHours() && at.getTime() + 12 * HOUR > now && hh !== 0 && /\b(ce soir|tout a l heure|tantot)\b/.test(t)) at.setHours(hh + 12);
+        else at = new Date(addDays(at.getTime(), 1));
+        res.nextDay = true;
+      }
+      res.at = at.getTime();
+    } else if (day != null) {
+      res.at = part === 'soir' ? day + 20 * HOUR : part === 'aprem' ? day + 14 * HOUR : part === 'matin' ? day + 8 * HOUR : day;
+      res.allDay = !part;
+    }
+    if (res.nextDay) day = startOfDay(res.at);
+    if (day != null) { res.hasDay = explicitDay; res.day = day; }
+    else if (res.at != null) res.day = startOfDay(res.at);
+    res.part = part;
+    return res;
+  }
+  /** Retire des morceaux (spans) d'une chaîne */
+  function cut(t, spans) {
+    var s = spans.slice().sort(function (a, b) { return b[0] - a[0]; }), r = t;
+    s.forEach(function (x) { r = r.slice(0, x[0]) + ' ' + r.slice(x[1]); });
+    return r.replace(/\s+/g, ' ').trim();
+  }
+  /** Version « originale » d'un texte normalisé obtenu en retirant des morceaux : on garde les jetons d'origine hors des spans */
+  function origCut(P, from, to, spans) {
+    var keep = [];
+    for (var k = 0; k < P.T.length; k++) {
+      var s = P.pos[k], e = s + P.T[k].n.length;
+      if (s < from || e > to) continue;
+      if (spans.some(function (x) { return s < x[1] && e > x[0]; })) continue;
+      keep.push(k);
+    }
+    if (!keep.length) return '';
+    // regroupe les jetons contigus pour garder la ponctuation et l'écriture d'origine
+    var out = [], a = keep[0], b = keep[0];
+    for (var i = 1; i < keep.length; i++) { if (keep[i] === b + 1) b = keep[i]; else { out.push(P.raw.slice(P.T[a].s, P.T[b].e)); a = b = keep[i]; } }
+    out.push(P.raw.slice(P.T[a].s, P.T[b].e));
+    return out.join(' ').replace(/\s+/g, ' ').replace(/^[\s,;:.!?«»"'-]+|[\s,;:.!?«»"'-]+$/g, '');
+  }
+
+  /* ---------------- Fêtes et dates connues ---------------- */
+  function easter(y) {
+    var a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3),
+      h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451),
+      mo = Math.floor((h + l - 7 * m + 114) / 31), da = ((h + l - 7 * m + 114) % 31) + 1;
+    return new Date(y, mo - 1, da);
+  }
+  function lastSundayOfMay(y) { var d = new Date(y, 4, 31); d.setDate(31 - d.getDay()); return d; }
+  var FETES = [
+    { re: /\b(noel|la noel)\b/, n: 'Noël', f: function (y) { return new Date(y, 11, 25); } },
+    { re: /\b(nouvel an|jour de l an|premier de l an|reveillon du nouvel an|saint sylvestre)\b/, n: 'le jour de l\'An', f: function (y) { return new Date(y, 0, 1); }, next: true },
+    { re: /\b(paques)\b/, n: 'Pâques', f: easter },
+    { re: /\b(ascension)\b/, n: 'l\'Ascension', f: function (y) { var e = easter(y); e.setDate(e.getDate() + 39); return e; } },
+    { re: /\b(pentecote)\b/, n: 'la Pentecôte', f: function (y) { var e = easter(y); e.setDate(e.getDate() + 49); return e; } },
+    { re: /\b(fete nationale|14 juillet)\b/, n: 'le 14 Juillet', f: function (y) { return new Date(y, 6, 14); } },
+    { re: /\b(toussaint)\b/, n: 'la Toussaint', f: function (y) { return new Date(y, 10, 1); } },
+    { re: /\b(armistice|11 novembre)\b/, n: 'le 11 Novembre', f: function (y) { return new Date(y, 10, 11); } },
+    { re: /\b(fete du travail|1 mai)\b/, n: 'le 1er Mai', f: function (y) { return new Date(y, 4, 1); } },
+    { re: /\b(8 mai|victoire 1945)\b/, n: 'le 8 Mai', f: function (y) { return new Date(y, 4, 8); } },
+    { re: /\b(assomption|15 aout)\b/, n: 'l\'Assomption', f: function (y) { return new Date(y, 7, 15); } },
+    { re: /\b(saint valentin)\b/, n: 'la Saint-Valentin', f: function (y) { return new Date(y, 1, 14); } },
+    { re: /\b(halloween)\b/, n: 'Halloween', f: function (y) { return new Date(y, 9, 31); } },
+    { re: /\b(fete des meres)\b/, n: 'la fête des Mères', f: function (y) { var d = lastSundayOfMay(y), p = easter(y); p.setDate(p.getDate() + 49); if (d.getTime() === p.getTime()) d.setDate(d.getDate() + 7); return d; } },
+    { re: /\b(fete des peres)\b/, n: 'la fête des Pères', f: function (y) { var d = new Date(y, 5, 1); var add = (7 - d.getDay()) % 7; d.setDate(1 + add + 14); return d; } },
+    { re: /\b(epiphanie|galette des rois)\b/, n: 'l\'Épiphanie', f: function (y) { return new Date(y, 0, 6); } },
+    { re: /\b(chandeleur)\b/, n: 'la Chandeleur', f: function (y) { return new Date(y, 1, 2); } },
+    { re: /\b(fete de la musique)\b/, n: 'la fête de la Musique', f: function (y) { return new Date(y, 5, 21); } }
+  ];
+  function nextFete(t, now) {
+    for (var i = 0; i < FETES.length; i++) {
+      if (!FETES[i].re.test(t)) continue;
+      var y = new Date(now).getFullYear(), d = FETES[i].f(y);
+      if (d.getTime() < startOfDay(now)) d = FETES[i].f(y + 1);
+      return { name: FETES[i].n, at: d.getTime() };
+    }
+    return null;
+  }
+
+  /* ---------------- Calcul ---------------- */
+  /** Évalue une expression dite : « 15 % de 240 », « 3 plus 4 fois 2 », « racine carree de 144 », « 2 puissance 10 » → nombre ou null */
+  function calcExpr(t) {
+    var s = ' ' + t + ' ';
+    s = s.replace(/\b(combien (font|fait|ca fait|font|egal|egale)|ca fait combien|calcule|calcul|le resultat de|resultat de|combien|ca fait|fait|font|egal a|egale|egal|est egal a|c est combien|s il te plait|merci)\b/g, ' ');
+    s = s.replace(/\bmultiplie(?:e|s)? par\b/g, ' * ').replace(/\bdivise(?:e|s)? par\b/g, ' / ').replace(/\bdivise\b/g, ' / ')
+      .replace(/\bfois\b/g, ' * ').replace(/(\d) x (\d)/g, '$1 * $2').replace(/\bplus\b/g, ' + ').replace(/\bmoins\b/g, ' - ').replace(/\bsur\b/g, ' / ')
+      .replace(/\b(puissance|exposant|a la puissance)\b/g, ' ^ ').replace(/\bau carre\b/g, ' ^ 2 ').replace(/\bau cube\b/g, ' ^ 3 ')
+      .replace(/\bracine(?: carree)? (?:de |d )?/g, ' sqrt ').replace(/\b(la )?moitie (de |d )/g, ' 0.5 * ').replace(/\b(le )?double (de |d )/g, ' 2 * ')
+      .replace(/\b(le )?triple (de |d )/g, ' 3 * ').replace(/\b(le )?tiers (de |d )/g, ' (1/3) * ').replace(/\b(le )?quart (de |d )/g, ' 0.25 * ')
+      .replace(/(\d+(?:\.\d+)?) ?% (?:de |d |des |du )/g, ' $1 / 100 * ').replace(/(\d+(?:\.\d+)?) ?%/g, ' $1 / 100 ').replace(/€/g, ' ')
+      .replace(/\b(le|la|les|de|d|du|des|a|et)\b/g, ' ');
+    s = s.replace(/\s+/g, ' ').trim();
+    if (!/\d/.test(s) || /[a-z]{2,}/.test(s.replace(/sqrt/g, ''))) return null;
+    var toks = s.match(/sqrt|\d+(?:\.\d+)?|[-+*/^()]/g); if (!toks) return null;
+    var i = 0;
+    function peek() { return toks[i]; }
+    function expr() { var v = term(); while (peek() === '+' || peek() === '-') { var o = toks[i++], w = term(); v = o === '+' ? v + w : v - w; } return v; }
+    function term() { var v = pow(); while (peek() === '*' || peek() === '/') { var o = toks[i++], w = pow(); v = o === '*' ? v * w : v / w; } return v; }
+    function pow() { var v = unary(); if (peek() === '^') { i++; var w = pow(); v = Math.pow(v, w); } return v; }
+    function unary() { if (peek() === '-') { i++; return -unary(); } if (peek() === 'sqrt') { i++; return Math.sqrt(unary()); } return prim(); }
+    function prim() { var x = toks[i++]; if (x === '(') { var v = expr(); if (toks[i] === ')') i++; return v; } var n = parseFloat(x); if (isNaN(n)) throw new Error('nb'); return n; }
+    try { var v = expr(); if (i !== toks.length || !isFinite(v)) return null; return v; } catch (e) { return null; }
+  }
+
+  /* ---------------- Conversions d'unités ---------------- */
+  var UNITS = {
+    mm: ['l', 0.001, 'millimètre'], cm: ['l', 0.01, 'centimètre'], m: ['l', 1, 'mètre'], metre: ['l', 1, 'mètre'], km: ['l', 1000, 'kilomètre'],
+    pouce: ['l', 0.0254, 'pouce'], pied: ['l', 0.3048, 'pied'], yard: ['l', 0.9144, 'yard'], mile: ['l', 1609.344, 'mile'],
+    g: ['w', 0.001, 'gramme'], kg: ['w', 1, 'kilo'], kilo: ['w', 1, 'kilo'], tonne: ['w', 1000, 'tonne'], livre: ['w', 0.45359237, 'livre'], once: ['w', 0.028349523125, 'once'],
+    bar: ['p', 1e5, 'bar'], mbar: ['p', 100, 'millibar'], psi: ['p', 6894.757293168, 'psi'], pa: ['p', 1, 'pascal'], kpa: ['p', 1000, 'kilopascal'], mpa: ['p', 1e6, 'mégapascal'], atm: ['p', 101325, 'atmosphère'],
+    litre: ['v', 0.001, 'litre'], l: ['v', 0.001, 'litre'], ml: ['v', 1e-6, 'millilitre'], gallon: ['v', 0.003785411784, 'gallon'], m3: ['v', 1, 'mètre cube'],
+    kmh: ['s', 1 / 3.6, 'kilomètre-heure'], ms: ['s', 1, 'mètre par seconde'], noeud: ['s', 0.514444, 'nœud'], mph: ['s', 0.44704, 'mile par heure'],
+    celsius: ['t', 'C', 'degré Celsius'], fahrenheit: ['t', 'F', 'degré Fahrenheit'], kelvin: ['t', 'K', 'kelvin']
+  };
+  function unitAt(t) {
+    // repère les unités (formes normalisées) dans t, dans l'ordre
+    var re = /(?:\b|°)(km \/ h|km h|kilometre heure|kilometres heure|m \/ s|metre par seconde|metre cube|degre celsius|degre fahrenheit|° ?c|° ?f|mm|cm|km|metre|m3|m|pouce|pied|yard|mile|kg|kilo|g|tonne|livre|once|mbar|bar|psi|kpa|mpa|pa|atm|litre|l|ml|gallon|noeud|mph|celsius|fahrenheit|kelvin|degre)\b/g, m, out = [];
+    while ((m = re.exec(t))) {
+      var u = m[1].replace(/\s+/g, ' ');
+      if (/^(degre celsius|celsius|° ?c)$/.test(u)) u = 'celsius';
+      else if (/^(degre fahrenheit|fahrenheit|° ?f)$/.test(u)) u = 'fahrenheit';
+      else if (/^(km \/ h|km h|kilometres? heure)$/.test(u)) u = 'kmh';
+      else if (/^(m \/ s|metre par seconde)$/.test(u)) u = 'ms';
+      else if (u === 'metre cube') u = 'm3';
+      else if (u === 'degre') u = 'deg?';
+      out.push({ u: u, i: m.index, len: m[0].length });
+    }
+    return out;
+  }
+  // tuyauterie : diamètre nominal (pouces → DN, diamètre extérieur en mm, séries EN 10255 / ASME B36.10)
+  var DN = [[0.125, 6, 10.2], [0.25, 8, 13.5], [0.375, 10, 17.2], [0.5, 15, 21.3], [0.75, 20, 26.9], [1, 25, 33.7], [1.25, 32, 42.4], [1.5, 40, 48.3],
+    [2, 50, 60.3], [2.5, 65, 76.1], [3, 80, 88.9], [4, 100, 114.3], [5, 125, 139.7], [6, 150, 168.3], [8, 200, 219.1], [10, 250, 273], [12, 300, 323.9]];
+  function convert(t) {
+    if (!/\b(en|vers|convertis|convertir|conversion|combien de|combien d|ca fait combien)\b/.test(t)) return null;
+    var us = unitAt(t);
+    if (us.length < 2) return null;
+    var a = us[0], b = us[us.length - 1];
+    // « combien de psi font 6 bars » : l'unité cible est la première
+    var target, source;
+    var cm = /\bcombien (?:de |d )/.exec(t);
+    if (cm && cm.index + cm[0].length === a.i) { target = a; source = us[1]; }
+    else { source = a; target = b; for (var k = 1; k < us.length; k++) { if (/\b(en|vers)\s*$/.test(t.slice(0, us[k].i))) { target = us[k]; break; } } }
+    if (source === target) return null;
+    var su = source.u, tu = target.u;
+    if (su === 'deg?') su = tu === 'fahrenheit' ? 'celsius' : tu === 'celsius' ? 'fahrenheit' : 'celsius';
+    if (tu === 'deg?') tu = su === 'fahrenheit' ? 'celsius' : 'fahrenheit';
+    if (!UNITS[su] || !UNITS[tu] || UNITS[su][0] !== UNITS[tu][0]) return { error: 'incompatible', from: su, to: tu };
+    // valeur : nombre juste avant l'unité source (« 1 pouce et demi », « 3 / 4 de pouce », « 2 pouce 1 / 2 »)
+    var before = t.slice(0, source.i).trim(), after = t.slice(source.i + source.len), v = null, m;
+    if ((m = /(\d) quarts? (?:de |d )?$/.exec(before + ' '))) v = m[1] / 4;
+    else if (/\bdemie? (?:de |d )?$/.test(before + ' ')) v = 0.5;
+    else if ((m = /(\d+) \/ (\d+) (?:de |d )?$/.exec(before + ' '))) {
+      var whole = /(\d+) (?:et )?(\d+) \/ (\d+) (?:de |d )?$/.exec(before + ' ');
+      v = whole ? +whole[1] + whole[2] / whole[3] : m[1] / m[2];
+    } else if ((m = /(\d+(?:\.\d+)?)\s*$/.exec(before))) v = parseFloat(m[1]);
+    else if (/\bun$|\bune$/.test(before)) v = 1;
+    if (v == null && (m = /^\s*(\d+(?:\.\d+)?)/.exec(after)) && cm) v = parseFloat(m[1]);
+    if (v == null) { var m2 = /(\d+(?:\.\d+)?)/.exec(t); if (m2) v = parseFloat(m2[1]); }
+    if (v == null) v = 1;
+    if (/^ et demie?\b/.test(after)) v += 0.5; else if (/^ et quart\b/.test(after)) v += 0.25; else if ((m = /^ (\d) \/ (\d)/.exec(after))) v += m[1] / m[2];
+    if (/^\s*-/.test(before.slice(-2)) || /\bmoins (\d+(?:\.\d+)?)\s*$/.test(before)) v = -Math.abs(v);
+    var r;
+    if (UNITS[su][0] === 't') {
+      var c = su === 'celsius' ? v : su === 'fahrenheit' ? (v - 32) * 5 / 9 : v - 273.15;
+      r = tu === 'celsius' ? c : tu === 'fahrenheit' ? c * 9 / 5 + 32 : c + 273.15;
+    } else r = v * UNITS[su][1] / UNITS[tu][1];
+    var o = { value: v, from: su, to: tu, result: r, kind: UNITS[su][0] };
+    if (su === 'pouce' && (tu === 'mm' || tu === 'cm')) { var dn = DN.filter(function (x) { return Math.abs(x[0] - v) < 1e-6; })[0]; if (dn) o.dn = { dn: dn[1], od: dn[2] }; }
+    if (tu === 'pouce' && su === 'mm') { var dn2 = DN.filter(function (x) { return Math.abs(x[2] - v) < 0.6; })[0]; if (dn2) o.dnFromOd = { inch: dn2[0], dn: dn2[1] }; }
+    return o;
+  }
+
+  /* ---------------- Budget ---------------- */
+  var CATS = [
+    [/\b(carburant|essence|gasoil|gazole|diesel|sans plomb|plein|station service|super)\b/, 'c_carbu', 'Carburant'],
+    [/\b(courses|supermarche|alimentation|epicerie|marche|nourriture|leclerc|carrefour|auchan|lidl|intermarche)\b/, 'c_courses', 'Alimentation'],
+    [/\b(restaurant|resto|repas|dejeuner|diner|cafe|sandwich|boulangerie|kebab|pizza|mcdo|brasserie)\b/, 'c_resto', 'Restaurants'],
+    [/\b(loyer)\b/, 'c_loyer', 'Loyer'], [/\b(charges|syndic)\b/, 'c_charges', 'Charges'],
+    [/\b(electricite|edf)\b/, 'c_elec', 'Électricité'], [/\b(gaz)\b/, 'c_gaz', 'Gaz'], [/\b(eau)\b/, 'c_eau', 'Eau'],
+    [/\b(peage|parking|autoroute|stationnement)\b/, 'c_transp', 'Transport'], [/\b(train|bus|metro|tram|billet|sncf|navigo|taxi|uber)\b/, 'c_tc', 'Transports en commun'],
+    [/\b(garage|vidange|pneus?|entretien de la voiture|controle technique|reparation de la voiture)\b/, 'c_entr', 'Entretien'],
+    [/\b(pharmacie|medicaments?)\b/, 'c_pharma', 'Pharmacie'], [/\b(medecin|docteur|dentiste|kine|ophtalmo|hopital|consultation)\b/, 'c_sante', 'Santé'],
+    [/\b(mutuelle)\b/, 'c_mutu', 'Mutuelle'], [/\b(telephone|forfait)\b/, 'c_tel', 'Téléphone'], [/\b(internet|box)\b/, 'c_net', 'Internet'],
+    [/\b(netflix|spotify|deezer|disney|streaming)\b/, 'c_stream', 'Streaming'], [/\b(abonnement)\b/, 'c_abo', 'Abonnements'],
+    [/\b(cinema|loisirs?|sortie|concert|spectacle|jeu|jeux)\b/, 'c_loisirs', 'Loisirs'], [/\b(sport|salle de sport|piscine|club)\b/, 'c_sport', 'Sport'],
+    [/\b(vetements?|habits|chaussures|pantalon|blouson|tenue)\b/, 'c_vet', 'Vêtements'], [/\b(shopping|amazon|achats? en ligne)\b/, 'c_shop', 'Shopping'],
+    [/\b(bricolage|maison|meubles?|outils?|quincaillerie|materiel|brico|castorama|leroy merlin)\b/, 'c_maison', 'Maison'],
+    [/\b(cadeaux?)\b/, 'c_cadeaux', 'Cadeaux'], [/\b(voyages?|hotel|avion|vacances)\b/, 'c_voyage', 'Voyages'],
+    [/\b(impots?|taxe)\b/, 'c_impots', 'Impôts'], [/\b(frais bancaires|agios|commission)\b/, 'c_frais', 'Frais bancaires']
+  ];
+  var RCATS = [[/\b(salaire|paie|paye)\b/, 'c_salaire', 'Salaire'], [/\b(remboursements?|rembourse)\b/, 'c_rembt', 'Remboursements'],
+    [/\b(caf|allocations?|prime)\b/, 'c_alloc', 'Allocations'], [/\b(vente|vendu|leboncoin|vinted)\b/, 'c_ventes', 'Ventes']];
+  function amountOf(t) {
+    var m;
+    if ((m = /(\d+(?:\.\d+)?) ?€ (?:et )?(\d{1,2})\b(?! ?(?:h|heure|minute))/.exec(t))) return { cents: Math.round(parseFloat(m[1]) * 100) + (+m[2] < 10 && m[2].length === 1 ? +m[2] * 10 : +m[2]), i0: m.index, i1: m.index + m[0].length };
+    if ((m = /(\d+(?:\.\d+)?) ?€/.exec(t))) return { cents: Math.round(parseFloat(m[1]) * 100), i0: m.index, i1: m.index + m[0].length };
+    if ((m = /€ ?(\d+(?:\.\d+)?)/.exec(t))) return { cents: Math.round(parseFloat(m[1]) * 100), i0: m.index, i1: m.index + m[0].length };
+    if ((m = /\b(\d+(?:\.\d+)?) centime\b/.exec(t))) return { cents: Math.round(parseFloat(m[1])), i0: m.index, i1: m.index + m[0].length };
+    if ((m = /\b(?:depense|paye|achete|regle|recu|touche|de|pour)\s(\d+(?:\.\d+)?)\b(?! ?(?:h|heure|minute|%|jour|kilo|kg|litre|l|m|metre))/.exec(t))) return { cents: Math.round(parseFloat(m[1]) * 100), i0: m.index + m[0].indexOf(m[1]), i1: m.index + m[0].length, guess: true };
+    return null;
+  }
+
+  /* ---------------- Applis de la Suite ---------------- */
+  var APPS = [
+    ['presentation', 'Présentation', 'fr.magformation13.presentation', /\b(presentations?|diaporamas?|power ?point|diapos?)\b/],
+    ['texte', 'Texte', 'fr.magformation13.texte', /\b(textes?|traitement de texte|word|redaction)\b/],
+    ['tableur', 'Tableur', 'fr.magformation13.tableur', /\b(tableurs?|tableaux?|excel|feuilles? de calcul|classeur)\b/],
+    ['pdf', 'Atelier PDF', 'fr.magformation13.pdf', /\batelier (?:pdf|p d f)\b/],
+    ['lecteur', 'Lecteur PDF', 'fr.magformation13.lecteur', /\b(lecteur (?:de )?(?:pdf|p d f)|(?:pdf|p d f)|lecteur de documents?)\b/],
+    ['fichiers', 'Rangement', 'fr.magformation13.fichiers', /\b(rangements?|mes fichiers|fichiers|gestionnaire de fichiers|explorateur)\b/],
+    ['echafaudage', 'Échafaudage', 'fr.magformation13.echafaudage', /\b(echafaudages?|echaf)\b/],
+    ['agenda', 'Agenda', 'fr.magformation13.agenda', /\b(agenda|calendrier)\b/],
+    ['contacts', 'Contacts', 'fr.magformation13.contacts', /\b(contacts?|repertoire)\b/],
+    ['notes', 'Carnet', 'fr.magformation13.carnet', /\b(carnet|bloc notes?|keep)\b/],
+    ['calcul', 'Calcul', 'fr.magformation13.calcul', /\b(calculatrice|calculette|calcul)\b/],
+    ['meteo', 'Météo', 'fr.magformation13.meteo', /\b(meteo|l appli meteo|application meteo)\b/],
+    ['ciel', 'Ciel', 'fr.magformation13.ciel', /\b(ciel)\b/],
+    ['actualites', 'Actualités', 'fr.magformation13.actualites', /\b(actualites|actu|actus)\b/],
+    ['budget', 'Budget', 'fr.magformation13.budget', /\b(budget|mes comptes)\b/],
+    ['bourse', 'Bourse', 'fr.magformation13.bourse', /\b(bourse|l appli bourse)\b/],
+    ['musique', 'Mélodie', 'fr.magformation13.musique', /\b(melodie|lecteur de musique|ma musique)\b/],
+    ['ondes', 'Ondes', 'fr.magformation13.ondes', /\b(ondes|podcasts?)\b/],
+    ['ecran', 'Écran', 'fr.magformation13.ecran', /\b(ecran|videos?)\b/],
+    ['galerie', 'Galerie', 'fr.magformation13.galerie', /\b(galerie|mes photos|photos)\b/],
+    ['photo', 'Photo', 'fr.magformation13.photo', /\b(appareil photo|camera|photo)\b/],
+    ['scan', 'Scan', 'fr.magformation13.scan', /\b(scan|scanner|numeriser|numerisation)\b/],
+    ['dicta', 'Dictaphone', 'fr.magformation13.dicta', /\b(dictaphone|dicta|enregistreur)\b/],
+    ['coffre', 'Coffre', 'fr.magformation13.coffre', /\b(coffre|coffre fort|mots de passe)\b/],
+    ['qr', 'QR', 'fr.magformation13.qr', /\b(qr|q r|code qr|qr code|lecteur qr|cache r)\b/],
+    ['liseuse', 'Liseuse', 'fr.magformation13.liseuse', /\b(liseuse|livres?)\b/],
+    ['reseau', 'Réseau', 'fr.magformation13.reseau', /\b(reseau|appli reseau)\b/],
+    ['solaire', 'Solaire', 'fr.magformation13.solaire', /\b(solaire|panneaux solaires)\b/],
+    ['sentiers', 'Sentiers', 'fr.magformation13.sentiers', /\b(sentiers?|randonnee|rando)\b/],
+    ['reveil', 'Aube', 'fr.magformation13.reveil', /\b(aube|appli reveil|reveil)\b/],
+    ['urgence', 'Urgence', 'fr.magformation13.urgence', /\b(urgence|sos)\b/],
+    ['mesure', 'Mesure', 'fr.magformation13.mesure', /\b(mesure|niveau a bulle|sonometre)\b/],
+    ['fonds', 'Toile', 'fr.magformation13.toile', /\b(toile|fonds? d ecran)\b/],
+    ['sauvegarde', 'Sauvegarde', 'fr.magformation13.sauvegarde', /\b(sauvegarde)\b/],
+    ['petitspas', 'Petits Pas', 'fr.magformation13.petitspas', /\b(petits pas|petit pas)\b/],
+    ['chasse', 'Carnet de chasse', 'fr.magformation13.chasse', /\b(chasse|carnet de chasse)\b/],
+    ['accueil', 'Socle', 'fr.magformation13.socle', /\b(socle|accueil)\b/],
+    ['voyage', 'Carnet de voyage', 'fr.magformation13.voyage', /\b(carnet de voyage|voyages?)\b/],
+    ['traducteur', 'Traducteur', 'fr.magformation13.traducteur', /\b(traducteur|appli de traduction)\b/],
+    ['cadrans', 'Atelier de cadrans', 'fr.magformation13.cadrans', /\b(atelier de cadrans?|cadrans?)\b/],
+    ['langues', 'Langues', 'fr.magformation13.langues', /\b(langues|appli de langues)\b/],
+    ['reperes', 'Repères', 'fr.magformation13.reperes', /\b(reperes)\b/],
+    ['serenite', 'Sérénité', 'fr.magformation13.serenite', /\b(serenite|meditation)\b/],
+    ['correcteur', 'Correcteur', 'fr.magformation13.correcteur', /\b(correcteur|correcteur d orthographe)\b/],
+    ['reunion', 'Réunion', 'fr.magformation13.reunion', /\b(reunions?|comptes? rendus?)\b/],
+    ['cameras', 'Caméras', 'fr.magformation13.cameras', /\b(appli cameras?|application cameras?)\b/],
+    ['bluetooth', 'Bluetooth', 'fr.magformation13.bluetooth', /\b(appli bluetooth|application bluetooth)\b/],
+    ['wifi', 'Wi-Fi', 'fr.magformation13.wifi', /\b(appli wi ?fi|application wi ?fi|appli wifi)\b/]
+  ];
+  var SITES = [
+    [/\b(youtube|you tube)\b/, 'YouTube', 'https://www.youtube.com/'], [/\b(wikipedia|wiki)\b/, 'Wikipédia', 'https://fr.wikipedia.org/'],
+    [/\b(franceinfo|france info)\b/, 'franceinfo', 'https://www.franceinfo.fr/'], [/\b(vigilance meteo|vigilance)\b/, 'Vigilance Météo-France', 'https://vigilance.meteofrance.fr/'],
+    [/\b(meteo france)\b/, 'Météo-France', 'https://meteofrance.com/'], [/\b(legifrance)\b/, 'Légifrance', 'https://www.legifrance.gouv.fr/'],
+    [/\b(service public|service-public)\b/, 'Service-Public', 'https://www.service-public.fr/'], [/\b(impots|impot)\b/, 'impots.gouv', 'https://www.impots.gouv.fr/'],
+    [/\b(ameli|securite sociale)\b/, 'ameli', 'https://www.ameli.fr/'], [/\b(caf)\b/, 'CAF', 'https://www.caf.fr/'],
+    [/\b(leboncoin|le bon coin)\b/, 'leboncoin', 'https://www.leboncoin.fr/'], [/\b(openstreetmap|carte)\b/, 'OpenStreetMap', 'https://www.openstreetmap.org/'],
+    [/\b(la poste|laposte)\b/, 'La Poste', 'https://www.laposte.fr/'], [/\b(sncf|train)\b/, 'SNCF Connect', 'https://www.sncf-connect.com/'],
+    [/\b(doctolib)\b/, 'Doctolib', 'https://www.doctolib.fr/'], [/\b(inrs)\b/, 'INRS', 'https://www.inrs.fr/'],
+    [/\b(oppbtp|preventionbtp|prevention btp)\b/, 'OPPBTP (preventionbtp.fr)', 'https://www.preventionbtp.fr/'], [/\b(france travail|pole emploi)\b/, 'France Travail', 'https://www.francetravail.fr/'],
+    [/\b(geoportail)\b/, 'Géoportail', 'https://www.geoportail.gouv.fr/'], [/\b(cadastre)\b/, 'Cadastre', 'https://cadastre.data.gouv.fr/'],
+    [/\b(github)\b/, 'GitHub', 'https://github.com/'], [/\b(atelier signature|suite mag)\b/, 'Suite MAG', 'https://gilbertmamadou-design.github.io/atelier-signature/pc/']
+  ];
+  function findApp(s) { for (var i = 0; i < APPS.length; i++) if (APPS[i][3].test(s)) return { id: APPS[i][0], name: APPS[i][1], pkg: APPS[i][2] }; return null; }
+  function findSite(s) { for (var i = 0; i < SITES.length; i++) if (SITES[i][0].test(s)) return { name: SITES[i][1], url: SITES[i][2] }; return null; }
+
+  /* ---------------- Toutes les applis du téléphone ----------------
+     ctx.apps : [{ label, pkg, cls }] (liste des applis lançables, MajordomeBridge.appList) ;
+     ctx.aliases : [{ say, name, pkg, cls, url }] (« Quand je dis… ouvre… », réglages).
+     Correspondance tolérante : accents, majuscules, articles, espaces (« you tube », « face book »), clé phonétique
+     française simple (« ouatsap » ≈ « whatsapp »), distance d'édition, et table d'alias des grandes applis
+     (fautes typiques de Vosk : « jimail » → Gmail, « maps » → Google Maps). Les applis de la Suite gardent la priorité. */
+  function akey(s) { return deacc(s).replace(/[^a-z0-9+]+/g, ' ').replace(/\+/g, ' plus ').replace(/\s+/g, ' ').trim(); }
+  function squash(s) { return akey(s).replace(/ /g, ''); }
+  /** Clé phonétique française simplifiée (type phonex) : « whatsapp », « ouatsap », « watsap » → « uatsap » */
+  function phon(s) {
+    s = squash(s);
+    if (!s) return '';
+    s = s.replace(/ph/g, 'f').replace(/wh/g, 'w').replace(/th/g, 't').replace(/sch/g, 'ch').replace(/sh/g, 'ch')
+      .replace(/gu(?=[eiy])/g, 'g').replace(/g(?=[eiy])/g, 'j').replace(/ck/g, 'k').replace(/qu/g, 'k').replace(/q/g, 'k')
+      .replace(/c(?=[eiy])/g, 's').replace(/c(?!h)/g, 'k').replace(/x/g, 'ks').replace(/z/g, 's')
+      .replace(/eau/g, 'o').replace(/au/g, 'o').replace(/oo/g, 'u').replace(/ou/g, 'u').replace(/w/g, 'u')
+      .replace(/ee|ea/g, 'i').replace(/y/g, 'i').replace(/ai|ei|ay|ey/g, 'e').replace(/oe|eu/g, 'e')
+      .replace(/(an|en|am|em)(?=[^aeiouy]|$)/g, 'A').replace(/(on|om)(?=[^aeiouy]|$)/g, 'O').replace(/(in|im|un|ain|ein)(?=[^aeiouy]|$)/g, 'I')
+      .replace(/h/g, '').replace(/(er|et|ez)$/, 'e').replace(/([a-zA-Z])\1+/g, '$1');
+    if (s.length > 3) s = s.replace(/[stdxe]$/, '');
+    return s;
+  }
+  // mots sans valeur pour reconnaître une appli (« Google Maps » ≈ « maps », « Mes Comptes BNP » ≈ « BNP »)
+  var AGEN = /^(google|microsoft|samsung|mon|ma|mes|my|app|appli|application|mobile|lite|officiel|officielle|android|the|le|la|les|l|de|du|des|d|pour|by|et|go|fr|france)$/;
+  function acore(k) { var w = k.split(' ').filter(function (x) { return !AGEN.test(x); }); return w.length ? w.join(' ') : k; }
+  /* Alias des grandes applis (en France). [id, nom, paquets, alias entendus, site (PC), groupe (libellés)]
+     Un groupe (« le GPS », « la banque », « la musique », « les mails ») vise plusieurs applis : s'il y en a plusieurs, on demande laquelle. */
+  var KNOWN = [
+    ['whatsapp', 'WhatsApp', ['com.whatsapp', 'com.whatsapp.w4b'], ['whatsapp', 'watsap', 'ouatsap', 'wasap', 'what sap', 'whatsapp business', 'ouats app', 'wat sap'], 'https://web.whatsapp.com/'],
+    ['youtube', 'YouTube', ['com.google.android.youtube'], ['youtube', 'you tube', 'youtub', 'iou tube'], 'https://www.youtube.com/'],
+    ['ytmusic', 'YouTube Music', ['com.google.android.apps.youtube.music'], ['youtube music', 'you tube music', 'youtube musique'], 'https://music.youtube.com/'],
+    ['facebook', 'Facebook', ['com.facebook.katana', 'com.facebook.lite'], ['facebook', 'face book', 'fesse bouc', 'fessebouc', 'facebouc', 'fesse book'], 'https://www.facebook.com/'],
+    ['messenger', 'Messenger', ['com.facebook.orca'], ['messenger', 'messengeur', 'facebook messenger'], 'https://www.messenger.com/'],
+    ['instagram', 'Instagram', ['com.instagram.android'], ['instagram', 'insta', 'instagramme', 'instagrame'], 'https://www.instagram.com/'],
+    ['gmail', 'Gmail', ['com.google.android.gm'], ['gmail', 'jimail', 'g mail', 'gi mail', 'jimel', 'gemail', 'gmaille', 'jimaille', 'gee mail', 'jemail', 'j mail'], 'https://mail.google.com/'],
+    ['maps', 'Google Maps', ['com.google.android.apps.maps'], ['google maps', 'maps', 'google map', 'map', 'mapse', 'gogol maps', 'gougueule maps', 'google maps'], 'https://www.google.com/maps'],
+    ['waze', 'Waze', ['com.waze'], ['waze', 'ouaze', 'waz', 'wase', 'ouaise', 'ouez', 'oueze', 'ouaize'], 'https://www.waze.com/fr/live-map/'],
+    ['spotify', 'Spotify', ['com.spotify.music'], ['spotify', 'spotifaille', 'spoti', 'spotifai', 'spote ifaille', 'spotifie'], 'https://open.spotify.com/'],
+    ['deezer', 'Deezer', ['deezer.android.app'], ['deezer', 'dizeur', 'deezeur', 'di zeur', 'dizer', 'dizzer'], 'https://www.deezer.com/'],
+    ['netflix', 'Netflix', ['com.netflix.mediaclient'], ['netflix', 'nette flix', 'netflixe', 'netflics', 'net flix'], 'https://www.netflix.com/'],
+    ['disney', 'Disney+', ['com.disney.disneyplus'], ['disney plus', 'disney', 'disnet plus'], 'https://www.disneyplus.com/'],
+    ['primevideo', 'Prime Video', ['com.amazon.avod.thirdpartyclient'], ['prime video', 'amazon prime video', 'amazon prime', 'prime'], 'https://www.primevideo.com/'],
+    ['amazon', 'Amazon', ['com.amazon.mShop.android.shopping'], ['amazon', 'amazone'], 'https://www.amazon.fr/'],
+    ['leboncoin', 'leboncoin', ['fr.leboncoin'], ['leboncoin', 'le bon coin', 'bon coin'], 'https://www.leboncoin.fr/'],
+    ['vinted', 'Vinted', ['fr.vinted'], ['vinted', 'vintede', 'vintid', 'vainted'], 'https://www.vinted.fr/'],
+    ['doctolib', 'Doctolib', ['fr.doctolib.www'], ['doctolib', 'docto lib', 'doctolibe', 'doctolibre'], 'https://www.doctolib.fr/'],
+    ['ameli', 'ameli', ['fr.cnamts.it.activity'], ['ameli', 'amelie', 'compte ameli', 'mon ameli', 'securite sociale', 'la secu'], 'https://www.ameli.fr/'],
+    ['sncf', 'SNCF Connect', ['com.vsct.vsc.mobileapp'], ['sncf connect', 'sncf', 'sncf connecte', 'la sncf', 'train', 'les trains'], 'https://www.sncf-connect.com/'],
+    ['tiktok', 'TikTok', ['com.zhiliaoapp.musically'], ['tiktok', 'tik tok', 'tic tac', 'tic toc', 'tictoc', 'tique toque'], 'https://www.tiktok.com/'],
+    ['snapchat', 'Snapchat', ['com.snapchat.android'], ['snapchat', 'snap', 'snap chat', 'snape chat'], 'https://www.snapchat.com/'],
+    ['telegram', 'Telegram', ['org.telegram.messenger'], ['telegram', 'telegramme'], 'https://web.telegram.org/'],
+    ['signal', 'Signal', ['org.thoughtcrime.securesms'], ['signal'], ''],
+    ['linkedin', 'LinkedIn', ['com.linkedin.android'], ['linkedin', 'linked in', 'linkdine', 'linkedine', 'linkdin', 'lincdine'], 'https://www.linkedin.com/'],
+    ['x', 'X (Twitter)', ['com.twitter.android'], ['twitter', 'touiteur', 'x twitter'], 'https://x.com/'],
+    ['outlook', 'Outlook', ['com.microsoft.office.outlook'], ['outlook', 'out look', 'aoutlouk', 'outlouk'], 'https://outlook.live.com/'],
+    ['teams', 'Teams', ['com.microsoft.teams'], ['teams', 'microsoft teams', 'tims', 'times'], 'https://teams.microsoft.com/'],
+    ['zoom', 'Zoom', ['us.zoom.videomeetings'], ['zoom', 'zoum'], 'https://zoom.us/'],
+    ['uber', 'Uber', ['com.ubercab'], ['uber', 'ubeur', 'uber taxi'], 'https://m.uber.com/'],
+    ['ubereats', 'Uber Eats', ['com.ubercab.eats'], ['uber eats', 'uber its', 'ubeur eats', 'uber eat'], 'https://www.ubereats.com/fr'],
+    ['deliveroo', 'Deliveroo', ['com.deliveroo.orderapp'], ['deliveroo', 'delivrou', 'deliverou'], 'https://deliveroo.fr/'],
+    ['blablacar', 'BlaBlaCar', ['com.comuto'], ['blablacar', 'bla bla car', 'blabla car'], 'https://www.blablacar.fr/'],
+    ['drive', 'Google Drive', ['com.google.android.apps.docs'], ['drive', 'google drive', 'draive'], 'https://drive.google.com/'],
+    ['gphotos', 'Google Photos', ['com.google.android.apps.photos'], ['google photos', 'google photo'], 'https://photos.google.com/'],
+    ['chrome', 'Chrome', ['com.android.chrome'], ['chrome', 'google chrome', 'crome'], ''],
+    ['firefox', 'Firefox', ['org.mozilla.firefox'], ['firefox', 'fire fox', 'faille fox'], ''],
+    ['lydia', 'Lydia', ['com.lydia'], ['lydia', 'lidia'], ''],
+    ['paypal', 'PayPal', ['com.paypal.android.p2pmobile'], ['paypal', 'pay pal', 'paypale', 'pai pal'], 'https://www.paypal.com/'],
+    ['revolut', 'Revolut', ['com.revolut.revolut'], ['revolut', 'revolute', 'revolutte'], ''],
+    ['ca', 'Ma Banque (Crédit Agricole)', ['fr.creditagricole.androidapp'], ['credit agricole', 'le credit agricole'], 'https://www.credit-agricole.fr/'],
+    ['bnp', 'BNP Paribas', ['net.bnpparibas.mescomptes'], ['bnp', 'bnp paribas', 'mes comptes bnp', 'b n p'], 'https://mabanque.bnpparibas/'],
+    ['sg', 'Société Générale', ['mobi.societegenerale.mobile.lappli'], ['societe generale', 'la societe generale', 'l appli societe generale'], 'https://particuliers.sg.fr/'],
+    ['lbp', 'La Banque Postale', ['com.fullsix.android.labanquepostale.accountaccess'], ['banque postale', 'la banque postale'], 'https://www.labanquepostale.fr/'],
+    ['bourso', 'BoursoBank', ['com.boursorama.android.clients'], ['boursorama', 'bourso', 'boursobank', 'boursorama banque'], 'https://www.boursobank.com/'],
+    ['ce', 'Caisse d\'Épargne', ['fr.caisseepargne.android.mobilebanking'], ['caisse d epargne', 'caisse epargne'], 'https://www.caisse-epargne.fr/'],
+    ['bp', 'Banque Populaire', ['fr.banquepopulaire.cyberplus'], ['banque populaire', 'la banque populaire'], 'https://www.banquepopulaire.fr/'],
+    ['cm', 'Crédit Mutuel', ['com.cm_prod.bad'], ['credit mutuel', 'le credit mutuel'], 'https://www.creditmutuel.fr/'],
+    ['lcl', 'LCL', ['fr.lcl.android.customerarea'], ['lcl', 'l c l', 'elle c elle'], 'https://www.lcl.fr/'],
+    // groupes
+    ['gps', 'GPS', ['com.google.android.apps.maps', 'com.waze'], ['gps', 'le gps', 'j p s', 'navigation', 'guidage', 'itineraire', 'navigation gps', 'mon gps'], '', /\b(maps|waze|mappy|citymapper|here we ?go|coyote|sygic|tomtom|navigation)\b/],
+    ['banque', 'banque', ['fr.creditagricole.androidapp', 'net.bnpparibas.mescomptes', 'mobi.societegenerale.mobile.lappli', 'com.fullsix.android.labanquepostale.accountaccess', 'com.boursorama.android.clients', 'fr.caisseepargne.android.mobilebanking', 'fr.banquepopulaire.cyberplus', 'com.cm_prod.bad', 'fr.lcl.android.customerarea'], ['banque', 'la banque', 'ma banque', 'mon appli bancaire', 'appli bancaire', 'appli de la banque', 'appli banque', 'compte bancaire', 'mon compte bancaire'], '', /\b(banque|bank|bnp|credit agricole|credit mutuel|cic|lcl|boursorama|boursobank|caisse d epargne|societe generale|fortuneo|n26|revolut|monabanq|hello bank|qonto|shine)\b/],
+    ['musique', 'musique', ['fr.magformation13.musique', 'com.spotify.music', 'deezer.android.app', 'com.google.android.apps.youtube.music'], ['musique', 'la musique', 'appli de musique', 'appli musique', 'lecteur audio'], '', /\b(melodie|spotify|deezer|youtube music|soundcloud|qobuz|apple music|amazon music|musique|music)\b/],
+    ['mail', 'mails', ['com.google.android.gm', 'com.microsoft.office.outlook'], ['mail', 'mails', 'e mail', 'e mails', 'email', 'emails', 'courriel', 'courriels', 'boite mail', 'boite mails', 'boite e mail', 'boite aux lettres', 'boite de reception', 'mes mails', 'messagerie electronique'], '', /\b(gmail|outlook|mail|mails|courriel|yahoo mail|thunderbird|proton ?mail|k 9)\b/]
+  ];
+  var KNOWN_N = null;
+  function knownPrep() {
+    if (KNOWN_N) return KNOWN_N;
+    KNOWN_N = KNOWN.map(function (k) { return { id: k[0], name: k[1], pkgs: k[2], al: k[3].map(function (a) { return { s: squash(a), p: phon(a) }; }), web: k[4] || '', group: k[5] || null, nk: squash(k[1]) }; });
+    return KNOWN_N;
+  }
+  /** Entrée connue pour un nom entendu (alias exact, à la phonétique près, ou presque) */
+  function findKnown(what) {
+    var s = squash(what), p = phon(what), best = null, bs = 0;
+    if (!s) return null;
+    knownPrep().forEach(function (k) {
+      k.al.forEach(function (a) {
+        var sc = a.s === s ? 1 : (a.p === p && p.length >= 3) ? 0.96 : (s.length >= 5 && a.s.length >= 5) ? 1 - lev(p, a.p) / Math.max(p.length, a.p.length) : 0;
+        if (sc > bs) { bs = sc; best = k; }
+      });
+    });
+    return bs >= 0.84 ? best : null;
+  }
+  function appPrep(apps) {
+    if (apps._mj) return apps._mj;
+    var seen = {}, out = [];
+    apps.forEach(function (a) {
+      if (!a || !a.pkg || !a.label) return;
+      var k = akey(a.label), full = akey(String(a.label).split(/\s[-–:|]\s|\s\(/)[0]);
+      if (seen[k]) return; seen[k] = 1;
+      var core = acore(full);
+      out.push({ a: a, k: k, s: k.replace(/ /g, ''), p: phon(k), fs: full.replace(/ /g, ''), core: core, cs: core.replace(/ /g, ''), cp: phon(core), w: full.split(' ') });
+    });
+    try { Object.defineProperty(apps, '_mj', { value: out, enumerable: false }); } catch (e) { }
+    return out;
+  }
+  function appScore(x, s, p, words, hc) {
+    if (!s) return 0;
+    if (s === x.s || s === x.fs) return 1;
+    if (p.length >= 3 && p === x.p) return 0.96;
+    if (s === x.cs || hc === x.cs) return 0.93;
+    if (p.length >= 3 && p === x.cp) return 0.9;
+    var sc = 0;
+    // mot entier du libellé (« maps » dans « Google Maps », « sncf » dans « SNCF Connect »)
+    if (s.length >= 4 && words.length && words.every(function (w) { return x.w.indexOf(w) >= 0; })) sc = 0.82;
+    if (s.length >= 4 && x.cs.length >= 4) {
+      var d = lev(p, x.cp), m = Math.max(p.length, x.cp.length), d2 = lev(s, x.cs), m2 = Math.max(s.length, x.cs.length);
+      sc = Math.max(sc, (1 - d / m) * 0.9, (1 - d2 / m2) * 0.9);
+    }
+    return sc;
+  }
+  /** Nom à dire : le libellé, ou le nom complet connu quand le libellé n'en est que la fin (« Maps » → « Google Maps ») */
+  function pub(a) {
+    var name = a.label, k = akey(a.label);
+    knownPrep().forEach(function (e) { if (!e.group && e.pkgs.indexOf(a.pkg) >= 0) { var n = akey(e.name); if (n !== k && n.slice(-k.length - 1) === ' ' + k) name = e.name; } });
+    return { ext: true, name: name, pkg: a.pkg, cls: a.cls || '' };
+  }
+  /** Applis installées qui correspondent à « what » → { list: [{name, pkg, cls, score}], known } (list triée, la meilleure d'abord) */
+  function matchApps(what, apps) {
+    var s = squash(what), p = phon(what), words = akey(what).split(' ').filter(Boolean), kn = findKnown(what), hc = acore(akey(what)).replace(/ /g, '');
+    var res = [];
+    if (apps && apps.length) {
+      appPrep(apps).forEach(function (x) {
+        var sc = appScore(x, s, p, words, hc);
+        if (kn) {
+          // groupe (« la banque ») : toutes ses applis à égalité, même si un libellé contient le mot (« Ma Banque »)
+          if (kn.pkgs.indexOf(x.a.pkg) >= 0) sc = kn.group ? 0.9 : Math.max(sc, 0.97);
+          else if (kn.group && kn.group.test(x.k)) sc = 0.88;
+          else if (!kn.group && (x.s === kn.nk || x.cs === squash(acore(akey(kn.name))))) sc = Math.max(sc, 0.95);
+        }
+        if (sc > 0) res.push({ x: x, sc: sc });
+      });
+    }
+    var rank = function (r) { var i = kn ? kn.pkgs.indexOf(r.x.a.pkg) : -1; return i < 0 ? 99 : i; };
+    res.sort(function (a, b) { return b.sc - a.sc || rank(a) - rank(b) || a.x.k.length - b.x.k.length; });
+    return { list: res.map(function (r) { var o = pub(r.x.a); o.score = +r.sc.toFixed(3); return o; }), known: kn };
+  }
+  /** Choix final : une appli, plusieurs (ambiguïté) ou aucune (avec la plus proche) */
+  function pickApp(what, apps) {
+    var m = matchApps(what, apps), l = m.list, best = l[0];
+    if (best && best.score >= 0.78) {
+      var tie = l.filter(function (a) { return a.score >= 0.78 && a.score >= best.score - (m.known && m.known.group ? 0.015 : 0.03); });
+      if (best.score >= 0.95 && !(m.known && m.known.group)) tie = l.filter(function (a) { return a.score >= best.score - 0.005; });
+      if (tie.length > 1) return { choices: tie.slice(0, 4).map(function (a) { return { ext: true, name: a.name, pkg: a.pkg, cls: a.cls }; }), known: m.known };
+      return { app: best, known: m.known };
+    }
+    return { near: best && best.score >= 0.5 ? best : null, known: m.known };
+  }
+  /* Raccourcis du système (intents standard d'Android) */
+  var SYS = [
+    ['dialer', 'le téléphone', /^(telephone|l appli telephone|appli telephone|appels|journal d appels|journal des appels|historique des appels|clavier telephonique|composeur|numeroteur)$/],
+    ['sms', 'les messages', /^(messages|message|sms|messagerie|messagerie sms|textos?|messages texte)$/],
+    ['clock', 'l\'horloge', /^(horloge|reveil|reveils|alarmes?|pendule|appli horloge|appli reveil)$/],
+    ['store', 'le Play Store', /^(play store|playstore|google play|google play store|play|store|magasin d applications|magasin d applis|boutique d applications|plait store|ple store|plaie store|pleistore|plays store|app store)$/],
+    ['browser', 'le navigateur', /^(navigateur|navigateur internet|navigateur web|internet|web)$/],
+    ['camera', 'l\'appareil photo', /^(appareil photo|camera|appareil|photo)$/],
+    ['gallery', 'la galerie', /^(galerie|galerie photos?)$/],
+    ['calendar', 'l\'agenda', /^(agenda|calendrier)$/],
+    ['contacts', 'les contacts', /^(contacts?|repertoire)$/],
+    ['calculator', 'la calculatrice', /^(calculatrice|calculette)$/],
+    ['email', 'la messagerie', /^(mails?|e mails?|emails?|courriels?|boite mail|boite aux lettres|boite de reception)$/]
+  ];
+  // appli de la Suite absente → raccourci du système équivalent
+  var SUITE_SYS = { photo: 'camera', galerie: 'gallery', agenda: 'calendar', contacts: 'contacts', calcul: 'calculator', reveil: 'clock', musique: 'music' };
+  var SETSUB = [
+    ['wifi', 'Wi-Fi', /\b(wifi|wi fi|wlan)\b/], ['bluetooth', 'Bluetooth', /\b(bluetooth|blue tooth|bluetouth)\b/],
+    ['battery', 'batterie', /\b(batteries?|economie d energie|economiseur|autonomie)\b/], ['display', 'affichage', /\b(affichage|ecran|luminosite|fond d ecran)\b/],
+    ['sound', 'son', /\b(son|sons|sonneries?|volume|audio)\b/], ['apps', 'applications', /\b(applis|applications|apps)\b/],
+    ['location', 'localisation', /\b(localisation|position|gps)\b/], ['storage', 'stockage', /\b(stockage|memoire)\b/],
+    ['security', 'sécurité', /\b(securite|verrouillage|empreintes?)\b/], ['a11y', 'accessibilité', /\baccessibilite\b/],
+    ['date', 'date et heure', /\b(date|heure|date et heure)\b/], ['lang', 'langue', /\b(langues?|clavier)\b/],
+    ['network', 'réseau', /\b(reseaux?|donnees mobiles|connexions?|internet)\b/], ['nfc', 'NFC', /\bnfc\b/],
+    ['airplane', 'mode avion', /\bmode avion\b/]
+  ];
+  // commandes domotiques que « ouvre » ne doit pas avaler (seules les lumières Hue sont pilotées)
+  var DOMO = /^(?:le |la |les |l |mon |ma |mes )?(portails?|portes?(?: d entree| du garage| de garage| de la maison)?|garage|volets?(?: roulants?)?|stores?(?: bannes?)?|fenetres?|rideaux?|baie vitree|velux|serrure|barrieres?|portillon|vanne|robinet|four|frigo|lave linge|lave vaisselle|aspirateur|tele|television|tv|chauffage|chaudiere|radiateurs?)(?:\s.*)?$/;
+  function aliasHit(t, aliases) {
+    if (!aliases || !aliases.length) return null;
+    var rest = t.replace(/^(?:ouvre|ouvrir|ouvrez|lance|lancer|lancez|demarre|demarrer|va dans|va sur|aller sur|aller dans|affiche|montre moi|passe sur|bascule sur|mets|met|je veux|emmene moi sur|direction)\s+/, '');
+    var strip = function (x) { return akey(x).replace(/^(?:l appli |l application |le |la |les |l |mon |ma |mes |un |une )+/, ''); };
+    var r0 = strip(rest), s0 = r0.replace(/ /g, ''), p0 = phon(r0);
+    for (var i = 0; i < aliases.length; i++) {
+      var al = aliases[i]; if (!al || !al.say) continue;
+      var a = strip(al.say), as = a.replace(/ /g, '');
+      if (as && (as === s0 || (p0.length >= 3 && phon(a) === p0))) return al;
+    }
+    return null;
+  }
+  function aliasResult(al) {
+    if (al.url) return ['website', { name: al.name, url: al.url, alias: true }];
+    for (var i = 0; i < APPS.length; i++) if (APPS[i][2] === al.pkg) return ['open_app', { id: APPS[i][0], name: APPS[i][1], pkg: APPS[i][2], sys: SUITE_SYS[APPS[i][0]], alias: true }];
+    return ['open_app', { ext: true, name: al.name, pkg: al.pkg, cls: al.cls || '', alias: true }];
+  }
+  /** « Ouvre les paramètres (Wi-Fi…) » : réglages du téléphone ; « tes réglages », « les options » : ceux de Majordome */
+  function settingsCmd(t, names) {
+    if (!/\b(reglages|parametres|options|preferences)\b/.test(t)) return null;
+    if (!/^(?:ouvre|ouvrir|ouvrez|affiche|montre|montre moi|va dans|va sur|aller dans|lance|passe dans|emmene moi dans)\b/.test(t) && !/^(?:les |mes )?(?:reglages|parametres)\b/.test(t)) return null;
+    var nm = (names || []).filter(function (n) { return /^[a-z ]+$/.test(n); }).join('|');
+    if (/\b(tes|vos|ton|votre) (reglages|parametres|options|preferences)\b/.test(t) || /\boptions\b/.test(t) ||
+      new RegExp('\\b(reglages|parametres|preferences) (?:de |du |d )(?:l )?(majordome|jarvis|assistant|appli|application' + (nm ? '|' + nm : '') + ')\\b').test(t) ||
+      /\b(reglages|parametres) (?:de |du |des |d )(?:la |l )?(montre|ecoute|voix|reconnaissance vocale|routines?|maison|lumieres|hue)\b/.test(t) || /\b(reglages|parametres) (de|du)$/.test(t)) return ['settings', { panel: '' }];
+    for (var i = 0; i < SETSUB.length; i++) if (SETSUB[i][2].test(t.replace(/\b(reglages|parametres)\b/g, ' '))) return ['open_sys', { what: 'settings', sub: SETSUB[i][0], name: 'les paramètres ' + SETSUB[i][1] }];
+    if (/\b(reglages|parametres)\b/.test(t)) return ['open_sys', { what: 'settings', sub: '', name: 'les paramètres' }];
+    return null;
+  }
+
+  /* ---------------- Volets et stores (Somfy TaHoma : mj-somfy.js) ----------------
+     → { act: open | close | stop | my | pos | query, kind: 'volet' | 'store' | 'banne' | 'all', target: pièce ou nom | null, pos: % d'ouverture, want: 'open' | 'closed' } */
+  var SHN = '(?:volets et (?:les )?stores|stores et (?:les )?volets|volets?(?: roulants?)?|vr|v r|ve r|ve erre|v erre|vee erre|stores?(?: bannes?| exterieurs?| interieurs?| de terrasse)?|brise soleil|persiennes?|toiles?(?: de terrasse)?|pergolas?|ouvrants)';
+  var SH_RE = new RegExp('\\b(?:le |la |les |l |mon |ma |mes |tous les |toutes les |tout les )?(' + SHN + ')\\b(.*)$');
+  function shKind(n) { return /volets? et|stores? et|ouvrants/.test(n) ? 'all' : /banne|terrasse|pergola|toile/.test(n) ? 'banne' : /^(volet|persienne|vr|v r|ve r|ve erre|v erre|vee erre)/.test(n) ? 'volet' : 'store'; }
+  function shTarget(rest) {
+    var r = String(rest || '').replace(/(?:\ba )?\d{1,3} %/g, ' ').replace(/\b(a moitie|a mi hauteur|a mi course|a \d+ %|\d+ %|en position (?:favorite|preferee|my|intermediaire)|position (?:favorite|preferee|my)|completement|entierement|a fond|tout|toutes?|en entier|s il te plait|maintenant|stp)\b/g, ' ').replace(/\s+/g, ' ').trim();
+    var m = /^(?:du |de la |de l |des |de |d |dans (?:le |la |l |les )?|au |a la |cote |sur (?:le |la |l )?)(.+)$/.exec(r);
+    if (m) return m[1].trim();
+    // « VR salon », « store terrasse » : le nom suit directement
+    r = r.replace(/^(?:et |ou )?(?:les |le |la |l )?/, '').trim();
+    return r && !/^(sont|est|ils|elles|il|elle|ouverts?|fermes?)\b/.test(r) ? r : null;
+  }
+  /* « VR » (volet roulant) dit à voix haute : « vé erre », que la reconnaissance peut écrire « v r », « vers », « verre »… */
+  var VRW = /\b(vr|v r|ve r|ve erre|v erre|vee erre|ve air|vers|verre|vert|ver)\b/g;
+  var SH_VERB = /^(ouvre|ouvrez|ouvrir|monte|montez|remonte|remontez|leve|levez|releve|relevez|ferme|fermez|fermer|baisse|baissez|descends|descend|descendez|abaisse|abaissez|arrete|arretez|stop|stoppe)\b ?(.*)$/;
+  /** Commande qui nomme directement un volet ou un store du boîtier (« ferme VR salon », « ouvre Velux bureau ») : ctx.shutters */
+  function shutterByName(t, ctx) {
+    var names = ctx && ctx.shutters; if (!names || !names.length) return null;
+    var m = SH_VERB.exec(t); if (!m || !m[2]) return null;
+    var clean = function (x) { return deacc(x).replace(VRW, ' ').replace(/\b(le|la|les|l|du|de|des|d|mon|ma|mes|volets?|roulants?|stores?)\b/g, ' ').replace(/\s+/g, ' ').trim(); };
+    var rest = clean(m[2]), pm = /\b(\d{1,3}) %/.exec(rest), half = /\b(a moitie|a mi hauteur)\b/.test(rest);
+    rest = rest.replace(/(?:\ba )?\d{1,3} %/g, ' ').replace(/\b(a moitie|a mi hauteur|completement|a fond|s il te plait|stp)\b/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!rest) return null;
+    var hit = names.some(function (n) { var c = clean(n); return c && (c === rest || (' ' + c + ' ').indexOf(' ' + rest + ' ') >= 0 || (' ' + rest + ' ').indexOf(' ' + c + ' ') >= 0); });
+    if (!hit) return null;
+    var v = m[1], act = /^(ouvre|ouvrez|ouvrir|monte|montez|remonte|remontez|leve|levez|releve|relevez)$/.test(v) ? 'open' : /^(arrete|arretez|stop|stoppe)$/.test(v) ? 'stop' : 'close', pos = null;
+    if (act !== 'stop' && (pm || half)) { pos = half ? 50 : Math.max(0, Math.min(100, +pm[1])); if (act === 'close' && !half) pos = 100 - pos; act = 'pos'; }
+    return { act: act, kind: 'all', target: rest, all: false, pos: pos };
+  }
+  function parseShutter(t, ctx) {
+    var m = SH_RE.exec(t); if (!m) return shutterByName(t, ctx);
+    var before = t.slice(0, m.index).trim(), noun = m[1], rest = m[2].trim(), kind = shKind(noun), target = shTarget(rest);
+    var all = /\b(tous|toutes|tout)\b/.test(before + ' ' + rest) || /^(les|mes)\b/.test(t.slice(m.index).trim()) && !target;
+    // état : « les volets sont-ils fermés ? », « quels stores sont ouverts ? », « état des volets »
+    if (/^(est ce que|est ce qu|quels?|quelles?|combien|dis moi si|y a t il|il y a|etat|l etat|ou en sont)\b/.test(before + (before ? ' ' : '') + noun) || /\b(sont ils|sont elles|est il|est elle|ils sont|elles sont|sont|est)\b ?(ouverts?|ouvertes?|fermes?|fermees?|baisses?|baissees?|leves?|levees?|sortis?|rentres?)?\b.*$/.test(rest) && !before || /^(etat|l etat|position)\b/.test(before)) {
+      var want = /\b(fermes?|fermees?|baisses?|baissees?|rentres?)\b/.test(rest) ? 'closed' : /\b(ouverts?|ouvertes?|leves?|levees?|sortis?)\b/.test(rest) ? 'open' : null;
+      return { act: 'query', kind: kind, target: shTarget(rest.replace(/\b(sont ils|sont elles|est il|est elle|sont|est)\b.*$/, '')), all: all, want: want };
+    }
+    if (!before) return null;
+    var v = before.split(' ').filter(function (w) { return !/^(peux|tu|vous|me|nous|moi|veux|voudrais|j|aimerais|on|peut|il|faut|faudrait|faire|fais|merci|de|d)$/.test(w); })[0] || '';
+    var pos = null, pm;
+    if ((pm = /\b(\d{1,3}) %/.exec(rest)) || (pm = /\b(\d{1,3}) %/.exec(before))) pos = Math.max(0, Math.min(100, +pm[1]));
+    else if (/\b(a moitie|a mi hauteur|a mi course)\b/.test(rest + ' ' + before)) pos = 50;
+    var my = /\b(position (?:favorite|preferee|my|intermediaire)|en my|sur my)\b/.test(rest + ' ' + before);
+    var act = null;
+    if (/^(ouvre|ouvres|ouvrez|ouvrir|monte|montes|montez|monter|remonte|remontez|remonter|leve|levez|lever|releve|relevez|relever|sors|sortez|sortir|deploie|deployez|deployer|deroule|deroulez)$/.test(v)) act = 'open';
+    else if (/^(ferme|fermes|fermez|fermer|baisse|baisses|baissez|baisser|descends|descend|descendez|descendre|abaisse|abaissez|rentre|rentrez|rentrer|replie|repliez|replier|enroule|enroulez)$/.test(v)) act = 'close';
+    else if (/^(arrete|arretez|arreter|stop|stoppe|stoppez|bloque|immobilise)$/.test(v)) act = 'stop';
+    else if (/^(mets|met|mettez|mettre|place|placez|regle|reglez|positionne|positionnez|passe)$/.test(v) && (pos != null || my)) act = pos != null ? 'pos' : 'my';
+    if (!act) return null;
+    if (my && act !== 'stop') act = 'my';
+    else if (pos != null && act !== 'stop') {
+      // « ferme à moitié », « ouvre à 30 % », « baisse à 20 % » : pourcentage d'ouverture (ferme / baisse : pourcentage de fermeture sauf « à moitié »)
+      if (act === 'close' && pos !== 50) pos = 100 - pos;
+      act = 'pos';
+    }
+    return { act: act, kind: kind, target: target, all: all || !target, pos: pos };
+  }
+
+  /* ---------------- Lumières (Philips Hue, pont du réseau local : mj-maison.js) ----------------
+     → { intent: 'light', p: { act, target, full, all, bri, dir, ct, color, scene, sceneFull, delay, at, ask } }
+       act : on | off | bri | step (dir up/down) | ct | color | scene | scenes | query | list | screen | again
+       target : nom de pièce, de zone ou d'ampoule, sans accents ni articles (« chambre de lea ») ; full : avec le nom
+       commun (« lampe de chevet ») ; all : toute la maison. La correspondance avec les noms du pont se fait dans mj-maison.js. */
+  var LNOUN = 'lumieres?|lampes?|ampoules?|eclairages?|plafonniers?|luminaires?|spots?|appliques?|lustres?|leds?|veilleuses?|guirlandes?|suspensions?|lampadaires?|luminosite';
+  var LNOUN_RE = new RegExp('\\b(' + LNOUN + ')\\b');
+  var LCOLORS = [[/^rouges?$/, 'rouge'], [/^(oranges?|orangee?s?)$/, 'orange'], [/^jaunes?$/, 'jaune'], [/^verte?s?$/, 'vert'], [/^bleue?s?$/, 'bleu'],
+    [/^(violets?|violettes?|mauves?|pourpres?|lilas)$/, 'violet'], [/^(roses?|fuchsias?)$/, 'rose'], [/^(turquoises?|cyans?)$/, 'turquoise'], [/^magentas?$/, 'magenta'],
+    [/^indigos?$/, 'indigo'], [/^(ambres?|dorees?|dores?)$/, 'ambre']];
+  function colorWord(w) { for (var i = 0; i < LCOLORS.length; i++) if (LCOLORS[i][0].test(w)) return LCOLORS[i][1]; return null; }
+  var LSTOP = /^(le|la|les|l|du|de|des|d|dans|au|aux|a|en|sur|pour|ma|mon|mes|notre|nos|ta|ton|tes|un|une|cette|ce|cet|ces|toute|tout|toutes|tous|qui|est|sont)$/;
+  var LALL = /^(maison|appartement|logement|partout|ensemble|baraque|chez moi|chez nous|tout le monde|la maison|l appartement)$/;
+  var LNOT = /^(lampe|lampe de poche|lampe torche|torche|flash|lampe du telephone|lumiere du telephone|flash du telephone|wifi|wi fi|bluetooth|blue tooth|son|volume|musique|radio|telephone|portable|micro|ecoute|ecoute continue|ecran|tele|television|tv|reveil|alarme|minuteur|chrono|chronometre|sonnerie|gps|localisation|position|donnees|ordinateur|pc|chauffage|radiateur|thermostat|clim|climatisation|four|volets?|stores?|vibreur|ne pas deranger|plein ecran|historique|mode \w+)$/;
+  /** Désignation de la pièce ou de l'ampoule : « la lumière de la cuisine » → {target:'cuisine', full:'lumiere de la cuisine'} */
+  function lightTarget(r) {
+    var w = r.replace(/\b(s il te plait|s il vous plait|stp|svp|maintenant|aussi|tout de suite|immediatement|merci|encore)\b/g, ' ').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+    var hadAll = w.some(function (x) { return /^(tout|toutes|tous|partout)$/.test(x); });
+    while (w.length && LSTOP.test(w[0])) w.shift();
+    while (w.length && LSTOP.test(w[w.length - 1]) && !/^(a|d|l)$/.test(w[w.length - 1])) w.pop();
+    var full = w.join(' ');
+    var plural = /^(lumieres|lampes|ampoules|spots|eclairages|leds|plafonniers|luminaires|appliques|veilleuses|guirlandes|suspensions|lampadaires)$/.test(w[0] || '');
+    if (w.length && LNOUN_RE.test(w[0]) && new RegExp('^(' + LNOUN + ')$').test(w[0])) { w.shift(); while (w.length && LSTOP.test(w[0])) w.shift(); }
+    var core = w.join(' ');
+    if (LNOT.test(full)) return null;
+    if (core && LALL.test(core)) return { all: true, target: null, full: full };
+    if (!core) return { all: hadAll || plural, target: null, full: full };
+    if (LNOT.test(core)) return null;
+    return { all: false, target: core, full: full };
+  }
+  function parseLight(t, P, ctx, now) {
+    if (/\b(liste|listes|note|rappelle|rappel|agenda|rendez vous)\b/.test(t)) return null;
+    var s = t, p = {}, m;
+    // minuterie : « dans 10 minutes », « dans une heure », « d'ici un quart d'heure », « à 23 h »
+    var ds = durations(s);
+    for (var i = 0; i < ds.length; i++) {
+      var pre = s.slice(0, ds[i].i0), mm = /\b(dans|d ici) $/.exec(pre);
+      if (mm) { p.delay = ds[i].ms; s = (pre.slice(0, mm.index) + ' ' + s.slice(ds[i].i1)).replace(/\s+/g, ' ').trim(); break; }
+    }
+    if (!p.delay && (m = /\ba (?:(\d{1,2}) (?:h|heure)(?: (\d{1,2}))?|minuit)\b/.exec(s)) && (LNOUN_RE.test(s) || /^(eteins|eteint|eteindre|eteignez|coupe|allume|allumez|rallume)\b/.test(s))) {
+      var d = new Date(now), h = m[1] != null ? +m[1] : 0, mi = m[2] ? +m[2] : 0;
+      if (h < 24 && mi < 60) { d.setHours(h, mi, 0, 0); if (d.getTime() <= now) d.setDate(d.getDate() + 1); p.at = d.getTime(); s = (s.slice(0, m.index) + ' ' + s.slice(m.index + m[0].length)).replace(/\s+/g, ' ').trim(); }
+    }
+    function out(act, extra) { p.act = act; for (var k in extra) if (extra[k] !== undefined) p[k] = extra[k]; return p; }
+    function tgt(rest) { var x = lightTarget(rest); return x; }
+    // « plus fort », « moins fort », « encore » juste après une commande de lumière
+    if (ctx.lightRecent && /^(plus fort|moins fort|un peu plus fort|un peu moins fort|plus|moins|un peu plus|un peu moins|plus clair|plus sombre|plus lumineux|moins lumineux|encore|encore un peu|encore plus|encore moins)$/.test(s)) {
+      if (/^encore( un peu)?$/.test(s)) return out('again', {});
+      return out('step', { dir: /moins|sombre/.test(s) ? 'down' : 'up' });
+    }
+    // écran « Maison »
+    if (/^(?:ouvre|affiche|montre|montre moi|va dans|va sur) (?:la |l |les |mes |l ecran )?(maison|domotique|lumieres|ecran maison|pieces)$/.test(s) || /^(maison|domotique)$/.test(s)) return out('screen', {});
+    // liste des scènes
+    if (/\b(quelles?|liste|lis|donne moi|montre|affiche|quels sont|c est quoi)\b.*\b(scenes|ambiances)\b/.test(s) || /^(mes |les )?(scenes|ambiances)$/.test(s)) return out('scenes', {});
+    // état : « est-ce que la lumière du garage est allumée ? », « quelles lumières sont allumées ? »
+    var verbStart = /^(allume|allumes|allumez|allumer|rallume|rallumez|eteins|eteint|eteindre|eteignez|eteigne|coupe|coupez|mets|met|baisse|augmente|monte)\b/.test(s);
+    var adj = /\b(allumee?s?|eteinte?s?|eteints?)\b/;
+    var isQ = /^(est ce que|est ce qu|est ce qui|y a t il|il y a|quelles?|quels?|combien|qu est ce qui|lesquelles|lesquels|dis moi si|dis moi quelles?|reste t il|ai je laisse|j ai laisse|tout est|toutes les|la lumiere|les lumieres|le |la |l )/.test(s) || /\b(est elle|est il|sont elles|sont ils|t elle|t il)\b/.test(s);
+    if (!verbStart && adj.test(s) && isQ && (LNOUN_RE.test(s) || /\b(est|sont|tout|qu est ce qui|quoi|reste)\b/.test(s))) {
+      var askOff = /\betein/.test(s.match(adj)[0]);
+      var rest = s.replace(/^(est ce que|est ce qu|est ce qui|y a t il|il y a|dis moi si|dis moi|reste t il|ai je laisse|j ai laisse)\b/, ' ')
+        .replace(/\b(est elle|est il|sont elles|sont ils|est|sont|t elle|t il|il|elle|elles|ils|encore|toujours|bien|deja|laisse|reste|restee?s?|y a|des|qu est ce qui|quoi)\b/g, ' ').replace(adj, ' ').replace(/\s+/g, ' ').trim();
+      var list = /^(quelles?|quels?|combien|lesquelles|lesquels)\b/.test(rest) || /^(est ce qui|qu est ce qui|y a t il|il y a|reste t il|dis moi quelles?)\b/.test(s);
+      rest = rest.replace(/^(quelles?|quels?|combien de|combien|lesquelles|lesquels)\b/, ' ').trim();
+      var tq = tgt(rest);
+      if (!tq) return null;
+      if (list || tq.all || !tq.target) return out('list', { ask: askOff ? 'off' : 'on', target: tq.target, full: tq.full, all: !tq.target });
+      return out('query', { ask: askOff ? 'off' : 'on', target: tq.target, full: tq.full });
+    }
+    // scènes : « active la scène Lecture », « mets l'ambiance détente dans le salon », « mets le salon en mode lecture »
+    if ((m = /^(?:active|activez|lance|lancez|mets|met|passe|passez|demarre|joue|choisis|allume|bascule|on passe|je veux|rappelle)? ?(?:la |une |l |en )?(?:scene|ambiance|atmosphere)(?: (?:de |d |du |en mode |mode ))?(.*)$/.exec(s))) {
+      var sr = m[1].trim(), room = null, sm2;
+      if ((sm2 = /^(.+?) (?:dans|pour|au|sur|du|de la|de l) (.+)$/.exec(sr))) { var rt = tgt(sm2[2]); if (rt && (rt.target || rt.all)) { room = rt; sr = sm2[1]; } }
+      sr = sr.replace(/^(?:la |le |l |les )/, '');
+      return out('scene', { scene: sr || null, sceneFull: m[1].trim().replace(/^(?:la |le |l |les )/, '') || null, target: room ? room.target : null, full: room ? room.full : null, all: room ? room.all : false });
+    }
+    if ((m = /^(?:mets|met|passe|bascule|passez) (.+?) en mode (.+)$/.exec(s))) { var rm = tgt(m[1]); if (rm) return out('scene', { scene: m[2], sceneFull: m[2], target: rm.target, full: rm.full, all: rm.all }); }
+    // couleur : « mets le salon en bleu », « lumière rouge dans la chambre », « change la couleur de la cuisine en vert »
+    var ws = s.split(' '), ci = -1, col = null;
+    for (var k2 = 0; k2 < ws.length; k2++) { var cw = colorWord(ws[k2]); if (cw) { ci = k2; col = cw; break; } }
+    if (col && ws[ci + 1] === 'ciel' && col === 'bleu') col = 'bleu ciel';
+    if (col) {
+      var prev = ws[ci - 1] || '', lightish = LNOUN_RE.test(s) || /\bcouleur\b/.test(s) || prev === 'en';
+      if (lightish && (verbStart || /^(passe|change|colore|fais|regle|choisis|lumiere|lumieres|en|couleur|eclairage)\b/.test(s) || LNOUN_RE.test(prev) || prev === 'en')) {
+        var cut = ws.slice(); cut.splice(ci, col === 'bleu ciel' ? 2 : 1); if (prev === 'en') cut.splice(ci - 1, 1);
+        var cs = cut.join(' ').replace(/^(mets|met|passe|passez|change|changez|colore|fais|regle|choisis|allume|allumez|rallume)\b ?/, '').replace(/\b(la |une )?couleur( de| du| des| d)?\b/, ' ').replace(/\s+/g, ' ').trim();
+        var tc = tgt(cs); if (!tc) return null;
+        return out('color', { color: col, target: tc.target, full: tc.full, all: tc.all });
+      }
+    }
+    // température de blanc : « lumière chaude », « mets le salon en blanc froid », « lumière plus chaude »
+    if ((m = /\b(?:(?:en |une |un )?(?:lumieres? |eclairage |blanc |ambiance )(?:plus |tres |bien )?|en (?:blanc )?(?:plus )?)(chaude?s?|froide?s?|neutres?|naturelle|tamisee|du jour)\b/.exec(s)) || (m = /^(?:mets |met )?(?:en )?(blanc)$/.exec(s)) || (m = /\ben (blanc)\b/.exec(s))) {
+      var w0 = m[1], rel = /\bplus\b/.test(m[0]);
+      var ct = /^chaud/.test(w0) ? (rel ? 'warmer' : 'warm') : /^froid|du jour/.test(w0) ? (rel ? 'cooler' : 'cold') : /tamisee/.test(w0) ? 'warm' : 'neutral';
+      var cr = (s.slice(0, m.index) + ' ' + s.slice(m.index + m[0].length)).replace(/^ ?(mets|met|passe|regle|change|choisis|allume|allumez|fais|donne moi|je veux)\b/, ' ').replace(/\s+/g, ' ').trim();
+      var tt = tgt(cr); if (!tt) return null;
+      return out('ct', { ct: ct, bri: /tamisee/.test(w0) ? 30 : undefined, target: tt.target, full: tt.full, all: tt.all });
+    }
+    // luminosité : « mets le salon à 30 % », « lumière à fond », « baisse la lumière du salon », « plus de lumière »
+    var hasLN = LNOUN_RE.test(s);
+    var bri = null, bspan = null;
+    if ((m = /\b(?:a|au|sur|de|en) (\d{1,3}) ?%/.exec(s)) || (m = /\b(\d{1,3}) ?%/.exec(s))) { bri = Math.min(100, +m[1]); bspan = m; }
+    else if ((m = /\b(?:a|au) (\d{1,3})$/.exec(s)) && (hasLN || /^(mets|met|regle|allume|allumez|baisse|monte)\b/.test(s)) && +m[1] <= 100) { bri = +m[1]; bspan = m; }
+    else if ((m = /\b(a fond|au max|au maximum|plein pot|a pleine puissance|en pleine puissance|au plus fort|au plus lumineux|a 100)\b/.exec(s))) { bri = 100; bspan = m; }
+    else if ((m = /\b(au minimum|au mini|au plus bas|au plus faible|tout doux|en veilleuse|au plus sombre)\b/.exec(s))) { bri = 1; bspan = m; }
+    else if ((m = /\b(a moitie|a la moitie|a mi puissance|a demi|a mi hauteur)\b/.exec(s))) { bri = 50; bspan = m; }
+    else if ((m = /^(tamise|tamisez|attenue)\b/.exec(s))) { bri = 30; bspan = m; }
+    if (bri != null && (hasLN || /^(mets|met|regle|reglez|allume|allumez|rallume|tamise|tamisez|attenue|baisse|monte|augmente|passe)\b/.test(s) || /\b(luminosite)\b/.test(s))) {
+      var br = (s.slice(0, bspan.index) + ' ' + s.slice(bspan.index + bspan[0].length)).replace(/^ ?(mets|met|regle|reglez|allume|allumez|rallume|tamise|tamisez|attenue|baisse|monte|augmente|passe)\b/, ' ').replace(/\b(la )?luminosite( de| du| des| d)?\b/, ' ').replace(/\s+/g, ' ').trim();
+      var tb = tgt(br); if (!tb) return null;
+      return out(bri === 0 ? 'off' : 'bri', { bri: bri || undefined, target: tb.target, full: tb.full, all: tb.all });
+    }
+    var up = /^(augmente|augmentez|monte|montez|remonte|intensifie|eclaire plus|plus de lumiere|un peu plus de lumiere|mets plus de lumiere|donne moi plus de lumiere|il faut plus de lumiere|plus lumineux|plus clair)\b/.exec(s);
+    var dn = !up && /^(baisse|baissez|diminue|diminuez|descends|reduis|reduisez|moins de lumiere|un peu moins de lumiere|mets moins de lumiere|moins lumineux|plus sombre|assombris)\b/.exec(s);
+    if (up || dn) {
+      var ur = s.slice((up || dn)[0].length).replace(/^ ?(un peu|d un cran|encore)\b/, ' ').replace(/\b(un peu|d un cran)\b/g, ' ').replace(/\b(la )?luminosite( de| du| des| d)?\b/, ' lumiere ').replace(/\s+/g, ' ').trim();
+      if (hasLN || /lumiere/.test((up || dn)[0]) || /\b(lumineux|clair|sombre)\b/.test((up || dn)[0]) || ur && !/^(le |la |les |l )?(son|volume|musique|chauffage|radio|tele|sonnerie)\b/.test(ur) && /^(le |la |les |l )/.test(ur)) {
+        var tu = tgt(ur); if (!tu) return null;
+        return out('step', { dir: up ? 'up' : 'down', target: tu.target, full: tu.full, all: tu.all });
+      }
+    }
+    // allumer / éteindre
+    var on = /^(allume|allumes|allumez|allumer|rallume|rallumez|fais de la lumiere|de la lumiere|lumiere)\b ?/.exec(s);
+    var off = !on && (/^(eteins|eteint|eteindre|eteignez|eteigne|eteinds|coupe|coupez)\b ?/.exec(s) || (hasLN && /^(ferme|fermez)\b ?/.exec(s)));
+    if (on || off) {
+      var orest = s.slice((on || off)[0].length).trim();
+      if (on && /^lumiere/.test(on[0]) && orest && !/^(dans|du|de|des|d|au|aux|sur|partout)\b/.test(orest)) return null;
+      if (/^(coupe|coupez)/.test((on || off)[0]) && !hasLN && !/^(tout|toutes|tous)\b/.test(orest) && !/^(le |la |les |l )/.test(orest)) return null;
+      var to = tgt(orest); if (!to) return null;
+      if (/^(coupe|coupez)/.test((on || off)[0]) && !hasLN && !to.all && !to.target) return null;
+      if (!orest && !/lumiere/.test((on || off)[0])) return null;
+      return out(on ? 'on' : 'off', { target: to.target, full: to.full, all: to.all });
+    }
+    return null;
+  }
+
+  /* ---------------- Climatisation (Panasonic Comfort Cloud) ----------------
+     Majordome ne pilote pas la clim (pas d'API officielle Panasonic, pas d'émetteur infrarouge sur le téléphone) :
+     il ouvre l'appli Comfort Cloud, et pour un réglage il le dit honnêtement (l'utilisateur passe par Alexa).
+     → { intent: 'clim', p: { act: 'open' } } ou { act: 'ctl', what: on | off | temp | mode | fan | timer | query | other } */
+  var CLIM_RE = /\b(clim|clims|clime|climatisation|climatiseurs?|air conditionne|pompe a chaleur)\b/;
+  var CLIM_APP = /\b(comfort|confort) (cloud|clouds|clou|claude)\b|\bpanasonic\b/;
+  function parseClim(t) {
+    var app = CLIM_APP.test(t), dev = CLIM_RE.test(t);
+    if (!app && !dev) {
+      // sans le mot « clim » : seulement des formules propres à la clim
+      if (/\btemperature (demandee|de consigne|reglee|programmee|affichee)\b/.test(t) || /\b(la )?consigne de temperature\b/.test(t)) return { act: 'ctl', what: 'query' };
+      if (/^(?:mets |met |regle |passe )?(?:la )?ventilation (?:au |a |en |sur )?(maximum|max|fond|auto|automatique|minimum|mini|silencieuse?)\b/.test(t)) return { act: 'ctl', what: 'fan' };
+      return null;
+    }
+    if (/\b(liste|listes|note|notes|rappelle|rappel|agenda|rendez vous|achete|acheter|courses)\b/.test(t)) return null;
+    // ouvrir l'appli : « ouvre la clim », « lance Comfort Cloud », « l'appli de la clim »
+    if (/^(ouvre|ouvrir|ouvrez|affiche|montre|montre moi|va dans|va sur|aller dans|aller sur|passe sur|bascule sur)\b/.test(t) && !/\b(fenetre|porte|volets?|stores?)\b/.test(t)) return { act: 'open' };
+    if (app && !/\b(degres?|mode|ventilation|allume|eteins|eteint|eteindre|coupe|mets|met|regle|baisse|monte|augmente|diminue)\b/.test(t)) return { act: 'open' };
+    if (/\b(appli|application)\b/.test(t)) return { act: 'open' };
+    var what = /\b(eteins|eteint|eteindre|eteignez|coupe|coupez|arrete|arretez|stoppe|desactive)\b/.test(t) ? 'off'
+      : /\b(pendant|dans|d ici|minuterie|programmateur|programme)\b/.test(t) && /\b(minutes?|heures?|h|quart|demi)\b/.test(t) ? 'timer'
+      : /\b(quelle|quel|combien|est ce que|est elle|est il)\b/.test(t) ? 'query'
+      : /\b(mode|froid|chaud|chauffage|deshumidific\w*|deshumidifie|sec|dry|ventilation seule)\b/.test(t) ? 'mode'
+      : /\b(ventilation|ventilateur|vitesse|soufflerie)\b/.test(t) ? 'fan'
+      : /\b\d{2}\b|\b(degres?|plus chaud|plus froid|plus frais|baisse|monte|augmente|diminue|temperature)\b/.test(t) ? 'temp'
+      : /\b(allume|allumes|allumez|allumer|demarre|demarrez|lance|lancez|mets en marche|mets la|met la|active|activez|rallume)\b/.test(t) ? 'on' : 'other';
+    return { act: 'ctl', what: what };
+  }
+
+  /* ---------------- Livres audio (Liseuse) ----------------
+     « lis mon livre », « reprends la lecture », « lis-moi Germinal », « pause la lecture », « chapitre suivant »,
+     « arrête la lecture dans 20 minutes » → { intent: 'book', p: { cmd, title, ms, chap } } ; Majordome transmet à Liseuse.
+     cmd : read (livre en cours ou titre), resume, pause, stop, nextch, prevch, sleep (ms ou fin du chapitre).
+     Les formules exigent « livre », « lecture », « chapitre », « roman », « lire » ou « lis-moi » : les anciennes phrases
+     (musique, listes, notes, titres de l'actualité…) ne changent pas. */
+  var BOOKW = '(?:livre|livres|roman|bouquin|livre audio|histoire|lecture)';
+  var LIS = '(?:lis|lit|lie|lisez|lire|relis)';
+  function parseBook(t) {
+    var m, ds;
+    var aboutBook = /\b(lecture|livre|roman|bouquin|chapitre|lire|liseuse)\b/.test(t);
+    if (!aboutBook && !new RegExp('^' + LIS + ' (?:moi|nous)\\b').test(t)) return null;
+    // minuterie de sommeil : « arrête la lecture dans 20 minutes », « arrête de lire dans une demi-heure »
+    if (/\b(arrete|arreter|arretez|stoppe|stop|coupe|coupez|termine|eteins|pause|mets en pause|endors toi|fin)\b/.test(t) && /\b(lecture|lire|livre|roman)\b/.test(t)) {
+      if (/\bdans\b/.test(t) && (ds = durations(t)).length) return { cmd: 'sleep', ms: ds[0].ms };
+      if (/\ba la fin (du|de ce) chapitre\b|\bfin du chapitre\b/.test(t)) return { cmd: 'sleep', chap: true };
+    }
+    if ((m = /^(?:minuterie|minuteur) (?:de |pour )?(?:la )?lecture (?:de |dans |a )?(.+)$/.exec(t)) && (ds = durations(m[1])).length) return { cmd: 'sleep', ms: ds[0].ms };
+    if (/^(?:annule|desactive|enleve|supprime) (?:la )?minuterie (?:de |du )?(?:la )?(?:lecture|livre)$/.test(t)) return { cmd: 'sleep', ms: 0 };
+    // chapitres et phrases
+    if (/^(?:passe (?:au |a la )?|va (?:au |a la )?|aller au )?(?:chapitre suivant|prochain chapitre|chapitre d apres)(?: s il te plait| s il vous plait)?$/.test(t)) return { cmd: 'nextch' };
+    if (/^(?:passe (?:au |a la )?|va (?:au |a la )?|reviens (?:au |a la )?|retourne (?:au |a la )?)?(?:chapitre precedent|chapitre d avant)(?: s il te plait| s il vous plait)?$/.test(t)) return { cmd: 'prevch' };
+    if (/^(?:recommence|relis|reprends) (?:le |ce )?chapitre(?: depuis le debut| du debut| au debut)?$/.test(t)) return { cmd: 'prevch' };
+    // pause, arrêt, reprise
+    if (/^(?:mets |met |mettre )?(?:la |ma )?lecture en pause$|^(?:mets |met |mettre )?(?:le |mon )?(?:livre|roman)(?: audio)? en pause$|^pause (?:la |de la |ma )?lecture$|^pause (?:le |du |mon )?(?:livre|roman)$|^(?:suspends?|interromps?) (?:la |ma )?lecture$/.test(t)) return { cmd: 'pause' };
+    if (/^(?:arrete|arreter|stoppe|stopper|stop|coupe|couper|termine|terminer|ferme|fermer) (?:la |ma )?lecture$|^(?:arrete|arreter|stoppe|stopper|stop|coupe|couper) (?:le |mon )?(?:livre|roman)(?: audio)?$|^arrete de (?:me )?lire$/.test(t)) return { cmd: 'stop' };
+    if (/^(?:reprends|reprend|reprenez|reprendre|continue|continuez|continuer|poursuis|poursuivre|relance|relancer|redemarre|redemarrer) (?:la |ma )?lecture(?: (?:du|de mon|de mon|de ce) (?:livre|roman|bouquin)(?: audio)?)?$|^(?:reprise|suite) de (?:la |ma )?lecture$|^(?:continue|continuer|reprends|reprend|reprendre) (?:a |de )?lire$/.test(t)) return { cmd: 'resume' };
+    // lire le livre en cours
+    if (new RegExp('^(?:' + LIS + '|reprends|reprend|reprendre|continue|continuez|continuer|lance|lancer|relance|relancer|mets|mettre|demarre|demarrer|ecoute|je veux ecouter|on ecoute|ecouter|poursuis|poursuivre)(?: moi| nous)? (?:la suite de |la suite du )?(?:mon|le|ma|du|de mon|mes) ' + BOOKW + '(?: en cours| audio)?$').test(t)) return { cmd: 'read' };
+    if (new RegExp('^(?:' + LIS + ') (?:moi|nous) (?:la )?suite$|^(?:' + LIS + ') (?:moi|nous)$|^(?:livre audio|lecture a voix haute|lecture du livre)$').test(t)) return { cmd: 'read' };
+    return null;
+  }
+  /* « lis-moi Germinal », « lis le livre Les Misérables » : après les listes, notes, actualités (« lis-moi les titres ») */
+  var NOTBOOK = /^(?:mes |mon |ma |tes |les |le |la |l |un |une |des |du |de |ce |cet |cette |ces |son |sa |ses |leur |leurs |nos |notre |vos |votre )?(?:titres?|infos?|informations|actus?|actualites?|nouvelles|messages?|sms|textos?|mails?|e ?mails?|courriels?|notes?|rappels?|listes?|courses|agenda|programme|planning|rendez vous|heure|date|meteo|temps|journal|notifications?|resultats?|horoscope|recette|definition|alarmes?|reveils?|minuteurs?|evenements?)\b/;
+  function parseBookTitle(t, P) {
+    var m = new RegExp('^(?:' + LIS + ' (?:moi |nous )?|je veux (?:ecouter|lire) |mets (?:moi )?|lance (?:la lecture de |moi )?|ecoute )(?:le livre |le roman |le bouquin |l histoire |le texte )(.+)$').exec(t)
+      || new RegExp('^(?:' + LIS + ') (?:moi|nous) (.+)$').exec(t)
+      || /^(?:lecture de |lance la lecture de )(.+)$/.exec(t);
+    if (!m) return null;
+    var w = m[1];
+    if (NOTBOOK.test(w) || /^(?:un peu|quelque chose|qqch|ca|cela|ceci|ce que|ce qui|la suite|tout)\b/.test(w)) return null;
+    var title = orig(P, m.index + m[0].length - w.length);
+    return title ? { cmd: 'read', title: title.replace(/[.!?]+$/, '').trim() } : null;
+  }
+
+  /* ---------------- Mode voyage (Photo) et Carnet de voyage ----------------
+     « mode voyage », « active le mode voyage », « arrête le mode voyage », « commence le carnet Italie »,
+     « ajoute les photos du jour au carnet », « ouvre mon carnet de voyage »
+     → { intent: 'voyage', p: { cmd: on | off | start | import | open, title } } ; Majordome transmet à Photo et au Carnet.
+     Les formules exigent « mode voyage », « carnet (de voyage) » avec un titre ou « photos du jour / du voyage » :
+     « ouvre le carnet » (notes), « ouvre l'appareil photo », « les photos » ne changent pas. */
+  var VOYGEN = /^(?:de voyage|voyage|carnet|de|du|le|la|les|mon|ma|un|une|notre|nouveau)$/;
+  function parseVoyage(t, P) {
+    var m;
+    if (!/\b(voyage|carnet)\b/.test(t)) return null;
+    var PH = '(?: (?:dans|sur|de|pour) (?:l appli |l application )?photo)?';
+    if (new RegExp('^(?:(?:active|activez|activer|allume|allumez|lance|lancez|demarre|demarrez|mets|passe en|passe au|passez en|bascule en|bascule sur|je passe en|on passe en|mettre|mode) )?(?:le |en )?mode voyage' + PH + '(?: on| oui| active)?$').test(t)) return { cmd: 'on' };
+    if (new RegExp('^(?:arrete|arreter|arretez|desactive|desactiver|desactivez|coupe|couper|coupez|quitte|quitter|quittez|stoppe|stop|termine|terminer|eteins|eteindre|sors du|sortir du|sors de|annule|enleve|fin du|fin de) (?:le |du |de |)?mode voyage' + PH + '$|^mode voyage (?:off|non|arrete|desactive|coupe|termine)$').test(t)) return { cmd: 'off' };
+    var START = '^(?:commence|commencer|commencez|commencons|on commence|je commence|demarre|demarrer|demarrez|cree|creer|creez|cree moi|nouveau|nouvel|debute|debuter|lance|lancez)';
+    if (new RegExp(START + '(?: un| le| mon| notre| ce| une| ma)?(?: nouveau)? carnet de voyage$').test(t)) return { cmd: 'start', title: '' };
+    if ((m = new RegExp(START + '(?: un| le| mon| notre| ce| une| ma)?(?: nouveau)? carnet(?: de voyage)?( pour| sur| de| du| d| en| a| au| aux| intitule| appele| nomme)? (.+)$').exec(t))
+      || (m = /^(?:commence|commencer|commencez|on commence|je commence|demarre|demarrer|cree|creer|nouveau|debute) (?:un |le |mon |notre )?(?:nouveau )?voyage( pour| en| a| au| aux| sur| de| du| d)? (.+)$/.exec(t))) {
+      var w = m[2];
+      if (!VOYGEN.test(w) && !/^(?:de voyage|voyage)$/.test(w) && !/^(?:de |d )?(?:notes?|courses|chasse|liste)\b/.test(w)) {
+        var title = orig(P, m.index + m[0].length - w.length).replace(/[.!?]+$/, '').trim();
+        if (m[1]) title = title.replace(/^(?:la|le|les|l['’])\s*/i, '');   // « pour la Grèce » → Grèce
+        if (title) return { cmd: 'start', title: title.charAt(0).toUpperCase() + title.slice(1) };
+      }
+    }
+    if (/^(?:ajoute|ajouter|ajoutez|mets|mettre|importe|importer|importez|range|ranger|verse|copie|copier|transfere|envoie)(?: moi)? (?:les |mes |toutes les )?photos (?:du jour|d aujourd hui|de la journee|de ce jour|prises aujourd hui|du voyage(?: d aujourd hui| du jour)?)(?: (?:au|dans le|dans mon|dans|a mon|sur le|sur mon|vers le|vers mon) carnet(?: de voyage)?)?$/.test(t)
+      && /\b(carnet|voyage)\b/.test(t)) return { cmd: 'import' };
+    if (/^(?:(?:ouvre|ouvrir|ouvrez|affiche|afficher|montre|montre moi|montrez moi|lance|va sur|va dans|aller dans|reprends|retourne a|retourne sur) )?(?:l appli |l application )?(?:mon |le |notre |ma )?carnet de voyage$/.test(t)) return { cmd: 'open' };
+    return null;
+  }
+
+  /* ---------------- Aide : exemples (servent aussi aux suggestions) ---------------- */
+  var EXAMPLES = [
+    ['time', 'Quelle heure est-il ?'], ['date', 'Quel jour sommes-nous ?'], ['countdown', 'Dans combien de jours est Noël ?'],
+    ['calc', 'Combien font 15 % de 240 ?'], ['calc', 'Combien font 12 fois 8 ?'], ['convert', 'Convertis 2 pouces en millimètres'],
+    ['convert', '20 degrés Celsius en Fahrenheit'], ['convert', 'Combien de psi font 6 bars ?'],
+    ['timer', 'Mets un minuteur de 10 minutes'], ['stopwatch', 'Lance le chronomètre'], ['alarm', 'Réveille-moi demain à 6 h 30'],
+    ['reminder', 'Rappelle-moi d\'appeler le plombier à 17 h'], ['reminder', 'Rappelle-moi dans 20 minutes de sortir le linge'],
+    ['weather', 'Quel temps fait-il ?'], ['weather', 'Est-ce qu\'il va pleuvoir demain ?'], ['wind', 'Y a-t-il du vent pour monter l\'échafaudage ?'],
+    ['vigilance', 'Y a-t-il une vigilance météo ?'], ['news', 'Les titres'], ['news', 'L\'essentiel de l\'actualité'],
+    ['agenda', 'Qu\'est-ce que j\'ai aujourd\'hui ?'], ['agenda', 'Mes rendez-vous de demain'], ['agenda_add', 'Ajoute un rendez-vous chez le dentiste jeudi à 14 h'],
+    ['note_add', 'Note : commander les vis de 6'], ['list_add', 'Ajoute du pain à la liste de courses'], ['list_read', 'Lis ma liste de courses'],
+    ['budget_add', 'J\'ai dépensé 45 euros de carburant sur le compte courant'], ['open_app', 'Ouvre Présentation'], ['open_app', 'Ouvre le lecteur PDF'],
+    ['music', 'Mets de la musique'], ['music', 'Chanson suivante'], ['call', 'Appelle Paul'], ['sms', 'Envoie un SMS à Paul : j\'arrive dans 10 minutes'], ['msgs', 'J\'ai des messages ?'], ['msgs', 'Lis-moi mes messages WhatsApp'], ['msg_reply', 'Réponds à Marie : j\'arrive'],
+    ['torch', 'Allume la lampe'], ['volume', 'Monte le son'], ['silent', 'Mode silencieux'], ['wifi', 'Active le Wi-Fi'], ['bluetooth', 'Ouvre le Bluetooth'],
+    ['battery', 'Niveau de batterie'], ['fullscreen', 'Plein écran'], ['website', 'Ouvre YouTube'], ['routine', 'Bonjour Majordome'], ['routine', 'Bonne nuit'],
+    ['light', 'Allume le salon'], ['light', 'Éteins tout'], ['light', 'Mets le salon à 30 %'], ['light', 'Mets la chambre en bleu'], ['light', 'Lumière chaude dans le salon'],
+    ['light', 'Active la scène Lecture'], ['light', 'Quelles lumières sont allumées ?'], ['light', 'Éteins le salon dans 10 minutes'],
+    ['clim', 'Ouvre la clim'], ['clim', 'Ouvre Comfort Cloud'],
+    ['help', 'Qu\'est-ce que tu sais faire ?'], ['repeat', 'Répète'], ['stop', 'Stop']
+  ];
+  function grams(s) { var g = {}; s = ' ' + s + ' '; for (var i = 0; i < s.length - 2; i++) g[s.substr(i, 3)] = 1; return g; }
+  function sim(a, b) { var A = grams(a), B = grams(b), n = 0, ka = Object.keys(A), kb = Object.keys(B); ka.forEach(function (k) { if (B[k]) n++; }); return n / Math.max(1, ka.length + kb.length - n); }
+  function suggest(t) {
+    var best = null, bs = 0;
+    EXAMPLES.forEach(function (e) { var s = sim(t, prep(e[1], {}).t); if (s > bs) { bs = s; best = e; } });
+    return bs >= 0.28 ? { intent: best[0], phrase: best[1], score: +bs.toFixed(2) } : null;
+  }
+
+  /* Correction orthographique prudente (pour proposer, jamais pour exécuter) : mots à une ou deux lettres près du vocabulaire */
+  var VOCAB = null;
+  function lev(a, b) {
+    var d = [], i, j; for (i = 0; i <= a.length; i++) d[i] = [i];
+    for (j = 1; j <= b.length; j++) d[0][j] = j;
+    for (i = 1; i <= a.length; i++) for (j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    return d[a.length][b.length];
+  }
+  function spell(t) {
+    if (!VOCAB) {
+      VOCAB = {};
+      EXAMPLES.forEach(function (e) { prep(e[1], {}).t.split(' ').forEach(function (w) { if (w.length >= 4 && !/\d/.test(w)) VOCAB[w] = 1; }); });
+      ('meteo demain minuteur reveil rappelle musique chanson suivante precedente agenda rendez vous liste courses note batterie volume silencieux lampe torche ' +
+       'appelle message envoie ouvre presentation tableur texte rangement echafaudage budget depense carburant convertis pouces millimetres combien heure jour date ' +
+       'semaine titres actualites essentiel pleuvoir temperature vigilance vent rafales chrono chronometre calcule aujourd bonjour bonne nuit routine').split(' ').forEach(function (w) { VOCAB[w] = 1; });
+    }
+    var words = Object.keys(VOCAB);
+    return t.split(' ').map(function (w) {
+      if (w.length < 4 || VOCAB[w] || /\d/.test(w)) return w;
+      var best = w, bd = w.length >= 7 ? 3 : 2;
+      words.forEach(function (v) { if (Math.abs(v.length - w.length) > 2) return; var d = lev(w, v); if (d < bd) { bd = d; best = v; } });
+      return best;
+    }).join(' ');
+  }
+
+  /* ---------------- Oui / non ---------------- */
+  function yesNo(t) {
+    if (/^(oui|ouais|ok|d accord|daccord|vas y|allez y|vas y envoie|envoie|envoie le|appelle|confirme|je confirme|confirmer|c est bon|parfait|exactement|tout a fait|absolument|bien sur|go|valide|valider|affirmatif|oui oui|oui vas y|oui envoie|oui merci|oui s il te plait|c est ca|exact|bien|ajoute|ajoute la|ajoute le|supprime|efface|vide|oui confirme|on y va|fais le)$/.test(t)) return 'yes';
+    if (/^(non|non merci|annule|annuler|pas maintenant|laisse tomber|stop|arrete|surtout pas|negatif|pas question|non non|ne fais rien|oublie|rien|attends|attend|non annule|pas du tout|je ne veux pas)$/.test(t)) return 'no';
+    if (/^oui\b/.test(t)) return 'yes';
+    if (/^non\b/.test(t)) return 'no';
+    return null;
+  }
+
+  /* ---------------- Politesses et mots gentils ----------------
+     Sur la phrase brute (prep() retire « merci » en tête) : merci, compliments, « je t'aime », excuses,
+     au revoir, humeur (« je suis fatigué »), vœux, et les mots moins gentils. */
+  var SOC = [
+    ['thanks', /^(?:(?:oh |ah |bon |super |parfait |top |nickel |cool |genial |impeccable |ok |d accord )?merci(?: (?:beaucoup|bien|infiniment|mille fois|encore|a toi|a vous|mon ami|mon grand|ma belle|mon pote|cher ami|pour tout|pour ca|pour cela|pour l info|pour l information|pour (?:la|le|les|l|ton|ta|tes|votre|vos|ce|cette) [a-z ]{2,40}|c est (?:parfait|super|top|gentil|sympa|genial)|bien|beaucoup))*|mille mercis?|c est (?:gentil|sympa|adorable|tres gentil|trop gentil|vraiment gentil)|trop gentil|tres gentil|c est cool|thanks|thank you|merci bien|grand merci|un grand merci)$/],
+    ['beauty', /^(?:(?:tu es|t es|vous etes|comme tu es|que tu es|qu est ce que tu es|qu est ce que t es|ce que tu es|tu es vraiment|t es vraiment|tu es trop|t es trop|tu es tres|t es tres|tu es si|t es si|tu es toujours|t es toujours|tu es super|t es super|tu es tellement|t es tellement|vous etes tres|vous etes vraiment|comme vous etes|que vous etes) (?:jolie|joli|belle|beau|ravissante|magnifique|sublime|charmante|charmant|superbe|mignonne|mignon|elegante|splendide|sexy|craquante|adorable|rayonnante|radieuse|resplendissante|canon|en beaute|tres belle|tres jolie|belle comme tout|jolie comme tout|une beaute|une bombe|bien coiffee|bien habillee|en forme|seduisante|attirante|divine|parfaite|une merveille)|(?:quelle|comme tu es|t es) (?:beaute|jolie fille|belle femme|belle fille)|(?:tu es|t es) (?:la plus belle|la plus jolie|ma preferee)|(?:t as|tu as) (?:de beaux yeux|un beau sourire|un joli sourire|de jolis yeux|une jolie voix|une belle voix|une voix magnifique|une voix douce)|(?:j adore|j aime|j aime bien) (?:ta voix|ton sourire|tes yeux|ton visage|ta coiffure|ton style)|(?:ta voix|ton sourire|tes yeux|ton visage) (?:est magnifique|est superbe|est jolie|est belle|est tres jolie|est tres belle|sont magnifiques|sont superbes|sont jolis|sont beaux|est sublime|sont sublimes|est adorable|est doux|est douce)|belle comme tout|jolie comme un coeur|ravissante|magnifique|sublime|superbe|charmante)$/],
+    ['compliment', /^(?:(?:tu es|t es|vous etes|tu es vraiment|t es vraiment|vous etes vraiment|tu es trop|t es trop|t es un|tu es un|tu es une|t es une|quel|quelle) (?:genial|geniale|super|top|formidable|fantastique|extra|excellent|excellente|merveilleux|merveilleuse|parfait|parfaite|fort|forte|tres fort|tres forte|trop fort|trop forte|intelligent|intelligente|malin|maline|gentil|gentille|adorable|beau|belle|incroyable|doue|douee|efficace|rapide|drole|marrant|marrante|sympa|sympathique|serviable|douce|gentille|attentionnee|patiente|le meilleur|la meilleure|le plus fort|un amour|un ange|un champion|une championne|une perle|un genie|au top|trop bien|bon|bonne|assistant genial|bon assistant|le meilleur assistant|la meilleure assistante|un bon assistant|une bonne assistante|un super assistant)|bravo(?: a toi| a vous| mon ami)?|bien joue|bien vu|bien fait|excellent|impeccable|chapeau(?: bas)?|trop fort|trop bien|tu assures|t assures|tu geres|t geres|tu es au top|good job|beau travail|bon travail|super travail|joli travail|bien travaille|je suis fier de toi|je suis fiere de toi|tu m impressionnes|tu m epates|tu es mon prefere|t es mon prefere|tu es ma preferee|j adore|j adore ca|c est genial|c est parfait|c est top|c est super|super boulot|beau boulot|bon boulot|nickel|parfait|top|super|genial)$/],
+    ['love', /^(?:je t aime(?: bien| beaucoup| fort| tres fort| trop| a la folie| moi aussi)?|moi aussi je t aime|je vous aime(?: bien| beaucoup)?|je t adore|je vous adore|tu me plais|je te kiffe|je t apprecie(?: beaucoup)?|bisou|bisous|gros bisous?|un bisou|je t embrasse|calin|un calin|fais moi un calin|tu m aimes|est ce que tu m aimes|tu m aimes bien)$/],
+    ['sorry', /^(?:desole|desolee|je suis desole|je suis desolee|vraiment desole|excuse moi|excusez moi|je m excuse|je te demande pardon|je vous demande pardon|pardon je me suis trompe|pardon je me suis trompee|je me suis trompe|je me suis trompee|oups|oups pardon|mea culpa|ma faute|c est ma faute|autant pour moi|au temps pour moi)$/],
+    ['rude', /^(?:(?:tu es|t es|vous etes|tu es vraiment|t es vraiment|tu es trop|t es trop|t es qu un|tu n es qu un|espece d) (?:nul|nulle|bete|idiot|idiote|imbecile|stupide|debile|abruti|abrutie|con|conne|cretin|cretine|lent|lente|bouche|bouchee|sourd|sourde|inutile|pas doue|pas douee|pas tres malin|nase|naze|une buse|un boulet)|nul|t es nul|trop nul|tu sers a rien|tu ne sers a rien|tu sers a rien du tout|tu comprends rien|tu ne comprends rien|tu comprends jamais rien|tu ne comprends jamais rien|t es lourd|tu es lourd|tu m enerves|tu m agaces|tu me saoules|tu me soules|tu me fatigues|ferme la|la ferme|idiot|imbecile|abruti|debile|cretin)$/],
+    ['bye', /^(?:au revoir|aurevoir|a plus|a plus tard|a la prochaine|a bientot|a tout a l heure|a toute|a tout de suite|a demain|a ce soir|a lundi|a la semaine prochaine|salut a plus|ciao|tchao|bye|bye bye|adieu|bonne journee|bonne fin de journee|bonne apres midi|bonne fin d apres midi|bon week end|bonne semaine|bonne continuation|je m en vais|je pars|je sors|j y vais|je file|je te laisse|je vous laisse|on se reparle plus tard)$/],
+    ['welcome', /^(?:de rien|je t en prie|je vous en prie|avec plaisir|c est normal|pas de quoi|y a pas de quoi|il n y a pas de quoi)$/],
+    ['tired', /^(?:je suis (?:fatigue|fatiguee|creve|crevee|epuise|epuisee|lessive|lessivee|naze|vanne|vannee|mort de fatigue|morte de fatigue|KO|ko)|je suis tres fatigue|je suis tres fatiguee|quelle journee|grosse journee|dure journee|journee difficile|j ai sommeil|je tombe de sommeil)$/],
+    ['happy', /^(?:je suis (?:content|contente|heureux|heureuse|ravi|ravie|de bonne humeur|en forme|joyeux|joyeuse|super content|super contente|trop content|trop contente)|ca va bien|ca va tres bien|je vais bien|je vais tres bien|tout va bien|super journee|belle journee|quelle belle journee|bonne nouvelle|j ai une bonne nouvelle|youpi|yes|trop bien)$/],
+    ['sad', /^(?:je suis (?:triste|pas bien|pas en forme|deprime|deprimee|decourage|decouragee|de mauvaise humeur|degoute|degoutee|enerve|enervee|stresse|stressee|angoisse|angoissee|seul|seule)|ca va pas|ca ne va pas|ca va pas fort|ca ne va pas fort|je vais pas bien|je ne vais pas bien|j ai pas le moral|je n ai pas le moral|j ai le moral a zero|mauvaise journee|sale journee|journee pourrie|c est pas la forme|bof)$/],
+    ['bored', /^(?:je m ennuie|je m ennuie un peu|on s ennuie|je sais pas quoi faire|je ne sais pas quoi faire|qu est ce que je pourrais faire|j ai rien a faire|je n ai rien a faire)$/],
+    ['meal', /^(?:bon appetit|a table|on mange|je vais manger|on passe a table)$/],
+    ['wishes', /^(?:joyeux noel|bonne annee|bonne annee a toi|meilleurs voeux|joyeuses paques|joyeux anniversaire|bon anniversaire|joyeuses fetes|bonnes fetes|bonne fete)$/],
+    ['joke', /^(?:(?:raconte|dis|fais)(?: moi| nous)? (?:une|un|encore une) (?:autre )?(?:blague|histoire drole|truc drole|devinette)|(?:moi )?une (?:autre )?blague|encore une blague|une autre blague|fais moi rire|fais nous rire|tu connais une blague|tu connais des blagues|t as une blague|tu as une blague|blague|une devinette)$/],
+    ['laugh', /^(?:ha ha|haha|ha ha ha|hahaha|hihi|hi hi|mdr|lol|ptdr|trop drole|tres drole|t es drole|tu es drole|c est drole|elle est bonne|t es marrant|tu es marrant)$/]
+  ];
+  // fins de phrase sans importance pour une politesse : « …ce matin », « …aujourd'hui », « …ma belle »
+  var SOC_END = /^(.+?) (?:ce matin|ce soir|ce midi|cet apres midi|aujourd hui|comme toujours|toujours|vraiment|aussi|encore|ma belle|ma jolie|ma cherie|mon coeur|mon ange|ma beaute|ma puce|ma grande|mon amour)$/;
+  function social(raw, ctx) {
+    var names = (ctx && ctx.names || []).map(deacc).concat(['majordome', 'jarvis']);
+    var s = deacc(raw).replace(/[’']/g, ' ').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+    // dictée vocale approximative : « tu est », « tes », accords au masculin ou au pluriel (« jolies », « ravissant »)
+    s = (' ' + s + ' ').replace(/ (?:tu est|tu et|tu ai|tues|tu e) /g, ' tu es ').replace(/^ tes /, ' t es ').replace(/ vous etes /g, ' vous etes ')
+      .replace(/ (jolie?s?) /g, ' jolie ').replace(/ (?:belles|beaux|beau|bel) /g, ' belle ')
+      .replace(/ ravissant(?:e|es|s)? /g, ' ravissante ').replace(/ charmant(?:e|es|s)? /g, ' charmante ').replace(/ mignon(?:ne|nes|s)? /g, ' mignonne ')
+      .replace(/ (magnifique|sublime|superbe|splendide|adorable|divine|parfaite|seduisante|attirante|elegante|craquante|rayonnante|resplendissante)s /g, ' $1 ')
+      .replace(/ elegant /g, ' elegante ').replace(/ radieu(?:x|se|ses) /g, ' radieuse ').replace(/ parfait /g, ' parfaite ').replace(/ divin /g, ' divine ').trim();
+    var strip = true, g = 0;
+    while (strip && g++ < 6) {
+      strip = false;
+      names.forEach(function (n) {
+        if (!n) return;
+        if (s.indexOf(n + ' ') === 0) { s = s.slice(n.length + 1); strip = true; }
+        if (s.length > n.length && s.slice(-n.length - 1) === ' ' + n) { s = s.slice(0, -n.length - 1); strip = true; }
+      });
+      var m0 = /^(?:ok|hey|he|eh|oh|ah|alors|bon|euh|dis|dis donc|tiens) (.+)$/.exec(s); if (m0 && m0[1] !== 'merci' && !/^(?:appetit|anniversaire|week end|travail|boulot|courage|retour|vent|moi une blague$)/.test(m0[1]) || m0 && /^dis /.test(s) && m0[1] !== 'merci') { s = m0[1]; strip = true; }
+    }
+    // le nom au milieu de la phrase (« bonjour Jarvis tu es jolie ») et les fins sans importance
+    names.forEach(function (n) { if (n) s = (' ' + s + ' ').split(' ' + n + ' ').join(' ').trim(); });
+    var i, me, gg = 0;
+    for (i = 0; i < SOC.length; i++) if (SOC[i][1].test(s)) return { kind: SOC[i][0] };
+    while ((me = SOC_END.exec(s)) && gg++ < 4) s = me[1];
+    if (!s) return null;
+    for (i = 0; i < SOC.length; i++) if (SOC[i][1].test(s)) return { kind: SOC[i][0] };
+    if (gg && /^(bonjour|bonsoir|salut|coucou)$/.test(s)) return { kind: 'tender', hello: s };   // « bonjour ma belle »
+    // « bonjour, tu es ravissante » : salutation + compliment → compliment puis la routine du matin
+    var mh = /^(bonjour|salut|coucou|hello|bonsoir) (.+)$/.exec(s);
+    if (mh) { var rest = mh[2]; while ((me = SOC_END.exec(rest)) && gg++ < 8) rest = me[1]; for (var h = 0; h < SOC.length; h++) if (SOC[h][1].test(rest) && /beauty|compliment|love/.test(SOC[h][0])) return { kind: SOC[h][0], hello: mh[1] }; }
+    // « merci et bonne journée », « merci beaucoup, à demain », « bravo merci »
+    var parts = s.split(/ (?:et|puis) | (?=bonne |bon |a demain|a plus|a bientot|au revoir|merci)/).filter(Boolean);
+    if (parts.length > 1 && parts.length < 4) {
+      var kinds = parts.map(function (p) { for (var k = 0; k < SOC.length; k++) if (SOC[k][1].test(p.trim())) return SOC[k][0]; return null; });
+      if (kinds.every(Boolean)) {
+        var main = kinds.indexOf('bye') >= 0 ? 'bye' : kinds.indexOf('love') >= 0 ? 'love' : kinds.indexOf('compliment') >= 0 ? 'compliment' : kinds[0];
+        return { kind: main, thanks: kinds.indexOf('thanks') >= 0 && main !== 'thanks' };
+      }
+    }
+    return null;
+  }
+
+  /* ---------------- Analyse ---------------- */
+  function parse(raw, ctx) {
+    ctx = ctx || {};
+    var now = ctx.now || Date.now();
+    var P = prep(raw, ctx), t = P.t, m;
+    function R(intent, p) { return { intent: intent, p: p || {}, t: t, raw: P.raw, wake: P.wake }; }
+    if (!t) return R(P.wake ? 'wake' : 'empty');
+    // réponse attendue (confirmation, précision)
+    if (ctx.expect) {
+      var ex = ctx.expect;
+      if (ex.slot === 'yesno') { var yn = yesNo(t); if (yn) return R(yn === 'yes' ? 'confirm_yes' : 'confirm_no'); }
+      if (ex.slot === 'when') { var w0 = findWhen(t, now); if (w0.at != null) return R('slot', { when: w0 }); if (yesNo(t) === 'no') return R('confirm_no'); }
+      if (ex.slot === 'duration') { var d0 = durations(t); if (d0.length) return R('slot', { ms: d0[0].ms }); if (yesNo(t) === 'no') return R('confirm_no'); }
+      if (ex.slot === 'text') { if (yesNo(t) === 'no' && t.split(' ').length <= 2) return R('confirm_no'); return R('slot', { text: P.raw.trim() }); }
+      if (ex.slot === 'choice') { var nb = /^(?:le |la )?(\d|premier|premiere|deuxieme|second|seconde|troisieme)\b/.exec(t); if (nb) { var map = { premier: 1, premiere: 1, deuxieme: 2, second: 2, seconde: 2, troisieme: 3 }; return R('slot', { choice: map[nb[1]] || +nb[1] }); } if (yesNo(t) === 'no') return R('confirm_no'); return R('slot', { text: P.raw.trim() }); }
+    }
+    // --- formules courtes ---
+    if (/^(stop|arrete|arrete toi|arrete de parler|tais toi|taisez vous|tais toi s il te plait|silence|chut|annule|annule tout|laisse tomber|oublie|ca suffit|c est tout|rien|non rien|ferme la|la ferme|stoppe)$/.test(t)) return R('stop');
+    if (/^(merci|merci beaucoup|merci bien|merci a toi|merci mon ami|c est gentil|parfait merci|super merci|merci c est parfait|top merci|nickel merci|cool merci)$/.test(t)) return R('thanks');
+    if (/^(repete|repetes|repeter|tu peux repeter|peux tu repeter|redis|redit|redis le|repete s il te plait|pardon|comment|hein|quoi|qu est ce que tu as dit|j ai pas compris|je n ai pas compris)$/.test(t)) return R('repeat');
+    if (/^(oui|non|ok|d accord)$/.test(t)) return R(yesNo(t) === 'yes' ? 'confirm_yes' : 'confirm_no');
+    // --- routines ---
+    var routines = ctx.routines || [];
+    for (var ri = 0; ri < routines.length; ri++) {
+      // plusieurs phrases possibles, séparées par des virgules : « bonsoir, je rentre, me voilà »
+      var phs = String(routines[ri].phrase || '').split(/[,;\/|]+/).concat([routines[ri].name || '']);
+      for (var pj = 0; pj < phs.length; pj++) {
+        var rp = prep(phs[pj], ctx).t;
+        if (rp && (t === rp || t === 'routine ' + rp || t === 'lance la routine ' + rp || t === 'lance ' + rp || t === 'mode ' + rp || t === 'active la routine ' + rp)) return R('routine', { id: routines[ri].id });
+      }
+    }
+    // --- politesses, compliments, humeur (réponses dans mj-social.js), après les routines de l'utilisateur ---
+    var soc = social(P.raw, ctx);
+    if (soc) return R('social', soc);
+    // --- les applis Wi-Fi, Bluetooth, Caméras (à ne pas confondre avec « active le Wi-Fi ») ---
+    if ((m = /^(?:ouvre|ouvrir|lance|lancer|demarre|affiche|montre moi|va dans|va sur)\s+(?:l |la |mon |ma )?(?:appli|application) (wi ?fi|bluetooth|cameras?)$/.exec(t))) {
+      if (/^camera/.test(m[1])) return R('cameras', { name: '' });
+      return R('open_app', findApp('appli ' + m[1].replace(' ', '')));
+    }
+    // --- reprendre une appli de la Suite où on l'a laissée : « reprends Mélodie », « continue le tableur », « relance la Liseuse » ---
+    if ((m = /^(?:reprends|reprendre|reprenez|continue|continuer|continuez|relance|relancer|relancez|poursuis|poursuivre|retourne (?:sur|dans)|retourner (?:sur|dans)|reviens (?:sur|dans)|revenir (?:sur|dans)) (?:l appli |l application |mon |ma |mes |le |la |les |l )?(.+)$/.exec(t))) {
+      if (/^cameras?$/.test(m[1])) return R('cameras', { name: '' });
+      var ra = findApp(m[1]);
+      if (ra && !(ra.id === 'qr' && !/\b(qr|q r)\b/.test(m[1]))) {
+        if (ra.id === 'musique') return R('music', { cmd: 'play' });
+        if (ra.id === 'liseuse') return R('book', { cmd: 'resume' });
+        if (ra.id === 'cameras') return R('cameras', { name: '' });
+        ra.resume = true; return R('open_app', ra);
+      }
+    }
+    // --- apprentissage (mj-appris.js) : « quand je dis soirée film, ferme les volets puis allume le salon à 20 % » ---
+    if ((m = /^(?:(?:apprends|apprend|retiens|retient|souviens toi|memorise|enregistre|note|note bien)(?: bien)?(?: que| qu)? )?(?:quand|lorsque|si) je (?:te )?(?:dis|dirai|dis juste) (.+?) (?:tu (?:fais|fait|dois faire|feras|dois|devras|comprends)|fais|fait|il faut|ca veut dire|ca signifie|cela veut dire|cela signifie|ca correspond a|c est|alors|je veux dire|tu)\b(?: que| qu)? (.+)$/.exec(t))) {
+      var tp = /^.*?(?:quand|lorsque|si) je (?:te )?(?:dis|dirai|dis juste) /.exec(t), s1 = tp ? tp[0].length : 0;
+      return R('teach', { say: orig(P, s1, s1 + m[1].length), todo: orig(P, t.length - m[2].length) });
+    }
+    // sans mot de liaison : « quand je dis soirée film, ferme les volets » (virgule) ou la première coupure dont la suite est une commande connue
+    if ((m = /^(?:(?:apprends|apprend|retiens|retient|souviens toi|memorise|enregistre|note|note bien)(?: bien)?(?: que| qu)? )?(?:quand|lorsque|si) je (?:te )?(?:dis|dirai|dis juste) (.+)$/.exec(t)) && !ctx._teach) {
+      var s2 = t.length - m[1].length, ws = m[1].split(' '), comma = /^(.*?(?:quand|lorsque|si) je (?:te )?(?:dis|dirai|dis juste)\s+)(.+?)\s*,\s*(.+)$/i.exec(P.raw);
+      if (comma) return R('teach', { say: comma[2].replace(/[«»"]/g, '').trim(), todo: comma[3].trim() });
+      for (var wi = 1; wi < ws.length; wi++) {
+        var head = ws.slice(0, wi).join(' '), rest = ws.slice(wi).join(' '), rr = parse(rest, Object.assign({}, ctx, { _teach: true, _noFix: true, routines: [] }));
+        if (rr.intent !== 'unknown' && rr.intent !== 'empty' && rr.intent !== 'wake') return R('teach', { say: orig(P, s2, s2 + head.length), todo: orig(P, s2 + head.length + 1) });
+      }
+      return R('teach', { say: orig(P, s2) });
+    }
+    if (/^(?:je vais t apprendre|je veux t apprendre|apprends|apprend|apprendre|retiens|enregistre)(?: une| un)?(?: nouvelle| nouveau)? (?:phrase|commande|chose|quelque chose|truc|mot|expression)(?: nouvelle| nouveau)?$/.test(t) || /^(?:mode )?apprentissage$/.test(t)) return R('teach', {});
+    if (/^(?:qu est ce que|quest ce que|qu|que) (?:tu as|t as|as tu) appris$/.test(t) || /^(?:quelles|les) (?:phrases|commandes) (?:apprises|que tu as apprises|que je t ai apprises)$/.test(t) || /^(?:liste|montre|dis)(?: moi)? (?:les |tes |mes )?(?:phrases|commandes) apprises$/.test(t)) return R('teach_list');
+    if (/^(?:oublie|efface|supprime) tout ce que (?:je t ai appris|tu as appris|t as appris)$/.test(t)) return R('teach_forget', { all: true });
+    if ((m = /^(?:oublie|efface|supprime) (?:la phrase|l expression|la commande apprise|la commande|ce que je t ai appris (?:pour|sur|avec)|ce que je t ai dit pour|ce que veut dire) (.+)$/.exec(t))) return R('teach_forget', { say: orig(P, m.index + m[0].length - m[1].length) });
+    // --- révisions, quiz (mj-appris.js) ---
+    if ((m = /^(?:fais moi reviser|fait moi reviser|faites moi reviser|on revise|reviser|revision|revisions|interroge moi|interrogez moi|pose moi des questions|pose moi une question|pose moi un quiz|fais moi un quiz|fait moi un quiz|un quiz|quiz|lance un quiz|teste moi|testez moi|teste mes connaissances|on fait un quiz|jouons|on joue)(?: un peu)?(?: (?:sur |en |avec |a )?(?:les |la |le |l |mes |des |ma )?(.+))?$/.exec(t))) return R('quiz', { theme: m[1] || '' });
+    // --- point du soir (mj-plus.js) ---
+    if (/^(?:le |mon |fais (?:moi )?le |donne moi le )?(?:point|resume|bilan|briefing) du soir$/.test(t)) return R('evening');
+    // --- annonce sur les Echo (Alexa « annonce ») : « annonce à table », « dis à toute la maison qu'on mange » ---
+    if ((m = /^(?:annonce|fais une annonce|fait une annonce|annonce sur (?:les |toutes les )?(?:echo|enceintes)|dis a toute la maison|previens toute la maison|appelle tout le monde pour|annonce a tout le monde)(?: que| qu| :)? (.+)$/.exec(t))) return R('announce', { text: orig(P, m.index + m[0].length - m[1].length) });
+    if ((m = /^(?:lance|demarre|execute|fais|joue) (?:la )?routine (.+)$/.exec(t)) || (m = /^routine (.+)$/.exec(t))) return R('routine', { name: orig(P, m.index + m[0].length - m[1].length) });
+    if (/^(bonjour|bonjour a toi|bon matin|salut bonjour|bonjour bonjour|debut de journee|on commence|briefing|le point du matin|ma journee|resume de la journee)$/.test(t)) return R('routine', { id: 'matin' });
+    if (/^(bonne nuit|bonsoir et bonne nuit|je vais me coucher|je vais dormir|au lit|dodo|fin de journee|bonne soiree)$/.test(t)) return R('routine', { id: 'nuit' });
+    if (/^(salut|coucou|hello|bonsoir|yo|hey)$/.test(t)) return R('greet', { kind: 'hello' });
+    if (/^(ca va|comment ca va|comment vas tu|comment allez vous|tu vas bien|vous allez bien|la forme)$/.test(t)) return R('greet', { kind: 'howareyou' });
+    if (/^(qui es tu|qui etes vous|tu es qui|c est quoi ton nom|comment tu t appelles|comment vous appelez vous|quel est ton nom|tu t appelles comment|presente toi)$/.test(t)) return R('greet', { kind: 'who' });
+    if (/^(tu es la|t es la|es tu la|vous etes la|tu m entends|tu m ecoutes|test|test test|essai)$/.test(t)) return R('greet', { kind: 'here' });
+    // --- alias personnels : « Quand je dis… ouvre… » (réglages), avant tout le reste ---
+    var alh = aliasHit(t, ctx.aliases);
+    if (alh) { var ar = aliasResult(alh); return R(ar[0], ar[1]); }
+    // --- climatisation (ouvrir Comfort Cloud ; réglage : réponse honnête) ---
+    var cl = parseClim(t);
+    if (cl) return R('clim', cl);
+    // --- livres audio (Liseuse) ---
+    var bk = parseBook(t);
+    if (bk) return R('book', bk);
+    // --- mode voyage (Photo) et Carnet de voyage ---
+    var vy = parseVoyage(t, P);
+    if (vy) return R('voyage', vy);
+    // --- aide ---
+    if (/\b(qu est ce que tu (sais|peux) faire|que (sais|peux) tu faire|tu (sais|peux) faire quoi|qu est ce que vous (savez|pouvez) faire|que (savez|pouvez) vous faire|liste des commandes|quelles (sont les )?commandes|comment ca marche|tes fonctions|quelles sont tes capacites|que puis je te demander|qu est ce que je peux te demander|aide moi)\b/.test(t) || /^(aide|l aide|help|au secours d utilisation|exemples|des exemples)$/.test(t)) return R('help');
+    // --- réglages, écoute, historique ---
+    if (/\b(efface|supprime|vide|nettoie|oublie)\b.*\bhistorique\b/.test(t)) return R('history_clear');
+    if (/\b(arrete|cesse|desactive|coupe|stoppe|suspends?|eteins)\b.*\b(d ecouter|l ecoute|ecoute continue|le micro|ecouter|ton micro)\b/.test(t) || /^(mets toi en veille|va te coucher|veille|mode veille|ne m ecoute plus|ne m ecoutez plus)$/.test(t)) return R('listen_off');
+    if (/\b(active|reprends|relance|allume|demarre)\b.*\b(l ecoute|ecoute continue|le micro|mot de reveil)\b/.test(t)) return R('listen_on');
+    if ((m = /\bparle (plus|moins) (lentement|vite|rapidement|fort|doucement|grave|aigu)\b/.test(t) ? /\bparle (plus|moins) (lentement|vite|rapidement|fort|doucement|grave|aigu)\b/.exec(t) : null)) {
+      var more = m[1] === 'plus', k = m[2];
+      if (k === 'lentement') return R('voice', { rate: more ? -1 : 1 });
+      if (k === 'vite' || k === 'rapidement') return R('voice', { rate: more ? 1 : -1 });
+      if (k === 'fort') return R('voice', { volume: more ? 1 : -1 });
+      if (k === 'doucement') return R('voice', { volume: more ? -1 : 1 });
+      if (k === 'grave') return R('voice', { pitch: more ? -1 : 1 });
+      if (k === 'aigu') return R('voice', { pitch: more ? 1 : -1 });
+    }
+    if (/\b(change (de |ta )?voix|autre voix|une autre voix)\b/.test(t)) return R('settings', { panel: 'voix' });
+    var stc = settingsCmd(t, (ctx.names || []).map(deacc));
+    if (stc) return R(stc[0], stc[1]);
+    if (/\b(ouvre|affiche|montre)\b.*\b(tes |les |mes )?(reglages|parametres|options)\b/.test(t) && !/\b(wifi|wi fi|bluetooth|telephone|son|volume|batterie)\b/.test(t)) return R('settings', { panel: '' });
+    if ((m = /^(?:appelle moi|appelez moi|tu peux m appeler|tu m appelles|dorenavant appelle moi|maintenant appelle moi) (.+)$/.exec(t))) {
+      var who = m[1];
+      if (/^(monsieur|madame|mademoiselle)$/.test(who)) return R('address', { mode: who });
+      if (/^(par mon prenom|par mon nom)$/.test(who)) return R('address', { mode: 'prenom' });
+      if (!/^(un|une|le|la|les|des|du|quand|si|dans|demain|plus)\b/.test(who) && who.split(' ').length <= 3) return R('address', { mode: 'prenom', name: orig(P, m.index + m[0].length - who.length) });
+    }
+    if (/\b(ne m appelle plus|arrete de m appeler|plus de) (monsieur|madame)\b/.test(t)) return R('address', { mode: 'rien' });
+    // --- solde : jamais lu (discrétion) ---
+    if (/\b(solde|combien (j ai|il me reste|reste t il) (sur|dans|en|d argent)|argent (sur|dans) (mon|le|mes) comptes?|total (de |sur )?mes comptes|combien (sur|dans) mon compte|etat de mes comptes|ma situation bancaire|mon compte en banque)\b/.test(t)) return R('budget_balance');
+    // --- budget : dépense / revenu ---
+    var isRev = /\b(j ai recu|j ai touche|j ai encaisse|recu un virement|revenu de|ajoute un revenu|nouveau revenu|on m a rembourse|j ai ete rembourse|j ai vendu)\b/.test(t);
+    if (isRev || /\b(j ai depense|j ai paye|j ai achete|j ai regle|depense de|une depense|ajoute (une )?depense|note (une )?depense|nouvelle depense|enregistre (une )?depense|ca m a coute|j ai claque|j ai mis)\b/.test(t)) {
+      var am = amountOf(t);
+      if (am && !/\bj ai mis\b/.test(t) || (am && /€/.test(t))) {
+        var cats = isRev ? RCATS : CATS, cat = null;
+        for (var ci = 0; ci < cats.length; ci++) if (cats[ci][0].test(t)) { cat = { id: cats[ci][1], name: cats[ci][2] }; break; }
+        if (!cat) cat = isRev ? { id: 'c_autrerev', name: 'Autres revenus' } : { id: 'c_divers', name: 'Divers' };
+        var acc = null, am2;
+        if ((am2 = /\b(?:sur|dans|avec|depuis|du) (?:le |la |mon |ma )?(compte(?: [a-z]+)?|livret(?: a| [a-z]+)?|carte(?: [a-z]+)?|especes|liquide|cash|porte monnaie)\b/.exec(t))) {
+          acc = am2[1].replace(/^carte.*$/, '').replace(/^(liquide|cash|porte monnaie)$/, 'especes');
+          if (acc === 'especes') acc = 'Espèces'; else if (/^livret a$/.test(acc)) acc = 'Livret A';
+          else if (acc) acc = orig(P, am2.index + am2[0].length - am2[1].length, am2.index + am2[0].length) || acc;
+        }
+        if (/\ben (especes|liquide|cash)\b/.test(t)) acc = 'Espèces';
+        var pay = /\b(par carte|en carte|carte bleue|cb|carte bancaire)\b/.test(t) ? 'carte' : /\b(en especes|en liquide|cash)\b/.test(t) ? 'especes' : /\b(par cheque|en cheque|cheque)\b/.test(t) ? 'cheque' : /\b(par virement)\b/.test(t) ? 'virement' : '';
+        var note = '', nm;
+        if ((nm = /\b(?:chez|a|au) ([a-z][a-z ]{1,30}?)(?= sur | avec | par | en | dans |$)/.exec(t.slice(am.i1))) && !/^(la |le |l )?(compte|livret|carte|especes)/.test(nm[1])) {
+          var base = am.i1; note = orig(P, base + nm.index + nm[0].length - nm[1].length, base + nm.index + nm[0].length);
+        }
+        var w = findWhen(t, now), date = w.hasDay ? w.day : startOfDay(now);
+        return R('budget_add', { type: isRev ? 'rev' : 'dep', cents: am.cents, cat: cat.id, catName: cat.name, account: acc, pay: pay, note: note, date: date, guess: !!am.guess });
+      }
+      return R('budget_add', { missing: 'amount', type: isRev ? 'rev' : 'dep' });
+    }
+    // --- rappels ---
+    var remList = /\b(quels sont|liste|lis|lis moi|mes|ai je des|j ai quels|montre)\b.*\brappels\b/.test(t) || /^(mes rappels|rappels)$/.test(t);
+    if (remList) return R('reminder_list');
+    if (/\b(annule|supprime|efface|enleve|retire|desactive)\b.*\b(rappel|rappels)\b/.test(t)) return R('reminder_cancel', { all: /\b(tous|toutes)\b/.test(t) });
+    if ((m = /\b(rappelle moi|rappelez moi|rappel moi|rappelle nous|fais moi penser|fait moi penser|faites moi penser|n oublie pas de me rappeler|previens moi|pense a me rappeler|rappelle toi de me dire|mets (?:moi )?un rappel|cree un rappel|nouveau rappel|ajoute un rappel|programme un rappel|rappel)\b/.exec(t))) {
+      var wr = findWhen(t, now), rest = cut(t.slice(m.index + m[0].length), []);
+      var spans = wr.spans.map(function (s) { return [s[0], s[1]]; });
+      var txtN = cut(t.slice(m.index + m[0].length), spans.map(function (s) { return [s[0] - m.index - m[0].length, s[1] - m.index - m[0].length]; }).filter(function (s) { return s[1] > 0; }));
+      var txt = origCut(P, m.index + m[0].length, t.length, wr.spans);
+      txt = txt.replace(/^(?:de |d'|d’|d |qu'|qu’|que |qu |pour |:\s*|à |a )/i, '').replace(/^(?:de |d'|d’)/i, '').trim();
+      if (!txtN) txt = '';
+      return R('reminder', { at: wr.at != null ? wr.at : null, text: txt, rel: !!wr.rel, nextDay: !!wr.nextDay });
+    }
+    // --- réveil ---
+    if (/\b(reveil|reveils|alarme|alarmes|reveille moi|reveillez moi|reveiller|me reveiller|sonnerie du matin)\b/.test(t) && !/\b(app|appli|application|ouvre)\b/.test(t)) {
+      if (/\b(quels sont|liste|mes reveils|mes alarmes|a quelle heure (sonne|est)|quand sonne|prochain reveil|il sonne a quelle heure|j ai un reveil|ai je un reveil)\b/.test(t)) return R('alarm_list');
+      if (/\b(annule|supprime|efface|enleve|retire|desactive|arrete|coupe|stop)\b/.test(t)) {
+        var wc = findWhen(t, now);
+        return R('alarm_cancel', { at: wc.hasTime ? wc.at : null, all: /\b(tous|toutes)\b/.test(t), ringing: /\b(arrete|coupe|stop)\b/.test(t) && !wc.hasTime });
+      }
+      var wa = findWhen(t, now);
+      return R('alarm', { at: wa.hasTime ? wa.at : null, nextDay: !!wa.nextDay });
+    }
+    // --- minuteur ---
+    var hasTimer = /\b(minuteur|compte a rebours|minute heure|sablier)\b/.test(t);
+    if (hasTimer || /^(\d+ (minute|seconde|heure))( \d+)?$/.test(t)) {
+      if (/\b(annule|supprime|efface|arrete|stoppe|stop|coupe|enleve|retire|desactive)\b/.test(t)) return R('timer_cancel', { all: /\b(tous|toutes)\b/.test(t) });
+      if (/\b(combien de temps|reste t il|il reste|restant|ou en est|temps restant|reste combien)\b/.test(t)) return R('timer_query');
+      var ds = durations(t), lab = '';
+      if ((m = /\bpour (?:les |la |le |l )?([a-z][a-z ]{1,30})$/.exec(cut(t, ds.map(function (d) { return [d.i0, d.i1]; }))))) lab = m[1];
+      if (lab && /^(minute|seconde|heure)/.test(lab)) lab = '';
+      return R('timer', { ms: ds.length ? ds[0].ms : null, label: lab ? orig(P, t.lastIndexOf(lab), t.lastIndexOf(lab) + lab.length) : '' });
+    }
+    if (/\b(combien de temps (reste t il|il reste|me reste t il)|temps restant)\b/.test(t)) return R('timer_query');
+    // --- chronomètre ---
+    if (/\bchrono\b/.test(t)) {
+      if (/\b(remets? a (?:zero|0)|remise a (?:zero|0)|a 0|reinitialise|efface|raz|reset|recommence)\b/.test(t)) return R('stopwatch', { cmd: 'reset' });
+      if (/\b(arrete|stop|stoppe|pause|bloque|fige|coupe)\b/.test(t)) return R('stopwatch', { cmd: 'stop' });
+      if (/\b(combien|ou en est|temps|il affiche|dis moi)\b/.test(t) && !/\b(lance|demarre|declenche|commence|start|mets|active|reprends)\b/.test(t)) return R('stopwatch', { cmd: 'query' });
+      return R('stopwatch', { cmd: 'start' });
+    }
+    // --- messages reçus (notifications : WhatsApp, SMS, Outlook, Gmail…) ---
+    var MW = '(?:messages?|mails?|e mails?|emails?|courriels?|sms|textos?|notifications?|messages? whatsapp|whatsapps?)';
+    var appOf = function (s) { var a = /\b(whatsapp|messenger|telegram|signal|outlook|gmail|teams|instagram|viber|snapchat|sms|textos?|mails?|e mails?|emails?|courriels?)\b/.exec(s); if (!a) return ''; return /^(sms|texto)/.test(a[1]) ? 'sms' : /mail|courriel/.test(a[1]) ? 'mail' : a[1]; };
+    if ((m = /^(?:est ce que |est ce qu )?(?:quelqu un|quelqu 1|qui) (?:m a ecrit|m a envoye un message|m a laisse un message)/.exec(t))) return R('msgs', { act: 'count', app: appOf(t) });
+    if ((m = /^(?:qu est ce que|que|qu est ce qu|qu) ([a-z][a-z \-]{1,40}?) (?:m a (?:dit|ecrit|envoye|repondu)|a (?:dit|ecrit|envoye|repondu))$/.exec(t))) return R('msgs', { act: 'read', from: orig(P, t.indexOf(m[1]), t.indexOf(m[1]) + m[1].length) });
+    if ((m = new RegExp('^(?:lis|lit|lire|relis|relire|lisez|tu peux (?:me )?lire|peux tu (?:me )?lire|donne moi|dis moi|annonce moi|montre moi)(?: moi)? (?:mes |les |le |mon |ma |nos |un |une )?(?:derniers? |dernieres? |nouveaux? |nouvelles? |non lus? )?' + MW + '(?: (?:whatsapp|messenger|telegram|signal|outlook|gmail|teams|instagram|viber))?(?: non lus?)?(?: (?:de|d|du|des|sur|venant de) (.+))?$').exec(t))) {
+      var fr = m[1] || '', ap = appOf(t);
+      if (fr && appOf(fr) && fr.replace(/\b(whatsapp|messenger|telegram|signal|outlook|gmail|teams|instagram|viber|snapchat)\b/, '').trim() === '') fr = '';
+      return R('msgs', { act: /^(relis|relire)/.test(t) ? 'last' : 'read', app: ap, from: fr ? orig(P, t.lastIndexOf(fr), t.lastIndexOf(fr) + fr.length) : '' });
+    }
+    if (/^(?:lis|relis|redis|repete)(?: moi)? (?:le )?dernier message$|^(?:c est quoi|quel est) (?:le )?dernier message$/.test(t)) return R('msgs', { act: 'last' });
+    if (/^(?:la suite|lis la suite|message suivant|les suivants|continue (?:la lecture|de lire)|suivant)$/.test(t)) return R('msgs', { act: 'more' });
+    if (new RegExp('^(?:est ce que |est ce qu )?(?:j ai|ai je|y a t il|il y a|tu as|on a|j ai recu|j ai eu|des|de|combien de|combien j ai de|combien ai je de)(?: des| de| du| d| un| une| nouveaux?| nouvelles?)*(?: nouveaux?| nouvelles?)? ' + MW + '\\b').test(t) || new RegExp('^(?:nouveaux? |des nouveaux? )?' + MW + '(?: non lus?)?$').test(t) && !/^(?:sms|messages?|textos?)$/.test(t)) return R('msgs', { act: 'count', app: appOf(t) });
+    if (new RegExp('^(?:efface|supprime|oublie|vide)(?: moi)? (?:mes |les |tous les |toutes les )?' + MW + '(?: lus?)?$').test(t)) return R('msgs', { act: 'clear' });
+    if (new RegExp('^(?:marque|mets?) (?:mes |les |tous les )?' + MW + ' (?:comme )?lus?$').test(t)) return R('msgs', { act: 'markread' });
+    // --- carnet des phrases non comprises ---
+    // Bourse : « comment va Anthropic ? », « le cours de l'action Airbus », « mon portefeuille »
+    if (/^(?:(?:comment va|comment se porte|ou en est|combien vaut|combien valent|donne moi|dis moi|montre moi) )?(?:mon portefeuille|mes actions|la bourse|ma bourse)(?: en bourse| aujourd hui| ce matin| ce soir)*$/.test(t)) return R('bourse', { q: '' });
+    var bm = /^(?:comment va|comment se porte|comment vont|ou en est|ou en sont|combien vaut|combien coute|combien valent|quel est le cours de|quel est le cours|donne moi le cours de|dis moi le cours de|le cours de|cours de|cours)(?: l action| les actions| le titre| l entreprise)?(?: de la| de l| des| de| d| du)? (.+?)(?: en bourse| aujourd hui| ce matin| ce soir| actuellement| maintenant)*$/.exec(t);
+    if (bm) {
+      var bq = bm[1].replace(/^(?:l |la |le |les )/, '').trim(), bnames = (root.MJNLU && root.MJNLU.bourse) || [];
+      var kw = /^(?:combien vaut|combien coute|quel est le cours|donne moi le cours|dis moi le cours|le cours|cours)/.test(t) || /\b(?:action|actions|titre|bourse)\b/.test(t);
+      if (bq && bq.length <= 40 && !/^(?:tu|vous|ca|ta|ton|la meteo|le temps|ma journee|l agenda)$/.test(bq) && (kw || bnames.indexOf(bq) >= 0 || /^anthropic$/.test(bq))) return R('bourse', { q: bq });
+    }
+    if (/^(?:montre|affiche|ouvre|lis|voir|montre moi)? ?(?:le |mon )?carnet(?: des phrases)?(?: non comprises| incomprises)?$|^(?:quelles|qu est ce que tu n as pas compris|quelles phrases n as tu pas comprises|phrases non comprises)$/.test(t)) return R('carnet', { act: 'show' });
+    if (/^(?:envoie|envoyer|envoi|partage|partager|exporte|exporter) (?:le |mon )?carnet(?: des phrases)?(?: non comprises| incomprises)?(?: a claude)?$/.test(t)) return R('carnet', { act: 'send' });
+    if (/^(?:vide|vider|efface|effacer) (?:le |mon )?carnet(?: des phrases)?(?: non comprises| incomprises)?$/.test(t)) return R('carnet', { act: 'clear' });
+    // --- appel entrant : décrocher (avec ou sans haut-parleur), haut-parleur, raccrocher ---
+    var HP = '(?:(?:et )?(?:mets|met|mettre|active|allume|passe)(?: moi| le)?(?: en| sur)? (?:le )?haut parleur|(?:et )?(?:en|sur|avec) (?:le )?haut parleur)';
+    if ((m = new RegExp('^(?:decroche|decrocher|decrochez|reponds|repond|repondre|repondez|reponds moi|prends l appel(?:le)?|prend l appel(?:le)?|prends le|accepte l appel(?:le)?|reponds au telephone|reponds a l appel(?:le)?|decroche le telephone|repond au telephone)( ' + HP + ')?$').exec(t)))
+      return R('phone_answer', { speaker: !!m[1] });
+    if (new RegExp('^' + HP.replace('(?:et )?', '') + '$').test(t) || /^(?:haut parleur|le haut parleur|en haut parleur)$/.test(t)) return R('phone_speaker', { on: true });
+    if (/^(?:enleve|enlever|retire|coupe|desactive|eteins|arrete|stop) (?:le )?haut parleur$|^(?:sans|pas de) haut parleur$/.test(t)) return R('phone_speaker', { on: false });
+    if (/^(?:raccroche|raccrocher|raccrochez|refuse l appel(?:le)?|refuse|rejette l appel(?:le)?|rejette|ne reponds pas|ignore l appel(?:le)?|termine l appel(?:le)?|mets fin a l appel(?:le)?|coupe l appel(?:le)?|fin de l appel(?:le)?)$/.test(t)) return R('phone_end', {});
+    if ((m = /^(?:reponds|repond|repondre|reponse|reponds lui|repond lui|reponds leur|repondez|repondez lui)\b ?(.*)$/.exec(t))) {
+      var rest = m[1] || '', who = '', body = '', colon2 = P.raw.indexOf(':');
+      var lui = /^(?:reponds|repond|repondez) (?:lui|leur)\b/.test(t) || /^(?:reponds|repond|repondez)(?:lui|leur)/.test(t.replace(/ /g, ''));
+      if (colon2 > 0) {
+        body = P.raw.slice(colon2 + 1).trim();
+        var pre = prep(P.raw.slice(0, colon2), {}).t.replace(/^(?:reponds|repond|repondre|reponse|repondez)(?: lui| leur)?\s*/, '').replace(/^(?:a|au|aux)\s+/, '').trim();
+        if (pre) who = orig(P, t.indexOf(pre), t.indexOf(pre) + pre.length);
+      } else {
+        var mm = /^(?:(?:a|au|aux) )?(.+?) (?:que|qu|pour dire|pour lui dire|en disant|disant) (.+)$/.exec(rest);
+        if (mm && !lui) { who = orig(P, t.indexOf(mm[1], m.index), t.indexOf(mm[1], m.index) + mm[1].length); body = orig(P, t.lastIndexOf(mm[2])); }
+        else {
+          var r2 = rest.replace(/^(?:lui|leur)\s+/, '').replace(/^(?:que|qu|pour dire|en disant)\s+/, '');
+          var mto = /^(?:a|au|aux) (.+)$/.exec(r2);
+          if (mto && !lui) who = orig(P, t.lastIndexOf(mto[1]), t.lastIndexOf(mto[1]) + mto[1].length);
+          else if (r2) body = orig(P, t.lastIndexOf(r2));
+        }
+      }
+      return R('msg_reply', { who: who.replace(/^(?:a|à|au)\s+/i, ''), text: body });
+    }
+    // --- appels et SMS ---
+    if ((m = /^(?:envoie|envoyer|envoi|ecris|ecrit|ecrire|redige|rediger|tape|manda) (?:un |une )?(?:sms|message|msg|petit message|whatsapp|whats app|watsap|message whatsapp|mail|e mail|email|courriel|mel) (?:sur whatsapp )?(?:a|au|aux|pour) (.+)$/.exec(t)) || (m = /^(?:sms|message|whatsapp|mail|e mail|email|courriel) (?:a|au|pour) (.+)$/.exec(t)) || (m = /^(?:ecris|ecrit|dis|dit|previens) (?:a|au) (.+?) (?:que|qu) (.+)$/.exec(t))) {
+      var rest2 = m[1], toN = rest2, bodyN = '', sep;
+      if (m[2]) { toN = m[1]; bodyN = m[2]; }
+      else if ((sep = /^(.+?) (?::|disant|pour dire|pour lui dire|en disant|qui dit|dis lui|dites lui|que|qu|avec le texte|texte) (.+)$/.exec(rest2))) { toN = sep[1]; bodyN = sep[2]; }
+      var base2 = t.indexOf(toN, m.index);
+      var toO = orig(P, base2, base2 + toN.length), bodyO = bodyN ? orig(P, t.lastIndexOf(bodyN)) : '';
+      if (m[2]) bodyO = orig(P, t.lastIndexOf(bodyN));
+      // dans l'original, le texte après « : » est gardé tel quel
+      var colon = P.raw.indexOf(':');
+      if (colon > 0 && !m[2]) { var aft = P.raw.slice(colon + 1).trim(); if (aft) { bodyO = aft; var bt = prep(aft, {}).t; if (t.lastIndexOf(bt) > 0) toO = orig(P, base2, t.lastIndexOf(bt)).replace(/\s*:\s*$/, ''); } }
+      var via = /\b(whatsapp|whats app|watsap)\b/.test(t) ? 'whatsapp' : /^(?:envoie|envoyer|envoi|ecris|ecrit|ecrire|redige|rediger|tape) (?:un |une )?(?:mail|e mail|email|courriel|mel)\b|^(?:mail|e mail|email|courriel) /.test(t) ? 'mail' : '';
+      toO = toO.replace(/\s*:.*$/, '').replace(/\s+(?:sur|par) (?:whatsapp|whats app|watsap|mail|e-?mail|sms)$/i, '');
+      return R('sms', { to: toO.replace(/^(a|à|au)\s+/i, ''), number: digits(toO), text: bodyO, via: via });
+    }
+    if ((m = /^(?:appelle|appeler|appelez|telephone a|telephone au|telephoner a|passe un coup de fil a|passe moi|compose le|compose|a pelle|appelle le|appelle la) (.+)$/.exec(t)) && !/^(moi|nous)\b/.test(m[1])) {
+      var whoO = orig(P, m.index + m[0].length - m[1].length);
+      return R('call', { to: whoO.replace(/^(le|la|l'|au)\s+/i, ''), number: digits(whoO) });
+    }
+    // --- caméra motorisée (ONVIF PTZ) : « tourne la caméra du jardin à gauche », « zoome la caméra de l'entrée » ---
+    if ((m = /^(?:tourne|tournez|oriente|orientez|bouge|bougez|deplace|deplacez|pivote|dirige|monte|baisse|descends|leve|zoome|zoom|dezoome|dezoom)\s+(?:la |ma )?cameras?(?:\s+(?:de la |du |de l |des |d |de )?(.+?))?(?:\s+(?:vers |a |en |sur |sur la |sur le )?(?:la |le |l )?(gauche|droite|haut|bas|avant|arriere))?$/.exec(t))) {
+      var verb = /^(\w+)/.exec(t)[1], dir = m[2] || (/^(monte|leve)/.test(verb) ? 'haut' : /^(baisse|descends)/.test(verb) ? 'bas' : /^zoom/.test(verb) ? 'avant' : /^dezoom/.test(verb) ? 'arriere' : '');
+      if (dir) return R('cameras', { name: (m[1] || '').trim(), move: { gauche: 'left', droite: 'right', haut: 'up', bas: 'down', avant: 'in', arriere: 'out' }[dir] });
+    }
+    // --- caméras de la maison (appli Caméras) : « montre les caméras », « affiche la caméra de la cuisine » ---
+    var cmr = /\bcameras?\b(?! (?:photo|frontale|arriere))/.exec(t);
+    if (cmr && !/\b(prends?|prendre|photo|selfie|filme|video de moi)\b/.test(t) && (/^(montre|montrez|affiche|affichez|ouvre|ouvrez|voir|fais voir|je veux voir|regarde|lance|mets)\b/.test(t) || /^(les |la |ma |mes )?cameras?\b/.test(t))) {
+      var cn = /\bcameras?\s+(?:de surveillance\s*)?(?:de la |du |de l |des |d |de |dans (?:la |le |l )?)?(.+)$/.exec(t), nm = cn ? cn[1].replace(/\b(s il te plait|stp|maintenant)\b/g, '').trim() : '';
+      if (/^(de surveillance|maison|de la maison)$/.test(nm)) nm = '';
+      return R('cameras', { name: nm });
+    }
+    // --- enceinte Amazon Echo en Bluetooth : « connecte-toi à l'enceinte Amazon », « mets le son sur l'Echo », « déconnecte l'enceinte » ---
+    var ECHO = /\b(enceintes?|echo|echo dot|echo show|alexa|haut parleurs?|baffles?)\b/;
+    if (ECHO.test(t) && /\b(connecte|connecter|connectes|branche|brancher|relie|relier|associe|appaire|apparie|appairer|deconnecte|deconnecter|debranche|son sur|musique sur|passe sur|mets le son|bascule)\b/.test(t) && !/\b(lumiere|lampe|volet|store)\b/.test(t)) {
+      return R('echo_bt', { act: /\b(deconnecte|deconnecter|debranche|coupe)\b/.test(t) ? 'off' : /\b(appaire|apparie|appairer|associe|premiere fois|jumele)\b/.test(t) ? 'pair' : 'on' });
+    }
+    // --- son d'une appli ou d'un usage : « monte la musique », « baisse YouTube », « monte la sonnerie » (Android règle par type de son :
+    //     musique, vidéos, livres audio et applis partagent le volume multimédia) ---
+    var vapp = /^(monte|montez|augmente|augmentez|hausse|remonte|baisse|baissez|diminue|diminuez|descends|reduis|coupe|coupez|mets)\b(?: un (?:petit )?peu| beaucoup| encore| un max)? (?:le son |le volume )?(?:de |du |des |de la |la |le |les |l |sur )?(musique|radio|video|videos|film|tele|television|sonnerie|alarmes?|reveils?|lecture|livre|livre audio|voix de la lecture|podcast|spotify|youtube|deezer|melodie|liseuse|ecran|netflix|media|medias|jeu)\b(.*)$/.exec(t);
+    if (vapp && !/\b(suivante?|precedente?|en pause|pause)\b/.test(t) && !(vapp[1] === 'mets' && !/\b\d+ ?%|\b(au max|a fond|plus fort|moins fort|en sourdine)\b/.test(t))) {
+      var vl = /\b(?:a|au|sur) (\d+) ?%/.exec(t), vk = vapp[1];
+      var vdir = /^coupe/.test(vk) || /\bsourdine\b/.test(t) ? 'mute' : /\b(au max|maximum|a fond|un max)\b/.test(t) ? 'max' : vl ? 'set' : /^(monte|augmente|hausse|remonte)/.test(vk) || /plus fort/.test(t) ? 'up' : 'down';
+      return R('volume', { dir: vdir, level: vl ? Math.min(100, +vl[1]) : null, steps: /\bun (petit )?peu\b/.test(t) ? 1 : /\b(beaucoup|encore)\b/.test(t) ? 4 : 2,
+        stream: /sonnerie/.test(vapp[2]) ? 'ring' : /alarme|reveil/.test(vapp[2]) ? 'alarm' : 'music', what: vapp[2] });
+    }
+    // --- volets et stores (Somfy TaHoma, mj-somfy.js) ---
+    // « ferme les volets à 21 h », « ouvre les volets demain à 7 h 30 » : commande programmée une fois (mj-somfy.js)
+    var sh = null, wsh = SH_VERB.test(t) || SH_RE.test(t) ? findWhen(t, now) : null;
+    if (wsh && wsh.hasTime && wsh.at && wsh.spans.length) { sh = parseShutter(cut(t, wsh.spans), ctx); if (sh && sh.act !== 'query') sh.at = wsh.at; else sh = null; }
+    if (!sh) sh = parseShutter(t, ctx);
+    if (sh) return R('shutter', sh);
+    // --- lumières de la maison (Philips Hue) ---
+    var lg = parseLight(t, P, ctx, now);
+    if (lg) return R('light', lg);
+    // --- téléphone : lampe, volume, silencieux, wifi, bluetooth, batterie ---
+    if (/\b(lampe|torche|lampe de poche|flash|lumiere du telephone)\b/.test(t) && !/\b(achete|liste)\b/.test(t)) return R('torch', { on: !/\b(eteins|eteint|eteindre|coupe|desactive|arrete|stop|ferme)\b/.test(t) });
+    if (/\b(mode silencieux|silencieux|mode vibreur|vibreur|ne pas deranger|mode silence|mode avion|mode normal|mode sonnerie|remets la sonnerie|reactive la sonnerie)\b/.test(t)) {
+      var off = /\b(desactive|enleve|retire|quitte|sors|arrete|coupe le mode|remets la sonnerie|reactive la sonnerie|mode normal|mode sonnerie)\b/.test(t);
+      var mode = /avion/.test(t) ? 'avion' : /vibreur/.test(t) ? 'vibrate' : /ne pas deranger/.test(t) ? 'dnd' : 'silent';
+      if (/\b(mode normal|mode sonnerie|remets la sonnerie|reactive la sonnerie)\b/.test(t)) mode = 'normal';
+      return R('silent', { mode: mode, off: off });
+    }
+    if (/^(?:son|volume) (?:au max|au maximum|a fond)$|^(?:monte|baisse|augmente|diminue) (?:un (?:petit )?peu|beaucoup|encore)$/.test(t)) return R('volume', { dir: /^(son|volume)/.test(t) ? 'max' : /^(monte|augmente)/.test(t) ? 'up' : 'down', level: null, steps: /un (petit )?peu/.test(t) ? 1 : 4, stream: 'music' });
+    if (/\b(volume|le son|plus fort|moins fort|monte le son|baisse le son|coupe le son|mets le son|remets le son)\b/.test(t) && !/\b(musique suivante)\b/.test(t)) {
+      var lvl = /\b(?:a|au|sur) (\d+) ?%/.exec(t) || /\bvolume (?:a|au|sur) (\d+)\b/.exec(t);
+      var dir = /\b(coupe|muet|sourdine|mute)\b/.test(t) ? 'mute' : /\b(au max|maximum|a fond|au maximum|max)\b/.test(t) ? 'max' : /\b(monte|augmente|plus fort|hausse|monter|plus haut|remets)\b/.test(t) ? 'up' : /\b(baisse|diminue|moins fort|descends|descend|plus bas|reduis)\b/.test(t) ? 'down' : lvl ? 'set' : 'query';
+      return R('volume', { dir: dir, level: lvl ? Math.min(100, +lvl[1]) : null, steps: /\bun (petit )?peu\b/.test(t) ? 1 : /\b(beaucoup|encore)\b/.test(t) ? 4 : 2, stream: /\b(sonnerie)\b/.test(t) ? 'ring' : /\b(alarme|reveil)\b/.test(t) ? 'alarm' : 'music' });
+    }
+    if (/\b(wifi|wi fi)\b/.test(t)) return R('wifi', { on: /\b(active|allume|connecte|mets|ouvre|demarre|branche)\b/.test(t) ? true : /\b(desactive|coupe|eteins|deconnecte|arrete)\b/.test(t) ? false : null });
+    if (/\b(bluetooth|blue tooth|bluetouth)\b/.test(t)) return R('bluetooth', { on: /\b(active|allume|connecte|mets|ouvre|demarre)\b/.test(t) ? true : /\b(desactive|coupe|eteins|deconnecte|arrete)\b/.test(t) ? false : null });
+    if (/\b(batterie|charge du telephone|niveau de charge|autonomie|pourcentage de charge)\b/.test(t)) return R('battery');
+    if (/\bplein ecran\b/.test(t)) return R('fullscreen', { on: !/\b(quitte|sors|sortir|enleve|desactive|arrete|reduis)\b/.test(t) });
+    // --- musique ---
+    if (/^(pause|mets en pause|mets pause|pause la musique|arrete la musique|stop la musique|coupe la musique|stoppe la musique|eteins la musique|arrete le son de la musique)$/.test(t) || /\b(mets la musique en pause|pause musique)\b/.test(t)) return R('music', { cmd: 'pause' });
+    if (/\b(chanson suivante|morceau suivant|titre suivant|piste suivante|musique suivante|passe a la suivante|suivant|suivante|next|zappe|passe la chanson|change de chanson|chanson d apres)\b/.test(t)) return R('music', { cmd: 'next' });
+    if (/\b(chanson precedente|morceau precedent|titre precedent|piste precedente|precedent|precedente|reviens a la chanson d avant|chanson d avant)\b/.test(t)) return R('music', { cmd: 'prev' });
+    if (/\b(reprends la musique|reprendre la musique|relance la musique|relancer la musique|continue la musique|continuer la musique|remets la musique|remettre la musique|reprise de la musique)\b/.test(t) ) return R('music', { cmd: 'play' });
+    if (/^(?:mets |relance |reprends )?(?:la )?lecture$/.test(t) || /^(reprends|reprend|reprendre|play|continue|continuer|relance|relancer)$/.test(t)) return R('music', { cmd: 'play', bare: true });   // sans préciser : musique ou livre, le dernier utilisé
+    // « lance la musique en cours », « remets la chanson », « continue le morceau », « la musique que j'écoutais » : reprise de ce qui jouait
+    if (/\b(musique|chanson|morceau|titre|playlist|son|zik|album|podcast|radio)\b.*\b(en cours|d avant|qui etait en cours|que j ecoutais|qu on ecoutait|ou j en etais|en pause|de tout a l heure|interrompue?)\b/.test(t) ||
+      /\b(reprends|reprend|remets|remet|relance|continue|redemarre|rejoue|reprendre|remettre|relancer|continuer|redemarrer|rejouer)\b.*\b(la |le |ma |mon |l |ce |cette )?(musique|chanson|morceau|titre|playlist|zik|album|podcast)\b/.test(t) || /^(mets |appuie sur |fais )?play$/.test(t)) return R('music', { cmd: 'play' });
+    if (/\b(mets|joue|lance|demarre|passe|ecouter|ecoute|je veux|j ai envie)\b.*\b(musique|chanson|chansons|zik|playlist|morceau|son)\b/.test(t) || /^(musique|de la musique|un peu de musique)$/.test(t)) return R('music', { cmd: 'start' });
+    // --- conversions et calculs ---
+    var cv = convert(t);
+    if (cv && !cv.error) return R('convert', cv);
+    if (cv && cv.error) return R('convert', cv);
+    // --- dates, fêtes ---
+    var fete = nextFete(t, now);
+    if (/\b(dans combien de (jour|temps|semaine|mois)|combien de (jour|semaine|nuits?|mois) (avant|jusqu a|jusqu au|reste t il avant|il reste avant|d ici|reste avant|restent avant)|combien de temps (avant|jusqu a|jusqu au|d ici)|c est quand|quand est ce|quand est|quand tombe|quel jour tombe|ca tombe quel jour|c est quel jour)\b/.test(t)) {
+      if (fete) return R('countdown', { name: fete.name, at: fete.at, ask: /\b(quel jour|quand)\b/.test(t) && !/\bcombien\b/.test(t) ? 'day' : 'count' });
+      var wd2 = findWhen(t, now);
+      if (wd2.hasDay) return R('countdown', { name: '', at: wd2.day, ask: /\b(quel jour|quand)\b/.test(t) && !/\bcombien\b/.test(t) ? 'day' : 'count' });
+      if (/\b(anniversaire|vacances|conges|week end|weekend)\b/.test(t)) return R('countdown', { unknown: true });
+    }
+    if (/\b(quel jour (sommes nous|on est|est on|nous sommes|est il|c est|aujourd hui|serons nous|sera t il|etait hier|etions nous|on sera|sera demain)|quelle (est la )?date|on est le combien|nous sommes le combien|la date (d aujourd hui|de demain|du jour)|c est quoi la date|on est quel jour|quel jour c est|quelle date|en quelle annee|quelle annee|quel mois|on est en quel mois|quelle semaine|numero de la semaine|quel est le numero de semaine)\b/.test(t) || /^(la date|date|aujourd hui|quel jour)$/.test(t)) {
+      var off = /\bdemain\b/.test(t) ? 1 : /\bhier\b/.test(t) ? -1 : /\bapres demain\b/.test(t) ? 2 : 0;
+      if (/\bapres demain\b/.test(t)) off = 2;
+      return R('date', { offset: off, what: /\bannee\b/.test(t) ? 'year' : /\bmois\b/.test(t) ? 'month' : /\bsemaine\b/.test(t) ? 'week' : 'date' });
+    }
+    if (/\b(quel(le)? heure|qu elle heure|l heure qu il est|l heure s il|il est quelle heure|il est quel heure|donne moi l heure|tu as l heure|vous avez l heure|heure actuelle|quelle heure il est)\b/.test(t) || /^(l heure|heure|quelle heure)$/.test(t)) {
+      if (!/\b(rendez vous|agenda|reunion|demain|a quelle heure (est|commence|finit|ferme|ouvre)|leve|couche|soleil|pleuvoir|pluie)\b/.test(t)) return R('time');
+      if (/\b(lever|leve|coucher|couche)\b.*\bsoleil\b/.test(t)) return R('sun', { what: /\b(lever|leve)\b/.test(t) ? 'rise' : 'set' });
+    }
+    if (/\b(lever|leve|coucher|couche) du soleil\b/.test(t)) return R('sun', { what: /\b(lever|leve)\b/.test(t) ? 'rise' : 'set' });
+    var cx = (/\b(combien (font|fait|ca fait|egal|egale)|calcule|calcul|ca fait combien|racine|au carre|au cube|puissance|pour cent|fois|divise|multiplie|plus|moins|la moitie|le double|le triple|le tiers)\b/.test(t) || /%/.test(t)) && /\d/.test(t);
+    if (cx) { var v = calcExpr(t); if (v != null) return R('calc', { value: v, expr: t }); if (/\b(combien font|calcule|calcul)\b/.test(t)) return R('calc', { value: null, expr: t }); }
+    // --- agenda ---
+    var agQ = /\b(qu est ce que j ai|qu est ce qu on a|j ai quoi|on a quoi|mon agenda|mes rendez vous|mon planning|mon programme|ai je (des |un )?rendez vous|est ce que j ai (des |un )?rendez vous|j ai (des |un )?rendez vous|prochain rendez vous|mon emploi du temps|qu est ce qui est prevu|qu y a t il (a|dans) (mon |l )?agenda|quoi de prevu|c est quoi mon programme|mes evenements|ma journee de|mon prochain rdv|est ce que je suis libre|suis je libre|je suis libre)\b/.test(t);
+    var agAdd = /\b(ajoute|ajouter|cree|creer|note|noter|programme|programmer|planifie|mets|enregistre|prends|fixe|inscris|place|cale)\b(?: moi)? (?:un |une |le |la )?(?:nouveau |nouvel |nouvelle )?(rendez vous|evenement|reunion|rencontre|visite|consultation)\b/.test(t) || /^(nouveau |nouvel )?(rendez vous|evenement) /.test(t) || /^(j ai|j aurai) (un |une )?(rendez vous|reunion) /.test(t);
+    if (agAdd) {
+      var wg = findWhen(t, now), km = /\b(rendez vous|evenement|reunion|rencontre|visite|consultation)\b/.exec(t);
+      var kw = km ? km[1] : 'rendez vous', after = km ? km.index + km[0].length : 0;
+      var endAt = null, mm2;
+      if ((mm2 = /\b(?:jusqu a|a) (\d{1,2}) ?(?:h|heure)(?: ?(\d{1,2}))?\b/.exec(t.slice(after))) && wg.hasTime) {
+        var e1 = new Date(wg.at); e1.setHours(+mm2[1], mm2[2] ? +mm2[2] : 0, 0, 0); if (e1.getTime() > wg.at) { endAt = e1.getTime(); wg.spans.push([after + mm2.index, after + mm2.index + mm2[0].length]); }
+      }
+      if ((mm2 = /\bpendant (\d+(?:\.\d+)? (?:heure|h|minute)(?: \d+)?|(?:1 )?demie? heure)\b/.exec(t)) && wg.at != null) { var dd2 = durations(mm2[1]); if (dd2.length) { endAt = wg.at + dd2[0].ms; wg.spans.push([mm2.index, mm2.index + mm2[0].length]); } }
+      var titleO = origCut(P, after, t.length, wg.spans).replace(/^:\s*/, '');
+      var kwO = { 'rendez vous': 'Rendez-vous', evenement: 'Événement', reunion: 'Réunion', rencontre: 'Rencontre', visite: 'Visite', consultation: 'Consultation' }[kw];
+      var title = titleO ? (kw === 'evenement' ? titleO.charAt(0).toUpperCase() + titleO.slice(1) : kwO + ' ' + titleO) : kwO;
+      return R('agenda_add', { title: title, at: wg.at != null ? wg.at : null, hasTime: wg.hasTime, allDay: !wg.hasTime && wg.hasDay, day: wg.day != null ? wg.day : null, end: endAt });
+    }
+    if (agQ || /\b(agenda|rendez vous|rdv)\b/.test(t) && /\b(aujourd hui|demain|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|semaine|prochain|ce soir|ce matin|cet apres midi|quoi|quels|quel|lis|dis)\b/.test(t)) {
+      var wq = findWhen(t, now), from, to;
+      if (/\b(cette semaine|la semaine)\b/.test(t)) { from = startOfDay(now); var dow = (new Date(now).getDay() + 6) % 7; to = addDays(startOfDay(now), 7 - dow); }
+      else if (/\b(semaine prochaine)\b/.test(t)) { var dw = (new Date(now).getDay() + 6) % 7; from = addDays(startOfDay(now), 7 - dw); to = addDays(from, 7); }
+      else if (/\b(week end|weekend)\b/.test(t)) { var dw2 = new Date(now).getDay(); from = addDays(startOfDay(now), (6 - dw2 + 7) % 7); if (dw2 === 0) from = addDays(startOfDay(now), -1); to = addDays(from, 2); }
+      else if (/\b(prochain|prochaine|suivant)\b/.test(t) && !wq.hasDay) return R('agenda', { next: true });
+      else { from = wq.hasDay ? wq.day : startOfDay(now); to = addDays(from, 1); if (wq.part === 'soir') from = from + 17 * HOUR; if (wq.part === 'aprem') { from += 12 * HOUR; to = from + 6 * HOUR; } if (wq.part === 'matin') to = from + 12 * HOUR; }
+      if (!wq.hasDay && !/\b(semaine|week end|weekend)\b/.test(t) && from === startOfDay(now) && !wq.part) from = startOfDay(now);
+      return R('agenda', { from: from, to: to, free: /\b(libre|dispo|disponible)\b/.test(t) });
+    }
+    // --- météo, vent, vigilance ---
+    var isVig = /\b(vigilance|alerte meteo|alertes meteo|bulletin d alerte|alerte (orange|rouge|jaune)|vigilance (orange|rouge|jaune))\b/.test(t);
+    var isWind = /\b(vent|vents|rafales?|venter|venteux|ca souffle|souffle t il|mistral|tramontane|tempete)\b/.test(t) || /\b(monter|monte|montage|demonter|demontage|travailler en hauteur|lever)\b.*\b(echafaudage|echafaudages|nacelle|grue|toiture)\b/.test(t);
+    var isWx = /\b(meteo|quel temps|le temps qu il|temps fait il|temps va t il|temps demain|pleuvoir|pleut|pluie|pleuvra|parapluie|neige|neiger|neigera|soleil|ensoleille|temperature|chaud|froid|degres dehors|il fait combien|orage|orages|previsions|nuageux|beau temps|mauvais temps|gel|geler|il gele|grele|brouillard|humidite)\b/.test(t) && !/\b(ouvre|lance|appli|application)\b/.test(t);
+    if ((isVig || isWind || isWx) && !/^(ouvre|ouvrir|va sur|va dans|lance|affiche|montre moi)\b/.test(t)) {
+      var wh = 'now';
+      var ww = findWhen(t, now), dayOff = null;
+      if (ww.hasDay) dayOff = Math.round((ww.day - startOfDay(now)) / DAY);
+      if (/\b(semaine|prochains jours|week end|weekend|jours qui viennent)\b/.test(t)) wh = 'week';
+      else if (dayOff === 1) wh = 'tomorrow'; else if (dayOff != null && dayOff > 1) wh = 'day';
+      else if (/\b(aujourd hui|ce matin|cet apres midi|ce soir|cette nuit|de la journee|dans la journee|tout a l heure|plus tard)\b/.test(t) || /\b(va t il|vas t il|va pleuvoir|va neiger|pleuvra|risque)\b/.test(t)) wh = 'today';
+      var focus = isVig ? 'vigilance' : isWind ? 'wind' : /\b(pleuvoir|pleut|pluie|pleuvra|parapluie|averse|averses)\b/.test(t) ? 'rain' : /\b(neige|neiger|neigera)\b/.test(t) ? 'snow' : /\b(temperature|chaud|froid|degres|il fait combien|gel|geler|il gele)\b/.test(t) ? 'temp' : /\borages?\b/.test(t) ? 'storm' : '';
+      var city = '';
+      var STOPC = /^(la|le|les|l|ce|cette|demain|aujourd|maintenant|quelle|quel|combien|monter|monte|demonter|l echafaudage|echafaudage|la semaine|semaine|ce soir|midi|minuit|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|hauteur|chantier|venir|prevoir|l heure|nouveau|la journee|journee|partir|cause|la maison|maison|l exterieur|dehors|pluie|vent|rafales?|t il|t elle|il|elle|temps|meteo|ici|chez moi|nous|moi|toi|travailler|lever|faire|sortir|aller|rouler|un|une|des|du|de)\b/;
+      var cre = /\b(a|au|aux|sur|pour|vers|en|de|du|d) ([a-z][a-z ]*?)(?= (?:demain|aujourd hui|ce soir|ce matin|cet apres midi|cette semaine|maintenant|apres demain|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|ce week end|cette nuit|la semaine|dans|pour|est ce|va t il|vers)\b|$)/g, cm2, best = null;
+      while ((cm2 = cre.exec(t))) {
+        var pre = t.slice(0, cm2.index); cre.lastIndex = cm2.index + cm2[1].length + 1;
+        if (/\by $/.test(pre) && cm2[1] === 'a') continue;                 // « y a-t-il »
+        if (/^(de|du|d)$/.test(cm2[1]) && !/\b(meteo|temps|previsions?|vent|vigilance|temperature)$/.test(pre.trim())) continue;
+        if (STOPC.test(cm2[2]) || cm2[2].split(' ').length > 4) continue;
+        best = cm2; cre.lastIndex = cm2.index + cm2[0].length;
+      }
+      if (best) city = orig(P, best.index + best[0].length - best[2].length, best.index + best[0].length);
+      var intent = isVig ? 'vigilance' : isWind ? 'wind' : 'weather';
+      return R(intent, { when: wh, offset: dayOff, city: city, focus: focus, scaffold: /\b(echafaudage|echafaudages|nacelle|grue|hauteur|toiture|levage)\b/.test(t) });
+    }
+    // --- actualités ---
+    if (/\b(titres|les titres|actu|actus|actualite|actualites|infos|les informations|nouvelles|journal|l essentiel|quoi de neuf|flash info|les news|a la une|gros titres|derniere minute|dernieres nouvelles|que se passe t il)\b/.test(t) && !/\b(ouvre|lance|appli|application)\b/.test(t)) {
+      var rub = /\bsports?\b/.test(t) ? 'sports' : /\b(monde|international|internationales|etranger)\b/.test(t) ? 'monde' : /\b(politique)\b/.test(t) ? 'politique' : /\b(economie|economiques|eco|bourse)\b/.test(t) ? 'economie' : /\b(sante)\b/.test(t) ? 'sante' : /\b(culture|culturelles)\b/.test(t) ? 'culture' : /\b(sciences?|tech|technologie|internet)\b/.test(t) ? 'sciences' : 'titres';
+      var nn = /\b(\d+) (titres|infos|nouvelles|actualites)\b/.exec(t);
+      return R('news', { rub: rub, n: nn ? Math.min(10, +nn[1]) : (/\bessentiel\b/.test(t) ? 3 : 5) });
+    }
+    // --- notes et listes ---
+    if ((m = /\b(?:ajoute|ajouter|rajoute|mets|met|inscris|note|ecris|marque) (.+?) (?:a|sur|dans|en) (?:la |ma |notre )?liste(?: (?:de |des |du |d |pour (?:le |la |les )?)?([a-z][a-z ]*))?$/.exec(t)) || (m = /\b(?:ajoute|rajoute|mets|inscris) (?:a|sur|dans) (?:la |ma )?liste(?: (?:de |des |du |d )?([a-z]+))? (.+)$/.exec(t))) {
+      var itemsN, listN;
+      if (/liste(?: (?:de |des |du |d )?([a-z]+))? (.+)$/.test(m[0]) && m[0].indexOf(' liste') < m[0].indexOf(m[2] || '~') && /^(ajoute|rajoute|mets|inscris) (a|sur|dans)/.test(m[0])) { listN = m[1] || 'courses'; itemsN = m[2]; }
+      else { itemsN = m[1]; listN = (m[2] || 'courses').trim(); }
+      var io = t.indexOf(itemsN, m.index), itemsO = orig(P, io, io + itemsN.length);
+      var items = itemsO.split(/\s*(?:,|\bet\b|\bpuis\b)\s*/i).map(function (x) { return x.replace(/^(?:du|de la|de l'|de l’|des|de|d'|d’|un|une|le|la|les|l'|l’|quelques|encore)\s+/i, '').trim(); }).filter(Boolean);
+      return R('list_add', { list: listN.replace(/^(?:la |les |le )/, ''), items: items });
+    }
+    if (/\b(?:enleve|retire|supprime|efface|raye|coche|barre|ote|vire)\b/.test(t) && /\bliste\b/.test(t)) {
+      if ((m = /\b(?:vide|efface|supprime) (?:toute )?(?:la |ma )?liste(?: (?:de |des |du |d )?([a-z]+))?$/.exec(t))) return R('list_clear', { list: m[1] || 'courses' });
+      if ((m = /\b(?:enleve|retire|supprime|efface|raye|coche|barre|ote|vire) (.+?) (?:de|sur|dans|a) (?:la |ma )?liste(?: (?:de |des |du |d )?([a-z][a-z ]*))?$/.exec(t))) {
+        var it2 = m[1].replace(/^(?:le|la|les|l|du|de la|des|un|une)\s+/, '');
+        return R('list_remove', { list: (m[2] || 'courses').trim(), item: orig(P, t.indexOf(it2, m.index), t.indexOf(it2, m.index) + it2.length) });
+      }
+    }
+    if ((m = /^(?:vide|efface) (?:toute )?(?:la |ma )?liste(?: (?:de |des |du |d )?([a-z]+))?$/.exec(t))) return R('list_clear', { list: m[1] || 'courses' });
+    if (/\b(lis|lire|relis|dis moi|donne moi|qu est ce qu il y a|qu y a t il|quoi|montre|affiche|c est quoi)\b.*\b(liste|listes)\b/.test(t) || /^(?:ma |la )?liste(?: (?:de |des |du |d )?[a-z]+)?$/.test(t)) {
+      var lm = /\bliste(?: (?:de |des |du |d |pour (?:le |la |les )?)?([a-z][a-z ]*))?$/.exec(t);
+      return R('list_read', { list: lm && lm[1] && !/^(s|des|mes)$/.test(lm[1]) ? lm[1].trim() : 'courses' });
+    }
+    if (/\b(lis|lire|relis|dis moi|donne moi|montre|affiche)\b.*\b(mes notes|les notes|ma derniere note|derniere note|notes)\b/.test(t) || /^(mes notes|les notes)$/.test(t)) return R('notes_read');
+    if ((m = /^(?:note|notes|prends note|prendre note|prends en note|ecris|ecris une note|nouvelle note|cree une note|ajoute une note|ajoute la note|memo|memorise|retiens|souviens toi|n oublie pas|garde en memoire|note bien|prends note de) (?:que |qu |ceci |ca |cela |de |:)?\s*(.+)$/.exec(t)) || (m = /^(?:note) (.+)$/.exec(t))) {
+      var colon2 = P.raw.indexOf(':');
+      var txt2 = colon2 > 0 && colon2 < P.raw.length - 1 && prep(P.raw.slice(0, colon2), ctx).t.split(' ').length <= 4 ? P.raw.slice(colon2 + 1).trim() : orig(P, m.index + m[0].length - m[1].length);
+      txt2 = txt2.replace(/^(?:que |qu'|qu’|de |ceci |:\s*)/i, '');
+      return R('note_add', { text: txt2 });
+    }
+    // --- livre à lire par son titre (Liseuse) ---
+    var bt = ctx._noFix ? null : parseBookTitle(t, P);   // pas de titre inventé par la correction d'orthographe
+    if (bt) return R('book', bt);
+    // --- ouvrir une appli (Suite, puis toutes celles du téléphone), un raccourci du système, un site ---
+    var apps = ctx.apps && ctx.apps.length ? ctx.apps : null;
+    if ((m = /^(?:ouvre moi|lance moi|ouvre|ouvrir|ouvrez|lance|lancer|lancez|demarre|demarrer|demarrez|va dans|va sur|aller sur|aller dans|affiche|montre moi|passe sur|bascule sur|je veux|j ai besoin de|emmene moi sur|direction|mets|met) (?:l appli |l application |l app |le logiciel |le site (?:de |du |des |d )?|le site |le |la |les |l |mon |ma |mes |un |une )*(.+)$/.exec(t))) {
+      var what = m[1], whatO = orig(P, m.index + m[0].length - what.length);
+      var weak = /^(mets|met) /.test(t);   // « mets X » : seulement pour une appli ou un site reconnus
+      if (DOMO.test(what) && !/\bsite\b/.test(t)) { var dr = t.replace(/^(?:ouvre moi|lance moi|ouvre|ouvrir|ouvrez|lance|lancer|lancez|demarre|demarrer|demarrez|va dans|va sur|aller sur|aller dans|affiche|montre moi|passe sur|bascule sur|je veux|j ai besoin de|emmene moi sur|direction|mets|met) /, ''); return R('domo', { what: orig(P, t.length - dr.length), open: !weak }); }
+      var site0 = /\bsite\b/.test(t) ? findSite(what) : null;
+      if (site0) return R('website', site0);
+      if (/^(reglages|parametres)$/.test(what)) return R('open_sys', { what: 'settings', sub: '', name: 'les paramètres' });
+      var pk = pickApp(what, apps), ap = findApp(what);
+      if (ap && !(ap.id === 'qr' && !/\b(qr|q r)\b/.test(what))) {
+        // la Suite d'abord ; sauf si son nom ne couvre qu'une partie de la demande et qu'une appli installée y répond
+        // exactement (« Google Agenda », « Prime Video », « Microsoft Word »)
+        var apx = null; for (var ai = 0; ai < APPS.length; ai++) if (APPS[ai][0] === ap.id) apx = APPS[ai][3].exec(what);
+        var partial = apx && squash(apx[0]) !== squash(what);
+        if (partial && pk.app && pk.app.score >= 0.93 && !/^fr\.magformation13\./.test(pk.app.pkg)) return R('open_app', pk.app);
+        if (SUITE_SYS[ap.id]) ap.sys = SUITE_SYS[ap.id];
+        if (pk.app && pk.app.score >= 0.9 && !/^fr\.magformation13\./.test(pk.app.pkg)) ap.alt = pk.app;   // si la Suite manque (« Word » sans Texte)
+        return R('open_app', ap);
+      }
+      for (var si = 0; si < SYS.length; si++) if (SYS[si][2].test(what)) {
+        if (SYS[si][0] === 'email' && (pk.app || pk.choices)) break;
+        return R('open_sys', { what: SYS[si][0], name: SYS[si][1] });
+      }
+      if (pk.app && !(weak && pk.app.score < 0.97)) return R('open_app', pk.app);
+      if (pk.choices && !weak) return R('open_app', { choices: pk.choices, heard: whatO, group: !!(pk.known && pk.known.group) });
+      var site = findSite(what);
+      if (site) return R('website', site);
+      if (!weak) {
+        if (/\bsite\b/.test(t)) return R('website', { unknown: orig(P, m.index + m[0].length - what.length) });
+        if (pk.known && pk.known.id === 'mail') return R('open_sys', { what: 'email', name: 'la messagerie' });
+        var near = null, nd = 3;
+        APPS.forEach(function (a) { var d = lev(what, deacc(a[1])); if (d < nd) { nd = d; near = { id: a[0], name: a[1], pkg: a[2] }; } });
+        if (!near && pk.near) near = { ext: true, name: pk.near.name, pkg: pk.near.pkg, cls: pk.near.cls };
+        var kn = pk.known ? { id: pk.known.id, name: pk.known.name, web: pk.known.web, pkg: pk.known.pkgs[0], group: !!pk.known.group } : null;
+        return R('open_app', { unknown: whatO, near: near, known: kn, apps: !!apps });
+      }
+    }
+    if (/^(?:youtube|wikipedia|leboncoin|le bon coin|doctolib)$/.test(t) && !(apps && pickApp(t, apps).app)) return R('website', findSite(t));
+    // une appli seule : « présentation », « le tableur », « WhatsApp » (nom exact d'une appli installée)
+    var only = /^(?:l appli |l application |le |la |les |l )?(.+)$/.exec(t), ap2 = only && only[1].split(' ').length <= 3 ? findApp(only[1]) : null;
+    if (ap2 && ap2.id !== 'photo' && ap2.id !== 'calcul') return R('open_app', ap2);
+    if (apps && only && only[1].split(' ').length <= 3) { var pk2 = pickApp(only[1], apps); if (pk2.app && pk2.app.score >= 0.95) return R('open_app', pk2.app); }
+    // --- style de voix (mj-plus.js) : « prends une voix sensuelle », « parle de façon énergique », « voix normale » ---
+    if ((m = /^(?:(?:prends|reprends|mets|remets|utilise|passe (?:en|sur|a)|choisis|adopte|parle (?:avec|d|de facon|sur un ton|d une facon|d une maniere|de maniere))\s+)?(?:une |un |la |le |ta )?(?:voix|ton|style|facon|maniere)?\s*(sensuelle|sensuel|douce|doux|energique|dynamique|calme|posee|pose|joyeuse|joyeux|grave|profonde|intime|de conteur|conteur|normale|normal|naturelle|neutre|habituelle)$/.exec(t)) && /voix|ton|style|parle|facon|maniere|prends|mets|utilise|passe|choisis|adopte/.test(t))
+      return R('voicestyle', { style: m[1] });
+    // --- recherche sur internet (mj-plus.js) : « cherche sur internet les horaires de la piscine », « recherche sur Google … » ---
+    if ((m = /^(?:cherche|recherche|trouve|fais une recherche|fait une recherche|lance une recherche|regarde|google|googlise)(?: moi)?(?: sur (?:internet|le web|google|le net|qwant)| en ligne| sur la toile)(?: pour| sur| de| a propos de| concernant)? (.+)$/.exec(t)) ||
+        (m = /^(?:cherche|recherche|trouve|regarde)(?: moi)? (.+?) sur (?:internet|le web|google|le net|qwant)$/.exec(t)) ||
+        (m = /^(?:fais|fait|lance) une recherche (?:sur|pour|de) (.+)$/.exec(t))) {
+      var wsS = t.indexOf(m[1]); return R('websearch', { q: orig(P, wsS, wsS + m[1].length) });
+    }
+    // --- encyclopédie (Wikipédia en français, mj-plus.js) : « c'est quoi un ornithorynque », « qui est Victor Hugo » ---
+    if ((m = /^(?:c est quoi|c etait quoi|qu est ce que c est que|qu est ce que c est|qu est ce que|qu est ce qu|c est qui|qui est|qui etait|qui sont|qui etaient|parle moi de|parle moi d|parle moi du|parle moi des|dis moi qui est|dis moi qui etait|dis moi ce qu est|dis moi ce que c est que|definition de|definition du|definition d|definis|que signifie|que veut dire|cherche sur wikipedia|recherche sur wikipedia|regarde sur wikipedia|wikipedia) (.+)$/.exec(t)) && !/^(ca|cela|ceci|tu|toi|vous|moi|la|le)$/.test(m[1])) {
+      var wq = orig(P, m.index + m[0].length - m[1].length);
+      if (wq.length >= 2) return R('wiki', { q: wq.replace(/\s*\?+$/, '') });
+    }
+    // --- heure simple après coup (« il est quelle heure à … ») ---
+    if (/\bheure\b/.test(t) && /\b(quel|quelle)\b/.test(t)) return R('time');
+    var sg = null;
+    if (!ctx._noFix) {
+      var fixed = spell(t);
+      if (fixed !== t) { var r2 = parse(fixed, Object.assign({}, ctx, { _noFix: true, names: [] })); if (r2.intent !== 'unknown' && r2.intent !== 'empty') sg = { intent: r2.intent, phrase: fixed, corrected: true }; }
+    }
+    if (!sg) sg = suggest(t);
+    return R('unknown', { suggest: sg });
+  }
+  function digits(s) {
+    var d = String(s || '').replace(/[^\d+]/g, '');
+    if (/^(\+33|0033)\d{9}$/.test(d)) return d.replace(/^0033/, '+33');
+    if (/^0\d{9}$/.test(d)) return d;
+    if (/^\d{2,5}$/.test(d) && /^(1[0-9]|3\d{3}|11[0-9])$/.test(d)) return d;   // numéros courts (15, 17, 18, 112, 3646…)
+    return '';
+  }
+
+  /* ---------------- Formats de réponse ---------------- */
+  function num(v, dec) {
+    if (v == null || !isFinite(v)) return '';
+    dec = dec == null ? (Math.abs(v) >= 100 ? 1 : Math.abs(v) >= 1 ? 2 : 4) : dec;
+    var r = Math.round(v * Math.pow(10, dec)) / Math.pow(10, dec);
+    var s = r.toLocaleString('fr-FR', { maximumFractionDigits: dec });
+    return s.replace(/ /g, ' ');
+  }
+
+  var NLU = {
+    parse: parse, prep: prep, numberize: numberize, tokenize: tokenize, findWhen: findWhen, durations: durations, calcExpr: calcExpr,
+    convert: convert, parseClim: parseClim, parseBook: parseBook, parseLight: parseLight, lightTarget: lightTarget, colorWord: colorWord, nextFete: nextFete, easter: easter, findApp: findApp, findSite: findSite, APPS: APPS, SITES: SITES, KNOWN: KNOWN, SYS: SYS, SETSUB: SETSUB, phon: phon, akey: akey, matchApps: matchApps, pickApp: pickApp, findKnown: findKnown, EXAMPLES: EXAMPLES,
+    suggest: suggest, spell: spell, yesNo: yesNo, deacc: deacc, num: num, DN: DN, UNITS: UNITS, MONTHS: MONTHS, WDAYS: WDAYS, startOfDay: startOfDay, addDays: addDays
+  };
+  root.MJNLU = NLU;
+  if (typeof module !== 'undefined' && module.exports) module.exports = NLU;
+})(typeof window !== 'undefined' ? window : this);

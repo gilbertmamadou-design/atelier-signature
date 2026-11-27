@@ -30,7 +30,8 @@
 
   /* ---------------- Où tourne la page ---------------- */
   var host = location.hostname || '';
-  FJ.mode = /\.localhost$/i.test(host) || location.protocol === 'file:' ? 'lively' : root.MAGPC ? 'suite' : 'web';
+  // « app » : appli Android Jarvis (APK, Capacitor) ; pas de Majordome à côté, voix Piper rangée dans l'appli
+  FJ.mode = /\.localhost$/i.test(host) || location.protocol === 'file:' ? 'lively' : root.MAGPC ? 'suite' : root.Capacitor ? 'app' : 'web';
   FJ.lively = FJ.mode === 'lively';     // devient vrai aussi dès qu'une fonction de Lively est appelée
   FJ.inSuite = /\/atelier-signature\/pc\/fond-jarvis\/?/.test(location.pathname) || (location.protocol === 'mag:' && /^\/fond-jarvis\//.test(location.pathname));   // site de la Suite, ou programme Suite MAG.exe
   FJ.suiteUrl = function (id) { return (FJ.inSuite ? '../' : SITE) + id + '/'; };
@@ -43,7 +44,7 @@
   var DEF = {
     theme: 'cyan', layout: 'complet', name: '', city: '', place: null, windLimit: +MJS.windLimit || 45,
     voiceOn: true, voice: MJS.voice || '', rate: +MJS.rate || 1, tts: MJS.tts || 'system', piperVoice: MJS.piperVoice || 'pierre', vfx: 'ia', vfxo: null, free: 140, scale: 100, fx: 70, reduce: false, fpsMax: 30, saver: true,
-    newsN: 7, panels: { clock: true, wx: true, agenda: true, sys: true, news: true, music: true }, wake: false, wakeOk: false, updates: true, fx2: true, boot: true, bureau: false, say: 'droite', forme: 'sphere'
+    newsN: 7, panels: { clock: true, wx: true, agenda: true, sys: true, news: true, music: true }, wake: false, wakeOk: false, updates: true, fx2: true, boot: true, bureau: false, say: 'droite', forme: 'sphere', ecran: 'auto'
   };
   var S = FJ.S = Object.assign({}, DEF, lsGet(KEY.set, {}));
   S.panels = Object.assign({}, DEF.panels, S.panels || {});
@@ -106,6 +107,8 @@
   FJ.open = function (u) {
     var url = FJ.resolve(u);
     if (!url) return false;
+    // appli Android : un lien suivi dans la page est confié à Android (navigateur, téléphone, messages, courrier…)
+    if (FJ.mode === 'app') { var la = doc.createElement('a'); la.href = url; la.style.display = 'none'; doc.body.appendChild(la); la.click(); la.remove(); return true; }
     // appli de la Suite : on ouvre l'appli installée sur le PC (son lien web+mag…), pas une page du navigateur
     // dans le programme Suite MAG.exe : le programme ouvre lui-même l'appli dans sa fenêtre
     var sid = !root.MAG_EXE && FJ.suiteIdOf(url);
@@ -151,6 +154,8 @@
   FJ.SITES = SITES;
   function kid() { return 'k' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
   FJ.defaultKeys = function () {
+    // appli Android : raccourcis du téléphone (les liens tel:, sms:, mailto: et les sites s'ouvrent dans l'appli voulue)
+    if (FJ.mode === 'app') return [['Téléphone', 'tel:', 'contacts'], ['Messages', 'sms:', 'mail'], ['Courrier', 'mailto:', 'mail'], ['Actualités', 'https://www.francetvinfo.fr/', 'actu'], ['Météo', 'https://meteofrance.com/', 'meteo'], ['Cartes', 'https://www.google.com/maps', 'web']].map(function (w) { return { id: kid(), name: w[0], url: w[1], icon: w[2] }; });
     var l = ['texte', 'tableur', 'presentation', 'lecteur', 'fichiers', 'ecran', 'actualites', 'majordome'].map(function (id) {
       var s = SUITE.filter(function (x) { return x[0] === id; })[0]; return { id: kid(), name: s[1], url: 'suite:' + id, icon: s[2] };
     });
@@ -192,15 +197,19 @@
     R.dataset.theme = S.theme;
     R.style.setProperty('--scale', clamp(+S.scale || 100, 70, 160) / 100);
     R.style.setProperty('--free', clamp(+S.free || 0, 0, 900) + 'px');
+    var E = FJ.ecran(); R.dataset.ecran = E;
+    if (FJ.mode === 'app' && root.MAGPrint && root.MAGPrint.keepScreen) try { root.MAGPrint.keepScreen(S.eveil !== false); } catch (e) { }   // écran de contrôle : reste allumé
+    R.dataset.ecranScroll = FJ.ecranScroll() ? '1' : '';
     R.style.setProperty('--fx', clamp(+S.fx, 0, 100) / 100);
     R.classList.toggle('fj-reduce', !!S.reduce);
     $('hud').dataset.layout = S.layout; $('hud').dataset.say = S.say || 'droite';
     $('orb').style.filter = orbHue[S.theme] || '';
-    FJ.freeX = clamp(+S.free || 0, 0, 900);
+    FJ.freeX = E === 'pc' ? clamp(+S.free || 0, 0, 900) : 0;
+    $('ecr').innerHTML = FJI.svg('ecr_' + (S.ecran || 'auto'));
     FJ.hud.intensity = clamp(+S.fx, 0, 100) / 100;
     FJ.hud.reduce = !!S.reduce;
     $('aiName').textContent = FJ.aiName();
-    $('q').placeholder = 'Demandez à ' + FJ.aiName() + '…  (Ctrl+Espace)';
+    $('q').placeholder = 'Demandez à ' + FJ.aiName() + '…' + (E === 'pc' ? '  (Ctrl+Espace)' : '');
     panelsVisible();
     applyPower();
     if (what !== 'quiet') FJ.relayout();
@@ -240,6 +249,7 @@
       ['bar', 'keys', 'say'].forEach(function (id) { var e = $(id); if (e && !e.hidden && e.offsetParent) { var r = e.getBoundingClientRect(); if (r.width) avoid.push({ l: r.left, r: r.right, t: r.top, b: r.bottom }); } });
       var bar = $('bar');
       if (bar.offsetParent && S.layout !== 'sphere') { var br = bar.getBoundingClientRect(); anchors.push({ vert: true, x: stage.cx, y: br.top - 1 }); }
+      if (FJ.ecranScroll()) { anchors = []; avoid = []; }   // panneaux qui défilent : pas de circuits (ils ne suivraient pas)
       FJ.hud.layout({ stage: stage, anchors: anchors, avoid: avoid });
       FJ.layoutInfo = { stage: stage, anchors: anchors.length };
     });
@@ -327,6 +337,17 @@
   /* ---------------- Météo (Open-Meteo, sans clé) ---------------- */
   var WMO = FJ.WMO = { 0: 'ciel dégagé', 1: 'plutôt dégagé', 2: 'partiellement nuageux', 3: 'couvert', 45: 'brouillard', 48: 'brouillard givrant', 51: 'bruine légère', 53: 'bruine', 55: 'bruine forte', 56: 'bruine verglaçante', 57: 'bruine verglaçante', 61: 'pluie faible', 63: 'pluie', 65: 'forte pluie', 66: 'pluie verglaçante', 67: 'pluie verglaçante', 71: 'neige faible', 73: 'neige', 75: 'forte neige', 77: 'grains de neige', 80: 'averses', 81: 'averses', 82: 'fortes averses', 85: 'averses de neige', 86: 'fortes averses de neige', 95: 'orages', 96: 'orages avec grêle', 99: 'orages avec grêle' };
   function http(url, ms) {
+    // appli Android : en cas de refus (CORS, ex. titres franceinfo), la requête est faite par le téléphone (pont MAGPrint)
+    var MP = root.MAGPrint;
+    if (FJ.mode === 'app' && MP && MP.httpFetch) return httpWeb(url, ms).catch(function () { return httpNative(MP, url); });
+    return httpWeb(url, ms);
+  }
+  function httpNative(MP, url) {
+    var k = 'fj' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), n = 0;
+    MP.httpFetch(k, url);
+    return new Promise(function (ok, ko) { (function w() { var r = MP.httpTake(k); if (r != null && r !== '__wait__') return r === '__err__' ? ko(new Error('réseau')) : ok(r); if (++n > 60) return ko(new Error('délai dépassé')); setTimeout(w, 500); })(); });
+  }
+  function httpWeb(url, ms) {
     var ctl = root.AbortController ? new AbortController() : null, to = setTimeout(function () { if (ctl) ctl.abort(); }, ms || 20000);
     return fetch(url, { credentials: 'omit', cache: 'no-store', signal: ctl ? ctl.signal : undefined, referrerPolicy: 'no-referrer' }).then(function (r) { clearTimeout(to); if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); }, function (e) { clearTimeout(to); throw e; });
   }
@@ -763,6 +784,32 @@
     if (e.ctrlKey && (e.code === 'Space' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); if (FJ.jarvis) FJ.jarvis.activate(); return; }
     if (e.key === 'Escape') { if (!$('sheet').hidden) { FJ.closeSettings(); e.preventDefault(); } else if (FJ.jarvis) FJ.jarvis.dismiss(); }
   }, true);
+  /* ---------------- Affichage : automatique, téléphone, tablette, PC ---------------- */
+  var ECRANS = [['auto', 'Automatique'], ['tel', 'Téléphone'], ['tab', 'Tablette'], ['pc', 'PC']];
+  FJ.ECRANS = ECRANS;
+  // automatique : petit écran (< 600 px de côté) = téléphone ; écran tactile jusqu'à 1600 px = tablette ; sinon PC
+  FJ.ecran = function () {
+    if (S.ecran && S.ecran !== 'auto' && ECRANS.some(function (e) { return e[0] === S.ecran; })) return S.ecran;
+    var w = root.innerWidth || 1, h = root.innerHeight || 1, coarse = root.matchMedia && matchMedia('(pointer: coarse)').matches;
+    if (Math.min(w, h) < 600 || w < 700) return 'tel';
+    if (coarse && Math.max(w, h) <= 1600) return 'tab';
+    return 'pc';
+  };
+  // téléphone, ou tablette en hauteur : sphère en haut, panneaux en dessous dans une zone qui défile
+  FJ.ecranScroll = function () { var e = FJ.ecran(); return e === 'tel' || (e === 'tab' && (root.innerHeight || 0) > (root.innerWidth || 0)); };
+  FJ.setEcran = function (v, quiet) {
+    S.ecran = v; FJ.save(); FJ.apply();
+    if (!quiet) FJ.toast('Affichage : ' + ECRANS.filter(function (e) { return e[0] === v; })[0][1] + (v === 'auto' ? ' (' + { tel: 'téléphone', tab: 'tablette', pc: 'PC' }[FJ.ecran()] + ')' : ''), 2200);
+  };
+  $('ecr').onclick = function () {
+    var i = ECRANS.map(function (e) { return e[0]; }).indexOf(S.ecran || 'auto');
+    FJ.setEcran(ECRANS[(i + 1) % ECRANS.length][0]);
+  };
+  var ecrT = 0, ecrLast = '';
+  root.addEventListener('resize', function () {
+    clearTimeout(ecrT);
+    ecrT = setTimeout(function () { var k = FJ.ecran() + (FJ.ecranScroll() ? 's' : ''); if (k !== ecrLast) { ecrLast = k; FJ.apply(); } }, 150);
+  });
   $('gear').innerHTML = FJI.svg('reglages');
   $('gear').onclick = function () { FJ.settings(); };
 
@@ -831,6 +878,8 @@
     var h = '';
     if (tab === 'general') {
       h += fld('Nom de l\'assistant', '<input type="text" id="sName" maxlength="30" value="' + esc(S.name) + '" placeholder="' + esc(MJS.name || 'Majordome') + '">', 'Vide : celui de Majordome' + (MJS.name ? ' (« ' + esc(MJS.name) + ' »)' : ' (« Majordome »)') + '.');
+      h += fld('Affichage', sel('sEcran', ECRANS, S.ecran || 'auto'), 'Téléphone : sphère en haut, panneaux à faire défiler. Tablette : deux colonnes en hauteur, comme le PC en largeur. Automatique : selon la taille de l\'écran (bouton à côté de ⚙ dans la barre).');
+      if (FJ.mode === 'app') h += chk('sEveil', 'Garder l\'écran allumé', S.eveil !== false, 'Pratique sur une tablette posée : l\'écran ne se met pas en veille tant que Jarvis est affiché.');
       h += fld('Disposition', sel('sLayout', [['complet', 'Complet'], ['epure', 'Épuré (horloge, sphère, raccourcis)'], ['sphere', 'Sphère seule']], S.layout));
       h += fld('Réponses de l\'assistant', sel('sSay', [['droite', 'À droite (sphère en grand)'], ['gauche', 'À gauche (sphère en grand)'], ['dessous', 'Sous la sphère']], S.say || 'droite'), 'À gauche ou à droite, la réponse s\'affiche par-dessus les panneaux du côté choisi : la sphère garde toute sa taille.');
       h += fld('Thème', sel('sTheme', [['cyan', 'Cyan'], ['bleu', 'Bleu'], ['vert', 'Vert'], ['ambre', 'Ambre'], ['rouge', 'Rouge']], S.theme));
@@ -840,6 +889,8 @@
       B.innerHTML = h;
       bind('sName', function (v) { clearTimeout(nameT); setS('name', v.trim().slice(0, 30), 'quiet'); });
       bind('sLayout', function (v) { setS('layout', v); });
+      bind('sEcran', function (v) { FJ.setEcran(v, true); });
+      bind('sEveil', function (v) { setS('eveil', v); });
       bind('sSay', function (v) { setS('say', v); FJ.relayout(); });
       bind('sTheme', function (v) { setS('theme', v); FJ.hud.redrawStatic(); });
       bind('sForme', function (v) { S.forme = v; FJ.save(); makeOrb(FJ.orbCount || 1100); FJ.apply(); });
