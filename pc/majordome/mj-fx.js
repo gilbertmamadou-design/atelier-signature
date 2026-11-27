@@ -252,14 +252,19 @@
   /* ---------------- réglages ---------------- */
   var prevExtra = MJ.settingsExtra, prevBind = MJ.settingsBind;
   MJ.settingsExtra = function () {
-    return (prevExtra ? prevExtra() : '') + '<div class="sect" id="f-effets">Effets et bulles</div>' +
+    var niv = (+S.fxInt || 0) <= 0 ? 0 : S.fxInt <= 45 ? 35 : S.fxInt <= 80 ? 70 : 100;
+    // une seule rubrique « Écran » : informations (mj-ecran.js), puis visuel et effets
+    return (prevExtra ? prevExtra() : '') + '<div class="sect" id="f-ecran">Écran</div>' + (MJ.ecranHtml ? MJ.ecranHtml() : '') +
+      '<div class="sect" id="f-effets">Visuel et effets</div>' +
+      '<div class="set"><div class="t">Effets visuels<small>Autour de la sphère : anneaux, planètes, constellations, ondes… « Aucun » économise la batterie</small></div><select class="in" id="sFxN" style="width:auto">' +
+      [[0, 'Aucun'], [35, 'Légers'], [70, 'Normaux'], [100, 'Complets']].map(function (o) { return '<option value="' + o[0] + '"' + (niv === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
       '<div class="set"><div class="t">Bulles de réponse<small>Éphémères : la réponse s\'affiche pendant qu\'elle est annoncée, puis disparaît</small></div><select class="in" id="sFxB" style="width:auto"><option value="ephemeres"' + (S.bulles === 'ephemeres' ? ' selected' : '') + '>Éphémères</option><option value="garder"' + (S.bulles !== 'ephemeres' ? ' selected' : '') + '>Gardées</option></select></div>' +
       '<div class="set"><div class="t">Sphère seule<small>La sphère en grand au milieu de l\'écran, rien d\'écrit. Touchez la sphère pour parler ; touchez à côté pour Réglages ou Quitter</small></div><label class="sw"><input type="checkbox" id="sFxZ"' + (S.zen ? ' checked' : '') + '><span></span></label></div>' +
       (X.B && X.B.zenShortcut ? '<div class="set"><div class="t">Raccourci « Sphère seule »<small>Une icône sur l\'écran d\'accueil qui ouvre directement la sphère seule (aussi par appui long sur l\'icône)</small></div><button class="btn sm" id="sFxZpin">Ajouter</button></div>' : '') +
       '<div class="set"><div class="t">Infos en « sphère seule »<small>Discrètes, dans les coins de l\'écran</small></div></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">' +
       [['heure', 'Heure et date'], ['meteo', 'Météo'], ['rdv', 'Prochain rendez-vous'], ['maison', 'Lumières et volets'], ['batterie', 'Batterie']].map(function (z) { return '<button class="btn sm' + (S.zenInfo[z[0]] ? ' pri' : '') + '" data-zi="' + z[0] + '">' + z[1] + '</button>'; }).join('') + '</div>' +
       '<div class="set"><div class="t">Cases Heure, Météo, Rendez-vous, Minuteur<small>« Pendant une réponse » : cachées, elles apparaissent quand il vous répond</small></div><select class="in" id="sFxC" style="width:auto"><option value="annonce"' + (S.cases === 'annonce' ? ' selected' : '') + '>Pendant une réponse</option><option value="toujours"' + (S.cases !== 'annonce' ? ' selected' : '') + '>Toujours</option></select></div>' +
-      '<div class="set"><div class="t">Intensité des effets<small>0 : aucun effet (économise la batterie)</small></div><input type="range" id="sFxI" min="0" max="100" step="5" value="' + (+S.fxInt || 0) + '"></div>' +
+      '<div class="set"><div class="t">Réglage fin de l\'intensité<small>0 : aucun effet</small></div><input type="range" id="sFxI" min="0" max="100" step="5" value="' + (+S.fxInt || 0) + '"></div>' +
       Object.keys(GAD).map(function (k) { return '<div class="set"><div class="t">' + esc(GAD[k]) + '</div><label class="sw"><input type="checkbox" data-fxg="' + k + '"' + (gad(k) ? ' checked' : '') + '><span></span></label></div>'; }).join('');
   };
   MJ.settingsBind = function (b) {
@@ -270,6 +275,8 @@
     document.querySelectorAll('[data-zi]').forEach(function (z) { z.onclick = function () { S.zenInfo[z.dataset.zi] = !S.zenInfo[z.dataset.zi]; z.classList.toggle('pri', !!S.zenInfo[z.dataset.zi]); save(); hudPaint(); }; });
     var bc = $('sFxC'); if (bc) bc.onchange = function () { S.cases = this.value; save(); applyBulles(); };
     var fi = $('sFxI'); if (fi) fi.oninput = function () { S.fxInt = +this.value; save(); kick(); };
+    var fn = $('sFxN'); if (fn) fn.onchange = function () { S.fxInt = +this.value; if (fi) fi.value = S.fxInt; save(); kick(); };
+    if (MJ.ecranBind) MJ.ecranBind();
     document.querySelectorAll('[data-fxg]').forEach(function (i) { i.onchange = function () { S.fxG[i.dataset.fxg] = i.checked; save(); if (i.dataset.fxg === 'hyper' && i.checked) hyper(); kick(); }; });
   };
   MJ.fx = { pulse: pulse, burst: burst, hyper: hyper, couleur: lireAcc };   // couleur : relire --acc (Réglages › Couleur, mj-jarvis.js)

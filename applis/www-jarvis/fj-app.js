@@ -6,7 +6,7 @@
      'suite'   Suite MAG sur PC (GitHub Pages, window.MAGPC présent) : même
                stockage que Majordome PC, Agenda… dans le même navigateur
      'app'     appli Android Jarvis (APK)
-     'mj'      visage de Majordome (cadre de mj-visage.js, adresse ?mj=1) : Majordome est le cerveau, la voix et le micro
+     'mj'      page dans un cadre de Majordome (adresse ?mj=1) : Majordome est le cerveau, la voix et le micro (essai retiré, gardé en réserve)
      'web'     autre (fichier ouvert directement…)
    API de Lively (wiki officiel « Web Guide IV/V », LivelyInfo.json › Arguments) :
      livelyPropertyListener(nom, valeur)   réglages de LivelyProperties.json

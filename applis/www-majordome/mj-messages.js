@@ -28,6 +28,12 @@
     if (from) { var f = norm(from), w = norm(m.from + ' ' + (m.conv || '')); if (w.indexOf(f) < 0 && !f.split(' ').every(function (x) { return w.indexOf(x) >= 0; })) return false; }
     return true;
   }
+  // Réglages › Écran : case « Messages » (nombre de non lus, messages et mails) ; null : lecture des notifications non autorisée
+  MJ.msgNonLus = function () {
+    try { if (!HAS || !B.notifAccess()) return null; } catch (e) { return null; }
+    var l = all().filter(function (m) { return !READ[m.id]; }), nm = l.filter(function (m) { return m.mail; }).length;
+    return { msg: l.length - nm, mails: nm, dernier: l.length ? l[l.length - 1] : null };
+  };
   function unread(app, from) { return all().filter(function (m) { return !READ[m.id] && match(m, app, from); }); }
   function kind(m) { return m.mail ? 'mail' : SMS.test(m.pkg) ? 'SMS' : 'message'; }
   function where(m) { return SMS.test(m.pkg) ? 'par SMS' : 'sur ' + m.app; }

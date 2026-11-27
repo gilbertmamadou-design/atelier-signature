@@ -1860,20 +1860,24 @@
     else cells.push({ k: 'ev', l: 'Rendez-vous', b: ev === null ? 'Rien de prévu' : 'Agenda', s: ev === null ? 'dans les 7 jours' : 'Touchez pour le voir' });
     var li = MJ.lightsSummary ? MJ.lightsSummary() : null;
     if (li) cells.push({ k: 'hue', l: 'Lumières', b: !li.paired ? 'Philips Hue' : li.total == null ? 'Lumières' : li.on ? li.on + ' allumée' + (li.on > 1 ? 's' : '') : 'Tout est éteint', s: !li.paired ? 'Touchez pour jumeler' : li.total ? 'sur ' + li.total + ' lampe' + (li.total > 1 ? 's' : '') : 'Touchez pour voir' });
-    else {
       var nx = (Array.isArray(AL) ? AL : []).filter(function (o) { return o.kind !== 'hue' && o.at > t; }).sort(function (a, b) { return a.at - b.at; })[0];
       cells.push({ k: 'al', l: nx ? alarmTitle(nx).replace(/ :.*$/, '') : 'Minuteur', b: nx ? (nx.kind === 'timer' ? clock(nx.at - t) : hhmm(nx.at)) : 'Aucun', big: nx ? 1 : 0, s: nx ? (nx.kind === 'timer' ? 'fin à ' + hhmm(nx.at) : dayName(nx.at)) : '« Minuteur 10 minutes »' });
-    }
     return cells;
   }
   var momentHtml = '';
   function moment() {
-    var h = momentCells().map(function (c) { return '<button class="mo" data-mo="' + c.k + '"><i>' + esc(c.l) + '</i><b' + (c.big ? ' class="big"' : '') + '>' + esc(c.b) + '</b><span' + (c.cls ? ' class="' + c.cls + '"' : '') + '>' + esc(c.s) + '</span></button>'; }).join('');
+    // Réglages › Écran (mj-ecran.js) : cases en plus (batterie, messages, listes, lune et soleil) et cases choisies
+    var cells = momentCells();
+    if (MJ.ecranCells) try { cells = MJ.ecranCells(cells) || cells; } catch (e) { console.warn(e); }
+    var inf = S.infos || {};
+    cells = cells.filter(function (c) { return inf[c.k] !== false; });
+    var h = cells.map(function (c) { return '<button class="mo" data-mo="' + c.k + '"><i>' + esc(c.l) + '</i><b' + (c.big ? ' class="big"' : '') + '>' + esc(c.b) + '</b><span' + (c.cls ? ' class="' + c.cls + '"' : '') + '>' + esc(c.s) + '</span></button>'; }).join('');
     if (h !== momentHtml) { momentHtml = h; $('moment').innerHTML = h; }
   }
   $('moment').addEventListener('click', function (e) {
     var b = e.target.closest('[data-mo]'); if (!b) return; audio();
     var k = b.dataset.mo;
+    if (MJ.ecranClick && MJ.ecranClick(k)) return;
     if (k === 'hue' && MJ.homeSheet) return MJ.homeSheet();
     var q = { time: 'quelle heure est-il', wx: 'quel temps fait-il', ev: 'quels sont mes rendez-vous', al: 'quels minuteurs sont en cours' }[k];
     if (k === 'al' && !(AL || []).some(function (o) { return o.kind !== 'hue' && o.at > now(); })) { $('q').focus(); $('q').value = 'Minuteur 10 minutes'; return; }

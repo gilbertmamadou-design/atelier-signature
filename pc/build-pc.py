@@ -12,9 +12,8 @@ Pour chaque appli de pc/pc-apps.json :
                                   (« office » : chemins office/ → ../shared/office/, pièces communes précachées)
                                   pc/<id>/manifest.webmanifest, icônes 192/512/maskable, sw.js
   « lively » (Fond Jarvis)       →  pc/<id>/<paquet>.zip à glisser dans Lively Wallpaper, fj-version.js / .json
-  « apk » (Fond Jarvis)          →  applis/<web>/ : les fichiers du paquet Lively (sauf « skip ») ; deux cibles :
-                                  www-jarvis/ (appli Android Jarvis ; apps.json « jarvis », Piper ajouté par « with »)
-                                  et www-majordome/jarvis/ (apparence Jarvis de Majordome, mj-visage.js)
+  « apk » (Fond Jarvis)          →  applis/<web>/ : les fichiers du paquet Lively (sauf « skip »), pour l'appli Android Jarvis
+                                  (apps.json : « jarvis », moteur Piper ajouté à la fabrication par « with »)
 Rien d'autre n'est écrit dans applis/ : les autres APK Android ne changent pas.
 Voir pc/README.md pour les conventions (ponts simulés, CSS, raccourcis…).
 """
