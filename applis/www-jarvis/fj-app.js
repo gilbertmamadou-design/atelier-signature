@@ -51,7 +51,7 @@
   var DEF = {
     theme: 'cyan', layout: 'complet', name: '', city: '', place: null, windLimit: +MJS.windLimit || 45,
     voiceOn: true, voice: MJS.voice || '', rate: +MJS.rate || 1, tts: MJS.tts || 'system', piperVoice: MJS.piperVoice || 'pierre', vfx: 'ia', vfxo: null, free: 140, scale: 100, fx: 70, reduce: false, fpsMax: 30, saver: true,
-    newsN: 7, panels: { clock: true, wx: true, agenda: true, sys: true, news: true, music: true }, wake: false, wakeOk: false, updates: true, fx2: true, boot: true, bureau: false, say: 'droite', forme: 'sphere', ecran: 'auto'
+    newsN: 7, panels: { clock: true, wx: true, agenda: true, sys: true, news: true, music: true, bat: true }, wake: false, wakeOk: false, updates: true, fx2: true, boot: true, bureau: false, say: 'droite', forme: 'sphere', ecran: 'auto'
   };
   var S = FJ.S = Object.assign({}, DEF, lsGet(KEY.set, {}));
   S.panels = Object.assign({}, DEF.panels, S.panels || {});
@@ -227,7 +227,8 @@
     $('pNews').hidden = !S.panels.news;
     $('pAgenda').hidden = !(S.panels.agenda && AG.has);
     $('pMusic').hidden = !(S.panels.music && MU.on);
-    $('pSys').hidden = !(S.panels.sys && (SYS.on || BAT.on));
+    $('pSys').hidden = !(S.panels.sys && (SYS.on || (BAT.on && S.panels.bat !== false)));
+    batteryUi();
     if (FJ.plusVisible) FJ.plusVisible();
   }
 
@@ -289,12 +290,24 @@
   }
   function batteryUi() {
     var pct = Math.round(BAT.level * 100), low = !BAT.charging && pct <= 20;
-    var cb = $('clkBat'); cb.hidden = !BAT.on;
+    var vis = BAT.on && S.panels.bat !== false;   // ⚙ › Écran › Niveau de la batterie
+    var cb = $('clkBat'); cb.hidden = !vis;
     if (BAT.on) { cb.className = 'bat' + (low ? ' low' : ''); cb.innerHTML = FJI.svg(BAT.charging ? 'eclair' : 'batterie') + '<span class="num">' + pct + ' %</span>'; cb.title = BAT.charging ? 'En charge' : 'Sur batterie'; }
-    var row = $('batRow'); row.hidden = !BAT.on;
+    var row = $('batRow'); row.hidden = !vis;
     if (BAT.on) { row.className = 'batrow' + (low ? ' low' : ''); row.innerHTML = FJI.svg(BAT.charging ? 'eclair' : 'batterie') + '<span>Batterie</span><span class="bar"><i style="width:' + pct + '%"></i></span><b class="num">' + pct + ' %</b><small>' + (BAT.charging ? 'secteur' : 'sur batterie') + '</small>'; }
   }
-  if (navigator.getBattery) {
+  // téléphone et tablette (appli, visage de Majordome) : niveau donné par Android (pont MAGPrint), plus sûr que la WebView
+  function batNative() {
+    var MP = root.MAGPrint; if (!MP || !MP.homeBattery) return false;
+    var o; try { o = JSON.parse(MP.homeBattery() || '{}'); } catch (e) { return false; }
+    if (!(o.level >= 0)) return false;
+    BAT.on = true; BAT.level = o.level / 100; BAT.charging = !!o.plugged;
+    try { batteryUi(); applyPower(); } catch (e) { }
+    try { panelsVisible(); } catch (e) { }   // au premier appel, les panneaux ne sont pas encore prêts (apply() les montre ensuite)
+    return true;
+  }
+  if (FJ.android && batNative()) setInterval(batNative, 60000);
+  else if (navigator.getBattery) {
     navigator.getBattery().then(function (b) {
       function up() {
         // ordinateur de bureau : Chromium annonce « en charge, 100 % » sans batterie réelle → panneau masqué

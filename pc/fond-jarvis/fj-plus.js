@@ -430,12 +430,16 @@
         return '<button type="button" class="btn' + ((S.ecran || 'auto') === e[0] ? ' pri' : '') + '" data-ecr="' + e[0] + '">' + FJI.svg('ecr_' + e[0]) + '<span>' + esc(e[1]) + '</span></button>';
       }).join('') + '</div><p class="hint">Même écran partout : seule la place des panneaux change (téléphone : en dessous de la sphère ; tablette : 2 colonnes ; PC : autour).</p>';
       h += '<h3>Sur l\'écran</h3><div class="ecr-pan">';
-      [['S', 'clock', 'Horloge'], ['S', 'wx', 'Météo'], ['P', 'air', 'Qualité de l\'air, UV, pollens'], ['S', 'agenda', 'Agenda (s\'il y a des rendez-vous)'], ['P', 'taches', 'Tâches'], ['P', 'cmd', 'Commandes rapides'],
+      [['S', 'clock', 'Horloge'], ['S', 'bat', 'Niveau de la batterie'], ['S', 'wx', 'Météo'], ['P', 'air', 'Qualité de l\'air, UV, pollens'], ['S', 'agenda', 'Agenda (s\'il y a des rendez-vous)'], ['P', 'taches', 'Tâches'], ['P', 'cmd', 'Commandes rapides'],
        ['P', 'mois', 'Calendrier et citation'], ['P', 'monde', 'Ciel et monde'], ['S', 'news', 'Actualités'], ['S', 'music', 'Musique en cours'], ['S', 'sys', 'Système et batterie']].forEach(function (x) {
         var v = x[0] === 'S' ? S.panels[x[1]] : p.panels[x[1]];
         h += U.chk('eP_' + x[0] + x[1], x[2], v !== false);
       });
       h += '</div>';
+      var fxl = S.reduce ? 0 : S.fx <= 0 ? 0 : S.fx <= 40 ? 35 : S.fx <= 75 ? 65 : 100;
+      h += '<h3>Effets visuels</h3>' + U.fld('Niveau', U.sel('eFx', [[0, 'Aucun (écran calme, moins de batterie)'], [35, 'Légers'], [65, 'Normaux'], [100, 'Complets']], fxl), 'Anneaux, lueurs, circuits, étoiles, flux de données autour de la sphère.');
+      h += U.chk('eFx2', 'Effets avancés', S.fx2 !== false, 'Constellations, satellites, ondes, balayage des panneaux, flux de données sur les côtés.');
+      h += U.chk('eSaver', 'Économie sur batterie', !!S.saver, 'Moins d\'images par seconde quand l\'appareil n\'est pas branché.');
       h += '<h3>Commandes rapides</h3>' + U.fld('Boutons', '<textarea id="eCmds" rows="6" style="width:100%">' + esc((p.cmds || []).join('\n')) + '</textarea>', 'Une commande par ligne, comme vous la diriez' + (FJ.mode === 'mj' ? ' à Majordome' : '') + ' (ex. « Allume le salon », « Minuteur 5 minutes »).');
       B.innerHTML = h;
       B.querySelectorAll('[data-ecr]').forEach(function (b) { b.onclick = function () { FJ.setEcran(b.dataset.ecr); FJ.plusTab.ecran(B, U); }; });
@@ -445,6 +449,9 @@
           if (k === 'Pair' && c.checked) loadAir(true);
         };
       });
+      U.bind('eFx', function (v) { v = +v; S.reduce = v === 0; S.fx = v || 0; save(); FJ.apply(); });
+      U.bind('eFx2', function (v) { S.fx2 = v; save(); FJ.apply(); });
+      U.bind('eSaver', function (v) { S.saver = v; save(); FJ.apply(); });
       $('eCmds').oninput = function () { p.cmds = this.value.split('\n').map(function (x) { return x.trim(); }).filter(Boolean).slice(0, 12); save(); renderCmd(); };
     },
     formation: function (B, U) {
