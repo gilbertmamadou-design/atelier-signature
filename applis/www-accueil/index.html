@@ -15,7 +15,7 @@ html,body{margin:0;height:100%;background:transparent;color:var(--tx);font:15px/
 body.nobridge{background:linear-gradient(160deg,#28345a,#121624)}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
 input,textarea{font:inherit;color:inherit;-webkit-user-select:text;user-select:text}
-svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none;display:block}svg.i.wxc{stroke:none;fill:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}
+svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none;display:block}svg.i.wxc{stroke:none;fill:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}svg.i.icc{filter:drop-shadow(0 0 3px currentColor) drop-shadow(0 1px 1px rgba(0,0,0,.3))}svg.i.icc :is(rect,circle,ellipse,polygon){fill:currentColor;fill-opacity:.2}
 .sh{text-shadow:0 1px 3px rgba(0,0,0,.45)}
 [hidden]{display:none!important}
 
@@ -523,8 +523,12 @@ var WXC={
   storm:'<path d="M7 15a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 6.5a4 4 0 0 1-.5 8.5z" fill="#A3AFBB" stroke="#6C7986" stroke-width="1.3" stroke-linejoin="round"/><path d="M13.5 13.5 10 18.5h3.6l-2.4 4.3 5.2-6.2h-3.6l1.9-3.1z" fill="#FFCC33" stroke="#E0A800" stroke-width=".8" stroke-linejoin="round"/>',
   fog:'<g stroke="#B6C3CE" stroke-width="2.2" stroke-linecap="round"><path d="M4 10h16M4 14h16M6 18h12M7 6h10"/></g>'
 };
+/* Icônes en couleur (Réglages › Icônes en couleur) : chaque icône de tuile ou d'outil a sa couleur ;
+   les signes de l'interface (flèches, croix, poubelle, partage…) restent blancs. */
+var ICOL={clock:'#4FC3F7',alarm:'#FF7043',bell:'#FFCA28',news:'#EF5350',doc:'#42A5F5',sheet:'#66BB6A',orb:'#26C6DA',easel:'#AB47BC',stamp:'#EC407A',solar:'#FFB300',bulb:'#FFD740',bat:'#66BB6A',bolt:'#FFC107',shield:'#5C6BC0',cal:'#EF5350',tool:'#90A4AE',torch:'#FFD54F',compass:'#26A69A',level:'#FFB74D',star:'#FFD740',grid:'#7E57C2',note:'#FFCA28',phone:'#43A047',web:'#29B6F6',calc:'#FF8A65',user:'#7986CB',pin:'#F44336',mag:'#FFA726',music:'#EC407A',photo:'#29B6F6',people:'#5C6BC0',mic:'#EF5350',wall:'#A1887F',box:'#BCAAA4',camera:'#26A69A',scan:'#00BCD4',ruler:'#FFB74D',film:'#9575CD',power:'#EF5350',sos:'#F44336',qr:'#4DD0E1',book:'#FF8A65',pdf:'#E53935',trend:'#66BB6A',wallet:'#A1887F',mplay:'#EC407A',mprev:'#EC407A',mnext:'#EC407A',sms:'#43A047',phonedev:'#90CAF9',list:'#4DB6AC'};
 function ic(n, extra){
   if(WXC[n] && (typeof C==='undefined' || !C || C.wxColor!==false)) return '<svg class="i wxc" viewBox="0 0 24 24"'+(extra||'')+'>'+WXC[n]+'</svg>';
+  if(ICOL[n] && (typeof C==='undefined' || !C || C.iconColor!==false)) return '<svg class="i icc" viewBox="0 0 24 24" style="color:'+ICOL[n]+'"'+(extra||'')+'>'+(IC[n]||'')+'</svg>';
   return '<svg class="i" viewBox="0 0 24 24"'+(extra||'')+'>'+(IC[n]||'')+'</svg>';
 }
 
@@ -551,7 +555,7 @@ var TYPES = {
 var KEY='socle-v1';
 var DEF = {
   tiles:[{t:'clock',w:2},{t:'music',w:2},{t:'weather',w:1},{t:'battery',w:1},{t:'agenda',w:1},{t:'tools',w:1},{t:'favs',w:2}],
-  favs:null, hidden:[], city:null, accent:'auto', opacity:55, cols:4, gestures:true, wxColor:true, seconds:false, preferMag:true, hideReplaced:false, magSeen:[]
+  favs:null, hidden:[], city:null, accent:'auto', opacity:55, cols:4, gestures:true, wxColor:true, iconColor:true, seconds:false, preferMag:true, hideReplaced:false, magSeen:[]
 };
 function clone(o){ return JSON.parse(JSON.stringify(o)); }
 function cleanTile(t){
@@ -2400,6 +2404,7 @@ function settingsSheet(){
    '<div class="row"><div class="t"><div>Écran d\'accueil par défaut</div><div>'+(p.home?'Socle est ton écran d\'accueil':'Choisis Socle dans « Appli d\'accueil »')+'</div></div>'+(p.home?'<span class="ok">Actif</span>':'<button class="sbtn" data-s="home">Choisir</button>')+'</div>'+
    '<div class="row"><div class="t"><div>Barre de recherche sur toutes les pages</div><div>Sinon, elle n\'apparaît que sur la page principale (glisser vers le haut ouvre toujours la liste des applis)</div></div><label class="sw"><input type="checkbox" id="sDockAll"'+(C.dockAll?' checked':'')+'><span></span></label></div>'+
    '<div class="row"><div class="t"><div>Masquer la barre du haut</div><div>Heure, wifi, réseau et batterie cachés sur l\'accueil (glisser depuis le haut les montre un instant)</div></div><label class="sw"><input type="checkbox" id="sBar"'+(C.hideBar?' checked':'')+'><span></span></label></div>'+
+   '<div class="row"><div class="t"><div>Icônes en couleur</div><div>Photo, QR, musique, lampe, agenda… chaque icône a sa couleur</div></div><label class="sw"><input type="checkbox" id="sIcc"'+(C.iconColor!==false?' checked':'')+'><span></span></label></div>'+
    '<div class="row"><div class="t"><div>Météo en couleur</div><div>Soleil jaune, nuages gris, pluie bleue, orage jaune</div></div><label class="sw"><input type="checkbox" id="sWxc"'+(C.wxColor!==false?' checked':'')+'><span></span></label></div>'+
    '<div class="row"><div class="t"><div>Gestes</div><div>Double appui : verrouiller · glisser vers le bas : notifications</div></div><label class="sw"><input type="checkbox" id="sGest"'+(C.gestures?' checked':'')+'><span></span></label></div>'+
    '<div class="row"><div class="t"><div>Bouton Majordome</div><div>Micro dans la barre de recherche : parler à Majordome en un geste'+(app(MJ)?'':' (appli non installée)')+'</div></div><label class="sw"><input type="checkbox" id="sMjB"'+(C.mjBtn!==false?' checked':'')+'><span></span></label></div>'+
@@ -2416,6 +2421,7 @@ function settingsSheet(){
   openSheet(h,'settings');
   $('sGest').onchange=function(){ C.gestures=this.checked; save(); };
   $('sWxc').onchange=function(){ C.wxColor=this.checked; save(); render(); };
+  $('sIcc').onchange=function(){ C.iconColor=this.checked; save(); render(); };
   $('sMjB').onchange=function(){ C.mjBtn=this.checked; save(); mjBtn(); };
   $('sDockAll').onchange=function(){ C.dockAll=this.checked; save(); jvChrome(); };
   $('sBar').onchange=function(){ C.hideBar=this.checked; save(); applyBar(); if(A && A.homeStatusBar) A.homeStatusBar(C.hideBar); };
