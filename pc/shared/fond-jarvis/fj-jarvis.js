@@ -85,10 +85,12 @@
     return VX.speak(t, { voice: curVoice(), rate: S.rate, pitch: 1, volume: 1, fx: S.vfx, fxo: S.vfxo }, { onStart: function () { heard = true; }, onLevel: function (v) { if (orb && speakId === id) orb.voice(v); } })
       .then(function () { end(); return true; }, function () { if (heard) { end(); return true; } return false; });
   }
-  function speak(text) {
+  function speak(text, deMj) {
     lastSaid = text;
     var orb = FJ.orb, id = ++speakId;
     return new Promise(function (done) {
+      // visage de Majordome : Majordome parle (sa voix, son volume, son profil) ; la sphère suit son état (« etat »)
+      if (FJ.mode === 'mj') { if (!deMj && S.voiceOn !== false && CV.bc) CV.bc.postMessage({ t: 'dire', text: speechText(text) }); return done(); }
       if (S.voiceOn && S.tts === 'piper' && VX && VX.usable(curVoice())) {   // voix Piper ; échec avant le premier son : voix du système, sans message
         if (VX) VX.stop(); try { if (root.speechSynthesis) speechSynthesis.cancel(); } catch (e) { }
         var pend = function () { if (orb && speakId === id) { orb.speak(false); if (orb.get() === 'speak') orb.state(listening ? 'listen' : 'idle'); setState(listening ? 'J\'écoute' : 'En ligne'); } if (B && B.hold) try { B.hold(false); } catch (e) { } done(); };
@@ -142,7 +144,7 @@
     d.innerHTML = (o.k ? '<div class="k">' + esc(o.k) + '</div>' : '') + (o.html || '<p style="margin:0">' + esc(o.show || o.say || '') + '</p>');
     say.appendChild(d); say.scrollTop = say.scrollHeight;
     if (o.cls === 'err' && FJ.orb) { FJ.orb.state('error'); setTimeout(function () { if (FJ.orb.get() === 'error') FJ.orb.state('idle'); }, 1400); }
-    d.done = o.say ? speak(o.say) : Promise.resolve();
+    d.done = o.say ? speak(o.say, o.deMj) : Promise.resolve();
     autoHide();
     FJ.last = { say: o.say || o.show || '', html: d.innerHTML };
     return d;
@@ -200,14 +202,17 @@
   var CV = { bc: null, ok: false, waiting: false, seen: 0, pend: {} };
   function cvInit() {
     if (CV.bc || !root.BroadcastChannel || FJ.lively || FJ.mode === 'app') return !!CV.bc;
-    CV.bc = new BroadcastChannel('mag-cerveau');
+    CV.bc = new BroadcastChannel(FJ.mode === 'mj' ? 'mag-visage' : 'mag-cerveau');
     CV.bc.onmessage = function (e) {
       var m = e.data || {};
       if (m.t === 'pong') { CV.ok = true; CV.seen = Date.now(); return; }
+      // visage de Majordome : état de Majordome (sphère) et ce qu'il entend
+      if (m.t === 'etat') { mjEtat(m.s); return; }
+      if (m.t === 'entendu') { mjEntendu(m.text, m.fin); return; }
       var pd = CV.pend[m.id];
       if (m.t === 'ack' && pd) { pd.ack = true; return; }
       if (m.t === 'say' && m.item) {
-        var it = m.item, o = { say: it.say, show: it.show, k: it.k, cls: it.cls };
+        var it = m.item, o = { say: it.say, show: it.show, k: it.k, cls: it.cls, deMj: FJ.mode === 'mj' };
         if (it.html) o.html = it.html;
         if (it.ask) { CV.waiting = true; if (it.choices && it.choices.length) o.html = (it.html || '<p style="margin:0">' + esc(it.show || it.say) + '</p>') + '<p class="hint" style="margin:.4em 0 0">' + it.choices.map(function (c, i) { return (i + 1) + '. ' + esc(c); }).join(' · ') + '</p>'; }
         if (pd) pd.n++;
@@ -256,8 +261,11 @@
     if (CV.waiting && !wait) { CV.waiting = false; return viaCerveau(text, via, null); }
     // la mémoire est celle de Majordome (« souviens-toi que… », « qu'est-ce que tu sais sur moi ») : une seule mémoire pour les deux
     if (!noCv && !wait && S.cerveau !== false && !FJ.lively && FJ.mode !== 'app' && root.BroadcastChannel && MEMO.test(t)) return viaCerveau(text, via, function () { return handle(text, via, true); });
-    var r0 = !wait ? (local(t) || (FJ.plusCmd ? FJ.plusCmd(t, text) : null)) : null;
+    // visage de Majordome : les profils (dont « mode formation ») sont ceux de Majordome
+    var profilMj = FJ.mode === 'mj' && /(?:^|\b)(?:passe|passer|bascule|mets|active|lance)?(?: en| le)? ?(?:mode|profil) (?:maison|formation|chantier|travail)$|^je suis (?:en formation|sur le chantier|au chantier|a la maison)$/.test(t);
+    var r0 = !wait && !profilMj ? (local(t) || (FJ.plusCmd ? FJ.plusCmd(t, text) : null)) : null;
     if (r0) return r0;
+    if (FJ.mode === 'mj' && !noCv) return viaCerveau(text, via, function () { return handle(text, via, true); });
     var r = NLU.parse(text, ctx());
     FJ.lastIntent = r.intent;
     if (wait && /^(slot|confirm_yes|confirm_no)$/.test(r.intent)) {
@@ -778,8 +786,34 @@
   /* ---------------- Câblage ---------------- */
   $('mic').innerHTML = FJI.svg('micro'); $('go').innerHTML = FJI.svg('envoyer');
   $('bar').addEventListener('submit', function (e) { e.preventDefault(); var v = $('q').value; $('q').value = ''; handle(v, 'text'); });
-  $('mic').onclick = function () { if (listening) { if (B) B.stop(); stopUi(); return; } activate(true); };
-  $('orbHit').onclick = function () { activate(FJ.mode === 'suite' && !!B && engineOk(B) === 'vosk'); };
+  $('mic').onclick = function () { if (FJ.mode === 'mj') return mjEcoute(); if (listening) { if (B) B.stop(); stopUi(); return; } activate(true); };
+  $('orbHit').onclick = function () { if (FJ.mode === 'mj') return mjEcoute(); activate(FJ.mode === 'suite' && !!B && engineOk(B) === 'vosk'); };
+
+  /* ---------------- Visage de Majordome (FJ.mode = 'mj') ---------------- */
+  function mjEcoute() { if (!cvInit()) return; CV.bc.postMessage({ t: 'ecoute' }); if (FJ.orb) FJ.orb.pulse(); }
+  var mjVu = '', mjLive = null;
+  function mjEtat(s) {
+    var o = FJ.orb; if (!o) return;
+    if (s === 'listen') { o.state('listen'); setState('J\'écoute'); $('mic').classList.add('on'); }
+    else if (s === 'speak') { o.speak(true, lastSaid || '', 1); setState('Réponse'); $('mic').classList.remove('on'); }
+    else if (s === 'think') { o.state('think'); setState('Analyse'); $('mic').classList.remove('on'); }
+    else { o.speak(false); if (o.get() !== 'idle') o.state('idle'); setState('En ligne'); $('mic').classList.remove('on'); mjLive = null; }
+    mjVu = s;
+  }
+  function mjEntendu(t, fin) {
+    if (!t) return;
+    if (!mjLive || !mjLive.isConnected) { youLine(t); mjLive = say.lastChild; } else mjLive.textContent = t;
+    if (fin) mjLive = null;
+  }
+  if (FJ.mode === 'mj') {
+    // bouton « Majordome » : l'interface classique (réglages, mémoire, messages, routines…)
+    var mb = doc.createElement('button'); mb.type = 'button'; mb.id = 'mjBtn'; mb.className = 'ib';
+    mb.title = 'Écrans de Majordome (réglages, mémoire, messages…)'; mb.setAttribute('aria-label', 'Écrans de Majordome');
+    mb.innerHTML = FJI.svg('menu');
+    mb.onclick = function () { if (cvInit()) CV.bc.postMessage({ t: 'classique' }); };
+    var gear = $('gear'); gear.parentNode.insertBefore(mb, gear.nextSibling);
+    $('mic').title = 'Parler à ' + FJ.aiName();
+  }
   $('q').addEventListener('keydown', function (e) { if (e.key === 'Escape') { $('q').value = ''; $('q').blur(); dismiss(); } });
   /* Lively transmet parfois deux fois la même frappe au fond d'écran (touche + caractère) : on ignore le
      doublon identique arrivé dans les 25 ms, sans gêner la frappe normale (une vraie double lettre est bien plus espacée). */

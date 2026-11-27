@@ -15,6 +15,7 @@
     actu: '<rect x="4" y="4" width="13" height="16" rx="1"/><path d="M17 8h3v10.5a1.5 1.5 0 0 1-3 0z"/><path d="M7 8h7M7 11.5h7M7 15h4"/>',
     sphere: '<circle cx="12" cy="12" r="7.5"/><ellipse cx="12" cy="12" rx="3.2" ry="7.5"/><path d="M4.5 12h15"/><circle cx="12" cy="12" r="10.5" stroke-dasharray="2 2.6"/>',
     // affichage (bouton de la barre) : automatique, téléphone, tablette, PC
+    menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
     ecr_auto: '<rect x="2.5" y="4" width="13" height="9" rx="1"/><path d="M6 17h6M9 13v4"/><rect x="16.5" y="8.5" width="5" height="11" rx="1"/>',
     ecr_tel: '<rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18.5h2"/>',
     ecr_tab: '<rect x="3.5" y="3" width="17" height="18" rx="2"/><path d="M11 18h2"/>',

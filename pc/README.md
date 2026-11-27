@@ -389,6 +389,14 @@ pour l'**appli Android Jarvis** (`applis/apps.json` : `jarvis`, moteur Piper ajo
 titres par `MAGPrint.httpFetch` si la requête web est refusée, écran gardé allumé (`MAGPrint.keepScreen`, réglable),
 liens confiés à Android (tel:, sms:, mailto:, sites), pas de micro ni de cerveau (Majordome n'est pas à côté).
 
+**Visage de Majordome** (`applis/www-majordome/mj-visage.js`, Réglages de Majordome › Apparence : Jarvis par défaut, ou
+Classique) : l'accueil de Majordome affiche la page Jarvis dans un cadre plein écran (`jarvis/index.html?mj=1` dans l'appli
+Android, copie générée par la 2e cible `apk` ; `../fond-jarvis/index.html?mj=1` sur le PC). `FJ.mode = 'mj'` : toute demande
+part vers Majordome par le canal `mag-visage` (sauf l'affichage propre à Jarvis : thème, disposition, tâches du panneau,
+lune, qualité de l'air), Majordome répond avec sa voix et renvoie ses réponses ; la sphère suit son état (`etat`), ce qu'il
+entend s'affiche (`entendu`) ; micro et sphère = micro de Majordome ; bouton ☰ = interface classique, bouton « Jarvis » pour
+revenir. Les profils (« passe en mode formation ») vont toujours à Majordome. Pas dans Socle (Majordome intégré).
+
 - **Paquet Lively** : `build-pc.py` fabrique `pc/fond-jarvis/fond-jarvis-lively.zip` (entrées à date fixe : même contenu, même
   fichier ; `LivelyInfo.json` à la racine, type 1 = page web locale, `Arguments` = `--system-information --system-nowplaying
   --pause-event true`), `fj-version.js` (empreinte et date, dans le paquet et la page) et `fj-version.json` (le paquet installé le

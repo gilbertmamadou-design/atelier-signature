@@ -12,8 +12,9 @@ Pour chaque appli de pc/pc-apps.json :
                                   (« office » : chemins office/ → ../shared/office/, pièces communes précachées)
                                   pc/<id>/manifest.webmanifest, icônes 192/512/maskable, sw.js
   « lively » (Fond Jarvis)       →  pc/<id>/<paquet>.zip à glisser dans Lively Wallpaper, fj-version.js / .json
-  « apk » (Fond Jarvis)          →  applis/<web>/ : les fichiers du paquet Lively (sauf « skip »), pour l'appli Android Jarvis
-                                  (apps.json : « jarvis », moteur Piper ajouté à la fabrication par « with »)
+  « apk » (Fond Jarvis)          →  applis/<web>/ : les fichiers du paquet Lively (sauf « skip ») ; deux cibles :
+                                  www-jarvis/ (appli Android Jarvis ; apps.json « jarvis », Piper ajouté par « with »)
+                                  et www-majordome/jarvis/ (apparence Jarvis de Majordome, mj-visage.js)
 Rien d'autre n'est écrit dans applis/ : les autres APK Android ne changent pas.
 Voir pc/README.md pour les conventions (ponts simulés, CSS, raccourcis…).
 """
@@ -223,9 +224,13 @@ def apps_map(conf, apps_android):
 
 # ---------------------------------------------------------------- appli Android (« apk »)
 def apk_page(app, out_dir):
-    """« apk » : applis/<web>/ reçoit les fichiers du paquet Lively (même page, sans le shim de la Suite), moins « skip »,
+    for A in (app['apk'] if isinstance(app['apk'], list) else [app['apk']]):
+        apk_page1(app, A, out_dir)
+
+
+def apk_page1(app, A, out_dir):
+    """« apk » (une cible ou une liste) : applis/<web>/ reçoit les fichiers du paquet Lively (même page, sans le shim de la Suite), moins « skip »,
     plus fj-version.js et icon-512.png. La page se reconnaît dans l'appli (FJ.mode = 'app', window.Capacitor)."""
-    A = app['apk']
     dest_dir = os.path.join(APPLIS, A['web'])
     skip = A.get('skip', [])
     keepf = set()

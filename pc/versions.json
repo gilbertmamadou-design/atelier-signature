@@ -1,7 +1,7 @@
 {
  "_lanceur": {
-  "date": "2026-11-26",
-  "v": "260d5746d64b"
+  "date": "2026-11-27",
+  "v": "7c1bba83b753"
  },
  "actualites": {
   "date": "2026-11-25",
@@ -64,12 +64,12 @@
   "v": "0982d88af67f"
  },
  "fond-jarvis": {
-  "date": "2026-11-26",
-  "v": "ee6f52e83f47"
+  "date": "2026-11-27",
+  "v": "ed4326bb0cda"
  },
  "fond-jarvis:lively": {
-  "date": "2026-11-26",
-  "v": "076bba8efc57"
+  "date": "2026-11-27",
+  "v": "5f3af91a48ee"
  },
  "galerie": {
   "date": "2026-11-25",
@@ -89,7 +89,7 @@
  },
  "majordome": {
   "date": "2026-11-27",
-  "v": "59b270f89eaf"
+  "v": "6647cd3f5aec"
  },
  "meteo": {
   "date": "2026-11-25",

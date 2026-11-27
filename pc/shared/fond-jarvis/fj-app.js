@@ -4,6 +4,8 @@
      'lively'  paquet Lively (servi par Lively sur https://<empreinte>.localhost/)
      'suite'   Suite MAG sur PC (GitHub Pages, window.MAGPC présent) : même
                stockage que Majordome PC, Agenda… dans le même navigateur
+     'app'     appli Android Jarvis (APK)
+     'mj'      visage de Majordome (cadre de mj-visage.js, adresse ?mj=1) : Majordome est le cerveau, la voix et le micro
      'web'     autre (fichier ouvert directement…)
    API de Lively (wiki officiel « Web Guide IV/V », LivelyInfo.json › Arguments) :
      livelyPropertyListener(nom, valeur)   réglages de LivelyProperties.json
@@ -30,11 +32,16 @@
   /* ---------------- Où tourne la page ---------------- */
   var host = location.hostname || '';
   // « app » : appli Android Jarvis (APK, Capacitor) ; pas de Majordome à côté, voix Piper rangée dans l'appli
-  FJ.mode = /\.localhost$/i.test(host) || location.protocol === 'file:' ? 'lively' : root.MAGPC ? 'suite' : root.Capacitor ? 'app' : 'web';
+  var dansMj = /[?&]mj=1(?:&|$)/.test(location.search) && root.parent !== root;
+  FJ.mode = dansMj ? 'mj' : /\.localhost$/i.test(host) || location.protocol === 'file:' ? 'lively' : root.MAGPC ? 'suite' : root.Capacitor ? 'app' : 'web';
+  // visage de Majordome : comme la Suite sur le PC (MAGPC), comme l'appli sur le téléphone
+  FJ.suite = FJ.mode === 'suite' || (FJ.mode === 'mj' && !!root.MAGPC);
+  FJ.android = FJ.mode === 'app' || (FJ.mode === 'mj' && !root.MAGPC);
   FJ.lively = FJ.mode === 'lively';     // devient vrai aussi dès qu'une fonction de Lively est appelée
   FJ.inSuite = /\/atelier-signature\/pc\/fond-jarvis\/?/.test(location.pathname) || (location.protocol === 'mag:' && /^\/fond-jarvis\//.test(location.pathname));   // site de la Suite, ou programme Suite MAG.exe
   FJ.suiteUrl = function (id) { return (FJ.inSuite ? '../' : SITE) + id + '/'; };
   doc.documentElement.dataset.mode = FJ.mode;
+  doc.documentElement.dataset.android = FJ.android ? '1' : '';
 
   /* ---------------- Réglages ---------------- */
   var KEY = { set: 'fond-jarvis:reglages', keys: 'fond-jarvis:raccourcis', wx: 'fond-jarvis:meteo', actu: 'fond-jarvis:actu', ics: 'fond-jarvis:ics', lp: 'fond-jarvis:lively', maj: 'fond-jarvis:maj' };
@@ -107,7 +114,7 @@
     var url = FJ.resolve(u);
     if (!url) return false;
     // appli Android : un lien suivi dans la page est confié à Android (navigateur, téléphone, messages, courrier…)
-    if (FJ.mode === 'app') { var la = doc.createElement('a'); la.href = url; la.style.display = 'none'; doc.body.appendChild(la); la.click(); la.remove(); return true; }
+    if (FJ.android) { var la = doc.createElement('a'); la.href = url; la.style.display = 'none'; doc.body.appendChild(la); la.click(); la.remove(); return true; }
     // appli de la Suite : on ouvre l'appli installée sur le PC (son lien web+mag…), pas une page du navigateur
     // dans le programme Suite MAG.exe : le programme ouvre lui-même l'appli dans sa fenêtre
     var sid = !root.MAG_EXE && FJ.suiteIdOf(url);
@@ -154,7 +161,7 @@
   function kid() { return 'k' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
   FJ.defaultKeys = function () {
     // appli Android : raccourcis du téléphone (les liens tel:, sms:, mailto: et les sites s'ouvrent dans l'appli voulue)
-    if (FJ.mode === 'app') return [['Téléphone', 'tel:', 'contacts'], ['Messages', 'sms:', 'mail'], ['Courrier', 'mailto:', 'mail'], ['Actualités', 'https://www.francetvinfo.fr/', 'actu'], ['Météo', 'https://meteofrance.com/', 'meteo'], ['Cartes', 'https://www.google.com/maps', 'web']].map(function (w) { return { id: kid(), name: w[0], url: w[1], icon: w[2] }; });
+    if (FJ.android) return [['Téléphone', 'tel:', 'contacts'], ['Messages', 'sms:', 'mail'], ['Courrier', 'mailto:', 'mail'], ['Actualités', 'https://www.francetvinfo.fr/', 'actu'], ['Météo', 'https://meteofrance.com/', 'meteo'], ['Cartes', 'https://www.google.com/maps', 'web']].map(function (w) { return { id: kid(), name: w[0], url: w[1], icon: w[2] }; });
     var l = ['texte', 'tableur', 'presentation', 'lecteur', 'fichiers', 'ecran', 'actualites', 'majordome'].map(function (id) {
       var s = SUITE.filter(function (x) { return x[0] === id; })[0]; return { id: kid(), name: s[1], url: 'suite:' + id, icon: s[2] };
     });
@@ -338,7 +345,7 @@
   function http(url, ms) {
     // appli Android : en cas de refus (CORS, ex. titres franceinfo), la requête est faite par le téléphone (pont MAGPrint)
     var MP = root.MAGPrint;
-    if (FJ.mode === 'app' && MP && MP.httpFetch) return httpWeb(url, ms).catch(function () { return httpNative(MP, url); });
+    if (FJ.android && MP && MP.httpFetch) return httpWeb(url, ms).catch(function () { return httpNative(MP, url); });
     return httpWeb(url, ms);
   }
   function httpNative(MP, url) {
@@ -540,7 +547,7 @@
   function agendaInit() {
     // Suite MAG (même navigateur) : agenda de l'appli Agenda, s'il existe
     var has = false; try { has = !!localStorage.getItem('agenda-pc.v1'); } catch (e) { }
-    if (FJ.mode === 'suite' && has && root.MAGPC && root.MAGPC.loadScript) {
+    if (FJ.suite && has && root.MAGPC && root.MAGPC.loadScript) {
       root.MAGPC.loadScript('../shared/apps/agenda.js').then(function () { AG.suite = root.MAGAgenda || null; AG.src = 'Agenda de la Suite'; agendaRender(); }).catch(function () { });
     }
     agendaRender();
@@ -934,7 +941,7 @@
     } else if (tab === 'raccourcis') keysEditor(B);
     else if (tab === 'agenda') {
       h += '<p class="hint">Source actuelle : <b>' + esc(AG.suite ? 'Agenda de la Suite MAG (même navigateur)' : AG.events && AG.events.length ? (AG.srcName || 'fichier .ics') + ' — ' + AG.events.length + ' événement(s)' : 'aucune') + '</b></p>';
-      h += '<p class="hint">' + (FJ.mode === 'suite' ? 'Dans la Suite MAG, le fond lit l\'agenda de l\'appli <b>Agenda</b> (même navigateur, même stockage). Vous pouvez aussi importer un fichier .ics.' : FJ.lively ? 'Dans Lively, le fond a son propre stockage : il ne voit pas l\'agenda de la Suite ouvert dans Edge. Importez un fichier <b>.ics</b> (export d\'Agenda, de Google Agenda, d\'Outlook…), ici ou dans Lively › Personnaliser › « Agenda (.ics) ».' : 'Importez un fichier .ics.') + '</p>';
+      h += '<p class="hint">' + (FJ.suite ? 'Dans la Suite MAG, le fond lit l\'agenda de l\'appli <b>Agenda</b> (même navigateur, même stockage). Vous pouvez aussi importer un fichier .ics.' : FJ.lively ? 'Dans Lively, le fond a son propre stockage : il ne voit pas l\'agenda de la Suite ouvert dans Edge. Importez un fichier <b>.ics</b> (export d\'Agenda, de Google Agenda, d\'Outlook…), ici ou dans Lively › Personnaliser › « Agenda (.ics) ».' : 'Importez un fichier .ics.') + '</p>';
       h += '<div style="display:flex;gap:.5em;flex-wrap:wrap"><label class="btn pri" style="cursor:pointer">Importer un .ics<input type="file" id="sIcs" accept=".ics,text/calendar" hidden></label><button type="button" class="btn" id="sIcsDel">Oublier le fichier importé</button></div><p class="hint" id="sIcsMsg"></p>';
       B.innerHTML = h;
       $('sIcs').onchange = function (e) { var f = e.target.files[0]; if (!f) return; f.text().then(function (t) { var n = FJ.importIcs(t, f.name); $('sIcsMsg').textContent = n ? n + ' événement(s) importé(s).' : 'Aucun événement trouvé dans ce fichier.'; }); };
@@ -951,7 +958,7 @@
       h += fld('Débit', rng('sRate', 0.6, 1.6, 0.1, S.rate, ''));
       h += '<div style="display:flex;gap:.5em"><button type="button" class="btn" id="sTest">Essayer la voix</button></div>';
       h += '<h3>Parler à l\'assistant</h3>';
-      if (FJ.mode === 'suite') {
+      if (FJ.suite) {
         h += '<p class="hint">Dans la Suite MAG, le bouton micro utilise la reconnaissance <b>hors ligne</b> de Majordome (Vosk). Le modèle vocal (41 Mo) s\'installe une fois dans <b>Majordome › Réglages</b> ; il sert ensuite aussi ici.</p>';
         h += chk('sWake', 'Mot de réveil permanent (« ' + esc(FJ.aiName()) + ' »)', S.wake, 'Désactivé par défaut. Le micro reste ouvert tant que la page est affichée : voyant micro de Windows allumé, batterie consommée en continu.');
         h += '<p class="hint warn">Sur un fond d\'écran toujours affiché, préférez Ctrl+Espace ou le bouton micro.</p>';

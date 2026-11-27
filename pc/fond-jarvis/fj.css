@@ -396,3 +396,5 @@ html[data-ecran="tel"] .kr { grid-template-columns: auto minmax(0, 1fr) auto; }
 html[data-ecran="tel"] .kr > :nth-child(3) { grid-column: 1 / -1; }
 /* appli Android : pas de micro dans la page (la voix, c'est Majordome) ni de plein écran (l'appli l'est déjà) */
 html[data-mode="app"] #mic, html[data-mode="app"] #fsBtn { display: none; }
+html[data-android="1"] #fsBtn { display: none; }   /* téléphone (appli ou visage de Majordome) : déjà en plein écran */
+html[data-ecran="tel"] #go { display: none; }       /* téléphone : la touche Entrée du clavier envoie */
