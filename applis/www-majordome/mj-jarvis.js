@@ -9,8 +9,8 @@
      (« note que… » reste une note du Carnet.)
    Mode nuit : après « bonne nuit » (ou « mode nuit »), voix plus douce, écran noir avec l'heure, pas d'annonce
      spontanée (présence, pause) ; fin à « bonjour », « fin du mode nuit », ou à l'heure réglée (7 h par défaut).
-   Profils : « passe en mode chantier / travail / maison », « quel profil ? » : volume, débit de la voix, bips,
-     présence et gestes de la caméra, annonce des messages (chantier : lus à voix haute, maison : rien) ; chaque profil garde ses propres réglages.
+   Profils : « passe en mode chantier / formation / maison », « quel profil ? » : volume, débit de la voix, bips,
+     présence et gestes de la caméra, annonce des messages (chantier : lus à voix haute, maison et formation : l'arrivée et le nombre) ; chaque profil garde ses propres réglages.
    Lecture de l'écran (PC) : « lis l'écran », « qu'est-ce qu'il y a à l'écran ? » : vous choisissez l'écran ou la
      fenêtre (le navigateur le demande à chaque fois), une seule image est lue par le moteur hors ligne de la Suite.
    Interruption : pendant qu'il parle, dire son nom l'arrête et il vous écoute (écoute continue activée).
@@ -129,11 +129,18 @@
 
   /* =========================== 3. Profils =========================== */
   var PROFILS = {
-    maison: { name: 'Maison', d: { volume: 0.9, rate: 1, beeps: true, presence: false, gestes: false, msg: 'off' } },
-    travail: { name: 'Travail', d: { volume: 0.6, rate: 1.05, beeps: false, presence: false, gestes: false, msg: 'qui' } },
+    maison: { name: 'Maison', d: { volume: 0.9, rate: 1, beeps: true, presence: false, gestes: false, msg: 'nombre' } },
+    // « travail » garde son identifiant (réglages enregistrés, profil automatique) mais s'appelle Formation
+    travail: { name: 'Formation', d: { volume: 0.6, rate: 1.05, beeps: false, presence: false, gestes: false, msg: 'nombre' } },
     chantier: { name: 'Chantier', d: { volume: 1, rate: 1, beeps: true, presence: false, gestes: true, msg: 'texte' } }
   };
   S.profils = Object.assign({ cur: '', saved: {} }, S.profils || {});
+  // nouvelle annonce « nombre » : Maison et Formation passent à « l'arrivée et le nombre » (une seule fois)
+  if (S.profils.msgV !== 2) {
+    ['maison', 'travail'].forEach(function (k) { if (S.profils.saved[k]) delete S.profils.saved[k].msg; });
+    if (S.profils.cur === 'maison' || S.profils.cur === 'travail') S.msgAnnonce = 'nombre';
+    S.profils.msgV = 2;
+  }
   // msg : annonce des nouveaux messages (mj-messages.js) : off | qui | texte ; chantier : lus à voix haute, maison : silence
   function snap() { var o = S.oeil || {}; return { volume: S.volume, rate: S.rate, beeps: S.beeps, presence: !!o.presence, gestes: !!o.gestes, msg: S.msgAnnonce || 'off' }; }
   function applyP(v) {
@@ -143,15 +150,15 @@
     X.saveS(); if (MJ.oeil && MJ.oeil.refresh) MJ.oeil.refresh(true);
   }
   function profil(id, auto) {
-    var P = PROFILS[id]; if (!P) return X.answer('Je ne connais que les profils Maison, Travail et Chantier.').done;
+    var P = PROFILS[id]; if (!P) return X.answer('Je ne connais que les profils Maison, Formation et Chantier.').done;
     if (!auto) S.pauto.manualAt = Date.now();   // choisi à la main : le profil automatique attend 3 h
     if (S.nuit.on) nuit(false, true);
     if (S.profils.cur) S.profils.saved[S.profils.cur] = snap();
     var v = Object.assign({}, P.d, S.profils.saved[id] || {});   // un profil enregistré avant l'annonce des messages la reçoit de P.d
     S.profils.cur = id; applyP(v);
     if (auto) { X.saveS(); return Promise.resolve(); }
-    var det = { maison: 'Voix normale.', travail: 'Voix plus douce et un peu plus rapide, sans bips.', chantier: 'Voix forte, et commande par gestes devant la caméra pour les mains occupées.' }[id];
-    var ann = { off: 'Je ne lis plus les messages qui arrivent.', qui: 'Je vous dis qui vous écrit.', texte: 'Je vous lis les messages qui arrivent.' }[S.msgAnnonce];
+    var det = { maison: 'Voix normale.', travail: 'Voix plus douce, sans bips, pour la salle de formation.', chantier: 'Voix forte, et commande par gestes devant la caméra pour les mains occupées.' }[id];
+    var ann = { off: 'Je ne lis plus les messages qui arrivent.', nombre: 'Je vous dis juste quand un message arrive, et combien vous en avez.', qui: 'Je vous dis qui vous écrit.', texte: 'Je vous lis les messages qui arrivent.' }[S.msgAnnonce];
     if (ann) det += ' ' + ann;
     return X.answer({ say: 'Profil ' + P.name + '. ' + det, k: 'Profil' }).done;
   }
@@ -540,7 +547,7 @@
   };
 
   /* =========================== Compréhension des phrases =========================== */
-  var PRO = { maison: 'maison', domicile: 'maison', perso: 'maison', personnel: 'maison', travail: 'travail', bureau: 'travail', boulot: 'travail', chantier: 'chantier', terrain: 'chantier', atelier: 'chantier' };
+  var PRO = { maison: 'maison', domicile: 'maison', perso: 'maison', personnel: 'maison', travail: 'travail', bureau: 'travail', boulot: 'travail', formation: 'travail', stage: 'travail', cours: 'travail', salle: 'travail', chantier: 'chantier', terrain: 'chantier', atelier: 'chantier' };
   function parse(t, r) {
     var m;
     var mp = mParse(t);
@@ -551,7 +558,7 @@
     }
     if (/^(?:mode nuit|active (?:le )?mode nuit|passe en mode nuit|mets (?:le )?mode nuit|mode silencieux de nuit)$/.test(t)) return { intent: 'nuit', p: { on: true } };
     if (/^(?:fin du mode nuit|arrete (?:le )?mode nuit|desactive (?:le )?mode nuit|quitte (?:le )?mode nuit|sors du mode nuit|mode jour)$/.test(t)) return { intent: 'nuit', p: { on: false } };
-    if ((m = /^(?:passe|passer|bascule|mets toi|mets|active|activer|lance)?(?: en| le)? ?(?:mode|profil) (maison|domicile|perso|personnel|travail|bureau|boulot|chantier|terrain|atelier)$/.exec(t)) || (m = /^(?:je suis|je suis au|je suis en|je suis sur|je suis a|je suis sur le|je pars au|je pars sur le) (?:la |le )?(travail|bureau|chantier|boulot|maison)$/.exec(t)))
+    if ((m = /^(?:passe|passer|bascule|mets toi|mets|active|activer|lance)?(?: en| le)? ?(?:mode|profil) (maison|domicile|perso|personnel|formation|stage|cours|travail|bureau|boulot|chantier|terrain|atelier)$/.exec(t)) || (m = /^(?:je suis|je suis au|je suis en|je suis sur|je suis a|je suis sur le|je pars au|je pars sur le) (?:la |le |en )?(formation|stage|travail|bureau|chantier|boulot|maison)$/.exec(t)))
       if (PRO[m[1]]) return { intent: 'profil', p: { id: PRO[m[1]] } };
     if ((m = /^(?:(?:mets|passe|change|changer|habille)(?: toi)?(?: de couleur)?(?: en| au)?|couleur|deviens|sois|prends la couleur|en couleur|change ta couleur(?: en| pour)?|ta couleur(?: en)?) ?(cyan|turquoise|bleu|bleue|violet|violette|mauve|vert|verte|ambre|orange|jaune|dore|rouge|blanc|blanche)$/.exec(t)))
       return { intent: 'couleur', p: { c: { turquoise: 'cyan', bleue: 'bleu', violette: 'violet', mauve: 'violet', verte: 'vert', orange: 'ambre', jaune: 'ambre', dore: 'ambre', blanche: 'blanc' }[m[1]] || m[1] } };
@@ -629,7 +636,7 @@
       sw('jvNuitEcran', S.nuit.ecran, 'Écran noir la nuit', 'Touchez l\'écran pour revoir Majordome 30 s') +
       '<div class="set"><div class="t">Fin du mode nuit<small>Ou en disant « bonjour »</small></div><select id="jvNuitFin" class="btn sm">' + [5, 6, 7, 8, 9].map(function (h) { return '<option value="' + h + '"' + (+S.nuit.fin === h ? ' selected' : '') + '>' + h + ' h</option>'; }).join('') + '</select></div>' +
       '<div class="set"><div class="t">Mode nuit maintenant<small>' + (S.nuit.on ? 'Actif' : 'Inactif') + '</small></div><button class="btn sm" id="jvNuitBtn">' + (S.nuit.on ? 'Arrêter' : 'Activer') + '</button></div>' +
-      '<div class="sect">Profils</div><p class="note">« Passe en mode chantier » : chaque profil garde son volume, sa vitesse de voix, ses bips, ses réglages de caméra et l\'annonce des messages (Chantier : lus à voix haute ; Maison : aucune annonce ; Travail : qui écrit).</p>' +
+      '<div class="sect">Profils</div><p class="note">« Passe en mode chantier » : chaque profil garde son volume, sa vitesse de voix, ses bips, ses réglages de caméra et l\'annonce des messages (Chantier : lus à voix haute ; Maison et Formation : juste l\'arrivée et le nombre).</p>' +
       '<div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0">' + Object.keys(PROFILS).map(function (k) { return '<button class="btn sm' + (S.profils.cur === k ? ' pri' : '') + '" data-jvp="' + k + '">' + PROFILS[k].name + '</button>'; }).join('') + '</div>' +
       sw('jvPauto', S.pauto.on, 'Profil automatique', 'Selon le jour, l\'heure ou le lieu ci-dessous ; un choix à la main est gardé 3 h') +
       ['travail', 'chantier'].map(function (k) { var r = S.pauto.regles[k]; return '<div class="set"><div class="t">' + PROFILS[k].name + '<small>' + (r.lieu ? 'Lieu enregistré (400 m)' : 'Pas de lieu') + '</small></div>' +

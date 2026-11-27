@@ -207,7 +207,7 @@
 
   /* ---------------- Boucle : présence, gestes, surveillance ---------------- */
   var loop = 0, tick = 0;
-  var st = { seen: 0, since: 0, gone: 0, greeted: true, paused: false, dark: 0, waves: [], lastGesture: 0, veille: false };
+  var st = { seen: 0, since: 0, gone: 0, greeted: true, paused: false, dark: 0, lit: 0, armed: false, waves: [], lastGesture: 0, veille: false };
   var garde = { on: false, armedAt: 0, last: 0, hits: 0, events: 0, startAt: 0 };
   // batterie basse (mj-jarvis.js, MJ.batterieBasse) : présence et gestes en pause ; la surveillance continue
   function wantLoop() { return garde.on || (!document.hidden && !MJ.batterieBasse && (S.oeil.presence || S.oeil.gestes)); }
@@ -241,9 +241,15 @@
     if (document.hidden) return;
     // --- gestes ---
     if (S.oeil.gestes && t - st.lastGesture > 4000) {
-      // main posée sur la caméra : image sombre et uniforme pendant plus d'une seconde
-      if (f.mean < 28 && f.sd < 14) { if (!st.dark) st.dark = t; else if (t - st.dark > 1100) { st.dark = 0; st.lastGesture = t; gesteSilence(); } }
-      else st.dark = 0;
+      // main posée sur la caméra : image sombre et uniforme pendant plus d'une seconde, juste après une image éclairée
+      // (une main qui arrive). Téléphone posé face contre la table, poche, pièce dans le noir : l'image est sombre
+      // depuis longtemps, rien ne se passe ; après un geste, il faut revoir de la lumière pour recommencer.
+      var sombre = f.mean < 28 && f.sd < 14;
+      if (!sombre && f.mean > 40) { st.lit = t; if (!st.dark) st.armed = true; }
+      if (sombre) {
+        if (!st.dark) { st.dark = t; st.fromLit = st.armed && t - st.lit < 2500; }
+        else if (st.fromLit && t - st.dark > 1100) { st.dark = 0; st.fromLit = false; st.armed = false; st.lastGesture = t; gesteSilence(); }
+      } else st.dark = 0;
       // main agitée : beaucoup de mouvement qui va et vient de gauche à droite
       if (f.motion > 0.10) st.waves.push({ t: t, x: f.cx });
       st.waves = st.waves.filter(function (w) { return t - w.t < 1600; });
@@ -282,8 +288,9 @@
     try { X.exec({ intent: 'wake', p: {} }); } catch (e) { }
   }
   function gesteSilence() {
+    var b = busy();
     try { X.exec({ intent: 'stop', p: {} }); } catch (e) { }
-    X.toast('Main sur la caméra : silence');
+    if (b) X.toast('Main sur la caméra : silence');   // rien à faire taire : pas de message
   }
   function bonjour(ms) {
     if (MJ.onPresence) try { if (MJ.onPresence(ms)) return; } catch (e) { }   // résumé du matin en attente (mj-jarvis.js)

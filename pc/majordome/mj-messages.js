@@ -14,7 +14,7 @@
   var KREAD = 'majordome:msgs-lus';
   var READ = {}; (X.lsGet(KREAD, []) || []).forEach(function (id) { READ[id] = 1; });
   var CUR = { queue: [], last: null };
-  if (S.msgAnnonce == null) S.msgAnnonce = 'off';          // off | qui (expéditeur et appli) | texte (avec le message)
+  if (S.msgAnnonce == null) S.msgAnnonce = 'off';          // off | nombre (arrivée et nombre de non lus) | qui (expéditeur et appli) | texte (avec le message)
 
   function saveRead() { var l = Object.keys(READ); if (l.length > 400) { l = l.slice(-300); READ = {}; l.forEach(function (id) { READ[id] = 1; }); } X.lsSet(KREAD, l); }
   function norm(s) { return X.deacc(String(s || '')).toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim(); }
@@ -139,7 +139,13 @@
       try {
         var l = (J(data, []) || []).filter(function (m) { return !READ[m.id] && Date.now() - m.t < 10 * 60000; });
         if (l.length && S.msgAnnonce !== 'off' && !X.speaking()) {
-          if (S.msgAnnonce === 'texte' && l.length === 1) { CUR.last = l[0]; READ[l[0].id] = 1; saveRead(); answer({ say: 'Nouveau ' + kind(l[0]) + '. ' + sayOne(l[0]) + '.', html: cardHtml(l) }); }
+          if (S.msgAnnonce === 'nombre') {
+            // juste l'arrivée et le nombre de non lus (messages et mails), sans dire qui ni quoi
+            var nl = all().filter(function (m) { return !READ[m.id]; }), nm = nl.filter(function (m) { return m.mail; }).length, ns = nl.length - nm;
+            var tot = [ns ? nb(ns, 'message') + ' non lu' + (ns > 1 ? 's' : '') : '', nm ? nb(nm, 'mail') + ' non lu' + (nm > 1 ? 's' : '') : ''].filter(Boolean).join(' et ');
+            answer({ say: (l.length === 1 ? 'Nouveau ' + kind(l[0]) + '.' : l.length + ' nouveaux messages.') + (tot ? ' Vous avez ' + tot + '.' : ''), html: '<div class="k">Nouveau</div><p>' + esc(tot ? 'Vous avez ' + tot + '.' : 'Nouveau message.') + '</p><div class="row"><button class="btn sm" data-mjn-read>Lire</button></div>' });
+          }
+          else if (S.msgAnnonce === 'texte' && l.length === 1) { CUR.last = l[0]; READ[l[0].id] = 1; saveRead(); answer({ say: 'Nouveau ' + kind(l[0]) + '. ' + sayOne(l[0]) + '.', html: cardHtml(l) }); }
           else answer({ say: (l.length === 1 ? 'Nouveau ' + kind(l[0]) + ' de ' + (l[0].conv || l[0].from) + ' ' + (l[0].mail ? '' : where(l[0])) : l.length + ' nouveaux messages : ' + summary(l)) + '.', html: '<div class="k">Nouveau</div><p>' + esc(summary(l)) + '</p><div class="row"><button class="btn sm" data-mjn-read>Lire</button></div>' });
         }
       } catch (e) { }
@@ -157,8 +163,8 @@
     return h + '<div class="sect" id="f-messages">Messages reçus</div>' +
       '<div class="set"><div class="t">Lire les messages et les mails<small>' + (ok ? 'Autorisé : WhatsApp, SMS, Messenger, Outlook, Gmail… (ce qu\'affichent les notifications)' : 'Pas encore autorisé') + '</small></div><button class="btn sm' + (ok ? '' : ' pri') + '" id="mjnAcc">' + (ok ? 'Réglage' : 'Autoriser') + '</button></div>' +
       (ok ? '' : '<p class="note">Android 13 et plus, si l\'option est grisée : Infos de l\'appli › ⋮ › « Autoriser les paramètres restreints ». <button class="btn sm" id="mjnInfo">Infos de l\'appli</button></p>') +
-      '<div class="set"><div class="t">Annoncer les nouveaux messages<small>Quand Majordome est ouvert ; chaque profil garde son choix (par défaut Chantier : le message, Maison : non)</small></div><select class="in" id="mjnAnn" style="width:auto">' +
-      [['off', 'Non'], ['qui', 'Qui écrit'], ['texte', 'Qui écrit et le message']].map(function (o) { return '<option value="' + o[0] + '"' + (S.msgAnnonce === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
+      '<div class="set"><div class="t">Annoncer les nouveaux messages<small>Quand Majordome est ouvert ; chaque profil garde son choix (par défaut Maison et Formation : l\'arrivée et le nombre, Chantier : le message)</small></div><select class="in" id="mjnAnn" style="width:auto">' +
+      [['off', 'Non'], ['nombre', 'Juste l\'arrivée et le nombre'], ['qui', 'Qui écrit'], ['texte', 'Qui écrit et le message']].map(function (o) { return '<option value="' + o[0] + '"' + (S.msgAnnonce === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
       '<div class="set"><div class="t">Oublier les messages reçus<small>Ils restent sur le téléphone seulement, 4 jours au plus</small></div><button class="btn sm" id="mjnClr">Oublier</button></div>' +
       '<p class="note">À dire : « J\'ai des messages ? », « Lis-moi mes messages WhatsApp », « Qu\'est-ce que Marie a dit ? », « La suite », « Réponds à Marie : j\'arrive ». Les mails : expéditeur, objet et début du texte.</p>';
   };
