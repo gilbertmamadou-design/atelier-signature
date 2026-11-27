@@ -140,3 +140,15 @@
 #fmMsg.xl { font-size: clamp(.9em, 1.9vmin, 1.6em); letter-spacing: .05em; }
 .chk small { display: block; color: rgb(var(--ink) / .55); font-size: .82em; line-height: 1.35; margin-top: .1em; }
 .fm-on #bien { top: calc(var(--gap) * 2.5 + 5.5em); }
+
+/* panneau « Commandes » et onglet « Écran » */
+.cmdg { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5em, 1fr)); gap: .45em; }
+.cmdb { font: inherit; font-size: .86em; color: rgb(var(--c)); background: rgb(var(--c) / .07); border: 1px solid rgb(var(--c) / .35);
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); padding: .65em .6em; min-height: 44px; cursor: pointer; text-align: center; line-height: 1.2; }
+.cmdb:hover, .cmdb:focus-visible { background: rgb(var(--c) / .18); outline: none; }
+.cmdb:active { transform: scale(.97); }
+.ecr-ch { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5em; }
+.ecr-ch .btn { display: flex; flex-direction: column; align-items: center; gap: .35em; padding: .7em .3em; }
+.ecr-ch .btn svg { width: 26px; height: 26px; }
+.ecr-pan { display: grid; grid-template-columns: repeat(auto-fill, minmax(15em, 1fr)); gap: .2em .8em; }
+html[data-ecran="tel"] #pCmd { order: 2; }

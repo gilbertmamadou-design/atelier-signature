@@ -27,7 +27,9 @@
 
   /* ---------------- Réglages ---------------- */
   var DEFP = {
-    panels: { mois: true, taches: true, monde: true, air: true },
+    panels: { mois: true, taches: true, monde: true, air: true, cmd: true },
+    // panneau « Commandes » : boutons qui envoient la phrase à Jarvis (et à Majordome, son cerveau)
+    cmds: ['Météo aujourd\'hui', 'Mes rendez-vous', 'J\'ai des messages ?', 'Minuteur 10 minutes', 'Bonsoir', 'Je rentre'],
     villes: ['America/Montreal', 'Africa/Dakar', 'Asia/Tokyo'],
     taches: [],
     form: { on: false, mode: '', fin: 0, debut: 0, msg: 'Bienvenue à la formation', qr: '', qrLab: 'Le support de la formation', masquer: true, voix: true },
@@ -35,14 +37,16 @@
     amb: { musique: true, auto: false, base: '' }
   };
   function merge(d, s) { var o = {}; Object.keys(d).forEach(function (k) { var dv = d[k], sv = s && s[k]; o[k] = dv && typeof dv === 'object' && !Array.isArray(dv) ? merge(dv, sv) : sv === undefined ? (Array.isArray(dv) ? dv.slice() : dv) : sv; }); return o; }
-  function P() { if (!S.plus || S.plus.__v !== 1) { S.plus = merge(DEFP, S.plus || {}); S.plus.__v = 1; } return S.plus; }
+  function P() { if (!S.plus || S.plus.__v !== 2) { S.plus = merge(DEFP, S.plus || {}); S.plus.__v = 2; } return S.plus; }   // __v 2 : panneau Commandes
   P();
   function save() { FJ.save(); }
 
   /* ---------------- Panneaux (créés dans les colonnes) ---------------- */
   function pan(id, tag, label) { return el('article', { 'class': 'pan plus', id: id, 'aria-label': label }, '<header><span class="tag">' + tag + '</span><span class="meta" id="' + id + 'M"></span></header><div class="pb" id="' + id + 'B"></div>'); }
   var pMois = pan('pMois', 'Calendrier', 'Calendrier du mois'), pTaches = pan('pTaches', 'Tâches', 'Tâches du jour'), pMonde = pan('pMonde', 'Ciel et monde', 'Lune, soleil et heures du monde');
-  pMois.dataset.prio = 2; pTaches.dataset.prio = 3; pMonde.dataset.prio = 1;
+  var pCmd = pan('pCmd', 'Commandes', 'Commandes rapides');
+  pMois.dataset.prio = 2; pTaches.dataset.prio = 3; pMonde.dataset.prio = 1; pCmd.dataset.prio = 4;
+  $('colL').insertBefore(pCmd, $('pWx'));
   $('colL').appendChild(pMois);
   $('colR').insertBefore(pTaches, $('pNews'));
   $('colR').appendChild(pMonde);
@@ -334,10 +338,24 @@
   }
   FJ.phaseNow = phaseNow;
 
+  /* --- commandes rapides --- */
+  var cmdSig = '';
+  function renderCmd() {
+    var l = (P().cmds || []).filter(Boolean), sig = l.join('\n');
+    if (sig === cmdSig) return; cmdSig = sig;
+    $('pCmdM').textContent = FJ.mode === 'mj' ? 'Majordome' : '';
+    $('pCmdB').innerHTML = l.length ? '<div class="cmdg">' + l.map(function (c, i) { return '<button type="button" class="cmdb" data-c="' + i + '">' + esc(c) + '</button>'; }).join('') + '</div>' : '<p class="hint" style="margin:0">Aucune commande : ⚙ › Écran.</p>';
+  }
+  $('pCmdB').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-c]'); if (!b) return;
+    var c = (P().cmds || [])[+b.dataset.c]; if (c && FJ.jarvis) FJ.jarvis.handle(c, 'text');
+  });
+
   /* ---------------- Visibilité, place dans les colonnes ---------------- */
   FJ.plusVisible = function () {
     var p = P().panels;
-    pMois.hidden = !p.mois; pTaches.hidden = !p.taches; pMonde.hidden = !p.monde;
+    pMois.hidden = !p.mois; pTaches.hidden = !p.taches; pMonde.hidden = !p.monde; pCmd.hidden = !p.cmd;
+    renderCmd();
     renderAir();
   };
   // une colonne trop pleine : les panneaux « en plus » les moins utiles se cachent d'eux-mêmes
@@ -402,8 +420,32 @@
   }
 
   /* ---------------- Réglages ⚙ : onglets « Formation » et « Plus » ---------------- */
-  FJ.plusTabs = [['formation', 'Formation'], ['plus', 'Plus']];
+  FJ.plusTabs = [['ecran', 'Écran'], ['formation', 'Formation'], ['plus', 'Plus']];
   FJ.plusTab = {
+    // Écran : le même écran sur le téléphone, la tablette et le PC ; on choisit l'appareil et ce qu'on y voit
+    ecran: function (B, U) {
+      var p = P(), h = '';
+      h += '<h3>Appareil</h3><div class="ecr-ch" role="group" aria-label="Appareil">' + (FJ.ECRANS || []).map(function (e) {
+        return '<button type="button" class="btn' + ((S.ecran || 'auto') === e[0] ? ' pri' : '') + '" data-ecr="' + e[0] + '">' + FJI.svg('ecr_' + e[0]) + '<span>' + esc(e[1]) + '</span></button>';
+      }).join('') + '</div><p class="hint">Même écran partout : seule la place des panneaux change (téléphone : en dessous de la sphère ; tablette : 2 colonnes ; PC : autour).</p>';
+      h += '<h3>Sur l\'écran</h3><div class="ecr-pan">';
+      [['S', 'clock', 'Horloge'], ['S', 'wx', 'Météo'], ['P', 'air', 'Qualité de l\'air, UV, pollens'], ['S', 'agenda', 'Agenda (s\'il y a des rendez-vous)'], ['P', 'taches', 'Tâches'], ['P', 'cmd', 'Commandes rapides'],
+       ['P', 'mois', 'Calendrier et citation'], ['P', 'monde', 'Ciel et monde'], ['S', 'news', 'Actualités'], ['S', 'music', 'Musique en cours'], ['S', 'sys', 'Système et batterie']].forEach(function (x) {
+        var v = x[0] === 'S' ? S.panels[x[1]] : p.panels[x[1]];
+        h += U.chk('eP_' + x[0] + x[1], x[2], v !== false);
+      });
+      h += '</div>';
+      h += '<h3>Commandes rapides</h3>' + U.fld('Boutons', '<textarea id="eCmds" rows="6" style="width:100%">' + esc((p.cmds || []).join('\n')) + '</textarea>', 'Une commande par ligne, comme vous la diriez' + (FJ.mode === 'mj' ? ' à Majordome' : '') + ' (ex. « Allume le salon », « Minuteur 5 minutes »).');
+      B.innerHTML = h;
+      B.querySelectorAll('[data-ecr]').forEach(function (b) { b.onclick = function () { FJ.setEcran(b.dataset.ecr); FJ.plusTab.ecran(B, U); }; });
+      B.querySelectorAll('[id^="eP_"]').forEach(function (c) {
+        c.onchange = function () {
+          var k = c.id.slice(3), src = k[0] === 'S' ? S.panels : p.panels; src[k.slice(1)] = c.checked; save(); FJ.apply();
+          if (k === 'Pair' && c.checked) loadAir(true);
+        };
+      });
+      $('eCmds').oninput = function () { p.cmds = this.value.split('\n').map(function (x) { return x.trim(); }).filter(Boolean).slice(0, 12); save(); renderCmd(); };
+    },
     formation: function (B, U) {
       var f = P().form, h = '';
       h += '<p class="hint">Pour vos formations : un grand minuteur autour de la sphère, l\'heure de reprise, un message et un QR code à scanner par les stagiaires. À la voix : « pause de 15 minutes », « on reprend », « séance jusqu\'à 17 h », « ajoute 5 minutes ».</p>';

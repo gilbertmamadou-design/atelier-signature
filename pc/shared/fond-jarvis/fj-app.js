@@ -807,10 +807,9 @@
     S.ecran = v; FJ.save(); FJ.apply();
     if (!quiet) FJ.toast('Affichage : ' + ECRANS.filter(function (e) { return e[0] === v; })[0][1] + (v === 'auto' ? ' (' + { tel: 'téléphone', tab: 'tablette', pc: 'PC' }[FJ.ecran()] + ')' : ''), 2200);
   };
-  $('ecr').onclick = function () {
-    var i = ECRANS.map(function (e) { return e[0]; }).indexOf(S.ecran || 'auto');
-    FJ.setEcran(ECRANS[(i + 1) % ECRANS.length][0]);
-  };
+  // bouton de la barre : ⚙ › Écran (appareil, panneaux affichés, commandes rapides)
+  $('ecr').onclick = function () { FJ.settings('ecran'); };
+  $('ecr').title = 'Écran : téléphone, tablette ou PC, et ce qu\'on y voit';
   var ecrT = 0, ecrLast = '';
   root.addEventListener('resize', function () {
     clearTimeout(ecrT);
@@ -825,7 +824,7 @@
   FJ.settings = function (tab) {
     curTab = tab || curTab;
     var sh = $('sheet'); sh.hidden = false;
-    sh.innerHTML = '<div class="sh"><header><h2 id="shTitle">Réglages du fond</h2><button type="button" class="ib" data-x aria-label="Fermer">' + FJI.svg('croix') + '</button></header>' +
+    sh.innerHTML = '<div class="sh"><header><h2 id="shTitle">' + (FJ.mode === 'mj' || FJ.mode === 'app' ? 'Réglages de l\'écran' : 'Réglages du fond') + '</h2><button type="button" class="ib" data-x aria-label="Fermer">' + FJI.svg('croix') + '</button></header>' +
       '<div class="tabs" role="tablist">' + TABS.slice(0, -1).concat(FJ.plusTabs || [], TABS.slice(-1)).map(function (t) { return '<button type="button" role="tab" data-tab="' + t[0] + '" aria-selected="' + (t[0] === curTab) + '">' + t[1] + '</button>'; }).join('') + '</div>' +
       storeBanner() + '<div class="sh-body" id="shBody"></div><div class="sh-foot"><button type="button" class="btn pri" data-x>Fermer</button></div></div>';
     sh.querySelectorAll('[data-x]').forEach(function (b) { b.onclick = FJ.closeSettings; });
