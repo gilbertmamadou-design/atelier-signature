@@ -17,6 +17,7 @@
   'use strict';
   var MJ = window.Majordome; if (!MJ || !MJ._ || !window.BroadcastChannel) return;
   if (window.MJ_DANS_ACCUEIL) return;
+  if (/[?&]cerveau=1/.test(location.search)) return;   // Suite MAG.exe : fenêtre cachée « cerveau » du fond d'écran, sans écran
   var X = MJ._, S = X.S;
   if (S.apparence == null) S.apparence = 'jarvis';
   var PC = !!(X.PC || window.MAGPC);
