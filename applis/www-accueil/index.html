@@ -525,7 +525,7 @@ var WXC={
 };
 /* Icônes en couleur (Réglages › Icônes en couleur) : chaque icône de tuile ou d'outil a sa couleur ;
    les signes de l'interface (flèches, croix, poubelle, partage…) restent blancs. */
-var ICOL={clock:'#4FC3F7',alarm:'#FF7043',bell:'#FFCA28',news:'#EF5350',doc:'#42A5F5',sheet:'#66BB6A',orb:'#26C6DA',easel:'#AB47BC',stamp:'#EC407A',solar:'#FFB300',bulb:'#FFD740',bat:'#66BB6A',bolt:'#FFC107',shield:'#5C6BC0',cal:'#EF5350',tool:'#90A4AE',torch:'#FFD54F',compass:'#26A69A',level:'#FFB74D',star:'#FFD740',grid:'#7E57C2',note:'#FFCA28',phone:'#43A047',web:'#29B6F6',calc:'#FF8A65',user:'#7986CB',pin:'#F44336',mag:'#FFA726',music:'#EC407A',photo:'#29B6F6',people:'#5C6BC0',mic:'#EF5350',wall:'#A1887F',box:'#BCAAA4',camera:'#26A69A',scan:'#00BCD4',ruler:'#FFB74D',film:'#9575CD',power:'#EF5350',sos:'#F44336',qr:'#4DD0E1',book:'#FF8A65',pdf:'#E53935',trend:'#66BB6A',wallet:'#A1887F',mplay:'#EC407A',mprev:'#EC407A',mnext:'#EC407A',sms:'#43A047',phonedev:'#90CAF9',list:'#4DB6AC'};
+var ICOL={clock:'#4FC3F7',alarm:'#FF7043',bell:'#FFCA28',news:'#EF5350',doc:'#42A5F5',sheet:'#66BB6A',orb:'#26C6DA',easel:'#AB47BC',stamp:'#EC407A',solar:'#FFB300',bulb:'#FFD740',bat:'#66BB6A',bolt:'#FFC107',shield:'#5C6BC0',cal:'#EF5350',tool:'#90A4AE',torch:'#FFD54F',compass:'#26A69A',level:'#FFB74D',star:'#FFD740',grid:'#7E57C2',note:'#FFCA28',phone:'#43A047',web:'#29B6F6',calc:'#FF8A65',user:'#7986CB',pin:'#F44336',mag:'#FFA726',music:'#EC407A',photo:'#29B6F6',people:'#5C6BC0',mic:'#EF5350',wall:'#BA68C8',box:'#BCAAA4',camera:'#26A69A',scan:'#00BCD4',ruler:'#FFB74D',film:'#9575CD',power:'#EF5350',sos:'#F44336',qr:'#4DD0E1',book:'#FF8A65',pdf:'#E53935',trend:'#66BB6A',wallet:'#A1887F',mplay:'#EC407A',mprev:'#EC407A',mnext:'#EC407A',sms:'#43A047',phonedev:'#90CAF9',list:'#4DB6AC'};
 function ic(n, extra){
   if(WXC[n] && (typeof C==='undefined' || !C || C.wxColor!==false)) return '<svg class="i wxc" viewBox="0 0 24 24"'+(extra||'')+'>'+WXC[n]+'</svg>';
   if(ICOL[n] && (typeof C==='undefined' || !C || C.iconColor!==false)) return '<svg class="i icc" viewBox="0 0 24 24" style="color:'+ICOL[n]+'"'+(extra||'')+'>'+(IC[n]||'')+'</svg>';
@@ -1213,6 +1213,8 @@ function podcastHtml(cfg){
 }
 /* Toile : fond d'écran */
 var TOILE='fr.magformation13.toile';
+/* boutons de Toile : de la couleur de Toile (violet), pas du rose de la musique */
+function icw(n){ return ic(n).replace(ICOL[n]||'#000', ICOL.wall); }
 function wallHtml(cfg){
   var has=findApp(function(a){ return a.pkg===TOILE; });
   var hd='<div class="hd">'+ic('wall')+'Fond d\'écran</div>';
@@ -1220,7 +1222,7 @@ function wallHtml(cfg){
   var d=WCACHE[TOILE]!==undefined?WCACHE[TOILE]:wdata(TOILE), t=d&&d.toile;
   var img=t&&t.thumb?'<img src="'+t.thumb+'" alt="">':'<div class="ph2"></div>';
   return hd+'<div class="wallp">'+img+'<div style="flex:1;min-width:0"><div class="sub" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(t&&t.name||'Toile')+'</div>'+
-    '<div class="mctl" style="justify-content:flex-start;gap:8px;margin-top:8px"><button data-act="wp-prev" aria-label="Fond précédent" style="width:38px;height:38px">'+ic('mprev')+'</button><button class="pp" data-act="wp-next" aria-label="Fond suivant" style="width:44px;height:44px">'+ic('mnext')+'</button></div></div></div>'+
+    '<div class="mctl" style="justify-content:flex-start;gap:8px;margin-top:8px"><button data-act="wp-prev" aria-label="Fond précédent" style="width:38px;height:38px">'+icw('mprev')+'</button><button class="pp" data-act="wp-next" aria-label="Fond suivant" style="width:44px;height:44px">'+icw('mnext')+'</button></div></div></div>'+
     (t&&t.folder===false?'<div class="empty">Choisis un dossier dans Toile</div>':'');
 }
 /* Photo, Scan, Mesure, Sauvegarde, Écran */
