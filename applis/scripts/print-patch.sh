@@ -312,6 +312,8 @@ public class MainActivity extends BridgeActivity {
         @JavascriptInterface
         public String homeMedia(String knownArt) { return LauncherService.media(getApplicationContext(), knownArt); }
         @JavascriptInterface
+        public String homeNotifs() { return LauncherService.mediaAccess(getApplicationContext()) ? LauncherMedia.counts() : "{\"off\":true}"; }
+        @JavascriptInterface
         public boolean homeMediaCmd(String cmd, double arg) { return LauncherService.mediaCmd(getApplicationContext(), cmd, (long) arg); }
         @JavascriptInterface
         public void homeMediaAccess() { runOnUiThread(new Runnable() { public void run() { LauncherService.openMediaAccess(MainActivity.this); } }); }
@@ -1813,7 +1815,7 @@ XML
     <string name="socle_a11y_desc">Permet à Socle de verrouiller l’écran par un double appui et d’ouvrir le volet des notifications en glissant vers le bas. Socle ne lit jamais le contenu de l’écran.</string>
 </resources>
 XML
-  sed -i 's#</application>#    <service android:name=".LauncherA11y" android:label="Socle : gestes" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:exported="false"><intent-filter><action android:name="android.accessibilityservice.AccessibilityService" /></intent-filter><meta-data android:name="android.accessibilityservice" android:resource="@xml/socle_a11y" /></service>\n        <service android:name=".LauncherMedia" android:label="Socle : musique" android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" android:exported="true"><intent-filter><action android:name="android.service.notification.NotificationListenerService" /></intent-filter></service>\n    </application>#' "$MAN"
+  sed -i 's#</application>#    <service android:name=".LauncherA11y" android:label="Socle : gestes" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:exported="false"><intent-filter><action android:name="android.accessibilityservice.AccessibilityService" /></intent-filter><meta-data android:name="android.accessibilityservice" android:resource="@xml/socle_a11y" /></service>\n        <service android:name=".LauncherMedia" android:label="Socle : musique et notifications" android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" android:exported="true"><intent-filter><action android:name="android.service.notification.NotificationListenerService" /></intent-filter></service>\n    </application>#' "$MAN"
   sed -i 's#</manifest>#    <queries><intent><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent></queries>\n</manifest>#' "$MAN"
   # RECORD_AUDIO : option « Réagir aux sons de la pièce » de la page Jarvis (désactivée par défaut, demandée seulement quand on l'active)
   for P in READ_CALENDAR READ_CONTACTS EXPAND_STATUS_BAR READ_MEDIA_IMAGES READ_MEDIA_VISUAL_USER_SELECTED ACCESS_NETWORK_STATE RECORD_AUDIO; do

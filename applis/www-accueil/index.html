@@ -45,7 +45,7 @@ body:not(.edit) .pempty{display:none}
 .t-app img,.t-app .ph{width:54px;height:54px;border-radius:15px;display:block}
 .t-app .ph{background:rgba(255,255,255,.15)}
 .t-app.w2,.t-link.w2{flex-direction:row;justify-content:flex-start;gap:14px;text-align:left}
-.t-app .nm,.t-link .nm{font-size:13.5px;font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t-app .nm,.t-link .nm{font-size:13.5px;font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.t-app:has(.apps){display:block;text-align:left}.apps{width:100%}.apps .anm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}.apps .aico img,.apps .aico .ph{width:20px;height:20px;border-radius:6px}.t-app .apps .big{font-size:26px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.t-app .apps .big small{font-size:14px;font-weight:600;margin-left:5px}.t-app .apps .big.aw{color:#FF8A65}.apps .sub{overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .t-link .dm{font-size:11.5px;color:var(--tx3);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lav{width:50px;height:50px;border-radius:15px;background:var(--acc);color:var(--acc-d);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:21px;flex:none}
 .t-contact .crow2{display:flex;align-items:center;gap:10px;margin-top:2px}
@@ -510,7 +510,13 @@ var IC = {
   mprev:'<path d="M19 20 9 12l10-8zM5 4v16"/>', mnext:'<path d="m5 4 10 8-10 8zM19 4v16"/>',
   sms:'<path d="M4 5h16v11H9l-5 4z"/>', link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
   phonedev:'<rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/>', page:'<rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M12 9v6M9 12h6"/>',
-  list:'<path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/>'
+  list:'<path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/>',
+  mail:'<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m4 7 8 6 8-6"/>',
+  gear:'<circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v2.4M12 19.1v2.4M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7"/>',
+  bag:'<path d="M5 8h14l-1.2 12H6.2z"/><path d="M9 8a3 3 0 0 1 6 0"/>',
+  chat:'<path d="M12 3.5a8.5 8.5 0 0 0-7.4 12.7L3.5 20.5l4.4-1.1A8.5 8.5 0 1 0 12 3.5z"/>',
+  play:'<rect x="3" y="5.5" width="18" height="13" rx="3.5"/><path d="m10 9 5 3-5 3z"/>',
+  folder:'<path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2.5h8.5A1.5 1.5 0 0 1 21 9v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18z"/>'
 };
 /* Météo en couleur (Réglages › Météo en couleur) : soleil jaune, nuages gris clair, pluie bleue, éclair jaune */
 var WXC={
@@ -525,7 +531,7 @@ var WXC={
 };
 /* Icônes en couleur (Réglages › Icônes en couleur) : chaque icône de tuile ou d'outil a sa couleur ;
    les signes de l'interface (flèches, croix, poubelle, partage…) restent blancs. */
-var ICOL={clock:'#4FC3F7',alarm:'#FF7043',bell:'#FFCA28',news:'#EF5350',doc:'#42A5F5',sheet:'#66BB6A',orb:'#26C6DA',easel:'#AB47BC',stamp:'#EC407A',solar:'#FFB300',bulb:'#FFD740',bat:'#66BB6A',bolt:'#FFC107',shield:'#5C6BC0',cal:'#EF5350',tool:'#90A4AE',torch:'#FFD54F',compass:'#26A69A',level:'#FFB74D',star:'#FFD740',grid:'#7E57C2',note:'#FFCA28',phone:'#43A047',web:'#29B6F6',calc:'#FF8A65',user:'#7986CB',pin:'#F44336',mag:'#FFA726',music:'#EC407A',photo:'#29B6F6',people:'#5C6BC0',mic:'#EF5350',wall:'#BA68C8',box:'#BCAAA4',camera:'#26A69A',scan:'#00BCD4',ruler:'#FFB74D',film:'#9575CD',power:'#EF5350',sos:'#F44336',qr:'#4DD0E1',book:'#FF8A65',pdf:'#E53935',trend:'#66BB6A',wallet:'#A1887F',mplay:'#EC407A',mprev:'#EC407A',mnext:'#EC407A',sms:'#43A047',phonedev:'#90CAF9',list:'#4DB6AC'};
+var ICOL={mail:'#EA4335',gear:'#90A4AE',bag:'#00C853',chat:'#25D366',play:'#FF3D3D',folder:'#FFB74D',clock:'#4FC3F7',alarm:'#FF7043',bell:'#FFCA28',news:'#EF5350',doc:'#42A5F5',sheet:'#66BB6A',orb:'#26C6DA',easel:'#AB47BC',stamp:'#EC407A',solar:'#FFB300',bulb:'#FFD740',bat:'#66BB6A',bolt:'#FFC107',shield:'#5C6BC0',cal:'#EF5350',tool:'#90A4AE',torch:'#FFD54F',compass:'#26A69A',level:'#FFB74D',star:'#FFD740',grid:'#7E57C2',note:'#FFCA28',phone:'#43A047',web:'#29B6F6',calc:'#FF8A65',user:'#7986CB',pin:'#F44336',mag:'#FFA726',music:'#EC407A',photo:'#29B6F6',people:'#5C6BC0',mic:'#EF5350',wall:'#BA68C8',box:'#BCAAA4',camera:'#26A69A',scan:'#00BCD4',ruler:'#FFB74D',film:'#9575CD',power:'#EF5350',sos:'#F44336',qr:'#4DD0E1',book:'#FF8A65',pdf:'#E53935',trend:'#66BB6A',wallet:'#A1887F',mplay:'#EC407A',mprev:'#EC407A',mnext:'#EC407A',sms:'#43A047',phonedev:'#90CAF9',list:'#4DB6AC'};
 function ic(n, extra){
   if(WXC[n] && (typeof C==='undefined' || !C || C.wxColor!==false)) return '<svg class="i wxc" viewBox="0 0 24 24"'+(extra||'')+'>'+WXC[n]+'</svg>';
   if(ICOL[n] && (typeof C==='undefined' || !C || C.iconColor!==false)) return '<svg class="i icc" viewBox="0 0 24 24" style="color:'+ICOL[n]+'"'+(extra||'')+'>'+(IC[n]||'')+'</svg>';
@@ -555,7 +561,7 @@ var TYPES = {
 var KEY='socle-v1';
 var DEF = {
   tiles:[{t:'clock',w:2},{t:'music',w:2},{t:'weather',w:1},{t:'battery',w:1},{t:'agenda',w:1},{t:'tools',w:1},{t:'favs',w:2}],
-  favs:null, hidden:[], city:null, accent:'auto', opacity:55, cols:4, gestures:true, wxColor:true, iconColor:true, seconds:false, preferMag:true, hideReplaced:false, magSeen:[]
+  favs:null, hidden:[], city:null, accent:'auto', opacity:55, cols:4, gestures:true, wxColor:true, iconColor:true, appStyle:'socle', seconds:false, preferMag:true, hideReplaced:false, magSeen:[]
 };
 function clone(o){ return JSON.parse(JSON.stringify(o)); }
 function cleanTile(t){
@@ -856,6 +862,7 @@ function tileHtml(cfg, p, idx){
   var ed = '<div class="ed"><button data-ed="left" aria-label="Avant">'+ic('left')+'</button><button data-ed="size" aria-label="Taille">'+ic('size')+'</button><button data-ed="right" aria-label="Après">'+ic('right')+'</button><button class="x" data-ed="del" aria-label="Retirer">'+ic('x')+'</button></div>';
   return '<div class="tile sh t-'+cfg.t+w+'" data-p="'+p+'" data-i="'+idx+'" data-t="'+cfg.t+'">'+body+ed+'</div>';
 }
+setInterval(function(){ if(!document.hidden && C.appStyle!=='origine' && document.querySelector('.tile[data-t="app"]')){ NOTIFS.t=0; refresh('app'); } }, 20000);
 /* ---------- Pages ---------- */
 var CP=0;
 var home=$('home');
@@ -1883,8 +1890,70 @@ function magHtml(){
 function initials(n){ return String(n||'?').trim().split(/\s+/).map(function(w){ return w.charAt(0); }).join('').slice(0,2).toUpperCase() || '?'; }
 function tileCfg(el){ var t=el && el.closest && el.closest('.tile'); return t && C.pages[+t.dataset.p] ? C.pages[+t.dataset.p][+t.dataset.i] : null; }
 /* Une appli : son icône en grand */
+/* Tuiles d'applis Android au style de Socle (Réglages › Applis au style de Socle) :
+   titre avec une icône dessinée en couleur pour les applis courantes (ou la vraie icône en petit), et une info utile :
+   appels manqués, messages non lus, prochain réveil, prochain rendez-vous, nombre de notifications.
+   Les nombres viennent du service « Socle : musique et notifications » (A.homeNotifs, rien n'est enregistré). */
+var APPK=[
+  ['phone', /dialer|\.phone$|incallui|\.contacts\.dial|android\.server\.telecom/i, /^(téléphone|phone|appels?)$/i, 'phone', 'Téléphone'],
+  ['whatsapp', /^com\.whatsapp/i, /^whatsapp/i, 'chat', 'WhatsApp'],
+  ['sms', /messaging|\.mms$|\.sms$|\.messages$|\.message$|textra|signal/i, /^(messages|messagerie|sms)$/i, 'sms', 'Messages'],
+  ['mail', /\.gm$|android\.gm|mail|outlook|\.email/i, /^(gmail|e-?mail|mail|outlook)$/i, 'mail', 'Mail'],
+  ['clock', /deskclock|\.clock$|\.alarmclock|sec\.android\.app\.clockpackage/i, /^(horloge|clock|réveil)$/i, 'alarm', 'Horloge'],
+  ['cal', /calendar|agenda/i, /^(agenda|calendrier|calendar)$/i, 'cal', 'Agenda'],
+  ['camera', /camera/i, /^(appareil photo|caméra|camera)$/i, 'camera', 'Appareil photo'],
+  ['gallery', /gallery|\.photos$|\.galerie$/i, /^(galerie|photos|google photos)$/i, 'photo', 'Galerie'],
+  ['web', /chrome|browser|firefox|opera|brave|\.edge|sbrowser|duckduckgo/i, /^(chrome|navigateur|internet|firefox)$/i, 'web', 'Internet'],
+  ['maps', /maps|waze|\.osmand/i, /^(maps|waze|plans)$/i, 'pin', 'Cartes'],
+  ['youtube', /youtube/i, /^youtube/i, 'play', 'YouTube'],
+  ['music', /music|spotify|deezer|musique|soundcloud/i, /^(musique|spotify|deezer)$/i, 'music', 'Musique'],
+  ['contacts', /contacts/i, /^(contacts|répertoire)$/i, 'people', 'Contacts'],
+  ['calc', /calculator|calculatrice|\.calcul$/i, /^(calculatrice|calculator)$/i, 'calc', 'Calculatrice'],
+  ['files', /files|documents|filemanager|myfiles/i, /^(fichiers|files|mes fichiers)$/i, 'folder', 'Fichiers'],
+  ['store', /com\.android\.vending|galaxyapps|appstore/i, /^(play store|google play)$/i, 'bag', 'Play Store'],
+  ['meteo', /weather|meteo/i, /^(météo|weather)$/i, 'sun', 'Météo'],
+  ['settings', /^com\.android\.settings$|\.settings$/i, /^(paramètres|réglages|settings)$/i, 'gear', 'Paramètres']
+];
+function appKind(a){
+  for(var i=0;i<APPK.length;i++){ var k=APPK[i]; if(k[1].test(a.pkg||'') || k[2].test(a.label||'')) return {k:k[0], i:k[3], n:k[4]}; }
+  return null;
+}
+var NOTIFS={t:0, d:{}};
+function notifs(){
+  if(!A || !A.homeNotifs) return {off:true};
+  if(Date.now()-NOTIFS.t>4000){ NOTIFS.t=Date.now(); NOTIFS.d=J(A.homeNotifs(),{off:true}); }
+  return NOTIFS.d||{};
+}
+function nfOf(pkgs){ var d=notifs(), r={n:0,t:0,title:'',text:''}; pkgs.forEach(function(p){ var x=d[p]; if(!x) return; r.n+=x.n||0; if((x.t||0)>=r.t){ r.t=x.t||0; r.title=x.title||''; r.text=x.text||''; } }); return r; }
+var AGC={t:0, ev:null};
+function nextEvent(){
+  if(!A || !A.homeAgenda) return null;
+  if(Date.now()-AGC.t>300000){ AGC.t=Date.now(); var l=null; try{ l=J(A.homeAgenda(7),null); }catch(e){} AGC.ev=l&&l.length?(l.filter(function(z){ return !z.all; })[0]||l[0]):null; }
+  return AGC.ev;
+}
+function hmFr(t){ var d=new Date(t), now=new Date(), j=Math.round((new Date(d.getFullYear(),d.getMonth(),d.getDate())-new Date(now.getFullYear(),now.getMonth(),now.getDate()))/86400000);
+  var h=d.getHours()+' h '+String(d.getMinutes()).padStart(2,'0'); return (j===0?"aujourd'hui ":j===1?'demain ':j<7?d.toLocaleDateString('fr-FR',{weekday:'long'})+' ':d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' ')+'à '+h; }
+function appInfo(a, k){
+  var nf=notifs(), off=!!nf.off, pk=[a.pkg];
+  if(k && k.k==='phone') pk.push('com.android.server.telecom');
+  var x=off?{n:0}:nfOf(pk), pl=function(n,w){ return n+' '+w+(n>1?'s':''); };
+  if(k && k.k==='phone') return x.n ? {big:x.n, unit:(x.n>1?'appels manqués':'appel manqué'), sub:x.title||x.text, warn:1} : {sub:off?'':'Aucun appel manqué'};
+  if(k && (k.k==='sms'||k.k==='whatsapp'||k.k==='mail')) return x.n ? {big:x.n, unit:(k.k==='mail'?'mail':'message')+(x.n>1?'s':''), sub:x.title?('De '+x.title):x.text, warn:1} : {sub:off?'':'Rien de nouveau'};
+  if(k && k.k==='clock'){ var al=A&&A.homeAlarm?J(A.homeAlarm(),{at:0}):{at:0}; return al.at ? {big:new Date(al.at).getHours()+' h '+String(new Date(al.at).getMinutes()).padStart(2,'0'), sub:'Réveil '+hmFr(al.at).replace(/ à .*$/,'')} : {sub:'Aucun réveil'}; }
+  if(k && k.k==='cal'){ var ev=nextEvent(); return ev ? {big:esc2(ev.title||'Rendez-vous'), sub:evWhen(ev)} : {sub:'Rien dans les 7 jours'}; }
+  return x.n ? {big:x.n, unit:'notification'+(x.n>1?'s':''), sub:x.title||x.text, warn:0} : {sub:''};
+}
+function esc2(s){ return esc(String(s||'')); }
+function appTileStyled(cfg, a){
+  var k=appKind(a), inf=appInfo(a,k);
+  var icon=k ? ic(k.i) : '<span class="aico">'+iconHtml(a)+'</span>';
+  var big=inf.big!=null&&inf.big!=='' ? '<div class="big'+(inf.warn?' aw':'')+'">'+(k&&k.k==='cal'?inf.big:esc(String(inf.big)))+(inf.unit?'<small>'+esc(inf.unit)+'</small>':'')+'</div>' : '';
+  var sub=inf.sub ? '<div class="sub">'+esc(inf.sub)+'</div>' : (big?'':'<div class="sub">Ouvrir</div>');
+  return '<div class="apps"><div class="hd">'+icon+'<span class="anm">'+esc(a.label)+'</span></div>'+big+sub+'</div>';
+}
 function appTileHtml(cfg){
   var a=byKey(cfg.k);
+  if(a && C.appStyle!=='origine') return appTileStyled(cfg, a);
   if(!a) return '<div class="lav">'+esc(initials(cfg.label))+'</div><div class="nm">'+esc(cfg.label||'Appli')+'</div>'+(APPS.length?'<div class="terr">Appli désinstallée</div>':'');
   return iconHtml(a)+'<div class="nm">'+esc(a.label)+'</div>';
 }
@@ -2406,6 +2475,8 @@ function settingsSheet(){
    '<div class="row"><div class="t"><div>Écran d\'accueil par défaut</div><div>'+(p.home?'Socle est ton écran d\'accueil':'Choisis Socle dans « Appli d\'accueil »')+'</div></div>'+(p.home?'<span class="ok">Actif</span>':'<button class="sbtn" data-s="home">Choisir</button>')+'</div>'+
    '<div class="row"><div class="t"><div>Barre de recherche sur toutes les pages</div><div>Sinon, elle n\'apparaît que sur la page principale (glisser vers le haut ouvre toujours la liste des applis)</div></div><label class="sw"><input type="checkbox" id="sDockAll"'+(C.dockAll?' checked':'')+'><span></span></label></div>'+
    '<div class="row"><div class="t"><div>Masquer la barre du haut</div><div>Heure, wifi, réseau et batterie cachés sur l\'accueil (glisser depuis le haut les montre un instant)</div></div><label class="sw"><input type="checkbox" id="sBar"'+(C.hideBar?' checked':'')+'><span></span></label></div>'+
+   '<div class="row"><div class="t"><div>Applis au style de Socle</div><div>Téléphone, Messages, WhatsApp… : titre et icône comme les autres tuiles, avec appels manqués, messages non lus, prochain réveil</div></div><label class="sw"><input type="checkbox" id="sAppSt"'+(C.appStyle!=='origine'?' checked':'')+'><span></span></label></div>'+
+   (A&&A.homeNotifs&&J(A.homeNotifs(),{}).off?'<div class="row"><div class="t"><div>Appels manqués et messages non lus</div><div>Autoriser « Socle : musique et notifications » (le même accès que la tuile Musique)</div></div><button class="pbtn" id="bNfAcc">Autoriser</button></div>':'')+
    '<div class="row"><div class="t"><div>Icônes en couleur</div><div>Photo, QR, musique, lampe, agenda… chaque icône a sa couleur</div></div><label class="sw"><input type="checkbox" id="sIcc"'+(C.iconColor!==false?' checked':'')+'><span></span></label></div>'+
    '<div class="row"><div class="t"><div>Météo en couleur</div><div>Soleil jaune, nuages gris, pluie bleue, orage jaune</div></div><label class="sw"><input type="checkbox" id="sWxc"'+(C.wxColor!==false?' checked':'')+'><span></span></label></div>'+
    '<div class="row"><div class="t"><div>Gestes</div><div>Double appui : verrouiller · glisser vers le bas : notifications</div></div><label class="sw"><input type="checkbox" id="sGest"'+(C.gestures?' checked':'')+'><span></span></label></div>'+
@@ -2424,6 +2495,8 @@ function settingsSheet(){
   $('sGest').onchange=function(){ C.gestures=this.checked; save(); };
   $('sWxc').onchange=function(){ C.wxColor=this.checked; save(); render(); };
   $('sIcc').onchange=function(){ C.iconColor=this.checked; save(); render(); };
+  $('sAppSt').onchange=function(){ C.appStyle=this.checked?'socle':'origine'; save(); render(); };
+  if($('bNfAcc')) $('bNfAcc').onclick=function(){ if(A&&A.homeMediaAccess) A.homeMediaAccess(); };
   $('sMjB').onchange=function(){ C.mjBtn=this.checked; save(); mjBtn(); };
   $('sDockAll').onchange=function(){ C.dockAll=this.checked; save(); jvChrome(); };
   $('sBar').onchange=function(){ C.hideBar=this.checked; save(); applyBar(); if(A && A.homeStatusBar) A.homeStatusBar(C.hideBar); };
@@ -2548,7 +2621,7 @@ setInterval(safe(function(){ hueTick(false); },'Lumières'), 60000);
 setInterval(safe(function(){ pollMedia(); if(!document.hidden) document.querySelectorAll('[data-since]').forEach(function(el){ el.textContent=mt(Date.now()-el.dataset.since); }); },'Musique'), 1000);
 setInterval(safe(function(){ if(!document.hidden){ ['battery','alarm','agenda','nextev','device','mjpanel'].forEach(refresh); fetchWeather(false); } },'Mise à jour'), 120000);
 document.addEventListener('visibilitychange', safe(function(){
-  if(!document.hidden){ window.accueilResume(); refresh('magrecent'); MJO.act=performance.now(); mjOrbKick(); if(C.jv.station || STN.on) stationCheck(); }
+  if(!document.hidden){ window.accueilResume(); refresh('magrecent'); NOTIFS.t=0; refresh('app'); MJO.act=performance.now(); mjOrbKick(); if(C.jv.station || STN.on) stationCheck(); }
   else { endEdit(); saveSnap(); persistW(); if(MJO.raf){ cancelAnimationFrame(MJO.raf); MJO.raf=0; } stationApply(); roomSync(); }   // on quitte l'accueil : instantané et cache pour le prochain démarrage
 },'Visibilité'));
 })();
