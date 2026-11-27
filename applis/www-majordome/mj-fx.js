@@ -16,6 +16,8 @@
   if (!S.fxG) S.fxG = {};
   if (!S.bulles) S.bulles = 'ephemeres';
   if (!S.cases) S.cases = 'annonce';
+  // Réglages › Écran : les cases choisies doivent se voir ; « pendant une réponse » reste au choix (une fois)
+  if (!S.casesV) { S.cases = 'toujours'; S.casesV = 1; }
   if (S.zen == null) S.zen = false;       // « Sphère seule » : la sphère en grand au milieu, rien d'écrit      // cases Heure / Météo / Rendez-vous / Minuteur : 'annonce' (visibles pendant une réponse) | 'toujours'
   var GAD = { hud: 'Anneaux HUD (graduations tournantes)', radar: 'Radar (balayage lent)', spectre: 'Spectre de la voix', atome: 'Atome (électrons)', planetes: 'Planètes en orbite', ondes: 'Ondes de choc et éclats', eclairs: 'Éclairs quand il parle', hyper: 'Hyperespace quand il écoute', cometes: 'Comètes', etoiles: 'Constellations' };
   if (S.fxG.radar == null) S.fxG.radar = false;   // nouveautés : le radar est à activer, les anneaux sont visibles d'emblée
@@ -262,7 +264,7 @@
       (X.B && X.B.zenShortcut ? '<div class="set"><div class="t">Raccourci « Sphère seule »<small>Une icône sur l\'écran d\'accueil qui ouvre directement la sphère seule (aussi par appui long sur l\'icône)</small></div><button class="btn sm" id="sFxZpin">Ajouter</button></div>' : '') +
       '<div class="set"><div class="t">Infos en « sphère seule »<small>Discrètes, dans les coins de l\'écran</small></div></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">' +
       [['heure', 'Heure et date'], ['meteo', 'Météo'], ['rdv', 'Prochain rendez-vous'], ['maison', 'Lumières et volets'], ['batterie', 'Batterie']].map(function (z) { return '<button class="btn sm' + (S.zenInfo[z[0]] ? ' pri' : '') + '" data-zi="' + z[0] + '">' + z[1] + '</button>'; }).join('') + '</div>' +
-      '<div class="set"><div class="t">Cases Heure, Météo, Rendez-vous, Minuteur<small>« Pendant une réponse » : cachées, elles apparaissent quand il vous répond</small></div><select class="in" id="sFxC" style="width:auto"><option value="annonce"' + (S.cases === 'annonce' ? ' selected' : '') + '>Pendant une réponse</option><option value="toujours"' + (S.cases !== 'annonce' ? ' selected' : '') + '>Toujours</option></select></div>' +
+
       '<div class="set"><div class="t">Réglage fin de l\'intensité<small>0 : aucun effet</small></div><input type="range" id="sFxI" min="0" max="100" step="5" value="' + (+S.fxInt || 0) + '"></div>' +
       Object.keys(GAD).map(function (k) { return '<div class="set"><div class="t">' + esc(GAD[k]) + '</div><label class="sw"><input type="checkbox" data-fxg="' + k + '"' + (gad(k) ? ' checked' : '') + '><span></span></label></div>'; }).join('');
   };

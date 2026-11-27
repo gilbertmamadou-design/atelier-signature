@@ -15,8 +15,8 @@
 
   // cases : clé, nom ; défaut : celles d'avant (heure, météo, rendez-vous, minuteur, lumières) ; les nouvelles à cocher
   var INFOS = [['time', 'Heure et date'], ['wx', 'Météo et vent'], ['ev', 'Prochain rendez-vous'], ['al', 'Minuteur ou prochain réveil'], ['hue', 'Lumières'],
-    ['bat', 'Batterie'], ['msg', 'Messages et mails'], ['list', 'Listes (courses…)'], ['ciel', 'Lune et soleil']];
-  S.infos = Object.assign({ time: true, wx: true, ev: true, al: true, hue: true, bat: false, msg: false, list: false, ciel: false }, S.infos || {});
+    ['bat', 'Batterie'], ['msg', 'Messages et mails'], ['notes', 'Notes'], ['list', 'Listes (courses…)'], ['ciel', 'Lune et soleil']];
+  S.infos = Object.assign({ time: true, wx: true, ev: true, al: true, hue: true, bat: false, msg: false, notes: false, list: false, ciel: false }, S.infos || {});
   if (!Array.isArray(S.cmds)) S.cmds = [];
   if (!S.fond) S.fond = 'grille';
 
@@ -82,6 +82,11 @@
       if (!m) cells.push({ k: 'msg', l: 'Messages', b: '—', s: X.ANDROID ? 'Touchez pour autoriser' : 'Sur le téléphone' });
       else { var n = m.msg + m.mails; cells.push({ k: 'msg', l: 'Messages', b: n ? String(n) + ' non lu' + (n > 1 ? 's' : '') : 'Rien de nouveau', big: n ? 1 : 0, s: n ? [m.msg ? m.msg + ' message' + (m.msg > 1 ? 's' : '') : '', m.mails ? m.mails + ' mail' + (m.mails > 1 ? 's' : '') : ''].filter(Boolean).join(' · ') : 'Messages et mails' }); }
     }
+    if (inf.notes) {
+      var LN = MJ.LS ? (MJ.LS().notes || []) : [], dn = LN.length ? LN[LN.length - 1] : null;
+      cells.push(dn ? { k: 'notes', l: LN.length > 1 ? LN.length + ' notes' : 'Note', b: dn.t, s: LN.length > 1 ? 'Touchez pour toutes les voir' : 'Touchez pour la voir' }
+        : { k: 'notes', l: 'Notes', b: 'Aucune note', s: '« Note : appeler le client »' });
+    }
     if (inf.list) {
       var LS = MJ.LS ? MJ.LS() : null, L = LS && LS.lists || {}, ks = Object.keys(L).filter(function (k) { return (L[k] || []).some(function (x) { return !x.done; }); });
       var k0 = ks.indexOf('course') >= 0 ? 'course' : ks[0], nl = k0 ? L[k0].filter(function (x) { return !x.done; }).length : 0;
@@ -94,7 +99,7 @@
   MJ.ecranClick = function (k) {
     if (k === 'bat') { X.handle('niveau de batterie', 'click'); return true; }
     if (k === 'msg') { if (MJ.msgNonLus && MJ.msgNonLus()) X.handle('j\'ai des messages', 'click'); else X.settingsSheet('messages'); return true; }
-    if (k === 'list') { var b = $('bLists'); if (b) b.click(); return true; }
+    if (k === 'list' || k === 'notes') { var b = $('bLists'); if (b) b.click(); return true; }
     if (k === 'ciel') { var lu = lune(Date.now()), so = soleil(); X.answer({ say: lu.nom + ', éclairée à ' + lu.ecl + ' %.' + (so ? ' ' + so.replace('Soleil ', 'Lever du soleil à ').replace(' – ', ', coucher à ') + '.' : ''), k: 'Lune et soleil' }); return true; }
     return false;
   };
@@ -111,6 +116,7 @@
   /* ---------------- Réglages › Écran (appelé par mj-fx.js, même rubrique que le visuel et les effets) ---------------- */
   MJ.ecranHtml = function () {
     return '<div class="set"><div class="t">Informations à afficher<small>Les cases sous la sphère : touchez une case pour en savoir plus</small></div></div>' +
+      '<div class="set"><div class="t">Quand les voir<small>« Toujours » : les cases restent à l\'écran ; « Pendant une réponse » : elles n\'apparaissent que quand il vous répond</small></div><select class="in" id="ecCases" style="width:auto"><option value="toujours"' + (S.cases !== 'annonce' ? ' selected' : '') + '>Toujours</option><option value="annonce"' + (S.cases === 'annonce' ? ' selected' : '') + '>Pendant une réponse</option></select></div>' +
       '<div class="ecr-inf">' + INFOS.map(function (o) { return '<label><input type="checkbox" data-inf="' + o[0] + '"' + (S.infos[o[0]] !== false ? ' checked' : '') + '>' + esc(o[1]) + '</label>'; }).join('') + '</div>' +
       '<div class="set"><div class="t">Commandes rapides<small>Des boutons sous les cases, une commande par ligne, comme vous la diriez (« Allume le salon », « Minuteur 5 minutes », « Mode chantier »)</small></div></div>' +
       '<textarea class="in" id="ecCmds" rows="4" style="width:100%;resize:vertical" placeholder="Météo aujourd\'hui&#10;J\'ai des messages ?&#10;Minuteur 10 minutes">' + esc((S.cmds || []).join('\n')) + '</textarea>' +
@@ -118,7 +124,15 @@
       [['grille', 'Grille HUD'], ['etoiles', 'Étoiles (comme Jarvis)'], ['uni', 'Uni sombre']].map(function (o) { return '<option value="' + o[0] + '"' + (S.fond === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>';
   };
   MJ.ecranBind = function () {
-    document.querySelectorAll('[data-inf]').forEach(function (c) { c.onchange = function () { S.infos[c.dataset.inf] = c.checked; save(); if (MJ.moment) MJ.moment(); }; });
+    var cs = $('ecCases'); if (cs) cs.onchange = function () { S.cases = this.value; save(); document.documentElement.classList.toggle('mj-cases', S.cases === 'annonce'); };
+    document.querySelectorAll('[data-inf]').forEach(function (c) {
+      c.onchange = function () {
+        S.infos[c.dataset.inf] = c.checked;
+        // une case cochée doit se voir : si les cases ne s'affichent que pendant une réponse, on passe à « Toujours »
+        if (c.checked && S.cases === 'annonce') { S.cases = 'toujours'; document.documentElement.classList.remove('mj-cases'); if (cs) cs.value = 'toujours'; X.toast('Cases affichées en permanence'); }
+        save(); if (MJ.moment) MJ.moment();
+      };
+    });
     var t = $('ecCmds'); if (t) t.oninput = function () { S.cmds = this.value.split('\n').map(function (x) { return x.trim(); }).filter(Boolean).slice(0, 12); save(); cmds(); };
     var f = $('ecFond'); if (f) f.onchange = function () { S.fond = this.value; save(); fond(); };
   };
