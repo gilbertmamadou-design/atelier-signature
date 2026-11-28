@@ -250,6 +250,8 @@ else {
     try { require('./google.js')(app, ipcMain); } catch (e) { console.error('google.js', e); }
     // raccourcis de Jarvis vers les dossiers et programmes choisis par l'utilisateur : chemins.js
     try { require('./chemins.js')(app, ipcMain, shell, dialog, BrowserWindow); } catch (e) { console.error('chemins.js', e); }
+    // lumières Philips Hue et volets Somfy TaHoma (comme sur le téléphone) : maison.js
+    try { const E = require('electron'); require('./maison.js')(app, ipcMain, BrowserWindow, E.safeStorage, E.net); } catch (e) { console.error('maison.js', e); }
     // Caméras : recherche ONVIF, test, mosaïque (cameras.js)
     const CAM = require('./cameras');
     // liste des caméras prêtes gardée sur le disque : Majordome et Jarvis ouvrent la mosaïque à la voix

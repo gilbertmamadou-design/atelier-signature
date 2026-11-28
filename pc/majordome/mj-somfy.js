@@ -14,7 +14,7 @@
   'use strict';
   var MJ = window.Majordome; if (!MJ || !MJ._) return;
   var X = MJ._, H = X.H, S = X.S, esc = X.esc, B = X.B, NLU = window.MJNLU, deacc = X.deacc;
-  var OK = !!(B && B.somfyInfo && B.somfyReq && !X.PC);
+  var OK = !!(B && B.somfyInfo && B.somfyReq && !(X.PC && !(B && B.maisonPC)));
   var KEYS = 'majordome:somfy';   // liste des volets (noms, adresses, commandes) : jamais le jeton
   var model = X.lsGet(KEYS, null), modelAt = 0, info = { set: false }, waits = {}, found = null, busy = null, lastErr = '';
   function J(s) { return X.J(s, {}) || {}; }
@@ -146,7 +146,7 @@
 
   function notReady(p) {
     var t = X.withSir('Je ne pilote pas encore les volets') + ' : reliez le boîtier Somfy TaHoma dans mes réglages, Maison › Volets et stores.';
-    if (X.PC) t = 'Sur l\'ordinateur, je ne peux pas joindre le boîtier TaHoma : les volets se commandent depuis le téléphone.';
+    if ((X.PC && !(B && B.maisonPC))) t = 'Sur l\'ordinateur, je ne peux pas joindre le boîtier TaHoma : les volets se commandent depuis le téléphone.';
     var c = X.answer({ say: t, html: '<div class="k">Volets et stores</div><p>' + esc(t) + '</p>' + (OK ? '<div class="row"><button class="btn pri" data-sset>Régler le boîtier</button></div>' : '') });
     var b = c.querySelector('[data-sset]'); if (b) b.onclick = function () { X.settingsSheet('somfy'); };
     return c.done;
@@ -225,7 +225,7 @@
       '<div class="bt"><button data-a="open">' + (banne ? '⇤ Sortir' : '▲ Ouvrir') + '</button>' + (has(d, 'my') ? '<button class="my" data-a="my" title="Position favorite">★ My</button>' : '') + (has(d, 'stop') ? '<button data-a="stop">■ Stop</button>' : '') + '<button data-a="close">' + (banne ? '⇥ Rentrer' : '▼ Fermer') + '</button></div></div>';
   }
   function storesHtml() {
-    if (X.PC || !OK) return '<p class="note">Les volets se commandent depuis le téléphone.</p>';
+    if ((X.PC && !(B && B.maisonPC)) || !OK) return '<p class="note">Les volets se commandent depuis le téléphone.</p>';
     if (!refreshInfo().set) return '<p class="note">Le boîtier Somfy TaHoma n\'est pas encore relié.</p><div class="row"><button class="btn pri" data-sfset>Relier le boîtier TaHoma</button></div>';
     if (!model) return '<p class="note">Lecture des volets…</p>';
     var groups = [['volet', 'Volets'], ['store', 'Stores'], ['banne', 'Stores bannes']], h = '';
@@ -345,7 +345,7 @@
         '<div class="bt"><button data-pgedit="' + i + '">Modifier</button></div></div>';
     }).join('');
     return h + '<div class="row" style="display:flex;gap:8px;margin-top:6px"><button class="btn sm pri" data-pgnew>+ Nouveau programme</button></div>' +
-      '<p class="note">Les programmes partent du téléphone : il doit être sur le Wi-Fi de la maison à l\'heure prévue. Pour des volets qui bougent même quand vous êtes absent, programmez aussi dans l\'appli TaHoma.</p>';
+      '<p class="note">Les programmes partent du téléphone (ou de l\'ordinateur, Suite MAG ouvert) : il doit être sur le réseau de la maison à l\'heure prévue. Pour des volets qui bougent même quand vous êtes absent, programmez aussi dans l\'appli TaHoma.</p>';
   }
   /* Partie « Quand / Heure » de l'éditeur, commune aux programmes des volets et des lumières (MJ.sched) */
   function whenHtml(pg) {
@@ -432,7 +432,7 @@
       if (!at) return X.answer('Je n\'ai pas pu programmer cette commande.').done;
       var verbe = { open: 'J\'ouvrirai', close: 'Je fermerai', my: 'Je mettrai en position favorite', pos: 'J\'ouvrirai à ' + pg.pos + ' %' }[pg.act];
       var t = verbe + ' ' + plural(l, p.kind) + ' ' + whenTxt(at) + '.';
-      return X.answer({ say: X.ack(t), html: '<div class="k">Volets et stores</div><p>' + esc(t) + '</p><p class="note">Le téléphone doit être sur le Wi-Fi de la maison à ce moment-là. Programme visible dans Volets et stores.</p>' }).done;
+      return X.answer({ say: X.ack(t), html: '<div class="k">Volets et stores</div><p>' + esc(t) + '</p><p class="note">Le téléphone ou l\'ordinateur doit être sur le réseau de la maison à ce moment-là. Programme visible dans Volets et stores.</p>' }).done;
     }).catch(fail);
   }
   // une fois par démarrage : programmes passés retirés, alarmes remises en place (mise à jour de l'appli, changement de ville…)
@@ -483,7 +483,7 @@
   /* ---------- Réglages › Maison › Volets et stores ---------- */
   function settingsHtml() {
     var h = '<div class="sect" id="f-somfy">Maison › Volets et stores (Somfy TaHoma)</div>';
-    if (X.PC || !B) return h + '<p class="note">Sur l\'ordinateur, le navigateur ne peut pas joindre le boîtier TaHoma : les volets se commandent depuis le téléphone.</p>';
+    if ((X.PC && !(B && B.maisonPC)) || !B) return h + '<p class="note">Sur l\'ordinateur, le navigateur ne peut pas joindre le boîtier TaHoma : les volets se commandent depuis le téléphone.</p>';
     if (!OK) return h + '<p class="note">Non disponible dans cette version de l\'appli.</p>';
     var i = refreshInfo();
     if (i.set) {
@@ -494,7 +494,7 @@
       if (!S.sfEdit) return h + (lastErr ? '<p class="note warn">' + esc(lastErr) + '</p>' : '');
     }
     var f = found && found[0] || {};
-    h += '<p class="note"><b>1.</b> Dans l\'appli <b>TaHoma by Somfy</b> : Configurer l\'installation › Paramètres de la box, touchez <b>7 fois le code PIN</b> pour activer le mode développeur, puis <b>Générer un jeton</b> et copiez-le (il ne s\'affiche qu\'une fois).<br><b>2.</b> Ici, le téléphone sur le Wi-Fi de la maison : recherchez le boîtier, collez le jeton, enregistrez.</p>' +
+    h += '<p class="note"><b>1.</b> Dans l\'appli <b>TaHoma by Somfy</b> : Configurer l\'installation › Paramètres de la box, touchez <b>7 fois le code PIN</b> pour activer le mode développeur, puis <b>Générer un jeton</b> et copiez-le (il ne s\'affiche qu\'une fois).<br><b>2.</b> Ici, sur le réseau de la maison : recherchez le boîtier, collez le jeton, enregistrez.</p>' +
       '<div class="row" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm pri" id="sfFind">' + (busy === 'find' ? 'Recherche…' : 'Rechercher le boîtier') + '</button></div>' +
       (found ? (found.length ? found.map(function (x, k) { return '<div class="set"><div class="t">TaHoma ' + esc(x.pin || '') + '<small>' + esc(x.ip) + ':' + x.port + (x.fw ? ' · version ' + esc(x.fw) : '') + '</small></div><button class="btn sm" data-sfuse="' + k + '">Choisir</button></div>'; }).join('') : '<p class="note">Aucun boîtier trouvé : le mode développeur est-il activé ? Sinon, saisissez l\'adresse IP (visible dans la box internet).</p>') : '') +
       '<div class="set"><div class="t">Adresse IP du boîtier</div></div><div style="display:flex;gap:8px"><input class="in" id="sfIp" inputmode="decimal" placeholder="ex. 192.168.1.30" value="' + esc(f.ip || i.ip || '') + '" style="flex:1"><input class="in" id="sfPort" inputmode="numeric" value="' + esc(String(f.port || i.port || 8443)) + '" style="width:80px"></div>' +

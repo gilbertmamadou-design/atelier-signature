@@ -220,7 +220,7 @@
 
   /* ---------------- Majordome : branchement ---------------- */
   var MJ = window.Majordome, X = MJ._, H = X.H, S = X.S, esc = X.esc, answer = X.answer, ask = X.ask, B = X.B;
-  var HUE = !!(B && B.hueInfo && B.hueReq && !X.PC);
+  var HUE = !!(B && B.hueInfo && B.hueReq && !(X.PC && !(B && B.maisonPC)));
   var KEYM = 'majordome:maison';                       // noms des pièces, ampoules et scènes (jamais la clé du pont)
   var model = X.lsGet(KEYM, null), modelAt = model ? model.at || 0 : 0;
   var info = { paired: false };
@@ -316,7 +316,7 @@
 
   /* ---------------- Commandes vocales ---------------- */
   function notReady() {
-    if (X.PC || !B) return X.answer({ say: 'Sur l\'ordinateur, je ne peux pas commander les lumières Philips Hue : le navigateur ne peut pas joindre le pont de la maison. C\'est disponible sur le téléphone.', html: pcHtml(), k: 'Lumières' }).done;
+    if ((X.PC && !(B && B.maisonPC)) || !B) return X.answer({ say: 'Sur l\'ordinateur, je ne peux pas commander les lumières Philips Hue : le navigateur ne peut pas joindre le pont de la maison. C\'est disponible sur le téléphone.', html: pcHtml(), k: 'Lumières' }).done;
     if (!HUE) return answer('Les lumières ne sont pas disponibles dans cette version de l\'appli.').done;
     if (S.hueNone) return answer({ say: 'Vous avez indiqué ne pas avoir de pont Hue. Les ampoules Hue en Bluetooth se commandent avec l\'appli Hue : je ne peux pas les piloter.', k: 'Lumières' }).done;
     return fail({ code: 'notpaired' });
@@ -519,7 +519,7 @@
       (ls.length > 1 ? '<div class="bulbs">' + ls.map(function (l) { return '<button data-bulb="' + esc(l.id) + '" class="' + (l.on ? 'on' : '') + '">' + esc(l.name) + '</button>'; }).join('') + '</div>' : '') + '</div>';
   }
   function homeHtml() {
-    if (X.PC || !B) return pcHtml();
+    if ((X.PC && !(B && B.maisonPC)) || !B) return pcHtml();
     if (!HUE) return '<p class="note">Les lumières ne sont pas disponibles dans cette version de l\'appli.</p>';
     if (S.hueNone) return '<p class="note">Vous avez indiqué ne pas avoir de pont Hue (ampoules Bluetooth seulement). ' + esc(S.name) + ' ne commande que les lumières reliées à un pont Hue : les ampoules Bluetooth se pilotent avec l\'appli Hue.</p><div class="row"><button class="btn sm" data-hset>Réglages › Maison</button></div>';
     if (!refreshInfo().paired) return '<p class="note">Aucun pont Hue jumelé.</p><div class="row"><button class="btn pri" data-hset>Jumeler le pont Hue</button></div>';
@@ -604,7 +604,7 @@
         '<div class="scn"><button data-lpedit="' + i + '">Modifier</button></div></div>';
     }).join('');
     return h + '<div class="row" style="display:flex;gap:8px;margin-top:6px"><button class="btn sm pri" data-lpnew>+ Nouveau programme</button></div>' +
-      '<p class="note">Les programmes partent du téléphone : il doit être sur le Wi-Fi de la maison à l\'heure prévue. Pour qu\'ils marchent même en votre absence, programmez aussi dans l\'appli Hue (Automatisations).</p>';
+      '<p class="note">Les programmes partent du téléphone (ou de l\'ordinateur, Suite MAG ouvert) : il doit être sur le réseau de la maison à l\'heure prévue. Pour qu\'ils marchent même en votre absence, programmez aussi dans l\'appli Hue (Automatisations).</p>';
   }
   function lprogSheet(i) {
     if (!model || !MJ.sched) return;
@@ -662,7 +662,7 @@
   var found = [];
   MJ.settingsExtra = function () {
     var h = '<div class="sect" id="f-maison">Maison › Philips Hue</div>';
-    if (X.PC || !B) return h + '<p class="note">Sur l\'ordinateur, le navigateur ne peut pas joindre le pont Hue (certificat auto-signé du pont, contenu mixte, protection du réseau local des navigateurs). Les lumières se commandent depuis le téléphone.</p>';
+    if ((X.PC && !(B && B.maisonPC)) || !B) return h + '<p class="note">Sur l\'ordinateur, le navigateur ne peut pas joindre le pont Hue (certificat auto-signé du pont, contenu mixte, protection du réseau local des navigateurs). Les lumières se commandent depuis le téléphone.</p>';
     if (!HUE) return h + '<p class="note">Non disponible dans cette version de l\'appli.</p>';
     h += '<div class="set"><div class="t">Je n\'ai pas de pont Hue<small>Ampoules Hue en Bluetooth seulement : elles se commandent avec l\'appli Hue, je n\'essaie rien.</small></div><label class="sw"><input type="checkbox" id="hNone"' + (S.hueNone ? ' checked' : '') + '><span></span></label></div>';
     if (S.hueNone) return h + '<p class="note">Sans pont Hue, ' + esc(S.name) + ' ne peut pas commander les lumières : le pont (Hue Bridge, relié à la box) est la seule porte d\'entrée locale. Aucune recherche ni connexion n\'est faite.</p>';
@@ -674,7 +674,7 @@
         '<div class="row" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm pri" id="hHome">Ouvrir Maison</button><button class="btn sm" id="hRefresh">Actualiser</button><button class="btn sm" id="hRepair">Jumeler à nouveau</button><button class="btn sm bad" id="hForget">Oublier le pont</button></div>' +
         '<p class="note">La clé d\'application du pont reste dans un fichier privé de l\'appli, exclu des sauvegardes : jamais dans l\'historique, l\'export ou internet. Seule l\'adresse du pont jumelé, sur le réseau local, est contactée.</p>';
     }
-    h += '<p class="note">Le pont Hue (Hue Bridge) est le boîtier relié à la box. Le téléphone doit être sur le Wi-Fi de la maison.</p>' +
+    h += '<p class="note">Le pont Hue (Hue Bridge) est le boîtier relié à la box. Le téléphone ou l\'ordinateur doit être sur le réseau de la maison.</p>' +
       '<div class="row" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm pri" id="hFind">' + (discover ? 'Recherche…' : 'Rechercher le pont') + '</button><button class="btn sm" id="hCloud">Chercher sur internet</button></div>' +
       '<p class="note">« Rechercher » interroge le réseau local seulement (mDNS). « Chercher sur internet » envoie une requête à discovery.meethue.com (Signify), qui renvoie l\'adresse locale des ponts vus depuis votre connexion : c\'est la seule requête internet des lumières.</p>' +
       (found.length ? found.map(function (f) { return '<div class="set"><div class="t">' + esc(f.name || 'Pont Hue') + '<small>' + esc(f.ip) + (f.id ? ' · ' + esc(f.id) : '') + (f.via === 'cloud' ? ' · trouvé par discovery.meethue.com' : '') + '</small></div><button class="btn sm pri" data-pair="' + esc(f.ip) + '">Jumeler</button></div>'; }).join('') : (discover === false ? '<p class="note warn">Aucun pont trouvé sur le réseau local.</p>' : '')) +

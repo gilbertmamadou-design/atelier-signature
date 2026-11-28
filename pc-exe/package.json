@@ -27,6 +27,7 @@
       "cameras.js",
       "google.js",
       "chemins.js",
+      "maison.js",
       "package.json",
       "node_modules/**/*"
     ],

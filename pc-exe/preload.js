@@ -25,8 +25,26 @@ window.MAGEXE = {
     special: function (id) { return ipc ? ipc.invoke('chemin-special', id) : Promise.resolve({ ok: false }); },
     ouvrir: function (p) { return ipc ? ipc.invoke('chemin-ouvrir', p) : Promise.resolve({ ok: false, err: 'absent' }); }
   },
+  // lumières Hue et volets TaHoma : le programme parle aux boîtiers de la maison (maison.js), réponses par majordomeEvent
+  maison: ipc ? {
+    hueInfo: function () { try { return ipc.sendSync('hue-info'); } catch (e) { return '{"paired":false}'; } },
+    hueReq: function (id, m, p, b) { ipc.send('hue-req', String(id), String(m), String(p), b == null ? null : String(b)); },
+    huePair: function (ip) { ipc.send('hue-pair', String(ip || '')); },
+    huePairCancel: function () { ipc.send('hue-pair-cancel'); },
+    hueForget: function () { ipc.send('hue-forget'); },
+    hueMove: function (ip) { ipc.send('hue-move', String(ip || '')); },
+    hueDiscover: function (cloud) { ipc.send('hue-discover', !!cloud); },
+    somfyInfo: function () { try { return ipc.sendSync('somfy-info'); } catch (e) { return '{"set":false}'; } },
+    somfySet: function (ip, port, pin, token) { ipc.send('somfy-set', String(ip || ''), +port || 8443, String(pin || ''), String(token || '')); },
+    somfyReq: function (id, m, p, b) { ipc.send('somfy-req', String(id), String(m), String(p), b == null ? null : String(b)); },
+    somfyForget: function () { ipc.send('somfy-forget'); },
+    somfyDiscover: function () { ipc.send('somfy-discover'); },
+    alarmSet: function (json) { ipc.send('maison-alarm-set', String(json)); },
+    alarmCancel: function (id) { ipc.send('maison-alarm-cancel', String(id)); }
+  } : null,
   cameras: function (name, move) { try { return ipc ? ipc.sendSync('cam-voice', String(name || ''), String(move || '')) : 'absent'; } catch (e) { return 'absent'; } }
 };
+if (ipc) ipc.on('maison-ev', function (e, type, json) { try { if (window.majordomeEvent) window.majordomeEvent(type, json); } catch (x) { } });
 // Caméras : pont MAGCameras (comme CamerasBridge.java sur Android) et mosaïque
 if (ipc && /^\/cameras\//.test(location.pathname)) {
   var camEmit = function (o) { try { if (window.camerasEvent) window.camerasEvent(JSON.stringify(o)); } catch (e) { } };
