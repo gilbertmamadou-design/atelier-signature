@@ -26,6 +26,7 @@
       "preload.js",
       "cameras.js",
       "google.js",
+      "chemins.js",
       "package.json",
       "node_modules/**/*"
     ],

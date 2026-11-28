@@ -19,6 +19,12 @@ window.MAGEXE = {
     ical: function (force) { return ipc ? ipc.invoke('google-ical', !!force) : Promise.resolve({ ok: false, err: 'absent' }); },
     gmail: function () { return ipc ? ipc.invoke('google-gmail') : Promise.resolve({ ok: false, err: 'absent' }); }
   },
+  // dossiers et programmes du PC (raccourcis de Jarvis) : seuls les chemins choisis dans la fenêtre Windows s'ouvrent
+  chemins: {
+    choisir: function (type) { return ipc ? ipc.invoke('chemin-choisir', type) : Promise.resolve({ ok: false }); },
+    special: function (id) { return ipc ? ipc.invoke('chemin-special', id) : Promise.resolve({ ok: false }); },
+    ouvrir: function (p) { return ipc ? ipc.invoke('chemin-ouvrir', p) : Promise.resolve({ ok: false, err: 'absent' }); }
+  },
   cameras: function (name, move) { try { return ipc ? ipc.sendSync('cam-voice', String(name || ''), String(move || '')) : 'absent'; } catch (e) { return 'absent'; } }
 };
 // Caméras : pont MAGCameras (comme CamerasBridge.java sur Android) et mosaïque

@@ -248,6 +248,8 @@ else {
     ipcMain.handle('portable', () => !!process.env.PORTABLE_EXECUTABLE_FILE);
     // Google Agenda (lien iCal) et Gmail (IMAP, mot de passe d'application) : google.js
     try { require('./google.js')(app, ipcMain); } catch (e) { console.error('google.js', e); }
+    // raccourcis de Jarvis vers les dossiers et programmes choisis par l'utilisateur : chemins.js
+    try { require('./chemins.js')(app, ipcMain, shell, dialog, BrowserWindow); } catch (e) { console.error('chemins.js', e); }
     // Caméras : recherche ONVIF, test, mosaïque (cameras.js)
     const CAM = require('./cameras');
     // liste des caméras prêtes gardée sur le disque : Majordome et Jarvis ouvrent la mosaïque à la voix

@@ -110,7 +110,16 @@
     var m = /\/pc\/([a-z0-9-]+)\/?(?:index\.html)?(?:[?#].*)?$/.exec(String(url || '')) || (/^\.\.\/([a-z0-9-]+)\/?$/.exec(String(url || '')));
     return m && FJ.suiteName(m[1]) ? m[1] : null;
   };
+  /** raccourci vers un dossier ou un programme du PC (« dossier:C:\… », « programme:C:\… ») : Suite MAG.exe seulement */
+  FJ.cheminDe = function (u) { var m = /^(dossier|programme):(.+)$/i.exec(String(u || '').trim()); return m ? { type: m[1].toLowerCase(), path: m[2] } : null; };
+  FJ.chemins = function () { return root.MAGEXE && root.MAGEXE.chemins ? root.MAGEXE.chemins : null; };
   FJ.open = function (u) {
+    var ch = FJ.cheminDe(u);
+    if (ch) {
+      if (!FJ.chemins()) { FJ.toast('Ce raccourci s\'ouvre seulement dans Jarvis de Suite MAG.exe', 3200); return false; }
+      FJ.chemins().ouvrir(ch.path).then(function (r) { if (!r || !r.ok) FJ.toast((r && r.err) || 'Ouverture impossible', 4000); });
+      return true;
+    }
     var url = FJ.resolve(u);
     if (!url) return false;
     // appli Android : un lien suivi dans la page est confié à Android (navigateur, téléphone, messages, courrier…)
@@ -176,7 +185,7 @@
     FJ.keys.forEach(function (k) {
       var b = doc.createElement('button'); b.type = 'button'; b.className = 'key'; b.title = k.name + ' — ' + FJ.resolve(k.url);
       b.innerHTML = FJI.svg(k.icon || 'etoile') + '<span>' + esc(k.name) + '</span>';
-      b.onclick = function () { FJ.open(k.url); FJ.toast('Ouverture : ' + k.name, 1800); };
+      b.onclick = function () { if (FJ.open(k.url) !== false) FJ.toast('Ouverture : ' + k.name, 1800); };
       box.appendChild(b);
     });
     FJ.relayout();
@@ -1013,6 +1022,10 @@
     h += '<h3>Ajouter</h3><div class="fld"><span class="lb">Appli de la Suite</span><div style="display:flex;gap:.5em">' + sel('kSuite', SUITE.map(function (s) { return [s[0], s[1]]; }), 'texte') + '<button type="button" class="btn" id="kAddSuite">Ajouter</button></div></div>';
     h += '<div class="fld"><span class="lb">Raccourci Windows</span><div style="display:flex;gap:.5em">' + sel('kWin', WIN.map(function (w, i) { return [i, w[0] + (w[3] === 'usuel' ? ' (courant)' : w[3] === 'essai' ? ' (à essayer)' : '')]; }), 0) + '<button type="button" class="btn" id="kAddWin">Ajouter</button></div></div>';
     h += '<div class="fld"><span class="lb">Site ou adresse</span><div style="display:grid;grid-template-columns:1fr 1.6fr auto;gap:.5em"><input type="text" id="kName" placeholder="Nom"><input type="text" id="kUrl" placeholder="https://… ou ms-settings:…"><button type="button" class="btn" id="kAdd">Ajouter</button></div></div>';
+    if (FJ.chemins()) h += '<div class="fld"><span class="lb">Dossier ou programme du PC</span><div style="display:flex;gap:.5em;flex-wrap:wrap">' +
+      sel('kSpec', [['documents', 'Documents'], ['downloads', 'Téléchargements'], ['desktop', 'Bureau'], ['pictures', 'Images'], ['videos', 'Vidéos'], ['music', 'Musique'], ['home', 'Dossier personnel']], 'documents') +
+      '<button type="button" class="btn" id="kAddSpec">Ajouter</button><button type="button" class="btn" id="kAddDir">Choisir un dossier…</button><button type="button" class="btn" id="kAddProg">Choisir un programme…</button></div></div>' +
+      '<p class="hint">Un dossier (Formations, clé USB, disque D:…) s\'ouvre dans l\'Explorateur ; un programme (.exe ou raccourci .lnk : Claude, Word…) se lance. Seuls les chemins choisis ici peuvent s\'ouvrir.</p>';
     h += '<div style="display:flex;gap:.5em;margin-top:.8em"><button type="button" class="btn" id="kReset">Rétablir les raccourcis par défaut</button></div><div id="kIcons"></div>';
     h += '<h3>Protocoles de Windows</h3><table class="ptable"><tr><th>Raccourci</th><th>Adresse</th><th>Statut</th></tr>' + WIN.map(function (w) { return '<tr><td>' + esc(w[0]) + '</td><td><code>' + esc(w[1]) + '</code></td><td>' + (w[3] === 'doc' ? 'documenté (Microsoft)' : w[3] === 'usuel' ? 'courant, non documenté' : 'à essayer') + '</td></tr>'; }).join('') + '</table>';
     B.innerHTML = h;
@@ -1048,6 +1061,12 @@
       $('kName').value = $('kUrl').value = '';
     };
     $('kReset').onclick = function () { FJ.keys = FJ.defaultKeys(); FJ.saveKeys(); list(); };
+    if (FJ.chemins()) {
+      var ajCh = function (type) { return function (r) { if (r && r.ok) { add({ name: String(r.nom || 'Dossier').slice(0, 24), url: type + ':' + r.path, icon: type === 'dossier' ? 'dossier' : 'ecran' }); FJ.toast('« ' + r.nom + ' » ajouté', 1800); } else if (r && !r.annule) FJ.toast('Ajout impossible'); }; };
+      $('kAddSpec').onclick = function () { FJ.chemins().special($('kSpec').value).then(ajCh('dossier')); };
+      $('kAddDir').onclick = function () { FJ.chemins().choisir('dossier').then(ajCh('dossier')); };
+      $('kAddProg').onclick = function () { FJ.chemins().choisir('programme').then(ajCh('programme')); };
+    }
     list();
   }
 
