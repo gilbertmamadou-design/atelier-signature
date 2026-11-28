@@ -10,7 +10,8 @@
   'use strict';
   var MJ = window.Majordome; if (!MJ || !MJ._) return;
   var X = MJ._, H = X.H, B = X.B, S = X.S, esc = X.esc, J = X.J, answer = X.answer;
-  var HAS = !!(X.ANDROID && B && B.notifList);
+  // téléphone : notifications ; PC (programme Suite MAG.exe) : les mails Gmail de mj-google.js
+  var HAS = !!(B && B.notifList && (X.ANDROID || B.gmail));
   var KREAD = 'majordome:msgs-lus';
   var READ = {}; (X.lsGet(KREAD, []) || []).forEach(function (id) { READ[id] = 1; });
   var CUR = { queue: [], last: null };
@@ -166,6 +167,11 @@
     var h = prevExtra ? prevExtra() : '';
     if (!HAS) return h;
     var ok = B.notifAccess();
+    if (B.gmail) return h + '<div class="sect" id="f-messages">Mails reçus</div>' +
+      '<div class="set"><div class="t">Gmail<small>' + (ok ? 'Relié : les mails non lus de la boîte principale' : 'Pas encore relié') + '</small></div><button class="btn sm" id="mjnAcc">' + (ok ? 'Réglages' : 'Relier Gmail') + '</button></div>' +
+      '<div class="set"><div class="t">Annoncer les nouveaux mails<small>Quand Majordome est ouvert ; chaque profil garde son choix</small></div><select class="in" id="mjnAnn" style="width:auto">' +
+      [['off', 'Non'], ['nombre', 'Juste l\'arrivée et le nombre'], ['qui', 'Qui écrit'], ['texte', 'Qui écrit et l\'objet']].map(function (o) { return '<option value="' + o[0] + '"' + (S.msgAnnonce === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
+      '<p class="note">À dire : « J\'ai des mails ? », « Lis-moi mes mails », « La suite ».</p>';
     return h + '<div class="sect" id="f-messages">Messages reçus</div>' +
       '<div class="set"><div class="t">Lire les messages et les mails<small>' + (ok ? 'Autorisé : WhatsApp, SMS, Messenger, Outlook, Gmail… (ce qu\'affichent les notifications)' : 'Pas encore autorisé') + '</small></div><button class="btn sm' + (ok ? '' : ' pri') + '" id="mjnAcc">' + (ok ? 'Réglage' : 'Autoriser') + '</button></div>' +
       (ok ? '' : '<p class="note">Android 13 et plus, si l\'option est grisée : Infos de l\'appli › ⋮ › « Autoriser les paramètres restreints ». <button class="btn sm" id="mjnInfo">Infos de l\'appli</button></p>') +

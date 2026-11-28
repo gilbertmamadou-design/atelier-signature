@@ -12,6 +12,13 @@ window.MAGEXE = {
   veille: function (on, min) { return ipc ? ipc.invoke('veille', on, min) : Promise.resolve({ ok: false }); },
   essaiVeille: function () { if (ipc) ipc.send('veille-essai'); },
   cerveau: function () { if (ipc) ipc.send('cerveau'); },
+  // Google Agenda (lien iCal) et Gmail (mot de passe d'application) : google.js ; le mot de passe ne revient jamais à la page
+  google: {
+    etat: function () { return ipc ? ipc.invoke('google-etat') : Promise.resolve(null); },
+    regler: function (o) { return ipc ? ipc.invoke('google-reglage', o) : Promise.resolve(null); },
+    ical: function (force) { return ipc ? ipc.invoke('google-ical', !!force) : Promise.resolve({ ok: false, err: 'absent' }); },
+    gmail: function () { return ipc ? ipc.invoke('google-gmail') : Promise.resolve({ ok: false, err: 'absent' }); }
+  },
   cameras: function (name, move) { try { return ipc ? ipc.sendSync('cam-voice', String(name || ''), String(move || '')) : 'absent'; } catch (e) { return 'absent'; } }
 };
 // Caméras : pont MAGCameras (comme CamerasBridge.java sur Android) et mosaïque

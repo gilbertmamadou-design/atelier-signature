@@ -1,15 +1,15 @@
 {
  "_lanceur": {
-  "date": "2026-11-27",
-  "v": "7e432dd970fc"
+  "date": "2026-11-28",
+  "v": "cc1ec51f46db"
  },
  "actualites": {
   "date": "2026-11-25",
   "v": "2a2c7a9e533b"
  },
  "agenda": {
-  "date": "2026-11-25",
-  "v": "8a3a8f722fae"
+  "date": "2026-11-28",
+  "v": "d730bf58a00b"
  },
  "bourse": {
   "date": "2026-11-25",
@@ -64,8 +64,8 @@
   "v": "0982d88af67f"
  },
  "fond-jarvis": {
-  "date": "2026-11-27",
-  "v": "f83fa6b56475"
+  "date": "2026-11-28",
+  "v": "96faee8becf3"
  },
  "fond-jarvis:lively": {
   "date": "2026-11-27",
@@ -88,8 +88,8 @@
   "v": "5de4c9ca27be"
  },
  "majordome": {
-  "date": "2026-11-27",
-  "v": "ae7f1007536b"
+  "date": "2026-11-28",
+  "v": "e576594f00fe"
  },
  "meteo": {
   "date": "2026-11-25",

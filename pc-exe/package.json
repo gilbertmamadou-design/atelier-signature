@@ -25,6 +25,7 @@
       "main.js",
       "preload.js",
       "cameras.js",
+      "google.js",
       "package.json",
       "node_modules/**/*"
     ],
@@ -94,6 +95,7 @@
     ]
   },
   "dependencies": {
-    "ffmpeg-static": "^5.2.0"
+    "ffmpeg-static": "^5.2.0",
+    "imapflow": "^1.0.0"
   }
 }

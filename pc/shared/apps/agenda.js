@@ -17,7 +17,7 @@
   var M = window.MAGPC; if (!M) return;
   var KEY = 'agenda-pc.v1', DAY = 86400000, HOUR = 3600000;
   var LOCAL = 'Sur cet ordinateur';
-  var D = M.store.get(KEY, null);
+  var D = M.store.get(KEY, null), MAGAgendaGoogle = null;
   if (!D || !Array.isArray(D.cals)) D = { seq: 1, cals: [], ev: [] };
   if (!D.cals.length) D.cals.push({ id: D.seq++, name: LOCAL, color: '#33B679', visible: true });
   var saveT = null;
@@ -31,8 +31,8 @@
   window.addEventListener('pagehide', function () { if (saveT) { clearTimeout(saveT); M.store.set(KEY, D); } });
   function emit(kind, data) { if (window.agendaEvent) window.agendaEvent(kind, data); }
   function err(m) { return JSON.stringify({ ok: false, err: m }); }
-  function cal(id) { for (var i = 0; i < D.cals.length; i++) if (D.cals[i].id === +id) return D.cals[i]; return null; }
-  function ev(id) { for (var i = 0; i < D.ev.length; i++) if (D.ev[i].id === +id) return D.ev[i]; return null; }
+  function cal(id) { if (+id === GID && G.on) return GCAL; for (var i = 0; i < D.cals.length; i++) if (D.cals[i].id === +id) return D.cals[i]; return null; }
+  function ev(id) { var l = +id > GID ? G.ev : D.ev; for (var i = 0; i < l.length; i++) if (l[i].id === +id) return l[i]; return null; }
   function colorOf(e) { if (e.c) return e.c; var c = cal(e.cal); return c ? c.color : '#33B679'; }
   function norm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
 
@@ -102,6 +102,91 @@
     return out;
   }
 
+
+  /* ---------------- Google Agenda (programme Suite MAG.exe) ----------------
+     Agenda « Google Agenda » en lecture seule : le programme télécharge l'« adresse secrète au format iCal »
+     (Majordome › Réglages › Google, pc-exe/google.js) ; on la lit ici, toutes les 15 minutes et à l'ouverture.
+     Mêmes occurrences et rappels que l'agenda de l'ordinateur ; pour modifier, c'est dans Google Agenda. */
+  var GID = 900000, G = { on: false, ev: [], at: 0, err: '', old: false };
+  var GCAL = { id: GID, name: 'Google Agenda', color: '#4285F4', visible: true };
+  function icsUnesc(v) { return String(v || '').replace(/\\n/gi, '\n').replace(/\\([,;\\])/g, '$1'); }
+  function tzUtc(y, mo, d, h, mi, s, tz) {
+    // heure « murale » dans le fuseau tz → instant UTC (deux passes : suit les changements d'heure)
+    var guess = Date.UTC(y, mo, d, h, mi, s);
+    try {
+      var f = new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      var off = function (t) { var p = {}; f.formatToParts(new Date(t)).forEach(function (x) { p[x.type] = +x.value; }); return Date.UTC(p.year, p.month - 1, p.day, p.hour % 24, p.minute, p.second) - t; };
+      var t1 = guess - off(guess); return guess - off(t1);
+    } catch (e) { return new Date(y, mo, d, h, mi, s).getTime(); }
+  }
+  function icsDate(v, p) {
+    var m = /^(\d{4})(\d\d)(\d\d)(?:T(\d\d)(\d\d)(\d\d)?(Z)?)?$/.exec(String(v || '').trim()); if (!m) return NaN;
+    if (!m[4]) return Date.UTC(+m[1], m[2] - 1, +m[3]);
+    if (m[7]) return Date.UTC(+m[1], m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0));
+    if (p && p.TZID) return tzUtc(+m[1], m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0), p.TZID);
+    return new Date(+m[1], m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0)).getTime();
+  }
+  function icsDur(v) {
+    var m = /^([+-])?P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/.exec(String(v || '').trim()); if (!m) return null;
+    var ms = ((+m[2] || 0) * 7 * DAY) + ((+m[3] || 0) * DAY) + ((+m[4] || 0) * HOUR) + ((+m[5] || 0) * 60000) + ((+m[6] || 0) * 1000);
+    return m[1] === '-' ? -ms : ms;
+  }
+  function parseIcs(text) {
+    var lines = String(text || '').replace(/\r?\n[ \t]/g, '').split(/\r?\n/), raw = [], cur = null, alarm = false;
+    lines.forEach(function (l) {
+      if (l === 'BEGIN:VEVENT') { cur = { rem: [], ex: [] }; return; }
+      if (l === 'END:VEVENT') { if (cur) raw.push(cur); cur = null; return; }
+      if (!cur) return;
+      if (l === 'BEGIN:VALARM') { alarm = true; return; }
+      if (l === 'END:VALARM') { alarm = false; return; }
+      var i = l.indexOf(':'); if (i < 0) return;
+      var head = l.slice(0, i).split(';'), val = l.slice(i + 1), name = head[0].toUpperCase(), p = {};
+      head.slice(1).forEach(function (x) { var kv = x.split('='); p[kv[0].toUpperCase()] = (kv[1] || '').replace(/^"|"$/g, ''); });
+      if (alarm) { if (name === 'TRIGGER' && !p.VALUE) { var dd = icsDur(val); if (dd != null && dd <= 0) cur.rem.push(Math.round(-dd / 60000)); } return; }
+      if (name === 'UID') cur.uid = val;
+      else if (name === 'SUMMARY') cur.t = icsUnesc(val);
+      else if (name === 'LOCATION') cur.l = icsUnesc(val);
+      else if (name === 'DESCRIPTION') cur.d = icsUnesc(val).slice(0, 4000);
+      else if (name === 'DTSTART') { cur.s = icsDate(val, p); cur.all = p.VALUE === 'DATE' || /^\d{8}$/.test(val.trim()); }
+      else if (name === 'DTEND') cur.e = icsDate(val, p);
+      else if (name === 'DURATION') cur.dur = icsDur(val);
+      else if (name === 'RRULE') cur.rrule = val;
+      else if (name === 'EXDATE') val.split(',').forEach(function (v) { var t = icsDate(v, p); if (isFinite(t)) cur.ex.push(t); });
+      else if (name === 'RECURRENCE-ID') cur.rid = icsDate(val, p);
+      else if (name === 'STATUS') cur.cancel = /CANCELLED/i.test(val);
+    });
+    var out = [], byUid = {}, seq = GID + 1;
+    function fields(r) {
+      var s = r.s, e = isFinite(r.e) ? r.e : r.dur != null ? s + r.dur : r.all ? s + DAY : s;
+      return { cal: GID, t: r.t || '', l: r.l || '', d: r.d || '', all: !!r.all, start: s, end: Math.max(e, s), rem: r.rem.filter(function (m, i, a) { return m >= 0 && a.indexOf(m) === i; }), uid: r.uid || '' };
+    }
+    raw.forEach(function (r) {
+      if (!isFinite(r.s) || r.rid != null) return;
+      var e = Object.assign({ id: seq++, rrule: r.rrule || '' }, fields(r)); if (r.cancel) e.cancel = true;
+      out.push(e); if (r.uid) byUid[r.uid] = e;
+      if (e.rrule) r.ex.forEach(function (t) { out.push({ id: seq++, cal: GID, t: e.t, l: '', d: '', all: e.all, start: t, end: t, rrule: '', rem: [], oid: e.id, oit: t, cancel: true }); });
+    });
+    raw.forEach(function (r) {
+      if (r.rid == null || !isFinite(r.s)) return;
+      var m = byUid[r.uid], e = Object.assign({ id: seq++, rrule: '' }, fields(r));
+      if (m && m.rrule) { e.oid = m.id; e.oit = r.rid; }
+      if (r.cancel) e.cancel = true;
+      out.push(e);
+    });
+    return out;
+  }
+  function googleLire(force) {
+    var X = window.MAGEXE && window.MAGEXE.google; if (!X) return Promise.resolve(false);
+    return X.ical(force).then(function (r) {
+      if (!r || !r.ok) { G.on = false; G.ev = []; G.err = r && r.err || ''; return false; }
+      try { G.ev = parseIcs(r.ics); } catch (e) { G.err = 'Agenda Google illisible'; return false; }
+      G.on = true; G.at = r.at || Date.now(); G.err = r.old ? r.err || '' : ''; G.old = !!r.old;
+      planReminders(); emit('resume', ''); emit('sync', '');
+      return true;
+    }, function () { return false; });
+  }
+  MAGAgendaGoogle = { lire: googleLire, etat: function () { return { on: G.on, n: G.ev.length, at: G.at, err: G.err, old: G.old }; } };
+
   /* ---------------- Occurrences ---------------- */
   function inst(e, b, en, oid) {
     var o = { id: e.id, b: b, e: en, all: !!e.all, t: e.t || '', l: e.l || '', c: colorOf(e), cal: e.cal, rec: !!(e.rrule || e.oid), al: !!(e.rem && e.rem.length) };
@@ -109,9 +194,9 @@
     return o;
   }
   function instancesBetween(from, to, max, filter) {
-    var out = [], exc = {};
-    D.ev.forEach(function (e) { if (e.oid) (exc[e.oid] = exc[e.oid] || {})[e.oit] = 1; });
-    D.ev.forEach(function (e) {
+    var out = [], exc = {}, tous = G.on ? D.ev.concat(G.ev) : D.ev;
+    tous.forEach(function (e) { if (e.oid) (exc[e.oid] = exc[e.oid] || {})[e.oit] = 1; });
+    tous.forEach(function (e) {
       if (filter && !filter(e)) return;
       if (e.cancel) return;
       var dur = Math.max(0, e.end - e.start);
@@ -148,7 +233,9 @@
     ask: function () { setTimeout(function () { emit('perm', '1'); }, 0); },
     blocked: function () { return false; },
     calendars: function () {
-      return JSON.stringify(D.cals.map(function (c) { return { id: c.id, name: c.name, account: LOCAL, type: 'LOCAL', color: c.color, visible: true, write: true, primary: true, local: true }; }));
+      var l = D.cals.map(function (c) { return { id: c.id, name: c.name, account: LOCAL, type: 'LOCAL', color: c.color, visible: true, write: true, primary: true, local: true }; });
+      if (G.on) l.push({ id: GID, name: GCAL.name, account: 'Google', type: 'GOOGLE', color: GCAL.color, visible: true, write: false, primary: false, local: false });
+      return JSON.stringify(l);
     },
     createLocal: function (name, color) {
       var n = String(name || '').trim(); if (!n || /téléphone/i.test(n)) n = LOCAL;
@@ -163,7 +250,7 @@
       persist(); return '{"ok":true}';
     },
     colors: function () { return '[]'; },
-    sync: function () { },                       // aucun compte à synchroniser sur PC
+    sync: function () { googleLire(true); },      // Google Agenda (programme Suite MAG.exe) : relire le lien iCal
     instances: function (from, to) { return JSON.stringify(instancesBetween(+from, +to, 5000)); },
     search: function (q, from, to) {
       var w = norm(q).trim(); if (!w) return '[]';
@@ -178,6 +265,7 @@
     },
     save: function (json) {
       var o; try { o = JSON.parse(json); } catch (x) { return err('Données illisibles'); }
+      if (+o.id > GID || +o.cal === GID) return err('Agenda Google en lecture seule : modifiez-le dans Google Agenda');
       var id = +o.id || 0, mode = o.mode || 'all', start = +o.start, end = Math.max(+o.end || start, start);
       if (!isFinite(start)) return err('Date de début manquante');
       var rem = Array.isArray(o.rem) ? o.rem.filter(function (m, i, a) { return m >= 0 && a.indexOf(m) === i; }) : null;
@@ -200,6 +288,7 @@
       persist(); return JSON.stringify({ ok: true, id: e.id });
     },
     remove: function (id, mode, ib) {
+      if (+id > GID) return err('Agenda Google en lecture seule : supprimez-le dans Google Agenda');
       var e = ev(id); if (!e) return err('Événement introuvable');
       if (mode === 'one' && e.oid) e.cancel = true;
       else if (mode === 'one' && e.rrule) D.ev.push({ id: D.seq++, cal: e.cal, t: e.t, l: '', d: '', all: e.all, start: +ib, end: +ib, rrule: '', rem: [], oid: e.id, oit: +ib, cancel: true });
@@ -238,6 +327,8 @@
   function copyShare(t) { M.clip.write(t).then(function (ok) { M.toast(ok ? 'Événement copié dans le presse-papier' : 'Partage impossible', { bad: !ok }); }); }
   var pend = '';
   window.MAGAgenda = B;
+  window.MAGAgendaGoogle = MAGAgendaGoogle;
+  googleLire(false); setInterval(function () { googleLire(false); }, 15 * 60000);
   /* Même agenda dans plusieurs fenêtres (Agenda, Majordome) : une modification faite ailleurs est relue ici */
   window.addEventListener('storage', function (e) {
     if (e.key !== KEY || !e.newValue) return;

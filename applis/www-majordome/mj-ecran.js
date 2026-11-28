@@ -79,7 +79,7 @@
     }
     if (inf.msg) {
       var m = MJ.msgNonLus ? MJ.msgNonLus() : null;
-      if (!m) cells.push({ k: 'msg', l: 'Messages', b: '—', s: X.ANDROID ? 'Touchez pour autoriser' : 'Sur le téléphone' });
+      if (!m) cells.push({ k: 'msg', l: 'Messages', b: '—', s: X.ANDROID ? 'Touchez pour autoriser' : (window.MAGMajordome || {}).gmail ? 'Touchez pour relier Gmail' : 'Sur le téléphone' });
       else { var n = m.msg + m.mails; cells.push({ k: 'msg', l: 'Messages', b: n ? String(n) + ' non lu' + (n > 1 ? 's' : '') : 'Rien de nouveau', big: n ? 1 : 0, s: n ? [m.msg ? m.msg + ' message' + (m.msg > 1 ? 's' : '') : '', m.mails ? m.mails + ' mail' + (m.mails > 1 ? 's' : '') : ''].filter(Boolean).join(' · ') : 'Messages et mails' }); }
     }
     if (inf.notes) {
@@ -98,7 +98,7 @@
   };
   MJ.ecranClick = function (k) {
     if (k === 'bat') { X.handle('niveau de batterie', 'click'); return true; }
-    if (k === 'msg') { if (MJ.msgNonLus && MJ.msgNonLus()) X.handle('j\'ai des messages', 'click'); else X.settingsSheet('messages'); return true; }
+    if (k === 'msg') { if (MJ.msgNonLus && MJ.msgNonLus()) X.handle('j\'ai des messages', 'click'); else X.settingsSheet((window.MAGMajordome || {}).gmail ? 'google' : 'messages'); return true; }
     if (k === 'list' || k === 'notes') { var b = $('bLists'); if (b) b.click(); return true; }
     if (k === 'ciel') { var lu = lune(Date.now()), so = soleil(); X.answer({ say: lu.nom + ', éclairée à ' + lu.ecl + ' %.' + (so ? ' ' + so.replace('Soleil ', 'Lever du soleil à ').replace(' – ', ', coucher à ') + '.' : ''), k: 'Lune et soleil' }); return true; }
     return false;

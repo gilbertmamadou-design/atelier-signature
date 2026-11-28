@@ -4,7 +4,7 @@
    Portée pc/ : chaque appli a son propre service worker (portée pc/<appli>/), prioritaire sur celui-ci ;
    celui-ci ne répond QUE pour ses propres fichiers et laisse passer tout le reste. */
 'use strict';
-var VERSION = '00fda57b45d9';
+var VERSION = '38d30a407e16';
 var CACHE = 'mag-pc-lanceur-' + VERSION;
 var PRECACHE = [
   "./",
