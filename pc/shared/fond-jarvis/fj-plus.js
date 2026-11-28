@@ -371,6 +371,99 @@
   var fitT = 0; function fitSoon() { clearTimeout(fitT); fitT = setTimeout(function () { FJ.relayout(); }, 60); }
   var rel = FJ.relayout; FJ.relayout = function () { try { fitCols(); } catch (e) { } return rel.apply(this, arguments); };
 
+
+  /* ---------------- Place des panneaux : gauche ou droite, et ordre ----------------
+     ⚙ › Écran › Place des panneaux (Gauche / Droite, ↑ ↓) ou « Déplacer à la souris » (glisser un panneau).
+     S.place = { L: [ids], R: [ids] } ; un panneau absent de la liste (nouveau) garde sa place d'origine.
+     Téléphone et tablette en hauteur : le même ordre (gauche puis droite) pour la liste qui défile. */
+  var BASE = null;
+  function colIds(c) { return Array.prototype.filter.call($(c).children, function (e) { return e.classList.contains('pan') && e.id; }).map(function (e) { return e.id; }); }
+  function placeNow() { return { L: colIds('colL'), R: colIds('colR') }; }
+  function placeApply() {
+    if (!BASE) BASE = placeNow();
+    var p = S.place && Array.isArray(S.place.L) && Array.isArray(S.place.R) ? S.place : null, src = p || BASE, seen = {}, L = [], R = [];
+    function prend(l, dst) { l.forEach(function (id) { if (!seen[id] && $(id)) { seen[id] = 1; dst.push(id); } }); }
+    prend(src.L, L); prend(src.R, R);
+    BASE.L.forEach(function (id) { if (!seen[id] && $(id)) { seen[id] = 1; L.push(id); } });
+    BASE.R.forEach(function (id) { if (!seen[id] && $(id)) { seen[id] = 1; R.push(id); } });
+    L.forEach(function (id) { $('colL').appendChild($(id)); }); R.forEach(function (id) { $('colR').appendChild($(id)); });
+    L.concat(R).forEach(function (id, i) { $(id).style.order = p ? String(i + 1) : ''; });
+  }
+  function placeSave(o) { S.place = o; FJ.save(); placeApply(); FJ.relayout(); }
+  FJ.place = { apply: placeApply, now: placeNow, reset: function () { delete S.place; FJ.save(); placeApply(); FJ.relayout(); } };
+  function nomPan(id) { var e = $(id); return e ? (e.getAttribute('aria-label') || id) : id; }
+
+  /* déplacer à la souris (ou au doigt) : on attrape un panneau, on le pose dans une colonne, à la hauteur voulue */
+  var DEP = null;
+  FJ.deplacer = function (on) {
+    var R0 = doc.documentElement;
+    if (on === false) {
+      if (!DEP) return;
+      R0.classList.remove('fj-deplace'); DEP.bar.remove();
+      doc.removeEventListener('pointerdown', DEP.down, true); doc.removeEventListener('click', DEP.click, true); doc.removeEventListener('keydown', DEP.key, true);
+      DEP = null; FJ.toast('Place des panneaux enregistrée', 1800); return;
+    }
+    if (DEP) return;
+    if (FJ.ecranScroll && FJ.ecranScroll()) { FJ.settings('ecran'); FJ.toast('Sur cet écran : flèches ↑ ↓ et Gauche / Droite dans ⚙ › Écran', 3200); return; }
+    if (FJ.closeSettings) FJ.closeSettings();
+    R0.classList.add('fj-deplace');
+    var bar = doc.createElement('div'); bar.id = 'depBar';
+    bar.innerHTML = '<span>Glissez les panneaux à leur place, d\'une colonne à l\'autre</span><button type="button" class="btn" data-d="raz">Rétablir</button><button type="button" class="btn pri" data-d="ok">Terminer</button>';
+    doc.body.appendChild(bar);
+    bar.onclick = function (e) { var b = e.target.closest('[data-d]'); if (!b) return; if (b.dataset.d === 'raz') FJ.place.reset(); else FJ.deplacer(false); };
+    var cur = null;
+    function cols() { return ['colL', 'colR'].map($).filter(function (c) { return c && c.getClientRects().length; }); }
+    function cible(x, y) {
+      var best = null, bd = 1e9;
+      cols().forEach(function (c) { var r = c.getBoundingClientRect(), d = x < r.left ? r.left - x : x > r.right ? x - r.right : 0; if (d < bd) { bd = d; best = c; } });
+      if (!best) return null;
+      var list = Array.prototype.filter.call(best.children, function (e) { return e.classList.contains('pan') && e !== cur.el && !e.hidden && e.getClientRects().length; }), avant = null;
+      for (var i = 0; i < list.length; i++) { var r2 = list[i].getBoundingClientRect(); if (y < r2.top + r2.height / 2) { avant = list[i]; break; } }
+      return { col: best, avant: avant };
+    }
+    function move(e) {
+      if (!cur) return;
+      var dx = e.clientX - cur.x, dy = e.clientY - cur.y;
+      if (!cur.on) {
+        if (Math.abs(dx) + Math.abs(dy) < 6) return;
+        var r = cur.el.getBoundingClientRect();
+        cur.on = true; cur.ph = doc.createElement('div'); cur.ph.className = 'dep-ph'; cur.ph.style.height = r.height + 'px';
+        cur.el.parentNode.insertBefore(cur.ph, cur.el);
+        cur.ox = cur.x - r.left; cur.oy = cur.y - r.top;
+        Object.assign(cur.el.style, { position: 'fixed', width: r.width + 'px', left: r.left + 'px', top: r.top + 'px', zIndex: 9, pointerEvents: 'none' });
+        cur.el.classList.add('dep-drag');
+      }
+      cur.el.style.left = (e.clientX - cur.ox) + 'px'; cur.el.style.top = (e.clientY - cur.oy) + 'px';
+      var t = cible(e.clientX, e.clientY); if (t) { if (t.avant) t.col.insertBefore(cur.ph, t.avant); else t.col.appendChild(cur.ph); }
+      e.preventDefault();
+    }
+    function up() {
+      doc.removeEventListener('pointermove', move, true); doc.removeEventListener('pointerup', up, true); doc.removeEventListener('pointercancel', up, true);
+      if (!cur) return;
+      if (cur.on) {
+        cur.ph.parentNode.insertBefore(cur.el, cur.ph); cur.ph.remove();
+        ['position', 'width', 'left', 'top', 'zIndex', 'pointerEvents'].forEach(function (k) { cur.el.style[k] = ''; });
+        cur.el.classList.remove('dep-drag');
+        placeSave(placeNow());
+      }
+      cur = null;
+    }
+    DEP = {
+      bar: bar,
+      down: function (e) {
+        if (e.button > 0 || e.target.closest('#depBar')) return;
+        var p = e.target.closest('#colL > .pan, #colR > .pan'); if (!p) return;
+        cur = { el: p, x: e.clientX, y: e.clientY, on: false };
+        doc.addEventListener('pointermove', move, true); doc.addEventListener('pointerup', up, true); doc.addEventListener('pointercancel', up, true);
+        e.preventDefault();
+      },
+      click: function (e) { if (!e.target.closest('#depBar')) { e.preventDefault(); e.stopPropagation(); } },
+      key: function (e) { if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); FJ.deplacer(false); } }
+    };
+    doc.addEventListener('pointerdown', DEP.down, true); doc.addEventListener('click', DEP.click, true); doc.addEventListener('keydown', DEP.key, true);
+    FJ.toast('Attrapez un panneau et posez-le où vous voulez', 2600);
+  };
+
   /* ---------------- Commandes vocales et clavier ---------------- */
   function rawTail(raw, tail) {   // retrouve dans la phrase d'origine (accents, majuscules) le passage qui correspond à « tail »
     var w = String(raw || '').trim().split(/\s+/);
@@ -436,6 +529,14 @@
       });
       h += '</div>';
       var fxl = S.reduce ? 0 : S.fx <= 0 ? 0 : S.fx <= 40 ? 35 : S.fx <= 75 ? 65 : 100;
+      // place des panneaux : Gauche / Droite et ↑ ↓
+      var pl = placeNow(), lst = pl.L.map(function (id) { return [id, 'L']; }).concat(pl.R.map(function (id) { return [id, 'R']; }));
+      h += '<h3>Place des panneaux</h3><div class="plc">' + lst.map(function (x) {
+        var col = x[1] === 'L' ? pl.L : pl.R, i = col.indexOf(x[0]);
+        return '<div class="plr' + ($(x[0]).hidden ? ' off' : '') + '"><span class="pln">' + esc(nomPan(x[0])) + '</span>' +
+          '<span class="plg"><button type="button" class="btn sm' + (x[1] === 'L' ? ' pri' : '') + '" data-pl="' + x[0] + '" data-a="L" aria-label="À gauche">Gauche</button><button type="button" class="btn sm' + (x[1] === 'R' ? ' pri' : '') + '" data-pl="' + x[0] + '" data-a="R" aria-label="À droite">Droite</button></span>' +
+          '<span class="plg"><button type="button" class="btn sm" data-pl="' + x[0] + '" data-a="up"' + (i === 0 ? ' disabled' : '') + ' aria-label="Monter">↑</button><button type="button" class="btn sm" data-pl="' + x[0] + '" data-a="down"' + (i === col.length - 1 ? ' disabled' : '') + ' aria-label="Descendre">↓</button></span></div>';
+      }).join('') + '</div><div class="ecr-pl"><button type="button" class="btn" id="eDep">Déplacer à la souris</button><button type="button" class="btn" id="eRaz">Rétablir les places d\'origine</button></div><p class="hint">Les panneaux décochés plus haut restent à leur place, cachés. Sur le téléphone, le même ordre sert pour la liste qui défile (gauche puis droite).</p>';
       h += '<h3>Effets visuels</h3>' + U.fld('Niveau', U.sel('eFx', [[0, 'Aucun (écran calme, moins de batterie)'], [35, 'Légers'], [65, 'Normaux'], [100, 'Complets']], fxl), 'Anneaux, lueurs, circuits, étoiles, flux de données autour de la sphère.');
       h += U.chk('eFx2', 'Effets avancés', S.fx2 !== false, 'Constellations, satellites, ondes, balayage des panneaux, flux de données sur les côtés.');
       h += U.chk('eSaver', 'Économie sur batterie', !!S.saver, 'Moins d\'images par seconde quand l\'appareil n\'est pas branché.');
@@ -448,6 +549,19 @@
           if (k === 'Pair' && c.checked) loadAir(true);
         };
       });
+      B.querySelectorAll('[data-pl]').forEach(function (b) {
+        b.onclick = function () {
+          var o = placeNow(), id = b.dataset.pl, a = b.dataset.a, inL = o.L.indexOf(id) >= 0, col = inL ? o.L : o.R, i = col.indexOf(id);
+          if (a === 'L' && !inL) { o.R.splice(i, 1); o.L.push(id); }
+          else if (a === 'R' && inL) { o.L.splice(i, 1); o.R.push(id); }
+          else if (a === 'up' && i > 0) { col.splice(i, 1); col.splice(i - 1, 0, id); }
+          else if (a === 'down' && i < col.length - 1) { col.splice(i, 1); col.splice(i + 1, 0, id); }
+          else return;
+          placeSave(o); FJ.plusTab.ecran(B, U);
+        };
+      });
+      $('eDep').onclick = function () { FJ.deplacer(true); };
+      $('eRaz').onclick = function () { FJ.place.reset(); FJ.plusTab.ecran(B, U); };
       U.bind('eFx', function (v) { v = +v; S.reduce = v === 0; S.fx = v || 0; save(); FJ.apply(); });
       U.bind('eFx2', function (v) { S.fx2 = v; save(); FJ.apply(); });
       U.bind('eSaver', function (v) { S.saver = v; save(); FJ.apply(); });
@@ -543,6 +657,7 @@
   /* ---------------- Démarrage et rafraîchissements ---------------- */
   function everyMin() { renderMois(); renderMonde(); autoTheme(); bienTick(); }
   function boot() {
+    placeApply();
     renderMois(); renderTaches(); renderMonde(); renderForm(); FJ.plusVisible();
     loadAir();
     setInterval(tickForm, 1000);

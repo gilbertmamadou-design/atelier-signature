@@ -151,3 +151,18 @@
 .ecr-ch .btn svg { width: 26px; height: 26px; }
 .ecr-pan { display: grid; grid-template-columns: repeat(auto-fill, minmax(15em, 1fr)); gap: .2em .8em; }
 html[data-ecran="tel"] #pCmd { order: 2; }
+
+/* place des panneaux (⚙ › Écran) et mode « Déplacer à la souris » */
+.plc { display: grid; gap: .3em; margin: .3em 0 .6em; }
+.plr { display: flex; align-items: center; gap: .6em; flex-wrap: wrap; padding: .25em 0; border-bottom: 1px solid rgb(var(--c) / .12); }
+.plr.off .pln { opacity: .5; }
+.pln { flex: 1 1 10em; min-width: 0; }
+.plg { display: inline-flex; gap: .25em; }
+.plg .btn.sm { padding: .35em .7em; min-width: 2.4em; }
+.ecr-pl { display: flex; flex-wrap: wrap; gap: .5em; margin: .3em 0; }
+html.fj-deplace #colL > .pan, html.fj-deplace #colR > .pan { cursor: grab; outline: 2px dashed rgb(var(--c) / .55); outline-offset: -3px; touch-action: none; }
+html.fj-deplace #colL > .pan *, html.fj-deplace #colR > .pan * { pointer-events: none; }
+html.fj-deplace .pan.dep-drag { cursor: grabbing; opacity: .92; box-shadow: 0 0 2.5em rgb(var(--c) / .45); }
+.dep-ph { border: 2px dashed rgb(var(--c) / .8); background: rgb(var(--c) / .08); flex: none; }
+#depBar { position: fixed; top: max(10px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 12; display: flex; align-items: center; gap: .6em; flex-wrap: wrap; justify-content: center;
+  padding: .6em .9em; background: #030c16f2; border: 1px solid rgb(var(--c) / .6); box-shadow: 0 0 2em rgb(var(--c) / .25); color: rgb(var(--ink)); max-width: calc(100vw - 20px); }

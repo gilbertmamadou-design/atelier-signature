@@ -241,13 +241,13 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 /* ---------------- Réglages ---------------- */
 #sheet { position: fixed; inset: 0; z-index: 5; display: grid; place-items: center; background: rgb(0 0 0 / .55); padding: var(--gap); padding-left: calc(var(--free) + var(--gap)); }
-.sh { width: min(52em, 100%); max-height: 100%; display: flex; flex-direction: column; background: #030c16f2; border: 1px solid rgb(var(--c) / .5); box-shadow: 0 0 3em rgb(var(--c) / .18); font-size: .95em; user-select: text; -webkit-user-select: text; }
+.sh { width: min(52em, 100%); max-height: calc(100vh - 2 * var(--gap)); max-height: calc(100dvh - 2 * var(--gap)); display: flex; flex-direction: column; background: #030c16f2; border: 1px solid rgb(var(--c) / .5); box-shadow: 0 0 3em rgb(var(--c) / .18); font-size: .95em; user-select: text; -webkit-user-select: text; }
 .sh > header { display: flex; align-items: center; justify-content: space-between; padding: .7em 1em; border-bottom: 1px solid rgb(var(--c) / .25); }
 .sh > header h2 { margin: 0; font-size: 1em; font-weight: 500; letter-spacing: .35em; text-transform: uppercase; color: rgb(var(--c)); }
 .tabs { display: flex; flex-wrap: wrap; gap: .2em; padding: .5em 1em 0; border-bottom: 1px solid rgb(var(--c) / .18); }
 .tabs button { border: 0; background: transparent; padding: .5em .8em; cursor: pointer; color: rgb(var(--ink) / .7); border-bottom: 2px solid transparent; letter-spacing: .05em; }
 .tabs button[aria-selected="true"] { color: rgb(var(--c)); border-bottom-color: rgb(var(--c)); }
-.sh-body { padding: .9em 1.1em 1.1em; overflow: auto; scrollbar-width: thin; }
+.sh-body { padding: .9em 1.1em 1.1em; overflow: auto; scrollbar-width: thin; min-height: 0; flex: 1 1 auto; overscroll-behavior: contain; }   /* min-height : sans lui, le bas des longs onglets (Plus…) sortait de l'écran sans défiler */
 .fld { display: grid; grid-template-columns: minmax(10em, 15em) 1fr; gap: .5em 1em; align-items: center; margin: .55em 0; }
 .fld > label, .fld > .lb { color: rgb(var(--ink) / .85); }
 .fld small, .hint { display: block; color: rgb(var(--ink) / .55); font-size: .82em; line-height: 1.35; }
