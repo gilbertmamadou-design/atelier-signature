@@ -35,6 +35,8 @@
   var dansMj = /[?&]mj=1(?:&|$)/.test(location.search) && root.parent !== root;
   FJ.mode = dansMj ? 'mj' : /\.localhost$/i.test(host) || location.protocol === 'file:' ? 'lively' : root.MAGPC ? 'suite' : root.Capacitor ? 'app' : 'web';
   // visage de Majordome : comme la Suite sur le PC (MAGPC), comme l'appli sur le téléphone
+  // écran de Majordome dans Suite MAG.exe : le pont du programme (preload) n'est posé que sur la page de Majordome
+  if (dansMj) try { var P0 = root.parent; if (!root.MAG_EXE && P0.MAG_EXE) root.MAG_EXE = true; if (!root.MAGEXE && P0.MAGEXE) root.MAGEXE = P0.MAGEXE; } catch (e) { }
   FJ.suite = FJ.mode === 'suite' || (FJ.mode === 'mj' && !!root.MAGPC);
   FJ.android = FJ.mode === 'app' || (FJ.mode === 'mj' && !root.MAGPC);
   FJ.lively = FJ.mode === 'lively';     // devient vrai aussi dès qu'une fonction de Lively est appelée
@@ -84,7 +86,7 @@
   /** 'ok' réglages retrouvés · 'efface' stockage vide alors que le fond a déjà été réglé · 'nouveau' premier démarrage (ou effacé) · 'bloque' */
   FJ.storeState = function () { return !ST.writable ? 'bloque' : ST.had ? 'ok' : (ST.file || anyLpUser()) ? 'efface' : 'nouveau'; };
   FJ.DISK_CACHE_HELP = 'Lively › Paramètres (roue dentée) › Fond d\'écran › Navigateur Internet › « Cache sur disque » : Activé, puis redémarrez Lively.';
-  FJ.aiName = function () { return (S.name || MJS.name || 'Majordome').trim() || 'Majordome'; };
+  FJ.aiName = function () { return ((FJ.mode === 'mj' ? MJS.name || S.name : S.name || MJS.name) || 'Majordome').trim() || 'Majordome'; };
   var THEMES = ['cyan', 'bleu', 'vert', 'ambre', 'rouge'], LAYOUTS = ['complet', 'epure', 'sphere'], PIPER = ['pierre', 'gilles', 'siwis', 'jessica'];
   // modèle du centre (mj-orb.js, commun avec Majordome) : sphère de particules ou autre forme
   var FORMES = ['sphere', 'reacteur', 'onde', 'atome', 'cristal'], FORME_NOMS = ['Sphère', 'Réacteur', 'Onde sonore', 'Atome', 'Cristal'];
@@ -183,6 +185,7 @@
   function renderKeys() {
     var box = $('keys'); box.innerHTML = '';
     FJ.keys.forEach(function (k) {
+      if (FJ.mode === 'mj' && /^suite:(majordome|fond-jarvis)$/.test(k.url)) return;   // déjà dedans
       var b = doc.createElement('button'); b.type = 'button'; b.className = 'key'; b.title = k.name + ' — ' + FJ.resolve(k.url);
       b.innerHTML = FJI.svg(k.icon || 'etoile') + '<span>' + esc(k.name) + '</span>';
       b.onclick = function () { if (FJ.open(k.url) !== false) FJ.toast('Ouverture : ' + k.name, 1800); };
@@ -838,7 +841,9 @@
     ecrT = setTimeout(function () { var k = FJ.ecran() + (FJ.ecranScroll() ? 's' : ''); if (k !== ecrLast) { ecrLast = k; FJ.apply(); } }, 150);
   });
   $('gear').innerHTML = FJI.svg('reglages');
-  $('gear').onclick = function () { FJ.settings(); };
+  // écran de Majordome : un seul menu de réglages, celui de Majordome (sa rubrique « Écran » rouvre ces onglets-ci)
+  $('gear').onclick = function () { if (FJ.mode === 'mj' && FJ.mjPost) return FJ.mjPost({ t: 'reglages' }); FJ.settings(); };
+  if (FJ.mode === 'mj') { $('gear').title = 'Réglages'; $('gear').setAttribute('aria-label', 'Réglages'); $('ecr').hidden = true; }
 
   /* ---------------- Panneau de réglages ⚙ ---------------- */
   var TABS = [['general', 'Général'], ['affichage', 'Affichage'], ['meteo', 'Météo et actus'], ['raccourcis', 'Raccourcis'], ['agenda', 'Agenda'], ['voix', 'Voix'], ['apropos', 'À propos']];
@@ -846,13 +851,16 @@
   FJ.settings = function (tab) {
     curTab = tab || curTab;
     var sh = $('sheet'); sh.hidden = false;
-    sh.innerHTML = '<div class="sh"><header><h2 id="shTitle">' + (FJ.mode === 'mj' || FJ.mode === 'app' ? 'Réglages de l\'écran' : 'Réglages du fond') + '</h2><button type="button" class="ib" data-x aria-label="Fermer">' + FJI.svg('croix') + '</button></header>' +
-      '<div class="tabs" role="tablist">' + TABS.slice(0, -1).concat(FJ.plusTabs || [], TABS.slice(-1)).map(function (t) { return '<button type="button" role="tab" data-tab="' + t[0] + '" aria-selected="' + (t[0] === curTab) + '">' + t[1] + '</button>'; }).join('') + '</div>' +
+    var tabs = TABS.slice(0, -1).concat(FJ.plusTabs || [], TABS.slice(-1)).filter(function (t) { return !(FJ.mode === 'mj' && (t[0] === 'voix' || t[0] === 'apropos')); });
+    if (!tabs.some(function (t) { return t[0] === curTab; })) curTab = tabs[0][0];
+    sh.innerHTML = '<div class="sh"><header>' + (FJ.mode === 'mj' ? '<button type="button" class="btn" id="shBack" title="Retour aux réglages de Majordome">‹ Réglages</button>' : '') + '<h2 id="shTitle">' + (FJ.mode === 'mj' || FJ.mode === 'app' ? 'Réglages de l\'écran' : 'Réglages du fond') + '</h2><button type="button" class="ib" data-x aria-label="Fermer">' + FJI.svg('croix') + '</button></header>' +
+      '<div class="tabs" role="tablist">' + tabs.map(function (t) { return '<button type="button" role="tab" data-tab="' + t[0] + '" aria-selected="' + (t[0] === curTab) + '">' + t[1] + '</button>'; }).join('') + '</div>' +
       storeBanner() + '<div class="sh-body" id="shBody"></div><div class="sh-foot"><button type="button" class="btn pri" data-x>Fermer</button></div></div>';
     sh.querySelectorAll('[data-x]').forEach(function (b) { b.onclick = FJ.closeSettings; });
     sh.onclick = function (e) { if (e.target === sh) FJ.closeSettings(); };
     sh.querySelectorAll('[data-tab]').forEach(function (b) { b.onclick = function () { FJ.settings(b.dataset.tab); }; });
     var sw = $('shWhy'); if (sw) sw.onclick = function () { FJ.settings('apropos'); };
+    var sbk = $('shBack'); if (sbk) sbk.onclick = function () { FJ.closeSettings(); if (FJ.mjPost) FJ.mjPost({ t: 'reglages', focus: 'ecran' }); };
     tabBody($('shBody'), curTab);
   };
   /** Bandeau en haut du panneau ⚙ quand Lively ne garde pas le stockage du fond */
@@ -904,7 +912,7 @@
   function tabBody(B, tab) {
     var h = '';
     if (tab === 'general') {
-      h += fld('Nom de l\'assistant', '<input type="text" id="sName" maxlength="30" value="' + esc(S.name) + '" placeholder="' + esc(MJS.name || 'Majordome') + '">', 'Vide : celui de Majordome' + (MJS.name ? ' (« ' + esc(MJS.name) + ' »)' : ' (« Majordome »)') + '.');
+      if (FJ.mode !== 'mj') h += fld('Nom de l\'assistant', '<input type="text" id="sName" maxlength="30" value="' + esc(S.name) + '" placeholder="' + esc(MJS.name || 'Majordome') + '">', 'Vide : celui de Majordome' + (MJS.name ? ' (« ' + esc(MJS.name) + ' »)' : ' (« Majordome »)') + '.');
       h += fld('Affichage', sel('sEcran', ECRANS, S.ecran || 'auto'), 'Téléphone : sphère en haut, panneaux à faire défiler. Tablette : deux colonnes en hauteur, comme le PC en largeur. Automatique : selon la taille de l\'écran (bouton à côté de ⚙ dans la barre).');
       if (FJ.mode === 'app') h += chk('sEveil', 'Garder l\'écran allumé', S.eveil !== false, 'Pratique sur une tablette posée : l\'écran ne se met pas en veille tant que Jarvis est affiché.');
       h += fld('Disposition', sel('sLayout', [['complet', 'Complet'], ['epure', 'Épuré (horloge, sphère, raccourcis)'], ['sphere', 'Sphère seule']], S.layout));

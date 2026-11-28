@@ -313,7 +313,7 @@ else {
       });
     }));
     // Jarvis en plein écran à l'ouverture de la session Windows
-    const DEMARRAGE = { path: EXE, args: ['--app=fond-jarvis', '--plein-ecran'] };
+    const DEMARRAGE = { path: EXE, args: ['--app=majordome', '--plein-ecran'] };   // Majordome (son écran est l'écran Jarvis)
     ipcMain.handle('demarrage', (e, on) => {
       if (process.platform !== 'win32') return { ok: false, on: false };
       if (typeof on === 'boolean') app.setLoginItemSettings(Object.assign({ openAtLogin: on, name: 'Jarvis (Suite MAG)' }, DEMARRAGE));

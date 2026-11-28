@@ -78,6 +78,7 @@
     $('drawer').hidden = false; $('dq').value = ''; $('dm').hidden = true; paintGrid('');
     if (!history.state || !history.state.mjDrawer) try { history.pushState({ mjDrawer: 1 }, ''); } catch (e) { }
   }
+  MJ.lanceur = { open: openDrawer };   // menu ☰ de l'écran (mj-visage.js) : « Toutes les applis »
   function closeDrawer(fromPop) {
     if ($('drawer').hidden) return false;
     $('drawer').hidden = true; $('dm').hidden = true; $('dq').blur();

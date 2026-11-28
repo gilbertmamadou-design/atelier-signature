@@ -210,6 +210,9 @@
       // visage de Majordome : état de Majordome (sphère) et ce qu'il entend
       if (m.t === 'etat') { mjEtat(m.s); return; }
       if (m.t === 'entendu') { mjEntendu(m.text, m.fin); return; }
+      // Majordome › Réglages › Écran : ouvre l'onglet voulu des réglages de l'écran ; liste du menu ☰
+      if (m.t === 'reglagesEcran') { FJ.settings(m.tab || 'ecran'); return; }
+      if (m.t === 'menu') { mjMenuItems = m.items || []; if (mjMenuOpen) mjMenu(true); return; }
       var pd = CV.pend[m.id];
       if (m.t === 'ack' && pd) { pd.ack = true; return; }
       if (m.t === 'say' && m.item) {
@@ -791,6 +794,22 @@
   $('orbHit').onclick = function () { if (FJ.mode === 'mj') return mjEcoute(); activate(FJ.mode === 'suite' && !!B && engineOk(B) === 'vosk'); };
 
   /* ---------------- Visage de Majordome (FJ.mode = 'mj') ---------------- */
+  FJ.mjPost = function (m) { if (cvInit()) CV.bc.postMessage(m); };
+  var mjMenuItems = [], mjMenuOpen = false;
+  function mjMenu(on) {
+    var box = $('mjMenu');
+    if (!on) { if (box) box.remove(); mjMenuOpen = false; doc.removeEventListener('pointerdown', mjMenuOut, true); return; }
+    if (!box) { box = doc.createElement('div'); box.id = 'mjMenu'; box.setAttribute('role', 'menu'); doc.body.appendChild(box); }
+    box.innerHTML = (mjMenuItems.length ? mjMenuItems : [{ id: 'bSet', label: 'Réglages' }]).map(function (it) {
+      return '<button type="button" role="menuitem" data-mja="' + esc(it.id) + '">' + esc(it.label) + '</button>';
+    }).join('');
+    box.onclick = function (e) { var b = e.target.closest('[data-mja]'); if (!b) return; mjMenu(false); FJ.mjPost({ t: 'action', id: b.dataset.mja }); };
+    var r = $('mjBtn').getBoundingClientRect();
+    box.style.left = Math.max(8, Math.min(innerWidth - 230, r.left + r.width / 2 - 110)) + 'px';
+    box.style.bottom = Math.max(8, innerHeight - r.top + 8) + 'px';
+    if (!mjMenuOpen) { mjMenuOpen = true; setTimeout(function () { doc.addEventListener('pointerdown', mjMenuOut, true); }, 0); FJ.mjPost({ t: 'menu' }); }
+  }
+  function mjMenuOut(e) { if (!e.target.closest('#mjMenu,#mjBtn')) mjMenu(false); }
   function mjEcoute() { if (!cvInit()) return; CV.bc.postMessage({ t: 'ecoute' }); if (FJ.orb) FJ.orb.pulse(); }
   var mjVu = '', mjLive = null;
   function mjEtat(s) {
@@ -809,9 +828,9 @@
   if (FJ.mode === 'mj') {
     // bouton « Majordome » : l'interface classique (réglages, mémoire, messages, routines…)
     var mb = doc.createElement('button'); mb.type = 'button'; mb.id = 'mjBtn'; mb.className = 'ib';
-    mb.title = 'Écrans de Majordome (réglages, mémoire, messages…)'; mb.setAttribute('aria-label', 'Écrans de Majordome');
+    mb.title = 'Menu de Majordome (lumières, notes, historique, applis…)'; mb.setAttribute('aria-label', 'Menu de Majordome');
     mb.innerHTML = FJI.svg('menu');
-    mb.onclick = function () { if (cvInit()) CV.bc.postMessage({ t: 'classique' }); };
+    mb.onclick = function () { mjMenu(!mjMenuOpen); };
     var gear = $('gear'); gear.parentNode.insertBefore(mb, gear.nextSibling);
     $('mic').title = 'Parler à ' + FJ.aiName();
   }

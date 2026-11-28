@@ -383,7 +383,7 @@ Affichage (bouton à côté de ⚙, ou ⚙ › Général › Affichage) : Automa
 Téléphone, et tablette en hauteur (`data-ecran-scroll="1"`) : sphère en haut, barre et raccourcis, puis les panneaux dans
 `#cols`, zone qui défile (au PC, `#cols` est en `display: contents` : la grille ne change pas) ; pas de circuits ni de flux
 de données par-dessus les panneaux, constellations proportionnées à la surface. Tablette en largeur : la grille du PC sans
-zone d'icônes. Entrée `apk` de `pc-apps.json` : `applis/www-jarvis/` reçoit les fichiers du paquet Lively (sauf `skip`),
+zone d'icônes. Entrée `apk` de `pc-apps.json` : `applis/www-majordome/jarvis/` (écran de Majordome, mj-visage.js) reçoit les fichiers du paquet Lively (sauf `skip`),
 pour l'**appli Android Jarvis** (`applis/apps.json` : `jarvis`, moteur Piper ajouté par `with`). Dans l'appli
 (`FJ.mode = 'app'`, `window.Capacitor`) : voix du téléphone par `MAGPrint.speak` si la WebView n'a pas `speechSynthesis`,
 titres par `MAGPrint.httpFetch` si la requête web est refusée, écran gardé allumé (`MAGPrint.keepScreen`, réglable),

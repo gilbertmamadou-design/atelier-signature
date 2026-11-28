@@ -166,3 +166,8 @@ html.fj-deplace .pan.dep-drag { cursor: grabbing; opacity: .92; box-shadow: 0 0 
 .dep-ph { border: 2px dashed rgb(var(--c) / .8); background: rgb(var(--c) / .08); flex: none; }
 #depBar { position: fixed; top: max(10px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 12; display: flex; align-items: center; gap: .6em; flex-wrap: wrap; justify-content: center;
   padding: .6em .9em; background: #030c16f2; border: 1px solid rgb(var(--c) / .6); box-shadow: 0 0 2em rgb(var(--c) / .25); color: rgb(var(--ink)); max-width: calc(100vw - 20px); }
+
+/* écran de Majordome : menu ☰ (lumières, notes, historique, applis, réglages…) */
+#mjMenu { position: fixed; z-index: 11; width: 220px; display: grid; padding: .3em; background: #030c16f2; border: 1px solid rgb(var(--c) / .6); box-shadow: 0 0 2em rgb(var(--c) / .25); }
+#mjMenu button { text-align: left; padding: .7em .9em; color: rgb(var(--ink)); background: none; border: 0; font: inherit; cursor: pointer; }
+#mjMenu button:hover, #mjMenu button:focus-visible { background: rgb(var(--c) / .14); outline: none; }

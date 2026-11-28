@@ -478,6 +478,8 @@ def launcher(conf, versions, apps_android):
         d = a.get('data')
         if d:
             data[a['id']] = {'name': a['name'], 'ls': d.get('ls', []), 'idb': d.get('idb', []), 'note': d.get('note', '')}
+        if a.get('lanceur') is False:      # page sans tuile (ex. Fond Jarvis : écran de Majordome, écran de veille)
+            continue
         tiles.append(
             '<div class="tw" data-app="%(id)s"><a class="tile" href="%(id)s/"><img src="%(id)s/icon-192.png" alt="" width="64" height="64">'
             '<span class="tx"><b>%(name)s</b><small>%(desc)s</small><i class="ver" title="Code de version %(v)s">Version du %(date)s</i></span><span class="go" aria-hidden="true">›</span></a>%(dat)s</div>'

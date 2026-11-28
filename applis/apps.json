@@ -393,16 +393,5 @@
   "name": "Bourse",
   "icons": "android-icons-bourse",
   "file": "Bourse.apk"
- },
- {
-  "app": "jarvis",
-  "web": "www-jarvis",
-  "appid": "fr.magformation13.jarvis",
-  "name": "Jarvis",
-  "icons": "android-icons-jarvis",
-  "file": "Jarvis.apk",
-  "with": [
-   "www-majordome/piper/"
-  ]
  }
 ]
